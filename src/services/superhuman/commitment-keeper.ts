@@ -168,7 +168,11 @@ const COMMITMENT_PATTERNS: Array<{
   { pattern: /\bi (really )?(should|ought to)\b/i, type: 'intention', weight: 0.5 },
 
   // Indirect commitments - "consider it done" patterns (P2 FIX)
-  { pattern: /\bconsider (it|that|the \w+) (as )?(good as )?done\b/i, type: 'promise', weight: 0.75 },
+  {
+    pattern: /\bconsider (it|that|the \w+) (as )?(good as )?done\b/i,
+    type: 'promise',
+    weight: 0.75,
+  },
   { pattern: /\bsay less\b/i, type: 'intention', weight: 0.65 }, // Gen-Z "I got you"
   { pattern: /\bi got (you|this|it)\b/i, type: 'intention', weight: 0.6 },
   { pattern: /\b(say no more|no need to ask twice)\b/i, type: 'promise', weight: 0.7 },
@@ -187,7 +191,11 @@ const COMMITMENT_PATTERNS: Array<{
   // Double negative patterns (P3 FIX) - "It's not as though I'm NOT going to..."
   { pattern: /\bnot as (though|if) i('m| am)? not\b/i, type: 'intention', weight: 0.6 },
   { pattern: /\bi('m| am) not not going to\b/i, type: 'intention', weight: 0.6 },
-  { pattern: /\bit('s| is) not (like|that) i (won't|wouldn't)\b/i, type: 'intention', weight: 0.55 },
+  {
+    pattern: /\bit('s| is) not (like|that) i (won't|wouldn't)\b/i,
+    type: 'intention',
+    weight: 0.55,
+  },
 
   // Formal/legal patterns (P3 FIX)
   { pattern: /\b(hereby|herewith) (undertake|commit|agree)\b/i, type: 'promise', weight: 0.7 },
@@ -225,13 +233,25 @@ const COMMITMENT_PATTERNS: Array<{
   // Conversations
   { pattern: /\bi need to (talk|speak) to\b/i, type: 'conversation', weight: 0.8 },
   { pattern: /\bi('m| am) going to (tell|ask|confront)\b/i, type: 'conversation', weight: 0.75 },
-  { pattern: /\bi have to have (a|that)( \w+)? conversation\b/i, type: 'conversation', weight: 0.85 },
-  { pattern: /\bi need to have (a|that)( \w+)? conversation\b/i, type: 'conversation', weight: 0.85 },
+  {
+    pattern: /\bi have to have (a|that)( \w+)? conversation\b/i,
+    type: 'conversation',
+    weight: 0.85,
+  },
+  {
+    pattern: /\bi need to have (a|that)( \w+)? conversation\b/i,
+    type: 'conversation',
+    weight: 0.85,
+  },
 
   // Decisions
   { pattern: /\bi('ve| have) decided\b/i, type: 'decision', weight: 0.85 },
   { pattern: /\bi('m| am) going to (quit|leave|end)\b/i, type: 'decision', weight: 0.8 },
-  { pattern: /\bi('m| am) going to start (my own|a) (business|company|practice)/i, type: 'decision', weight: 0.85 },
+  {
+    pattern: /\bi('m| am) going to start (my own|a) (business|company|practice)/i,
+    type: 'decision',
+    weight: 0.85,
+  },
   { pattern: /\bthat('s| is) it,? i('m| am)\b/i, type: 'decision', weight: 0.7 },
 ];
 
@@ -265,7 +285,9 @@ export function detectCommitment(
   }
 
   // P3 FIX: Check for external pressure - not the user's own commitment
-  const isExternalPressure = EXTERNAL_PRESSURE_PATTERNS.some((pattern) => pattern.test(lowerTranscript));
+  const isExternalPressure = EXTERNAL_PRESSURE_PATTERNS.some((pattern) =>
+    pattern.test(lowerTranscript)
+  );
   if (isExternalPressure) {
     // External pressure is NOT a commitment the user made
     return { detected: false, confidence: 0 };
@@ -504,11 +526,13 @@ export async function updateCommitmentStatus(
         .doc(userId)
         .collection('commitments')
         .doc(commitmentId)
-        .update(cleanForFirestore({
-          status,
-          ...(reaction && { userReactionToFollowUp: reaction }),
-          lastMentioned: Date.now(),
-        }));
+        .update(
+          cleanForFirestore({
+            status,
+            ...(reaction && { userReactionToFollowUp: reaction }),
+            lastMentioned: Date.now(),
+          })
+        );
     }
 
     // Update cache

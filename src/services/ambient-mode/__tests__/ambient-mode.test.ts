@@ -23,10 +23,7 @@ vi.mock('../../../memory/firestore/firestore-utils.js', () => ({
 }));
 
 // Import after mocks
-import {
-  ambientMode,
-  buildAmbientModeInjection,
-} from '../index.js';
+import { ambientMode, buildAmbientModeInjection } from '../index.js';
 import type { AmbientState, AmbientPreferences, NudgeType } from '../types.js';
 
 describe('Ambient Mode Service', () => {
@@ -55,9 +52,7 @@ describe('Ambient Mode Service', () => {
 
   describe('ambientMode.setQuietHours', () => {
     it('should set quiet hours', async () => {
-      await expect(
-        ambientMode.setQuietHours('test-user', '22:00', '08:00')
-      ).resolves.not.toThrow();
+      await expect(ambientMode.setQuietHours('test-user', '22:00', '08:00')).resolves.not.toThrow();
     });
   });
 
@@ -97,10 +92,7 @@ describe('Ambient Mode Service', () => {
         maxNudgesPerDay: 3,
         quietHoursStart: '22:00',
         quietHoursEnd: '08:00',
-        allowedNudgeTypes: [
-          'morning_checkin',
-          'evening_reflection',
-        ] as NudgeType[],
+        allowedNudgeTypes: ['morning_checkin', 'evening_reflection'] as NudgeType[],
         updatedAt: new Date().toISOString(),
       };
 
@@ -158,7 +150,7 @@ describe('Ambient Mode Service', () => {
         deviceActive: true,
       };
       const evaluation = await ambientMode.evaluateNudge(state);
-      
+
       // evaluateNudge returns AmbientNudge | null
       // If no nudge is appropriate, it returns null
       if (evaluation) {
@@ -170,4 +162,3 @@ describe('Ambient Mode Service', () => {
     });
   });
 });
-

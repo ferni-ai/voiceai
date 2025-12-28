@@ -241,9 +241,7 @@ describe('Predictive Cache Warming', () => {
 
       // Calendar queries appear in both time and persona predictions
       // Should be deduplicated
-      const calendarQueries = predictions.filter((p) =>
-        p.query.toLowerCase().includes('calendar')
-      );
+      const calendarQueries = predictions.filter((p) => p.query.toLowerCase().includes('calendar'));
       const uniqueCalendarQueries = new Set(calendarQueries.map((p) => p.query));
 
       expect(calendarQueries.length).toBe(uniqueCalendarQueries.size);
@@ -359,7 +357,9 @@ describe('Predictive Cache Warming', () => {
 
       // Should have called fetch with financial queries
       const calledQueries = mockFetch.mock.calls.map((call) => call[1]);
-      expect(calledQueries.some((q: string) => q.includes('stocks') || q.includes('portfolio'))).toBe(true);
+      expect(
+        calledQueries.some((q: string) => q.includes('stocks') || q.includes('portfolio'))
+      ).toBe(true);
       expect(result.warmedCount).toBeGreaterThan(0);
     });
 

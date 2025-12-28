@@ -12,15 +12,18 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock the logger
+// Mock the logger - use vi.hoisted() to ensure mockLogger is defined before vi.mock() runs
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  child: vi.fn().mockReturnThis(),
+}));
+
 vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
+  createLogger: () => mockLogger,
+  getLogger: () => mockLogger,
 }));
 
 // Import after mocks
@@ -79,8 +82,15 @@ describe('SMS and Voice Memo Semantic Routing', () => {
       if (result.routeResult?.matches?.length) {
         const topMatch = result.routeResult.matches[0];
         // "messages" is ambiguous - any message-related tool is acceptable
-        const messageTools = ['sms_read', 'sms_check_new', 'telephony_voicemail', 'comm_analyze_message', 'comm_send_message'];
-        const isMessageRelated = messageTools.includes(topMatch.toolId) || topMatch.toolId.includes('message');
+        const messageTools = [
+          'sms_read',
+          'sms_check_new',
+          'telephony_voicemail',
+          'comm_analyze_message',
+          'comm_send_message',
+        ];
+        const isMessageRelated =
+          messageTools.includes(topMatch.toolId) || topMatch.toolId.includes('message');
         expect(isMessageRelated).toBe(true);
       }
     });
@@ -105,7 +115,10 @@ describe('SMS and Voice Memo Semantic Routing', () => {
       if (result.routeResult?.matches?.length) {
         const topMatch = result.routeResult.matches[0];
         // Any message or communication tool is acceptable
-        const isMessageRelated = topMatch.toolId.includes('sms') || topMatch.toolId.includes('message') || topMatch.toolId.includes('comm');
+        const isMessageRelated =
+          topMatch.toolId.includes('sms') ||
+          topMatch.toolId.includes('message') ||
+          topMatch.toolId.includes('comm');
         expect(isMessageRelated).toBe(true);
       }
     });
@@ -118,7 +131,8 @@ describe('SMS and Voice Memo Semantic Routing', () => {
       if (result.routeResult?.matches?.length) {
         const topMatch = result.routeResult.matches[0];
         // Any search-related tool is acceptable for this query
-        const isSearchRelated = topMatch.toolId.includes('search') || topMatch.toolId.includes('sms');
+        const isSearchRelated =
+          topMatch.toolId.includes('search') || topMatch.toolId.includes('sms');
         expect(isSearchRelated).toBe(true);
       }
     });
@@ -163,7 +177,10 @@ describe('SMS and Voice Memo Semantic Routing', () => {
       if (result.routeResult?.matches?.length) {
         const topMatch = result.routeResult.matches[0];
         // Any memo or memory save tool is acceptable
-        const isMemoRelated = topMatch.toolId.includes('memo') || topMatch.toolId.includes('memory') || topMatch.toolId.includes('save');
+        const isMemoRelated =
+          topMatch.toolId.includes('memo') ||
+          topMatch.toolId.includes('memory') ||
+          topMatch.toolId.includes('save');
         expect(isMemoRelated).toBe(true);
       }
     });
@@ -179,7 +196,11 @@ describe('SMS and Voice Memo Semantic Routing', () => {
       if (result.routeResult?.matches?.length) {
         const topMatch = result.routeResult.matches[0];
         // Any memo, memory, or recording tool is acceptable
-        const isMemoRelated = topMatch.toolId.includes('memo') || topMatch.toolId.includes('memory') || topMatch.toolId.includes('record') || topMatch.toolId.includes('save');
+        const isMemoRelated =
+          topMatch.toolId.includes('memo') ||
+          topMatch.toolId.includes('memory') ||
+          topMatch.toolId.includes('record') ||
+          topMatch.toolId.includes('save');
         expect(isMemoRelated).toBe(true);
       }
     });

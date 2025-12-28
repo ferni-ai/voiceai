@@ -142,4 +142,3 @@ export type {
 
 // Re-export EnergyLevel type
 export type { EnergyLevel } from './behavior-loader.js';
-

@@ -448,7 +448,7 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
   // ==========================================================================
   // 📱 TELEPHONY (5 tools)
   // ==========================================================================
-  
+
   // Simple business calls (voicemail, quick calls) - uses TwiML voicemail
   telephony_call: {
     domainToolId: 'makePhoneCall',
@@ -458,7 +458,7 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
       message: args.message || 'This is a message from Ferni.',
     }),
   },
-  
+
   // Personal/conversational calls (family, friends) - Ferni has real conversation
   telephony_converse: {
     domainToolId: 'callAndConverse',
@@ -468,7 +468,7 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
       tone: args.tone || 'warm',
     }),
   },
-  
+
   // Autonomous calls for tasks (appointments, reservations, etc.)
   telephony_call_on_behalf: {
     domainToolId: 'callOnBehalf',
@@ -479,13 +479,13 @@ const TOOL_MAPPINGS: Record<string, ToolMapping> = {
       preferredTime: args.preferredTime,
     }),
   },
-  
+
   // Request a callback from a business
   telephony_callback: {
     domainToolId: 'scheduleCallback',
     transformArgs: (args) => ({ contact: args.business || args.contact, when: args.preferredTime }),
   },
-  
+
   // Check voicemail
   telephony_voicemail: {
     domainToolId: 'checkVoicemail',

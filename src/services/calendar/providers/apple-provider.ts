@@ -782,15 +782,20 @@ export class AppleCalendarProvider implements CalendarProviderAdapter {
     }
 
     try {
-      await firestore.collection(`users/${userId}/calendar_providers`).doc('apple').set(cleanForFirestore({
-        provider: 'apple',
-        connected: true,
-        email: appleId,
-        syncEnabled: true,
-        syncDirection: 'two-way',
-        credentials: storedCreds,
-        lastSyncedAt: null,
-      }));
+      await firestore
+        .collection(`users/${userId}/calendar_providers`)
+        .doc('apple')
+        .set(
+          cleanForFirestore({
+            provider: 'apple',
+            connected: true,
+            email: appleId,
+            syncEnabled: true,
+            syncDirection: 'two-way',
+            credentials: storedCreds,
+            lastSyncedAt: null,
+          })
+        );
 
       log.info({ userId }, 'Stored Apple Calendar credentials (encrypted)');
       return true;

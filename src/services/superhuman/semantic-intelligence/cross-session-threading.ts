@@ -96,11 +96,7 @@ export async function recordMoment(
   momentBuffer.set(userId, buffer);
 
   // Search for thread connections
-  const discoveredThread = await discoverThreadConnections(
-    userId,
-    threadMoment,
-    embedding
-  );
+  const discoveredThread = await discoverThreadConnections(userId, threadMoment, embedding);
 
   if (discoveredThread) {
     log.debug(
@@ -146,7 +142,7 @@ async function discoverThreadConnections(
   embedding: number[]
 ): Promise<SemanticThread | null> {
   // Load existing threads and past moments
-  const threads = threadCache.get(userId) || await loadThreads(userId);
+  const threads = threadCache.get(userId) || (await loadThreads(userId));
   const buffer = momentBuffer.get(userId) || [];
 
   // 1. Check if this moment connects to an existing thread
@@ -244,10 +240,7 @@ async function createThread(
   const now = Date.now();
 
   // Gather all moments
-  const allMoments = [
-    { moment: currentMoment, similarity: 1.0 },
-    ...connections,
-  ];
+  const allMoments = [{ moment: currentMoment, similarity: 1.0 }, ...connections];
 
   // Generate theme from most representative content
   const theme = await generateTheme(allMoments.map((m) => m.moment.content));
@@ -265,8 +258,7 @@ async function createThread(
       similarity: m.similarity,
     })),
     depth: new Set(allMoments.map((m) => m.moment.sessionId)).size,
-    coherence:
-      allMoments.reduce((a, b) => a + b.similarity, 0) / allMoments.length,
+    coherence: allMoments.reduce((a, b) => a + b.similarity, 0) / allMoments.length,
     userAwareness,
     connectionInsight: '',
     surfacedToUser: false,
@@ -290,12 +282,57 @@ async function generateTheme(contents: string[]): Promise<string> {
   const wordFreq = new Map<string, number>();
 
   const stopWords = new Set([
-    'i', 'me', 'my', 'the', 'a', 'an', 'is', 'are', 'was', 'were',
-    'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
-    'will', 'would', 'could', 'should', 'may', 'might', 'must',
-    'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
-    'it', 'that', 'this', 'but', 'and', 'or', 'so', 'if', 'just',
-    'like', 'about', 'really', 'always', 'never', 'feel', 'think',
+    'i',
+    'me',
+    'my',
+    'the',
+    'a',
+    'an',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'it',
+    'that',
+    'this',
+    'but',
+    'and',
+    'or',
+    'so',
+    'if',
+    'just',
+    'like',
+    'about',
+    'really',
+    'always',
+    'never',
+    'feel',
+    'think',
   ]);
 
   for (const word of words) {
@@ -321,14 +358,10 @@ async function generateTheme(contents: string[]): Promise<string> {
 /**
  * Infer whether user is likely aware of this connection.
  */
-function inferUserAwareness(
-  moments: ThreadMoment[]
-): 'conscious' | 'unconscious' | 'mixed' {
+function inferUserAwareness(moments: ThreadMoment[]): 'conscious' | 'unconscious' | 'mixed' {
   // If moments are close in time, probably conscious
   const timestamps = moments.map((m) => m.timestamp).sort((a, b) => a - b);
-  const maxGap = Math.max(
-    ...timestamps.slice(1).map((t, i) => t - timestamps[i])
-  );
+  const maxGap = Math.max(...timestamps.slice(1).map((t, i) => t - timestamps[i]));
 
   // If spread over long time, probably unconscious connection
   if (maxGap > 30 * 24 * 60 * 60 * 1000) {
@@ -384,7 +417,7 @@ function updateConnectionInsight(thread: SemanticThread): void {
  * Get all threads for a user.
  */
 export async function getThreads(userId: string): Promise<SemanticThread[]> {
-  return threadCache.get(userId) || await loadThreads(userId);
+  return threadCache.get(userId) || (await loadThreads(userId));
 }
 
 /**
@@ -402,9 +435,7 @@ export async function getRelevantThreads(
 
   if (!context.currentContent && !context.currentTopic) {
     // Return unsurfaced threads with high coherence
-    return threads
-      .filter((t) => !t.surfacedToUser && t.coherence >= 0.7)
-      .slice(0, 3);
+    return threads.filter((t) => !t.surfacedToUser && t.coherence >= 0.7).slice(0, 3);
   }
 
   // Score relevance
@@ -455,9 +486,7 @@ export async function getRelevantThreads(
 /**
  * Get threads by awareness level.
  */
-export async function getUnconsciousConnections(
-  userId: string
-): Promise<SemanticThread[]> {
+export async function getUnconsciousConnections(userId: string): Promise<SemanticThread[]> {
   const threads = await getThreads(userId);
   return threads
     .filter((t) => t.userAwareness === 'unconscious' && !t.surfacedToUser)
@@ -603,4 +632,3 @@ export const crossSessionThreading = {
   buildContext: buildThreadingContext,
   clearCache: clearThreadCache,
 };
-

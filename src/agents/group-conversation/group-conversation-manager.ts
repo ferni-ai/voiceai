@@ -13,19 +13,14 @@ import { EventEmitter } from 'events';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import type {
-  ParticipantRegistry} from './participant-registry.js';
+import type { ParticipantRegistry } from './participant-registry.js';
 import {
   createParticipantRegistry,
   createUserParticipant,
   createAgentParticipant,
 } from './participant-registry.js';
-import type {
-  TurnTakingEngine} from './turn-taking.js';
-import {
-  createTurnTakingEngine,
-  DEFAULT_TURN_TAKING_CONFIG,
-} from './turn-taking.js';
+import type { TurnTakingEngine } from './turn-taking.js';
+import { createTurnTakingEngine, DEFAULT_TURN_TAKING_CONFIG } from './turn-taking.js';
 import type {
   GroupConversation,
   GroupParticipant,

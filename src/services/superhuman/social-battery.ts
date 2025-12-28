@@ -14,7 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, } from './firestore-utils.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SocialBattery' });
@@ -247,10 +247,7 @@ export async function recordSocialEvent(
 /**
  * Load recent social events.
  */
-export async function loadSocialEvents(
-  userId: string,
-  daysBack = 14
-): Promise<SocialEvent[]> {
+export async function loadSocialEvents(userId: string, daysBack = 14): Promise<SocialEvent[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -365,17 +362,17 @@ export async function buildSocialBatteryContext(userId: string): Promise<string>
   if (state.currentLevel <= state.warningThreshold) {
     sections.push(
       `⚠️ SOCIAL BATTERY LOW: ${state.currentLevel}%\n` +
-      `This person is likely "peopled out." They may need:\n` +
-      `• Permission to decline social obligations\n` +
-      `• Validation that rest is okay\n` +
-      `• Help protecting alone time\n` +
-      `Estimated recharge time: ${state.fullRechargeHours} hours of alone time`
+        `This person is likely "peopled out." They may need:\n` +
+        `• Permission to decline social obligations\n` +
+        `• Validation that rest is okay\n` +
+        `• Help protecting alone time\n` +
+        `Estimated recharge time: ${state.fullRechargeHours} hours of alone time`
     );
   } else if (state.currentLevel <= 50) {
     sections.push(
       `🔋 Social battery at ${state.currentLevel}%.\n` +
-      `Be mindful - this person may be running low on social energy. ` +
-      `Avoid suggesting big social commitments.`
+        `Be mindful - this person may be running low on social energy. ` +
+        `Avoid suggesting big social commitments.`
     );
   }
 
@@ -383,7 +380,7 @@ export async function buildSocialBatteryContext(userId: string): Promise<string>
   if (state.socialTendency < 0.4) {
     sections.push(
       `\n📊 Note: This person trends introverted. They recover through solitude, ` +
-      `not through more social interaction. Respect their need for alone time.`
+        `not through more social interaction. Respect their need for alone time.`
     );
   }
 
@@ -402,4 +399,3 @@ export const socialBattery = {
   calculateLevel: calculateBatteryLevel,
   buildContext: buildSocialBatteryContext,
 };
-

@@ -260,28 +260,43 @@
   "spotify_pause": {
     "phrases": ["pausa", "pausa la música", "para la música", "deja de reproducir"],
     "patterns": ["^(?:pausa|para|detén)\\s+(?:la\\s+)?(?:música|canción)"],
-    "keywords": [{ "word": "pausa", "weight": 1.0 }, { "word": "para", "weight": 0.9 }],
+    "keywords": [
+      { "word": "pausa", "weight": 1.0 },
+      { "word": "para", "weight": 0.9 }
+    ],
     "antiKeywords": ["pon", "reproduce", "continúa"]
   },
 
   "spotify_skip": {
     "phrases": ["siguiente canción", "salta", "pasa esta", "siguiente"],
     "patterns": ["^(?:siguiente|salta|pasa)\\s+(?:esta\\s+)?(?:canción)?"],
-    "keywords": [{ "word": "siguiente", "weight": 1.0 }, { "word": "salta", "weight": 1.0 }],
+    "keywords": [
+      { "word": "siguiente", "weight": 1.0 },
+      { "word": "salta", "weight": 1.0 }
+    ],
     "antiKeywords": ["anterior", "atrás"]
   },
 
   "set_timer": {
     "phrases": ["pon un temporizador", "temporizador de", "cronómetro de"],
     "patterns": ["^(?:pon|configura)\\s+(?:un\\s+)?temporizador\\s+(?:de\\s+)?(.+)"],
-    "keywords": [{ "word": "temporizador", "weight": 1.0 }, { "word": "minutos", "weight": 0.7 }],
+    "keywords": [
+      { "word": "temporizador", "weight": 1.0 },
+      { "word": "minutos", "weight": 0.7 }
+    ],
     "antiKeywords": ["alarma", "recordatorio"]
   },
 
   "set_reminder": {
     "phrases": ["recuérdame que", "pon un recordatorio", "no me dejes olvidar"],
-    "patterns": ["^recuérdame\\s+(?:que\\s+)?(.+)", "^(?:pon|crea)\\s+(?:un\\s+)?recordatorio\\s+(?:para\\s+)?(.+)"],
-    "keywords": [{ "word": "recuérdame", "weight": 1.0 }, { "word": "recordatorio", "weight": 1.0 }],
+    "patterns": [
+      "^recuérdame\\s+(?:que\\s+)?(.+)",
+      "^(?:pon|crea)\\s+(?:un\\s+)?recordatorio\\s+(?:para\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "recuérdame", "weight": 1.0 },
+      { "word": "recordatorio", "weight": 1.0 }
+    ],
     "antiKeywords": ["temporizador", "alarma"]
   },
 
@@ -448,12 +463,7 @@
   },
 
   "sleep_help": {
-    "phrases": [
-      "no puedo dormir",
-      "ayúdame a dormir",
-      "insomnio",
-      "problemas para dormir"
-    ],
+    "phrases": ["no puedo dormir", "ayúdame a dormir", "insomnio", "problemas para dormir"],
     "patterns": [
       "^no\\s+puedo\\s+(?:quedarme\\s+)?dormido",
       "^(?:ayúdame|necesito\\s+ayuda)\\s+(?:para|a)\\s+dormir"
@@ -486,15 +496,27 @@
 
   "news_update": {
     "phrases": ["qué hay de nuevo", "noticias de hoy", "últimas noticias", "qué está pasando"],
-    "patterns": ["^(?:qué|cuáles\\s+son)\\s+(?:las\\s+)?(?:últimas\\s+)?noticias", "^(?:noticias|titulares)\\s+(?:de\\s+)?hoy"],
-    "keywords": [{ "word": "noticias", "weight": 1.0 }, { "word": "titulares", "weight": 0.9 }],
+    "patterns": [
+      "^(?:qué|cuáles\\s+son)\\s+(?:las\\s+)?(?:últimas\\s+)?noticias",
+      "^(?:noticias|titulares)\\s+(?:de\\s+)?hoy"
+    ],
+    "keywords": [
+      { "word": "noticias", "weight": 1.0 },
+      { "word": "titulares", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "set_alarm": {
     "phrases": ["pon una alarma", "despiértame", "alarma para"],
-    "patterns": ["^(?:pon|configura)\\s+(?:una\\s+)?alarma\\s+(?:para\\s+)?(.+)", "^despiértame\\s+(?:a\\s+)?(.+)"],
-    "keywords": [{ "word": "alarma", "weight": 1.0 }, { "word": "despiértame", "weight": 0.9 }],
+    "patterns": [
+      "^(?:pon|configura)\\s+(?:una\\s+)?alarma\\s+(?:para\\s+)?(.+)",
+      "^despiértame\\s+(?:a\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "alarma", "weight": 1.0 },
+      { "word": "despiértame", "weight": 0.9 }
+    ],
     "antiKeywords": ["temporizador", "recordatorio"]
   }
 }

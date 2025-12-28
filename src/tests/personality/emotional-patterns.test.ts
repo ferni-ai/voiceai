@@ -161,20 +161,10 @@ describe('Emotional Pattern Recognition', () => {
 
     it('should update growth when progress is made', () => {
       // Start tracking from a low point
-      recordGrowthEvidence(
-        testUserId,
-        'communication',
-        "I can't talk to my boss",
-        false
-      );
+      recordGrowthEvidence(testUserId, 'communication', "I can't talk to my boss", false);
 
       // Record progress
-      recordGrowthEvidence(
-        testUserId,
-        'communication',
-        'I finally talked to my boss!',
-        true
-      );
+      recordGrowthEvidence(testUserId, 'communication', 'I finally talked to my boss!', true);
 
       // Check growth moments - may or may not have celebration depending on time
       const celebrations = getGrowthCelebrations(testUserId, { onlyUnsurfaced: true });
@@ -273,4 +263,3 @@ describe('Emotional Pattern Recognition', () => {
     });
   });
 });
-

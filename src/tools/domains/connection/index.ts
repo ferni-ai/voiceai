@@ -1283,7 +1283,10 @@ const shareConnectionInsightDef: ToolDefinition = {
             oneTime: false,
           });
 
-          const targetName = targetPersona === 'all' ? 'the team' : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
 
           let response = `**Insight Shared with ${targetName}**\n\n`;
 
@@ -1308,7 +1311,7 @@ const shareConnectionInsightDef: ToolDefinition = {
 const getRelationshipNetworkContextDef: ToolDefinition = {
   id: 'getRelationshipNetworkContext',
   name: 'Get Relationship Network Context',
-  description: 'Get context about the user\'s relationship network from superhuman services',
+  description: "Get context about the user's relationship network from superhuman services",
   domain: 'connection',
   tags: ['cross-persona', 'relationships', 'network'],
 
@@ -1352,7 +1355,10 @@ const flagConnectionConcernForMayaDef: ToolDefinition = {
         urgency: z.enum(['low', 'medium', 'high']).describe('How urgent is this'),
       }),
       execute: async ({ concern, suggestedHabit, urgency }) => {
-        getLogger().info({ agentId: ctx.agentId, concern, urgency }, 'Flagging connection concern for Maya');
+        getLogger().info(
+          { agentId: ctx.agentId, concern, urgency },
+          'Flagging connection concern for Maya'
+        );
 
         try {
           let content = `Connection concern: ${concern}`;

@@ -69,7 +69,14 @@ const metrics: CacheMetrics = {
 // PHRASES TO PRE-CACHE
 // ============================================================================
 
-const PERSONAS = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+const PERSONAS = [
+  'ferni',
+  'maya-santos',
+  'peter-john',
+  'alex-chen',
+  'jordan-taylor',
+  'nayan-patel',
+];
 
 /**
  * Short greetings for instant response.
@@ -87,32 +94,22 @@ const GREETINGS: Record<string, string[]> = {
     'Hey!',
     "Hey! What's on your mind?",
     'Hey! Maya here.',
-    "Hi! What are we working on?",
+    'Hi! What are we working on?',
   ],
   'peter-john': [
     'Hey!',
     'Hey! Peter here.',
     "Hey! What's interesting?",
-    "Hey! What are you thinking about?",
+    'Hey! What are you thinking about?',
   ],
-  'alex-chen': [
-    'Hey!',
-    "Hey! What's up?",
-    'Hey! Alex here.',
-    "Hey! What's going on?",
-  ],
+  'alex-chen': ['Hey!', "Hey! What's up?", 'Hey! Alex here.', "Hey! What's going on?"],
   'jordan-taylor': [
     'Hey!',
     'Hey! Jordan here!',
     "Hey! What's happening?",
     'Hey! Tell me everything!',
   ],
-  'nayan-patel': [
-    'Hey.',
-    "Hey. I'm listening.",
-    'Hello, friend.',
-    "Hey. What brings you?",
-  ],
+  'nayan-patel': ['Hey.', "Hey. I'm listening.", 'Hello, friend.', 'Hey. What brings you?'],
 };
 
 /**
@@ -121,44 +118,35 @@ const GREETINGS: Record<string, string[]> = {
  */
 const HANDOFF_BANTER: Record<string, string[]> = {
   ferni: [
-    "Let me get Alex for you.",
-    "Let me get Maya for you.",
-    "Let me get Jordan for you.",
-    "Let me get Peter for you.",
-    "Let me get Nayan for you.",
-    "One moment.",
+    'Let me get Alex for you.',
+    'Let me get Maya for you.',
+    'Let me get Jordan for you.',
+    'Let me get Peter for you.',
+    'Let me get Nayan for you.',
+    'One moment.',
     "They're perfect for this.",
   ],
   'maya-santos': [
-    "Let me get Ferni for you.",
-    "Let me get Alex for you.",
+    'Let me get Ferni for you.',
+    'Let me get Alex for you.',
     "I'll bring in Jordan.",
     "Ferni's great for this.",
-    "One moment.",
+    'One moment.',
   ],
   'peter-john': [
-    "Let me get Ferni.",
+    'Let me get Ferni.',
     "Maya's perfect for this.",
     "I'll get Jordan for you.",
-    "One moment.",
+    'One moment.',
   ],
   'alex-chen': [
-    "Let me get Ferni.",
+    'Let me get Ferni.',
     "Maya's perfect for this.",
     "I'll get Jordan for you.",
-    "One moment.",
+    'One moment.',
   ],
-  'jordan-taylor': [
-    "Let me get Ferni!",
-    "Maya's got this!",
-    "I'll get Peter!",
-    "One moment!",
-  ],
-  'nayan-patel': [
-    "Let me bring in Ferni.",
-    "Maya would be good for this.",
-    "One moment.",
-  ],
+  'jordan-taylor': ['Let me get Ferni!', "Maya's got this!", "I'll get Peter!", 'One moment!'],
+  'nayan-patel': ['Let me bring in Ferni.', 'Maya would be good for this.', 'One moment.'],
 };
 
 /**
@@ -168,40 +156,20 @@ const HANDOFF_BANTER: Record<string, string[]> = {
 const ARRIVING_BANTER: Record<string, string[]> = {
   ferni: [
     "Hey, I'm here.",
-    "Hey! Good to see you.",
-    "Hey, good to be back.",
+    'Hey! Good to see you.',
+    'Hey, good to be back.',
     "Hey! What's going on?",
   ],
   'maya-santos': [
-    "Hey! Maya here.",
-    "Hey there!",
+    'Hey! Maya here.',
+    'Hey there!',
     "Hey! I'm here for you.",
-    "Hey! Good to connect.",
+    'Hey! Good to connect.',
   ],
-  'peter-john': [
-    "Hey! Peter here.",
-    "Hey there!",
-    "Hey! Good to meet you.",
-    "Hey! I've got you.",
-  ],
-  'alex-chen': [
-    "Hey! Alex here.",
-    "Hey there!",
-    "Hey! I'm here to help.",
-    "Hey! Good to see you.",
-  ],
-  'jordan-taylor': [
-    "Hey! Jordan here!",
-    "Hey hey!",
-    "Hey! So good to meet you!",
-    "Hey! Let's go!",
-  ],
-  'nayan-patel': [
-    "Hello. Nayan here.",
-    "Namaste.",
-    "Hello. I'm here.",
-    "Hello. Good to meet you.",
-  ],
+  'peter-john': ['Hey! Peter here.', 'Hey there!', 'Hey! Good to meet you.', "Hey! I've got you."],
+  'alex-chen': ['Hey! Alex here.', 'Hey there!', "Hey! I'm here to help.", 'Hey! Good to see you.'],
+  'jordan-taylor': ['Hey! Jordan here!', 'Hey hey!', 'Hey! So good to meet you!', "Hey! Let's go!"],
+  'nayan-patel': ['Hello. Nayan here.', 'Namaste.', "Hello. I'm here.", 'Hello. Good to meet you.'],
 };
 
 /**
@@ -421,10 +389,7 @@ export function getCachedAudio(text: string, voiceId: string): ArrayBuffer | nul
 /**
  * Get cached audio for a specific persona's phrase.
  */
-export function getCachedAudioForPersona(
-  text: string,
-  personaId: string
-): ArrayBuffer | null {
+export function getCachedAudioForPersona(text: string, personaId: string): ArrayBuffer | null {
   const voiceId = getVoiceIdForPersona(personaId);
   if (!voiceId) return null;
   return getCachedAudio(text, voiceId);

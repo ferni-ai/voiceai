@@ -830,17 +830,27 @@ const allPersonaGreetingsCache = new Map<string, string>();
  * Called from warmup.ts during GCE worker initialization.
  */
 export function prewarmGreetingsForAllPersonas(): void {
-  const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
-  
+  const personas = [
+    'ferni',
+    'maya-santos',
+    'peter-john',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
+
   for (const personaId of personas) {
     const greeting = generateWarmGreeting(personaId);
     allPersonaGreetingsCache.set(personaId, greeting);
-    _log('debug', 'Pre-cached greeting for persona', { personaId, greeting: greeting.slice(0, 30) });
+    _log('debug', 'Pre-cached greeting for persona', {
+      personaId,
+      greeting: greeting.slice(0, 30),
+    });
   }
-  
+
   // Also set the single cache for the most common persona (Ferni)
   prewarmGreeting('ferni');
-  
+
   _log('info', 'All persona greetings pre-cached', { count: personas.length });
 }
 

@@ -40,8 +40,7 @@ export class WearableIntegrationService {
   private userId: string;
   private config: WearableConfig;
   private latestData = new Map<WearableProvider, WearableData>();
-  private connectionStatus =
-    new Map<WearableProvider, 'connected' | 'disconnected' | 'pending'>();
+  private connectionStatus = new Map<WearableProvider, 'connected' | 'disconnected' | 'pending'>();
 
   constructor(userId: string, config?: Partial<WearableConfig>) {
     this.userId = userId;

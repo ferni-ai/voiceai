@@ -65,8 +65,8 @@ describe('Productivity Tools', () => {
   const testUserId = 'test-user-productivity';
 
   describe('Tasks Tool', () => {
-    it('should create a task', () => {
-      const task = createTask({
+    it('should create a task', async () => {
+      const task = await createTask({
         userId: testUserId,
         title: 'Test Task',
         category: 'personal',
@@ -79,44 +79,44 @@ describe('Productivity Tools', () => {
       expect(task.priority).toBe('high');
     });
 
-    it('should complete a task', () => {
-      const task = createTask({
+    it('should complete a task', async () => {
+      const task = await createTask({
         userId: testUserId,
         title: 'Completable Task',
       });
 
-      const result = completeTask(task.id, 'Done!');
+      const result = await completeTask(task.id, 'Done!');
 
       expect(result).not.toBeNull();
       expect(result!.task.status).toBe('completed');
       expect(result!.task.completionNotes).toBe('Done!');
     });
 
-    it('should update a task', () => {
-      const task = createTask({
+    it('should update a task', async () => {
+      const task = await createTask({
         userId: testUserId,
         title: 'Updatable Task',
         priority: 'low',
       });
 
-      const updated = updateTask(task.id, { priority: 'urgent' });
+      const updated = await updateTask(task.id, { priority: 'urgent' });
 
       expect(updated).not.toBeNull();
       expect(updated!.priority).toBe('urgent');
     });
 
-    it('should delete a task', () => {
-      const task = createTask({
+    it('should delete a task', async () => {
+      const task = await createTask({
         userId: testUserId,
         title: 'Deletable Task',
       });
 
-      const deleted = deleteTask(task.id);
+      const deleted = await deleteTask(task.id);
       expect(deleted).toBe(true);
     });
 
-    it('should handle recurring tasks', () => {
-      const task = createTask({
+    it('should handle recurring tasks', async () => {
+      const task = await createTask({
         userId: testUserId,
         title: 'Recurring Task',
         isRecurring: true,
@@ -124,7 +124,7 @@ describe('Productivity Tools', () => {
         dueDate: new Date(),
       });
 
-      const result = completeTask(task.id);
+      const result = await completeTask(task.id);
 
       expect(result).not.toBeNull();
       // Should create next instance for recurring tasks
@@ -135,8 +135,8 @@ describe('Productivity Tools', () => {
   });
 
   describe('Habits Tool', () => {
-    it('should create a habit', () => {
-      const habit = createHabit({
+    it('should create a habit', async () => {
+      const habit = await createHabit({
         userId: testUserId,
         name: 'Drink Water',
         category: 'health',
@@ -150,14 +150,14 @@ describe('Productivity Tools', () => {
       expect(habit.isActive).toBe(true);
     });
 
-    it('should log a habit completion', () => {
-      const habit = createHabit({
+    it('should log a habit completion', async () => {
+      const habit = await createHabit({
         userId: testUserId,
         name: 'Exercise',
         frequency: 'daily',
       });
 
-      const log = logHabit({
+      const log = await logHabit({
         habitId: habit.id,
         userId: testUserId,
         count: 1,
@@ -167,37 +167,37 @@ describe('Productivity Tools', () => {
       expect(log.count).toBe(1);
     });
 
-    it('should calculate streak', () => {
-      const habit = createHabit({
+    it('should calculate streak', async () => {
+      const habit = await createHabit({
         userId: testUserId,
         name: 'Meditation',
         frequency: 'daily',
       });
 
       // Log today
-      logHabit({
+      await logHabit({
         habitId: habit.id,
         userId: testUserId,
       });
 
-      const streak = calculateStreak(habit.id);
+      const streak = await calculateStreak(habit.id);
       expect(streak).toBeGreaterThanOrEqual(0);
     });
 
-    it('should soft delete a habit', () => {
-      const habit = createHabit({
+    it('should soft delete a habit', async () => {
+      const habit = await createHabit({
         userId: testUserId,
         name: 'Deletable Habit',
       });
 
-      const deleted = deleteHabit(habit.id);
+      const deleted = await deleteHabit(habit.id);
       expect(deleted).toBe(true);
     });
   });
 
   describe('Bills Tool', () => {
-    it('should add a bill', () => {
-      const bill = addBill({
+    it('should add a bill', async () => {
+      const bill = await addBill({
         userId: testUserId,
         name: 'Electric Bill',
         payee: 'Power Co',
@@ -213,8 +213,8 @@ describe('Productivity Tools', () => {
       expect(bill.isActive).toBe(true);
     });
 
-    it('should record a payment', () => {
-      const bill = addBill({
+    it('should record a payment', async () => {
+      const bill = await addBill({
         userId: testUserId,
         name: 'Internet',
         payee: 'ISP',
@@ -223,7 +223,7 @@ describe('Productivity Tools', () => {
         dueDay: 1,
       });
 
-      const result = recordPayment({
+      const result = await recordPayment({
         billId: bill.id,
         userId: testUserId,
         amount: 60,
@@ -233,8 +233,8 @@ describe('Productivity Tools', () => {
       expect(result!.payment.status).toBe('paid');
     });
 
-    it('should calculate monthly total', () => {
-      addBill({
+    it('should calculate monthly total', async () => {
+      await addBill({
         userId: `${testUserId}-total`,
         name: 'Bill A',
         payee: 'A',
@@ -243,7 +243,7 @@ describe('Productivity Tools', () => {
         frequency: 'monthly',
       });
 
-      addBill({
+      await addBill({
         userId: `${testUserId}-total`,
         name: 'Bill B',
         payee: 'B',
@@ -252,12 +252,12 @@ describe('Productivity Tools', () => {
         frequency: 'monthly',
       });
 
-      const total = calculateMonthlyTotal(`${testUserId}-total`);
+      const total = await calculateMonthlyTotal(`${testUserId}-total`);
       expect(total).toBe(150);
     });
 
-    it('should deactivate a bill', () => {
-      const bill = addBill({
+    it('should deactivate a bill', async () => {
+      const bill = await addBill({
         userId: testUserId,
         name: 'Cancelled Service',
         payee: 'Service',
@@ -265,14 +265,14 @@ describe('Productivity Tools', () => {
         dueDay: 10,
       });
 
-      const deactivated = deactivateBill(bill.id);
+      const deactivated = await deactivateBill(bill.id);
       expect(deactivated).toBe(true);
     });
   });
 
   describe('Medications Tool', () => {
-    it('should add a medication', () => {
-      const med = addMedication({
+    it('should add a medication', async () => {
+      const med = await addMedication({
         userId: testUserId,
         name: 'Vitamin D',
         dosage: '1000 IU',
@@ -284,15 +284,15 @@ describe('Productivity Tools', () => {
       expect(med.isActive).toBe(true);
     });
 
-    it('should log a dose', () => {
-      const med = addMedication({
+    it('should log a dose', async () => {
+      const med = await addMedication({
         userId: testUserId,
         name: 'Aspirin',
         dosage: '81mg',
         frequency: 'once_daily',
       });
 
-      const log = logDose({
+      const log = await logDose({
         medicationId: med.id,
         userId: testUserId,
         scheduledTime: '08:00',
@@ -303,8 +303,8 @@ describe('Productivity Tools', () => {
       expect(log.skipped).toBe(false);
     });
 
-    it('should track pill count', () => {
-      const med = addMedication({
+    it('should track pill count', async () => {
+      const med = await addMedication({
         userId: testUserId,
         name: 'Test Med',
         dosage: '10mg',
@@ -312,34 +312,34 @@ describe('Productivity Tools', () => {
         pillsRemaining: 30,
       });
 
-      logDose({
+      await logDose({
         medicationId: med.id,
         userId: testUserId,
         scheduledTime: '08:00',
         taken: true,
       });
 
-      const meds = getUserMedications(testUserId);
+      const meds = await getUserMedications(testUserId);
       const updatedMed = meds.find((m) => m.id === med.id);
       expect(updatedMed?.pillsRemaining).toBe(29);
     });
 
-    it('should discontinue a medication', () => {
-      const med = addMedication({
+    it('should discontinue a medication', async () => {
+      const med = await addMedication({
         userId: testUserId,
         name: 'Discontinued Med',
         dosage: '5mg',
         frequency: 'once_daily',
       });
 
-      const discontinued = discontinueMedication(med.id);
+      const discontinued = await discontinueMedication(med.id);
       expect(discontinued).toBe(true);
     });
   });
 
   describe('Notes Tool', () => {
-    it('should create a quick note', () => {
-      const note = createNote({
+    it('should create a quick note', async () => {
+      const note = await createNote({
         userId: testUserId,
         content: 'Remember to call mom',
         type: 'quick',
@@ -350,8 +350,8 @@ describe('Productivity Tools', () => {
       expect(note.type).toBe('quick');
     });
 
-    it('should create a journal entry', () => {
-      const entry = createJournalEntry({
+    it('should create a journal entry', async () => {
+      const entry = await createJournalEntry({
         userId: testUserId,
         gratitudes: ['Good weather', 'Nice coffee', 'Productive day'],
         mood: 4,
@@ -363,16 +363,16 @@ describe('Productivity Tools', () => {
       expect(entry.mood).toBe(4);
     });
 
-    it('should update existing journal for today', () => {
+    it('should update existing journal for today', async () => {
       // Create first entry
-      createJournalEntry({
+      await createJournalEntry({
         userId: `${testUserId}-journal`,
         gratitudes: ['First'],
         mood: 3,
       });
 
       // Update same day
-      const updated = createJournalEntry({
+      const updated = await createJournalEntry({
         userId: `${testUserId}-journal`,
         gratitudes: ['Updated'],
         mood: 5,
@@ -382,24 +382,24 @@ describe('Productivity Tools', () => {
       expect(updated.gratitudes).toContain('Updated');
     });
 
-    it('should get today journal', () => {
-      createJournalEntry({
+    it('should get today journal', async () => {
+      await createJournalEntry({
         userId: `${testUserId}-today`,
         mood: 4,
       });
 
-      const today = getTodayJournal(`${testUserId}-today`);
+      const today = await getTodayJournal(`${testUserId}-today`);
       expect(today).not.toBeNull();
       expect(today!.mood).toBe(4);
     });
 
-    it('should calculate journal streak', () => {
-      createJournalEntry({
+    it('should calculate journal streak', async () => {
+      await createJournalEntry({
         userId: `${testUserId}-streak`,
         mood: 4,
       });
 
-      const streak = getJournalStreak(`${testUserId}-streak`);
+      const streak = await getJournalStreak(`${testUserId}-streak`);
       expect(streak).toBeGreaterThanOrEqual(0);
     });
   });
@@ -410,11 +410,9 @@ describe('Productivity Tools', () => {
 
       // Create multiple items concurrently
       const [task, habit, bill] = await Promise.all([
-        Promise.resolve(createTask({ userId, title: 'Concurrent Task' })),
-        Promise.resolve(createHabit({ userId, name: 'Concurrent Habit' })),
-        Promise.resolve(
-          addBill({ userId, name: 'Concurrent Bill', payee: 'Test', amount: 100, dueDay: 1 })
-        ),
+        createTask({ userId, title: 'Concurrent Task' }),
+        createHabit({ userId, name: 'Concurrent Habit' }),
+        addBill({ userId, name: 'Concurrent Bill', payee: 'Test', amount: 100, dueDay: 1 }),
       ]);
 
       expect(task.id).toBeDefined();
@@ -422,15 +420,15 @@ describe('Productivity Tools', () => {
       expect(bill.id).toBeDefined();
     });
 
-    it('should maintain data isolation between users', () => {
+    it('should maintain data isolation between users', async () => {
       const user1 = 'isolation-user-1';
       const user2 = 'isolation-user-2';
 
-      createTask({ userId: user1, title: 'User 1 Task' });
-      createTask({ userId: user2, title: 'User 2 Task' });
+      await createTask({ userId: user1, title: 'User 1 Task' });
+      await createTask({ userId: user2, title: 'User 2 Task' });
 
-      const user1Tasks = getUserTasks(user1);
-      const user2Tasks = getUserTasks(user2);
+      const user1Tasks = await getUserTasks(user1);
+      const user2Tasks = await getUserTasks(user2);
 
       expect(user1Tasks.every((t) => t.userId === user1)).toBe(true);
       expect(user2Tasks.every((t) => t.userId === user2)).toBe(true);

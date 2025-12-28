@@ -88,10 +88,7 @@ export async function handleAmbientModeRoutes(
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-User-ID'
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-ID');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -295,4 +292,3 @@ export async function handleAmbientModeRoutes(
   // Not an ambient mode route we handle
   return false;
 }
-

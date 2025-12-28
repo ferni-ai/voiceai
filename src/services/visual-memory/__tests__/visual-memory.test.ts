@@ -42,10 +42,7 @@ vi.mock('@google-cloud/vision', () => ({
 }));
 
 // Import after mocks
-import {
-  visualMemory,
-  buildVisualMemoryInjection,
-} from '../index.js';
+import { visualMemory, buildVisualMemoryInjection } from '../index.js';
 import type { VisualMemory, VisualMemoryPreferences } from '../types.js';
 
 describe('Visual Memory Service', () => {
@@ -155,4 +152,3 @@ describe('Visual Memory Service', () => {
     });
   });
 });
-

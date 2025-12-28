@@ -177,8 +177,10 @@ export function detectReceptivity(voiceAnalysis: {
   // Time of day factor (people are generally more receptive mid-morning)
   const hour = new Date().getHours();
   let timeModifier = 0;
-  if (hour >= 9 && hour <= 11) timeModifier = 0.1; // Morning sweet spot
-  else if (hour >= 14 && hour <= 16) timeModifier = 0.05; // Afternoon okay
+  if (hour >= 9 && hour <= 11)
+    timeModifier = 0.1; // Morning sweet spot
+  else if (hour >= 14 && hour <= 16)
+    timeModifier = 0.05; // Afternoon okay
   else if (hour >= 22 || hour <= 5) timeModifier = -0.1; // Late night/early morning
 
   const score = Math.max(0, Math.min(1, baseReceptivity + toneModifier + timeModifier));
@@ -247,7 +249,8 @@ export async function recordTimingLearning(
   }
   const hourPattern = profile.energyByHour[hour];
   const oldHourAvg = hourPattern.avgEnergy;
-  const newHourAvg = (oldHourAvg * hourPattern.sampleCount + data.voiceEnergy) / (hourPattern.sampleCount + 1);
+  const newHourAvg =
+    (oldHourAvg * hourPattern.sampleCount + data.voiceEnergy) / (hourPattern.sampleCount + 1);
   hourPattern.avgEnergy = newHourAvg;
   hourPattern.sampleCount++;
   hourPattern.confidence = Math.min(0.95, hourPattern.sampleCount / 20); // Max confidence at 20 samples
@@ -258,7 +261,8 @@ export async function recordTimingLearning(
   }
   const dayPattern = profile.energyByDayOfWeek[dayOfWeek];
   const oldDayAvg = dayPattern.avgEnergy;
-  const newDayAvg = (oldDayAvg * dayPattern.sampleCount + data.voiceEnergy) / (dayPattern.sampleCount + 1);
+  const newDayAvg =
+    (oldDayAvg * dayPattern.sampleCount + data.voiceEnergy) / (dayPattern.sampleCount + 1);
   dayPattern.avgEnergy = newDayAvg;
   dayPattern.sampleCount++;
   dayPattern.confidence = Math.min(0.95, dayPattern.sampleCount / 10);
@@ -293,7 +297,8 @@ export async function recordTimingLearning(
     }
     // Running average of meetings
     profile.calendarAwareness.averageMeetingsPerDay =
-      profile.calendarAwareness.averageMeetingsPerDay * 0.9 + data.calendarContext.meetingsToday * 0.1;
+      profile.calendarAwareness.averageMeetingsPerDay * 0.9 +
+      data.calendarContext.meetingsToday * 0.1;
   }
 
   profile.updatedAt = new Date();
@@ -529,15 +534,16 @@ export function isGoodTimeFor(
   }
 
   // Get relevant windows
-  const windows = profile.optimalWindows[
-    conversationType === 'deep'
-      ? 'deepConversations'
-      : conversationType === 'gentle'
-        ? 'gentleCheckIns'
-        : conversationType === 'challenging'
-          ? 'challengingTopics'
-          : 'celebrations'
-  ];
+  const windows =
+    profile.optimalWindows[
+      conversationType === 'deep'
+        ? 'deepConversations'
+        : conversationType === 'gentle'
+          ? 'gentleCheckIns'
+          : conversationType === 'challenging'
+            ? 'challengingTopics'
+            : 'celebrations'
+    ];
 
   // Check if current time is in a good window
   const matchingWindow = windows.find(
@@ -699,4 +705,3 @@ export const perfectTiming = {
 };
 
 export default perfectTiming;
-

@@ -132,7 +132,8 @@ const threeWordDayDef: ToolDefinition = {
           success: true,
           game: 'three-word-day',
           message: result.message,
-          instructions: 'Wait for the user to provide exactly three words, then explore each one with curiosity.',
+          instructions:
+            'Wait for the user to provide exactly three words, then explore each one with curiosity.',
         };
       },
     });
@@ -166,7 +167,10 @@ const threeWordDayRespondDef: ToolDefinition = {
         const result = ThreeWordDay.processInput(state, userInput);
         threeWordDayStates.set(ctx.userId, result.newState);
 
-        log.info({ agentId: ctx.agentId, gameOver: result.gameOver }, 'Three Word Day turn processed');
+        log.info(
+          { agentId: ctx.agentId, gameOver: result.gameOver },
+          'Three Word Day turn processed'
+        );
 
         if (result.gameOver) {
           threeWordDayStates.delete(ctx.userId);
@@ -247,7 +251,10 @@ const valuesCardSortRespondDef: ToolDefinition = {
         const result = ValuesCardSort.processInput(state, userInput);
         valuesCardSortStates.set(ctx.userId, result.newState);
 
-        log.info({ agentId: ctx.agentId, phase: result.newState.phase, gameOver: result.gameOver }, 'Values Card Sort turn processed');
+        log.info(
+          { agentId: ctx.agentId, phase: result.newState.phase, gameOver: result.gameOver },
+          'Values Card Sort turn processed'
+        );
 
         if (result.gameOver) {
           // Get final values before deleting state
@@ -258,7 +265,7 @@ const valuesCardSortRespondDef: ToolDefinition = {
             success: true,
             message: result.message,
             gameOver: true,
-            topFiveValues: topFive.map(v => ({ name: v.name, description: v.description })),
+            topFiveValues: topFive.map((v) => ({ name: v.name, description: v.description })),
           };
         }
 
@@ -292,7 +299,9 @@ const headlineWriterDef: ToolDefinition = {
         timeframe: z
           .enum(['today', 'this_week', 'this_month', 'this_year', 'past', 'future', 'dream'])
           .optional()
-          .describe('Timeframe for the headline: today, this_week, this_month, this_year, past, future, or dream'),
+          .describe(
+            'Timeframe for the headline: today, this_week, this_month, this_year, past, future, or dream'
+          ),
         tone: z
           .enum(['triumphant', 'honest', 'humorous', 'hopeful', 'any'])
           .optional()
@@ -312,7 +321,8 @@ const headlineWriterDef: ToolDefinition = {
           success: true,
           game: 'headline-writer',
           message: result.message,
-          instructions: 'Encourage creative headlines. Ask follow-up questions about what the headline reveals.',
+          instructions:
+            'Encourage creative headlines. Ask follow-up questions about what the headline reveals.',
         };
       },
     });
@@ -346,7 +356,10 @@ const headlineWriterRespondDef: ToolDefinition = {
         const result = HeadlineWriter.processInput(state, userInput);
         headlineWriterStates.set(ctx.userId, result.newState);
 
-        log.info({ agentId: ctx.agentId, phase: result.newState.phase, gameOver: result.gameOver }, 'Headline Writer turn processed');
+        log.info(
+          { agentId: ctx.agentId, phase: result.newState.phase, gameOver: result.gameOver },
+          'Headline Writer turn processed'
+        );
 
         if (result.gameOver) {
           // Get headlines before deleting state
@@ -357,7 +370,7 @@ const headlineWriterRespondDef: ToolDefinition = {
             success: true,
             message: result.message,
             gameOver: true,
-            headlines: headlines.map(h => ({
+            headlines: headlines.map((h) => ({
               text: h.text,
               timeframe: h.timeframe,
               subheadline: h.subheadline,

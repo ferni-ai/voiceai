@@ -384,7 +384,11 @@ export async function dispatchHolisticEvents(
     const emotionSignal = mapEmotionToSignal(emotionType, sentiment);
     if (emotionSignal) {
       const concernLevel =
-        emotionSignal.intensity >= 0.7 ? 'elevated' : emotionSignal.intensity >= 0.5 ? 'moderate' : 'mild';
+        emotionSignal.intensity >= 0.7
+          ? 'elevated'
+          : emotionSignal.intensity >= 0.5
+            ? 'moderate'
+            : 'mild';
 
       await sendDataMessage('humanization_signal', {
         signalType: emotionSignal.signalType,

@@ -109,24 +109,24 @@ describe('ACTValues', () => {
     });
 
     it('should detect indirect value indicators', () => {
-      const result = detectValuesInSpeech("I try to be there for my friends");
+      const result = detectValuesInSpeech('I try to be there for my friends');
 
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(r => r.value === 'Presence')).toBe(true);
+      expect(result.some((r) => r.value === 'Presence')).toBe(true);
     });
 
     it('should detect helping others indicator', () => {
       const result = detectValuesInSpeech('I love to help others');
 
-      expect(result.some(r => r.value === 'Service')).toBe(true);
+      expect(result.some((r) => r.value === 'Service')).toBe(true);
     });
 
     it('should infer correct domain', () => {
       const familyResult = detectValuesInSpeech('I value my family');
       const workResult = detectValuesInSpeech('Career success is important to me');
 
-      expect(familyResult.some(r => r.domain === 'relationships')).toBe(true);
-      expect(workResult.some(r => r.domain === 'work')).toBe(true);
+      expect(familyResult.some((r) => r.domain === 'relationships')).toBe(true);
+      expect(workResult.some((r) => r.domain === 'work')).toBe(true);
     });
 
     it('should return empty for neutral speech', () => {
@@ -179,7 +179,7 @@ describe('ACTValues', () => {
       const relationshipValues = getValuesByDomain(userId4, 'relationships');
 
       expect(relationshipValues.length).toBe(2);
-      expect(relationshipValues.every(v => v.domain === 'relationships')).toBe(true);
+      expect(relationshipValues.every((v) => v.domain === 'relationships')).toBe(true);
     });
 
     it('should get top values by importance', () => {
@@ -352,7 +352,7 @@ describe('ACTValues', () => {
       const userId = 'status-user-123';
       recordValue(userId, 'Health', 'health', {
         importance: 9,
-        currentAlignment: 8
+        currentAlignment: 8,
       });
 
       const context = buildValuesContext(userId);
@@ -385,19 +385,19 @@ describe('ACTValues', () => {
     it('should infer relationships domain from family keywords', () => {
       const result = detectValuesInSpeech('I value my family and loved ones');
 
-      expect(result.some(r => r.domain === 'relationships')).toBe(true);
+      expect(result.some((r) => r.domain === 'relationships')).toBe(true);
     });
 
     it('should infer work domain from career keywords', () => {
       const result = detectValuesInSpeech('Career success is important to me');
 
-      expect(result.some(r => r.domain === 'work')).toBe(true);
+      expect(result.some((r) => r.domain === 'work')).toBe(true);
     });
 
     it('should infer health domain from wellness keywords', () => {
       const result = detectValuesInSpeech('I really value my health and fitness');
 
-      expect(result.some(r => r.domain === 'health')).toBe(true);
+      expect(result.some((r) => r.domain === 'health')).toBe(true);
     });
 
     it('should default to growth for unrecognized values', () => {

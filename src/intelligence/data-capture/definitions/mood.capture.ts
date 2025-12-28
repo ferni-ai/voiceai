@@ -53,16 +53,16 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
 
   triggers: {
     phrases: [
-      "i feel",
+      'i feel',
       "i'm feeling",
-      "feeling",
-      "i am",
+      'feeling',
+      'i am',
       "i've been",
       "today i'm",
-      "right now i feel",
+      'right now i feel',
       "lately i've been",
       "this week i've felt",
-      "been feeling",
+      'been feeling',
     ],
     patterns: [
       /i(?:'m| am| feel| have been)?\s+(so\s+)?(happy|sad|anxious|stressed|overwhelmed|exhausted|tired|frustrated|excited|calm|worried|nervous|down|great|good|okay|fine)/i,
@@ -76,7 +76,13 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
       { word: 'emotion', weight: 0.7 },
     ],
     // Don't capture if they're asking about someone else's feelings
-    antiKeywords: ['how do you feel', 'does she feel', 'does he feel', 'do they feel', 'what do you think'],
+    antiKeywords: [
+      'how do you feel',
+      'does she feel',
+      'does he feel',
+      'do they feel',
+      'what do you think',
+    ],
   },
 
   arguments: [
@@ -106,10 +112,7 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
       type: 'string',
       description: 'What triggered or relates to this mood',
       required: false,
-      extractionPatterns: [
-        /because\s+(.+?)(?:\.|,|$)/i,
-        /(?:about|over|from)\s+(.+?)(?:\.|,|$)/i,
-      ],
+      extractionPatterns: [/because\s+(.+?)(?:\.|,|$)/i, /(?:about|over|from)\s+(.+?)(?:\.|,|$)/i],
     },
   ],
 
@@ -124,10 +127,19 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
     extractedArgs: Record<string, unknown>,
     context: DataCaptureContext
   ): Promise<string | null> => {
-    const rawMood = String(extractedArgs.mood || '').toLowerCase().trim();
-    const hasIntensifier = String(extractedArgs.intensity || '').toLowerCase().includes('so') ||
-      String(extractedArgs.intensity || '').toLowerCase().includes('really') ||
-      String(extractedArgs.intensity || '').toLowerCase().includes('very');
+    const rawMood = String(extractedArgs.mood || '')
+      .toLowerCase()
+      .trim();
+    const hasIntensifier =
+      String(extractedArgs.intensity || '')
+        .toLowerCase()
+        .includes('so') ||
+      String(extractedArgs.intensity || '')
+        .toLowerCase()
+        .includes('really') ||
+      String(extractedArgs.intensity || '')
+        .toLowerCase()
+        .includes('very');
 
     // Find the mapped mood
     const moodMapping = MOOD_WORD_MAP[rawMood];
@@ -149,7 +161,17 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
 
       await recordMoodEntry(
         context.userId,
-        moodMapping.mood as 'joyful' | 'content' | 'calm' | 'neutral' | 'anxious' | 'sad' | 'frustrated' | 'overwhelmed' | 'exhausted' | 'hopeful',
+        moodMapping.mood as
+          | 'joyful'
+          | 'content'
+          | 'calm'
+          | 'neutral'
+          | 'anxious'
+          | 'sad'
+          | 'frustrated'
+          | 'overwhelmed'
+          | 'exhausted'
+          | 'hopeful',
         intensity,
         moodContext || undefined,
         rawMood ? [rawMood] : undefined
@@ -168,4 +190,3 @@ export const moodCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

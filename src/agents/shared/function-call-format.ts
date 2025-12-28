@@ -74,7 +74,7 @@ export const REGISTERED_TOOLS = [
   'musicControl',
   'musicInfo',
   'searchAppleMusic',
-  // Note: Legacy names (skipMusic, nextSong, pauseMusic, resumeMusic, stopMusic) 
+  // Note: Legacy names (skipMusic, nextSong, pauseMusic, resumeMusic, stopMusic)
   // are handled by music-executor.ts for backward compatibility but not advertised here
 
   // Memory (SUPERHUMAN - semantic embeddings + temporal awareness)
@@ -143,7 +143,7 @@ export const REGISTERED_TOOLS = [
   'searchMessages',
 
   // Telephony (phone calls)
-  'callOnBehalf',  // Call someone on behalf of the user (mom, doctor, restaurant)
+  'callOnBehalf', // Call someone on behalf of the user (mom, doctor, restaurant)
 
   // Wellness
   'getCrisisResources',

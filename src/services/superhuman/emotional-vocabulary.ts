@@ -74,17 +74,37 @@ export interface EmotionalVocabularyProfile {
 const EMOTION_DICTIONARY: EmotionWord[] = [
   // Joy spectrum
   { word: 'content', category: 'joy', intensity: 'low', nuance: 'Peaceful satisfaction' },
-  { word: 'pleased', category: 'joy', intensity: 'low', nuance: 'Mild happiness from something working out' },
+  {
+    word: 'pleased',
+    category: 'joy',
+    intensity: 'low',
+    nuance: 'Mild happiness from something working out',
+  },
   { word: 'happy', category: 'joy', intensity: 'medium', nuance: 'General positive state' },
-  { word: 'delighted', category: 'joy', intensity: 'medium', nuance: 'Pleasantly surprised happiness' },
+  {
+    word: 'delighted',
+    category: 'joy',
+    intensity: 'medium',
+    nuance: 'Pleasantly surprised happiness',
+  },
   { word: 'joyful', category: 'joy', intensity: 'high', nuance: 'Deep, radiating happiness' },
   { word: 'ecstatic', category: 'joy', intensity: 'high', nuance: 'Overwhelming joy' },
-  { word: 'grateful', category: 'joy', intensity: 'medium', nuance: 'Appreciation-based happiness' },
+  {
+    word: 'grateful',
+    category: 'joy',
+    intensity: 'medium',
+    nuance: 'Appreciation-based happiness',
+  },
   { word: 'proud', category: 'joy', intensity: 'medium', nuance: 'Satisfaction from achievement' },
 
   // Sadness spectrum
   { word: 'disappointed', category: 'sadness', intensity: 'low', nuance: 'Expectations not met' },
-  { word: 'melancholic', category: 'sadness', intensity: 'low', nuance: 'Gentle, reflective sadness' },
+  {
+    word: 'melancholic',
+    category: 'sadness',
+    intensity: 'low',
+    nuance: 'Gentle, reflective sadness',
+  },
   { word: 'sad', category: 'sadness', intensity: 'medium', nuance: 'General unhappiness' },
   { word: 'grief-stricken', category: 'sadness', intensity: 'high', nuance: 'Deep loss' },
   { word: 'heartbroken', category: 'sadness', intensity: 'high', nuance: 'Emotional devastation' },
@@ -99,7 +119,12 @@ const EMOTION_DICTIONARY: EmotionWord[] = [
   { word: 'angry', category: 'anger', intensity: 'medium', nuance: 'General displeasure' },
   { word: 'furious', category: 'anger', intensity: 'high', nuance: 'Intense anger' },
   { word: 'resentful', category: 'anger', intensity: 'medium', nuance: 'Lingering bitter anger' },
-  { word: 'indignant', category: 'anger', intensity: 'medium', nuance: 'Righteous anger at unfairness' },
+  {
+    word: 'indignant',
+    category: 'anger',
+    intensity: 'medium',
+    nuance: 'Righteous anger at unfairness',
+  },
 
   // Fear spectrum
   { word: 'uneasy', category: 'fear', intensity: 'low', nuance: 'Slight discomfort' },
@@ -109,7 +134,12 @@ const EMOTION_DICTIONARY: EmotionWord[] = [
   { word: 'scared', category: 'fear', intensity: 'medium', nuance: 'Present danger feeling' },
   { word: 'terrified', category: 'fear', intensity: 'high', nuance: 'Overwhelming fear' },
   { word: 'panicked', category: 'fear', intensity: 'high', nuance: 'Loss of control from fear' },
-  { word: 'dread', category: 'fear', intensity: 'medium', nuance: 'Heavy anticipation of something bad' },
+  {
+    word: 'dread',
+    category: 'fear',
+    intensity: 'medium',
+    nuance: 'Heavy anticipation of something bad',
+  },
 
   // Other categories
   { word: 'overwhelmed', category: 'fear', intensity: 'medium', nuance: 'Too much at once' },
@@ -119,10 +149,20 @@ const EMOTION_DICTIONARY: EmotionWord[] = [
   { word: 'embarrassed', category: 'fear', intensity: 'low', nuance: 'Social discomfort' },
   { word: 'jealous', category: 'anger', intensity: 'medium', nuance: 'Wanting what others have' },
   { word: 'envious', category: 'anger', intensity: 'low', nuance: 'Milder jealousy' },
-  { word: 'hopeful', category: 'anticipation', intensity: 'medium', nuance: 'Positive expectation' },
+  {
+    word: 'hopeful',
+    category: 'anticipation',
+    intensity: 'medium',
+    nuance: 'Positive expectation',
+  },
   { word: 'curious', category: 'anticipation', intensity: 'low', nuance: 'Wanting to know more' },
   { word: 'excited', category: 'anticipation', intensity: 'high', nuance: 'Eager anticipation' },
-  { word: 'conflicted', category: 'fear', intensity: 'medium', nuance: 'Pulled in multiple directions' },
+  {
+    word: 'conflicted',
+    category: 'fear',
+    intensity: 'medium',
+    nuance: 'Pulled in multiple directions',
+  },
   { word: 'ambivalent', category: 'fear', intensity: 'low', nuance: 'Mixed feelings' },
 ];
 
@@ -136,14 +176,16 @@ const VAGUE_WORD_MAPPINGS: VagueEmotionMapping[] = [
     possibleMeanings: EMOTION_DICTIONARY.filter((e) =>
       ['disappointed', 'sad', 'guilty', 'ashamed', 'frustrated', 'anxious'].includes(e.word)
     ),
-    clarifyingQuestion: 'When you say "bad," is it more like disappointed, sad, guilty, or something else?',
+    clarifyingQuestion:
+      'When you say "bad," is it more like disappointed, sad, guilty, or something else?',
   },
   {
     vagueWord: 'fine',
     possibleMeanings: EMOTION_DICTIONARY.filter((e) =>
       ['content', 'neutral', 'numb', 'resigned', 'disconnected'].includes(e.word)
     ),
-    clarifyingQuestion: 'What does "fine" feel like right now? Content, neutral, or maybe holding something back?',
+    clarifyingQuestion:
+      'What does "fine" feel like right now? Content, neutral, or maybe holding something back?',
   },
   {
     vagueWord: 'stressed',
@@ -192,7 +234,7 @@ const VAGUE_WORD_MAPPINGS: VagueEmotionMapping[] = [
     possibleMeanings: EMOTION_DICTIONARY.filter((e) =>
       ['uneasy', 'disconnected', 'anxious', 'confused'].includes(e.word)
     ),
-    clarifyingQuestion: 'Off as in uneasy, disconnected, or something you can\'t quite name?',
+    clarifyingQuestion: "Off as in uneasy, disconnected, or something you can't quite name?",
   },
 ];
 
@@ -261,7 +303,9 @@ export async function recordEmotionUsage(
   const db = getFirestoreDb();
   if (!db) return;
 
-  const emotion = EMOTION_DICTIONARY.find((e) => e.word.toLowerCase() === emotionWord.toLowerCase());
+  const emotion = EMOTION_DICTIONARY.find(
+    (e) => e.word.toLowerCase() === emotionWord.toLowerCase()
+  );
   if (!emotion) return;
 
   const record: EmotionUsageRecord = {
@@ -320,7 +364,9 @@ export async function loadEmotionHistory(
 /**
  * Analyze user's emotional vocabulary.
  */
-export async function analyzeVocabularyProfile(userId: string): Promise<EmotionalVocabularyProfile> {
+export async function analyzeVocabularyProfile(
+  userId: string
+): Promise<EmotionalVocabularyProfile> {
   const history = await loadEmotionHistory(userId, 90);
 
   // Count emotion usage
@@ -333,7 +379,16 @@ export async function analyzeVocabularyProfile(userId: string): Promise<Emotiona
   }
 
   // Find underused categories
-  const allCategories: EmotionCategory[] = ['joy', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'trust', 'anticipation'];
+  const allCategories: EmotionCategory[] = [
+    'joy',
+    'sadness',
+    'anger',
+    'fear',
+    'surprise',
+    'disgust',
+    'trust',
+    'anticipation',
+  ];
   const underusedCategories = allCategories.filter((cat) => {
     const usage = categoryUsage.get(cat) || 0;
     return usage < 2;
@@ -347,8 +402,9 @@ export async function analyzeVocabularyProfile(userId: string): Promise<Emotiona
   // Suggest expansions
   const suggestedExpansions: string[] = [];
   for (const category of underusedCategories) {
-    const suggestions = EMOTION_DICTIONARY
-      .filter((e) => e.category === category && e.intensity === 'medium')
+    const suggestions = EMOTION_DICTIONARY.filter(
+      (e) => e.category === category && e.intensity === 'medium'
+    )
       .slice(0, 2)
       .map((e) => e.word);
     suggestedExpansions.push(...suggestions);
@@ -381,7 +437,12 @@ export function buildVagueEmotionContext(detectedVague: VagueEmotionMapping[]): 
   for (const vague of detectedVague.slice(0, 2)) {
     sections.push(`💬 They said "${vague.vagueWord}". Consider asking:`);
     sections.push(`   "${vague.clarifyingQuestion}"`);
-    sections.push(`   Possible meanings: ${vague.possibleMeanings.slice(0, 4).map((e) => e.word).join(', ')}`);
+    sections.push(
+      `   Possible meanings: ${vague.possibleMeanings
+        .slice(0, 4)
+        .map((e) => e.word)
+        .join(', ')}`
+    );
     sections.push('');
   }
 
@@ -406,7 +467,7 @@ export async function buildVocabularyContext(userId: string): Promise<string> {
     sections.push('[EMOTIONAL VOCABULARY NOTE]');
     sections.push(
       `This person rarely names ${profile.underusedCategories.slice(0, 2).join(' or ')}-related emotions. ` +
-      `If relevant, help them explore these areas of their emotional landscape.`
+        `If relevant, help them explore these areas of their emotional landscape.`
     );
   }
 
@@ -427,4 +488,3 @@ export const emotionalVocabulary = {
   buildContext: buildVocabularyContext,
   dictionary: EMOTION_DICTIONARY,
 };
-

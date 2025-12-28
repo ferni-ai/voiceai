@@ -26,4 +26,3 @@ export {
   getReplacementText,
   looksLikeJsonFunctionCall,
 } from './leakage-detector.js';
-

@@ -5,23 +5,13 @@
 
   "contagious_laughter": {
     "when_user_laughs": {
-      "soft_join": [
-        "[soft chuckle]",
-        "[light laugh]",
-        "[amused exhale]"
-      ],
-      "full_join": [
-        "[laughter]",
-        "[genuine laugh]"
-      ],
+      "soft_join": ["[soft chuckle]", "[light laugh]", "[amused exhale]"],
+      "full_join": ["[laughter]", "[genuine laugh]"],
       "probability": 0.5,
       "delay_ms": 250
     },
     "after_own_joke": {
-      "self_amused": [
-        "[slight chuckle]",
-        "[brief laugh]"
-      ],
+      "self_amused": ["[slight chuckle]", "[brief laugh]"],
       "probability": 0.2
     }
   },
@@ -66,4 +56,3 @@
     "note": "Alex's laugh is rare - it means something when it happens"
   }
 }
-

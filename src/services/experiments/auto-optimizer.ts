@@ -485,12 +485,17 @@ async function shipWinner(
  */
 async function markForReview(experimentId: string, decision: WinnerDecision): Promise<void> {
   const db = getFirestore();
-  await db.collection('web_experiments').doc(experimentId).update(cleanForFirestore({
-    needsReview: true,
-    reviewReason: decision.reasoning,
-    reviewRecommendation: decision.recommendation,
-    reviewRequestedAt: FieldValue.serverTimestamp(),
-  }));
+  await db
+    .collection('web_experiments')
+    .doc(experimentId)
+    .update(
+      cleanForFirestore({
+        needsReview: true,
+        reviewReason: decision.reasoning,
+        reviewRecommendation: decision.recommendation,
+        reviewRequestedAt: FieldValue.serverTimestamp(),
+      })
+    );
 
   log.info({ experimentId, reason: decision.reasoning }, 'Experiment marked for review');
 }

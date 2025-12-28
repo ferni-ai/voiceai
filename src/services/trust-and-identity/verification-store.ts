@@ -218,11 +218,13 @@ export async function verifyCode(
     if (db) {
       try {
         const docRef = db.collection(COLLECTION_NAME).doc(userId);
-        await docRef.update(cleanForFirestore({
-          verified: true,
-          verifiedAt: storedCode.verifiedAt,
-          attempts: storedCode.attempts,
-        }));
+        await docRef.update(
+          cleanForFirestore({
+            verified: true,
+            verifiedAt: storedCode.verifiedAt,
+            attempts: storedCode.attempts,
+          })
+        );
       } catch (error) {
         log.warn({ error, userId }, 'Failed to update Firestore - updating in-memory');
         inMemoryStore.set(userId, storedCode);

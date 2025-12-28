@@ -47,7 +47,12 @@
   "usage_rules": {
     "frequency": "moderate",
     "max_per_response": 1,
-    "more_likely_when": ["sharing_wisdom", "concern_moment", "before_important_point", "storytelling"],
+    "more_likely_when": [
+      "sharing_wisdom",
+      "concern_moment",
+      "before_important_point",
+      "storytelling"
+    ],
     "less_likely_when": ["quick_fact", "data_point"],
     "note": "Peter's breaths are UNHURRIED - the breath of someone with perspective"
   }

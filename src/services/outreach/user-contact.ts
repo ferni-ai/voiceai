@@ -91,7 +91,8 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
       const info: UserContactInfo = {
         phone: profile.contactInfo.phone,
         email: profile.contactInfo.email,
-        preferredMethod: profile.contactInfo.preferredContactMethod as UserContactInfo['preferredMethod'],
+        preferredMethod: profile.contactInfo
+          .preferredContactMethod as UserContactInfo['preferredMethod'],
         timezone: profile.contactInfo.timezone,
       };
       // Cache it for future lookups
@@ -329,4 +330,3 @@ export async function scheduleCall(
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
-

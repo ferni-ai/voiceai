@@ -242,77 +242,146 @@
   "spotify_pause": {
     "phrases": ["일시정지", "음악 멈춰", "스톱", "정지해"],
     "patterns": ["^(?:음악)?\\s*(?:일시)?정지(?:해)?", "^음악\\s*멈춰"],
-    "keywords": [{ "word": "정지", "weight": 1.0 }, { "word": "멈춰", "weight": 0.9 }],
+    "keywords": [
+      { "word": "정지", "weight": 1.0 },
+      { "word": "멈춰", "weight": 0.9 }
+    ],
     "antiKeywords": ["재생", "틀어", "계속"]
   },
 
   "spotify_skip": {
     "phrases": ["다음 노래", "스킵", "이 노래 넘겨", "다음"],
     "patterns": ["^다음(?:\\s*노래)?", "^(?:이\\s*노래)?\\s*(?:스킵|넘겨)"],
-    "keywords": [{ "word": "다음", "weight": 1.0 }, { "word": "스킵", "weight": 1.0 }],
+    "keywords": [
+      { "word": "다음", "weight": 1.0 },
+      { "word": "스킵", "weight": 1.0 }
+    ],
     "antiKeywords": ["이전", "뒤로"]
   },
 
   "set_timer": {
     "phrases": ["타이머 설정", "타이머 맞춰", "타이머 시작"],
     "patterns": ["^타이머(?:를)?\\s*(?:설정|맞춰|시작)(?:해)?(.+)?"],
-    "keywords": [{ "word": "타이머", "weight": 1.0 }, { "word": "분", "weight": 0.7 }],
+    "keywords": [
+      { "word": "타이머", "weight": 1.0 },
+      { "word": "분", "weight": 0.7 }
+    ],
     "antiKeywords": ["알람", "리마인더"]
   },
 
   "set_reminder": {
     "phrases": ["리마인더 설정", "상기시켜", "잊지 않게", "리마인드해"],
     "patterns": ["^(?:리마인더|리마인드)(?:를)?\\s*(?:설정|해)(?:줘)?(.+)?", "^상기시켜(.+)?"],
-    "keywords": [{ "word": "리마인더", "weight": 1.0 }, { "word": "리마인드", "weight": 1.0 }],
+    "keywords": [
+      { "word": "리마인더", "weight": 1.0 },
+      { "word": "리마인드", "weight": 1.0 }
+    ],
     "antiKeywords": ["타이머", "알람"]
   },
 
   "set_alarm": {
     "phrases": ["알람 설정", "깨워줘", "알람 맞춰"],
     "patterns": ["^알람(?:을)?\\s*(?:설정|맞춰)(?:해)?(.+)?", "^깨워줘(.+)?"],
-    "keywords": [{ "word": "알람", "weight": 1.0 }, { "word": "깨워", "weight": 0.9 }],
+    "keywords": [
+      { "word": "알람", "weight": 1.0 },
+      { "word": "깨워", "weight": 0.9 }
+    ],
     "antiKeywords": ["타이머", "리마인더"]
   },
 
   "burnout_assess": {
     "phrases": ["번아웃이야", "완전 지쳤어", "번아웃 같아", "더 이상 못해", "탈진했어"],
-    "patterns": ["^(?:나는)?\\s*(?:번아웃|지쳤|탈진)(?:이야|했어|인\\s*것\\s*같아)?", "^더\\s*이상\\s*(?:못해|안돼)"],
-    "keywords": [{ "word": "번아웃", "weight": 1.0 }, { "word": "지쳤", "weight": 1.0 }, { "word": "탈진", "weight": 0.9 }],
+    "patterns": [
+      "^(?:나는)?\\s*(?:번아웃|지쳤|탈진)(?:이야|했어|인\\s*것\\s*같아)?",
+      "^더\\s*이상\\s*(?:못해|안돼)"
+    ],
+    "keywords": [
+      { "word": "번아웃", "weight": 1.0 },
+      { "word": "지쳤", "weight": 1.0 },
+      { "word": "탈진", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "career_coaching": {
     "phrases": ["커리어 상담", "커리어 도움", "이직 고민", "퇴사하고 싶어", "새 직장 고민"],
-    "patterns": ["^(?:커리어|직장)(?:의)?\\s*(?:상담|도움|조언)", "^(?:퇴사|이직)(?:하고\\s*싶어|할까)?"],
-    "keywords": [{ "word": "커리어", "weight": 1.0 }, { "word": "직장", "weight": 0.8 }, { "word": "이직", "weight": 0.9 }],
+    "patterns": [
+      "^(?:커리어|직장)(?:의)?\\s*(?:상담|도움|조언)",
+      "^(?:퇴사|이직)(?:하고\\s*싶어|할까)?"
+    ],
+    "keywords": [
+      { "word": "커리어", "weight": 1.0 },
+      { "word": "직장", "weight": 0.8 },
+      { "word": "이직", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "decision_help": {
     "phrases": ["결정 못해", "결정 도와줘", "어떻게 해야해", "고민돼", "선택 못해"],
-    "patterns": ["^(?:결정|선택)(?:을)?\\s*못해", "^어떻게\\s*(?:해야|하면)\\s*(?:해|돼)", "^고민(?:이야|돼)"],
-    "keywords": [{ "word": "결정", "weight": 1.0 }, { "word": "선택", "weight": 1.0 }, { "word": "고민", "weight": 0.8 }],
+    "patterns": [
+      "^(?:결정|선택)(?:을)?\\s*못해",
+      "^어떻게\\s*(?:해야|하면)\\s*(?:해|돼)",
+      "^고민(?:이야|돼)"
+    ],
+    "keywords": [
+      { "word": "결정", "weight": 1.0 },
+      { "word": "선택", "weight": 1.0 },
+      { "word": "고민", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "dream_clarify": {
-    "phrases": ["꿈을 찾고 싶어", "목표가 뭔지 모르겠어", "뭘 하고 싶은지 모르겠어", "내 꿈이 뭐야"],
-    "patterns": ["^(?:내)?\\s*꿈(?:이)?\\s*(?:뭐야|찾고\\s*싶어)", "^뭘\\s*(?:하고\\s*싶은지|원하는지)\\s*모르겠어"],
-    "keywords": [{ "word": "꿈", "weight": 1.0 }, { "word": "목표", "weight": 0.8 }, { "word": "비전", "weight": 0.7 }],
+    "phrases": [
+      "꿈을 찾고 싶어",
+      "목표가 뭔지 모르겠어",
+      "뭘 하고 싶은지 모르겠어",
+      "내 꿈이 뭐야"
+    ],
+    "patterns": [
+      "^(?:내)?\\s*꿈(?:이)?\\s*(?:뭐야|찾고\\s*싶어)",
+      "^뭘\\s*(?:하고\\s*싶은지|원하는지)\\s*모르겠어"
+    ],
+    "keywords": [
+      { "word": "꿈", "weight": 1.0 },
+      { "word": "목표", "weight": 0.8 },
+      { "word": "비전", "weight": 0.7 }
+    ],
     "antiKeywords": ["자다", "악몽"]
   },
 
   "grief_support": {
-    "phrases": ["소중한 사람을 잃었어", "누군가 죽었어", "슬픔 속에 있어", "부모님이 돌아가셨어", "너무 그리워"],
-    "patterns": ["^(?:소중한\\s*사람|부모님|친구)(?:를)?\\s*(?:잃었|떠났)(?:어)?", "^슬픔\\s*(?:속에)?\\s*(?:있어)?"],
-    "keywords": [{ "word": "슬픔", "weight": 1.0 }, { "word": "잃었", "weight": 1.0 }, { "word": "그리프", "weight": 0.9 }],
+    "phrases": [
+      "소중한 사람을 잃었어",
+      "누군가 죽었어",
+      "슬픔 속에 있어",
+      "부모님이 돌아가셨어",
+      "너무 그리워"
+    ],
+    "patterns": [
+      "^(?:소중한\\s*사람|부모님|친구)(?:를)?\\s*(?:잃었|떠났)(?:어)?",
+      "^슬픔\\s*(?:속에)?\\s*(?:있어)?"
+    ],
+    "keywords": [
+      { "word": "슬픔", "weight": 1.0 },
+      { "word": "잃었", "weight": 1.0 },
+      { "word": "그리프", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "anger_support": {
     "phrases": ["너무 화나", "격분했어", "화를 못 참겠어", "분노 도와줘"],
-    "patterns": ["^(?:너무)?\\s*(?:화나|격분|열받)(?:아|았어)?", "^화(?:를)?\\s*(?:못\\s*참|조절\\s*못해)"],
-    "keywords": [{ "word": "화", "weight": 1.0 }, { "word": "분노", "weight": 1.0 }, { "word": "격분", "weight": 0.9 }],
+    "patterns": [
+      "^(?:너무)?\\s*(?:화나|격분|열받)(?:아|았어)?",
+      "^화(?:를)?\\s*(?:못\\s*참|조절\\s*못해)"
+    ],
+    "keywords": [
+      { "word": "화", "weight": 1.0 },
+      { "word": "분노", "weight": 1.0 },
+      { "word": "격분", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
@@ -325,127 +394,220 @@
 
   "self_compassion": {
     "phrases": ["나에게 너무 엄격해", "나를 싫어해", "충분하지 않아", "실패자처럼 느껴져"],
-    "patterns": ["^나(?:에게)?\\s*(?:너무)?\\s*엄격(?:해)?", "^나(?:를)?\\s*싫어(?:해)?", "^충분(?:하지)?\\s*않아"],
-    "keywords": [{ "word": "엄격", "weight": 0.6 }, { "word": "자기자비", "weight": 1.0 }, { "word": "실패자", "weight": 0.8 }],
+    "patterns": [
+      "^나(?:에게)?\\s*(?:너무)?\\s*엄격(?:해)?",
+      "^나(?:를)?\\s*싫어(?:해)?",
+      "^충분(?:하지)?\\s*않아"
+    ],
+    "keywords": [
+      { "word": "엄격", "weight": 0.6 },
+      { "word": "자기자비", "weight": 1.0 },
+      { "word": "실패자", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "loneliness_support": {
     "phrases": ["너무 외로워", "고립된 것 같아", "친구가 없어", "아무도 나를 이해 못해"],
     "patterns": ["^(?:너무)?\\s*(?:외롭|고립됐)(?:어|다)?", "^친구(?:가)?\\s*없어"],
-    "keywords": [{ "word": "외로움", "weight": 1.0 }, { "word": "외롭", "weight": 1.0 }, { "word": "고립", "weight": 0.9 }],
+    "keywords": [
+      { "word": "외로움", "weight": 1.0 },
+      { "word": "외롭", "weight": 1.0 },
+      { "word": "고립", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "sleep_help": {
     "phrases": ["잠이 안 와", "잠들기 어려워", "불면증", "수면 문제"],
-    "patterns": ["^잠(?:이)?\\s*(?:안\\s*와|못\\s*자)", "^(?:수면|잠자는\\s*것)(?:의)?\\s*(?:도움|문제)"],
-    "keywords": [{ "word": "잠", "weight": 1.0 }, { "word": "수면", "weight": 1.0 }, { "word": "불면증", "weight": 1.0 }],
+    "patterns": [
+      "^잠(?:이)?\\s*(?:안\\s*와|못\\s*자)",
+      "^(?:수면|잠자는\\s*것)(?:의)?\\s*(?:도움|문제)"
+    ],
+    "keywords": [
+      { "word": "잠", "weight": 1.0 },
+      { "word": "수면", "weight": 1.0 },
+      { "word": "불면증", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "motivation_boost": {
     "phrases": ["동기부여가 필요해", "의욕이 없어", "시작을 못해", "미루고 있어"],
     "patterns": ["^(?:동기부여|의욕)(?:가)?\\s*(?:필요|없)(?:해|어)?", "^미루(?:고\\s*있|고)?어"],
-    "keywords": [{ "word": "동기부여", "weight": 1.0 }, { "word": "의욕", "weight": 1.0 }, { "word": "미루", "weight": 0.9 }],
+    "keywords": [
+      { "word": "동기부여", "weight": 1.0 },
+      { "word": "의욕", "weight": 1.0 },
+      { "word": "미루", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "boundary_coaching": {
     "phrases": ["거절을 못해", "경계를 세우고 싶어", "사람들이 나를 이용해"],
     "patterns": ["^(?:아니오|거절)(?:을)?\\s*못해", "^경계(?:를)?\\s*(?:세우|설정)(?:고\\s*싶어)?"],
-    "keywords": [{ "word": "경계", "weight": 1.0 }, { "word": "거절", "weight": 0.7 }],
+    "keywords": [
+      { "word": "경계", "weight": 1.0 },
+      { "word": "거절", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "imposter_syndrome": {
     "phrases": ["사기꾼 같아", "임포스터 신드롬", "자격이 없어", "실력이 들통날까봐"],
     "patterns": ["^(?:사기꾼|임포스터)\\s*(?:같아|신드롬)?", "^자격(?:이)?\\s*없어"],
-    "keywords": [{ "word": "임포스터", "weight": 1.0 }, { "word": "사기꾼", "weight": 1.0 }, { "word": "자격", "weight": 0.8 }],
+    "keywords": [
+      { "word": "임포스터", "weight": 1.0 },
+      { "word": "사기꾼", "weight": 1.0 },
+      { "word": "자격", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "relationship_advice": {
     "phrases": ["연애 상담", "관계 도움", "파트너와 문제", "항상 싸워"],
-    "patterns": ["^(?:연애|관계|파트너)(?:의)?\\s*(?:상담|도움|조언)", "^파트너(?:와)?\\s*(?:문제|갈등)"],
-    "keywords": [{ "word": "관계", "weight": 1.0 }, { "word": "파트너", "weight": 0.9 }, { "word": "연애", "weight": 0.8 }],
+    "patterns": [
+      "^(?:연애|관계|파트너)(?:의)?\\s*(?:상담|도움|조언)",
+      "^파트너(?:와)?\\s*(?:문제|갈등)"
+    ],
+    "keywords": [
+      { "word": "관계", "weight": 1.0 },
+      { "word": "파트너", "weight": 0.9 },
+      { "word": "연애", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "smart_home_lights": {
     "phrases": ["불 켜", "불 꺼", "조명 켜", "조명 꺼", "조명 어둡게"],
     "patterns": ["^(?:불|조명)(?:을)?\\s*(?:켜|꺼)", "^조명(?:을)?\\s*어둡게"],
-    "keywords": [{ "word": "불", "weight": 1.0 }, { "word": "조명", "weight": 1.0 }],
+    "keywords": [
+      { "word": "불", "weight": 1.0 },
+      { "word": "조명", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "smart_home_thermostat": {
     "phrases": ["온도 설정", "난방 올려", "에어컨 내려", "더 따뜻하게", "더 시원하게"],
-    "patterns": ["^(?:온도|실온)(?:를)?\\s*(?:설정|변경)", "^(?:난방|에어컨)(?:을)?\\s*(?:올려|내려)"],
-    "keywords": [{ "word": "온도", "weight": 1.0 }, { "word": "서모스탯", "weight": 1.0 }, { "word": "난방", "weight": 0.8 }],
+    "patterns": [
+      "^(?:온도|실온)(?:를)?\\s*(?:설정|변경)",
+      "^(?:난방|에어컨)(?:을)?\\s*(?:올려|내려)"
+    ],
+    "keywords": [
+      { "word": "온도", "weight": 1.0 },
+      { "word": "서모스탯", "weight": 1.0 },
+      { "word": "난방", "weight": 0.8 }
+    ],
     "antiKeywords": ["날씨"]
   },
 
   "define_word": {
     "phrases": ["정의해", "뜻이 뭐야", "의 의미", "무슨 뜻"],
-    "patterns": ["^(.+)(?:을)?\\s*정의(?:해)?", "^(.+)(?:의)?\\s*뜻(?:이)?\\s*(?:뭐야)?", "^무슨\\s*뜻"],
-    "keywords": [{ "word": "정의", "weight": 1.0 }, { "word": "뜻", "weight": 1.0 }],
+    "patterns": [
+      "^(.+)(?:을)?\\s*정의(?:해)?",
+      "^(.+)(?:의)?\\s*뜻(?:이)?\\s*(?:뭐야)?",
+      "^무슨\\s*뜻"
+    ],
+    "keywords": [
+      { "word": "정의", "weight": 1.0 },
+      { "word": "뜻", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "translate": {
     "phrases": ["번역해", "뭐라고 해", "영어로 뭐", "스페인어로", "프랑스어로 번역"],
-    "patterns": ["^(.+)(?:을)?\\s*번역(?:해)?", "^(?:영어|스페인어|프랑스어)로\\s*(?:뭐라고)?\\s*해"],
-    "keywords": [{ "word": "번역", "weight": 1.0 }, { "word": "영어", "weight": 0.8 }, { "word": "스페인어", "weight": 0.8 }],
+    "patterns": [
+      "^(.+)(?:을)?\\s*번역(?:해)?",
+      "^(?:영어|스페인어|프랑스어)로\\s*(?:뭐라고)?\\s*해"
+    ],
+    "keywords": [
+      { "word": "번역", "weight": 1.0 },
+      { "word": "영어", "weight": 0.8 },
+      { "word": "스페인어", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "calculate": {
     "phrases": ["계산해", "얼마야", "결과가 뭐야", "수학 문제"],
-    "patterns": ["^(.+)(?:을)?\\s*계산(?:해)?", "^(?:얼마|뭐)(?:야|니)?", "^결과(?:가)?\\s*(?:뭐야)?"],
-    "keywords": [{ "word": "계산", "weight": 1.0 }, { "word": "수학", "weight": 0.9 }, { "word": "더하기", "weight": 0.7 }],
+    "patterns": [
+      "^(.+)(?:을)?\\s*계산(?:해)?",
+      "^(?:얼마|뭐)(?:야|니)?",
+      "^결과(?:가)?\\s*(?:뭐야)?"
+    ],
+    "keywords": [
+      { "word": "계산", "weight": 1.0 },
+      { "word": "수학", "weight": 0.9 },
+      { "word": "더하기", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "news_update": {
     "phrases": ["뉴스 뭐야", "오늘 뉴스", "최신 뉴스", "세상에서 무슨 일이"],
-    "patterns": ["^(?:최신|오늘의)?\\s*뉴스(?:가)?\\s*(?:뭐야)?", "^(?:무슨\\s*일이)?\\s*일어나고\\s*있어"],
+    "patterns": [
+      "^(?:최신|오늘의)?\\s*뉴스(?:가)?\\s*(?:뭐야)?",
+      "^(?:무슨\\s*일이)?\\s*일어나고\\s*있어"
+    ],
     "keywords": [{ "word": "뉴스", "weight": 1.0 }],
     "antiKeywords": []
   },
 
   "get_directions": {
     "phrases": ["가는 길", "길 안내", "루트", "내비게이션"],
-    "patterns": ["^(.+)(?:까지|으로)?\\s*(?:가는\\s*길|길\\s*안내)", "^(.+)(?:까지)?\\s*내비(?:게이션)?"],
-    "keywords": [{ "word": "길", "weight": 1.0 }, { "word": "내비", "weight": 1.0 }, { "word": "루트", "weight": 0.9 }],
+    "patterns": [
+      "^(.+)(?:까지|으로)?\\s*(?:가는\\s*길|길\\s*안내)",
+      "^(.+)(?:까지)?\\s*내비(?:게이션)?"
+    ],
+    "keywords": [
+      { "word": "길", "weight": 1.0 },
+      { "word": "내비", "weight": 1.0 },
+      { "word": "루트", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "book_search": {
     "phrases": ["책 찾아줘", "책 추천", "뭘 읽으면 좋을까", "독서 추천"],
     "patterns": ["^책(?:을)?\\s*(?:찾아|추천)(?:줘)?", "^뭘\\s*읽(?:으면|을까)"],
-    "keywords": [{ "word": "책", "weight": 1.0 }, { "word": "독서", "weight": 0.8 }, { "word": "추천", "weight": 0.7 }],
+    "keywords": [
+      { "word": "책", "weight": 1.0 },
+      { "word": "독서", "weight": 0.8 },
+      { "word": "추천", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "podcast_find": {
     "phrases": ["팟캐스트 찾아줘", "팟캐스트 추천", "뭘 들으면 좋을까"],
     "patterns": ["^팟캐스트(?:를)?\\s*(?:찾아|추천)(?:줘)?", "^뭘\\s*들(?:으면|을까)"],
-    "keywords": [{ "word": "팟캐스트", "weight": 1.0 }, { "word": "듣다", "weight": 0.7 }],
+    "keywords": [
+      { "word": "팟캐스트", "weight": 1.0 },
+      { "word": "듣다", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "movie_recommend": {
     "phrases": ["영화 추천", "뭘 보면 좋을까", "영화 찾아줘", "영화 제안"],
     "patterns": ["^영화(?:를)?\\s*(?:추천|찾아)(?:줘)?", "^뭘\\s*(?:보면|볼까)"],
-    "keywords": [{ "word": "영화", "weight": 1.0 }, { "word": "보다", "weight": 0.7 }],
+    "keywords": [
+      { "word": "영화", "weight": 1.0 },
+      { "word": "보다", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "restaurant_find": {
     "phrases": ["식당 찾아줘", "어디서 먹을까", "식당 추천", "저녁 먹을 곳"],
     "patterns": ["^식당(?:을)?\\s*(?:찾아|추천)(?:줘)?", "^어디서\\s*(?:먹을까|밥\\s*먹을까)"],
-    "keywords": [{ "word": "식당", "weight": 1.0 }, { "word": "먹다", "weight": 0.8 }, { "word": "저녁", "weight": 0.7 }],
+    "keywords": [
+      { "word": "식당", "weight": 1.0 },
+      { "word": "먹다", "weight": 0.8 },
+      { "word": "저녁", "weight": 0.7 }
+    ],
     "antiKeywords": []
   }
 }

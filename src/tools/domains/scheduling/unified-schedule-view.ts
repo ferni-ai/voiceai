@@ -15,8 +15,15 @@
 import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { getEventsForDay, getEventsForWeek, type CalendarEvent } from '../../../services/calendar/calendar-service.js';
-import { getPendingReminders, type ScheduledReminder } from '../../../services/scheduling/reminder-scheduler.js';
+import {
+  getEventsForDay,
+  getEventsForWeek,
+  type CalendarEvent,
+} from '../../../services/calendar/calendar-service.js';
+import {
+  getPendingReminders,
+  type ScheduledReminder,
+} from '../../../services/scheduling/reminder-scheduler.js';
 import { getUserAppointments } from '../../scheduling/appointment-core.js';
 import type { ScheduledAppointment } from '../../scheduling/types.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
@@ -30,7 +37,13 @@ const log = getLogger();
 
 interface UnifiedScheduleItem {
   id: string;
-  type: 'event' | 'reminder' | 'scheduled_text' | 'scheduled_email' | 'scheduled_call' | 'appointment';
+  type:
+    | 'event'
+    | 'reminder'
+    | 'scheduled_text'
+    | 'scheduled_email'
+    | 'scheduled_call'
+    | 'appointment';
   title: string;
   scheduledFor: Date;
   endTime?: Date;
@@ -98,7 +111,9 @@ function reminderToUnified(reminder: ScheduledReminder): UnifiedScheduleItem {
     status: reminder.status,
     source: 'reminder',
     icon: typeIcons[reminder.deliveryMethod] || '🔔',
-    details: reminder.isDirectToContact ? `To: ${reminder.contactName}` : reminder.message.substring(0, 100),
+    details: reminder.isDirectToContact
+      ? `To: ${reminder.contactName}`
+      : reminder.message.substring(0, 100),
   };
 }
 
@@ -192,11 +207,15 @@ function formatScheduleForSpeech(schedule: DaySchedule): string {
   }
 
   const parts: string[] = [];
-  parts.push(`${schedule.dayName}: ${schedule.items.length} item${schedule.items.length !== 1 ? 's' : ''}.`);
+  parts.push(
+    `${schedule.dayName}: ${schedule.items.length} item${schedule.items.length !== 1 ? 's' : ''}.`
+  );
 
   // Group by morning/afternoon/evening
   const morning = schedule.items.filter((i) => i.scheduledFor.getHours() < 12);
-  const afternoon = schedule.items.filter((i) => i.scheduledFor.getHours() >= 12 && i.scheduledFor.getHours() < 17);
+  const afternoon = schedule.items.filter(
+    (i) => i.scheduledFor.getHours() >= 12 && i.scheduledFor.getHours() < 17
+  );
   const evening = schedule.items.filter((i) => i.scheduledFor.getHours() >= 17);
 
   if (morning.length > 0) {
@@ -336,10 +355,14 @@ Use when user asks about their schedule, what's coming up, or wants to see every
 
             const daySchedule: DaySchedule = {
               date: date.toISOString().split('T')[0],
-              dayName: date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+              dayName: date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              }),
               items: filteredItems,
               conflicts,
-              busyHours: Math.round(busyMinutes / 60 * 10) / 10,
+              busyHours: Math.round((busyMinutes / 60) * 10) / 10,
               freeHours: Math.max(0, 9 - busyMinutes / 60), // Assuming 9-hour work day
             };
 
@@ -354,7 +377,10 @@ Use when user asks about their schedule, what's coming up, or wants to see every
           // Weekly summary
           const totalItems = results.reduce((sum, d) => sum + d.items.length, 0);
           const totalConflicts = results.reduce((sum, d) => sum + d.conflicts.length, 0);
-          const busiestDay = results.reduce((max, d) => (d.items.length > max.items.length ? d : max), results[0]);
+          const busiestDay = results.reduce(
+            (max, d) => (d.items.length > max.items.length ? d : max),
+            results[0]
+          );
 
           let summary = `This week: ${totalItems} scheduled items across ${results.length} days.\n\n`;
 
@@ -375,7 +401,7 @@ Use when user asks about their schedule, what's coming up, or wants to see every
           return summary.trim();
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to get unified schedule');
-          return "I had trouble getting your complete schedule. Let me try checking just your calendar.";
+          return 'I had trouble getting your complete schedule. Let me try checking just your calendar.';
         }
       },
     });
@@ -414,7 +440,8 @@ Use when user wants to know if there are any conflicts or before scheduling some
           }> = [];
 
           const days = params.timeRange === 'today' ? 1 : params.timeRange === 'tomorrow' ? 1 : 7;
-          const startDate = params.timeRange === 'tomorrow' ? new Date(now.setDate(now.getDate() + 1)) : now;
+          const startDate =
+            params.timeRange === 'tomorrow' ? new Date(now.setDate(now.getDate() + 1)) : now;
 
           for (let i = 0; i < days; i++) {
             const date = new Date(startDate);
@@ -445,7 +472,11 @@ Use when user wants to know if there are any conflicts or before scheduling some
             const conflicts = detectItemConflicts(dayItems);
             for (const c of conflicts) {
               allConflicts.push({
-                date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                date: date.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                }),
                 ...c,
               });
             }
@@ -466,7 +497,7 @@ Use when user wants to know if there are any conflicts or before scheduling some
           return response;
         } catch (error) {
           log.error({ error: String(error), userId }, 'Failed to check conflicts');
-          return "I had trouble checking for conflicts. Let me try again.";
+          return 'I had trouble checking for conflicts. Let me try again.';
         }
       },
     });

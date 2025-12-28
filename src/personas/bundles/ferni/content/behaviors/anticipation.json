@@ -131,4 +131,3 @@
     "never_when": ["first_session_ever", "user_explicitly_wants_to_change_topic", "crisis_mode"]
   }
 }
-

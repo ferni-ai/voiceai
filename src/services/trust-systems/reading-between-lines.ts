@@ -120,70 +120,70 @@ const FINE_MASKS = [
   'it is what it is',
   "i've moved on",
   // Natural conversation variants
-  "it was fine",
-  "it was okay",
-  "was fine",
-  "pretty standard",
-  "not that bad",
-  "could be worse",
-  "nothing major",
+  'it was fine',
+  'it was okay',
+  'was fine',
+  'pretty standard',
+  'not that bad',
+  'could be worse',
+  'nothing major',
   "it's nothing",
-  "no big deal",
+  'no big deal',
   // BETTER THAN HUMAN: Enhanced masking patterns
-  "all good",
+  'all good',
   "i'll be okay",
   "i'll be fine",
-  "doing okay",
-  "doing fine",
-  "handling it",
-  "dealing with it",
-  "getting through",
-  "managing",
+  'doing okay',
+  'doing fine',
+  'handling it',
+  'dealing with it',
+  'getting through',
+  'managing',
   "i'm alright",
   "it's alright",
   "it's all good",
   "everything's fine",
-  "all fine",
-  "no worries",
+  'all fine',
+  'no worries',
   "i guess i'm okay",
   "yeah i'm fine",
-  "totally fine",
-  "completely fine",
-  "perfectly fine",
+  'totally fine',
+  'completely fine',
+  'perfectly fine',
   "i'm coping",
-  "just dealing",
+  'just dealing',
   // BETTER THAN HUMAN: Positive masks (excessive positivity about difficult situations)
-  "actually relieved",
-  "actually great",
-  "actually a good thing",
-  "best thing that happened",
-  "blessing in disguise",
-  "for the best",
-  "meant to be",
+  'actually relieved',
+  'actually great',
+  'actually a good thing',
+  'best thing that happened',
+  'blessing in disguise',
+  'for the best',
+  'meant to be',
   "i'm happy about it",
-  "glad it happened",
-  "weight off my shoulders",
+  'glad it happened',
+  'weight off my shoulders',
   // Gen-Z / Casual deflection masks (P1 FIX)
-  "literally fine",
-  "literally okay",
+  'literally fine',
+  'literally okay',
   "i'm literally fine",
   "i'm literally okay",
-  "lowkey fine",
+  'lowkey fine',
   "i'm lowkey fine",
-  "whatever honestly",
-  "honestly whatever",
+  'whatever honestly',
+  'honestly whatever',
   "vibes are off but i'm fine",
   "it's giving fine",
-  "not stressed",
-  "we good",
+  'not stressed',
+  'we good',
   "i'm chillin",
   "i'm chilling",
   // More Gen-Z with "bestie" (P3 FIX)
-  "literally fine bestie",
+  'literally fine bestie',
   "i'm literally fine bestie",
-  "fine bestie",
+  'fine bestie',
   "i'm fine bestie",
-  "all good bestie",
+  'all good bestie',
 ];
 
 /** Nervous laughter patterns - masking with humor (P1 FIX) */
@@ -248,9 +248,9 @@ const PERMISSION_SEEKERS = [
   "don't want to put this on you",
   "if i'm being honest",
   "honestly i've been",
-  "hard to say this",
-  "this is hard but",
-  "need to get something off",
+  'hard to say this',
+  'this is hard but',
+  'need to get something off',
 ];
 
 /** Deflection patterns */
@@ -713,7 +713,16 @@ function detectEmotionalMismatch(
   // Check if there's a negative emotion detected (without requiring high intensity)
   const emotionMismatch =
     context.detectedEmotion &&
-    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated', 'distressed', 'overwhelmed'].includes(context.detectedEmotion);
+    [
+      'sad',
+      'anxious',
+      'angry',
+      'hurt',
+      'scared',
+      'frustrated',
+      'distressed',
+      'overwhelmed',
+    ].includes(context.detectedEmotion);
 
   // Also check for "but" patterns which often indicate masking
   // e.g., "I'm fine, but..." or "It's okay but the divorce..."
@@ -896,8 +905,10 @@ function detectNervousLaughter(lower: string): UnsaidSignal | null {
  */
 function detectExclamationMasking(lower: string, original: string): UnsaidSignal | null {
   // Check original for exclamation marks
-  const hasExclamationPattern = EXCLAMATION_MASKING_PATTERNS.some((pattern) => pattern.test(original));
-  
+  const hasExclamationPattern = EXCLAMATION_MASKING_PATTERNS.some((pattern) =>
+    pattern.test(original)
+  );
+
   if (!hasExclamationPattern) return null;
 
   const phrases = [
@@ -925,13 +936,13 @@ function detectExclamationMasking(lower: string, original: string): UnsaidSignal
  */
 function detectSpiritualDeflection(lower: string): UnsaidSignal | null {
   const hasSpiritual = SPIRITUAL_DEFLECTION_PATTERNS.some((pattern) => pattern.test(lower));
-  
+
   if (!hasSpiritual) return null;
 
   const phrases = [
     'Faith can be a comfort. And... how are you feeling about all of this?',
     "I hear you trusting in something bigger. What's on your heart right now?",
-    'Beyond what\'s meant to be... what do you want?',
+    "Beyond what's meant to be... what do you want?",
   ];
 
   return {
@@ -957,21 +968,21 @@ function detectTopicChange(
 ): UnsaidSignal | null {
   // Need previous topic OR recent heavy topics to detect change
   const previousTopic = context.topicBeforeThis || (context.recentTopics?.[0] ?? null);
-  
+
   // Check if there's a heavy recent topic
   const hasHeavyRecentTopic = context.recentTopics?.some((topic) =>
     HEAVY_TOPIC_INDICATORS.some((indicator) => topic.toLowerCase().includes(indicator))
   );
-  
+
   // Need either explicit previous topic OR a heavy topic in recent topics
   if (!previousTopic && !hasHeavyRecentTopic) return null;
-  
+
   const isTopicChange = TOPIC_CHANGE_INDICATORS.some((pattern) => pattern.test(lower));
-  
+
   if (!isTopicChange) return null;
 
   const phrases = [
-    "We can move on - and that previous topic is safe to return to whenever.",
+    'We can move on - and that previous topic is safe to return to whenever.',
     "I noticed we shifted gears. I'm here if you want to go back to that.",
     "New topic works for me. That earlier thing? Still here when you're ready.",
   ];
@@ -1007,11 +1018,11 @@ const GEN_Z_DISMISSIVE_PATTERNS = [
 
 function detectGenZDismissive(lower: string): UnsaidSignal | null {
   const isGenZDismissive = GEN_Z_DISMISSIVE_PATTERNS.some((pattern) => pattern.test(lower));
-  
+
   if (!isGenZDismissive) return null;
 
   const phrases = [
-    "Bestie... how are you *really* doing?",
+    'Bestie... how are you *really* doing?',
     "That's a vibe, but what's actually going on?",
     "I hear you. And... what's underneath that?",
   ];
@@ -1136,7 +1147,16 @@ function detectMinimizing(
   // Check for negative emotions that suggest they're downplaying
   const hasNegativeEmotion =
     context.detectedEmotion &&
-    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated', 'distressed', 'overwhelmed'].includes(context.detectedEmotion);
+    [
+      'sad',
+      'anxious',
+      'angry',
+      'hurt',
+      'scared',
+      'frustrated',
+      'distressed',
+      'overwhelmed',
+    ].includes(context.detectedEmotion);
 
   // Strong minimizing patterns that are significant on their own
   const strongMinimizing = [
@@ -1274,10 +1294,7 @@ export function importUnsaidProfile(data: PersistedUserUnsaidProfile): void {
  * Record a deflection pattern (called when detectUnsaidSignals finds deflection).
  * This enables tracking across sessions.
  */
-export function recordDeflectionPattern(
-  userId: string,
-  signal: UnsaidSignal
-): void {
+export function recordDeflectionPattern(userId: string, signal: UnsaidSignal): void {
   if (signal.type !== 'deflection' && signal.type !== 'topic_avoidance') {
     return; // Only track deflection patterns
   }
@@ -1305,7 +1322,9 @@ export function recordDeflectionPattern(
       topic,
       avoidanceCount: 1,
       lastAvoided: new Date(),
-      deflectionPhrases: signal.context.userMessage ? [signal.context.userMessage.slice(0, 50)] : [],
+      deflectionPhrases: signal.context.userMessage
+        ? [signal.context.userMessage.slice(0, 50)]
+        : [],
     });
   }
 
@@ -1355,15 +1374,14 @@ export function buildDeflectionContext(userId: string): string {
   lines.push('');
 
   for (const topic of stats.topics.slice(0, 5)) {
-    const daysSince = Math.floor(
-      (Date.now() - topic.lastSeen.getTime()) / (24 * 60 * 60 * 1000)
-    );
-    const recency = daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+    const daysSince = Math.floor((Date.now() - topic.lastSeen.getTime()) / (24 * 60 * 60 * 1000));
+    const recency =
+      daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
     lines.push(`• "${topic.topic}" - deflected ${topic.count}x (last: ${recency})`);
   }
 
   lines.push('');
-  lines.push('Create space for these topics. Never push. They\'ll share when ready.');
+  lines.push("Create space for these topics. Never push. They'll share when ready.");
 
   return lines.join('\n');
 }

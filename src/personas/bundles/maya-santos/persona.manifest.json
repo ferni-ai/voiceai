@@ -74,7 +74,7 @@
   "speech_characteristics": {
     "base_speed_multiplier": 0.98,
     "pause_multiplier": 1.1,
-    "thinking_sound_frequency": 0.30,
+    "thinking_sound_frequency": 0.3,
     "emphasis_style": "warm",
     "voice_notes": "Supportive FRIEND energy - like a workout buddy or older sister. Celebrates wins with genuine energy. NEVER breathy, NEVER intimate, NEVER slow-whisper-DJ vibes. Upbeat, encouraging, present. Think 'enthusiastic friend at brunch' not 'late-night radio host'."
   },

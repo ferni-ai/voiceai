@@ -16,4 +16,3 @@ export interface PronunciationEntry {
   /** Optional description for documentation */
   description?: string;
 }
-

@@ -246,7 +246,11 @@ describe('ThreeWordDay', () => {
       expect(state.words).toHaveLength(3);
 
       // Explore each word
-      const reflections = ['This day felt productive', 'Gratitude for small things', 'Inspired to keep going'];
+      const reflections = [
+        'This day felt productive',
+        'Gratitude for small things',
+        'Inspired to keep going',
+      ];
 
       for (const reflection of reflections) {
         const result = processInput(state, reflection);

@@ -287,7 +287,10 @@ export async function applyPersonaSpeechTraits(
       );
     }
   } catch (error) {
-    log.warn({ personaId, error: String(error) }, 'JSON behavior humanization failed (non-blocking)');
+    log.warn(
+      { personaId, error: String(error) },
+      'JSON behavior humanization failed (non-blocking)'
+    );
     // Continue with layer 1 result
   }
 
@@ -419,7 +422,10 @@ export function applyPersonaSpeechTraitsSync(
     });
     log.debug({ personaId }, 'Applied persona speech traits sync (layer 2: JSON behaviors)');
   } catch (error) {
-    log.warn({ personaId, error: String(error) }, 'JSON behavior sync humanization failed (non-blocking)');
+    log.warn(
+      { personaId, error: String(error) },
+      'JSON behavior sync humanization failed (non-blocking)'
+    );
     // Continue with layer 1 result
   }
 

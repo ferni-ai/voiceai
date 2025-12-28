@@ -340,9 +340,7 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
     description: `Send the previewed batch messages. Call this after preview to actually send the messages.`,
 
     parameters: z.object({
-      confirm: z
-        .boolean()
-        .describe('Set to true to confirm sending all previewed messages'),
+      confirm: z.boolean().describe('Set to true to confirm sending all previewed messages'),
     }),
 
     execute: async (params) => {
@@ -354,7 +352,10 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
       }
 
       // Find the most recent pending batch for this user
-      let latestBatch: { id: string; data: (typeof pendingBatches extends Map<string, infer V> ? V : never) } | null = null;
+      let latestBatch: {
+        id: string;
+        data: typeof pendingBatches extends Map<string, infer V> ? V : never;
+      } | null = null;
       for (const [id, batch] of pendingBatches.entries()) {
         if (batch.userId === userId) {
           if (!latestBatch || batch.createdAt > latestBatch.data.createdAt) {
@@ -529,12 +530,12 @@ export function createOutreachSuggestionsTool(ctx: ToolContext): Tool {
           return "You're pretty caught up! No one seems overdue for a check-in right now.";
         }
 
-        let response = "**💡 People who might appreciate hearing from you:**\n\n";
+        let response = '**💡 People who might appreciate hearing from you:**\n\n';
         for (const s of topSuggestions) {
           response += `• **${s.contact.name}** - ${s.reason}\n`;
         }
 
-        response += "\nWant me to reach out to any of them?";
+        response += '\nWant me to reach out to any of them?';
         return response;
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to get suggestions');
@@ -578,4 +579,3 @@ export function getBatchOutreachDefinitions(): ToolDefinition[] {
 }
 
 export default getBatchOutreachDefinitions;
-

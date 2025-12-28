@@ -56,15 +56,15 @@ function getCachedContext(
 ): string | null {
   const key = getCacheKey(userId, topics, emotion, person);
   const cached = contextCache.get(key);
-  
+
   if (!cached) return null;
-  
+
   // Check if cache is still valid
   if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
     contextCache.delete(key);
     return null;
   }
-  
+
   return cached.context;
 }
 
@@ -83,7 +83,7 @@ function setCachedContext(
     emotion,
     person,
   });
-  
+
   // Prevent unbounded cache growth
   if (contextCache.size > 100) {
     const oldestKey = contextCache.keys().next().value;
@@ -111,7 +111,7 @@ export const semanticIntelligenceBuilder: ContextBuilder = {
     }
 
     const turnCount = userData?.turnCount || 0;
-    
+
     // Don't run on first 2 turns (not enough context yet)
     if (turnCount < 2) {
       return [];
@@ -246,4 +246,3 @@ export function getSemanticIntelligenceCacheStats(): {
 registerContextBuilder(semanticIntelligenceBuilder);
 
 export default semanticIntelligenceBuilder;
-

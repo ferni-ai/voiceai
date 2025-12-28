@@ -64,7 +64,9 @@ export class MockRoom extends EventEmitter {
 
   async connect(url: string, token: string): Promise<void> {
     this.state = 'connecting';
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
     this.state = 'connected';
     this.emit('connected');
   }
@@ -212,7 +214,9 @@ export class MockVoiceAssistant extends EventEmitter {
         };
 
         this.emit('userTranscript', event);
-        await new Promise<void>((resolve) => { setTimeout(resolve, durationMs / words.length / 2); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, durationMs / words.length / 2);
+        });
       }
     }
 
@@ -461,7 +465,9 @@ export async function simulateConversation(
     await assistant.simulateUserSpeech(turn.user);
 
     // Wait a bit for processing
-    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     // Verify LLM was called
     if (turn.expectedResponse && llm.lastPrompt) {

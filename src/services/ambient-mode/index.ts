@@ -188,9 +188,7 @@ import type { ContextInjection } from '../../intelligence/context-builders/core/
  *
  * Priority: 72 (below visual at 74, above general at 70)
  */
-export async function buildAmbientModeInjection(
-  userId: string
-): Promise<ContextInjection | null> {
+export async function buildAmbientModeInjection(userId: string): Promise<ContextInjection | null> {
   try {
     const context = await buildAmbientContext(userId);
 
@@ -216,4 +214,3 @@ export async function buildAmbientModeInjection(
 }
 
 export default ambientMode;
-

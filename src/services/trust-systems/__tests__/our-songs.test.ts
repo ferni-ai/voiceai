@@ -129,7 +129,7 @@ describe('Our Songs Integration', () => {
 
     it('should detect emotion from text when not provided', () => {
       const result = detectSignificantMoment({
-        recentUserText: "I finally feel grateful for what I have",
+        recentUserText: 'I finally feel grateful for what I have',
         isUserSpeaking: true,
       });
 

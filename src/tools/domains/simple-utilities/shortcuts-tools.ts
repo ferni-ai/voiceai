@@ -32,11 +32,7 @@ interface CapabilityUsage {
 // In-memory analytics (could be backed by Firestore for persistence)
 const usageAnalytics = new Map<string, Map<string, CapabilityUsage>>();
 
-export function trackCapabilityUsage(
-  userId: string,
-  toolId: string,
-  success = true
-): void {
+export function trackCapabilityUsage(userId: string, toolId: string, success = true): void {
   if (!usageAnalytics.has(userId)) {
     usageAnalytics.set(userId, new Map());
   }
@@ -51,7 +47,8 @@ export function trackCapabilityUsage(
 
   existing.count++;
   existing.lastUsed = Date.now();
-  existing.successRate = (existing.successRate * (existing.count - 1) + (success ? 1 : 0)) / existing.count;
+  existing.successRate =
+    (existing.successRate * (existing.count - 1) + (success ? 1 : 0)) / existing.count;
 
   userUsage.set(toolId, existing);
   log.debug({ userId, toolId, usage: existing }, 'Tracked capability usage');
@@ -86,7 +83,12 @@ async function persistAnalytics(userId: string): Promise<void> {
     if (!userUsage) return;
 
     const data = Object.fromEntries(userUsage);
-    await db.collection('bogle_users').doc(userId).collection('analytics').doc('capability_usage').set(cleanForFirestore(data), { merge: true });
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('analytics')
+      .doc('capability_usage')
+      .set(cleanForFirestore(data), { merge: true });
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Could not persist analytics');
   }
@@ -105,11 +107,16 @@ const quickAlarmDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickAlarm') || 'Set an alarm quickly. Say "set an alarm for 7am" or "wake me up at 6:30".',
+      description:
+        getToolDescription('quickAlarm') ||
+        'Set an alarm quickly. Say "set an alarm for 7am" or "wake me up at 6:30".',
       parameters: z.object({
         time: z.string().describe('Time for the alarm, e.g., "7am", "6:30", "7:00 PM"'),
         label: z.string().optional().describe('Label for the alarm, e.g., "wake up", "medication"'),
-        repeat: z.enum(['once', 'daily', 'weekdays', 'weekends']).optional().describe('Repeat pattern'),
+        repeat: z
+          .enum(['once', 'daily', 'weekdays', 'weekends'])
+          .optional()
+          .describe('Repeat pattern'),
       }),
       execute: async ({ time, label, repeat }) => {
         log.info({ userId: ctx.userId, time, label, repeat }, 'Quick alarm shortcut');
@@ -126,7 +133,7 @@ const quickAlarmDef: ToolDefinition = {
         try {
           // Dynamically import and delegate to alarm-tools
           const { alarmToolDefinitions } = await import('./alarm-tools.js');
-          const setAlarmDef = alarmToolDefinitions.find(t => t.id === 'setAlarm');
+          const setAlarmDef = alarmToolDefinitions.find((t) => t.id === 'setAlarm');
 
           if (!setAlarmDef) {
             return `I'm having trouble with alarms right now. Try again in a moment.`;
@@ -165,7 +172,9 @@ const quickTimerDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickTimer') || 'Set a timer quickly. Say "set a timer for 5 minutes" or "10 minute timer".',
+      description:
+        getToolDescription('quickTimer') ||
+        'Set a timer quickly. Say "set a timer for 5 minutes" or "10 minute timer".',
       parameters: z.object({
         duration: z.string().describe('Duration like "5 minutes", "30 seconds", "2 hours"'),
         label: z.string().optional().describe('What the timer is for'),
@@ -183,7 +192,7 @@ const quickTimerDef: ToolDefinition = {
 
         try {
           const { timerToolDefinitions } = await import('./timer-tools.js');
-          const setTimerDef = timerToolDefinitions.find(t => t.id === 'setTimer');
+          const setTimerDef = timerToolDefinitions.find((t) => t.id === 'setTimer');
 
           if (!setTimerDef) {
             return `I'm having trouble with timers right now. Try again in a moment.`;
@@ -220,9 +229,14 @@ const quickWeatherDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickWeather') || 'Get the weather quickly. Say "what\'s the weather?" or "weather in New York".',
+      description:
+        getToolDescription('quickWeather') ||
+        'Get the weather quickly. Say "what\'s the weather?" or "weather in New York".',
       parameters: z.object({
-        location: z.string().optional().describe('Location for weather, defaults to user\'s location'),
+        location: z
+          .string()
+          .optional()
+          .describe("Location for weather, defaults to user's location"),
         type: z.enum(['current', 'forecast', 'hourly']).optional().describe('Type of weather info'),
       }),
       execute: async ({ location, type }) => {
@@ -234,7 +248,9 @@ const quickWeatherDef: ToolDefinition = {
           // Try to import weather tools
           const { getToolDefinitions } = await import('../information/index.js');
           const weatherTools = await getToolDefinitions();
-          const weatherTool = weatherTools.find(t => t.id === 'getWeather' || t.id === 'getCurrentWeather');
+          const weatherTool = weatherTools.find(
+            (t) => t.id === 'getWeather' || t.id === 'getCurrentWeather'
+          );
 
           if (!weatherTool) {
             return `Weather service isn't available right now. Try again later.`;
@@ -270,7 +286,9 @@ const quickMusicDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickMusic') || 'Play music quickly. Say "play some jazz" or "play upbeat music".',
+      description:
+        getToolDescription('quickMusic') ||
+        'Play music quickly. Say "play some jazz" or "play upbeat music".',
       parameters: z.object({
         query: z.string().describe('What to play - artist, song, genre, mood, or playlist'),
         action: z.enum(['play', 'pause', 'skip', 'volume']).optional().default('play'),
@@ -284,7 +302,7 @@ const quickMusicDef: ToolDefinition = {
           // Try to import music tools
           const { getToolDefinitions } = await import('../entertainment/index.js');
           const musicTools = await getToolDefinitions();
-          const playTool = musicTools.find(t => t.id === 'playMusic' || t.id === 'spotifyPlay');
+          const playTool = musicTools.find((t) => t.id === 'playMusic' || t.id === 'spotifyPlay');
 
           if (!playTool) {
             return `Music isn't set up yet. Would you like to connect Spotify?`;
@@ -320,7 +338,9 @@ const quickCalendarDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickCalendar') || 'Check your calendar or add events. Say "what\'s on my calendar today?" or "add lunch with Sarah at 1pm".',
+      description:
+        getToolDescription('quickCalendar') ||
+        'Check your calendar or add events. Say "what\'s on my calendar today?" or "add lunch with Sarah at 1pm".',
       parameters: z.object({
         action: z.enum(['check', 'add', 'list']).describe('What to do with calendar'),
         date: z.string().optional().describe('Date like "today", "tomorrow", "next monday"'),
@@ -337,7 +357,7 @@ const quickCalendarDef: ToolDefinition = {
           const calendarTools = await getToolDefinitions();
 
           const toolId = action === 'add' ? 'createCalendarEvent' : 'getCalendarEvents';
-          const tool = calendarTools.find(t => t.id === toolId || t.id === 'listCalendar');
+          const tool = calendarTools.find((t) => t.id === toolId || t.id === 'listCalendar');
 
           if (!tool) {
             return `Calendar isn't connected. Would you like to connect Google Calendar?`;
@@ -374,7 +394,9 @@ const quickSmartHomeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickSmartHome') || 'Control smart home. Say "turn on the lights" or "set thermostat to 72".',
+      description:
+        getToolDescription('quickSmartHome') ||
+        'Control smart home. Say "turn on the lights" or "set thermostat to 72".',
       parameters: z.object({
         command: z.string().describe('What to do - "lights on", "thermostat 72", "lock door"'),
         room: z.string().optional().describe('Which room, e.g., "living room", "bedroom"'),
@@ -393,11 +415,13 @@ const quickSmartHomeDef: ToolDefinition = {
           let tool;
 
           if (commandLower.includes('light')) {
-            tool = smartHomeTools.find(t => t.id.includes('light') || t.id.includes('Light'));
+            tool = smartHomeTools.find((t) => t.id.includes('light') || t.id.includes('Light'));
           } else if (commandLower.includes('thermostat') || commandLower.includes('temperature')) {
-            tool = smartHomeTools.find(t => t.id.includes('thermostat') || t.id.includes('Thermostat'));
+            tool = smartHomeTools.find(
+              (t) => t.id.includes('thermostat') || t.id.includes('Thermostat')
+            );
           } else if (commandLower.includes('lock') || commandLower.includes('door')) {
-            tool = smartHomeTools.find(t => t.id.includes('lock') || t.id.includes('Lock'));
+            tool = smartHomeTools.find((t) => t.id.includes('lock') || t.id.includes('Lock'));
           } else {
             tool = smartHomeTools[0]; // Default to first available
           }
@@ -436,10 +460,11 @@ const quickCallDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickCall') || 'Call someone. Say "call mom" or "call John Smith".',
+      description:
+        getToolDescription('quickCall') || 'Call someone. Say "call mom" or "call John Smith".',
       parameters: z.object({
         contact: z.string().describe('Who to call - name, relationship, or phone number'),
-        message: z.string().optional().describe('Message to leave if they don\'t answer'),
+        message: z.string().optional().describe("Message to leave if they don't answer"),
       }),
       execute: async ({ contact, message }) => {
         log.info({ userId: ctx.userId, contact, message }, 'Quick call shortcut');
@@ -449,7 +474,9 @@ const quickCallDef: ToolDefinition = {
         try {
           const { getToolDefinitions } = await import('../telephony/index.js');
           const telephonyTools = await getToolDefinitions();
-          const callTool = telephonyTools.find(t => t.id === 'makePhoneCall' || t.id === 'callContact');
+          const callTool = telephonyTools.find(
+            (t) => t.id === 'makePhoneCall' || t.id === 'callContact'
+          );
 
           if (!callTool) {
             return `Calling isn't set up yet. Would you like to connect your phone?`;
@@ -485,20 +512,27 @@ const quickTextDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickText') || 'Send a text message. Say "text mom I\'m on my way" or "send message to John".',
+      description:
+        getToolDescription('quickText') ||
+        'Send a text message. Say "text mom I\'m on my way" or "send message to John".',
       parameters: z.object({
         contact: z.string().describe('Who to text - name, relationship, or phone number'),
         message: z.string().describe('The message to send'),
       }),
       execute: async ({ contact, message }) => {
-        log.info({ userId: ctx.userId, contact, message: message.substring(0, 20) }, 'Quick text shortcut');
+        log.info(
+          { userId: ctx.userId, contact, message: message.substring(0, 20) },
+          'Quick text shortcut'
+        );
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickText');
 
         try {
           const { getToolDefinitions } = await import('../communication/index.js');
           const commTools = await getToolDefinitions();
-          const textTool = commTools.find(t => t.id === 'sendText' || t.id === 'sendSMS' || t.id === 'sendMessage');
+          const textTool = commTools.find(
+            (t) => t.id === 'sendText' || t.id === 'sendSMS' || t.id === 'sendMessage'
+          );
 
           if (!textTool) {
             return `Texting isn't set up yet. Would you like to connect your phone?`;
@@ -534,7 +568,9 @@ const quickEmailDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('quickEmail') || 'Send an email. Say "email John about the meeting" or "send an email to support".',
+      description:
+        getToolDescription('quickEmail') ||
+        'Send an email. Say "email John about the meeting" or "send an email to support".',
       parameters: z.object({
         recipient: z.string().describe('Who to email - name or email address'),
         subject: z.string().optional().describe('Email subject'),
@@ -548,7 +584,7 @@ const quickEmailDef: ToolDefinition = {
         try {
           const { getToolDefinitions } = await import('../communication/index.js');
           const commTools = await getToolDefinitions();
-          const emailTool = commTools.find(t => t.id === 'sendEmail' || t.id === 'composeEmail');
+          const emailTool = commTools.find((t) => t.id === 'sendEmail' || t.id === 'composeEmail');
 
           if (!emailTool) {
             return `Email isn't set up yet. Would you like to connect your email?`;
@@ -580,10 +616,7 @@ function parseTimeString(time: string): string | null {
   const cleaned = time.toLowerCase().trim();
 
   // Match patterns like "7am", "7:30 am", "14:30", "7:00 PM"
-  const patterns = [
-    /^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i,
-    /^(\d{1,2})\s*(am|pm)$/i,
-  ];
+  const patterns = [/^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i, /^(\d{1,2})\s*(am|pm)$/i];
 
   for (const pattern of patterns) {
     const match = cleaned.match(pattern);
@@ -680,4 +713,3 @@ export {
   quickTextDef,
   quickEmailDef,
 };
-

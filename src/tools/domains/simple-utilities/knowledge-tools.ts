@@ -3,7 +3,7 @@
  *
  * Supplementary tools for common knowledge requests:
  * - Spelling (with phonetic alphabet)
- * 
+ *
  * NOTE: Many knowledge tools already exist in the codebase:
  * - Math: math-tools.ts (quickMathDef, calculateTipDef, splitBillDef)
  * - Conversions: conversion-tools.ts (convertUnitsDef, convertTemperatureDef)
@@ -37,7 +37,9 @@ const spellDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('spell') || 'Spell a word letter by letter. Say "how do you spell onomatopoeia" or "spell accommodate".',
+      description:
+        getToolDescription('spell') ||
+        'Spell a word letter by letter. Say "how do you spell onomatopoeia" or "spell accommodate".',
       parameters: z.object({
         word: z.string().describe('The word to spell'),
       }),
@@ -81,9 +83,7 @@ const spellDef: ToolDefinition = {
         }
 
         // Phonetic spelling for longer/trickier words
-        const phoneticSpelling = letters
-          .map(l => phonetic[l] || l)
-          .join(', ');
+        const phoneticSpelling = letters.map((l) => phonetic[l] || l).join(', ');
 
         return `${word.toUpperCase()} is spelled:\n${letters.join(' - ')}\n\nPhonetically: ${phoneticSpelling}`;
       },
@@ -101,11 +101,6 @@ const spellDef: ToolDefinition = {
 // - Definitions: dictionary-tools.ts (defineWordDef)
 // - Translation: translation-tools.ts (translateDef)
 
-export const knowledgeToolDefinitions: ToolDefinition[] = [
-  spellDef,
-];
+export const knowledgeToolDefinitions: ToolDefinition[] = [spellDef];
 
-export {
-  spellDef,
-};
-
+export { spellDef };

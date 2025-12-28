@@ -107,7 +107,9 @@ export function createMockHarness(): TestHarness {
       lastTrustSignals = [];
 
       // Simulate processing delay
-      await new Promise<void>((resolve) => { setTimeout(resolve, 50 + Math.random() * 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 50 + Math.random() * 100);
+      });
 
       // Generate mock response based on scenario
       let responseText = 'I hear you.';

@@ -302,7 +302,9 @@ export class BTCWTTS {
  * Streaming synthesis stream - compatible with LiveKit's SynthesizeStream
  * Yields SynthesizedAudio objects that LiveKit expects
  */
-export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM> {
+export class BTCWSynthesizeStream implements AsyncIterable<
+  SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM
+> {
   #endpoint: string;
   #voiceId: string;
   #emotion: BTCWEmotionType;
@@ -368,11 +370,16 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
     }
     // Validate text before processing
     if (text === undefined || text === null) {
-      log.error(`pushText called with ${text === undefined ? 'undefined' : 'null'} text - skipping`);
+      log.error(
+        `pushText called with ${text === undefined ? 'undefined' : 'null'} text - skipping`
+      );
       return;
     }
     if (typeof text !== 'string') {
-      log.error({ textType: typeof text }, 'pushText called with non-string text type - converting to string');
+      log.error(
+        { textType: typeof text },
+        'pushText called with non-string text type - converting to string'
+      );
       text = String(text);
     }
     if (!text.trim()) {
@@ -411,7 +418,9 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
 
     // Validate text before processing
     if (text === undefined || text === null) {
-      log.error(`updateInputStream called with ${text === undefined ? 'undefined' : 'null'} text - skipping`);
+      log.error(
+        `updateInputStream called with ${text === undefined ? 'undefined' : 'null'} text - skipping`
+      );
       return;
     }
     if (typeof text !== 'string') {
@@ -471,7 +480,10 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
 
     // Log if SSML was stripped
     if (original !== text) {
-      log.debug({ original: original.slice(0, 100), stripped: text.slice(0, 100) }, 'Stripped SSML');
+      log.debug(
+        { original: original.slice(0, 100), stripped: text.slice(0, 100) },
+        'Stripped SSML'
+      );
     }
 
     return text;
@@ -590,7 +602,10 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
               }
             : undefined,
         };
-        log.debug({ endpoint: speechEndpoint, textLength: text?.length, voice: this.#voiceId }, 'Sending request');
+        log.debug(
+          { endpoint: speechEndpoint, textLength: text?.length, voice: this.#voiceId },
+          'Sending request'
+        );
 
         const fetchStart = Date.now();
         let response: Response;
@@ -601,9 +616,15 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
             body: JSON.stringify(requestBody),
             signal: this.#abortController.signal,
           });
-          log.debug({ latencyMs: Date.now() - fetchStart, status: response.status }, 'Fetch completed');
+          log.debug(
+            { latencyMs: Date.now() - fetchStart, status: response.status },
+            'Fetch completed'
+          );
         } catch (fetchError) {
-          log.error({ latencyMs: Date.now() - fetchStart, error: String(fetchError) }, 'Fetch failed');
+          log.error(
+            { latencyMs: Date.now() - fetchStart, error: String(fetchError) },
+            'Fetch failed'
+          );
           this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
           this.#notifyWaiter();
           continue;
@@ -617,7 +638,10 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
           } catch {
             errorDetails = '(could not read response body)';
           }
-          log.error({ status: response.status, statusText: response.statusText, body: errorDetails }, 'HTTP error');
+          log.error(
+            { status: response.status, statusText: response.statusText, body: errorDetails },
+            'HTTP error'
+          );
           this.#eventQueue.push(tts.SynthesizeStream.END_OF_STREAM);
           this.#notifyWaiter();
           continue;
@@ -665,7 +689,13 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
         new Uint8Array(alignedBuffer).set(combinedBuffer.subarray(0, completeBytes));
         const allAudioData = new Int16Array(alignedBuffer);
 
-        log.debug({ samples: allAudioData.length, durationSec: (allAudioData.length / this.#sampleRate).toFixed(2) }, 'Received audio');
+        log.debug(
+          {
+            samples: allAudioData.length,
+            durationSec: (allAudioData.length / this.#sampleRate).toFixed(2),
+          },
+          'Received audio'
+        );
 
         // Chunk into consistent CHUNK_SIZE_SAMPLES frames for smooth playback
         const frames: AudioFrame[] = [];
@@ -712,7 +742,9 @@ export class BTCWSynthesizeStream implements AsyncIterable<SynthesizedAudio | ty
     }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM> {
+  async *[Symbol.asyncIterator](): AsyncIterator<
+    SynthesizedAudio | typeof tts.SynthesizeStream.END_OF_STREAM
+  > {
     this.#processNextText();
 
     while (true) {
@@ -805,7 +837,10 @@ export class BTCWChunkedStream implements AsyncIterable<SynthesizedAudio> {
       });
 
       if (!response.ok) {
-        log.error({ status: response.status, statusText: response.statusText }, 'HTTP error in chunked synthesis');
+        log.error(
+          { status: response.status, statusText: response.statusText },
+          'HTTP error in chunked synthesis'
+        );
         return;
       }
 

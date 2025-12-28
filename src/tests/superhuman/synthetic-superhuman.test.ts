@@ -126,7 +126,10 @@ describe('Commitment Detection - Better Than Human', () => {
     const conversationScenarios = [
       { utterance: 'I need to talk to my boss about a raise', expectedType: 'conversation' },
       { utterance: "I'm going to tell my partner how I really feel", expectedType: 'conversation' },
-      { utterance: 'I have to have that difficult conversation with my mom', expectedType: 'conversation' },
+      {
+        utterance: 'I have to have that difficult conversation with my mom',
+        expectedType: 'conversation',
+      },
     ];
 
     conversationScenarios.forEach(({ utterance, expectedType }) => {
@@ -226,7 +229,10 @@ describe('Values Alignment Detection - Better Than Human', () => {
 
   describe('Seed Scenarios - Achievement Values', () => {
     const achievementScenarios = [
-      { utterance: 'I want to succeed and accomplish great things', expectedCategory: 'achievement' },
+      {
+        utterance: 'I want to succeed and accomplish great things',
+        expectedCategory: 'achievement',
+      },
       { utterance: 'Success is what drives me', expectedCategory: 'achievement' },
       { utterance: 'I need to prove myself', expectedCategory: 'achievement' },
     ];
@@ -329,8 +335,8 @@ describe('Crisis Detection - Better Than Human', () => {
 
   describe('Seed Scenarios - Grounding Level', () => {
     const groundingScenarios = [
-      { utterance: "I feel disconnected from everything", expectedLevel: 'grounding' },
-      { utterance: "Nothing feels real right now", expectedLevel: 'grounding' },
+      { utterance: 'I feel disconnected from everything', expectedLevel: 'grounding' },
+      { utterance: 'Nothing feels real right now', expectedLevel: 'grounding' },
     ];
 
     groundingScenarios.forEach(({ utterance, expectedLevel }) => {
@@ -358,4 +364,3 @@ describe('Crisis Detection - Better Than Human', () => {
     });
   });
 });
-

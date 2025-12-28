@@ -138,10 +138,7 @@ const BUILT_IN_INTENTS: Intent[] = [
     category: 'music',
     action: 'pause',
     name: 'Pause Music',
-    patterns: [
-      /^(?:pause|stop)\s+(?:the\s+)?music/i,
-      /^stop\s+playing/i,
-    ],
+    patterns: [/^(?:pause|stop)\s+(?:the\s+)?music/i, /^stop\s+playing/i],
     keywords: ['pause', 'stop', 'music'],
     requiredSlots: [],
     optionalSlots: [],
@@ -192,10 +189,7 @@ const BUILT_IN_INTENTS: Intent[] = [
     category: 'timer',
     action: 'set',
     name: 'Set Timer',
-    patterns: [
-      /^(?:set\s+)?(?:a\s+)?timer\s+(?:for\s+)?(\d+)/i,
-      /^(\d+)\s+minute\s+timer/i,
-    ],
+    patterns: [/^(?:set\s+)?(?:a\s+)?timer\s+(?:for\s+)?(\d+)/i, /^(\d+)\s+minute\s+timer/i],
     keywords: ['timer', 'countdown', 'minutes'],
     requiredSlots: ['duration'],
     optionalSlots: [],
@@ -242,10 +236,7 @@ const BUILT_IN_INTENTS: Intent[] = [
     category: 'communication',
     action: 'call',
     name: 'Make Call',
-    patterns: [
-      /^call\s+(\w+)/i,
-      /^(?:phone|dial)\s+(\w+)/i,
-    ],
+    patterns: [/^call\s+(\w+)/i, /^(?:phone|dial)\s+(\w+)/i],
     keywords: ['call', 'phone', 'dial'],
     requiredSlots: ['contact'],
     optionalSlots: [],
@@ -257,10 +248,7 @@ const BUILT_IN_INTENTS: Intent[] = [
     category: 'communication',
     action: 'text',
     name: 'Send Text',
-    patterns: [
-      /^(?:send\s+)?(?:a\s+)?text\s+(?:to\s+)?(\w+)/i,
-      /^(?:message|text)\s+(\w+)/i,
-    ],
+    patterns: [/^(?:send\s+)?(?:a\s+)?text\s+(?:to\s+)?(\w+)/i, /^(?:message|text)\s+(\w+)/i],
     keywords: ['text', 'message', 'sms', 'send'],
     requiredSlots: ['contact'],
     optionalSlots: ['query'],
@@ -345,10 +333,7 @@ const BUILT_IN_INTENTS: Intent[] = [
     category: 'smalltalk',
     action: 'thanks',
     name: 'Thanks',
-    patterns: [
-      /^(?:thanks?|thank\s+you)/i,
-      /^(?:great|awesome|perfect|wonderful)/i,
-    ],
+    patterns: [/^(?:thanks?|thank\s+you)/i, /^(?:great|awesome|perfect|wonderful)/i],
     keywords: ['thank', 'thanks', 'great', 'awesome', 'perfect'],
     requiredSlots: [],
     optionalSlots: [],
@@ -365,13 +350,18 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
   person: (text) => {
     const slots: Slot[] = [];
     // Named person after keywords
-    const personMatch = text.match(/(?:to|with|for|call|text|talk)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+    const personMatch = text.match(
+      /(?:to|with|for|call|text|talk)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/
+    );
     if (personMatch) {
       slots.push({
         name: 'person',
         type: 'person',
         value: personMatch[1],
-        span: [personMatch.index! + personMatch[0].indexOf(personMatch[1]), personMatch.index! + personMatch[0].length],
+        span: [
+          personMatch.index! + personMatch[0].indexOf(personMatch[1]),
+          personMatch.index! + personMatch[0].length,
+        ],
         confidence: 0.9,
       });
     }
@@ -387,7 +377,10 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
         name: 'location',
         type: 'location',
         value: locationMatch[1],
-        span: [locationMatch.index! + locationMatch[0].indexOf(locationMatch[1]), locationMatch.index! + locationMatch[0].length],
+        span: [
+          locationMatch.index! + locationMatch[0].indexOf(locationMatch[1]),
+          locationMatch.index! + locationMatch[0].length,
+        ],
         confidence: 0.8,
       });
     }
@@ -400,10 +393,22 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
 
     // Relative time
     if (/tomorrow/.test(lower)) {
-      slots.push({ name: 'datetime', type: 'datetime', value: 'tomorrow', span: [lower.indexOf('tomorrow'), lower.indexOf('tomorrow') + 8], confidence: 0.95 });
+      slots.push({
+        name: 'datetime',
+        type: 'datetime',
+        value: 'tomorrow',
+        span: [lower.indexOf('tomorrow'), lower.indexOf('tomorrow') + 8],
+        confidence: 0.95,
+      });
     }
     if (/today/.test(lower)) {
-      slots.push({ name: 'datetime', type: 'datetime', value: 'today', span: [lower.indexOf('today'), lower.indexOf('today') + 5], confidence: 0.95 });
+      slots.push({
+        name: 'datetime',
+        type: 'datetime',
+        value: 'today',
+        span: [lower.indexOf('today'), lower.indexOf('today') + 5],
+        confidence: 0.95,
+      });
     }
 
     // Time patterns
@@ -465,7 +470,23 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
 
   genre: (text) => {
     const slots: Slot[] = [];
-    const genres = ['jazz', 'rock', 'pop', 'classical', 'hip hop', 'country', 'electronic', 'r&b', 'folk', 'indie', 'metal', 'punk', 'soul', 'reggae', 'blues'];
+    const genres = [
+      'jazz',
+      'rock',
+      'pop',
+      'classical',
+      'hip hop',
+      'country',
+      'electronic',
+      'r&b',
+      'folk',
+      'indie',
+      'metal',
+      'punk',
+      'soul',
+      'reggae',
+      'blues',
+    ];
     const lower = text.toLowerCase();
 
     for (const genre of genres) {
@@ -486,7 +507,19 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
 
   mood: (text) => {
     const slots: Slot[] = [];
-    const moods = ['happy', 'sad', 'relaxing', 'energetic', 'focus', 'calm', 'upbeat', 'chill', 'motivating', 'peaceful', 'melancholy'];
+    const moods = [
+      'happy',
+      'sad',
+      'relaxing',
+      'energetic',
+      'focus',
+      'calm',
+      'upbeat',
+      'chill',
+      'motivating',
+      'peaceful',
+      'melancholy',
+    ];
     const lower = text.toLowerCase();
 
     for (const mood of moods) {
@@ -610,7 +643,12 @@ export class IntentClassifier {
   /**
    * Classify using regex patterns
    */
-  private classifyByPattern(input: string): { intent: Intent; confidence: number; slots: Slot[]; alternatives: Array<{ intent: Intent; confidence: number }> } | null {
+  private classifyByPattern(input: string): {
+    intent: Intent;
+    confidence: number;
+    slots: Slot[];
+    alternatives: Array<{ intent: Intent; confidence: number }>;
+  } | null {
     const matches: Array<{ intent: Intent; confidence: number }> = [];
 
     for (const intent of this.intents) {
@@ -642,7 +680,12 @@ export class IntentClassifier {
   /**
    * Classify using learned patterns
    */
-  private classifyByLearned(input: string): { intent: Intent; confidence: number; slots: Slot[]; alternatives: Array<{ intent: Intent; confidence: number }> } | null {
+  private classifyByLearned(input: string): {
+    intent: Intent;
+    confidence: number;
+    slots: Slot[];
+    alternatives: Array<{ intent: Intent; confidence: number }>;
+  } | null {
     for (const [, learned] of this.learnedPatterns) {
       if (learned.pattern.test(input)) {
         const intent = this.intents.find((i) => i.id === learned.intentId);
@@ -662,7 +705,12 @@ export class IntentClassifier {
   /**
    * Classify using keywords
    */
-  private classifyByKeyword(input: string): { intent: Intent; confidence: number; slots: Slot[]; alternatives: Array<{ intent: Intent; confidence: number }> } | null {
+  private classifyByKeyword(input: string): {
+    intent: Intent;
+    confidence: number;
+    slots: Slot[];
+    alternatives: Array<{ intent: Intent; confidence: number }>;
+  } | null {
     const words = new Set(input.toLowerCase().split(/\s+/));
     const scores: Array<{ intent: Intent; score: number }> = [];
 
@@ -684,7 +732,7 @@ export class IntentClassifier {
       }
 
       if (matchCount > 0) {
-        const score = (matchCount / intent.keywords.length) * intent.priority / 10;
+        const score = ((matchCount / intent.keywords.length) * intent.priority) / 10;
         scores.push({ intent, score });
       }
     }
@@ -698,17 +746,25 @@ export class IntentClassifier {
       intent: top.intent,
       confidence: Math.min(0.8, top.score),
       slots: this.extractSlots(input, top.intent),
-      alternatives: scores.slice(1, 4).map((s) => ({ intent: s.intent, confidence: Math.min(0.7, s.score) })),
+      alternatives: scores
+        .slice(1, 4)
+        .map((s) => ({ intent: s.intent, confidence: Math.min(0.7, s.score) })),
     };
   }
 
   /**
    * Get top keyword matches without full classification
    */
-  private getTopKeywordMatches(input: string, limit: number): Array<{ intent: Intent; confidence: number }> {
+  private getTopKeywordMatches(
+    input: string,
+    limit: number
+  ): Array<{ intent: Intent; confidence: number }> {
     const result = this.classifyByKeyword(input);
     if (!result) return [];
-    return [{ intent: result.intent, confidence: result.confidence }, ...result.alternatives].slice(0, limit);
+    return [{ intent: result.intent, confidence: result.confidence }, ...result.alternatives].slice(
+      0,
+      limit
+    );
   }
 
   /**
@@ -743,7 +799,12 @@ export class IntentClassifier {
    * Finalize and cache result
    */
   private finalizeResult(
-    partial: { intent: Intent | null; confidence: number; slots: Slot[]; alternatives: Array<{ intent: Intent; confidence: number }> },
+    partial: {
+      intent: Intent | null;
+      confidence: number;
+      slots: Slot[];
+      alternatives: Array<{ intent: Intent; confidence: number }>;
+    },
     input: string,
     startTime: number,
     source: ClassificationResult['source']
@@ -871,4 +932,3 @@ export function initializeIntentClassifier(
 
   return classifierInstance;
 }
-

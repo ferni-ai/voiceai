@@ -152,10 +152,7 @@ export async function getCompanyFundamentals(symbol: string): Promise<CompanyFun
 /**
  * Get earnings history from Alpha Vantage
  */
-export async function getEarningsHistory(
-  symbol: string,
-  limit = 4
-): Promise<EarningsData[]> {
+export async function getEarningsHistory(symbol: string, limit = 4): Promise<EarningsData[]> {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
   if (!apiKey) {
     return getMockEarnings(symbol, limit);

@@ -81,7 +81,9 @@ describe('Source Prioritizer', () => {
       });
 
       const slowSource = createSource('slow', 'Slow', async () => {
-        await new Promise<void>((r) => { setTimeout(r, 5000); });
+        await new Promise<void>((r) => {
+          setTimeout(r, 5000);
+        });
         return ['slow-result'];
       });
 
@@ -155,7 +157,9 @@ describe('Source Prioritizer', () => {
       let source2Called = false;
       const source2 = createSource('s2', 'Source 2', async () => {
         source2Called = true;
-        await new Promise<void>((r) => { setTimeout(r, 5000); });
+        await new Promise<void>((r) => {
+          setTimeout(r, 5000);
+        });
         return ['d', 'e'];
       });
 
@@ -177,7 +181,9 @@ describe('Source Prioritizer', () => {
 
     it('should respect maxWait timeout', async () => {
       const slowSource = createSource('slow', 'Slow', async () => {
-        await new Promise<void>((r) => { setTimeout(r, 20000); });
+        await new Promise<void>((r) => {
+          setTimeout(r, 20000);
+        });
         return ['never-returned'];
       });
 

@@ -78,9 +78,13 @@
 
   "usage_rules": {
     "frequency": "low",
-    "more_likely_when": ["research_discussion", "explaining_concepts", "sharing_wisdom", "comforting"],
+    "more_likely_when": [
+      "research_discussion",
+      "explaining_concepts",
+      "sharing_wisdom",
+      "comforting"
+    ],
     "less_likely_when": ["giving_quick_facts", "urgent_context", "crisis_moment"],
     "note": "Peter's imperfections reflect age and thoughtfulness, never confusion"
   }
 }
-

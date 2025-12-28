@@ -223,7 +223,9 @@ async function persistUsageRecord(
         log.error({ error, recordId: record.id }, 'Failed to persist usage record after retries');
       } else {
         log.warn({ error, attempt }, 'Retrying usage persistence');
-        await new Promise<void>((resolve) => { setTimeout(resolve, backoffMs * attempt); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, backoffMs * attempt);
+        });
       }
     }
   }
@@ -283,7 +285,7 @@ export function getUsageSummary(
 
 /**
  * Check if user can execute (quota check)
- * 
+ *
  * NOTE: For thread-safe quota enforcement, use checkAndIncrementQuota instead.
  * This function only checks the current state without incrementing.
  */
@@ -307,10 +309,10 @@ export function checkQuota(
 
 /**
  * Atomically check and increment quota.
- * 
+ *
  * Uses Firestore transactions to prevent race conditions where multiple
  * concurrent requests could exceed the quota.
- * 
+ *
  * @returns Whether the execution is allowed AND increments the counter atomically
  */
 export async function checkAndIncrementQuota(
@@ -319,7 +321,7 @@ export async function checkAndIncrementQuota(
   subscriptionTier = 'free'
 ): Promise<{ allowed: boolean; reason?: string; upgradeRequired?: boolean; newCount?: number }> {
   const tierQuota = TIER_QUOTAS[subscriptionTier] || TIER_QUOTAS.free;
-  
+
   // Unlimited tier
   if (tierQuota.executions < 0) {
     return { allowed: true };
@@ -344,7 +346,7 @@ export async function checkAndIncrementQuota(
 
     const result = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(docRef);
-      
+
       let currentExecutions = 0;
       if (doc.exists) {
         const data = doc.data();
@@ -363,7 +365,7 @@ export async function checkAndIncrementQuota(
 
       // Increment counter atomically
       const newCount = currentExecutions + 1;
-      
+
       if (doc.exists) {
         transaction.update(docRef, {
           'metrics.executions': newCount,
@@ -398,7 +400,10 @@ export async function checkAndIncrementQuota(
 
     return result;
   } catch (error) {
-    log.error({ error: String(error), userId, itemId }, 'Atomic quota check failed, using non-atomic fallback');
+    log.error(
+      { error: String(error), userId, itemId },
+      'Atomic quota check failed, using non-atomic fallback'
+    );
     // Fallback to non-atomic check
     return checkQuota(userId, itemId, subscriptionTier);
   }
@@ -520,7 +525,9 @@ async function persistRevenueShare(share: RevenueShare): Promise<void> {
         );
       } else {
         log.warn({ error, attempt }, 'Retrying revenue share persistence');
-        await new Promise<void>((resolve) => { setTimeout(resolve, backoffMs * attempt); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, backoffMs * attempt);
+        });
       }
     }
   }

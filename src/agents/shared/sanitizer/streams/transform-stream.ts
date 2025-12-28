@@ -9,9 +9,16 @@
 
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SanitizerStreamOptions } from '../types.js';
-import { detectsFunctionCallLeakage, getReplacementText, looksLikeJsonFunctionCall } from '../detectors/leakage-detector.js';
+import {
+  detectsFunctionCallLeakage,
+  getReplacementText,
+  looksLikeJsonFunctionCall,
+} from '../detectors/leakage-detector.js';
 import { getSlowTools } from '../detectors/patterns-loader.js';
-import { wasToolExecutedBySemanticRouter, markToolExecutedBySemanticRouter } from '../executors/deduplication.js';
+import {
+  wasToolExecutedBySemanticRouter,
+  markToolExecutedBySemanticRouter,
+} from '../executors/deduplication.js';
 
 const log = createLogger({ module: 'sanitizer-stream' });
 
@@ -105,7 +112,7 @@ export function createSanitizerWithMusicFallback(
       // Check for music narration pattern
       if (!musicFallbackTriggered && shouldTriggerMusicFallback(buffer)) {
         musicFallbackTriggered = true;
-        
+
         const query = extractMusicQuery(buffer);
         if (query && session && toolContext) {
           log.info('Music fallback triggered:', { query });
@@ -213,7 +220,11 @@ async function executeMusicFallback(
     const { executeJsonFunction } = await import('../../json-function-executor.js');
 
     const result = await executeJsonFunction(
-      { fn: 'playMusic', args: { query }, raw: JSON.stringify({ fn: 'playMusic', args: { query } }) },
+      {
+        fn: 'playMusic',
+        args: { query },
+        raw: JSON.stringify({ fn: 'playMusic', args: { query } }),
+      },
       toolContext
     );
 
@@ -272,7 +283,7 @@ export function createGuidanceStripStream(): AnyTransformStream {
 
       // Look for complete guidance blocks
       const stripped = stripGuidanceBlocks(buffer);
-      
+
       // If we stripped something, output the cleaned version
       if (stripped !== buffer) {
         controller.enqueue(stripped);
@@ -295,4 +306,3 @@ export function createGuidanceStripStream(): AnyTransformStream {
     },
   });
 }
-

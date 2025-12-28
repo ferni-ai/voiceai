@@ -52,14 +52,22 @@ async function loadPreferences(userId: string): Promise<UserPreferences> {
     const store = getFirestoreStore();
     const db = await store.getDatabase();
 
-    const doc = await db.collection('bogle_users').doc(userId).collection('preferences').doc('settings').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('preferences')
+      .doc('settings')
+      .get();
     if (doc.exists) {
       const prefs = doc.data() as UserPreferences;
       userPreferencesCache.set(userId, prefs);
       return prefs;
     }
   } catch (error) {
-    log.debug({ error: String(error), userId }, 'Firestore not available for preferences, using cache');
+    log.debug(
+      { error: String(error), userId },
+      'Firestore not available for preferences, using cache'
+    );
   }
 
   return {};
@@ -75,7 +83,12 @@ async function savePreferences(userId: string, prefs: UserPreferences): Promise<
     const store = getFirestoreStore();
     const db = await store.getDatabase();
 
-    await db.collection('bogle_users').doc(userId).collection('preferences').doc('settings').set(cleanForFirestore(prefs), { merge: true });
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('preferences')
+      .doc('settings')
+      .set(cleanForFirestore(prefs), { merge: true });
     log.info({ userId }, 'Saved preferences to Firestore');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Could not persist preferences to Firestore');
@@ -98,7 +111,16 @@ const whatCanYouDoDef: ToolDefinition = {
       description: getToolDescription('whatCanYouDo'),
       parameters: z.object({
         category: z
-          .enum(['all', 'productivity', 'coaching', 'fun', 'smart-home', 'communication', 'finance', 'wellness'])
+          .enum([
+            'all',
+            'productivity',
+            'coaching',
+            'fun',
+            'smart-home',
+            'communication',
+            'finance',
+            'wellness',
+          ])
           .optional()
           .default('all')
           .describe('Category to focus on'),
@@ -191,7 +213,10 @@ ${Object.values(capabilities).join('\n\n')}
 What would you like to try?`;
         }
 
-        return capabilities[category] || `I'm not sure about that category. Try asking "What can you do?" for the full list.`;
+        return (
+          capabilities[category] ||
+          `I'm not sure about that category. Try asking "What can you do?" for the full list.`
+        );
       },
     });
   },
@@ -204,7 +229,8 @@ What would you like to try?`;
 const quickCaptureDef: ToolDefinition = {
   id: 'quickCapture',
   name: 'Quick Capture',
-  description: 'Capture a thought and auto-route it to the right place (task, reminder, note, memory)',
+  description:
+    'Capture a thought and auto-route it to the right place (task, reminder, note, memory)',
   domain: 'simple-utilities',
   tags: ['capture', 'brain-dump', 'quick', 'essentials', 'better-than-human'],
 
@@ -213,18 +239,26 @@ const quickCaptureDef: ToolDefinition = {
       description: getToolDescription('quickCapture'),
       parameters: z.object({
         thought: z.string().describe('The thought, idea, or thing to remember'),
-        urgency: z.enum(['now', 'soon', 'someday', 'just-remember']).optional().describe('How urgent'),
+        urgency: z
+          .enum(['now', 'soon', 'someday', 'just-remember'])
+          .optional()
+          .describe('How urgent'),
       }),
       execute: async ({ thought, urgency }) => {
         log.info({ userId: ctx.userId, thoughtLength: thought.length, urgency }, 'Quick capture');
 
         // Detect intent patterns
         const isTask = /\b(need to|have to|must|should|todo|to-do|task)\b/i.test(thought);
-        const isReminder = /\b(remind|don't forget|remember to|at \d|tomorrow|next week)\b/i.test(thought);
+        const isReminder = /\b(remind|don't forget|remember to|at \d|tomorrow|next week)\b/i.test(
+          thought
+        );
         const isShopping = /\b(buy|get|pick up|grocery|shopping|store)\b/i.test(thought);
         const isIdea = /\b(idea|what if|could|maybe|thinking about)\b/i.test(thought);
         const isPersonal = /\b(feel|feeling|worried|happy|sad|excited|anxious)\b/i.test(thought);
-        const hasDate = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next|january|february|march|april|may|june|july|august|september|october|november|december|\d{1,2}\/\d{1,2})\b/i.test(thought);
+        const hasDate =
+          /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next|january|february|march|april|may|june|july|august|september|october|november|december|\d{1,2}\/\d{1,2})\b/i.test(
+            thought
+          );
 
         let routing: string;
         let confirmation: string;
@@ -237,7 +271,8 @@ const quickCaptureDef: ToolDefinition = {
             routing = 'reminder';
             // Try to create a reminder
             try {
-              const { createReminder, parseNaturalTime } = await import('../../../services/scheduling/reminder-scheduler.js');
+              const { createReminder, parseNaturalTime } =
+                await import('../../../services/scheduling/reminder-scheduler.js');
               const timeMatch = thought.match(/(?:at |by |tomorrow |next )([\w\s:]+)/i);
               const when = timeMatch ? timeMatch[1] : 'tomorrow at 9am';
               const scheduledFor = parseNaturalTime(when);
@@ -256,14 +291,18 @@ const quickCaptureDef: ToolDefinition = {
               log.debug({ error: String(err) }, 'Could not create reminder, falling back');
             }
             confirmation = `📅 **Captured as reminder**\n\n"${thought}"`;
-            followUp = persisted ? `I'll remind you when the time comes.` : `For a specific time, say "remind me to [task] at [time]".`;
-
+            followUp = persisted
+              ? `I'll remind you when the time comes.`
+              : `For a specific time, say "remind me to [task] at [time]".`;
           } else if (isShopping) {
             routing = 'shopping-list';
-            const item = thought.replace(/\b(buy|get|pick up|need|shopping|grocery|store)\b/gi, '').trim();
+            const item = thought
+              .replace(/\b(buy|get|pick up|need|shopping|grocery|store)\b/gi, '')
+              .trim();
             // Persist to productivity store
             try {
-              const { getProductivityStore } = await import('../../../services/stores/productivity-store.js');
+              const { getProductivityStore } =
+                await import('../../../services/stores/productivity-store.js');
               const store = getProductivityStore();
               if (ctx.userId) {
                 const listId = `shopping_${ctx.userId}`;
@@ -272,13 +311,15 @@ const quickCaptureDef: ToolDefinition = {
                   id: listId,
                   name: 'Shopping List',
                   type: 'general',
-                  items: [{
-                    id: `item_${Date.now()}`,
-                    name: item || thought,
-                    quantity: 1,
-                    isChecked: false,
-                    addedAt: now,
-                  }],
+                  items: [
+                    {
+                      id: `item_${Date.now()}`,
+                      name: item || thought,
+                      quantity: 1,
+                      isChecked: false,
+                      addedAt: now,
+                    },
+                  ],
                   isActive: true,
                   createdAt: now,
                   updatedAt: now,
@@ -290,12 +331,12 @@ const quickCaptureDef: ToolDefinition = {
             }
             confirmation = `🛒 **Added to shopping list**\n\n"${item || thought}"`;
             followUp = `I'll keep track of this. Say "show my shopping list" anytime.`;
-
           } else if (isTask || urgency === 'now' || urgency === 'soon') {
             routing = 'task';
             // Persist to productivity store
             try {
-              const { getProductivityStore } = await import('../../../services/stores/productivity-store.js');
+              const { getProductivityStore } =
+                await import('../../../services/stores/productivity-store.js');
               const store = getProductivityStore();
               if (ctx.userId) {
                 const now = new Date().toISOString();
@@ -316,13 +357,14 @@ const quickCaptureDef: ToolDefinition = {
               log.debug({ error: String(err) }, 'Could not add task');
             }
             confirmation = `✅ **Captured as task**\n\n"${thought}"`;
-            followUp = urgency === 'now' ? `This is marked as urgent.` : `I'll help you track this.`;
-
+            followUp =
+              urgency === 'now' ? `This is marked as urgent.` : `I'll help you track this.`;
           } else if (isIdea || isPersonal) {
             routing = isIdea ? 'idea' : 'journal';
             // Persist to productivity store as note
             try {
-              const { getProductivityStore } = await import('../../../services/stores/productivity-store.js');
+              const { getProductivityStore } =
+                await import('../../../services/stores/productivity-store.js');
               const store = getProductivityStore();
               if (ctx.userId) {
                 const now = new Date().toISOString();
@@ -339,9 +381,12 @@ const quickCaptureDef: ToolDefinition = {
             } catch (err) {
               log.debug({ error: String(err) }, 'Could not add note');
             }
-            confirmation = isIdea ? `💡 **Captured as idea**\n\n"${thought}"` : `📝 **Noted in your journal**\n\n"${thought}"`;
-            followUp = isIdea ? `I've saved this for when you want to explore it.` : `I'm here if you want to talk more about this.`;
-
+            confirmation = isIdea
+              ? `💡 **Captured as idea**\n\n"${thought}"`
+              : `📝 **Noted in your journal**\n\n"${thought}"`;
+            followUp = isIdea
+              ? `I've saved this for when you want to explore it.`
+              : `I'm here if you want to talk more about this.`;
           } else {
             routing = 'memory';
             // Persist to Firestore directly
@@ -351,13 +396,19 @@ const quickCaptureDef: ToolDefinition = {
               const db = await store.getDatabase();
               if (ctx.userId) {
                 const memoryId = `mem_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                const memoryRef = db.collection('bogle_users').doc(ctx.userId).collection('memories').doc(memoryId);
-                await memoryRef.set(cleanForFirestore({
-                  content: thought,
-                  type: 'fact',
-                  importance: urgency === 'just-remember' ? 'low' : 'medium',
-                  createdAt: new Date().toISOString(),
-                }));
+                const memoryRef = db
+                  .collection('bogle_users')
+                  .doc(ctx.userId)
+                  .collection('memories')
+                  .doc(memoryId);
+                await memoryRef.set(
+                  cleanForFirestore({
+                    content: thought,
+                    type: 'fact',
+                    importance: urgency === 'just-remember' ? 'low' : 'medium',
+                    createdAt: new Date().toISOString(),
+                  })
+                );
                 persisted = true;
               }
             } catch (err) {
@@ -373,7 +424,10 @@ const quickCaptureDef: ToolDefinition = {
           followUp = `I've captured this for now.`;
         }
 
-        log.info({ userId: ctx.userId, routing, persisted, thought: thought.slice(0, 50) }, 'Thought routed');
+        log.info(
+          { userId: ctx.userId, routing, persisted, thought: thought.slice(0, 50) },
+          'Thought routed'
+        );
 
         return `${confirmation}\n\n${followUp}`;
       },
@@ -411,7 +465,8 @@ const recentContextDef: ToolDefinition = {
 
         try {
           // Query conversation history service
-          const { getConversationHistoryService } = await import('../../../services/stores/conversation-history.js');
+          const { getConversationHistoryService } =
+            await import('../../../services/stores/conversation-history.js');
           const conversationHistoryService = getConversationHistoryService();
 
           if (ctx.userId) {
@@ -451,7 +506,9 @@ const recentContextDef: ToolDefinition = {
 
               for (const session of history.sessions) {
                 if (session.topicsDiscussed) {
-                  session.topicsDiscussed.forEach((t: string) => allTopics.add(cleanForFirestore(t)));
+                  session.topicsDiscussed.forEach((t: string) =>
+                    allTopics.add(cleanForFirestore(t))
+                  );
                 }
                 if (session.insights) {
                   allInsights.push(...session.insights.slice(0, 2));
@@ -460,9 +517,12 @@ const recentContextDef: ToolDefinition = {
 
               if (topic) {
                 // Filter for specific topic
-                const relevantSessions = history.sessions.filter((s: { topicsDiscussed?: string[]; insights?: string[] }) =>
-                  s.topicsDiscussed?.some((t: string) => t.toLowerCase().includes(topic.toLowerCase())) ||
-                  s.insights?.some((i: string) => i.toLowerCase().includes(topic.toLowerCase()))
+                const relevantSessions = history.sessions.filter(
+                  (s: { topicsDiscussed?: string[]; insights?: string[] }) =>
+                    s.topicsDiscussed?.some((t: string) =>
+                      t.toLowerCase().includes(topic.toLowerCase())
+                    ) ||
+                    s.insights?.some((i: string) => i.toLowerCase().includes(topic.toLowerCase()))
                 );
 
                 if (relevantSessions.length > 0) {
@@ -487,9 +547,11 @@ const recentContextDef: ToolDefinition = {
 
                 if (allTopics.size > 0) {
                   response += `**Topics discussed:**\n`;
-                  Array.from(allTopics).slice(0, 8).forEach((t) => {
-                    response += `• ${t}\n`;
-                  });
+                  Array.from(allTopics)
+                    .slice(0, 8)
+                    .forEach((t) => {
+                      response += `• ${t}\n`;
+                    });
                 }
 
                 if (allInsights.length > 0) {
@@ -511,7 +573,10 @@ const recentContextDef: ToolDefinition = {
             response += `Once you're signed in, I'll remember everything we discuss.`;
           }
         } catch (error) {
-          log.debug({ error: String(error), userId: ctx.userId }, 'Could not query conversation history');
+          log.debug(
+            { error: String(error), userId: ctx.userId },
+            'Could not query conversation history'
+          );
 
           // Fallback to Firestore memory search
           try {
@@ -520,7 +585,10 @@ const recentContextDef: ToolDefinition = {
             const db = await store.getDatabase();
 
             if (ctx.userId && topic) {
-              const snapshot = await db.collection('bogle_users').doc(ctx.userId).collection('memories')
+              const snapshot = await db
+                .collection('bogle_users')
+                .doc(ctx.userId)
+                .collection('memories')
                 .where('content', '>=', topic)
                 .where('content', '<=', topic + '\uf8ff')
                 .limit(5)
@@ -576,11 +644,29 @@ const setPreferenceDef: ToolDefinition = {
       parameters: z.object({
         // Accept both 'type' and 'preferenceType' for flexibility
         preferenceType: z
-          .enum(['temperature', 'distance', 'time-format', 'nickname', 'timezone', 'language', 'voice-speed', 'custom'])
+          .enum([
+            'temperature',
+            'distance',
+            'time-format',
+            'nickname',
+            'timezone',
+            'language',
+            'voice-speed',
+            'custom',
+          ])
           .optional()
           .describe('Type of preference'),
         type: z
-          .enum(['temperature', 'distance', 'time-format', 'nickname', 'timezone', 'language', 'voice-speed', 'custom'])
+          .enum([
+            'temperature',
+            'distance',
+            'time-format',
+            'nickname',
+            'timezone',
+            'language',
+            'voice-speed',
+            'custom',
+          ])
           .optional()
           .describe('Type of preference (alias for preferenceType)'),
         value: z.string().describe('The preference value'),
@@ -608,13 +694,17 @@ const setPreferenceDef: ToolDefinition = {
             break;
 
           case 'distance':
-            const distUnit = value.toLowerCase().includes('k') || value.toLowerCase().includes('metric') ? 'kilometers' : 'miles';
+            const distUnit =
+              value.toLowerCase().includes('k') || value.toLowerCase().includes('metric')
+                ? 'kilometers'
+                : 'miles';
             prefs.distanceUnit = distUnit;
             confirmation = `I'll use ${distUnit} for distances.`;
             break;
 
           case 'time-format':
-            const timeFormat = value.includes('24') || value.toLowerCase().includes('military') ? '24h' : '12h';
+            const timeFormat =
+              value.includes('24') || value.toLowerCase().includes('military') ? '24h' : '12h';
             prefs.timeFormat = timeFormat;
             confirmation = `I'll show times in ${timeFormat === '24h' ? '24-hour' : '12-hour'} format.`;
             break;
@@ -635,7 +725,11 @@ const setPreferenceDef: ToolDefinition = {
             break;
 
           case 'voice-speed':
-            const speed = value.toLowerCase().includes('slow') ? 'slow' : value.toLowerCase().includes('fast') ? 'fast' : 'normal';
+            const speed = value.toLowerCase().includes('slow')
+              ? 'slow'
+              : value.toLowerCase().includes('fast')
+                ? 'fast'
+                : 'normal';
             prefs.voiceSpeed = speed;
             confirmation = `I'll speak at ${speed} speed.`;
             break;
@@ -722,11 +816,4 @@ export const essentialsToolDefinitions: ToolDefinition[] = [
   getPreferencesDef,
 ];
 
-export {
-  whatCanYouDoDef,
-  quickCaptureDef,
-  recentContextDef,
-  setPreferenceDef,
-  getPreferencesDef,
-};
-
+export { whatCanYouDoDef, quickCaptureDef, recentContextDef, setPreferenceDef, getPreferencesDef };

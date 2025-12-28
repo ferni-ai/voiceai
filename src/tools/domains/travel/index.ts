@@ -112,10 +112,12 @@ const travelTools: ToolDefinition[] = [
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport('travel', travelTools);
+export const { getToolDefinitions, domain, definitions } = createDomainExport(
+  'travel',
+  travelTools
+);
 
 export default getToolDefinitions;
 
 // Re-export types and functions from travel.ts for backward compatibility
 export * from './travel.js';
-

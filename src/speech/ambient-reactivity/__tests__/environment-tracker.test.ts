@@ -411,7 +411,7 @@ describe('EnvironmentTracker', () => {
       const adjustments = tracker.getTtsAdjustments();
       expect(adjustments.volumeBoost).toBe(ENVIRONMENT_CONFIG.TTS_ADJUSTMENTS.major.volumeBoost);
       expect(adjustments.clarityMode).toBe(true);
-      expect(adjustments.speedMultiplier).toBe(0.90);
+      expect(adjustments.speedMultiplier).toBe(0.9);
       expect(adjustments.extraPauseMs).toBe(200);
     });
   });

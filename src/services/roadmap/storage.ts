@@ -401,10 +401,12 @@ export async function createSuggestion(
       createdAt: new Date(),
     };
 
-    await suggestionRef.set(cleanForFirestore({
-      ...suggestion,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    }));
+    await suggestionRef.set(
+      cleanForFirestore({
+        ...suggestion,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    );
 
     log.info({ userId, suggestionId: suggestionRef.id, title }, 'Feature suggestion created');
 

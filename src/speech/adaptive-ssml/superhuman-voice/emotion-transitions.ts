@@ -72,4 +72,3 @@ export function getEmotionalTransitionBridge(
 
   return fromBridges[toEmotion] || null;
 }
-

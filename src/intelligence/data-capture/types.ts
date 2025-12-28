@@ -161,4 +161,3 @@ export interface DataCaptureDefinition {
     context: DataCaptureContext
   ) => Promise<string | null>;
 }
-

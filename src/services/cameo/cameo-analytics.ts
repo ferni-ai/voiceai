@@ -640,7 +640,10 @@ async function persistPreferences(prefs: CameoPreferences): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(COLLECTIONS.CAMEO_PREFERENCES).doc(prefs.userId).set(cleanForFirestore(prefs));
+    await db
+      .collection(COLLECTIONS.CAMEO_PREFERENCES)
+      .doc(prefs.userId)
+      .set(cleanForFirestore(prefs));
   } catch (e) {
     log.warn({ error: String(e), userId: prefs.userId }, 'Failed to persist cameo preferences');
   }

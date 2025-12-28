@@ -19,9 +19,15 @@ describe('HeadlineWriter', () => {
     it('should create state with random timeframe by default', () => {
       const state = createInitialState();
 
-      expect(['today', 'this_week', 'this_month', 'this_year', 'past', 'future', 'dream']).toContain(
-        state.currentTimeframe
-      );
+      expect([
+        'today',
+        'this_week',
+        'this_month',
+        'this_year',
+        'past',
+        'future',
+        'dream',
+      ]).toContain(state.currentTimeframe);
       expect(state.phase).toBe('prompt');
       expect(state.headlines).toEqual([]);
       expect(state.round).toBe(1);
@@ -76,7 +82,9 @@ describe('HeadlineWriter', () => {
       const state = createInitialState('today');
       const result = processInput(state, 'Local Developer Finally Gets Tests Passing');
 
-      expect(result.newState.currentHeadline?.text).toBe('Local Developer Finally Gets Tests Passing');
+      expect(result.newState.currentHeadline?.text).toBe(
+        'Local Developer Finally Gets Tests Passing'
+      );
       expect(result.newState.phase).toBe('subheadline');
     });
 
@@ -106,7 +114,9 @@ describe('HeadlineWriter', () => {
 
       const result = processInput(state, 'Tech Worker Discovers Joy in Small Things');
 
-      expect(result.newState.currentHeadline?.text).toBe('Tech Worker Discovers Joy in Small Things');
+      expect(result.newState.currentHeadline?.text).toBe(
+        'Tech Worker Discovers Joy in Small Things'
+      );
       expect(result.newState.phase).toBe('subheadline');
       expect(result.message).toContain('subheadline');
     });
@@ -141,7 +151,9 @@ describe('HeadlineWriter', () => {
 
       expect(result.newState.phase).toBe('reflection');
       expect(result.newState.headlines).toHaveLength(1);
-      expect(result.newState.headlines[0].subheadline).toBe('Friends and family express mild surprise');
+      expect(result.newState.headlines[0].subheadline).toBe(
+        'Friends and family express mild surprise'
+      );
     });
 
     it('should allow skipping subheadline', () => {
@@ -316,7 +328,15 @@ describe('HeadlineWriter', () => {
   });
 
   describe('timeframe variety', () => {
-    const timeframes = ['today', 'this_week', 'this_month', 'this_year', 'past', 'future', 'dream'] as const;
+    const timeframes = [
+      'today',
+      'this_week',
+      'this_month',
+      'this_year',
+      'past',
+      'future',
+      'dream',
+    ] as const;
 
     timeframes.forEach((timeframe) => {
       it(`should provide appropriate prompt for ${timeframe}`, () => {

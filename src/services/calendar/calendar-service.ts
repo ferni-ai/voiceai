@@ -109,7 +109,10 @@ export interface WeekOverview {
 /**
  * Convert unified store event to calendar-service event type
  */
-function unifiedToCalendarEvent(unified: UnifiedCalendarEvent, calendarId = 'ferni'): CalendarEvent {
+function unifiedToCalendarEvent(
+  unified: UnifiedCalendarEvent,
+  calendarId = 'ferni'
+): CalendarEvent {
   return {
     id: unified.id,
     title: unified.title,
@@ -128,7 +131,8 @@ function unifiedToCalendarEvent(unified: UnifiedCalendarEvent, calendarId = 'fer
  * Convert calendar-service CreateEventInput to unified store format
  */
 function toUnifiedCreateInput(input: CreateEventInput): UnifiedCreateEventInput {
-  const endTime = input.endTime ||
+  const endTime =
+    input.endTime ||
     (input.durationMinutes
       ? new Date(input.startTime.getTime() + input.durationMinutes * 60000)
       : new Date(input.startTime.getTime() + 60 * 60000));
@@ -307,7 +311,10 @@ export async function getEventsForDay(
       const events = await getGoogleEvents(accessToken, calendarId, startOfDay, endOfDay);
       return events.map((e) => googleEventToCalendarEvent(e, calendarId));
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to unified store');
+      log.error(
+        { error: String(error), userId },
+        'Google Calendar failed, falling back to unified store'
+      );
       const unifiedEvents = await getUnifiedEventsForDay(userId, date);
       return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
@@ -346,7 +353,10 @@ export async function getEventsForWeek(
       const events = await getGoogleEvents(accessToken, calendarId, weekStart, weekEnd, 100);
       return events.map((e) => googleEventToCalendarEvent(e, calendarId));
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to unified store');
+      log.error(
+        { error: String(error), userId },
+        'Google Calendar failed, falling back to unified store'
+      );
       const unifiedEvents = await getUnifiedEvents(userId, weekStart, weekEnd);
       return unifiedEvents.map((e) => unifiedToCalendarEvent(e, calendarId));
     }
@@ -384,7 +394,10 @@ export async function createEvent(
       log.info({ userId, eventTitle: event.title }, 'Google Calendar event created');
       return googleEventToCalendarEvent(created, calendarId);
     } catch (error) {
-      log.error({ error: String(error), userId }, 'Google Calendar failed, creating in unified store');
+      log.error(
+        { error: String(error), userId },
+        'Google Calendar failed, creating in unified store'
+      );
       const created = await createUnifiedEvent(userId, toUnifiedCreateInput(event));
       // Use 'local' when falling back from Google to unified store
       return unifiedToCalendarEvent(created, 'local');

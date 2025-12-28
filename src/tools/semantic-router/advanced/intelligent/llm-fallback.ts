@@ -347,7 +347,10 @@ Respond ONLY with valid JSON:`;
       return routingResult;
     }
 
-    log.info({ reason, topConfidence: routingResult.matches[0]?.confidence }, 'Triggering LLM fallback');
+    log.info(
+      { reason, topConfidence: routingResult.matches[0]?.confidence },
+      'Triggering LLM fallback'
+    );
 
     // Build candidates from matches
     const candidates: ToolCandidate[] = routingResult.matches
@@ -364,7 +367,9 @@ Respond ONLY with valid JSON:`;
 
     // Update routing result based on LLM selection
     if (llmResult.selectedToolId && llmResult.confidence > 0.5) {
-      const selectedMatch = routingResult.matches.find((m) => m.toolId === llmResult.selectedToolId);
+      const selectedMatch = routingResult.matches.find(
+        (m) => m.toolId === llmResult.selectedToolId
+      );
 
       return {
         ...routingResult,
@@ -390,7 +395,8 @@ Respond ONLY with valid JSON:`;
         ...routingResult,
         action: {
           type: 'clarify',
-          question: llmResult.clarificationQuestion || 'Could you tell me more about what you need?',
+          question:
+            llmResult.clarificationQuestion || 'Could you tell me more about what you need?',
           missingInfo: [],
         },
         llmFallback: llmResult,
@@ -513,4 +519,3 @@ export function initializeLLMFallback(
 
   return llmFallbackInstance;
 }
-

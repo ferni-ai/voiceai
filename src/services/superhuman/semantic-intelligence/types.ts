@@ -445,4 +445,3 @@ export interface SemanticIntelligenceProfile {
   lastUpdated: number;
   version: number;
 }
-

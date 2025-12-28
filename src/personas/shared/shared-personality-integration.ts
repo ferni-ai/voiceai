@@ -193,7 +193,12 @@ function recordTelemetrySnapshot(
   personaId: string,
   userId: string | undefined,
   turnCount: number,
-  timing: { contextAssemblyMs: number; noticingDetectionMs: number; expressionCompositionMs: number; resonanceLookupMs: number },
+  timing: {
+    contextAssemblyMs: number;
+    noticingDetectionMs: number;
+    expressionCompositionMs: number;
+    resonanceLookupMs: number;
+  },
   totalMs: number,
   context: PersonalityContext,
   decisions: {
@@ -209,7 +214,12 @@ function recordTelemetrySnapshot(
     abTestVariant?: string;
     abTestId?: string;
   },
-  output: { injected: boolean; acknowledgment?: string; contentPreview?: string; injectionPoint?: string }
+  output: {
+    injected: boolean;
+    acknowledgment?: string;
+    contentPreview?: string;
+    injectionPoint?: string;
+  }
 ): void {
   sharedPersonalityTelemetry.record(sessionId, {
     sessionId,
@@ -280,10 +290,7 @@ export async function processSharedPersonalityTurn(
     state.abTestVariant = getVariant(userId, DEFAULT_EXPERIMENT_ID, personaId);
     state.abTestExperimentId = DEFAULT_EXPERIMENT_ID;
     state.sessionMetrics = createSessionMetricsTracker();
-    log.debug(
-      { userId, personaId, variant: state.abTestVariant },
-      'Assigned A/B test variant'
-    );
+    log.debug({ userId, personaId, variant: state.abTestVariant }, 'Assigned A/B test variant');
   }
 
   // If in control group, return minimal result (personality features disabled)
@@ -410,7 +417,9 @@ export async function processSharedPersonalityTurn(
   };
 
   const noticing = detectNoticing(noticingInput);
-  const isNoticingThrottled = noticing ? shouldThrottleNoticing(sessionId, turnCount, noticing) : false;
+  const isNoticingThrottled = noticing
+    ? shouldThrottleNoticing(sessionId, turnCount, noticing)
+    : false;
   timing.noticingDetectionMs = noticingTimer.elapsed();
 
   if (noticing && !isNoticingThrottled) {
@@ -435,15 +444,29 @@ export async function processSharedPersonalityTurn(
     );
 
     // Record telemetry for noticing result
-    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
-      noticingType: noticing.type,
-      noticingConfidence: noticing.confidence,
-      noticingShouldAcknowledge: noticing.shouldAcknowledge,
-      expressionSource: 'none',
-      decisionReason: `Noticing: ${noticing.type}`,
-      abTestVariant: state.abTestVariant,
-      abTestId: state.abTestExperimentId,
-    }, { injected: true, acknowledgment: noticing.acknowledgment, injectionPoint: noticing.timing === 'immediate' ? 'before_response' : 'mid_response' });
+    recordTelemetrySnapshot(
+      sessionId,
+      personaId,
+      userId,
+      turnCount,
+      timing,
+      totalTimer.elapsed(),
+      context,
+      {
+        noticingType: noticing.type,
+        noticingConfidence: noticing.confidence,
+        noticingShouldAcknowledge: noticing.shouldAcknowledge,
+        expressionSource: 'none',
+        decisionReason: `Noticing: ${noticing.type}`,
+        abTestVariant: state.abTestVariant,
+        abTestId: state.abTestExperimentId,
+      },
+      {
+        injected: true,
+        acknowledgment: noticing.acknowledgment,
+        injectionPoint: noticing.timing === 'immediate' ? 'before_response' : 'mid_response',
+      }
+    );
 
     return {
       shouldInject: true,
@@ -459,11 +482,21 @@ export async function processSharedPersonalityTurn(
   state.turnsSinceLastExpression++;
   if (state.turnsSinceLastExpression < 3 && turnCount > 2) {
     // Record telemetry for cooldown skip
-    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
-      expressionSource: 'none',
-      decisionReason: 'Expression cooldown active',
-      noticingThrottled: isNoticingThrottled,
-    }, { injected: false });
+    recordTelemetrySnapshot(
+      sessionId,
+      personaId,
+      userId,
+      turnCount,
+      timing,
+      totalTimer.elapsed(),
+      context,
+      {
+        expressionSource: 'none',
+        decisionReason: 'Expression cooldown active',
+        noticingThrottled: isNoticingThrottled,
+      },
+      { injected: false }
+    );
     return createEmptyResult(input, context);
   }
 
@@ -499,20 +532,30 @@ export async function processSharedPersonalityTurn(
     const injectionPoint = mapTimingToInjectionPoint(expression.timing);
 
     // Record telemetry for expression result
-    recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
-      expressionTheme: expression.theme,
-      expressionIntimacy: expression.intimacyLevel,
-      expressionTiming: expression.timing,
-      expressionSource: 'building_blocks',
-      decisionReason: expression.compositionReason,
-      noticingThrottled: isNoticingThrottled,
-      abTestVariant: state.abTestVariant,
-      abTestId: state.abTestExperimentId,
-    }, {
-      injected: true,
-      contentPreview: expression.content.slice(0, 100),
-      injectionPoint,
-    });
+    recordTelemetrySnapshot(
+      sessionId,
+      personaId,
+      userId,
+      turnCount,
+      timing,
+      totalTimer.elapsed(),
+      context,
+      {
+        expressionTheme: expression.theme,
+        expressionIntimacy: expression.intimacyLevel,
+        expressionTiming: expression.timing,
+        expressionSource: 'building_blocks',
+        decisionReason: expression.compositionReason,
+        noticingThrottled: isNoticingThrottled,
+        abTestVariant: state.abTestVariant,
+        abTestId: state.abTestExperimentId,
+      },
+      {
+        injected: true,
+        contentPreview: expression.content.slice(0, 100),
+        injectionPoint,
+      }
+    );
 
     return {
       shouldInject: true,
@@ -525,11 +568,21 @@ export async function processSharedPersonalityTurn(
   }
 
   // Record telemetry for no expression
-  recordTelemetrySnapshot(sessionId, personaId, userId, turnCount, timing, totalTimer.elapsed(), context, {
-    expressionSource: 'none',
-    decisionReason: 'No expression conditions met',
-    noticingThrottled: isNoticingThrottled,
-  }, { injected: false });
+  recordTelemetrySnapshot(
+    sessionId,
+    personaId,
+    userId,
+    turnCount,
+    timing,
+    totalTimer.elapsed(),
+    context,
+    {
+      expressionSource: 'none',
+      decisionReason: 'No expression conditions met',
+      noticingThrottled: isNoticingThrottled,
+    },
+    { injected: false }
+  );
 
   return createEmptyResult(input, context);
 }

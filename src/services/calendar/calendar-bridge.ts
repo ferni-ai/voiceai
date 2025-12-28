@@ -349,7 +349,10 @@ export async function removeCalendarSyncedItem(
 
     return deleted;
   } catch (error) {
-    log.error({ error: String(error), userId, externalId }, 'Calendar bridge: failed to remove event');
+    log.error(
+      { error: String(error), userId, externalId },
+      'Calendar bridge: failed to remove event'
+    );
     return false;
   }
 }
@@ -399,7 +402,10 @@ export async function updateCalendarSyncedItem(
 
     return false;
   } catch (error) {
-    log.error({ error: String(error), userId, externalId }, 'Calendar bridge: failed to update event');
+    log.error(
+      { error: String(error), userId, externalId },
+      'Calendar bridge: failed to update event'
+    );
     return false;
   }
 }
@@ -853,7 +859,9 @@ export async function syncTravelToCalendar(
   }
 
   const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-  const title = options.tripName ? `Trip: ${options.tripName} (${destination})` : `Trip: ${destination}`;
+  const title = options.tripName
+    ? `Trip: ${options.tripName} (${destination})`
+    : `Trip: ${destination}`;
 
   return createCalendarSyncedItem({
     userId,

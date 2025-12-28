@@ -320,7 +320,15 @@ const server = http.createServer(async (req, res) => {
   // 🧠 Intelligent routing dashboard & control routes
   if (pathname.startsWith('/api/intelligent-routing')) {
     // Cast URL to expected type - the handler doesn't use parsed query features
-    if (await handleIntelligentRoutingRoutes(req, res, pathname, parsedUrl as unknown as UrlWithParsedQuery)) return;
+    if (
+      await handleIntelligentRoutingRoutes(
+        req,
+        res,
+        pathname,
+        parsedUrl as unknown as UrlWithParsedQuery
+      )
+    )
+      return;
   }
 
   // ============================================================================
@@ -767,7 +775,10 @@ const server = http.createServer(async (req, res) => {
 
     // Year in review ("Your Year with Ferni") routes
     if (pathname.startsWith('/api/year-in-review')) {
-      const handled = await handleYearInReviewRoutes(req, res, { pathname, query: Object.fromEntries(new URLSearchParams(parsedUrl.search || "")) });
+      const handled = await handleYearInReviewRoutes(req, res, {
+        pathname,
+        query: Object.fromEntries(new URLSearchParams(parsedUrl.search || '')),
+      });
       if (handled) return;
     }
 
@@ -833,7 +844,10 @@ const server = http.createServer(async (req, res) => {
 
     // Crash report routes (frontend crash analytics)
     // Also handles /api/disconnect-diagnostic for client-side disconnect diagnostics
-    if (pathname.startsWith('/api/crash-report') || pathname.startsWith('/api/disconnect-diagnostic')) {
+    if (
+      pathname.startsWith('/api/crash-report') ||
+      pathname.startsWith('/api/disconnect-diagnostic')
+    ) {
       const handled = await handleCrashReportRoutes(req, res);
       if (handled) return;
     }

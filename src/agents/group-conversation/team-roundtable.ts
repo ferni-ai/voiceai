@@ -551,7 +551,9 @@ export class TeamRoundtable extends EventEmitter {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   /**

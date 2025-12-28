@@ -261,10 +261,7 @@ export async function getVisualMemory(
 /**
  * Get recent visual memories
  */
-export async function getRecentVisualMemories(
-  userId: string,
-  limit = 10
-): Promise<VisualMemory[]> {
+export async function getRecentVisualMemories(userId: string, limit = 10): Promise<VisualMemory[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -290,9 +287,7 @@ export async function getRecentVisualMemories(
         .limit(limit)
         .get();
 
-      return snapshot.docs
-        .map((doc) => doc.data() as VisualMemory)
-        .filter((m) => !m.deletedAt);
+      return snapshot.docs.map((doc) => doc.data() as VisualMemory).filter((m) => !m.deletedAt);
     } catch (err) {
       log.debug({ error: String(err), userId }, 'Failed to get recent visual memories');
       return [];
@@ -425,7 +420,8 @@ function calculateRelevance(memory: VisualMemory, query: string): number {
   }
 
   // Recency bonus
-  const daysSinceCreated = (Date.now() - new Date(memory.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  const daysSinceCreated =
+    (Date.now() - new Date(memory.createdAt).getTime()) / (1000 * 60 * 60 * 24);
   score += Math.max(0, 1 - daysSinceCreated / 30); // Decays over 30 days
 
   return score;
@@ -462,7 +458,9 @@ function getMatchReason(memory: VisualMemory, query: string): string | undefined
 /**
  * Get visual memory preferences
  */
-export async function getVisualPreferences(userId: string): Promise<VisualMemoryPreferences | null> {
+export async function getVisualPreferences(
+  userId: string
+): Promise<VisualMemoryPreferences | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
@@ -571,15 +569,16 @@ export async function getVisualContextInjection(userId: string): Promise<string>
       const daysAgo = Math.floor(
         (Date.now() - new Date(visual.sharedAt).getTime()) / (1000 * 60 * 60 * 24)
       );
-      const timeDesc = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+      const timeDesc =
+        daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
       lines.push(`- ${visual.description} (${timeDesc})`);
     }
   }
 
   lines.push('');
   lines.push('GUIDANCE:');
-  lines.push("- Reference past images naturally when relevant");
-  lines.push('- Don\'t lecture about the images - use them as context');
+  lines.push('- Reference past images naturally when relevant');
+  lines.push("- Don't lecture about the images - use them as context");
   lines.push('- "I remember when you showed me that photo of..."');
 
   return lines.join('\n');
@@ -600,4 +599,3 @@ export const visualMemoryStore = {
   buildVisualContext,
   getVisualContextInjection,
 };
-

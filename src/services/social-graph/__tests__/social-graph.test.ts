@@ -34,7 +34,7 @@ describe('SocialGraph', () => {
       const person = recordMention(
         testUserId,
         'Sarah',
-        "I talked to Sarah today about work",
+        'I talked to Sarah today about work',
         0.5,
         ['work'],
         0.7
@@ -66,13 +66,10 @@ describe('SocialGraph', () => {
     it('should track associated topics', () => {
       const userId = 'topics-test-' + Date.now();
 
-      const person = recordMention(
-        userId,
-        'Emma',
-        'Emma and I discussed music',
-        0.5,
-        ['music', 'hobbies']
-      );
+      const person = recordMention(userId, 'Emma', 'Emma and I discussed music', 0.5, [
+        'music',
+        'hobbies',
+      ]);
 
       expect(person.associatedTopics).toContain('music');
       expect(person.associatedTopics).toContain('hobbies');
@@ -96,7 +93,7 @@ describe('SocialGraph', () => {
     });
 
     it('should extract relationship words', () => {
-      const names = extractNames("My mom said I should exercise more");
+      const names = extractNames('My mom said I should exercise more');
 
       expect(names.length).toBeGreaterThan(0);
       expect(names.some((n) => n.name.toLowerCase() === 'mom')).toBe(true);
@@ -260,7 +257,7 @@ describe('SocialGraph', () => {
 
     it('should handle special characters in name', () => {
       const userId = 'special-chars-' + Date.now();
-      const person = recordMention(userId, "O'Brien", 'Talked to O\'Brien', 0.5);
+      const person = recordMention(userId, "O'Brien", "Talked to O'Brien", 0.5);
 
       expect(person).toBeDefined();
     });

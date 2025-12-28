@@ -20,17 +20,34 @@ import {
   dismissInsight,
   getPendingInsightCount,
 } from '../../../services/superhuman/semantic-intelligence/insight-broker.js';
-import { getAllOpenLoops, resolveLoop } from '../../../services/superhuman/semantic-intelligence/open-loops.js';
+import {
+  getAllOpenLoops,
+  resolveLoop,
+} from '../../../services/superhuman/semantic-intelligence/open-loops.js';
 import {
   getPendingCommitments,
   getRememberedThings,
   fulfillCommitment,
 } from '../../../services/superhuman/semantic-intelligence/ferni-commitments.js';
-import { getGraphSummary, getAllPeople } from '../../../services/superhuman/semantic-intelligence/relationship-graph.js';
+import {
+  getGraphSummary,
+  getAllPeople,
+} from '../../../services/superhuman/semantic-intelligence/relationship-graph.js';
 import { getTemporalContext } from '../../../services/superhuman/semantic-intelligence/temporal-patterns.js';
-import { getSabotagePatterns, getBaseline } from '../../../services/superhuman/semantic-intelligence/behavioral-intelligence.js';
-import { getEffectivenessProfile, getLearningStyle, getResistancePattern } from '../../../services/superhuman/semantic-intelligence/coaching-intelligence.js';
-import { getBlindSpots, getGaps, getValuesAlignment } from '../../../services/superhuman/semantic-intelligence/self-awareness.js';
+import {
+  getSabotagePatterns,
+  getBaseline,
+} from '../../../services/superhuman/semantic-intelligence/behavioral-intelligence.js';
+import {
+  getEffectivenessProfile,
+  getLearningStyle,
+  getResistancePattern,
+} from '../../../services/superhuman/semantic-intelligence/coaching-intelligence.js';
+import {
+  getBlindSpots,
+  getGaps,
+  getValuesAlignment,
+} from '../../../services/superhuman/semantic-intelligence/self-awareness.js';
 
 const log = createLogger({ module: 'SemanticIntelligenceRoutes' });
 
@@ -113,16 +130,19 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     try {
-      const url = new URL(pathname + (req.url?.includes('?') ? req.url.split('?')[1] : ''), 'http://localhost');
+      const url = new URL(
+        pathname + (req.url?.includes('?') ? req.url.split('?')[1] : ''),
+        'http://localhost'
+      );
       const context = await buildSemanticIntelligenceContext(userId, {
         topics: url.searchParams.get('topics')?.split(',') || undefined,
         emotion: url.searchParams.get('emotion') || undefined,
         personMentioned: url.searchParams.get('person') || undefined,
         isSessionStart: url.searchParams.get('sessionStart') === 'true',
       });
-      
+
       const formatted = formatSemanticIntelligenceContext(context);
-      
+
       sendJson(res, 200, {
         context,
         formatted,
@@ -139,7 +159,7 @@ export async function handleSemanticIntelligenceRoutes(
   // =========================================================================
   // PROACTIVE INSIGHTS (V3.2)
   // =========================================================================
-  
+
   // GET /api/semantic-intelligence/insights
   if (pathname === '/api/semantic-intelligence/insights' && req.method === 'GET') {
     const userId = getUserId(req, pathname);
@@ -172,7 +192,10 @@ export async function handleSemanticIntelligenceRoutes(
   }
 
   // POST /api/semantic-intelligence/insights/:id/surfaced
-  if (pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/surfaced$/) && req.method === 'POST') {
+  if (
+    pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/surfaced$/) &&
+    req.method === 'POST'
+  ) {
     const userId = getUserId(req, pathname);
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
@@ -180,7 +203,7 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     const insightId = pathname.split('/')[4];
-    
+
     try {
       await markInsightSurfaced(userId, insightId);
       sendJson(res, 200, { success: true });
@@ -192,7 +215,10 @@ export async function handleSemanticIntelligenceRoutes(
   }
 
   // POST /api/semantic-intelligence/insights/:id/dismiss
-  if (pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/dismiss$/) && req.method === 'POST') {
+  if (
+    pathname.match(/^\/api\/semantic-intelligence\/insights\/[^/]+\/dismiss$/) &&
+    req.method === 'POST'
+  ) {
     const userId = getUserId(req, pathname);
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
@@ -200,7 +226,7 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     const insightId = pathname.split('/')[4];
-    
+
     try {
       await dismissInsight(userId, insightId);
       sendJson(res, 200, { success: true });
@@ -238,7 +264,10 @@ export async function handleSemanticIntelligenceRoutes(
   }
 
   // POST /api/semantic-intelligence/open-loops/:id/resolve
-  if (pathname.match(/^\/api\/semantic-intelligence\/open-loops\/[^/]+\/resolve$/) && req.method === 'POST') {
+  if (
+    pathname.match(/^\/api\/semantic-intelligence\/open-loops\/[^/]+\/resolve$/) &&
+    req.method === 'POST'
+  ) {
     const userId = getUserId(req, pathname);
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
@@ -246,7 +275,7 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     const loopId = pathname.split('/')[4];
-    
+
     try {
       const body = await parseJsonBody(req);
       await resolveLoop(userId, loopId, body.resolution as string);
@@ -275,7 +304,7 @@ export async function handleSemanticIntelligenceRoutes(
         getPendingCommitments(userId),
         getRememberedThings(userId),
       ]);
-      
+
       sendJson(res, 200, {
         pending,
         remembered,
@@ -291,7 +320,10 @@ export async function handleSemanticIntelligenceRoutes(
   }
 
   // POST /api/semantic-intelligence/commitments/:id/fulfill
-  if (pathname.match(/^\/api\/semantic-intelligence\/commitments\/[^/]+\/fulfill$/) && req.method === 'POST') {
+  if (
+    pathname.match(/^\/api\/semantic-intelligence\/commitments\/[^/]+\/fulfill$/) &&
+    req.method === 'POST'
+  ) {
     const userId = getUserId(req, pathname);
     if (!userId) {
       sendJson(res, 400, { error: 'userId required' });
@@ -299,7 +331,7 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     const commitmentId = pathname.split('/')[4];
-    
+
     try {
       await fulfillCommitment(userId, commitmentId);
       sendJson(res, 200, { success: true });
@@ -323,11 +355,8 @@ export async function handleSemanticIntelligenceRoutes(
     }
 
     try {
-      const [summary, people] = await Promise.all([
-        getGraphSummary(userId),
-        getAllPeople(userId),
-      ]);
-      
+      const [summary, people] = await Promise.all([getGraphSummary(userId), getAllPeople(userId)]);
+
       sendJson(res, 200, {
         summary,
         people,
@@ -383,7 +412,7 @@ export async function handleSemanticIntelligenceRoutes(
         getSabotagePatterns(userId),
         getBaseline(userId),
       ]);
-      
+
       sendJson(res, 200, {
         sabotagePatterns: patterns,
         emotionalBaseline: baseline,
@@ -414,7 +443,7 @@ export async function handleSemanticIntelligenceRoutes(
         getLearningStyle(userId),
         getResistancePattern(userId),
       ]);
-      
+
       sendJson(res, 200, {
         effectiveness,
         learningStyle,
@@ -446,7 +475,7 @@ export async function handleSemanticIntelligenceRoutes(
         getGaps(userId),
         getValuesAlignment(userId),
       ]);
-      
+
       sendJson(res, 200, {
         blindSpots,
         selfPerceptionGaps: gaps,
@@ -463,4 +492,3 @@ export async function handleSemanticIntelligenceRoutes(
   // Not handled
   return false;
 }
-

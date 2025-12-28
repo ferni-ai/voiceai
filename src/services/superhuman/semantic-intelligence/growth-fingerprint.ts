@@ -14,12 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
-import type {
-  GrowthFingerprint,
-  SemanticSnapshot,
-  GrowthMetrics,
-  GrowthShift,
-} from './types.js';
+import type { GrowthFingerprint, SemanticSnapshot, GrowthMetrics, GrowthShift } from './types.js';
 
 const log = createLogger({ module: 'growth-fingerprint' });
 
@@ -152,10 +147,7 @@ export async function recordConversationData(
 /**
  * Analyze language metrics from message text.
  */
-function analyzeLanguage(
-  metrics: SnapshotData['languageMetrics'],
-  text: string
-): void {
+function analyzeLanguage(metrics: SnapshotData['languageMetrics'], text: string): void {
   metrics.totalMessages++;
 
   // Sentence length
@@ -172,7 +164,16 @@ function analyzeLanguage(
   }
 
   // Future references
-  const futureWords = ['will', 'going to', 'plan to', 'want to', 'hope to', 'tomorrow', 'next week', 'someday'];
+  const futureWords = [
+    'will',
+    'going to',
+    'plan to',
+    'want to',
+    'hope to',
+    'tomorrow',
+    'next week',
+    'someday',
+  ];
   const textLower = text.toLowerCase();
   for (const word of futureWords) {
     if (textLower.includes(word)) {
@@ -182,7 +183,7 @@ function analyzeLanguage(
   }
 
   // Self references
-  const selfWords = ['i ', 'i\'m', 'my ', 'me ', 'myself'];
+  const selfWords = ['i ', "i'm", 'my ', 'me ', 'myself'];
   for (const word of selfWords) {
     if (textLower.includes(word)) {
       metrics.selfReferences++;
@@ -195,7 +196,7 @@ function analyzeLanguage(
  * Check if it's time to create a new snapshot.
  */
 async function checkAndCreateSnapshot(userId: string): Promise<void> {
-  const fingerprint = fingerprintCache.get(userId) || await loadFingerprint(userId);
+  const fingerprint = fingerprintCache.get(userId) || (await loadFingerprint(userId));
   const pending = pendingData.get(userId);
 
   if (!pending) return;
@@ -207,8 +208,7 @@ async function checkAndCreateSnapshot(userId: string): Promise<void> {
     : CONFIG.SNAPSHOT_INTERVAL_DAYS;
 
   // Check if we have enough data
-  const hasEnoughData =
-    pending.languageMetrics.totalMessages >= CONFIG.MIN_MESSAGES_FOR_SNAPSHOT;
+  const hasEnoughData = pending.languageMetrics.totalMessages >= CONFIG.MIN_MESSAGES_FOR_SNAPSHOT;
 
   if (daysSinceLastSnapshot >= CONFIG.SNAPSHOT_INTERVAL_DAYS && hasEnoughData) {
     await createSnapshot(userId, fingerprint, pending);
@@ -261,10 +261,7 @@ async function createSnapshot(
   fingerprintCache.set(userId, fingerprint);
   await saveFingerprint(userId, fingerprint);
 
-  log.debug(
-    { userId, snapshotCount: fingerprint.snapshots.length },
-    '📸 Growth snapshot created'
-  );
+  log.debug({ userId, snapshotCount: fingerprint.snapshots.length }, '📸 Growth snapshot created');
 }
 
 /**
@@ -291,24 +288,44 @@ function buildSnapshot(pending: SnapshotData): SemanticSnapshot {
   // Calculate emotional range (diversity)
   const uniqueEmotions = emotions.size;
   const totalEmotionMentions = [...emotions.values()].reduce((a, b) => a + b, 0);
-  const emotionalRange = totalEmotionMentions > 0
-    ? Math.min(1, uniqueEmotions / 10) // Normalize to 0-1
-    : 0;
+  const emotionalRange =
+    totalEmotionMentions > 0
+      ? Math.min(1, uniqueEmotions / 10) // Normalize to 0-1
+      : 0;
 
   // Language patterns
-  const { sentenceLengths, questionCount, statementCount, futureReferences, selfReferences, totalMessages } = languageMetrics;
-  const avgSentenceLength = sentenceLengths.length > 0
-    ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length
-    : 0;
+  const {
+    sentenceLengths,
+    questionCount,
+    statementCount,
+    futureReferences,
+    selfReferences,
+    totalMessages,
+  } = languageMetrics;
+  const avgSentenceLength =
+    sentenceLengths.length > 0
+      ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length
+      : 0;
   const totalQS = questionCount + statementCount;
   const questionRatio = totalQS > 0 ? questionCount / totalQS : 0;
   const futureOrientation = totalMessages > 0 ? futureReferences / totalMessages : 0;
   const selfReferenceRatio = totalMessages > 0 ? selfReferences / totalMessages : 0;
 
   // Cognitive patterns
-  const { problemSolvingSignals, catastrophizingSignals, growthMindsetSignals, selfCompassionSignals } = cognitiveSignals;
-  const totalCognitive = problemSolvingSignals + catastrophizingSignals + growthMindsetSignals + selfCompassionSignals + 1; // +1 to avoid division by zero
-  const problemSolvingRatio = problemSolvingSignals / (problemSolvingSignals + catastrophizingSignals + 1);
+  const {
+    problemSolvingSignals,
+    catastrophizingSignals,
+    growthMindsetSignals,
+    selfCompassionSignals,
+  } = cognitiveSignals;
+  const totalCognitive =
+    problemSolvingSignals +
+    catastrophizingSignals +
+    growthMindsetSignals +
+    selfCompassionSignals +
+    1; // +1 to avoid division by zero
+  const problemSolvingRatio =
+    problemSolvingSignals / (problemSolvingSignals + catastrophizingSignals + 1);
 
   return {
     timestamp: Date.now(),
@@ -363,8 +380,7 @@ function calculateGrowthMetrics(snapshots: SemanticSnapshot[]): GrowthMetrics {
   const languageMaturation = {
     questionToStatementShift:
       first.languagePatterns.questionRatio - last.languagePatterns.questionRatio,
-    certaintyGrowth:
-      last.languagePatterns.certaintyLevel - first.languagePatterns.certaintyLevel,
+    certaintyGrowth: last.languagePatterns.certaintyLevel - first.languagePatterns.certaintyLevel,
     futureOrientationGrowth:
       last.languagePatterns.futureOrientation - first.languagePatterns.futureOrientation,
   };
@@ -436,8 +452,7 @@ function detectSignificantShifts(fingerprint: GrowthFingerprint): void {
 
     // Check cognitive shift
     const cognitiveShift =
-      curr.cognitivePatterns.problemSolvingRatio -
-      prev.cognitivePatterns.problemSolvingRatio;
+      curr.cognitivePatterns.problemSolvingRatio - prev.cognitivePatterns.problemSolvingRatio;
     if (Math.abs(cognitiveShift) >= CONFIG.SIGNIFICANT_SHIFT_THRESHOLD) {
       shifts.push({
         timestamp: curr.timestamp,
@@ -452,8 +467,7 @@ function detectSignificantShifts(fingerprint: GrowthFingerprint): void {
 
     // Check future orientation shift
     const futureShift =
-      curr.languagePatterns.futureOrientation -
-      prev.languagePatterns.futureOrientation;
+      curr.languagePatterns.futureOrientation - prev.languagePatterns.futureOrientation;
     if (Math.abs(futureShift) >= CONFIG.SIGNIFICANT_SHIFT_THRESHOLD) {
       shifts.push({
         timestamp: curr.timestamp,
@@ -484,9 +498,7 @@ function generateGrowthNarrative(fingerprint: GrowthFingerprint): string {
 
   // Emotional growth
   if (growth.emotionalRangeGrowth > 0.1) {
-    parts.push(
-      `Your emotional vocabulary has grown. You're expressing yourself with more nuance.`
-    );
+    parts.push(`Your emotional vocabulary has grown. You're expressing yourself with more nuance.`);
   } else if (growth.emotionalRangeGrowth < -0.1) {
     parts.push(`You've been using simpler emotional language lately.`);
   }
@@ -499,9 +511,7 @@ function generateGrowthNarrative(fingerprint: GrowthFingerprint): string {
     parts.push(`You've been talking more about ${growingTopics.map((t) => t.topic).join(', ')}.`);
   }
   if (shrinkingTopics.length > 0) {
-    parts.push(
-      `${shrinkingTopics.map((t) => t.topic).join(', ')} comes up less often now.`
-    );
+    parts.push(`${shrinkingTopics.map((t) => t.topic).join(', ')} comes up less often now.`);
   }
 
   // Cognitive growth
@@ -528,10 +538,8 @@ function generateGrowthNarrative(fingerprint: GrowthFingerprint): string {
 /**
  * Get the growth fingerprint for a user.
  */
-export async function getGrowthFingerprint(
-  userId: string
-): Promise<GrowthFingerprint | null> {
-  return fingerprintCache.get(userId) || await loadFingerprint(userId);
+export async function getGrowthFingerprint(userId: string): Promise<GrowthFingerprint | null> {
+  return fingerprintCache.get(userId) || (await loadFingerprint(userId));
 }
 
 /**
@@ -616,15 +624,21 @@ export async function buildGrowthContext(userId: string): Promise<string> {
   const { growth } = fingerprint;
 
   if (growth.emotionalRangeGrowth > 0.1) {
-    sections.push(`✨ Emotional expression has expanded ${Math.round(growth.emotionalRangeGrowth * 100)}%`);
+    sections.push(
+      `✨ Emotional expression has expanded ${Math.round(growth.emotionalRangeGrowth * 100)}%`
+    );
   }
 
   if (growth.cognitiveGrowth.problemSolvingImprovement > 0.1) {
-    sections.push(`🧠 Problem-solving mindset improved ${Math.round(growth.cognitiveGrowth.problemSolvingImprovement * 100)}%`);
+    sections.push(
+      `🧠 Problem-solving mindset improved ${Math.round(growth.cognitiveGrowth.problemSolvingImprovement * 100)}%`
+    );
   }
 
   if (growth.cognitiveGrowth.selfCompassionGrowth > 0.1) {
-    sections.push(`💚 Self-compassion up ${Math.round(growth.cognitiveGrowth.selfCompassionGrowth * 100)}%`);
+    sections.push(
+      `💚 Self-compassion up ${Math.round(growth.cognitiveGrowth.selfCompassionGrowth * 100)}%`
+    );
   }
 
   // Recent shifts
@@ -670,10 +684,7 @@ async function loadFingerprint(userId: string): Promise<GrowthFingerprint | null
   }
 }
 
-async function saveFingerprint(
-  userId: string,
-  fingerprint: GrowthFingerprint
-): Promise<void> {
+async function saveFingerprint(userId: string, fingerprint: GrowthFingerprint): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -706,7 +717,7 @@ export function clearGrowthCache(userId?: string): void {
  * Force create a snapshot (for testing or manual triggers).
  */
 export async function forceCreateSnapshot(userId: string): Promise<void> {
-  const fingerprint = fingerprintCache.get(userId) || await loadFingerprint(userId);
+  const fingerprint = fingerprintCache.get(userId) || (await loadFingerprint(userId));
   const pending = pendingData.get(userId);
 
   if (pending) {
@@ -727,4 +738,3 @@ export const growthFingerprint = {
   forceSnapshot: forceCreateSnapshot,
   clearCache: clearGrowthCache,
 };
-

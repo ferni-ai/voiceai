@@ -35,9 +35,10 @@ describe('ResponseEvaluator', () => {
     // Default mock for no API key scenario
     mockFetch.mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        content: [{ text: JSON.stringify(getMockEvaluationJSON()) }],
-      }),
+      json: () =>
+        Promise.resolve({
+          content: [{ text: JSON.stringify(getMockEvaluationJSON()) }],
+        }),
     });
   });
 
@@ -223,7 +224,7 @@ describe('ResponseEvaluator', () => {
   describe('evaluateVoiceConsistency', () => {
     it('should return score and issues', () => {
       const result = evaluateVoiceConsistency(
-        "Let me ask you this - what would it mean to stay the course?",
+        'Let me ask you this - what would it mean to stay the course?',
         'ferni'
       );
 
@@ -233,7 +234,7 @@ describe('ResponseEvaluator', () => {
     });
 
     it('should return high score for on-voice response', () => {
-      const onVoice = "Stay the course. Let me ask you this - what matters most to your heart?";
+      const onVoice = 'Stay the course. Let me ask you this - what matters most to your heart?';
       const result = evaluateVoiceConsistency(onVoice, 'ferni');
 
       expect(result.score).toBeGreaterThan(70);
@@ -241,22 +242,23 @@ describe('ResponseEvaluator', () => {
     });
 
     it('should return lower score for off-voice response', () => {
-      const offVoice = "The data shows you should optimize your metrics for efficiency.";
+      const offVoice = 'The data shows you should optimize your metrics for efficiency.';
       const result = evaluateVoiceConsistency(offVoice, 'ferni');
 
       expect(result.score).toBeLessThan(90);
     });
 
     it('should detect anti-patterns as issues', () => {
-      const withAntiPatterns = "The data shows research indicates you need to optimize.";
+      const withAntiPatterns = 'The data shows research indicates you need to optimize.';
       const result = evaluateVoiceConsistency(withAntiPatterns, 'ferni');
 
-      expect(result.issues.some(i => i.includes('Anti-patterns'))).toBe(true);
+      expect(result.issues.some((i) => i.includes('Anti-patterns'))).toBe(true);
     });
 
     it('should detect voice drift as issue', () => {
       // Use a response with many drift indicators to trigger the threshold
-      const driftResponse = "Let's optimize the algorithm metrics systematically for maximum efficiency. We should analyze and process the data using our methodology framework.";
+      const driftResponse =
+        "Let's optimize the algorithm metrics systematically for maximum efficiency. We should analyze and process the data using our methodology framework.";
       const result = evaluateVoiceConsistency(driftResponse, 'ferni');
 
       // Voice drift score needs to exceed 0.3 to trigger the issue
@@ -264,17 +266,18 @@ describe('ResponseEvaluator', () => {
     });
 
     it('should return default score for unknown persona', () => {
-      const result = evaluateVoiceConsistency("Hello", 'unknown-persona');
+      const result = evaluateVoiceConsistency('Hello', 'unknown-persona');
 
       expect(result.score).toBe(50);
       expect(result.issues).toContain('No fingerprint found for persona');
     });
 
     it('should flag missing signature phrases for long responses', () => {
-      const longGenericResponse = "This is a response that is fairly long but doesn't contain any signature phrases that would identify the persona speaking. It goes on and on without any distinctive voice markers.";
+      const longGenericResponse =
+        "This is a response that is fairly long but doesn't contain any signature phrases that would identify the persona speaking. It goes on and on without any distinctive voice markers.";
       const result = evaluateVoiceConsistency(longGenericResponse, 'ferni');
 
-      expect(result.issues.some(i => i.includes('No signature phrases'))).toBe(true);
+      expect(result.issues.some((i) => i.includes('No signature phrases'))).toBe(true);
     });
   });
 
@@ -361,8 +364,8 @@ describe('ResponseEvaluator', () => {
       const context = createContext();
       const evaluation = createHeuristicEvaluation(
         context,
-        "Let me ask you this - what matters to your heart?",
-        "I feel stuck.",
+        'Let me ask you this - what matters to your heart?',
+        'I feel stuck.',
         Date.now()
       );
 
@@ -373,14 +376,9 @@ describe('ResponseEvaluator', () => {
 
     it('should calculate persona voice score from drift', () => {
       const context = createContext();
-      const onVoice = "Stay the course. Let me ask you this...";
+      const onVoice = 'Stay the course. Let me ask you this...';
 
-      const evaluation = createHeuristicEvaluation(
-        context,
-        onVoice,
-        "User message",
-        Date.now()
-      );
+      const evaluation = createHeuristicEvaluation(context, onVoice, 'User message', Date.now());
 
       expect(evaluation.dimensions.personaVoice).toBeGreaterThan(50);
     });
@@ -389,12 +387,7 @@ describe('ResponseEvaluator', () => {
       const context = createContext();
       const aiReveal = "I'm an AI assistant designed to help you.";
 
-      const evaluation = createHeuristicEvaluation(
-        context,
-        aiReveal,
-        "User message",
-        Date.now()
-      );
+      const evaluation = createHeuristicEvaluation(context, aiReveal, 'User message', Date.now());
 
       expect(evaluation.dimensions.authenticity).toBeLessThan(50);
     });
@@ -404,8 +397,8 @@ describe('ResponseEvaluator', () => {
       const withQuestion = "That's interesting. What do you think about that?";
       const withoutQuestion = "That's interesting. I understand.";
 
-      const evalWithQ = createHeuristicEvaluation(context, withQuestion, "test", Date.now());
-      const evalWithoutQ = createHeuristicEvaluation(context, withoutQuestion, "test", Date.now());
+      const evalWithQ = createHeuristicEvaluation(context, withQuestion, 'test', Date.now());
+      const evalWithoutQ = createHeuristicEvaluation(context, withoutQuestion, 'test', Date.now());
 
       expect(evalWithQ.dimensions.helpfulness).toBeGreaterThan(evalWithoutQ.dimensions.helpfulness);
     });
@@ -413,14 +406,10 @@ describe('ResponseEvaluator', () => {
     it('should flag high voice drift', () => {
       const context = createContext();
       // Response with multiple anti-patterns to trigger flagging (violationCount > 2)
-      const driftResponse = "The data shows research indicates step by step optimization is key. Here's a template for algorithmic efficiency. Let's optimize for maximum leverage.";
+      const driftResponse =
+        "The data shows research indicates step by step optimization is key. Here's a template for algorithmic efficiency. Let's optimize for maximum leverage.";
 
-      const evaluation = createHeuristicEvaluation(
-        context,
-        driftResponse,
-        "test",
-        Date.now()
-      );
+      const evaluation = createHeuristicEvaluation(context, driftResponse, 'test', Date.now());
 
       // Verify anti-patterns are detected and flagged
       expect(evaluation.voiceConsistency.antiPatternsDetected.length).toBeGreaterThan(0);
@@ -430,30 +419,20 @@ describe('ResponseEvaluator', () => {
 
     it('should include signature phrases in strengths', () => {
       const context = createContext();
-      const withSignature = "Stay the course. Let me ask you this - what would it mean if...";
+      const withSignature = 'Stay the course. Let me ask you this - what would it mean if...';
 
-      const evaluation = createHeuristicEvaluation(
-        context,
-        withSignature,
-        "test",
-        Date.now()
-      );
+      const evaluation = createHeuristicEvaluation(context, withSignature, 'test', Date.now());
 
-      expect(evaluation.feedback.strengths.some(s => s.includes('signature phrases'))).toBe(true);
+      expect(evaluation.feedback.strengths.some((s) => s.includes('signature phrases'))).toBe(true);
     });
 
     it('should include anti-patterns in improvements', () => {
       const context = createContext();
-      const withAntiPattern = "The data shows you should optimize.";
+      const withAntiPattern = 'The data shows you should optimize.';
 
-      const evaluation = createHeuristicEvaluation(
-        context,
-        withAntiPattern,
-        "test",
-        Date.now()
-      );
+      const evaluation = createHeuristicEvaluation(context, withAntiPattern, 'test', Date.now());
 
-      expect(evaluation.feedback.improvements.some(i => i.includes('anti-patterns'))).toBe(true);
+      expect(evaluation.feedback.improvements.some((i) => i.includes('anti-patterns'))).toBe(true);
     });
   });
 
@@ -468,7 +447,7 @@ describe('ResponseEvaluator', () => {
       const results = await evaluateBatch(items);
 
       expect(results.length).toBe(3);
-      expect(results.every(r => r.id !== undefined)).toBe(true);
+      expect(results.every((r) => r.id !== undefined)).toBe(true);
     });
 
     it('should continue on individual failures', async () => {

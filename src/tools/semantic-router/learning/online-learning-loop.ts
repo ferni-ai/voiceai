@@ -166,10 +166,7 @@ export class OnlineLearningEngine {
       }
     }, this.config.autoRetrainInterval);
 
-    log.info(
-      { intervalMs: this.config.autoRetrainInterval },
-      'Started automatic retraining'
-    );
+    log.info({ intervalMs: this.config.autoRetrainInterval }, 'Started automatic retraining');
   }
 
   /**
@@ -306,10 +303,7 @@ export class OnlineLearningEngine {
   /**
    * Apply learned adjustments to an embedding for better matching
    */
-  applyAdjustmentToQuery(
-    queryEmbedding: EmbeddingVector,
-    toolId: string
-  ): EmbeddingVector {
+  applyAdjustmentToQuery(queryEmbedding: EmbeddingVector, toolId: string): EmbeddingVector {
     const adjustment = this.adjustments.get(toolId);
     if (!adjustment) {
       return queryEmbedding;
@@ -568,10 +562,7 @@ export class OnlineLearningEngine {
         );
       }
 
-      log.info(
-        { adjustedTools: this.adjustments.size },
-        'Applied adjustments to embedding index'
-      );
+      log.info({ adjustedTools: this.adjustments.size }, 'Applied adjustments to embedding index');
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to apply adjustments to index');
     }

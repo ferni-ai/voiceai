@@ -67,7 +67,7 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
             // Safely convert contextWeights to plain object for Firestore
             // Firestore rejects non-plain objects (Maps, custom classes, etc.)
             let contextWeightsObj: Record<string, number> = {};
-            
+
             try {
               if (arm.contextWeights) {
                 if (arm.contextWeights instanceof Map) {
@@ -80,10 +80,11 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
                 } else if (typeof arm.contextWeights === 'object' && arm.contextWeights !== null) {
                   // Object-like but might not be plain - extract key-value pairs safely
                   const weightObj = arm.contextWeights as unknown as Record<string, unknown>;
-                  
+
                   // Check if it's a Map-like object with entries() method
                   if (typeof (weightObj as { entries?: unknown }).entries === 'function') {
-                    const entriesFn = (weightObj as { entries: () => Iterable<[string, number]> }).entries;
+                    const entriesFn = (weightObj as { entries: () => Iterable<[string, number]> })
+                      .entries;
                     for (const [k, v] of entriesFn.call(weightObj)) {
                       if (typeof k === 'string' && typeof v === 'number') {
                         contextWeightsObj[k] = v;
@@ -102,7 +103,10 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
               }
             } catch (conversionErr) {
               // If conversion fails, just use empty object
-              log.warn({ armId: id, error: String(conversionErr) }, 'Failed to convert contextWeights');
+              log.warn(
+                { armId: id, error: String(conversionErr) },
+                'Failed to convert contextWeights'
+              );
               contextWeightsObj = {};
             }
 
@@ -118,14 +122,17 @@ export async function createFirestorePersistence(): Promise<BanditPersistence | 
             });
           }
 
-          await db.collection('system_cache').doc('bandit_arms').set(
-            cleanForFirestore({
-              arms: armsObj,
-              updatedAt: new Date(),
-              armCount: arms.size,
-            }),
-            { merge: true }
-          );
+          await db
+            .collection('system_cache')
+            .doc('bandit_arms')
+            .set(
+              cleanForFirestore({
+                arms: armsObj,
+                updatedAt: new Date(),
+                armCount: arms.size,
+              }),
+              { merge: true }
+            );
 
           log.debug({ armCount: arms.size }, 'Bandit arms saved to Firestore');
         } catch (error) {
@@ -216,9 +223,7 @@ export async function saveUserPreferences(
 /**
  * Load user-specific routing preferences
  */
-export async function loadUserPreferences(
-  userId: string
-): Promise<UserRoutingPreferences | null> {
+export async function loadUserPreferences(userId: string): Promise<UserRoutingPreferences | null> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -301,13 +306,16 @@ export async function saveBanditMetrics(metrics: Partial<BanditMetrics>): Promis
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
 
-    await db.collection('system_cache').doc('bandit_metrics').set(
-      cleanForFirestore({
-        ...metrics,
-        lastUpdated: new Date(),
-      }),
-      { merge: true }
-    );
+    await db
+      .collection('system_cache')
+      .doc('bandit_metrics')
+      .set(
+        cleanForFirestore({
+          ...metrics,
+          lastUpdated: new Date(),
+        }),
+        { merge: true }
+      );
 
     log.debug('Bandit metrics saved');
   } catch (error) {
@@ -346,10 +354,7 @@ export async function loadBanditMetrics(): Promise<BanditMetrics | null> {
 /**
  * Increment bandit metric counters
  */
-export async function incrementBanditMetrics(
-  selections: number,
-  rewards: number
-): Promise<void> {
+export async function incrementBanditMetrics(selections: number, rewards: number): Promise<void> {
   try {
     const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -357,11 +362,13 @@ export async function incrementBanditMetrics(
     await db
       .collection('system_cache')
       .doc('bandit_metrics')
-      .update(cleanForFirestore({
-        totalSelections: FieldValue.increment(selections),
-        totalRewards: FieldValue.increment(rewards),
-        lastUpdated: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          totalSelections: FieldValue.increment(selections),
+          totalRewards: FieldValue.increment(rewards),
+          lastUpdated: new Date(),
+        })
+      );
   } catch (error) {
     // Document might not exist, try to create it
     try {
@@ -402,10 +409,12 @@ export async function recordRoutingEvent(event: RoutingEvent): Promise<string | 
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
 
-    const docRef = await db.collection('routing_events').add(cleanForFirestore({
-      ...event,
-      timestamp: event.timestamp || new Date(),
-    }));
+    const docRef = await db.collection('routing_events').add(
+      cleanForFirestore({
+        ...event,
+        timestamp: event.timestamp || new Date(),
+      })
+    );
 
     return docRef.id;
   } catch (error) {
@@ -425,11 +434,16 @@ export async function updateRoutingEventOutcome(
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
 
-    await db.collection('routing_events').doc(eventId).update(cleanForFirestore({
-      success: outcome.success,
-      reward: outcome.reward,
-      outcomeRecordedAt: new Date(),
-    }));
+    await db
+      .collection('routing_events')
+      .doc(eventId)
+      .update(
+        cleanForFirestore({
+          success: outcome.success,
+          reward: outcome.reward,
+          outcomeRecordedAt: new Date(),
+        })
+      );
   } catch (error) {
     log.warn({ error, eventId }, 'Failed to update routing event outcome');
   }
@@ -481,10 +495,7 @@ let pendingSave: Map<string, ToolArm> | null = null;
 /**
  * Start automatic persistence on interval
  */
-export function startAutoSave(
-  persistence: BanditPersistence,
-  intervalMs = 60000
-): void {
+export function startAutoSave(persistence: BanditPersistence, intervalMs = 60000): void {
   if (autoSaveInterval) {
     clearInterval(autoSaveInterval);
   }
@@ -527,7 +538,4 @@ export function queueForSave(arms: Map<string, ToolArm>): void {
 // EXPORTS
 // ============================================================================
 
-export {
-  createFirestorePersistence as default,
-};
-
+export { createFirestorePersistence as default };

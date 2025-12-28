@@ -137,10 +137,7 @@ export function canInstall(context: AuthContext, _itemId: MarketplaceId): boolea
 /**
  * Check if user can uninstall an item
  */
-export function canUninstall(
-  context: AuthContext,
-  installationUserId: UserId
-): boolean {
+export function canUninstall(context: AuthContext, installationUserId: UserId): boolean {
   // Can only uninstall own installations (or admin)
   return context.userId === installationUserId || context.tier === 'admin';
 }
@@ -172,10 +169,7 @@ export function canExecute(
 /**
  * Check if user can modify an item
  */
-export function canModify(
-  context: AuthContext,
-  itemPublisherId: string
-): boolean {
+export function canModify(context: AuthContext, itemPublisherId: string): boolean {
   // Publisher can modify their own items, admin can modify any
   return context.publisherId === itemPublisherId || context.tier === 'admin';
 }
@@ -245,8 +239,14 @@ export function sanitizeString(input: string, maxLength = 10000): string {
 export function isValidDockerImage(image: string): boolean {
   // Docker image format: [registry/]name[:tag][@digest]
   // Disallow shell metacharacters
-  const dockerImageRegex = /^[a-z0-9]([a-z0-9._/-]*[a-z0-9])?(:[\w][\w.-]{0,127})?(@sha256:[a-f0-9]{64})?$/i;
-  return dockerImageRegex.test(image) && !image.includes(';') && !image.includes('|') && !image.includes('&');
+  const dockerImageRegex =
+    /^[a-z0-9]([a-z0-9._/-]*[a-z0-9])?(:[\w][\w.-]{0,127})?(@sha256:[a-f0-9]{64})?$/i;
+  return (
+    dockerImageRegex.test(image) &&
+    !image.includes(';') &&
+    !image.includes('|') &&
+    !image.includes('&')
+  );
 }
 
 /**
@@ -329,7 +329,7 @@ export function anonymizeUserId(userId: UserId, toolId: MarketplaceId): string {
   const combined = secret + data;
   for (let i = 0; i < combined.length; i++) {
     const char = combined.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
 

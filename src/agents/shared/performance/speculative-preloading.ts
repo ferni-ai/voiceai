@@ -11,7 +11,10 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { preloadPersonaInsights, type PersonaInsights } from '../../../intelligence/context-builders/persona-insights-cache.js';
+import {
+  preloadPersonaInsights,
+  type PersonaInsights,
+} from '../../../intelligence/context-builders/persona-insights-cache.js';
 import { preloadAllBundles } from '../../../personas/bundles/preloader.js';
 
 const log = getLogger();
@@ -20,7 +23,13 @@ const log = getLogger();
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
+export type PersonaId =
+  | 'ferni'
+  | 'peter-john'
+  | 'alex-chen'
+  | 'maya-santos'
+  | 'jordan-taylor'
+  | 'nayan-patel';
 
 export interface HandoffPrediction {
   /** Predicted target persona */
@@ -70,54 +79,148 @@ const PRELOAD_CONFIG = {
 const PERSONA_TOPICS: Record<PersonaId, { keywords: string[]; domains: string[] }> = {
   'peter-john': {
     keywords: [
-      'stock', 'stocks', 'invest', 'investing', 'investment', 'portfolio',
-      'market', 'trading', 'dividend', 'earnings', 'pe ratio', 'valuation',
-      'buy', 'sell', 'shares', 'ticker', 'nasdaq', 'dow', 'sp500', 's&p',
-      'growth stock', 'value investing', 'fundamental analysis',
+      'stock',
+      'stocks',
+      'invest',
+      'investing',
+      'investment',
+      'portfolio',
+      'market',
+      'trading',
+      'dividend',
+      'earnings',
+      'pe ratio',
+      'valuation',
+      'buy',
+      'sell',
+      'shares',
+      'ticker',
+      'nasdaq',
+      'dow',
+      'sp500',
+      's&p',
+      'growth stock',
+      'value investing',
+      'fundamental analysis',
     ],
     domains: ['finance', 'investing', 'research'],
   },
   'alex-chen': {
     keywords: [
-      'email', 'emails', 'schedule', 'calendar', 'meeting', 'appointment',
-      'send', 'reply', 'message', 'inbox', 'communication', 'call',
-      'reschedule', 'cancel', 'reminder', 'contacts', 'agenda',
-      'time management', 'productivity', 'organize',
+      'email',
+      'emails',
+      'schedule',
+      'calendar',
+      'meeting',
+      'appointment',
+      'send',
+      'reply',
+      'message',
+      'inbox',
+      'communication',
+      'call',
+      'reschedule',
+      'cancel',
+      'reminder',
+      'contacts',
+      'agenda',
+      'time management',
+      'productivity',
+      'organize',
     ],
     domains: ['communication', 'calendar', 'productivity'],
   },
   'maya-santos': {
     keywords: [
-      'budget', 'spending', 'saving', 'savings', 'money', 'expense',
-      'habit', 'habits', 'routine', 'track', 'tracking', 'goal',
-      'streak', 'daily', 'weekly', 'progress', 'accountability',
-      'financial health', 'debt', 'credit',
+      'budget',
+      'spending',
+      'saving',
+      'savings',
+      'money',
+      'expense',
+      'habit',
+      'habits',
+      'routine',
+      'track',
+      'tracking',
+      'goal',
+      'streak',
+      'daily',
+      'weekly',
+      'progress',
+      'accountability',
+      'financial health',
+      'debt',
+      'credit',
     ],
     domains: ['habits', 'finance', 'wellness'],
   },
   'jordan-taylor': {
     keywords: [
-      'vacation', 'trip', 'travel', 'purchase', 'buy', 'car', 'house',
-      'wedding', 'baby', 'milestone', 'plan', 'planning', 'event',
-      'birthday', 'anniversary', 'celebration', 'big decision',
-      'life event', 'retirement',
+      'vacation',
+      'trip',
+      'travel',
+      'purchase',
+      'buy',
+      'car',
+      'house',
+      'wedding',
+      'baby',
+      'milestone',
+      'plan',
+      'planning',
+      'event',
+      'birthday',
+      'anniversary',
+      'celebration',
+      'big decision',
+      'life event',
+      'retirement',
     ],
     domains: ['life-planning', 'events', 'milestones'],
   },
   'nayan-patel': {
     keywords: [
-      'wisdom', 'philosophy', 'meaning', 'purpose', 'meditation',
-      'mindfulness', 'spiritual', 'reflect', 'reflection', 'existential',
-      'values', 'principles', 'legacy', 'life', 'death', 'mortality',
-      'gratitude', 'perspective', 'inner peace',
+      'wisdom',
+      'philosophy',
+      'meaning',
+      'purpose',
+      'meditation',
+      'mindfulness',
+      'spiritual',
+      'reflect',
+      'reflection',
+      'existential',
+      'values',
+      'principles',
+      'legacy',
+      'life',
+      'death',
+      'mortality',
+      'gratitude',
+      'perspective',
+      'inner peace',
     ],
     domains: ['wisdom', 'philosophy', 'meaning'],
   },
-  'ferni': {
+  ferni: {
     keywords: [
-      'coach', 'coaching', 'help', 'support', 'feeling', 'emotion',
-      'talk', 'listen', 'understand', 'team', 'handoff', 'back',
-      'overwhelmed', 'stressed', 'anxious', 'sad',
+      'coach',
+      'coaching',
+      'help',
+      'support',
+      'feeling',
+      'emotion',
+      'talk',
+      'listen',
+      'understand',
+      'team',
+      'handoff',
+      'back',
+      'overwhelmed',
+      'stressed',
+      'anxious',
+      'sad',
     ],
     domains: ['coaching', 'wellbeing', 'coordination'],
   },
@@ -147,10 +250,7 @@ const debounceTimers = new Map<string, NodeJS.Timeout>();
  * @param text - User's message or recent conversation
  * @param currentPersona - Currently active persona (to exclude from predictions)
  */
-export function predictHandoff(
-  text: string,
-  currentPersona: string
-): HandoffPrediction | null {
+export function predictHandoff(text: string, currentPersona: string): HandoffPrediction | null {
   const lowerText = text.toLowerCase();
   const currentCanonical = normalizePersonaId(currentPersona);
 
@@ -198,10 +298,7 @@ export function predictHandoff(
  * @param text - User's message
  * @param context - Session context with preload function
  */
-export function analyzeAndPreload(
-  text: string,
-  context: SpeculativePreloadContext
-): void {
+export function analyzeAndPreload(text: string, context: SpeculativePreloadContext): void {
   const { sessionId, currentPersona } = context;
 
   // Debounce to avoid excessive predictions
@@ -223,10 +320,7 @@ export function analyzeAndPreload(
  * Force immediate analysis without debounce.
  * Use for high-signal events like wake word near-matches.
  */
-export function analyzeAndPreloadImmediate(
-  text: string,
-  context: SpeculativePreloadContext
-): void {
+export function analyzeAndPreloadImmediate(text: string, context: SpeculativePreloadContext): void {
   doAnalyzeAndPreload(text, context);
 }
 
@@ -251,7 +345,9 @@ export function clearSpeculativeState(sessionId: string): void {
  * Get recent prediction for a session.
  * Useful for debugging and metrics.
  */
-export function getRecentPrediction(sessionId: string): { persona: PersonaId; timestamp: number } | null {
+export function getRecentPrediction(
+  sessionId: string
+): { persona: PersonaId; timestamp: number } | null {
   return recentPredictions.get(sessionId) || null;
 }
 
@@ -284,8 +380,13 @@ function calculateConfidence(matchCount: number, text: string): number {
 
   // Boost for explicit intent signals
   const intentSignals = [
-    'can you help', 'i need', 'let me talk', 'can i talk',
-    'i want to', "let's talk about", 'tell me about',
+    'can you help',
+    'i need',
+    'let me talk',
+    'can i talk',
+    'i want to',
+    "let's talk about",
+    'tell me about',
   ];
 
   for (const signal of intentSignals) {
@@ -309,13 +410,13 @@ function calculateConfidence(matchCount: number, text: string): number {
  */
 function normalizePersonaId(personaId: string): string {
   const mapping: Record<string, PersonaId> = {
-    'peter': 'peter-john',
-    'alex': 'alex-chen',
-    'maya': 'maya-santos',
-    'jordan': 'jordan-taylor',
-    'nayan': 'nayan-patel',
+    peter: 'peter-john',
+    alex: 'alex-chen',
+    maya: 'maya-santos',
+    jordan: 'jordan-taylor',
+    nayan: 'nayan-patel',
     'jack-b': 'ferni',
-    'coach': 'ferni',
+    coach: 'ferni',
   };
 
   return mapping[personaId.toLowerCase()] || personaId;
@@ -324,10 +425,7 @@ function normalizePersonaId(personaId: string): string {
 /**
  * Internal implementation of analyze and preload
  */
-function doAnalyzeAndPreload(
-  text: string,
-  context: SpeculativePreloadContext
-): void {
+function doAnalyzeAndPreload(text: string, context: SpeculativePreloadContext): void {
   const { sessionId, userId, currentPersona, buildInsightsFn } = context;
 
   const prediction = predictHandoff(text, currentPersona);
@@ -354,7 +452,8 @@ function doAnalyzeAndPreload(
   const recent = recentPredictions.get(sessionId);
   if (recent && recent.persona === prediction.targetPersona) {
     const ageMs = Date.now() - recent.timestamp;
-    if (ageMs < 30000) { // Within 30 seconds
+    if (ageMs < 30000) {
+      // Within 30 seconds
       log.debug({ sessionId, target: prediction.targetPersona }, 'Skipping duplicate prediction');
       return;
     }

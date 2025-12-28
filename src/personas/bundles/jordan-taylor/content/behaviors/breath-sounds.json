@@ -41,7 +41,13 @@
   "usage_rules": {
     "frequency": "high",
     "max_per_response": 2,
-    "more_likely_when": ["celebration", "milestone", "planning_excitement", "vision_casting", "birthday"],
+    "more_likely_when": [
+      "celebration",
+      "milestone",
+      "planning_excitement",
+      "vision_casting",
+      "birthday"
+    ],
     "less_likely_when": ["serious_moment", "user_struggling"],
     "note": "Jordan's breaths show ENERGY - they're the sound of someone genuinely excited for you"
   }

@@ -175,7 +175,10 @@ async function doInitialize(): Promise<void> {
     // P2 FIX: Rolled out to 100% after E2E Tool Calling Audit (Dec 2024)
     // Previously at 50% for A/B testing, now fully enabled as semantic router primary path
     const enableIntelligent = process.env.ENABLE_INTELLIGENT_ROUTING !== 'false'; // Default: enabled
-    const intelligentTrafficPct = parseInt(process.env.INTELLIGENT_ROUTING_TRAFFIC_PCT || '100', 10);
+    const intelligentTrafficPct = parseInt(
+      process.env.INTELLIGENT_ROUTING_TRAFFIC_PCT || '100',
+      10
+    );
 
     if (enableIntelligent || intelligentTrafficPct > 0) {
       try {

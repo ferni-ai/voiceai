@@ -24,6 +24,24 @@ vi.mock('../../identity/google-calendar-oauth.js', () => ({
   isCalendarConfigured: vi.fn(),
 }));
 
+vi.mock('../unified-calendar-store.js', () => ({
+  getEventsForDay: vi.fn().mockResolvedValue([]),
+  getEvents: vi.fn().mockResolvedValue([]),
+  createEvent: vi.fn().mockImplementation(async (_userId, input) => ({
+    id: `local_${Date.now()}`,
+    title: input.title,
+    description: input.description,
+    startTime: input.startTime,
+    endTime: input.endTime || new Date((input.startTime as Date).getTime() + 60 * 60 * 1000),
+    isAllDay: false,
+    attendees: [],
+    calendarId: 'local',
+    status: 'confirmed' as const,
+  })),
+  updateEvent: vi.fn(),
+  deleteEvent: vi.fn(),
+}));
+
 // Import after mocks
 import {
   isConnected,
@@ -110,7 +128,12 @@ describe('Calendar Service', () => {
   });
 
   describe('getEventsForDay', () => {
-    it('should return empty array when no access token', async () => {
+    it('should fall back to unified store when no Google access token', async () => {
+      // When Google token is null, falls back to unified calendar store
+      // Reset the unified store mock to ensure it returns empty
+      const unifiedStore = await import('../unified-calendar-store.js');
+      vi.mocked(unifiedStore.getEventsForDay).mockResolvedValue([]);
+
       vi.mocked(googleCalendarOAuth.getValidAccessToken).mockResolvedValue(null);
 
       const result = await getEventsForDay(mockUserId);

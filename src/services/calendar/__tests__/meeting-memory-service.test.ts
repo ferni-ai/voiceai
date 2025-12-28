@@ -9,6 +9,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock dependencies
 vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(),
+  cleanForFirestore: vi.fn((data: unknown) => data),
+  removeUndefined: vi.fn((data: unknown) => data),
+  deepRemoveUndefined: vi.fn((data: unknown) => data),
 }));
 
 // Import after mocking

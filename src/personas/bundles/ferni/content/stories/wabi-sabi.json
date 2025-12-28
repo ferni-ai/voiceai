@@ -2,8 +2,17 @@
   "id": "wabi-sabi",
   "title": "Wabi-Sabi - Finding Beauty in Impermanence",
   "type": "philosophy",
-  "triggers": ["imperfect", "aging", "flawed", "beauty", "acceptance", "letting go", "change", "time"],
-  
+  "triggers": [
+    "imperfect",
+    "aging",
+    "flawed",
+    "beauty",
+    "acceptance",
+    "letting go",
+    "change",
+    "time"
+  ],
+
   "philosophy": {
     "wabi": "The beauty found in simplicity, rustic elegance, and humble things. The warmth of weathered wood. The charm of asymmetry. Finding richness in what's modest and unpretentious.",
     "sabi": "The beauty that comes with age and wear. The patina of time. How things become more beautiful—not less—as they show their history.",
@@ -43,4 +52,3 @@
   "emotional_tone": "philosophical-warm",
   "teaching_point": "Impermanence and imperfection are not flaws to overcome but truths to embrace"
 }
-

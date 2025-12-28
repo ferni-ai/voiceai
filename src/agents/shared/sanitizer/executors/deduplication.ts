@@ -37,19 +37,21 @@ let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
 function startCleanup(): void {
   if (cleanupInterval) return;
-  
+
   cleanupInterval = setInterval(() => {
     // For now, just log cache size - full cleanup would track timestamps
-    const totalEntries = Array.from(sessionToolCache.values())
-      .reduce((sum, set) => sum + set.size, 0);
-    
+    const totalEntries = Array.from(sessionToolCache.values()).reduce(
+      (sum, set) => sum + set.size,
+      0
+    );
+
     if (totalEntries > 0) {
       log.debug('Dedup cache stats:', {
         sessions: sessionToolCache.size,
         totalEntries,
       });
     }
-    
+
     // Clean up empty sessions
     for (const [sessionId, tools] of sessionToolCache.entries()) {
       if (tools.size === 0) {
@@ -57,7 +59,7 @@ function startCleanup(): void {
       }
     }
   }, CLEANUP_INTERVAL_MS);
-  
+
   // Don't prevent process exit
   cleanupInterval.unref?.();
 }
@@ -76,10 +78,7 @@ startCleanup();
  * @param sessionId - Session identifier
  * @param toolId - Unique tool identifier (usually `fn:${args}`)
  */
-export function markToolExecutedBySemanticRouter(
-  sessionId: string,
-  toolId: string
-): void {
+export function markToolExecutedBySemanticRouter(sessionId: string, toolId: string): void {
   if (!sessionId || !toolId) {
     log.warn('Invalid dedup mark request:', { sessionId, toolId });
     return;
@@ -111,10 +110,7 @@ export function markToolExecutedBySemanticRouter(
  * @param toolId - Tool identifier to check
  * @returns True if tool was already executed
  */
-export function wasToolExecutedBySemanticRouter(
-  sessionId: string,
-  toolId: string
-): boolean {
+export function wasToolExecutedBySemanticRouter(sessionId: string, toolId: string): boolean {
   if (!sessionId || !toolId) return false;
 
   const sessionCache = sessionToolCache.get(sessionId);
@@ -149,9 +145,11 @@ export function clearToolDeduplicationForSession(sessionId: string): void {
  * Get current cache stats (for debugging/monitoring)
  */
 export function getDedupStats(): { sessions: number; totalEntries: number } {
-  const totalEntries = Array.from(sessionToolCache.values())
-    .reduce((sum, set) => sum + set.size, 0);
-  
+  const totalEntries = Array.from(sessionToolCache.values()).reduce(
+    (sum, set) => sum + set.size,
+    0
+  );
+
   return {
     sessions: sessionToolCache.size,
     totalEntries,
@@ -165,4 +163,3 @@ export function clearAllDedupCache(): void {
   sessionToolCache.clear();
   log.debug('Cleared all dedup cache');
 }
-

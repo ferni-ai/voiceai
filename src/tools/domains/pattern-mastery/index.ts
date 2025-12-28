@@ -293,7 +293,10 @@ const sharePatternWithTeamDef: ToolDefinition = {
         actionable: z.boolean().describe('Can something be done about this?'),
       }),
       execute: async ({ targetPersona, patternType, pattern, implication, actionable }) => {
-        getLogger().info({ agentId: ctx.agentId, targetPersona, patternType }, 'Sharing pattern with team');
+        getLogger().info(
+          { agentId: ctx.agentId, targetPersona, patternType },
+          'Sharing pattern with team'
+        );
 
         try {
           addCrossPersonaInsight(ctx.userId, {
@@ -306,7 +309,10 @@ const sharePatternWithTeamDef: ToolDefinition = {
             oneTime: false,
           });
 
-          const targetName = targetPersona === 'all' ? 'the team' : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
 
           let response = `**Pattern Intelligence Shared with ${targetName}**\n\n`;
           response += `I've briefed ${targetName} on this ${patternType} pattern.\n\n`;
@@ -394,13 +400,18 @@ const requestMayaHabitInterventionDef: ToolDefinition = {
       parameters: z.object({
         pattern: z.string().describe('The pattern that needs a habit intervention'),
         desiredOutcome: z.string().describe('What outcome would the habit create'),
-        patternStrength: z.enum(['weak', 'moderate', 'strong']).describe('How entrenched is this pattern'),
+        patternStrength: z
+          .enum(['weak', 'moderate', 'strong'])
+          .describe('How entrenched is this pattern'),
       }),
       execute: async ({ pattern, desiredOutcome, patternStrength }) => {
         const goal = desiredOutcome || 'Transform this pattern into something healthier';
         const strength = patternStrength || 'forming';
 
-        getLogger().info({ agentId: ctx.agentId, pattern, patternStrength: strength }, 'Requesting Maya habit intervention');
+        getLogger().info(
+          { agentId: ctx.agentId, pattern, patternStrength: strength },
+          'Requesting Maya habit intervention'
+        );
 
         try {
           addCrossPersonaInsight(ctx.userId, {

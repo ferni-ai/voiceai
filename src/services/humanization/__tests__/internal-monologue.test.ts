@@ -63,7 +63,7 @@ describe('InternalMonologue', () => {
       // (getMemoryContent returns null without bundleRuntime)
       const thoughts = processForThoughts(
         sessionId,
-        createContext({ userMessage: "My father was always distant" })
+        createContext({ userMessage: 'My father was always distant' })
       );
 
       // Pattern is matched but no thought created without bundleRuntime
@@ -76,17 +76,17 @@ describe('InternalMonologue', () => {
         createContext({ userMessage: "I'm fine, whatever, it's okay" })
       );
 
-      const concernThought = thoughts.find(t => t.type === 'concern_forming');
+      const concernThought = thoughts.find((t) => t.type === 'concern_forming');
       expect(concernThought).toBeDefined();
     });
 
     it('should detect concern for absolutist thinking', () => {
       const thoughts = processForThoughts(
         sessionId,
-        createContext({ userMessage: "I always mess everything up, I never do anything right" })
+        createContext({ userMessage: 'I always mess everything up, I never do anything right' })
       );
 
-      const concernThought = thoughts.find(t => t.type === 'concern_forming');
+      const concernThought = thoughts.find((t) => t.type === 'concern_forming');
       expect(concernThought).toBeDefined();
     });
 
@@ -96,7 +96,7 @@ describe('InternalMonologue', () => {
         createContext({ userMessage: "I'm so stupid, what an idiot I am" })
       );
 
-      const concernThought = thoughts.find(t => t.type === 'concern_forming');
+      const concernThought = thoughts.find((t) => t.type === 'concern_forming');
       expect(concernThought).toBeDefined();
       expect(concernThought?.topic).toBe('self_criticism');
     });
@@ -105,13 +105,13 @@ describe('InternalMonologue', () => {
       const thoughts = processForThoughts(
         sessionId,
         createContext({
-          userMessage: "This is really hard for me to talk about",
+          userMessage: 'This is really hard for me to talk about',
           emotionalIntensity: 0.85,
           relationshipStage: 'friend',
         })
       );
 
-      const vulnThought = thoughts.find(t => t.type === 'vulnerability_urge');
+      const vulnThought = thoughts.find((t) => t.type === 'vulnerability_urge');
       expect(vulnThought).toBeDefined();
     });
 
@@ -123,11 +123,11 @@ describe('InternalMonologue', () => {
         const thoughts = processForThoughts(
           sessionId + i,
           createContext({
-            userMessage: "...",
+            userMessage: '...',
             silenceDuration: 5000,
           })
         );
-        if (thoughts.some(t => t.type === 'appreciation')) {
+        if (thoughts.some((t) => t.type === 'appreciation')) {
           foundAppreciation = true;
           break;
         }
@@ -137,15 +137,12 @@ describe('InternalMonologue', () => {
 
     it('should age existing thoughts and decay urgency', () => {
       // First turn - create a thought
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always fail at everything" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always fail at everything' }));
 
       // Second turn - thoughts should age
       processForThoughts(
         sessionId,
-        createContext({ userMessage: "Anyway, what were you saying?", turn: 6 })
+        createContext({ userMessage: 'Anyway, what were you saying?', turn: 6 })
       );
 
       const state = getInternalStateSummary(sessionId);
@@ -155,42 +152,36 @@ describe('InternalMonologue', () => {
     });
 
     it('should not duplicate memory thoughts for same trigger', () => {
+      processForThoughts(sessionId, createContext({ userMessage: 'My father was strict' }));
       processForThoughts(
         sessionId,
-        createContext({ userMessage: "My father was strict" })
-      );
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "Yes, my father had high expectations", turn: 6 })
+        createContext({ userMessage: 'Yes, my father had high expectations', turn: 6 })
       );
 
       const state = getInternalStateSummary(sessionId);
-      const fatherTopics = state.topics.filter(t => t === 'father_relationship');
+      const fatherTopics = state.topics.filter((t) => t === 'father_relationship');
       expect(fatherTopics.length).toBeLessThanOrEqual(1);
     });
 
     it('should cap active thoughts at 10', () => {
       // Generate many different thoughts
       const messages = [
-        "My father was strict",
-        "I always fail",
-        "I never succeed",
-        "I should try harder",
-        "I must do better",
+        'My father was strict',
+        'I always fail',
+        'I never succeed',
+        'I should try harder',
+        'I must do better',
         "I can't do this",
         "I'm so stupid",
-        "I feel overwhelmed",
-        "My mentor taught me",
-        "I survived that",
+        'I feel overwhelmed',
+        'My mentor taught me',
+        'I survived that',
         "I'm scared",
-        "I feel alone",
+        'I feel alone',
       ];
 
       for (let i = 0; i < messages.length; i++) {
-        processForThoughts(
-          sessionId,
-          createContext({ userMessage: messages[i], turn: i + 1 })
-        );
+        processForThoughts(sessionId, createContext({ userMessage: messages[i], turn: i + 1 }));
       }
 
       const state = getInternalStateSummary(sessionId);
@@ -207,10 +198,7 @@ describe('InternalMonologue', () => {
 
     it('should consider urgency threshold', () => {
       // Generate a concern thought
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always mess up" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always mess up' }));
 
       const decision = decideSurfacing(sessionId, { turn: 6 });
 
@@ -222,7 +210,7 @@ describe('InternalMonologue', () => {
       processForThoughts(
         sessionId,
         createContext({
-          userMessage: "My father abandoned us",
+          userMessage: 'My father abandoned us',
           emotionalIntensity: 0.9,
           relationshipStage: 'friend',
         })
@@ -245,7 +233,7 @@ describe('InternalMonologue', () => {
       processForThoughts(
         sessionId,
         createContext({
-          userMessage: "This is interesting",
+          userMessage: 'This is interesting',
           turn: 5,
           relationshipStage: 'friend',
         })
@@ -287,7 +275,7 @@ describe('InternalMonologue', () => {
         processForThoughts(
           sessionId + i,
           createContext({
-            userMessage: "I always mess things up",
+            userMessage: 'I always mess things up',
             turn: 5,
           })
         );
@@ -305,10 +293,7 @@ describe('InternalMonologue', () => {
 
   describe('markThoughtSurfaced', () => {
     it('should remove thought from active stream', () => {
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always fail" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always fail' }));
 
       const stateBefore = getInternalStateSummary(sessionId);
       const decision = decideSurfacing(sessionId, { turn: 6 });
@@ -338,10 +323,7 @@ describe('InternalMonologue', () => {
     });
 
     it('should return accurate count', () => {
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always fail at everything" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always fail at everything' }));
 
       const state = getInternalStateSummary(sessionId);
 
@@ -351,7 +333,7 @@ describe('InternalMonologue', () => {
     it('should identify dominant thought type', () => {
       processForThoughts(
         sessionId,
-        createContext({ userMessage: "I always mess up, I never succeed" })
+        createContext({ userMessage: 'I always mess up, I never succeed' })
       );
 
       const state = getInternalStateSummary(sessionId);
@@ -363,10 +345,7 @@ describe('InternalMonologue', () => {
 
     it('should collect topics from concern patterns', () => {
       // Concern patterns don't require bundleRuntime
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always fail at everything" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always fail at everything' }));
 
       const state = getInternalStateSummary(sessionId);
 
@@ -393,21 +372,21 @@ describe('InternalMonologue', () => {
     });
 
     it('should match wyoming/home keyword patterns', () => {
-      const context = createContext({ userMessage: "My childhood home was in Wyoming" });
+      const context = createContext({ userMessage: 'My childhood home was in Wyoming' });
       const thoughts = processForThoughts(sessionId, context);
 
       expect(Array.isArray(thoughts)).toBe(true);
     });
 
     it('should match mentor keyword patterns', () => {
-      const context = createContext({ userMessage: "My mentor taught me everything" });
+      const context = createContext({ userMessage: 'My mentor taught me everything' });
       const thoughts = processForThoughts(sessionId, context);
 
       expect(Array.isArray(thoughts)).toBe(true);
     });
 
     it('should match survival keyword patterns', () => {
-      const context = createContext({ userMessage: "I survived cancer" });
+      const context = createContext({ userMessage: 'I survived cancer' });
       const thoughts = processForThoughts(sessionId, context);
 
       expect(Array.isArray(thoughts)).toBe(true);
@@ -418,10 +397,10 @@ describe('InternalMonologue', () => {
     it('should detect pressure language', () => {
       const thoughts = processForThoughts(
         sessionId,
-        createContext({ userMessage: "I should work harder, I have to succeed" })
+        createContext({ userMessage: 'I should work harder, I have to succeed' })
       );
 
-      const concern = thoughts.find(t => t.topic === 'pressure_language');
+      const concern = thoughts.find((t) => t.topic === 'pressure_language');
       expect(concern).toBeDefined();
     });
 
@@ -431,17 +410,14 @@ describe('InternalMonologue', () => {
         createContext({ userMessage: "It's impossible, there's no point in trying" })
       );
 
-      const concern = thoughts.find(t => t.topic === 'hopelessness');
+      const concern = thoughts.find((t) => t.topic === 'hopelessness');
       expect(concern).toBeDefined();
     });
   });
 
   describe('clearMonologue', () => {
     it('should clear session monologue', () => {
-      processForThoughts(
-        sessionId,
-        createContext({ userMessage: "I always fail" })
-      );
+      processForThoughts(sessionId, createContext({ userMessage: 'I always fail' }));
 
       clearMonologue(sessionId);
 
@@ -452,8 +428,8 @@ describe('InternalMonologue', () => {
 
   describe('clearAllMonologues', () => {
     it('should clear all session monologues', () => {
-      processForThoughts('session-1', createContext({ userMessage: "I always fail" }));
-      processForThoughts('session-2', createContext({ userMessage: "I never succeed" }));
+      processForThoughts('session-1', createContext({ userMessage: 'I always fail' }));
+      processForThoughts('session-2', createContext({ userMessage: 'I never succeed' }));
 
       clearAllMonologues();
 

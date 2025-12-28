@@ -169,10 +169,7 @@ function extractAdviceSentence(text: string, matchIndex: number): string {
 
   // Find end of sentence
   const nextSentenceEnd = afterMatch.search(/[.!?\n]/);
-  const sentenceEnd =
-    nextSentenceEnd >= 0
-      ? matchIndex + nextSentenceEnd + 1
-      : text.length;
+  const sentenceEnd = nextSentenceEnd >= 0 ? matchIndex + nextSentenceEnd + 1 : text.length;
 
   return text.slice(sentenceStart, sentenceEnd).trim();
 }
@@ -255,4 +252,3 @@ export async function trackAdviceInResponse(
 // ============================================================================
 
 export type { AdviceDetectionResult };
-

@@ -441,7 +441,7 @@ export const callOnBehalfTool: SemanticToolDefinition = {
       'can you call and',
       'would you call and',
       'please call and',
-      "I need you to call",
+      'I need you to call',
     ],
     patterns: [
       // "Call X to Y" - objective-driven calls
@@ -547,10 +547,7 @@ export const callOnBehalfTool: SemanticToolDefinition = {
       type: 'string',
       description: 'What the agent should accomplish',
       required: true,
-      extractionPatterns: [
-        /(?:to|and)\s+(.+?)$/i,
-        /(?:about|regarding|for)\s+(.+?)$/i,
-      ],
+      extractionPatterns: [/(?:to|and)\s+(.+?)$/i, /(?:about|regarding|for)\s+(.+?)$/i],
     },
     {
       name: 'callType',

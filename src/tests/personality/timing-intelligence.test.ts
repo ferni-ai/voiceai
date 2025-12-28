@@ -102,9 +102,7 @@ describe('Timing Intelligence', () => {
     });
 
     it('should suggest validation for venting', () => {
-      const result = analyzeMessageTiming(
-        "Ugh, they ALWAYS do this! So annoyed!"
-      );
+      const result = analyzeMessageTiming('Ugh, they ALWAYS do this! So annoyed!');
 
       expect(result.suggestedResponse).toBe('validation');
     });
@@ -130,9 +128,7 @@ describe('Timing Intelligence', () => {
 
   describe('Timing Appropriateness', () => {
     it('should mark personal moments as inappropriate during venting', () => {
-      const result = analyzeMessageTiming(
-        "Can't believe this happened again! So frustrated!!"
-      );
+      const result = analyzeMessageTiming("Can't believe this happened again! So frustrated!!");
 
       expect(result.personalMomentAppropriate).toBe(false);
     });
@@ -156,17 +152,13 @@ describe('Timing Intelligence', () => {
     });
 
     it('should mark callbacks as inappropriate during heavy moments', () => {
-      const result = analyzeMessageTiming(
-        "I've never told anyone this, but I'm really scared..."
-      );
+      const result = analyzeMessageTiming("I've never told anyone this, but I'm really scared...");
 
       expect(result.callbackAppropriate).toBe(false);
     });
 
     it('should mark pattern insights as appropriate during seeking perspective', () => {
-      const result = analyzeMessageTiming(
-        'What do you think about how I handle stress?'
-      );
+      const result = analyzeMessageTiming('What do you think about how I handle stress?');
 
       expect(result.patternInsightAppropriate).toBe(true);
     });
@@ -198,10 +190,7 @@ describe('Timing Intelligence', () => {
     });
 
     it('should return true for high relevance during appropriate timing', () => {
-      const result = shouldSharePersonalMoment(
-        'What do you think about that?',
-        0.75
-      );
+      const result = shouldSharePersonalMoment('What do you think about that?', 0.75);
 
       expect(result.should).toBe(true);
     });
@@ -288,4 +277,3 @@ describe('Timing Intelligence', () => {
     });
   });
 });
-

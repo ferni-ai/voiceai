@@ -284,7 +284,11 @@ describe('FerniAwareness', () => {
       const trustedProfile: Partial<UserProfile> = { relationshipStage: 'trusted_advisor' };
       const newProfile: Partial<UserProfile> = { relationshipStage: 'new_acquaintance' };
 
-      const trustedContext = await buildFerniAwareness(undefined, trustedProfile as UserProfile, {});
+      const trustedContext = await buildFerniAwareness(
+        undefined,
+        trustedProfile as UserProfile,
+        {}
+      );
       const newContext = await buildFerniAwareness(undefined, newProfile as UserProfile, {});
 
       expect(trustedContext.user.relationship.stage).toBe('trusted');

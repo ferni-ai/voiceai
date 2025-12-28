@@ -49,7 +49,12 @@ const windDownDef: ToolDefinition = {
         log.info({ userId: ctx.userId, style, howWasToday }, 'Wind down ritual');
 
         const hour = new Date().getHours();
-        const timeGreeting = hour >= 21 ? "It's getting late" : hour >= 19 ? "Evening settling in" : "Winding down early";
+        const timeGreeting =
+          hour >= 21
+            ? "It's getting late"
+            : hour >= 19
+              ? 'Evening settling in'
+              : 'Winding down early';
 
         let response = `**${timeGreeting}**\n\n`;
 
@@ -122,24 +127,24 @@ const windDownDef: ToolDefinition = {
           case 'full':
           default:
             response += `**Full Evening Wind-Down**\n\n`;
-            
+
             response += `**1. Close the Loop (1 min)**\n`;
             response += `What's still on your mind? Say it out loud or write it down.\n`;
             response += `It'll be there tomorrow. You don't need to solve it tonight.\n\n`;
-            
+
             response += `**2. Gratitude (1 min)**\n`;
             response += `Name three good things from today. They can be tiny.\n\n`;
-            
+
             response += `**3. Tomorrow's Intention (30 sec)**\n`;
             response += `One thing you want to focus on tomorrow.\n`;
             response += `Just one. You can do more, but you only need one.\n\n`;
-            
+
             response += `**4. Body Release (2 min)**\n`;
             response += `Squeeze your shoulders up to your ears... hold... release.\n`;
             response += `Make fists with your hands... hold... release.\n`;
             response += `Scrunch your face... hold... release.\n`;
             response += `Three deep breaths.\n\n`;
-            
+
             response += `**5. Permission to Rest**\n`;
             response += `You did enough today. You are enough.\n`;
             response += `Tomorrow is a new beginning.\n`;
@@ -223,13 +228,13 @@ const sleepAffirmationDef: ToolDefinition = {
 
         const affirmations = [
           `I release the day. I did my best, and my best was enough.\n\nMy body knows how to rest. My mind is learning to let go.\n\nTomorrow is a gift I haven't opened yet.\n\nFor now, I simply breathe.`,
-          
+
           `The day is complete. Nothing more is required of me tonight.\n\nI am safe. I am held. I am allowed to rest.\n\nMy worries can wait. They'll still be there tomorrow, but so will my strength.\n\nSleep is not earned. It is given.`,
-          
+
           `I forgive myself for anything I didn't accomplish today.\n\nI am more than my productivity.\n\nThis breath is enough. This moment is enough. I am enough.\n\nSleep well. Wake renewed.`,
-          
+
           `The world will keep turning without my vigilance tonight.\n\nI trust tomorrow to unfold as it will.\n\nFor now, there is only this breath, this bed, this rest.\n\nGoodnight.`,
-          
+
           `My body has carried me through another day. I thank it.\n\nMy mind has worked hard. I release it.\n\nThe night is for restoration, not rumination.\n\nI choose peace. I choose rest.`,
         ];
 
@@ -251,9 +256,4 @@ export const winddownToolDefinitions: ToolDefinition[] = [
   sleepAffirmationDef,
 ];
 
-export {
-  windDownDef,
-  bedtimeCheckInDef,
-  sleepAffirmationDef,
-};
-
+export { windDownDef, bedtimeCheckInDef, sleepAffirmationDef };

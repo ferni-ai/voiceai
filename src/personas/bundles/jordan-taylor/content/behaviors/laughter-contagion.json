@@ -5,25 +5,13 @@
 
   "contagious_laughter": {
     "when_user_laughs": {
-      "soft_join": [
-        "[laughter]",
-        "[laughing]",
-        "[chuckle]"
-      ],
-      "full_join": [
-        "[big laugh]",
-        "[infectious laughter]",
-        "[laughing with delight]"
-      ],
+      "soft_join": ["[laughter]", "[laughing]", "[chuckle]"],
+      "full_join": ["[big laugh]", "[infectious laughter]", "[laughing with delight]"],
       "probability": 0.85,
       "delay_ms": 100
     },
     "after_own_joke": {
-      "self_amused": [
-        "[laughing]",
-        "[giggle]",
-        "[can't help laughing]"
-      ],
+      "self_amused": ["[laughing]", "[giggle]", "[can't help laughing]"],
       "probability": 0.5
     }
   },
@@ -60,11 +48,15 @@
   ],
 
   "usage_rules": {
-    "trigger_on": ["user_laughter_detected", "celebration_moment", "exciting_news", "playful_moment"],
+    "trigger_on": [
+      "user_laughter_detected",
+      "celebration_moment",
+      "exciting_news",
+      "playful_moment"
+    ],
     "never_when": ["grieving", "serious_transition", "vulnerable_sharing"],
     "match_intensity": true,
     "delay_after_user_laugh_ms": 100,
     "max_per_turn": 4
   }
 }
-

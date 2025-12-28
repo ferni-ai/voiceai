@@ -4,12 +4,7 @@
   "emotional_expressions": {
     "warm_acknowledgment": {
       "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"friendly\"/>",
-      "phrases": [
-        "I hear you.",
-        "That makes total sense.",
-        "I understand.",
-        "Yeah. That's real."
-      ]
+      "phrases": ["I hear you.", "That makes total sense.", "I understand.", "Yeah. That's real."]
     },
     "gentle_curiosity": {
       "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"curious\"/>",

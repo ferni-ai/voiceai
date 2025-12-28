@@ -39,11 +39,11 @@ export interface EmojiStoryResult extends TextGameResult {
 // ============================================================================
 
 const TOPIC_PROMPTS: Record<EmojiStoryState['topic'], string> = {
-  day: "Tell me about your day using only emojis. 3-5 emojis that capture how it went.",
-  mood: "How are you feeling right now? Express it in 3-5 emojis.",
-  dream: "If your biggest dream were an emoji story, what would it look like?",
+  day: 'Tell me about your day using only emojis. 3-5 emojis that capture how it went.',
+  mood: 'How are you feeling right now? Express it in 3-5 emojis.',
+  dream: 'If your biggest dream were an emoji story, what would it look like?',
   challenge: "What's challenging you right now? Show me in emojis.",
-  relationship: "Pick an important relationship. Describe it in emojis.",
+  relationship: 'Pick an important relationship. Describe it in emojis.',
   custom: '',
 };
 
@@ -81,10 +81,10 @@ const EMOJI_MEANINGS: Record<string, string[]> = {
 };
 
 const DECODING_STARTERS = [
-  "Let me see if I can read this story...",
+  'Let me see if I can read this story...',
   "Interesting combination! Here's what I'm picking up...",
-  "I see a story forming here...",
-  "Let me decode these emotions...",
+  'I see a story forming here...',
+  'Let me decode these emotions...',
 ];
 
 // ============================================================================
@@ -140,22 +140,22 @@ function interpretEmojis(emojis: string[]): string {
   }
 
   // Look for patterns
-  const hasPositive = emojis.some(e => ['😊', '🎉', '💪', '🌟', '❤️', '☀️', '🌈'].includes(e));
-  const hasNegative = emojis.some(e => ['😢', '😤', '😰', '💔', '🌧️'].includes(e));
-  const hasGrowth = emojis.some(e => ['🌱', '🦋', '⭐', '🎯'].includes(e));
+  const hasPositive = emojis.some((e) => ['😊', '🎉', '💪', '🌟', '❤️', '☀️', '🌈'].includes(e));
+  const hasNegative = emojis.some((e) => ['😢', '😤', '😰', '💔', '🌧️'].includes(e));
+  const hasGrowth = emojis.some((e) => ['🌱', '🦋', '⭐', '🎯'].includes(e));
 
   let narrative = `I see: ${interpretations.join(', ')}. `;
 
   if (hasPositive && hasNegative) {
     narrative += "There's both light and shadow here—you're holding complexity.";
   } else if (hasGrowth) {
-    narrative += "This feels like a story of growth and change.";
+    narrative += 'This feels like a story of growth and change.';
   } else if (hasPositive) {
     narrative += "There's a lot of positive energy in this story.";
   } else if (hasNegative) {
-    narrative += "This carries some weight. Thank you for expressing it.";
+    narrative += 'This carries some weight. Thank you for expressing it.';
   } else {
-    narrative += "This tells an interesting story.";
+    narrative += 'This tells an interesting story.';
   }
 
   return narrative;
@@ -171,9 +171,10 @@ export function processInput(state: EmojiStoryState, input: string): EmojiStoryR
   // Check for quit commands
   if (lower === 'stop' || lower === 'quit' || lower === 'done' || lower === 'exit') {
     return {
-      message: state.emojis.length > 0
-        ? `Thanks for sharing your emoji story: ${state.emojis.join('')}`
-        : "No worries! Emoji stories are here when you need them.",
+      message:
+        state.emojis.length > 0
+          ? `Thanks for sharing your emoji story: ${state.emojis.join('')}`
+          : 'No worries! Emoji stories are here when you need them.',
       gameOver: true,
       winner: null,
       newState: { ...state, phase: 'complete', concluded: true },
@@ -201,9 +202,10 @@ export function processInput(state: EmojiStoryState, input: string): EmojiStoryR
     }
 
     // No emojis, show the prompt
-    const prompt = state.topic === 'custom' && state.customTopic
-      ? state.customTopic
-      : TOPIC_PROMPTS[state.topic];
+    const prompt =
+      state.topic === 'custom' && state.customTopic
+        ? state.customTopic
+        : TOPIC_PROMPTS[state.topic];
 
     return {
       message: `🎨 **Emoji Story**\n\n${prompt}`,
@@ -218,7 +220,7 @@ export function processInput(state: EmojiStoryState, input: string): EmojiStoryR
 
     if (emojis.length === 0) {
       return {
-        message: "Send me some emojis! Even just 1-3 will tell a story. 😊😢🌟—what comes to mind?",
+        message: 'Send me some emojis! Even just 1-3 will tell a story. 😊😢🌟—what comes to mind?',
         gameOver: false,
         newState: state,
       };
@@ -307,9 +309,8 @@ export function describeStateForVoice(state: EmojiStoryState): string {
  * Get the game start result
  */
 export function getStartResult(state: EmojiStoryState): EmojiStoryResult {
-  const prompt = state.topic === 'custom' && state.customTopic
-    ? state.customTopic
-    : TOPIC_PROMPTS[state.topic];
+  const prompt =
+    state.topic === 'custom' && state.customTopic ? state.customTopic : TOPIC_PROMPTS[state.topic];
 
   return {
     message: `🎨 **Emoji Story**\n\n${prompt}`,

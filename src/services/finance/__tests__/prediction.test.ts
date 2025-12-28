@@ -274,7 +274,13 @@ describe('FinancePrediction', () => {
 
   describe('Bill frequency calculations', () => {
     it('should support all frequency types', () => {
-      const frequencies: Bill['frequency'][] = ['weekly', 'biweekly', 'monthly', 'quarterly', 'annual'];
+      const frequencies: Bill['frequency'][] = [
+        'weekly',
+        'biweekly',
+        'monthly',
+        'quarterly',
+        'annual',
+      ];
 
       const bills: Bill[] = frequencies.map((freq, i) => ({
         name: `Bill ${i}`,
@@ -357,7 +363,13 @@ describe('FinancePrediction', () => {
   describe('updateGoalProgress', () => {
     it('should update goal current amount', () => {
       // Create goal first to populate state
-      const goal = createSavingsGoal('update-test-user', 'Test Goal', 1000, new Date('2025-12-31'), 100);
+      const goal = createSavingsGoal(
+        'update-test-user',
+        'Test Goal',
+        1000,
+        new Date('2025-12-31'),
+        100
+      );
 
       // updateGoalProgress returns GoalProgress which has .goal.currentAmount
       const progress = updateGoalProgress('update-test-user', goal.id, 250);
@@ -371,7 +383,13 @@ describe('FinancePrediction', () => {
 
     it('should allow amounts above target (over-saving)', () => {
       // Note: The implementation doesn't cap currentAmount at targetAmount
-      const goal = createSavingsGoal('over-save-user', 'Test Goal', 1000, new Date('2025-12-31'), 100);
+      const goal = createSavingsGoal(
+        'over-save-user',
+        'Test Goal',
+        1000,
+        new Date('2025-12-31'),
+        100
+      );
 
       const progress = updateGoalProgress('over-save-user', goal.id, 1500);
 
@@ -508,8 +526,18 @@ describe('FinancePrediction', () => {
 
     it('should identify new subscriptions', () => {
       const subscriptions = [
-        { name: 'Netflix', amount: 15.99, firstSeen: new Date('2020-01-01'), status: 'active' as const },
-        { name: 'New App', amount: 9.99, firstSeen: new Date('2024-12-01'), status: 'new' as const },
+        {
+          name: 'Netflix',
+          amount: 15.99,
+          firstSeen: new Date('2020-01-01'),
+          status: 'active' as const,
+        },
+        {
+          name: 'New App',
+          amount: 9.99,
+          firstSeen: new Date('2024-12-01'),
+          status: 'new' as const,
+        },
       ];
 
       const newSubs = subscriptions.filter((s) => s.status === 'new');
@@ -519,8 +547,19 @@ describe('FinancePrediction', () => {
 
     it('should calculate potential savings', () => {
       const subscriptions = [
-        { name: 'Unused Gym', amount: 50, firstSeen: new Date('2023-01-01'), status: 'active' as const, unused: true },
-        { name: 'Netflix', amount: 15.99, firstSeen: new Date('2020-01-01'), status: 'active' as const },
+        {
+          name: 'Unused Gym',
+          amount: 50,
+          firstSeen: new Date('2023-01-01'),
+          status: 'active' as const,
+          unused: true,
+        },
+        {
+          name: 'Netflix',
+          amount: 15.99,
+          firstSeen: new Date('2020-01-01'),
+          status: 'active' as const,
+        },
       ];
 
       const potentialSavings = subscriptions
@@ -540,9 +579,7 @@ describe('FinancePrediction', () => {
       ];
 
       const severityOrder = { alert: 3, warning: 2, info: 1 };
-      const sorted = warnings.sort(
-        (a, b) => severityOrder[b.severity] - severityOrder[a.severity]
-      );
+      const sorted = warnings.sort((a, b) => severityOrder[b.severity] - severityOrder[a.severity]);
 
       expect(sorted[0].severity).toBe('alert');
       expect(sorted[1].severity).toBe('warning');

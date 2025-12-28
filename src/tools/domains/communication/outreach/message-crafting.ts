@@ -45,56 +45,56 @@ const FALLBACK_TEMPLATES: Record<OutreachIntent, string[]> = {
   check_in: [
     "Hey {name}, just thinking about you - how's everything going?",
     "Hi {name}! Hope you're doing well. Would love to catch up.",
-    "Hey {name}, been a while! How are you?",
+    'Hey {name}, been a while! How are you?',
   ],
   wish_well: [
     "Hey {name}, sending good vibes your way! Hope today's amazing.",
-    "Hi {name}! Wishing you a wonderful {occasion}!",
-    "{name} - hope you have an incredible day!",
+    'Hi {name}! Wishing you a wonderful {occasion}!',
+    '{name} - hope you have an incredible day!',
   ],
   share_news: [
-    "Hey {name}, wanted to share something with you...",
+    'Hey {name}, wanted to share something with you...',
     "Hi {name}! Got some news I thought you'd want to hear.",
     "{name} - thought you'd like to know...",
   ],
   ask_question: [
-    "Hey {name}, quick question for you when you have a sec.",
-    "Hi {name}! Got something I wanted to ask you about.",
-    "{name} - need your input on something.",
+    'Hey {name}, quick question for you when you have a sec.',
+    'Hi {name}! Got something I wanted to ask you about.',
+    '{name} - need your input on something.',
   ],
   follow_up: [
-    "Hey {name}, following up on our conversation.",
-    "Hi {name}! Just checking back in.",
-    "{name} - wanted to circle back.",
+    'Hey {name}, following up on our conversation.',
+    'Hi {name}! Just checking back in.',
+    '{name} - wanted to circle back.',
   ],
   important: [
-    "{name}, something important came up I need to tell you.",
-    "Hey {name}, please call me when you get this.",
-    "{name} - need to talk to you about something important.",
+    '{name}, something important came up I need to tell you.',
+    'Hey {name}, please call me when you get this.',
+    '{name} - need to talk to you about something important.',
   ],
   just_because: [
-    "Hey {name}! Just wanted to say hi.",
-    "Thinking of you, {name}!",
-    "Hi {name}! No reason, just wanted to reach out.",
+    'Hey {name}! Just wanted to say hi.',
+    'Thinking of you, {name}!',
+    'Hi {name}! No reason, just wanted to reach out.',
   ],
   schedule: [
-    "Hey {name}, want to find a time to meet up?",
+    'Hey {name}, want to find a time to meet up?',
     "Hi {name}! Let's get something on the calendar.",
-    "{name} - when works for you?",
+    '{name} - when works for you?',
   ],
   thank_you: [
-    "Hey {name}, thank you so much!",
-    "{name} - really appreciate you!",
-    "Thank you, {name}! That meant a lot.",
+    'Hey {name}, thank you so much!',
+    '{name} - really appreciate you!',
+    'Thank you, {name}! That meant a lot.',
   ],
   apology: [
-    "Hey {name}, I wanted to apologize.",
+    'Hey {name}, I wanted to apologize.',
     "{name}, I'm sorry. Can we talk?",
-    "Hey {name}, I owe you an apology.",
+    'Hey {name}, I owe you an apology.',
   ],
   reminder: [
-    "Hey {name}, quick reminder about {topic}.",
-    "Hi {name}! Just a heads up about {topic}.",
+    'Hey {name}, quick reminder about {topic}.',
+    'Hi {name}! Just a heads up about {topic}.',
     "{name} - don't forget about {topic}!",
   ],
 };
@@ -130,9 +130,9 @@ export async function craftPersonalizedMessage(ctx: MessageCraftingContext): Pro
 
   const timeSince =
     daysSinceLastContact === 0
-      ? "talked today"
+      ? 'talked today'
       : daysSinceLastContact === 1
-        ? "talked yesterday"
+        ? 'talked yesterday'
         : daysSinceLastContact < 7
           ? `talked ${daysSinceLastContact} days ago`
           : daysSinceLastContact < 30
@@ -196,7 +196,10 @@ Remember: ${channel === 'text' ? 'Keep it to 1-2 sentences like a real text.' : 
     });
 
     if (message && message.length > 5 && message.length < 500) {
-      log.debug({ contactName, intent, channel, messageLength: message.length }, 'Crafted personalized message');
+      log.debug(
+        { contactName, intent, channel, messageLength: message.length },
+        'Crafted personalized message'
+      );
       return message;
     }
 
@@ -271,9 +274,10 @@ export async function craftFollowUpMessage(
  */
 export async function craftThinkingOfYouMessage(ctx: MessageCraftingContext): Promise<string> {
   // Pick a specific topic if we have any to make it feel real
-  const specificReason = ctx.recentTopics.length > 0
-    ? `Saw something that reminded me of ${ctx.recentTopics[0]}`
-    : 'Just thinking of you';
+  const specificReason =
+    ctx.recentTopics.length > 0
+      ? `Saw something that reminded me of ${ctx.recentTopics[0]}`
+      : 'Just thinking of you';
 
   return craftPersonalizedMessage({
     ...ctx,
@@ -283,4 +287,3 @@ export async function craftThinkingOfYouMessage(ctx: MessageCraftingContext): Pr
 }
 
 export default craftPersonalizedMessage;
-

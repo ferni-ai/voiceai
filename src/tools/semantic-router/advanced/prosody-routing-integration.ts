@@ -16,15 +16,9 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type {
-  AcousticFeatures} from './audio-prosody-extractor.js';
-import {
-  AudioProsodyExtractor,
-  getAudioProsodyExtractor,
-} from './audio-prosody-extractor.js';
-import type {
-  VoiceProsodySignals,
-  ToolBoostDecision} from './better-than-human.js';
+import type { AcousticFeatures } from './audio-prosody-extractor.js';
+import { AudioProsodyExtractor, getAudioProsodyExtractor } from './audio-prosody-extractor.js';
+import type { VoiceProsodySignals, ToolBoostDecision } from './better-than-human.js';
 import {
   analyzeVoiceProsodyForToolBoost,
   performBetterThanHumanAnalysis,
@@ -248,15 +242,10 @@ export class ProsodyRoutingEngine {
 
     // Check for emergency
     const emergencyDetected =
-      state.emergencySignals >= 3 ||
-      prosodySignals.stressLevel > this.config.emergencyThreshold;
+      state.emergencySignals >= 3 || prosodySignals.stressLevel > this.config.emergencyThreshold;
 
     // Apply adjustments
-    const adjustedMatches = this.applyBoosts(
-      matches,
-      boostDecision,
-      emergencyDetected
-    );
+    const adjustedMatches = this.applyBoosts(matches, boostDecision, emergencyDetected);
 
     // Sort by adjusted confidence
     adjustedMatches.sort((a, b) => b.confidence - a.confidence);
@@ -276,7 +265,10 @@ export class ProsodyRoutingEngine {
   /**
    * Get full "Better Than Human" analysis for a user
    */
-  getFullAnalysis(userId: string, sessionId: string): ReturnType<typeof performBetterThanHumanAnalysis> | null {
+  getFullAnalysis(
+    userId: string,
+    sessionId: string
+  ): ReturnType<typeof performBetterThanHumanAnalysis> | null {
     const state = this.userStates.get(this.getStateKey(userId, sessionId));
     if (!state) {
       return null;
@@ -285,17 +277,16 @@ export class ProsodyRoutingEngine {
     const prosodySignals = state.extractor.getWindowedProsodySignals();
     const wpm = prosodySignals?.wordsPerMinute;
 
-    return performBetterThanHumanAnalysis(
-      userId,
-      prosodySignals || undefined,
-      wpm
-    );
+    return performBetterThanHumanAnalysis(userId, prosodySignals || undefined, wpm);
   }
 
   /**
    * Get prosody stats for debugging/monitoring
    */
-  getStats(userId: string, sessionId: string): {
+  getStats(
+    userId: string,
+    sessionId: string
+  ): {
     sampleCount: number;
     hasBaseline: boolean;
     emergencySignals: number;
@@ -341,10 +332,7 @@ export class ProsodyRoutingEngine {
     return `${userId}:${sessionId}`;
   }
 
-  private getOrCreateUserState(
-    userId: string,
-    sessionId: string
-  ): UserProsodyState {
+  private getOrCreateUserState(userId: string, sessionId: string): UserProsodyState {
     const key = this.getStateKey(userId, sessionId);
     let state = this.userStates.get(key);
 
@@ -382,11 +370,7 @@ export class ProsodyRoutingEngine {
     }
 
     // Very fast speech + high stress = panic
-    if (
-      signals.wordsPerMinute &&
-      signals.wordsPerMinute > 200 &&
-      signals.stressLevel > 0.7
-    ) {
+    if (signals.wordsPerMinute && signals.wordsPerMinute > 200 && signals.stressLevel > 0.7) {
       return true;
     }
 
@@ -456,10 +440,7 @@ export class ProsodyRoutingEngine {
 
       // Apply boost
       if (boostedSet.has(match.toolId)) {
-        const boost = Math.min(
-          this.config.maxBoostMultiplier,
-          1 + boostDecision.confidence * 0.5
-        );
+        const boost = Math.min(this.config.maxBoostMultiplier, 1 + boostDecision.confidence * 0.5);
         adjustedConfidence = Math.min(1, adjustedConfidence * boost);
       }
 

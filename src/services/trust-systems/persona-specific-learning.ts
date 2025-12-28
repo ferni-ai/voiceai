@@ -24,7 +24,13 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
+export type PersonaId =
+  | 'ferni'
+  | 'peter-john'
+  | 'alex-chen'
+  | 'maya-santos'
+  | 'jordan-taylor'
+  | 'nayan-patel';
 
 export interface PersonaMemory {
   personaId: PersonaId;

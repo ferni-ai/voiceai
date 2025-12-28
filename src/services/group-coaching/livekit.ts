@@ -242,10 +242,7 @@ export async function generateParticipantToken(
 /**
  * Generate token for Ferni agent to join the group session
  */
-export async function generateAgentToken(
-  session: GroupSession,
-  ttl = '4h'
-): Promise<string> {
+export async function generateAgentToken(session: GroupSession, ttl = '4h'): Promise<string> {
   const roomName = getRoomName(session.id);
 
   const metadata = {

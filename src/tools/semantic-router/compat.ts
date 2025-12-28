@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { SemanticRouter} from './router.js';
+import type { SemanticRouter } from './router.js';
 import { createSemanticRouter, routeUserInput } from './router.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { getAvailableToolDefinitions } from './tool-definitions/index.js';
@@ -149,4 +149,3 @@ export const semanticRouter = {
 
 export { SemanticRouter } from './router.js';
 export type { SemanticRouterConfig, SemanticRouterResult, ToolMatch } from './types.js';
-

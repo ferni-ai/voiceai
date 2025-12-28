@@ -97,4 +97,3 @@ export function detectHeavyContentType(text: string): HeavyContentType | null {
 
   return null;
 }
-

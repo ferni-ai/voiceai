@@ -76,9 +76,19 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
       'insideJokes',
     ],
     priorityOrder: [
-      'crisis', 'protectiveSilence', 'recoveryTracking', 'voiceBiomarkers',
-      'silence', 'contradiction', 'socialBattery', 'moodCalendar',
-      'commitments', 'capacity', 'predictions', 'milestones', 'insideJokes',
+      'crisis',
+      'protectiveSilence',
+      'recoveryTracking',
+      'voiceBiomarkers',
+      'silence',
+      'contradiction',
+      'socialBattery',
+      'moodCalendar',
+      'commitments',
+      'capacity',
+      'predictions',
+      'milestones',
+      'insideJokes',
     ],
     maxTokens: 1200, // Increased for V2 capabilities
   },
@@ -86,11 +96,24 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // Peter focuses on patterns, predictions, and values (analytical)
     // + Pattern Mirror for research patterns, Mood Calendar for data patterns
     capabilities: [
-      'predictions', 'values', 'commitments', 'capacity', 'seasonal', 'patterns',
+      'predictions',
+      'values',
+      'commitments',
+      'capacity',
+      'seasonal',
+      'patterns',
       // V2: Mood patterns, energy patterns for analytical insights
-      'moodCalendar', 'energyWave',
+      'moodCalendar',
+      'energyWave',
     ],
-    priorityOrder: ['predictions', 'patterns', 'moodCalendar', 'energyWave', 'values', 'commitments'],
+    priorityOrder: [
+      'predictions',
+      'patterns',
+      'moodCalendar',
+      'energyWave',
+      'values',
+      'commitments',
+    ],
     maxTokens: 700,
   },
   maya: {
@@ -98,13 +121,29 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // + Timing for habit timing, Patterns for habit patterns
     // + V2: Social battery (introvert/extrovert), mood calendar, recovery tracking
     capabilities: [
-      'commitments', 'predictions', 'capacity', 'seasonal', 'values', 'timing', 'patterns',
+      'commitments',
+      'predictions',
+      'capacity',
+      'seasonal',
+      'values',
+      'timing',
+      'patterns',
       // V2: Social battery for energy management, mood for habit correlation
-      'socialBattery', 'moodCalendar', 'recoveryTracking', 'energyWave',
+      'socialBattery',
+      'moodCalendar',
+      'recoveryTracking',
+      'energyWave',
     ],
     priorityOrder: [
-      'socialBattery', 'recoveryTracking', 'commitments', 'timing',
-      'capacity', 'energyWave', 'moodCalendar', 'patterns', 'predictions',
+      'socialBattery',
+      'recoveryTracking',
+      'commitments',
+      'timing',
+      'capacity',
+      'energyWave',
+      'moodCalendar',
+      'patterns',
+      'predictions',
     ],
     maxTokens: 800,
   },
@@ -113,13 +152,27 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // + Future Self for goal-setting, Timing for milestone planning
     // + V2: Calendar prep for event planning, energy wave for optimal scheduling
     capabilities: [
-      'dreams', 'milestones', 'narrative', 'seasonal', 'commitments', 'futureSelf', 'timing',
+      'dreams',
+      'milestones',
+      'narrative',
+      'seasonal',
+      'commitments',
+      'futureSelf',
+      'timing',
       // V2: Calendar prep for proactive coaching, energy wave for timing
-      'calendarPrep', 'energyWave', 'recoveryTracking',
+      'calendarPrep',
+      'energyWave',
+      'recoveryTracking',
     ],
     priorityOrder: [
-      'calendarPrep', 'dreams', 'futureSelf', 'milestones',
-      'recoveryTracking', 'timing', 'energyWave', 'seasonal',
+      'calendarPrep',
+      'dreams',
+      'futureSelf',
+      'milestones',
+      'recoveryTracking',
+      'timing',
+      'energyWave',
+      'seasonal',
     ],
     maxTokens: 800,
   },
@@ -128,13 +181,25 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // + Timing for communication timing
     // + V2: Conflict resolution for relationship management, social battery
     capabilities: [
-      'network', 'commitments', 'capacity', 'seasonal', 'timing',
+      'network',
+      'commitments',
+      'capacity',
+      'seasonal',
+      'timing',
       // V2: Conflict resolution, social battery, protective silence
-      'conflictResolution', 'socialBattery', 'protectiveSilence', 'energyWave',
+      'conflictResolution',
+      'socialBattery',
+      'protectiveSilence',
+      'energyWave',
     ],
     priorityOrder: [
-      'conflictResolution', 'protectiveSilence', 'network',
-      'timing', 'socialBattery', 'commitments', 'capacity',
+      'conflictResolution',
+      'protectiveSilence',
+      'network',
+      'timing',
+      'socialBattery',
+      'commitments',
+      'capacity',
     ],
     maxTokens: 700,
   },
@@ -143,13 +208,31 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
     // + Silence for contemplative space, Contradiction for existential tensions, Future Self for legacy
     // + V2: Emotional vocabulary (deeper EQ), protective silence (boundaries), inside jokes (connection)
     capabilities: [
-      'narrative', 'values', 'dreams', 'seasonal', 'milestones', 'silence', 'contradiction', 'futureSelf',
+      'narrative',
+      'values',
+      'dreams',
+      'seasonal',
+      'milestones',
+      'silence',
+      'contradiction',
+      'futureSelf',
       // V2: Emotional vocabulary for wisdom, protective silence for boundaries, inside jokes for depth
-      'emotionalVocabulary', 'protectiveSilence', 'insideJokes', 'recoveryTracking',
+      'emotionalVocabulary',
+      'protectiveSilence',
+      'insideJokes',
+      'recoveryTracking',
     ],
     priorityOrder: [
-      'protectiveSilence', 'silence', 'contradiction', 'emotionalVocabulary',
-      'recoveryTracking', 'narrative', 'futureSelf', 'values', 'insideJokes', 'dreams',
+      'protectiveSilence',
+      'silence',
+      'contradiction',
+      'emotionalVocabulary',
+      'recoveryTracking',
+      'narrative',
+      'futureSelf',
+      'values',
+      'insideJokes',
+      'dreams',
     ],
     maxTokens: 900,
   },
@@ -194,7 +277,9 @@ const CACHE_TTL = {
 
 // Map capabilities to their cache tier
 // Note: New BTH capabilities are optional (string | undefined) so we use Partial
-const CAPABILITY_TIERS: Partial<Record<keyof SuperhumanCapabilities, keyof Omit<TieredCache, 'full'>>> = {
+const CAPABILITY_TIERS: Partial<
+  Record<keyof SuperhumanCapabilities, keyof Omit<TieredCache, 'full'>>
+> = {
   seasonal: 'stable',
   narrative: 'stable',
   values: 'stable',
@@ -326,7 +411,8 @@ export async function getSuperhuman(
   const startTime = Date.now();
 
   // Check cache first (skip if we have current context - need fresh semantic intelligence)
-  const hasCurrentContext = options?.currentTranscript || options?.currentTopics || options?.currentEmotion;
+  const hasCurrentContext =
+    options?.currentTranscript || options?.currentTopics || options?.currentEmotion;
   if (!options?.forceRefresh && !hasCurrentContext) {
     const cached = getCachedContext(userId);
     if (cached) {

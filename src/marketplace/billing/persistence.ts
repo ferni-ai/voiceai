@@ -245,10 +245,12 @@ class FirestoreBillingStore implements BillingStore {
       .get();
 
     if (!snapshot.empty) {
-      await snapshot.docs[0].ref.update(cleanForFirestore({
-        status,
-        _updatedAt: new Date(),
-      }));
+      await snapshot.docs[0].ref.update(
+        cleanForFirestore({
+          status,
+          _updatedAt: new Date(),
+        })
+      );
     }
   }
 }

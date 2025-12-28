@@ -377,7 +377,9 @@ describe('Audio Streaming', () => {
 
       mockPipeline.say('Hello, I am Ferni!');
 
-      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 50);
+      });
 
       expect(utterancesSent.length).toBeGreaterThanOrEqual(1);
     });

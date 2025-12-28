@@ -14,7 +14,11 @@ export const JAPANESE_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bramen\b/gi, replacement: 'RAH-men', description: 'Japanese noodle soup' },
   { pattern: /\bmatcha\b/gi, replacement: 'MAH-chah', description: 'Green tea powder' },
   { pattern: /\bwasabi\b/gi, replacement: 'wah-SAH-bee', description: 'Japanese horseradish' },
-  { pattern: /\bsake\b(?=\s|$|[.,!?])/gi, replacement: 'SAH-kay', description: 'Japanese rice wine' },
+  {
+    pattern: /\bsake\b(?=\s|$|[.,!?])/gi,
+    replacement: 'SAH-kay',
+    description: 'Japanese rice wine',
+  },
   { pattern: /\bsushi\b/gi, replacement: 'SOO-shee', description: 'Japanese food' },
   { pattern: /\bsashimi\b/gi, replacement: 'sah-SHEE-mee', description: 'Raw fish slices' },
   { pattern: /\btempura\b/gi, replacement: 'tem-POO-rah', description: 'Fried food' },
@@ -26,7 +30,7 @@ export const JAPANESE_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bkatsu\b/gi, replacement: 'KAHT-soo', description: 'Breaded cutlet' },
   { pattern: /\bbento\b/gi, replacement: 'BEN-toh', description: 'Lunch box' },
   { pattern: /\bonigiri\b/gi, replacement: 'oh-nee-GEE-ree', description: 'Rice ball' },
-  
+
   // -------------------------------------------------------------------------
   // Common Japanese Terms
   // -------------------------------------------------------------------------
@@ -47,33 +51,65 @@ export const JAPANESE_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bkarate\b/gi, replacement: 'kah-RAH-tay', description: 'Martial art' },
   { pattern: /\baikido\b/gi, replacement: 'eye-KEE-doh', description: 'Martial art' },
   { pattern: /\btaiko\b/gi, replacement: 'TY-koh', description: 'Japanese drums' },
-  { pattern: /\bsake\b(?=.*rice|.*wine|.*drink)/gi, replacement: 'SAH-kay', description: 'Rice wine' },
+  {
+    pattern: /\bsake\b(?=.*rice|.*wine|.*drink)/gi,
+    replacement: 'SAH-kay',
+    description: 'Rice wine',
+  },
   { pattern: /\bbonsai\b/gi, replacement: 'BON-sigh', description: 'Miniature tree art' },
   { pattern: /\bemoji\b/gi, replacement: 'ee-MOH-jee', description: 'Picture characters' },
   { pattern: /\bkawaii\b/gi, replacement: 'kah-WAH-ee', description: 'Cute' },
   { pattern: /\botaku\b/gi, replacement: 'oh-TAH-koo', description: 'Enthusiast/geek' },
   { pattern: /\banime\b/gi, replacement: 'AH-nee-may', description: 'Japanese animation' },
   { pattern: /\bmanga\b/gi, replacement: 'MAHN-gah', description: 'Japanese comics' },
-  
+
   // -------------------------------------------------------------------------
   // Japanese Concepts & Philosophy (Nayan's domain)
   // -------------------------------------------------------------------------
-  { pattern: /\bwabi[\s-]?sabi\b/gi, replacement: 'WAH-bee SAH-bee', description: 'Beauty of imperfection' },
+  {
+    pattern: /\bwabi[\s-]?sabi\b/gi,
+    replacement: 'WAH-bee SAH-bee',
+    description: 'Beauty of imperfection',
+  },
   { pattern: /\bikigai\b/gi, replacement: 'ee-kee-GUY', description: 'Reason for being' },
   { pattern: /\bkintsugi\b/gi, replacement: 'kin-TSOO-gee', description: 'Gold repair art' },
-  { pattern: /\bshinrin[\s-]?yoku\b/gi, replacement: 'SHIN-rin YO-koo', description: 'Forest bathing' },
+  {
+    pattern: /\bshinrin[\s-]?yoku\b/gi,
+    replacement: 'SHIN-rin YO-koo',
+    description: 'Forest bathing',
+  },
   { pattern: /\bkaizen\b/gi, replacement: 'KY-zen', description: 'Continuous improvement' },
   { pattern: /\bkanban\b/gi, replacement: 'KAHN-bahn', description: 'Visual workflow' },
   { pattern: /\bhanami\b/gi, replacement: 'hah-NAH-mee', description: 'Flower viewing' },
-  { pattern: /\bmono\s+no\s+aware\b/gi, replacement: 'MO-no no ah-WAH-reh', description: 'Pathos of things' },
+  {
+    pattern: /\bmono\s+no\s+aware\b/gi,
+    replacement: 'MO-no no ah-WAH-reh',
+    description: 'Pathos of things',
+  },
   { pattern: /\byugen\b/gi, replacement: 'YOO-gen', description: 'Profound mystery' },
-  { pattern: /\bma\b(?=\s+(space|concept|philosophy))/gi, replacement: 'mah', description: 'Negative space' },
+  {
+    pattern: /\bma\b(?=\s+(space|concept|philosophy))/gi,
+    replacement: 'mah',
+    description: 'Negative space',
+  },
   { pattern: /\bshoshin\b/gi, replacement: 'SHO-shin', description: 'Beginners mind' },
   { pattern: /\bmottainai\b/gi, replacement: 'mo-tie-NY', description: 'No waste philosophy' },
   { pattern: /\bganbatte\b/gi, replacement: 'gahn-BAH-teh', description: 'Do your best' },
-  { pattern: /\bomoiyari\b/gi, replacement: 'oh-moy-YAH-ree', description: 'Empathic consideration' },
-  { pattern: /\bnatsukashii\b/gi, replacement: 'nah-tsoo-KAH-shee', description: 'Nostalgic longing' },
-  { pattern: /\bkomorebi\b/gi, replacement: 'ko-mo-REH-bee', description: 'Sunlight through leaves' },
+  {
+    pattern: /\bomoiyari\b/gi,
+    replacement: 'oh-moy-YAH-ree',
+    description: 'Empathic consideration',
+  },
+  {
+    pattern: /\bnatsukashii\b/gi,
+    replacement: 'nah-tsoo-KAH-shee',
+    description: 'Nostalgic longing',
+  },
+  {
+    pattern: /\bkomorebi\b/gi,
+    replacement: 'ko-mo-REH-bee',
+    description: 'Sunlight through leaves',
+  },
   { pattern: /\btsundoku\b/gi, replacement: 'TSOON-doh-koo', description: 'Pile of unread books' },
   { pattern: /\bfurusato\b/gi, replacement: 'foo-roo-SAH-toh', description: 'Hometown/homeland' },
   { pattern: /\bokashi\b/gi, replacement: 'oh-KAH-shee', description: 'Charming/delightful' },
@@ -91,16 +127,32 @@ export const JAPANESE_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   { pattern: /\bBasho\b/g, replacement: 'BAH-sho', description: 'Haiku master' },
   { pattern: /\bBashō\b/g, replacement: 'BAH-sho', description: 'Haiku master' },
-  { pattern: /\bMatsuo\s+Bash[oō]\b/gi, replacement: 'maht-SOO-oh BAH-sho', description: 'Full name' },
+  {
+    pattern: /\bMatsuo\s+Bash[oō]\b/gi,
+    replacement: 'maht-SOO-oh BAH-sho',
+    description: 'Full name',
+  },
   { pattern: /\bIssa\b/g, replacement: 'EE-sah', description: 'Haiku poet' },
-  { pattern: /\bKobayashi\s+Issa\b/gi, replacement: 'ko-bah-YAH-shee EE-sah', description: 'Full name' },
+  {
+    pattern: /\bKobayashi\s+Issa\b/gi,
+    replacement: 'ko-bah-YAH-shee EE-sah',
+    description: 'Full name',
+  },
   { pattern: /\bBuson\b/g, replacement: 'BOO-son', description: 'Haiku poet' },
   { pattern: /\bYosa\s+Buson\b/gi, replacement: 'YO-sah BOO-son', description: 'Full name' },
   { pattern: /\bShiki\b/g, replacement: 'SHEE-kee', description: 'Modern haiku master' },
-  { pattern: /\bMasaoka\s+Shiki\b/gi, replacement: 'mah-sah-OH-kah SHEE-kee', description: 'Full name' },
+  {
+    pattern: /\bMasaoka\s+Shiki\b/gi,
+    replacement: 'mah-sah-OH-kah SHEE-kee',
+    description: 'Full name',
+  },
   { pattern: /\bChiyo-?ni\b/gi, replacement: 'CHEE-yo-nee', description: 'Female haiku poet' },
   { pattern: /\bSantoka\b/gi, replacement: 'sahn-TOH-kah', description: 'Modern wandering poet' },
-  { pattern: /\bTaneda\s+Santoka\b/gi, replacement: 'tah-NEH-dah sahn-TOH-kah', description: 'Full name' },
+  {
+    pattern: /\bTaneda\s+Santoka\b/gi,
+    replacement: 'tah-NEH-dah sahn-TOH-kah',
+    description: 'Full name',
+  },
   { pattern: /\bRyokan\b/gi, replacement: 'RYOH-kahn', description: 'Zen poet-monk' },
   { pattern: /\bHosai\b/gi, replacement: 'HO-sigh', description: 'Free-verse haiku poet' },
   { pattern: /\bOzaki\s+Hosai\b/gi, replacement: 'oh-ZAH-kee HO-sigh', description: 'Full name' },
@@ -117,7 +169,11 @@ export const JAPANESE_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\brenga\b/gi, replacement: 'REN-gah', description: 'Collaborative linked verse' },
   { pattern: /\bkigo\b/gi, replacement: 'KEE-go', description: 'Seasonal word' },
   { pattern: /\bkireji\b/gi, replacement: 'kee-REH-jee', description: 'Cutting word' },
-  { pattern: /\bon\b(?=\s+(syllable|count|mora))/gi, replacement: 'own', description: 'Sound unit' },
+  {
+    pattern: /\bon\b(?=\s+(syllable|count|mora))/gi,
+    replacement: 'own',
+    description: 'Sound unit',
+  },
   { pattern: /\bmora\b/gi, replacement: 'MOH-rah', description: 'Sound unit' },
   { pattern: /\bmorae\b/gi, replacement: 'MOH-rye', description: 'Sound units plural' },
   { pattern: /\bhonkadori\b/gi, replacement: 'hon-kah-DOH-ree', description: 'Allusive variation' },
@@ -148,8 +204,16 @@ export const ZEN_BUDDHIST_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bokesa\b/gi, replacement: 'oh-KEH-sah', description: 'Buddhist robe' },
   { pattern: /\bzafu\b/gi, replacement: 'ZAH-foo', description: 'Meditation cushion' },
   { pattern: /\bzabuton\b/gi, replacement: 'zah-BOO-ton', description: 'Floor mat' },
-  { pattern: /\bmu\b(?=\s+(koan|response|answer))/gi, replacement: 'moo', description: 'Classic koan response' },
-  { pattern: /\bgateless\s+gate\b/gi, replacement: 'GATE-less gate', description: 'Koan collection' },
+  {
+    pattern: /\bmu\b(?=\s+(koan|response|answer))/gi,
+    replacement: 'moo',
+    description: 'Classic koan response',
+  },
+  {
+    pattern: /\bgateless\s+gate\b/gi,
+    replacement: 'GATE-less gate',
+    description: 'Koan collection',
+  },
   { pattern: /\bmumonkan\b/gi, replacement: 'moo-MON-kahn', description: 'Gateless Gate' },
   { pattern: /\bbodhi\b/gi, replacement: 'BO-dee', description: 'Awakening/enlightenment' },
   { pattern: /\bbodhisattva\b/gi, replacement: 'bo-dee-SAHT-vuh', description: 'Awakened being' },
@@ -187,7 +251,11 @@ export const MINDFULNESS_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bsatya\b/gi, replacement: 'SAHT-yuh', description: 'Truthfulness' },
   { pattern: /\basteya\b/gi, replacement: 'ah-STAY-uh', description: 'Non-stealing' },
   { pattern: /\bbrahmacharya\b/gi, replacement: 'brah-muh-CHAR-yuh', description: 'Moderation' },
-  { pattern: /\baparigraha\b/gi, replacement: 'ah-pah-ree-GRAH-hah', description: 'Non-attachment' },
+  {
+    pattern: /\baparigraha\b/gi,
+    replacement: 'ah-pah-ree-GRAH-hah',
+    description: 'Non-attachment',
+  },
   { pattern: /\bdrishti\b/gi, replacement: 'DRISH-tee', description: 'Focused gaze' },
   { pattern: /\bbandha\b/gi, replacement: 'BAHN-dah', description: 'Energy lock' },
   { pattern: /\bkundali[ni]?\b/gi, replacement: 'koon-dah-LEE-nee', description: 'Coiled energy' },
@@ -233,53 +301,145 @@ export const MINDFULNESS_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bmala\b/gi, replacement: 'MAH-luh', description: 'Prayer beads' },
   { pattern: /\bstupa\b/gi, replacement: 'STOO-pah', description: 'Sacred monument' },
   { pattern: /\bmandala\b/gi, replacement: 'MAN-duh-luh', description: 'Sacred circle' },
-  { pattern: /\bthanks?\s+giving\s+practice\b/gi, replacement: 'thanks giving practice', description: 'Gratitude meditation' },
+  {
+    pattern: /\bthanks?\s+giving\s+practice\b/gi,
+    replacement: 'thanks giving practice',
+    description: 'Gratitude meditation',
+  },
 ];
 
 export const THOUGHT_LEADER_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Authors & Thought Leaders (Nayan's domain)
   // -------------------------------------------------------------------------
-  { pattern: /\bBren[eé]\s+Brown\b/gi, replacement: 'breh-NAY brown', description: 'Vulnerability researcher' },
-  { pattern: /\bTara\s+Brach\b/gi, replacement: 'TAH-ruh brock', description: 'Meditation teacher' },
-  { pattern: /\bPema\s+Ch[oö]dr[oö]n\b/gi, replacement: 'PEH-muh CHO-drun', description: 'Buddhist teacher' },
-  { pattern: /\bThich\s+Nhat\s+Hanh\b/gi, replacement: 'tik NOT hahn', description: 'Buddhist teacher' },
+  {
+    pattern: /\bBren[eé]\s+Brown\b/gi,
+    replacement: 'breh-NAY brown',
+    description: 'Vulnerability researcher',
+  },
+  {
+    pattern: /\bTara\s+Brach\b/gi,
+    replacement: 'TAH-ruh brock',
+    description: 'Meditation teacher',
+  },
+  {
+    pattern: /\bPema\s+Ch[oö]dr[oö]n\b/gi,
+    replacement: 'PEH-muh CHO-drun',
+    description: 'Buddhist teacher',
+  },
+  {
+    pattern: /\bThich\s+Nhat\s+Hanh\b/gi,
+    replacement: 'tik NOT hahn',
+    description: 'Buddhist teacher',
+  },
   { pattern: /\bThich\b/g, replacement: 'tik', description: 'Vietnamese Buddhist title' },
   { pattern: /\bNhat\s+Hanh\b/gi, replacement: 'NOT hahn', description: 'Vietnamese name' },
-  { pattern: /\bEckhart\s+Tolle\b/gi, replacement: 'ECK-hart TOL-lay', description: 'Spiritual author' },
+  {
+    pattern: /\bEckhart\s+Tolle\b/gi,
+    replacement: 'ECK-hart TOL-lay',
+    description: 'Spiritual author',
+  },
   { pattern: /\bTolle\b/g, replacement: 'TOL-lay', description: 'Author surname' },
-  { pattern: /\bJon\s+Kabat[\s-]?Zinn\b/gi, replacement: 'jon kuh-BAT zin', description: 'Mindfulness pioneer' },
-  { pattern: /\bKabat[\s-]?Zinn\b/gi, replacement: 'kuh-BAT zin', description: 'Mindfulness surname' },
+  {
+    pattern: /\bJon\s+Kabat[\s-]?Zinn\b/gi,
+    replacement: 'jon kuh-BAT zin',
+    description: 'Mindfulness pioneer',
+  },
+  {
+    pattern: /\bKabat[\s-]?Zinn\b/gi,
+    replacement: 'kuh-BAT zin',
+    description: 'Mindfulness surname',
+  },
   { pattern: /\bRam\s+Dass\b/gi, replacement: 'rahm dahss', description: 'Spiritual teacher' },
   { pattern: /\bAlan\s+Watts\b/gi, replacement: 'AL-un wots', description: 'Philosopher' },
   { pattern: /\bJoseph\s+Campbell\b/gi, replacement: 'JO-suf CAM-bul', description: 'Mythologist' },
   { pattern: /\bCarl\s+Jung\b/gi, replacement: 'karl yoong', description: 'Psychologist' },
   { pattern: /\bJung\b(?=ian|\s)/g, replacement: 'yoong', description: 'Psychologist surname' },
   { pattern: /\bJungian\b/gi, replacement: 'YOONG-ee-un', description: 'Of Carl Jung' },
-  { pattern: /\bViktor\s+Frankl\b/gi, replacement: 'VIK-tor FRAN-kul', description: 'Logotherapy founder' },
+  {
+    pattern: /\bViktor\s+Frankl\b/gi,
+    replacement: 'VIK-tor FRAN-kul',
+    description: 'Logotherapy founder',
+  },
   { pattern: /\bFrankl\b/g, replacement: 'FRAN-kul', description: 'Author surname' },
-  { pattern: /\bMihaly\s+Csikszentmihalyi\b/gi, replacement: 'mee-HIGH cheek-sent-mee-HIGH', description: 'Flow researcher' },
-  { pattern: /\bCsikszentmihalyi\b/gi, replacement: 'cheek-sent-mee-HIGH', description: 'Researcher surname' },
-  { pattern: /\bMartin\s+Seligman\b/gi, replacement: 'MAR-tin SEH-lig-mun', description: 'Positive psychology founder' },
-  { pattern: /\bAngela\s+Duckworth\b/gi, replacement: 'AN-juh-luh DUCK-worth', description: 'Grit researcher' },
-  { pattern: /\bCarol\s+Dweck\b/gi, replacement: 'KAIR-ul dwek', description: 'Mindset researcher' },
+  {
+    pattern: /\bMihaly\s+Csikszentmihalyi\b/gi,
+    replacement: 'mee-HIGH cheek-sent-mee-HIGH',
+    description: 'Flow researcher',
+  },
+  {
+    pattern: /\bCsikszentmihalyi\b/gi,
+    replacement: 'cheek-sent-mee-HIGH',
+    description: 'Researcher surname',
+  },
+  {
+    pattern: /\bMartin\s+Seligman\b/gi,
+    replacement: 'MAR-tin SEH-lig-mun',
+    description: 'Positive psychology founder',
+  },
+  {
+    pattern: /\bAngela\s+Duckworth\b/gi,
+    replacement: 'AN-juh-luh DUCK-worth',
+    description: 'Grit researcher',
+  },
+  {
+    pattern: /\bCarol\s+Dweck\b/gi,
+    replacement: 'KAIR-ul dwek',
+    description: 'Mindset researcher',
+  },
   { pattern: /\bDweck\b/g, replacement: 'dwek', description: 'Researcher surname' },
   { pattern: /\bBJ\s+Fogg\b/gi, replacement: 'B J fog', description: 'Tiny Habits author' },
   { pattern: /\bFogg\b/g, replacement: 'fog', description: 'Author surname' },
-  { pattern: /\bJames\s+Clear\b/gi, replacement: 'james cleer', description: 'Atomic Habits author' },
-  { pattern: /\bGretchen\s+Rubin\b/gi, replacement: 'GRETCH-un ROO-bin', description: 'Habits researcher' },
-  { pattern: /\bCharles\s+Duhigg\b/gi, replacement: 'charlz doo-HIG', description: 'Power of Habit author' },
+  {
+    pattern: /\bJames\s+Clear\b/gi,
+    replacement: 'james cleer',
+    description: 'Atomic Habits author',
+  },
+  {
+    pattern: /\bGretchen\s+Rubin\b/gi,
+    replacement: 'GRETCH-un ROO-bin',
+    description: 'Habits researcher',
+  },
+  {
+    pattern: /\bCharles\s+Duhigg\b/gi,
+    replacement: 'charlz doo-HIG',
+    description: 'Power of Habit author',
+  },
   { pattern: /\bDuhigg\b/g, replacement: 'doo-HIG', description: 'Author surname' },
-  { pattern: /\bSimon\s+Sinek\b/gi, replacement: 'SY-mun SIN-ek', description: 'Leadership author' },
+  {
+    pattern: /\bSimon\s+Sinek\b/gi,
+    replacement: 'SY-mun SIN-ek',
+    description: 'Leadership author',
+  },
   { pattern: /\bSinek\b/g, replacement: 'SIN-ek', description: 'Author surname' },
-  { pattern: /\bAdam\s+Grant\b/gi, replacement: 'AD-um grant', description: 'Organizational psychologist' },
-  { pattern: /\bDaniel\s+Kahneman\b/gi, replacement: 'DAN-yul KAH-nuh-mun', description: 'Behavioral economist' },
+  {
+    pattern: /\bAdam\s+Grant\b/gi,
+    replacement: 'AD-um grant',
+    description: 'Organizational psychologist',
+  },
+  {
+    pattern: /\bDaniel\s+Kahneman\b/gi,
+    replacement: 'DAN-yul KAH-nuh-mun',
+    description: 'Behavioral economist',
+  },
   { pattern: /\bKahneman\b/g, replacement: 'KAH-nuh-mun', description: 'Economist surname' },
-  { pattern: /\bAmos\s+Tversky\b/gi, replacement: 'AH-mos tuh-VER-skee', description: 'Cognitive psychologist' },
+  {
+    pattern: /\bAmos\s+Tversky\b/gi,
+    replacement: 'AH-mos tuh-VER-skee',
+    description: 'Cognitive psychologist',
+  },
   { pattern: /\bTversky\b/g, replacement: 'tuh-VER-skee', description: 'Psychologist surname' },
-  { pattern: /\bNassim\s+Taleb\b/gi, replacement: 'nah-SEEM tah-LEB', description: 'Black Swan author' },
+  {
+    pattern: /\bNassim\s+Taleb\b/gi,
+    replacement: 'nah-SEEM tah-LEB',
+    description: 'Black Swan author',
+  },
   { pattern: /\bTaleb\b/g, replacement: 'tah-LEB', description: 'Author surname' },
-  { pattern: /\bYuval\s+(Noah\s+)?Harari\b/gi, replacement: 'yoo-VAHL hah-RAH-ree', description: 'Sapiens author' },
+  {
+    pattern: /\bYuval\s+(Noah\s+)?Harari\b/gi,
+    replacement: 'yoo-VAHL hah-RAH-ree',
+    description: 'Sapiens author',
+  },
   { pattern: /\bHarari\b/g, replacement: 'hah-RAH-ree', description: 'Author surname' },
 
   // -------------------------------------------------------------------------
@@ -290,7 +450,11 @@ export const THOUGHT_LEADER_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bSartre\b/gi, replacement: 'SAR-truh', description: 'French philosopher' },
   { pattern: /\bCamus\b/gi, replacement: 'kah-MOO', description: 'French philosopher' },
   { pattern: /\bHeidegger\b/gi, replacement: 'HY-deh-gur', description: 'German philosopher' },
-  { pattern: /\bSimone\s+de\s+Beauvoir\b/gi, replacement: 'see-MOHN duh bo-VWAHR', description: 'French philosopher' },
+  {
+    pattern: /\bSimone\s+de\s+Beauvoir\b/gi,
+    replacement: 'see-MOHN duh bo-VWAHR',
+    description: 'French philosopher',
+  },
   { pattern: /\bFoucault\b/gi, replacement: 'foo-KOH', description: 'French philosopher' },
   { pattern: /\bDerrida\b/gi, replacement: 'deh-ree-DAH', description: 'French philosopher' },
   { pattern: /\bDescartes\b/gi, replacement: 'day-KART', description: 'French philosopher' },
@@ -300,7 +464,11 @@ export const THOUGHT_LEADER_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bMencius\b/gi, replacement: 'MEN-shee-us', description: 'Chinese philosopher' },
   { pattern: /\bSeneca\b/gi, replacement: 'SEN-ih-kuh', description: 'Roman Stoic' },
   { pattern: /\bEpictetus\b/gi, replacement: 'ep-ik-TEE-tus', description: 'Roman Stoic' },
-  { pattern: /\bMarcus\s+Aurelius\b/gi, replacement: 'MAR-kus aw-REE-lee-us', description: 'Roman Emperor/Stoic' },
+  {
+    pattern: /\bMarcus\s+Aurelius\b/gi,
+    replacement: 'MAR-kus aw-REE-lee-us',
+    description: 'Roman Emperor/Stoic',
+  },
   { pattern: /\bAurelius\b/g, replacement: 'aw-REE-lee-us', description: 'Roman name' },
 
   // -------------------------------------------------------------------------
@@ -309,10 +477,18 @@ export const THOUGHT_LEADER_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bDavid\s+Allen\b/gi, replacement: 'DAY-vid AL-un', description: 'GTD author' },
   { pattern: /\bGTD\b/g, replacement: 'G T D', description: 'Getting Things Done' },
   { pattern: /\bCal\s+Newport\b/gi, replacement: 'kal NOO-port', description: 'Deep Work author' },
-  { pattern: /\bTimothy\s+Ferriss\b/gi, replacement: 'TIM-uh-thee FAIR-is', description: '4-Hour author' },
+  {
+    pattern: /\bTimothy\s+Ferriss\b/gi,
+    replacement: 'TIM-uh-thee FAIR-is',
+    description: '4-Hour author',
+  },
   { pattern: /\bFerriss\b/g, replacement: 'FAIR-is', description: 'Author surname' },
   { pattern: /\bTim\s+Ferriss\b/gi, replacement: 'tim FAIR-is', description: '4-Hour author' },
-  { pattern: /\bRyan\s+Holiday\b/gi, replacement: 'RY-un HOL-ih-day', description: 'Stoicism author' },
+  {
+    pattern: /\bRyan\s+Holiday\b/gi,
+    replacement: 'RY-un HOL-ih-day',
+    description: 'Stoicism author',
+  },
   { pattern: /\bPomodoro\b/gi, replacement: 'poh-moh-DOH-roh', description: 'Time technique' },
   { pattern: /\bEisenhower\b/gi, replacement: 'EYE-zen-how-er', description: 'Priority matrix' },
 ];
@@ -322,17 +498,37 @@ export const MISPRONOUNCED_WORDS: PronunciationEntry[] = [
   // Emotional/Coaching Words (commonly mispronounced)
   // -------------------------------------------------------------------------
   { pattern: /\bresilience\b/gi, replacement: 'rih-ZIL-yuns', description: 'Bouncing back' },
-  { pattern: /\bvulnerability\b/gi, replacement: 'vul-ner-uh-BIL-ih-tee', description: 'Being open' },
-  { pattern: /\bauthenticity\b/gi, replacement: 'aw-then-TIS-ih-tee', description: 'Being genuine' },
-  { pattern: /\bequanimity\b/gi, replacement: 'ee-kwuh-NIM-ih-tee', description: 'Mental calmness' },
-  { pattern: /\bself-compassion\b/gi, replacement: 'Self-kum-PASH-un', description: 'Self-kindness' },
+  {
+    pattern: /\bvulnerability\b/gi,
+    replacement: 'vul-ner-uh-BIL-ih-tee',
+    description: 'Being open',
+  },
+  {
+    pattern: /\bauthenticity\b/gi,
+    replacement: 'aw-then-TIS-ih-tee',
+    description: 'Being genuine',
+  },
+  {
+    pattern: /\bequanimity\b/gi,
+    replacement: 'ee-kwuh-NIM-ih-tee',
+    description: 'Mental calmness',
+  },
+  {
+    pattern: /\bself-compassion\b/gi,
+    replacement: 'Self-kum-PASH-un',
+    description: 'Self-kindness',
+  },
   { pattern: /\bperseverance\b/gi, replacement: 'per-suh-VEER-uns', description: 'Persistence' },
-  { pattern: /\bmischievous\b/gi, replacement: 'MIS-chih-vus', description: 'Commonly mispronounced' },
+  {
+    pattern: /\bmischievous\b/gi,
+    replacement: 'MIS-chih-vus',
+    description: 'Commonly mispronounced',
+  },
   { pattern: /\bawry\b/gi, replacement: 'uh-RYE', description: 'Gone wrong' },
   { pattern: /\bchasm\b/gi, replacement: 'KAZ-um', description: 'Deep gap' },
   { pattern: /\bdebut\b/gi, replacement: 'day-BYOO', description: 'First appearance' },
   { pattern: /\bdebris\b/gi, replacement: 'duh-BREE', description: 'Scattered fragments' },
-  
+
   // -------------------------------------------------------------------------
   // Commonly Mispronounced Words
   // -------------------------------------------------------------------------
@@ -348,28 +544,60 @@ export const MISPRONOUNCED_WORDS: PronunciationEntry[] = [
   { pattern: /\bstatus\s+quo\b/gi, replacement: 'STAY-tus KWO', description: 'Latin phrase' },
   { pattern: /\bquid\s+pro\s+quo\b/gi, replacement: 'kwid pro KWO', description: 'Latin phrase' },
   { pattern: /\bpro\s+bono\b/gi, replacement: 'pro BO-no', description: 'Latin phrase' },
-  { pattern: /\bcoup\s+de\s+gr[aâ]ce\b/gi, replacement: 'koo duh GRAHSS', description: 'French phrase' },
+  {
+    pattern: /\bcoup\s+de\s+gr[aâ]ce\b/gi,
+    replacement: 'koo duh GRAHSS',
+    description: 'French phrase',
+  },
   { pattern: /\bfaux\s+pas\b/gi, replacement: 'foh PAH', description: 'French phrase' },
-  { pattern: /\blaissez[\s-]?faire\b/gi, replacement: 'less-ay FAIR', description: 'French phrase' },
-  { pattern: /\braison\s+d['']?[êe]tre\b/gi, replacement: 'ray-ZOHN DET-ruh', description: 'French phrase' },
-  { pattern: /\bjoie\s+de\s+vivre\b/gi, replacement: 'zhwah duh VEEV-ruh', description: 'French phrase' },
-  { pattern: /\bje\s+ne\s+sais\s+quoi\b/gi, replacement: 'zhuh nuh say KWAH', description: 'French phrase' },
+  {
+    pattern: /\blaissez[\s-]?faire\b/gi,
+    replacement: 'less-ay FAIR',
+    description: 'French phrase',
+  },
+  {
+    pattern: /\braison\s+d['']?[êe]tre\b/gi,
+    replacement: 'ray-ZOHN DET-ruh',
+    description: 'French phrase',
+  },
+  {
+    pattern: /\bjoie\s+de\s+vivre\b/gi,
+    replacement: 'zhwah duh VEEV-ruh',
+    description: 'French phrase',
+  },
+  {
+    pattern: /\bje\s+ne\s+sais\s+quoi\b/gi,
+    replacement: 'zhuh nuh say KWAH',
+    description: 'French phrase',
+  },
   { pattern: /\bschadenfreude\b/gi, replacement: 'SHAH-den-froy-duh', description: 'German word' },
   { pattern: /\bzeitgeist\b/gi, replacement: 'TSITE-guyst', description: 'German word' },
   { pattern: /\bwanderlust\b/gi, replacement: 'WON-der-lust', description: 'German word' },
   { pattern: /\bgestalt\b/gi, replacement: 'guh-SHTALT', description: 'German word' },
   { pattern: /\bangst\b/gi, replacement: 'ahngst', description: 'German word' },
   { pattern: /\bkitsch\b/gi, replacement: 'kitch', description: 'German word' },
-  { pattern: /\bubiquitous\b/gi, replacement: 'yoo-BIK-wih-tus', description: 'Commonly mispronounced' },
+  {
+    pattern: /\bubiquitous\b/gi,
+    replacement: 'yoo-BIK-wih-tus',
+    description: 'Commonly mispronounced',
+  },
   { pattern: /\bnuance\b/gi, replacement: 'NOO-ahnce', description: 'Commonly mispronounced' },
   { pattern: /\bsegue\b/gi, replacement: 'SEG-way', description: 'Commonly mispronounced' },
   { pattern: /\bcache\b/gi, replacement: 'cash', description: 'Commonly mispronounced' },
   { pattern: /\bniche\b/gi, replacement: 'neesh', description: 'Commonly mispronounced' },
   { pattern: /\bepitome\b/gi, replacement: 'ih-PIT-uh-mee', description: 'Commonly mispronounced' },
-  { pattern: /\bhyperbole\b/gi, replacement: 'hy-PER-buh-lee', description: 'Commonly mispronounced' },
+  {
+    pattern: /\bhyperbole\b/gi,
+    replacement: 'hy-PER-buh-lee',
+    description: 'Commonly mispronounced',
+  },
   { pattern: /\bawry\b/gi, replacement: 'uh-RY', description: 'Commonly mispronounced' },
   { pattern: /\bmisc\.?\b/gi, replacement: 'miscellaneous', description: 'Abbreviation' },
-  { pattern: /\bmiscellaneous\b/gi, replacement: 'miss-uh-LAY-nee-us', description: 'Commonly mispronounced' },
+  {
+    pattern: /\bmiscellaneous\b/gi,
+    replacement: 'miss-uh-LAY-nee-us',
+    description: 'Commonly mispronounced',
+  },
   { pattern: /\bquinoa\b/gi, replacement: 'KEEN-wah', description: 'Food grain' },
   { pattern: /\bacai\b/gi, replacement: 'ah-sah-EE', description: 'Food berry' },
   { pattern: /\bpho\b(?=\s|$)/gi, replacement: 'fuh', description: 'Vietnamese soup' },
@@ -384,4 +612,3 @@ export const MISPRONOUNCED_WORDS: PronunciationEntry[] = [
   { pattern: /\brigatoni\b/gi, replacement: 'rig-uh-TOH-nee', description: 'Italian pasta' },
   { pattern: /\bprosciutto\b/gi, replacement: 'pro-SHOO-toh', description: 'Italian ham' },
 ];
-

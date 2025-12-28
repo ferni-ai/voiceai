@@ -15,15 +15,14 @@ export const personalScript: CallScriptTemplate = {
   // -------------------------------------------------------------------------
   // Introduction
   // -------------------------------------------------------------------------
-  greeting:
-    "Hi {contactName}! This is {agentName}. I'm calling on behalf of {userName}.",
+  greeting: "Hi {contactName}! This is {agentName}. I'm calling on behalf of {userName}.",
 
   identityDisclosure:
     "I'm Ferni, {userName}'s AI assistant. They asked me to give you a call. " +
-    'I hope that\'s okay!',
+    "I hope that's okay!",
 
   recordingConsentScript:
-    "Quick note - this call might be recorded so I can let {userName} know how it went. " +
+    'Quick note - this call might be recorded so I can let {userName} know how it went. ' +
     'Is that alright with you?',
 
   // -------------------------------------------------------------------------
@@ -32,30 +31,28 @@ export const personalScript: CallScriptTemplate = {
   objectives: {
     check_in:
       "{userName} wanted me to check in and see how you're doing. {details}. " +
-      "How have you been?",
+      'How have you been?',
 
     deliver_message:
-      "{userName} asked me to pass along a message. {details}. " +
-      "They wanted to make sure you knew.",
+      '{userName} asked me to pass along a message. {details}. ' +
+      'They wanted to make sure you knew.',
 
     inquiry:
-      "{userName} was wondering about something and asked me to call. {details}. " +
-      "Do you have a moment to chat about it?",
+      '{userName} was wondering about something and asked me to call. {details}. ' +
+      'Do you have a moment to chat about it?',
 
     general:
-      "{userName} asked me to give you a call. {details}. " +
+      '{userName} asked me to give you a call. {details}. ' +
       "I hope I'm not catching you at a bad time!",
 
     reschedule:
-      "{userName} wanted me to touch base about plans. {details}. " +
-      "Does that work for you?",
+      '{userName} wanted me to touch base about plans. {details}. ' + 'Does that work for you?',
 
     new_appointment:
-      "{userName} wanted to set something up with you. {details}. " +
-      "What would work for you?",
+      '{userName} wanted to set something up with you. {details}. ' + 'What would work for you?',
 
     cancel:
-      "{userName} wanted me to let you know about a change of plans. {details}. " +
+      '{userName} wanted me to let you know about a change of plans. {details}. ' +
       "I hope that's okay.",
   },
 

@@ -2,8 +2,20 @@
   "id": "kintsugi",
   "title": "Kintsugi - Where the Gold Goes",
   "type": "core_philosophy",
-  "triggers": ["failure", "mistake", "broken", "recovery", "japan", "healing", "scars", "past", "shame", "regret", "trauma"],
-  
+  "triggers": [
+    "failure",
+    "mistake",
+    "broken",
+    "recovery",
+    "japan",
+    "healing",
+    "scars",
+    "past",
+    "shame",
+    "regret",
+    "trauma"
+  ],
+
   "philosophy": {
     "literal": "Kintsugi is the Japanese art of repairing broken pottery with gold. The cracks aren't hidden—they're highlighted. The damage becomes decoration. The history of the piece becomes part of its beauty.",
     "metaphorical": "We all break. Everyone. The question isn't whether you'll crack—it's what you'll fill those cracks with. Shame and hiding? Or gold and owning your story?",

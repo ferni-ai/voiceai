@@ -107,7 +107,14 @@ export interface PrepRecommendation {
 // ============================================================================
 
 const EVENT_KEYWORDS: Record<EventType, string[]> = {
-  performance_review: ['review', 'performance', 'evaluation', 'feedback', '1:1 with manager', 'check-in'],
+  performance_review: [
+    'review',
+    'performance',
+    'evaluation',
+    'feedback',
+    '1:1 with manager',
+    'check-in',
+  ],
   difficult_conversation: ['talk about', 'discuss', 'conversation with', 'chat with'],
   presentation: ['present', 'presentation', 'demo', 'pitch', 'speak'],
   interview: ['interview', 'screening', 'phone screen', 'onsite'],
@@ -143,7 +150,7 @@ const DEFAULT_PREP_WINDOWS: Record<EventType, number> = {
 const PREP_SUGGESTIONS: Record<EventType, string[]> = {
   performance_review: [
     'Write down 3 accomplishments you want to highlight',
-    'Prepare 1-2 growth areas you\'re working on',
+    "Prepare 1-2 growth areas you're working on",
     'Think of questions you want to ask',
     'Review any feedback from the past period',
   ],
@@ -174,7 +181,7 @@ const PREP_SUGGESTIONS: Record<EventType, string[]> = {
   conflict_resolution: [
     'Focus on interests, not positions',
     'Prepare to listen first',
-    'Identify what you\'re willing to compromise on',
+    "Identify what you're willing to compromise on",
     'Think about what success looks like',
   ],
   negotiation: [
@@ -186,7 +193,7 @@ const PREP_SUGGESTIONS: Record<EventType, string[]> = {
   social_obligation: [
     'Set a leaving time in advance',
     'Prepare conversation starters',
-    'It\'s okay to take breaks',
+    "It's okay to take breaks",
     'Have an exit strategy if needed',
   ],
   medical: [
@@ -202,23 +209,12 @@ const PREP_SUGGESTIONS: Record<EventType, string[]> = {
   family_gathering: [
     'Set boundaries in advance',
     'Have a support person to text',
-    'It\'s okay to step outside',
+    "It's okay to step outside",
     'Prepare neutral topic redirects',
   ],
-  first_meeting: [
-    'Research them briefly',
-    'Prepare an introduction',
-    'Think of questions to ask',
-  ],
-  deadline: [
-    'Break remaining work into chunks',
-    'Identify blockers now',
-    'Plan for rest after',
-  ],
-  other: [
-    'Think about what you want from this',
-    'Consider how you\'ll feel after',
-  ],
+  first_meeting: ['Research them briefly', 'Prepare an introduction', 'Think of questions to ask'],
+  deadline: ['Break remaining work into chunks', 'Identify blockers now', 'Plan for rest after'],
+  other: ['Think about what you want from this', "Consider how you'll feel after"],
 };
 
 // ============================================================================
@@ -262,8 +258,19 @@ export function classifyEvent(
 
   // Default difficulty by type if no history
   if (difficulty === 'unknown') {
-    const highDifficulty: EventType[] = ['performance_review', 'interview', 'conflict_resolution', 'negotiation', 'difficult_conversation'];
-    const mediumDifficulty: EventType[] = ['presentation', 'meeting_with_authority', 'legal', 'family_gathering'];
+    const highDifficulty: EventType[] = [
+      'performance_review',
+      'interview',
+      'conflict_resolution',
+      'negotiation',
+      'difficult_conversation',
+    ];
+    const mediumDifficulty: EventType[] = [
+      'presentation',
+      'meeting_with_authority',
+      'legal',
+      'family_gathering',
+    ];
 
     if (highDifficulty.includes(matchedType)) difficulty = 'high';
     else if (mediumDifficulty.includes(matchedType)) difficulty = 'medium';
@@ -325,15 +332,17 @@ export async function recordEventOutcome(
     const newOutcome = { date: Date.now(), outcome, reflection };
 
     if (existing) {
-      await docRef.update(cleanForFirestore({
-        outcomes: [...existing.outcomes, newOutcome],
-        helpfulPrep: helpfulPrep
-          ? [...new Set([...existing.helpfulPrep, ...helpfulPrep])]
-          : existing.helpfulPrep,
-        wouldDoDifferently: wouldDoDifferently
-          ? [...new Set([...existing.wouldDoDifferently, ...wouldDoDifferently])]
-          : existing.wouldDoDifferently,
-      }));
+      await docRef.update(
+        cleanForFirestore({
+          outcomes: [...existing.outcomes, newOutcome],
+          helpfulPrep: helpfulPrep
+            ? [...new Set([...existing.helpfulPrep, ...helpfulPrep])]
+            : existing.helpfulPrep,
+          wouldDoDifferently: wouldDoDifferently
+            ? [...new Set([...existing.wouldDoDifferently, ...wouldDoDifferently])]
+            : existing.wouldDoDifferently,
+        })
+      );
     } else {
       const newHistory: EventHistory = {
         userId,
@@ -396,7 +405,7 @@ export async function getPrepRecommendations(
       historicalContext = `You've had ${total} similar events. ${successRate}% went well.`;
 
       if (successRate > 70) {
-        historicalContext += ' You\'ve got this.';
+        historicalContext += " You've got this.";
       }
     }
   }
@@ -465,10 +474,13 @@ export async function buildCalendarPrepContext(
 
   for (const { event, recommendation, hoursUntil } of eventsNeedingPrep) {
     const timeDesc =
-      hoursUntil < 1 ? 'in less than an hour' :
-      hoursUntil < 2 ? 'in about an hour' :
-      hoursUntil < 24 ? `in ${Math.round(hoursUntil)} hours` :
-      'tomorrow';
+      hoursUntil < 1
+        ? 'in less than an hour'
+        : hoursUntil < 2
+          ? 'in about an hour'
+          : hoursUntil < 24
+            ? `in ${Math.round(hoursUntil)} hours`
+            : 'tomorrow';
 
     sections.push(`📅 "${event.title}" is ${timeDesc}`);
     sections.push(`   Difficulty: ${recommendation.difficulty.toUpperCase()}`);
@@ -501,4 +513,3 @@ export const calendarPrepCoaching = {
   getRecommendations: getPrepRecommendations,
   buildContext: buildCalendarPrepContext,
 };
-

@@ -24,10 +24,7 @@ import {
   calculateToolPenalty,
   type HolisticContext,
 } from './shared-vocabulary.js';
-import {
-  processUserTurn,
-  type EnrichedContext,
-} from './context-enrichment.js';
+import { processUserTurn, type EnrichedContext } from './context-enrichment.js';
 import {
   detectMultipleIntents,
   getMultiIntentBoosts,
@@ -265,10 +262,7 @@ export function runHolisticLayer(
   const multiIntent = getCachedMultiIntent(inputText);
 
   // 4. Calculate adjustments for each tool
-  const toolAdjustments = new Map<
-    string,
-    { boost: number; penalty: number; reasons: string[] }
-  >();
+  const toolAdjustments = new Map<string, { boost: number; penalty: number; reasons: string[] }>();
 
   // Get multi-intent boosts
   const multiIntentBoosts = getMultiIntentBoosts(multiIntent);
@@ -433,10 +427,7 @@ export function shouldBoostTool(
   }
 
   // Crisis + safety tools
-  if (
-    holisticContext.sentiment === 'crisis' &&
-    (category === 'crisis' || category === 'safety')
-  ) {
+  if (holisticContext.sentiment === 'crisis' && (category === 'crisis' || category === 'safety')) {
     return true;
   }
 

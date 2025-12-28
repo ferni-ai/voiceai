@@ -73,7 +73,7 @@ import {
 } from './comfort-progression.js';
 
 // Phase 3: Advanced Listening
-import type { VoicePrintEngine} from './voice-print.js';
+import type { VoicePrintEngine } from './voice-print.js';
 import { getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
 
 import {
@@ -99,10 +99,7 @@ import {
 import { type CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
 
 // Phase 6: Voice Pattern Learning (cross-session preference learning)
-import {
-  getVoicePatternEngine,
-  resetVoicePatternEngine,
-} from './voice-pattern-learning.js';
+import { getVoicePatternEngine, resetVoicePatternEngine } from './voice-pattern-learning.js';
 
 // Phase 7: Rapport Scoring (conversational health tracking)
 import { resetRapportScorer } from '../rapport/index.js';
@@ -454,7 +451,10 @@ export class HumanizationOrchestrator {
     ) {
       // Apply config-based probability boost
       const baseProbability = globalConfig.probabilities.selfCorrection;
-      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:selfCorrection`, baseProbability + 0.5);
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:selfCorrection`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         const selfCorrection = this.engines.selfCorrection.generate(fullContext);
@@ -504,7 +504,10 @@ export class HumanizationOrchestrator {
       comfortLevel >= globalConfig.comfortThresholds.allowDisfluency
     ) {
       const baseProbability = globalConfig.probabilities.disfluency;
-      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:disfluency`, baseProbability + 0.5);
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:disfluency`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         const disfluency = this.engines.disfluency.generate(fullContext);
@@ -544,7 +547,10 @@ export class HumanizationOrchestrator {
       globalConfig.features.catchingYourself
     ) {
       const baseProbability = globalConfig.probabilities.catchingYourself;
-      const shouldTry = seededChance(`${this.sessionId}:${context.turnCount}:catchingYourself`, baseProbability + 0.5);
+      const shouldTry = seededChance(
+        `${this.sessionId}:${context.turnCount}:catchingYourself`,
+        baseProbability + 0.5
+      );
 
       if (shouldTry) {
         // Update catching yourself state

@@ -93,9 +93,7 @@ export function checkCallCompliance(
   // AI Disclosure (almost always required)
   // -------------------------------------------------------------------------
   if (config.requireAIDisclosure) {
-    disclosures.push(
-      'You must identify yourself as an AI assistant at the start of the call.'
-    );
+    disclosures.push('You must identify yourself as an AI assistant at the start of the call.');
   }
 
   // -------------------------------------------------------------------------
@@ -104,14 +102,10 @@ export function checkCallCompliance(
   if (config.requireRecordingConsent) {
     if (!request.recordingConsent) {
       // User hasn't consented - we can still make the call, but can't record
-      disclosures.push(
-        'Call will not be recorded as user has not consented.'
-      );
+      disclosures.push('Call will not be recorded as user has not consented.');
     } else {
       // Even with user consent, we may need recipient consent
-      disclosures.push(
-        'You must ask the recipient if they consent to the call being recorded.'
-      );
+      disclosures.push('You must ask the recipient if they consent to the call being recorded.');
     }
   }
 
@@ -121,30 +115,24 @@ export function checkCallCompliance(
   if (request.requiresHIPAA && config.requireHIPAADisclosure) {
     disclosures.push(
       'State that the user has authorized you to call regarding their healthcare. ' +
-      'Do not disclose specific medical conditions unless the user explicitly authorized it.'
+        'Do not disclose specific medical conditions unless the user explicitly authorized it.'
     );
 
-    warnings.push(
-      'Healthcare call - be extra careful about what information you share.'
-    );
+    warnings.push('Healthcare call - be extra careful about what information you share.');
   }
 
   // -------------------------------------------------------------------------
   // Emergency Calls
   // -------------------------------------------------------------------------
   if (request.callType === 'emergency') {
-    warnings.push(
-      'This is marked as an emergency call. Prioritize getting help quickly.'
-    );
+    warnings.push('This is marked as an emergency call. Prioritize getting help quickly.');
   }
 
   // -------------------------------------------------------------------------
   // Personal Calls
   // -------------------------------------------------------------------------
   if (request.callType === 'personal') {
-    disclosures.push(
-      `State that you are calling on behalf of ${request.userName}.`
-    );
+    disclosures.push(`State that you are calling on behalf of ${request.userName}.`);
   }
 
   // -------------------------------------------------------------------------
@@ -200,9 +188,7 @@ export function generateComplianceScript(
 
   // HIPAA disclosure (if applicable)
   if (request.requiresHIPAA) {
-    parts.push(
-      `${request.userName} has authorized me to call regarding their appointment.`
-    );
+    parts.push(`${request.userName} has authorized me to call regarding their appointment.`);
   }
 
   return parts.join(' ');
@@ -234,10 +220,7 @@ export function getCallTypeRequirements(callType: CallType): {
           'Prioritize getting help',
           'Provide callback number if disconnected',
         ],
-        mustNotDo: [
-          'Waste time with small talk',
-          'Hang up without confirming help is on the way',
-        ],
+        mustNotDo: ['Waste time with small talk', 'Hang up without confirming help is on the way'],
       };
 
     case 'business':

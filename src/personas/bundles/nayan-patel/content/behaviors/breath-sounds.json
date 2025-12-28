@@ -47,7 +47,13 @@
   "usage_rules": {
     "frequency": "moderate",
     "max_per_response": 2,
-    "more_likely_when": ["existential_question", "sitting_with_pain", "wisdom_moment", "paradox", "late_night"],
+    "more_likely_when": [
+      "existential_question",
+      "sitting_with_pain",
+      "wisdom_moment",
+      "paradox",
+      "late_night"
+    ],
     "less_likely_when": ["quick_task", "practical_question", "high_energy"],
     "note": "Nayan's breaths are LONG - reflecting his meditative nature. They invite reflection."
   }

@@ -159,18 +159,12 @@ function classifyIntent(text: string, hasContactInfo: boolean): DataIntent {
   const lowerText = text.toLowerCase();
 
   // Explicit save commands
-  if (
-    /\b(save|remember|add|store)\s+(my\s+)?/.test(lowerText) &&
-    hasContactInfo
-  ) {
+  if (/\b(save|remember|add|store)\s+(my\s+)?/.test(lowerText) && hasContactInfo) {
     return 'explicit_save';
   }
 
   // Correction patterns
-  if (
-    /\b(actually|new|changed|updated|different)\s+/.test(lowerText) &&
-    hasContactInfo
-  ) {
+  if (/\b(actually|new|changed|updated|different)\s+/.test(lowerText) && hasContactInfo) {
     return 'correction';
   }
 
@@ -256,19 +250,14 @@ function generateAcknowledgment(items: CapturedItem[]): string | undefined {
 // STORAGE ROUTING
 // ============================================================================
 
-async function routeToStorage(
-  item: CapturedItem,
-  context: DataCaptureContext
-): Promise<void> {
+async function routeToStorage(item: CapturedItem, context: DataCaptureContext): Promise<void> {
   if (item.storage.action === 'skip') return;
   if (item.entity.type !== 'contact') return;
 
   const contact = item.entity as ContactEntity;
 
   // Import contacts service
-  const { createContact, findContact, updateContact } = await import(
-    '../../services/contacts.js'
-  );
+  const { createContact, findContact, updateContact } = await import('../../services/contacts.js');
 
   // Check if contact already exists
   if (contact.name) {
@@ -321,9 +310,7 @@ async function routeToStorage(
  * Extracts entities, classifies intent, routes to storage,
  * and returns context for LLM acknowledgment.
  */
-export async function processDataCapture(
-  context: DataCaptureContext
-): Promise<DataCaptureResult> {
+export async function processDataCapture(context: DataCaptureContext): Promise<DataCaptureResult> {
   const { transcript, userId } = context;
 
   const captured: CapturedItem[] = [];
@@ -336,9 +323,7 @@ export async function processDataCapture(
 
     // Determine storage action
     const shouldSave =
-      intent === 'explicit_save' ||
-      intent === 'implicit_share' ||
-      intent === 'correction';
+      intent === 'explicit_save' || intent === 'implicit_share' || intent === 'correction';
 
     const item: CapturedItem = {
       entity: contactEntity,
@@ -347,9 +332,7 @@ export async function processDataCapture(
       storage: {
         target: 'contacts',
         action: shouldSave ? 'create' : 'skip',
-        reason: shouldSave
-          ? `${intent}: saving contact info`
-          : 'reference only, not saving',
+        reason: shouldSave ? `${intent}: saving contact info` : 'reference only, not saving',
       },
       acknowledged: shouldSave,
     };
@@ -358,10 +341,7 @@ export async function processDataCapture(
 
     // Route to storage (fire and forget for performance)
     if (shouldSave) {
-      runBackground(
-        routeToStorage(item, context),
-        { task: 'data-capture-storage', userId }
-      );
+      runBackground(routeToStorage(item, context), { task: 'data-capture-storage', userId });
     }
   }
 
@@ -452,10 +432,7 @@ class DefinitionBasedRouter {
             return acknowledgment;
           }
         } catch (error) {
-          log.error(
-            { defId: def.id, error: String(error) },
-            'Error in definition handler'
-          );
+          log.error({ defId: def.id, error: String(error) }, 'Error in definition handler');
         }
       }
     }
@@ -514,7 +491,10 @@ class DefinitionBasedRouter {
     return score;
   }
 
-  private extractArguments(transcript: string, def: DataCaptureDefinition): Record<string, unknown> {
+  private extractArguments(
+    transcript: string,
+    def: DataCaptureDefinition
+  ): Record<string, unknown> {
     const extracted: Record<string, unknown> = {};
     for (const arg of def.arguments) {
       if (arg.extractionPatterns) {
@@ -582,4 +562,3 @@ export async function captureDataBetterThanHuman(
 
 // Re-export types
 export type * from './types.js';
-

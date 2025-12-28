@@ -131,7 +131,9 @@ export class MockRoom extends EventEmitter {
     this.emit('connectionStateChanged', 'connecting');
 
     // Simulate connection delay
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     this.state = 'connected';
     this.isConnected = true;
@@ -223,7 +225,9 @@ export class MockVoicePipelineAgent extends EventEmitter {
       throw new Error('Mock pipeline start failure');
     }
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
     this.isStarted = true;
     this.emit('agentStarted');
   }

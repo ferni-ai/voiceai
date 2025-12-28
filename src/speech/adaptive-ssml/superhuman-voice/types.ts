@@ -110,4 +110,3 @@ export type HeavyContentType = 'grief' | 'fear' | 'frustration' | 'heavyContent'
 
 // Re-export dependency types for convenience
 export type { PresenceLevel, VulnerabilityDepth };
-

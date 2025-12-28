@@ -8,15 +8,18 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Mock the logger
+// Mock the logger - use vi.hoisted() to ensure mockLogger is defined before vi.mock() runs
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  child: vi.fn().mockReturnThis(),
+}));
+
 vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }),
+  createLogger: () => mockLogger,
+  getLogger: () => mockLogger,
 }));
 
 // Import after mocks

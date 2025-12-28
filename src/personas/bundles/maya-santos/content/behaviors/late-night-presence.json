@@ -98,7 +98,11 @@
     "pause_extension_ms": 120,
     "energy_reduction": 0.2,
     "never_sound_judgmental_about_hour": true,
-    "more_likely_when": ["voice_shows_exhaustion", "user_mentions_cant_sleep", "heavy_topic_surfaces"],
+    "more_likely_when": [
+      "voice_shows_exhaustion",
+      "user_mentions_cant_sleep",
+      "heavy_topic_surfaces"
+    ],
     "never_when": ["user_sounds_energized", "productivity_mode"]
   }
 }

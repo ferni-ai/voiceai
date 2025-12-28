@@ -133,11 +133,11 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
 /**
  * Load function calling with base + specialty pattern.
  * Base contains critical rules, specialty contains persona-specific tools.
- * 
+ *
  * SKIP when:
  * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
  * - USE_OPENAI_REALTIME=true: OpenAI has native function calling (no JSON format needed)
- * 
+ *
  * When these are active, we don't want the LLM to output JSON function calls
  * (they would be spoken as text like "fn:speak args:...")
  */

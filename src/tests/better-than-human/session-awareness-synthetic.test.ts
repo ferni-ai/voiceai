@@ -47,9 +47,9 @@ interface MockUserProfile {
     // But we also test moodHistory for future-proofing
     moodHistory?: Array<{ mood: string; timestamp: number }>;
   };
-  lifeEvents?: Array<{ 
-    title: string; 
-    date: Date; 
+  lifeEvents?: Array<{
+    title: string;
+    date: Date;
     category: string;
     // Real implementation filters by status
     status?: 'in_progress' | 'upcoming' | 'planning' | 'completed';
@@ -85,7 +85,8 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
     preferredName: 'Sarah',
     totalConversations: 15,
     relationshipStage: 'building_trust',
-    lastConversationSummary: 'We discussed her upcoming presentation and strategies for managing pre-presentation anxiety.',
+    lastConversationSummary:
+      'We discussed her upcoming presentation and strategies for managing pre-presentation anxiety.',
     lastConversationDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     humanizingState: {
       // Real implementation uses lastMood
@@ -104,7 +105,8 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
     preferredName: 'Mike',
     totalConversations: 45,
     relationshipStage: 'established',
-    lastConversationSummary: 'Mike shared that his dad is recovering well from surgery. He mentioned feeling relieved but exhausted from the past month.',
+    lastConversationSummary:
+      'Mike shared that his dad is recovering well from surgery. He mentioned feeling relieved but exhausted from the past month.',
     lastConversationDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
     humanizingState: {
       lastMood: 'tired_but_present',
@@ -115,9 +117,9 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
       ],
     },
     lifeEvents: [
-      { 
-        title: "Dad's surgery and recovery", 
-        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), 
+      {
+        title: "Dad's surgery and recovery",
+        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         category: 'family',
         status: 'in_progress',
         type: 'loss', // Using 'loss' type for health challenges
@@ -131,7 +133,8 @@ const TEST_PROFILES: Record<string, MockUserProfile> = {
     preferredName: 'Jen',
     totalConversations: 30,
     relationshipStage: 'building_trust',
-    lastConversationSummary: 'Jen was stressed about her packed schedule this week. We brainstormed some delegation strategies.',
+    lastConversationSummary:
+      'Jen was stressed about her packed schedule this week. We brainstormed some delegation strategies.',
     lastConversationDate: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
     goals: ['Delegate more effectively', 'Find time for self-care'],
     primaryConcerns: ['Back-to-back meetings all week'],
@@ -208,7 +211,9 @@ function buildUserAwareness(profile: MockUserProfile): string[] {
     if (convCount === 1) {
       userAwareness.push('This is your first conversation together');
     } else if (convCount < 5) {
-      userAwareness.push(`This is conversation #${convCount + 1} together - still getting to know each other`);
+      userAwareness.push(
+        `This is conversation #${convCount + 1} together - still getting to know each other`
+      );
     } else if (convCount < 20) {
       userAwareness.push(`This is conversation #${convCount + 1} - you've built some rapport`);
     } else {
@@ -228,7 +233,9 @@ function buildUserAwareness(profile: MockUserProfile): string[] {
     } else if (daysSince < 7) {
       userAwareness.push(`It's been ${daysSince} days since you last spoke`);
     } else {
-      userAwareness.push(`It's been ${daysSince} days since you last spoke - they might appreciate a warm reconnection`);
+      userAwareness.push(
+        `It's been ${daysSince} days since you last spoke - they might appreciate a warm reconnection`
+      );
     }
   }
 
@@ -242,13 +249,13 @@ function buildUserAwareness(profile: MockUserProfile): string[] {
     const lastMood = profile.humanizingState.lastMood;
     // Map moods to emotional context (matching real implementation)
     const moodContext: Record<string, string> = {
-      'tired_but_present': 'Last time they seemed a bit tired - be gentle.',
-      'reflective': 'Last time they were in a reflective mood.',
-      'philosophical': 'Last time they were in a thoughtful, philosophical space.',
-      'energized': 'Last time they were full of energy!',
-      'grounded': 'Last time they seemed calm and grounded.',
-      'playful': 'Last time they were in a playful mood.',
-      'nostalgic': 'Last time they were feeling nostalgic.',
+      tired_but_present: 'Last time they seemed a bit tired - be gentle.',
+      reflective: 'Last time they were in a reflective mood.',
+      philosophical: 'Last time they were in a thoughtful, philosophical space.',
+      energized: 'Last time they were full of energy!',
+      grounded: 'Last time they seemed calm and grounded.',
+      playful: 'Last time they were in a playful mood.',
+      nostalgic: 'Last time they were feeling nostalgic.',
     };
     if (moodContext[lastMood]) {
       userAwareness.push(moodContext[lastMood]);
@@ -264,22 +271,26 @@ function buildUserAwareness(profile: MockUserProfile): string[] {
   if (profile.lifeEvents?.length) {
     // Filter by status if available, otherwise take all
     const relevantEvents = profile.lifeEvents
-      .filter(event => {
+      .filter((event) => {
         if (!event.status) return true; // No status = include
-        return event.status === 'in_progress' || event.status === 'upcoming' || event.status === 'planning';
+        return (
+          event.status === 'in_progress' ||
+          event.status === 'upcoming' ||
+          event.status === 'planning'
+        );
       })
       .slice(0, 2);
-    
+
     const eventTypes: Record<string, string> = {
-      'wedding': 'preparing for a wedding',
-      'baby': 'expecting or has a new baby',
-      'graduation': 'graduation coming up',
-      'career_change': 'going through a career change',
-      'relocation': 'moving/relocating',
-      'loss': 'dealing with a loss',
-      'celebration': 'has something to celebrate',
+      wedding: 'preparing for a wedding',
+      baby: 'expecting or has a new baby',
+      graduation: 'graduation coming up',
+      career_change: 'going through a career change',
+      relocation: 'moving/relocating',
+      loss: 'dealing with a loss',
+      celebration: 'has something to celebrate',
     };
-    
+
     for (const event of relevantEvents) {
       const eventContext = event.type ? eventTypes[event.type] : null;
       userAwareness.push(`Life context: ${event.title || eventContext || 'Important life event'}`);
@@ -310,9 +321,13 @@ function buildCalendarAwareness(calendar: MockCalendarContext): string[] {
     const meetingTitle = calendar.nextMeeting.event.title;
 
     if (minutes <= 15) {
-      calendarAwareness.push(`⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`);
+      calendarAwareness.push(
+        `⏰ They have "${meetingTitle}" in ${minutes} minutes - be mindful of time.`
+      );
     } else if (minutes <= 60) {
-      calendarAwareness.push(`📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`);
+      calendarAwareness.push(
+        `📅 They have "${meetingTitle}" in about ${Math.round(minutes / 15) * 15} minutes.`
+      );
     }
   }
 
@@ -328,7 +343,9 @@ function buildCalendarAwareness(calendar: MockCalendarContext): string[] {
 
   // Busy day awareness
   if (calendar.remainingMeetingsToday >= 4) {
-    calendarAwareness.push(`📊 They have ${calendar.remainingMeetingsToday} more meetings today - busy day.`);
+    calendarAwareness.push(
+      `📊 They have ${calendar.remainingMeetingsToday} more meetings today - busy day.`
+    );
   }
 
   return calendarAwareness;
@@ -363,7 +380,20 @@ describe('Date/Time Awareness - Better Than Human', () => {
     expect(days.some((day) => context.includes(day))).toBe(true);
 
     // Should have month
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     expect(months.some((month) => context.includes(month))).toBe(true);
 
     // Should have year
@@ -423,7 +453,9 @@ describe('User Awareness - Better Than Human', () => {
 
     it('should include days since last conversation', () => {
       const awareness = buildUserAwareness(profile);
-      expect(awareness.some((a) => a.includes('days') || a.includes('yesterday') || a.includes('today'))).toBe(true);
+      expect(
+        awareness.some((a) => a.includes('days') || a.includes('yesterday') || a.includes('today'))
+      ).toBe(true);
     });
 
     it('should include last conversation summary', () => {
@@ -434,7 +466,11 @@ describe('User Awareness - Better Than Human', () => {
     it('should include recent emotional state from lastMood', () => {
       const awareness = buildUserAwareness(profile);
       // Real implementation uses lastMood context descriptions
-      expect(awareness.some((a) => a.toLowerCase().includes('reflective') || a.toLowerCase().includes('mood'))).toBe(true);
+      expect(
+        awareness.some(
+          (a) => a.toLowerCase().includes('reflective') || a.toLowerCase().includes('mood')
+        )
+      ).toBe(true);
     });
 
     it('should include goals', () => {
@@ -745,20 +781,23 @@ describe('Combined Scenarios - Better Than Human', () => {
     },
   ];
 
-  it.each(scenarios)('should handle: $name', ({ profile, calendar, expectedAwarenessCount, mustInclude }) => {
-    const userAwareness = buildUserAwareness(profile);
-    const calendarAwareness = buildCalendarAwareness(calendar);
-    const totalAwareness = userAwareness.length + calendarAwareness.length;
+  it.each(scenarios)(
+    'should handle: $name',
+    ({ profile, calendar, expectedAwarenessCount, mustInclude }) => {
+      const userAwareness = buildUserAwareness(profile);
+      const calendarAwareness = buildCalendarAwareness(calendar);
+      const totalAwareness = userAwareness.length + calendarAwareness.length;
 
-    // Check minimum awareness count
-    expect(totalAwareness).toBeGreaterThanOrEqual(expectedAwarenessCount);
+      // Check minimum awareness count
+      expect(totalAwareness).toBeGreaterThanOrEqual(expectedAwarenessCount);
 
-    // Check required content
-    const allAwareness = [...userAwareness, ...calendarAwareness].join(' ');
-    for (const required of mustInclude) {
-      expect(allAwareness.toLowerCase()).toContain(required.toLowerCase());
+      // Check required content
+      const allAwareness = [...userAwareness, ...calendarAwareness].join(' ');
+      for (const required of mustInclude) {
+        expect(allAwareness.toLowerCase()).toContain(required.toLowerCase());
+      }
     }
-  });
+  );
 });
 
 // ============================================================================
@@ -807,9 +846,27 @@ describe('Edge Cases - Better Than Human', () => {
     const profile: MockUserProfile = {
       name: 'Test User',
       lifeEvents: [
-        { title: 'Wedding planning', date: new Date(), category: 'personal', status: 'planning', type: 'wedding' },
-        { title: 'Job transition', date: new Date(), category: 'work', status: 'in_progress', type: 'career_change' },
-        { title: 'Completed move', date: new Date(), category: 'personal', status: 'completed', type: 'relocation' },
+        {
+          title: 'Wedding planning',
+          date: new Date(),
+          category: 'personal',
+          status: 'planning',
+          type: 'wedding',
+        },
+        {
+          title: 'Job transition',
+          date: new Date(),
+          category: 'work',
+          status: 'in_progress',
+          type: 'career_change',
+        },
+        {
+          title: 'Completed move',
+          date: new Date(),
+          category: 'personal',
+          status: 'completed',
+          type: 'relocation',
+        },
       ],
     };
     const awareness = buildUserAwareness(profile);
@@ -820,4 +877,3 @@ describe('Edge Cases - Better Than Human', () => {
     expect(awareness.join(' ')).not.toContain('Completed move');
   });
 });
-

@@ -19,45 +19,45 @@ const log = createLogger({ module: 'vision-analysis' });
 // ============================================================================
 
 interface VisionClient {
-  annotateImage: (
-    request: {
-      image: { content?: string; source?: { imageUri: string } };
-      features: Array<{ type: string; maxResults?: number }>;
-    }
-  ) => Promise<Array<{
-    labelAnnotations?: Array<{ description: string; score: number }>;
-    textAnnotations?: Array<{ description: string; confidence?: number }>;
-    faceAnnotations?: Array<{
-      detectionConfidence: number;
-      joyLikelihood?: string;
-      sorrowLikelihood?: string;
-      angerLikelihood?: string;
-      surpriseLikelihood?: string;
-      boundingPoly?: { vertices: Array<{ x: number; y: number }> };
-    }>;
-    landmarkAnnotations?: Array<{
-      description: string;
-      score: number;
-      locations?: Array<{ latLng: { latitude: number; longitude: number } }>;
-    }>;
-    logoAnnotations?: Array<{ description: string; score: number }>;
-    webDetection?: {
-      webEntities?: Array<{ description: string; score: number }>;
-    };
-    safeSearchAnnotation?: {
-      adult: string;
-      violence: string;
-      medical: string;
-    };
-    imagePropertiesAnnotation?: {
-      dominantColors?: {
-        colors: Array<{
-          color: { red: number; green: number; blue: number };
-          pixelFraction: number;
-        }>;
+  annotateImage: (request: {
+    image: { content?: string; source?: { imageUri: string } };
+    features: Array<{ type: string; maxResults?: number }>;
+  }) => Promise<
+    Array<{
+      labelAnnotations?: Array<{ description: string; score: number }>;
+      textAnnotations?: Array<{ description: string; confidence?: number }>;
+      faceAnnotations?: Array<{
+        detectionConfidence: number;
+        joyLikelihood?: string;
+        sorrowLikelihood?: string;
+        angerLikelihood?: string;
+        surpriseLikelihood?: string;
+        boundingPoly?: { vertices: Array<{ x: number; y: number }> };
+      }>;
+      landmarkAnnotations?: Array<{
+        description: string;
+        score: number;
+        locations?: Array<{ latLng: { latitude: number; longitude: number } }>;
+      }>;
+      logoAnnotations?: Array<{ description: string; score: number }>;
+      webDetection?: {
+        webEntities?: Array<{ description: string; score: number }>;
       };
-    };
-  }>>;
+      safeSearchAnnotation?: {
+        adult: string;
+        violence: string;
+        medical: string;
+      };
+      imagePropertiesAnnotation?: {
+        dominantColors?: {
+          colors: Array<{
+            color: { red: number; green: number; blue: number };
+            pixelFraction: number;
+          }>;
+        };
+      };
+    }>
+  >;
 }
 
 async function getVisionClient(): Promise<VisionClient | null> {
@@ -66,7 +66,7 @@ async function getVisionClient(): Promise<VisionClient | null> {
     // @ts-expect-error - @google-cloud/vision may not be installed
     const vision = await import('@google-cloud/vision');
     const client = new vision.ImageAnnotatorClient();
-    
+
     return {
       annotateImage: async (request) => {
         const [result] = await client.annotateImage(request);
@@ -122,7 +122,7 @@ export async function analyzeImage(
 
     // Build feature requests
     const features: Array<{ type: string; maxResults?: number }> = [];
-    
+
     if (detectLabels) features.push({ type: 'LABEL_DETECTION', maxResults: 15 });
     if (detectText) features.push({ type: 'TEXT_DETECTION' });
     if (detectFaces) features.push({ type: 'FACE_DETECTION', maxResults: 10 });
@@ -173,14 +173,15 @@ export async function analyzeImage(
         };
 
         const bounds = face.boundingPoly?.vertices;
-        const boundingBox = bounds && bounds.length >= 4
-          ? {
-              x: bounds[0].x || 0,
-              y: bounds[0].y || 0,
-              width: (bounds[2].x || 0) - (bounds[0].x || 0),
-              height: (bounds[2].y || 0) - (bounds[0].y || 0),
-            }
-          : undefined;
+        const boundingBox =
+          bounds && bounds.length >= 4
+            ? {
+                x: bounds[0].x || 0,
+                y: bounds[0].y || 0,
+                width: (bounds[2].x || 0) - (bounds[0].x || 0),
+                height: (bounds[2].y || 0) - (bounds[0].y || 0),
+              }
+            : undefined;
 
         return {
           confidence: face.detectionConfidence,
@@ -225,9 +226,18 @@ export async function analyzeImage(
     // Safe search
     if (response.safeSearchAnnotation) {
       result.safeSearch = {
-        adult: response.safeSearchAnnotation.adult as VisionAnalysisResult['safeSearch'] extends undefined ? never : NonNullable<VisionAnalysisResult['safeSearch']>['adult'],
-        violence: response.safeSearchAnnotation.violence as VisionAnalysisResult['safeSearch'] extends undefined ? never : NonNullable<VisionAnalysisResult['safeSearch']>['violence'],
-        medical: response.safeSearchAnnotation.medical as VisionAnalysisResult['safeSearch'] extends undefined ? never : NonNullable<VisionAnalysisResult['safeSearch']>['medical'],
+        adult: response.safeSearchAnnotation
+          .adult as VisionAnalysisResult['safeSearch'] extends undefined
+          ? never
+          : NonNullable<VisionAnalysisResult['safeSearch']>['adult'],
+        violence: response.safeSearchAnnotation
+          .violence as VisionAnalysisResult['safeSearch'] extends undefined
+          ? never
+          : NonNullable<VisionAnalysisResult['safeSearch']>['violence'],
+        medical: response.safeSearchAnnotation
+          .medical as VisionAnalysisResult['safeSearch'] extends undefined
+          ? never
+          : NonNullable<VisionAnalysisResult['safeSearch']>['medical'],
       };
     }
 
@@ -291,7 +301,7 @@ export function generateImageDescription(analysis: VisionAnalysisResult): string
         .sort((a, b) => b[1] - a[1])
         .slice(0, 1)
         .map(([emotion]) => emotion);
-      
+
       if (dominant.length > 0) {
         parts.push(`Appears to express ${dominant[0]}`);
       }
@@ -366,7 +376,8 @@ export function categorizeImage(analysis: VisionAnalysisResult): VisualMemory['c
     labelSet.has('medical') ||
     labelSet.has('medicine') ||
     labelSet.has('hospital') ||
-    (analysis.safeSearch?.medical === 'LIKELY' || analysis.safeSearch?.medical === 'VERY_LIKELY')
+    analysis.safeSearch?.medical === 'LIKELY' ||
+    analysis.safeSearch?.medical === 'VERY_LIKELY'
   ) {
     return 'health';
   }
@@ -407,10 +418,7 @@ function likelihoodToNumber(likelihood?: string): number {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  const toHex = (n: number) =>
-    Math.round(n)
-      .toString(16)
-      .padStart(2, '0');
+  const toHex = (n: number) => Math.round(n).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
@@ -423,4 +431,3 @@ export const visionAnalysis = {
   generateImageDescription,
   categorizeImage,
 };
-

@@ -23,36 +23,36 @@ const log = createLogger({ module: 'ferni-commitments' });
 // ============================================================================
 
 export type CommitmentType =
-  | 'check_in'        // "I'll check in about that"
-  | 'revisit'         // "Let's talk about this more"
-  | 'remember'        // "I'll remember that"
-  | 'avoid'           // "I won't bring that up"
-  | 'follow_up'       // "Let me know how it goes"
-  | 'research'        // "I'll think about that"
-  | 'celebrate';      // "We'll celebrate when..."
+  | 'check_in' // "I'll check in about that"
+  | 'revisit' // "Let's talk about this more"
+  | 'remember' // "I'll remember that"
+  | 'avoid' // "I won't bring that up"
+  | 'follow_up' // "Let me know how it goes"
+  | 'research' // "I'll think about that"
+  | 'celebrate'; // "We'll celebrate when..."
 
 export interface FerniCommitment {
   id: string;
   userId: string;
   type: CommitmentType;
-  
+
   // Content
   commitment: string;
   context: string;
-  
+
   // Timing
   madeAt: Date;
-  dueBy?: Date;           // When it should be fulfilled
-  
+  dueBy?: Date; // When it should be fulfilled
+
   // Tracking
   fulfilled: boolean;
   fulfilledAt?: Date;
   fulfilledHow?: string;
-  
+
   // Avoidance tracking (for "avoid" type)
   violated?: boolean;
   violatedAt?: Date;
-  
+
   // Metadata
   relatedTopic?: string;
   relatedPerson?: string;
@@ -64,16 +64,16 @@ export interface FerniCommitment {
 
 const CONFIG = {
   MAX_COMMITMENTS: 50,
-  
+
   // Default due windows by type (in hours)
   DUE_WINDOWS: {
-    check_in: 168,      // 1 week
-    revisit: 336,       // 2 weeks
-    remember: null,     // Forever
-    avoid: null,        // Forever
-    follow_up: 168,     // 1 week
-    research: 168,      // 1 week
-    celebrate: 720,     // 1 month
+    check_in: 168, // 1 week
+    revisit: 336, // 2 weeks
+    remember: null, // Forever
+    avoid: null, // Forever
+    follow_up: 168, // 1 week
+    research: 168, // 1 week
+    celebrate: 720, // 1 month
   },
 };
 
@@ -95,7 +95,7 @@ const COMMITMENT_PATTERNS: Array<{
     pattern: /\blet(?:'s| us) check in (?:about |on )?(?:that|this)?\b/i,
     type: 'check_in',
   },
-  
+
   // Revisit commitments
   {
     pattern: /\blet(?:'s| us) (?:come back to|revisit|talk more about) (?:that|this)\b/i,
@@ -110,7 +110,7 @@ const COMMITMENT_PATTERNS: Array<{
     type: 'revisit',
     extractCommitment: (m) => `Next time: ${m[1]}`,
   },
-  
+
   // Remember commitments
   {
     pattern: /\bi(?:'ll| will) remember (?:that|this)\b/i,
@@ -124,7 +124,7 @@ const COMMITMENT_PATTERNS: Array<{
     pattern: /\bnoted\b/i,
     type: 'remember',
   },
-  
+
   // Avoidance commitments
   {
     pattern: /\bi(?:'ll| will)(?:n't| not) bring (?:that|this|it) up\b/i,
@@ -138,7 +138,7 @@ const COMMITMENT_PATTERNS: Array<{
     pattern: /\bwe don(?:'t| not) have to talk about (?:that|this)\b/i,
     type: 'avoid',
   },
-  
+
   // Follow-up commitments
   {
     pattern: /\blet me know how (?:it|that|this) goes\b/i,
@@ -152,7 +152,7 @@ const COMMITMENT_PATTERNS: Array<{
     pattern: /\bi(?:'d| would) love to hear how\b/i,
     type: 'follow_up',
   },
-  
+
   // Celebrate commitments
   {
     pattern: /\bwe(?:'ll| will| should) celebrate\b/i,
@@ -165,7 +165,7 @@ const COMMITMENT_PATTERNS: Array<{
 ];
 
 // Topics to track for avoidance
-const AVOIDANCE_TOPICS: string[] = [];  // Populated per-user from their commitments
+const AVOIDANCE_TOPICS: string[] = []; // Populated per-user from their commitments
 
 // ============================================================================
 // CACHE
@@ -193,12 +193,12 @@ export async function createCommitment(
 ): Promise<FerniCommitment> {
   const now = new Date();
   const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   const dueWindow = CONFIG.DUE_WINDOWS[commitment.type];
-  const dueBy = commitment.dueBy ?? (dueWindow
-    ? new Date(now.getTime() + dueWindow * 60 * 60 * 1000)
-    : undefined);
-  
+  const dueBy =
+    commitment.dueBy ??
+    (dueWindow ? new Date(now.getTime() + dueWindow * 60 * 60 * 1000) : undefined);
+
   const ferniCommitment: FerniCommitment = {
     id,
     userId,
@@ -211,22 +211,22 @@ export async function createCommitment(
     relatedTopic: commitment.relatedTopic,
     relatedPerson: commitment.relatedPerson,
   };
-  
+
   // Save
   await saveCommitment(userId, ferniCommitment);
-  
+
   // Update cache
   const cached = commitmentCache.get(userId) ?? [];
   cached.push(ferniCommitment);
   commitmentCache.set(userId, cached);
-  
+
   // Create proactive insight to fulfill
   if (commitment.type !== 'remember' && commitment.type !== 'avoid') {
     await createFulfillmentInsight(userId, ferniCommitment);
   }
-  
+
   log.debug({ userId, type: commitment.type }, '🤝 Ferni commitment created');
-  
+
   return ferniCommitment;
 }
 
@@ -239,14 +239,14 @@ export async function fulfillCommitment(
   how?: string
 ): Promise<void> {
   const commitments = await loadCommitments(userId);
-  const commitment = commitments.find(c => c.id === commitmentId);
-  
+  const commitment = commitments.find((c) => c.id === commitmentId);
+
   if (commitment) {
     commitment.fulfilled = true;
     commitment.fulfilledAt = new Date();
     commitment.fulfilledHow = how;
     await saveCommitment(userId, commitment);
-    
+
     log.debug({ userId, commitmentId, type: commitment.type }, '✅ Commitment fulfilled');
   }
 }
@@ -259,28 +259,25 @@ export async function checkAvoidanceViolation(
   topic: string
 ): Promise<FerniCommitment | null> {
   const commitments = await loadCommitments(userId);
-  const avoidances = commitments.filter(c =>
-    c.type === 'avoid' &&
-    !c.fulfilled &&
-    !c.violated
-  );
-  
+  const avoidances = commitments.filter((c) => c.type === 'avoid' && !c.fulfilled && !c.violated);
+
   for (const commitment of avoidances) {
-    const shouldAvoid = commitment.relatedTopic?.toLowerCase() === topic.toLowerCase() ||
+    const shouldAvoid =
+      commitment.relatedTopic?.toLowerCase() === topic.toLowerCase() ||
       commitment.context.toLowerCase().includes(topic.toLowerCase());
-    
+
     if (shouldAvoid) {
       // Mark as violated
       commitment.violated = true;
       commitment.violatedAt = new Date();
       await saveCommitment(userId, commitment);
-      
+
       log.warn({ userId, topic, commitmentId: commitment.id }, '⚠️ Avoidance commitment violated');
-      
+
       return commitment;
     }
   }
-  
+
   return null;
 }
 
@@ -290,20 +287,22 @@ export async function checkAvoidanceViolation(
 export async function getPendingCommitments(userId: string): Promise<FerniCommitment[]> {
   const commitments = await loadCommitments(userId);
   const now = new Date();
-  
-  return commitments.filter(c => {
-    if (c.fulfilled) return false;
-    if (c.type === 'remember' || c.type === 'avoid') return false;
-    if (c.dueBy && now > c.dueBy) return false; // Expired
-    
-    return true;
-  }).sort((a, b) => {
-    // Sort by due date (soonest first)
-    if (a.dueBy && b.dueBy) return a.dueBy.getTime() - b.dueBy.getTime();
-    if (a.dueBy) return -1;
-    if (b.dueBy) return 1;
-    return 0;
-  });
+
+  return commitments
+    .filter((c) => {
+      if (c.fulfilled) return false;
+      if (c.type === 'remember' || c.type === 'avoid') return false;
+      if (c.dueBy && now > c.dueBy) return false; // Expired
+
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by due date (soonest first)
+      if (a.dueBy && b.dueBy) return a.dueBy.getTime() - b.dueBy.getTime();
+      if (a.dueBy) return -1;
+      if (b.dueBy) return 1;
+      return 0;
+    });
 }
 
 /**
@@ -311,7 +310,7 @@ export async function getPendingCommitments(userId: string): Promise<FerniCommit
  */
 export async function getRememberedThings(userId: string): Promise<FerniCommitment[]> {
   const commitments = await loadCommitments(userId);
-  return commitments.filter(c => c.type === 'remember' && !c.fulfilled);
+  return commitments.filter((c) => c.type === 'remember' && !c.fulfilled);
 }
 
 /**
@@ -320,8 +319,8 @@ export async function getRememberedThings(userId: string): Promise<FerniCommitme
 export async function getAvoidanceTopics(userId: string): Promise<string[]> {
   const commitments = await loadCommitments(userId);
   return commitments
-    .filter(c => c.type === 'avoid' && !c.fulfilled && !c.violated)
-    .map(c => c.relatedTopic ?? c.context)
+    .filter((c) => c.type === 'avoid' && !c.fulfilled && !c.violated)
+    .map((c) => c.relatedTopic ?? c.context)
     .filter(Boolean);
 }
 
@@ -339,9 +338,7 @@ export async function getAllCommitments(userId: string): Promise<FerniCommitment
 /**
  * Detect commitments in Ferni's response.
  */
-export function detectCommitmentsInResponse(
-  responseText: string
-): Array<{
+export function detectCommitmentsInResponse(responseText: string): Array<{
   type: CommitmentType;
   commitment: string;
   matchedText: string;
@@ -351,7 +348,7 @@ export function detectCommitmentsInResponse(
     commitment: string;
     matchedText: string;
   }> = [];
-  
+
   for (const { pattern, type, extractCommitment } of COMMITMENT_PATTERNS) {
     const match = responseText.match(pattern);
     if (match) {
@@ -362,7 +359,7 @@ export function detectCommitmentsInResponse(
       });
     }
   }
-  
+
   return detected;
 }
 
@@ -379,10 +376,10 @@ export async function trackCommitmentsInResponse(
   }
 ): Promise<FerniCommitment[]> {
   if (!userId || userId === 'anonymous') return [];
-  
+
   const detected = detectCommitmentsInResponse(responseText);
   const created: FerniCommitment[] = [];
-  
+
   for (const item of detected) {
     const commitment = await createCommitment(userId, {
       type: item.type,
@@ -393,11 +390,11 @@ export async function trackCommitmentsInResponse(
     });
     created.push(commitment);
   }
-  
+
   if (created.length > 0) {
     log.debug({ userId, count: created.length }, '🤝 Tracked Ferni commitments from response');
   }
-  
+
   return created;
 }
 
@@ -411,7 +408,7 @@ async function createFulfillmentInsight(
 ): Promise<void> {
   const insightText = generateFulfillmentText(commitment);
   if (!insightText) return;
-  
+
   await createInsight(userId, {
     source: 'commitment',
     priority: 'high',
@@ -419,8 +416,24 @@ async function createFulfillmentInsight(
     context: commitment.context,
     surfaceWhen: [
       { type: 'session_start' },
-      ...(commitment.relatedTopic ? [{ type: 'topic' as const, value: commitment.relatedTopic, condition: 'contains' as const }] : []),
-      ...(commitment.relatedPerson ? [{ type: 'person' as const, value: commitment.relatedPerson, condition: 'contains' as const }] : []),
+      ...(commitment.relatedTopic
+        ? [
+            {
+              type: 'topic' as const,
+              value: commitment.relatedTopic,
+              condition: 'contains' as const,
+            },
+          ]
+        : []),
+      ...(commitment.relatedPerson
+        ? [
+            {
+              type: 'person' as const,
+              value: commitment.relatedPerson,
+              condition: 'contains' as const,
+            },
+          ]
+        : []),
     ],
     surfaceAfter: commitment.madeAt,
     expiresAt: commitment.dueBy,
@@ -461,16 +474,18 @@ export function formatCommitmentsForContext(
   avoidanceTopics: string[]
 ): string {
   if (commitments.length === 0 && avoidanceTopics.length === 0) return '';
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     "FERNI'S COMMITMENTS - Keep your promises!",
     '═══════════════════════════════════════════════════════════',
     '',
   ];
-  
+
   // Pending commitments
-  const pending = commitments.filter(c => !c.fulfilled && c.type !== 'avoid' && c.type !== 'remember');
+  const pending = commitments.filter(
+    (c) => !c.fulfilled && c.type !== 'avoid' && c.type !== 'remember'
+  );
   if (pending.length > 0) {
     lines.push('PENDING FOLLOW-UPS:');
     for (const c of pending) {
@@ -479,9 +494,9 @@ export function formatCommitmentsForContext(
     }
     lines.push('');
   }
-  
+
   // Things to remember
-  const remembered = commitments.filter(c => c.type === 'remember' && !c.fulfilled);
+  const remembered = commitments.filter((c) => c.type === 'remember' && !c.fulfilled);
   if (remembered.length > 0) {
     lines.push('THINGS TO REMEMBER:');
     for (const c of remembered) {
@@ -489,7 +504,7 @@ export function formatCommitmentsForContext(
     }
     lines.push('');
   }
-  
+
   // Topics to avoid
   if (avoidanceTopics.length > 0) {
     lines.push('⚠️ TOPICS TO AVOID (you promised):');
@@ -498,9 +513,9 @@ export function formatCommitmentsForContext(
     }
     lines.push('');
   }
-  
+
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -512,10 +527,10 @@ async function loadCommitments(userId: string): Promise<FerniCommitment[]> {
   // Check cache
   const cached = commitmentCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -524,18 +539,21 @@ async function loadCommitments(userId: string): Promise<FerniCommitment[]> {
       .orderBy('madeAt', 'desc')
       .limit(CONFIG.MAX_COMMITMENTS)
       .get();
-    
-    const commitments = snapshot.docs.map(doc => {
+
+    const commitments = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         madeAt: data.madeAt?.toDate?.() ?? new Date(data.madeAt),
         dueBy: data.dueBy?.toDate?.() ?? (data.dueBy ? new Date(data.dueBy) : undefined),
-        fulfilledAt: data.fulfilledAt?.toDate?.() ?? (data.fulfilledAt ? new Date(data.fulfilledAt) : undefined),
-        violatedAt: data.violatedAt?.toDate?.() ?? (data.violatedAt ? new Date(data.violatedAt) : undefined),
+        fulfilledAt:
+          data.fulfilledAt?.toDate?.() ??
+          (data.fulfilledAt ? new Date(data.fulfilledAt) : undefined),
+        violatedAt:
+          data.violatedAt?.toDate?.() ?? (data.violatedAt ? new Date(data.violatedAt) : undefined),
       } as FerniCommitment;
     });
-    
+
     commitmentCache.set(userId, commitments);
     return commitments;
   } catch (error) {
@@ -547,7 +565,7 @@ async function loadCommitments(userId: string): Promise<FerniCommitment[]> {
 async function saveCommitment(userId: string, commitment: FerniCommitment): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -591,4 +609,3 @@ export const ferniCommitments = {
 };
 
 export default ferniCommitments;
-

@@ -388,11 +388,13 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
       .doc(outreach.userId)
       .collection('scheduled_outreach')
       .doc(outreach.id)
-      .set(cleanForFirestore({
-        ...outreach,
-        scheduledFor: outreach.scheduledFor.toISOString(),
-        createdAt: outreach.createdAt.toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...outreach,
+          scheduledFor: outreach.scheduledFor.toISOString(),
+          createdAt: outreach.createdAt.toISOString(),
+        })
+      );
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist outreach');
   }
@@ -407,7 +409,10 @@ export async function loadPendingOutreach(): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
-    const snapshot = await db.collectionGroup('scheduled_outreach').where('status', '==', 'pending').get();
+    const snapshot = await db
+      .collectionGroup('scheduled_outreach')
+      .where('status', '==', 'pending')
+      .get();
 
     for (const doc of snapshot.docs) {
       const data = doc.data();
@@ -503,4 +508,3 @@ export async function scheduleMilestone(
     priority: 'high',
   });
 }
-

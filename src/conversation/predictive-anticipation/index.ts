@@ -199,7 +199,8 @@ export class PredictiveAnticipationEngine {
     if (confidence > 0.6) {
       const options = VOICE_STATE_ACKNOWLEDGMENTS[state];
       if (options && options.length > 0) {
-        acknowledgment = seededPick(`${this.userId}:${this.turnCount}:voiceState:${state}`, options) ?? options[0];
+        acknowledgment =
+          seededPick(`${this.userId}:${this.turnCount}:voiceState:${state}`, options) ?? options[0];
       }
     }
 
@@ -255,7 +256,10 @@ export class PredictiveAnticipationEngine {
       confidence,
       evidence: `After ${this.currentTopic}, you often talk about ${mostLikely.to} (${mostLikely.count} times)`,
       shouldPrompt,
-      promptPhrase: shouldPrompt ? seededPick(`${this.userId}:${this.turnCount}:topicPrompt:${mostLikely.to}`, phrases) ?? phrases[0] : undefined,
+      promptPhrase: shouldPrompt
+        ? (seededPick(`${this.userId}:${this.turnCount}:topicPrompt:${mostLikely.to}`, phrases) ??
+          phrases[0])
+        : undefined,
     };
   }
 

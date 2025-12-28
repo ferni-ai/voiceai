@@ -478,22 +478,24 @@ class JournalService {
         .collection('memories')
         .doc(entry.id);
 
-      await memoryRef.set(cleanForFirestore({
-        type: 'journalEntry',
-        content: entry.content,
-        transcript: entry.transcript,
-        audioUrl: entry.audioUrl,
-        durationSeconds: entry.durationSeconds,
-        mood: entry.mood?.id,
-        themes: entry.themes,
-        source: entry.source,
-        momentType: entry.momentType,
-        intensity: entry.intensity,
-        conversationId: entry.conversationId,
-        personaId: entry.personaId,
-        promptId: entry.promptId,
-        createdAt: entry.createdAt,
-      }));
+      await memoryRef.set(
+        cleanForFirestore({
+          type: 'journalEntry',
+          content: entry.content,
+          transcript: entry.transcript,
+          audioUrl: entry.audioUrl,
+          durationSeconds: entry.durationSeconds,
+          mood: entry.mood?.id,
+          themes: entry.themes,
+          source: entry.source,
+          momentType: entry.momentType,
+          intensity: entry.intensity,
+          conversationId: entry.conversationId,
+          personaId: entry.personaId,
+          promptId: entry.promptId,
+          createdAt: entry.createdAt,
+        })
+      );
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to save to Digital Twin');
       throw error;

@@ -58,10 +58,7 @@ describe('ContentCache', () => {
       subhead: 'Generated subhead',
       ctaText: 'Generated CTA',
     });
-    mockGenerateSocialProof.mockResolvedValue([
-      { content: 'Message 1' },
-      { content: 'Message 2' },
-    ]);
+    mockGenerateSocialProof.mockResolvedValue([{ content: 'Message 1' }, { content: 'Message 2' }]);
   });
 
   afterEach(() => {

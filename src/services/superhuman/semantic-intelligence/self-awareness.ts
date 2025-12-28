@@ -22,21 +22,21 @@ const log = createLogger({ module: 'self-awareness' });
 export interface BlindSpot {
   id: string;
   userId: string;
-  
+
   // The blind spot
-  pattern: string;           // What we've noticed
-  evidence: string[];        // Examples from conversations
+  pattern: string; // What we've noticed
+  evidence: string[]; // Examples from conversations
   category: 'self_perception' | 'impact_on_others' | 'patterns' | 'avoidance';
-  
+
   // Metrics
   confidence: number;
   occurrences: number;
-  
+
   // Status
   surfaced: boolean;
   surfacedAt?: Date;
   userResponse?: 'acknowledged' | 'dismissed' | 'exploring';
-  
+
   created: Date;
   lastSeen: Date;
 }
@@ -44,82 +44,88 @@ export interface BlindSpot {
 export interface SelfPerceptionGap {
   id: string;
   userId: string;
-  
+
   // The gap
-  selfStatement: string;     // "I'm always there for my friends"
-  observedBehavior: string;  // "Canceled on friends 5x this month"
-  gapDescription: string;    // "Says they're reliable but often cancels"
-  
+  selfStatement: string; // "I'm always there for my friends"
+  observedBehavior: string; // "Canceled on friends 5x this month"
+  gapDescription: string; // "Says they're reliable but often cancels"
+
   // Metrics
-  gapSeverity: number;       // 0-1
+  gapSeverity: number; // 0-1
   evidence: Array<{
     type: 'self_statement' | 'behavior';
     text: string;
     timestamp: Date;
   }>;
-  
+
   // Status
   surfaced: boolean;
-  
+
   created: Date;
   updated: Date;
 }
 
 export interface ValuesBehaviorAlignment {
   userId: string;
-  
+
   // Tracked values
   statedValues: Array<{
     value: string;
     statedAt: Date;
     context: string;
   }>;
-  
+
   // Alignment tracking
-  alignmentScores: Map<string, {
-    value: string;
-    alignedBehaviors: number;
-    misalignedBehaviors: number;
-    score: number;  // 0-1
-    examples: string[];
-  }>;
-  
+  alignmentScores: Map<
+    string,
+    {
+      value: string;
+      alignedBehaviors: number;
+      misalignedBehaviors: number;
+      score: number; // 0-1
+      examples: string[];
+    }
+  >;
+
   // Overall
   overallAlignment: number;
-  
+
   lastUpdated: Date;
 }
 
 export interface CognitiveDistortionProfile {
   userId: string;
-  
+
   // Distortion frequencies
-  distortions: Map<string, {
-    count: number;
-    recentExamples: string[];
-    lastSeen: Date;
-  }>;
-  
+  distortions: Map<
+    string,
+    {
+      count: number;
+      recentExamples: string[];
+      lastSeen: Date;
+    }
+  >;
+
   // Most common
   primaryDistortion?: string;
-  
+
   // Progress tracking
-  reductionTrend: number;  // -1 to 1 (negative = improving)
-  
+  reductionTrend: number; // -1 to 1 (negative = improving)
+
   lastUpdated: Date;
 }
 
 // Known cognitive distortions
 export type CognitiveDistortion =
-  | 'all_or_nothing'      // Black and white thinking
-  | 'catastrophizing'      // Assuming the worst
-  | 'mind_reading'         // Assuming what others think
-  | 'fortune_telling'      // Predicting negative futures
-  | 'should_statements'    // Rigid rules for self/others
-  | 'personalization'      // Taking things personally
-  | 'overgeneralization'   // "Always" and "never"
-  | 'mental_filtering'     // Focusing on negatives
-  | 'discounting_positives'// Minimizing good things
+  | 'all_or_nothing' // Black and white thinking
+  | 'catastrophizing' // Assuming the worst
+  | 'mind_reading' // Assuming what others think
+  | 'fortune_telling' // Predicting negative futures
+  | 'should_statements' // Rigid rules for self/others
+  | 'personalization' // Taking things personally
+  | 'overgeneralization' // "Always" and "never"
+  | 'mental_filtering' // Focusing on negatives
+  | 'discounting_positives' // Minimizing good things
   | 'emotional_reasoning'; // Feelings = facts
 
 // ============================================================================
@@ -130,7 +136,7 @@ const CONFIG = {
   MIN_EVIDENCE_FOR_BLIND_SPOT: 3,
   MAX_BLIND_SPOTS: 20,
   MIN_GAP_SEVERITY: 0.5,
-  VALUE_DECAY_DAYS: 90,  // Values stated more than 90 days ago get less weight
+  VALUE_DECAY_DAYS: 90, // Values stated more than 90 days ago get less weight
 };
 
 // ============================================================================
@@ -244,15 +250,15 @@ export async function recordBlindSpotEvidence(
 ): Promise<BlindSpot> {
   const blindSpots = await loadBlindSpots(userId);
   const now = new Date();
-  
+
   // Find or create blind spot
-  let blindSpot = blindSpots.find(b =>
-    b.pattern.toLowerCase() === evidence.pattern.toLowerCase()
+  let blindSpot = blindSpots.find(
+    (b) => b.pattern.toLowerCase() === evidence.pattern.toLowerCase()
   );
-  
+
   if (blindSpot) {
     blindSpot.evidence.push(evidence.context);
-    blindSpot.evidence = blindSpot.evidence.slice(-10);  // Keep last 10
+    blindSpot.evidence = blindSpot.evidence.slice(-10); // Keep last 10
     blindSpot.occurrences++;
     blindSpot.confidence = Math.min(blindSpot.confidence + 0.1, 1);
     blindSpot.lastSeen = now;
@@ -271,10 +277,10 @@ export async function recordBlindSpotEvidence(
     };
     blindSpots.push(blindSpot);
   }
-  
+
   await saveBlindSpot(userId, blindSpot);
   blindSpotCache.set(userId, blindSpots);
-  
+
   return blindSpot;
 }
 
@@ -283,9 +289,8 @@ export async function recordBlindSpotEvidence(
  */
 export async function getBlindSpots(userId: string): Promise<BlindSpot[]> {
   const blindSpots = await loadBlindSpots(userId);
-  return blindSpots.filter(b =>
-    b.occurrences >= CONFIG.MIN_EVIDENCE_FOR_BLIND_SPOT &&
-    b.confidence >= 0.5
+  return blindSpots.filter(
+    (b) => b.occurrences >= CONFIG.MIN_EVIDENCE_FOR_BLIND_SPOT && b.confidence >= 0.5
   );
 }
 
@@ -294,7 +299,7 @@ export async function getBlindSpots(userId: string): Promise<BlindSpot[]> {
  */
 export async function getUnsurfacedBlindSpots(userId: string): Promise<BlindSpot[]> {
   const blindSpots = await getBlindSpots(userId);
-  return blindSpots.filter(b => !b.surfaced && b.confidence >= 0.7);
+  return blindSpots.filter((b) => !b.surfaced && b.confidence >= 0.7);
 }
 
 /**
@@ -306,8 +311,8 @@ export async function markBlindSpotSurfaced(
   response?: BlindSpot['userResponse']
 ): Promise<void> {
   const blindSpots = await loadBlindSpots(userId);
-  const blindSpot = blindSpots.find(b => b.id === blindSpotId);
-  
+  const blindSpot = blindSpots.find((b) => b.id === blindSpotId);
+
   if (blindSpot) {
     blindSpot.surfaced = true;
     blindSpot.surfacedAt = new Date();
@@ -329,18 +334,18 @@ export async function recordSelfPerception(
   context: string
 ): Promise<void> {
   // Check if it's a self-perception statement
-  const isPerception = SELF_PERCEPTION_PATTERNS.some(p => p.test(statement));
+  const isPerception = SELF_PERCEPTION_PATTERNS.some((p) => p.test(statement));
   if (!isPerception) return;
-  
+
   const gaps = await loadGaps(userId);
   const now = new Date();
-  
+
   // Create or update gap entry
   // We'll match this with behavior later
-  const existing = gaps.find(g =>
+  const existing = gaps.find((g) =>
     g.selfStatement.toLowerCase().includes(statement.toLowerCase().slice(0, 50))
   );
-  
+
   if (existing) {
     existing.evidence.push({
       type: 'self_statement',
@@ -356,11 +361,13 @@ export async function recordSelfPerception(
       observedBehavior: '',
       gapDescription: '',
       gapSeverity: 0,
-      evidence: [{
-        type: 'self_statement',
-        text: context,
-        timestamp: now,
-      }],
+      evidence: [
+        {
+          type: 'self_statement',
+          text: context,
+          timestamp: now,
+        },
+      ],
       surfaced: false,
       created: now,
       updated: now,
@@ -368,7 +375,7 @@ export async function recordSelfPerception(
     gaps.push(gap);
     await saveGap(userId, gap);
   }
-  
+
   gapCache.set(userId, gaps);
 }
 
@@ -382,17 +389,17 @@ export async function recordBehavior(
 ): Promise<SelfPerceptionGap | null> {
   const gaps = await loadGaps(userId);
   const now = new Date();
-  
+
   // Find contradicting self-perceptions
   for (const gap of gaps) {
-    if (gap.gapSeverity > 0) continue;  // Already identified
-    
+    if (gap.gapSeverity > 0) continue; // Already identified
+
     // Simple contradiction check
     // "I always help" vs "didn't help"
     // "I'm patient" vs "lost my temper"
     const selfClaim = gap.selfStatement.toLowerCase();
     const behaviorLower = behavior.toLowerCase();
-    
+
     // Check for common contradictions
     const contradictions = [
       { claim: /always|never fail|reliable/i, contradict: /didn't|couldn't|failed|canceled/i },
@@ -400,7 +407,7 @@ export async function recordBehavior(
       { claim: /honest|truthful/i, contradict: /lied|didn't tell|hid|omitted/i },
       { claim: /supportive|there for/i, contradict: /wasn't there|didn't (help|support|show)/i },
     ];
-    
+
     for (const { claim, contradict } of contradictions) {
       if (claim.test(selfClaim) && contradict.test(behaviorLower)) {
         gap.observedBehavior = behavior;
@@ -412,16 +419,16 @@ export async function recordBehavior(
           timestamp: now,
         });
         gap.updated = now;
-        
+
         await saveGap(userId, gap);
         gapCache.set(userId, gaps);
-        
+
         log.info({ userId, gap: gap.gapDescription }, '🔍 Self-perception gap detected');
         return gap;
       }
     }
   }
-  
+
   return null;
 }
 
@@ -430,7 +437,7 @@ export async function recordBehavior(
  */
 export async function getGaps(userId: string): Promise<SelfPerceptionGap[]> {
   const gaps = await loadGaps(userId);
-  return gaps.filter(g => g.gapSeverity >= CONFIG.MIN_GAP_SEVERITY);
+  return gaps.filter((g) => g.gapSeverity >= CONFIG.MIN_GAP_SEVERITY);
 }
 
 // ============================================================================
@@ -445,8 +452,8 @@ export async function recordStatedValue(
   value: string,
   context: string
 ): Promise<void> {
-  let alignment = valuesCache.get(userId) ?? await loadValuesAlignment(userId);
-  
+  let alignment = valuesCache.get(userId) ?? (await loadValuesAlignment(userId));
+
   if (!alignment) {
     alignment = {
       userId,
@@ -456,14 +463,14 @@ export async function recordStatedValue(
       lastUpdated: new Date(),
     };
   }
-  
+
   // Add value
   alignment.statedValues.push({
     value: value.toLowerCase(),
     statedAt: new Date(),
     context,
   });
-  
+
   // Initialize alignment tracking if new
   if (!alignment.alignmentScores.has(value.toLowerCase())) {
     alignment.alignmentScores.set(value.toLowerCase(), {
@@ -474,9 +481,9 @@ export async function recordStatedValue(
       examples: [],
     });
   }
-  
+
   alignment.lastUpdated = new Date();
-  
+
   await saveValuesAlignment(userId, alignment);
   valuesCache.set(userId, alignment);
 }
@@ -490,25 +497,25 @@ export async function recordValueBehavior(
   behavior: string,
   aligned: boolean
 ): Promise<void> {
-  const alignment = valuesCache.get(userId) ?? await loadValuesAlignment(userId);
+  const alignment = valuesCache.get(userId) ?? (await loadValuesAlignment(userId));
   if (!alignment) return;
-  
+
   const valueData = alignment.alignmentScores.get(value.toLowerCase());
   if (!valueData) return;
-  
+
   if (aligned) {
     valueData.alignedBehaviors++;
   } else {
     valueData.misalignedBehaviors++;
   }
-  
+
   // Recalculate score
   const total = valueData.alignedBehaviors + valueData.misalignedBehaviors;
   valueData.score = total > 0 ? valueData.alignedBehaviors / total : 0.5;
-  
+
   valueData.examples.push(`${aligned ? '✓' : '✗'} ${behavior}`);
   valueData.examples = valueData.examples.slice(-5);
-  
+
   // Update overall alignment
   let totalScore = 0;
   let count = 0;
@@ -519,9 +526,9 @@ export async function recordValueBehavior(
     }
   }
   alignment.overallAlignment = count > 0 ? totalScore / count : 0.5;
-  
+
   alignment.lastUpdated = new Date();
-  
+
   await saveValuesAlignment(userId, alignment);
   valuesCache.set(userId, alignment);
 }
@@ -538,13 +545,15 @@ export async function getValuesAlignment(userId: string): Promise<ValuesBehavior
 /**
  * Get misaligned values.
  */
-export async function getMisalignedValues(userId: string): Promise<Array<{ value: string; score: number; examples: string[] }>> {
+export async function getMisalignedValues(
+  userId: string
+): Promise<Array<{ value: string; score: number; examples: string[] }>> {
   const alignment = await getValuesAlignment(userId);
   if (!alignment) return [];
-  
+
   return [...alignment.alignmentScores.values()]
-    .filter(v => v.score < 0.4 && v.alignedBehaviors + v.misalignedBehaviors >= 3)
-    .map(v => ({ value: v.value, score: v.score, examples: v.examples }));
+    .filter((v) => v.score < 0.4 && v.alignedBehaviors + v.misalignedBehaviors >= 3)
+    .map((v) => ({ value: v.value, score: v.score, examples: v.examples }));
 }
 
 // ============================================================================
@@ -556,13 +565,13 @@ export async function getMisalignedValues(userId: string): Promise<Array<{ value
  */
 export function detectDistortions(text: string): CognitiveDistortion[] {
   const detected: CognitiveDistortion[] = [];
-  
+
   for (const { distortion, patterns } of DISTORTION_PATTERNS) {
-    if (patterns.some(p => p.test(text))) {
+    if (patterns.some((p) => p.test(text))) {
       detected.push(distortion);
     }
   }
-  
+
   return detected;
 }
 
@@ -575,9 +584,9 @@ export async function recordDistortions(
 ): Promise<CognitiveDistortion[]> {
   const detected = detectDistortions(text);
   if (detected.length === 0) return [];
-  
-  let profile = distortionCache.get(userId) ?? await loadDistortionProfile(userId);
-  
+
+  let profile = distortionCache.get(userId) ?? (await loadDistortionProfile(userId));
+
   if (!profile) {
     profile = {
       userId,
@@ -586,24 +595,24 @@ export async function recordDistortions(
       lastUpdated: new Date(),
     };
   }
-  
+
   const now = new Date();
-  
+
   for (const distortion of detected) {
     const existing = profile.distortions.get(distortion) ?? {
       count: 0,
       recentExamples: [],
       lastSeen: now,
     };
-    
+
     existing.count++;
     existing.recentExamples.push(text.slice(0, 100));
     existing.recentExamples = existing.recentExamples.slice(-5);
     existing.lastSeen = now;
-    
+
     profile.distortions.set(distortion, existing);
   }
-  
+
   // Update primary distortion
   let maxCount = 0;
   for (const [distortion, data] of profile.distortions) {
@@ -612,19 +621,21 @@ export async function recordDistortions(
       profile.primaryDistortion = distortion;
     }
   }
-  
+
   profile.lastUpdated = now;
-  
+
   await saveDistortionProfile(userId, profile);
   distortionCache.set(userId, profile);
-  
+
   return detected;
 }
 
 /**
  * Get distortion profile.
  */
-export async function getDistortionProfile(userId: string): Promise<CognitiveDistortionProfile | null> {
+export async function getDistortionProfile(
+  userId: string
+): Promise<CognitiveDistortionProfile | null> {
   const cached = distortionCache.get(userId);
   if (cached) return cached;
   return loadDistortionProfile(userId);
@@ -644,14 +655,14 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
     getValuesAlignment(userId),
     getDistortionProfile(userId),
   ]);
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     'SELF-AWARENESS INTELLIGENCE - Help them see clearly',
     '═══════════════════════════════════════════════════════════',
     '',
   ];
-  
+
   // Blind spots (surface gently)
   if (blindSpots.length > 0) {
     lines.push('🔍 POTENTIAL BLIND SPOTS (surface very gently if relevant):');
@@ -661,7 +672,7 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
     }
     lines.push('');
   }
-  
+
   // Self-perception gaps
   if (gaps.length > 0) {
     lines.push('📊 PERCEPTION GAPS:');
@@ -670,7 +681,7 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
     }
     lines.push('');
   }
-  
+
   // Values alignment
   if (values && values.overallAlignment < 0.5) {
     const misaligned = await getMisalignedValues(userId);
@@ -685,7 +696,7 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
       lines.push('');
     }
   }
-  
+
   // Cognitive distortions
   if (distortions && distortions.primaryDistortion) {
     const distortionNames: Record<string, string> = {
@@ -700,21 +711,22 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
       discounting_positives: 'discounting positives',
       emotional_reasoning: 'emotional reasoning',
     };
-    
+
     lines.push('🧠 THINKING PATTERNS:');
-    const primaryName = distortionNames[distortions.primaryDistortion] ?? distortions.primaryDistortion;
+    const primaryName =
+      distortionNames[distortions.primaryDistortion] ?? distortions.primaryDistortion;
     lines.push(`  Primary pattern: ${primaryName}`);
-    
+
     const data = distortions.distortions.get(distortions.primaryDistortion);
     if (data && data.recentExamples.length > 0) {
       lines.push(`  Recent example: "${data.recentExamples[0]}"`);
     }
     lines.push('');
   }
-  
+
   lines.push('NOTE: Surface these insights with extreme care and empathy.');
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -725,10 +737,10 @@ export async function formatSelfAwarenessContext(userId: string): Promise<string
 async function loadBlindSpots(userId: string): Promise<BlindSpot[]> {
   const cached = blindSpotCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -736,23 +748,28 @@ async function loadBlindSpots(userId: string): Promise<BlindSpot[]> {
       .collection('blind_spots')
       .limit(CONFIG.MAX_BLIND_SPOTS)
       .get();
-    
-    const blindSpots = snapshot.docs.map(doc => {
+
+    const blindSpots = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
-        created: data.created && typeof data.created === 'object' && 'toDate' in data.created 
-          ? data.created.toDate() 
-          : new Date(data.created),
-        lastSeen: data.lastSeen && typeof data.lastSeen === 'object' && 'toDate' in data.lastSeen 
-          ? data.lastSeen.toDate() 
-          : new Date(data.lastSeen),
-        surfacedAt: data.surfacedAt && typeof data.surfacedAt === 'object' && 'toDate' in data.surfacedAt 
-          ? data.surfacedAt.toDate() 
-          : (data.surfacedAt ? new Date(data.surfacedAt) : undefined),
+        created:
+          data.created && typeof data.created === 'object' && 'toDate' in data.created
+            ? data.created.toDate()
+            : new Date(data.created),
+        lastSeen:
+          data.lastSeen && typeof data.lastSeen === 'object' && 'toDate' in data.lastSeen
+            ? data.lastSeen.toDate()
+            : new Date(data.lastSeen),
+        surfacedAt:
+          data.surfacedAt && typeof data.surfacedAt === 'object' && 'toDate' in data.surfacedAt
+            ? data.surfacedAt.toDate()
+            : data.surfacedAt
+              ? new Date(data.surfacedAt)
+              : undefined,
       } as BlindSpot;
     });
-    
+
     blindSpotCache.set(userId, blindSpots);
     return blindSpots;
   } catch (error) {
@@ -764,7 +781,7 @@ async function loadBlindSpots(userId: string): Promise<BlindSpot[]> {
 async function saveBlindSpot(userId: string, blindSpot: BlindSpot): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -780,36 +797,41 @@ async function saveBlindSpot(userId: string, blindSpot: BlindSpot): Promise<void
 async function loadGaps(userId: string): Promise<SelfPerceptionGap[]> {
   const cached = gapCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('self_perception_gaps')
       .get();
-    
-    const gaps = snapshot.docs.map(doc => {
+
+    const gaps = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
-        created: data.created && typeof data.created === 'object' && 'toDate' in data.created 
-          ? data.created.toDate() 
-          : new Date(data.created),
-        updated: data.updated && typeof data.updated === 'object' && 'toDate' in data.updated 
-          ? data.updated.toDate() 
-          : new Date(data.updated),
-        evidence: (data.evidence ?? []).map((e: { type: string; text: string; timestamp: unknown }) => ({
-          ...e,
-          timestamp: typeof e.timestamp === 'object' && e.timestamp && 'toDate' in e.timestamp 
-            ? (e.timestamp as { toDate: () => Date }).toDate() 
-            : new Date(e.timestamp as string | number),
-        })),
+        created:
+          data.created && typeof data.created === 'object' && 'toDate' in data.created
+            ? data.created.toDate()
+            : new Date(data.created),
+        updated:
+          data.updated && typeof data.updated === 'object' && 'toDate' in data.updated
+            ? data.updated.toDate()
+            : new Date(data.updated),
+        evidence: (data.evidence ?? []).map(
+          (e: { type: string; text: string; timestamp: unknown }) => ({
+            ...e,
+            timestamp:
+              typeof e.timestamp === 'object' && e.timestamp && 'toDate' in e.timestamp
+                ? (e.timestamp as { toDate: () => Date }).toDate()
+                : new Date(e.timestamp as string | number),
+          })
+        ),
       } as SelfPerceptionGap;
     });
-    
+
     gapCache.set(userId, gaps);
     return gaps;
   } catch (error) {
@@ -821,7 +843,7 @@ async function loadGaps(userId: string): Promise<SelfPerceptionGap[]> {
 async function saveGap(userId: string, gap: SelfPerceptionGap): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -837,7 +859,7 @@ async function saveGap(userId: string, gap: SelfPerceptionGap): Promise<void> {
 async function loadValuesAlignment(userId: string): Promise<ValuesBehaviorAlignment | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -845,22 +867,26 @@ async function loadValuesAlignment(userId: string): Promise<ValuesBehaviorAlignm
       .collection('self_awareness')
       .doc('values_alignment')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     return {
       ...data,
-      statedValues: (data.statedValues ?? []).map((v: { value: string; statedAt: unknown; context: string }) => ({
-        ...v,
-        statedAt: typeof v.statedAt === 'object' && v.statedAt && 'toDate' in v.statedAt 
-          ? (v.statedAt as { toDate: () => Date }).toDate() 
-          : new Date(v.statedAt as string | number),
-      })),
+      statedValues: (data.statedValues ?? []).map(
+        (v: { value: string; statedAt: unknown; context: string }) => ({
+          ...v,
+          statedAt:
+            typeof v.statedAt === 'object' && v.statedAt && 'toDate' in v.statedAt
+              ? (v.statedAt as { toDate: () => Date }).toDate()
+              : new Date(v.statedAt as string | number),
+        })
+      ),
       alignmentScores: new Map(Object.entries(data.alignmentScores ?? {})),
-      lastUpdated: data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated 
-        ? data.lastUpdated.toDate() 
-        : new Date(data.lastUpdated),
+      lastUpdated:
+        data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated
+          ? data.lastUpdated.toDate()
+          : new Date(data.lastUpdated),
     } as ValuesBehaviorAlignment;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load values alignment');
@@ -868,10 +894,13 @@ async function loadValuesAlignment(userId: string): Promise<ValuesBehaviorAlignm
   }
 }
 
-async function saveValuesAlignment(userId: string, alignment: ValuesBehaviorAlignment): Promise<void> {
+async function saveValuesAlignment(
+  userId: string,
+  alignment: ValuesBehaviorAlignment
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     const data = {
       ...alignment,
@@ -891,7 +920,7 @@ async function saveValuesAlignment(userId: string, alignment: ValuesBehaviorAlig
 async function loadDistortionProfile(userId: string): Promise<CognitiveDistortionProfile | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -899,29 +928,34 @@ async function loadDistortionProfile(userId: string): Promise<CognitiveDistortio
       .collection('self_awareness')
       .doc('distortions')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
-    const distortionsMap = new Map<string, { count: number; recentExamples: string[]; lastSeen: Date }>();
-    
+    const distortionsMap = new Map<
+      string,
+      { count: number; recentExamples: string[]; lastSeen: Date }
+    >();
+
     for (const [key, value] of Object.entries(data.distortions ?? {})) {
       const v = value as { count: number; recentExamples: string[]; lastSeen: unknown };
       distortionsMap.set(cleanForFirestore(key), {
         count: v.count,
         recentExamples: v.recentExamples,
-        lastSeen: typeof v.lastSeen === 'object' && v.lastSeen && 'toDate' in v.lastSeen 
-          ? (v.lastSeen as { toDate: () => Date }).toDate() 
-          : new Date(v.lastSeen as string | number),
+        lastSeen:
+          typeof v.lastSeen === 'object' && v.lastSeen && 'toDate' in v.lastSeen
+            ? (v.lastSeen as { toDate: () => Date }).toDate()
+            : new Date(v.lastSeen as string | number),
       });
     }
-    
+
     return {
       ...data,
       distortions: distortionsMap,
-      lastUpdated: data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated 
-        ? data.lastUpdated.toDate() 
-        : new Date(data.lastUpdated),
+      lastUpdated:
+        data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated
+          ? data.lastUpdated.toDate()
+          : new Date(data.lastUpdated),
     } as CognitiveDistortionProfile;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load distortion profile');
@@ -929,16 +963,22 @@ async function loadDistortionProfile(userId: string): Promise<CognitiveDistortio
   }
 }
 
-async function saveDistortionProfile(userId: string, profile: CognitiveDistortionProfile): Promise<void> {
+async function saveDistortionProfile(
+  userId: string,
+  profile: CognitiveDistortionProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
-    const distortionsObj: Record<string, { count: number; recentExamples: string[]; lastSeen: Date }> = {};
+    const distortionsObj: Record<
+      string,
+      { count: number; recentExamples: string[]; lastSeen: Date }
+    > = {};
     for (const [key, value] of profile.distortions) {
       distortionsObj[key] = value;
     }
-    
+
     const data = {
       ...profile,
       distortions: distortionsObj,
@@ -982,29 +1022,28 @@ export const selfAwareness = {
   getBlindSpots,
   getUnsurfaced: getUnsurfacedBlindSpots,
   markSurfaced: markBlindSpotSurfaced,
-  
+
   // Self-perception gaps
   recordPerception: recordSelfPerception,
   recordBehavior,
   getGaps,
-  
+
   // Values alignment
   recordValue: recordStatedValue,
   recordValueBehavior,
   getAlignment: getValuesAlignment,
   getMisaligned: getMisalignedValues,
-  
+
   // Cognitive distortions
   detectDistortions,
   recordDistortions,
   getDistortions: getDistortionProfile,
-  
+
   // Context
   format: formatSelfAwarenessContext,
-  
+
   // Cache
   clearCache: clearSelfAwarenessCache,
 };
 
 export default selfAwareness;
-

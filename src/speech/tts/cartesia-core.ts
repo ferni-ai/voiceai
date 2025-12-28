@@ -285,9 +285,8 @@ export async function createUnifiedTTS(
 
   if (provider === 'btcw' || provider === 'cosyvoice') {
     // Dynamic import to avoid loading BTCW when not needed
-    const { createBTCWTTS, getBTCWVoiceIdForPersona, cartesiaVoiceToBTCW } = await import(
-      './btcw-core.js'
-    );
+    const { createBTCWTTS, getBTCWVoiceIdForPersona, cartesiaVoiceToBTCW } =
+      await import('./btcw-core.js');
 
     // Convert Cartesia voice ID to BTCW persona name if needed
     let btcwVoice: string;
@@ -307,7 +306,8 @@ export async function createUnifiedTTS(
     return createBTCWTTS(btcwVoice, {
       endpoint: config.btcwEndpoint,
       apiKey: config.btcwApiKey,
-      defaultEmotion: (config.btcwDefaultEmotion as import('./btcw-core.js').BTCWEmotionType) || 'neutral',
+      defaultEmotion:
+        (config.btcwDefaultEmotion as import('./btcw-core.js').BTCWEmotionType) || 'neutral',
     });
   }
 

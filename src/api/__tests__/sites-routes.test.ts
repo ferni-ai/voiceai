@@ -494,9 +494,14 @@ describe('Sites API Routes', () => {
       mockGetUserId.mockReturnValue('user-123');
       mockFirestoreGet.mockResolvedValue({ empty: true });
 
-      const req = createMockRequest('GET', '/api/sites/subdomains/check?subdomain=new-site&userId=user-123');
+      const req = createMockRequest(
+        'GET',
+        '/api/sites/subdomains/check?subdomain=new-site&userId=user-123'
+      );
       const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/sites/subdomains/check?subdomain=new-site&userId=user-123');
+      const parsedUrl = new URL(
+        'http://localhost/api/sites/subdomains/check?subdomain=new-site&userId=user-123'
+      );
 
       await handleSitesRoutes(req, res, '/api/sites/subdomains/check', parsedUrl);
 
@@ -509,9 +514,14 @@ describe('Sites API Routes', () => {
     it('should reject reserved subdomains', async () => {
       mockGetUserId.mockReturnValue('user-123');
 
-      const req = createMockRequest('GET', '/api/sites/subdomains/check?subdomain=admin&userId=user-123');
+      const req = createMockRequest(
+        'GET',
+        '/api/sites/subdomains/check?subdomain=admin&userId=user-123'
+      );
       const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/sites/subdomains/check?subdomain=admin&userId=user-123');
+      const parsedUrl = new URL(
+        'http://localhost/api/sites/subdomains/check?subdomain=admin&userId=user-123'
+      );
 
       await handleSitesRoutes(req, res, '/api/sites/subdomains/check', parsedUrl);
 
@@ -524,9 +534,14 @@ describe('Sites API Routes', () => {
     it('should reject invalid subdomain format', async () => {
       mockGetUserId.mockReturnValue('user-123');
 
-      const req = createMockRequest('GET', '/api/sites/subdomains/check?subdomain=invalid_site&userId=user-123');
+      const req = createMockRequest(
+        'GET',
+        '/api/sites/subdomains/check?subdomain=invalid_site&userId=user-123'
+      );
       const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/sites/subdomains/check?subdomain=invalid_site&userId=user-123');
+      const parsedUrl = new URL(
+        'http://localhost/api/sites/subdomains/check?subdomain=invalid_site&userId=user-123'
+      );
 
       await handleSitesRoutes(req, res, '/api/sites/subdomains/check', parsedUrl);
 

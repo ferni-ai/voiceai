@@ -244,7 +244,7 @@ export async function evaluateNudge(state: AmbientState): Promise<AmbientNudge |
   if (state.inMeeting === false && state.meetingEndsAt) {
     const meetingEndedAt = new Date(state.meetingEndsAt);
     const minutesSince = (Date.now() - meetingEndedAt.getTime()) / (1000 * 60);
-    
+
     if (minutesSince < 15 && minutesSince > 2) {
       nudges.push({
         type: 'post_meeting',
@@ -288,7 +288,11 @@ export async function evaluateNudge(state: AmbientState): Promise<AmbientNudge |
   }
 
   // Weather-related (nice day)
-  if (state.weather?.condition === 'sunny' && timeOfDay === 'afternoon' && locationType === 'home') {
+  if (
+    state.weather?.condition === 'sunny' &&
+    timeOfDay === 'afternoon' &&
+    locationType === 'home'
+  ) {
     nudges.push({
       type: 'weather_related',
       priority: 2,
@@ -444,7 +448,7 @@ export async function handleAmbientSync(request: AmbientSyncRequest): Promise<Am
 
 function calculateTimeOfDay(date: Date): AmbientState['timeOfDay'] {
   const hour = date.getHours();
-  
+
   if (hour >= 5 && hour < 7) return 'early_morning';
   if (hour >= 7 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 17) return 'afternoon';
@@ -518,12 +522,12 @@ export async function buildAmbientContext(userId: string): Promise<AmbientContex
 
   // Generate insights
   if (state.timeOfDay === 'late_night' && state.deviceActive) {
-    context.insights?.push("User is up late and still on their device");
+    context.insights?.push('User is up late and still on their device');
     context.conversationStarters?.push("It's late - everything okay?");
   }
 
   if (state.locationType === 'gym') {
-    context.insights?.push("User is at the gym");
+    context.insights?.push('User is at the gym');
     context.conversationStarters?.push("Getting a workout in! How's it going?");
   }
 
@@ -542,8 +546,8 @@ export async function getAmbientContextInjection(userId: string): Promise<string
 
   const lines = ['[AMBIENT AWARENESS - Better Than Human]'];
   lines.push('');
-  lines.push("You know where the user is and what time it is for them:");
-  
+  lines.push('You know where the user is and what time it is for them:');
+
   if (context.timeAwareness) lines.push(`- ${context.timeAwareness}`);
   if (context.locationAwareness) lines.push(`- ${context.locationAwareness}`);
   if (context.activityAwareness) lines.push(`- ${context.activityAwareness}`);
@@ -580,4 +584,3 @@ export const ambientStateManager = {
   buildAmbientContext,
   getAmbientContextInjection,
 };
-

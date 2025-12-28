@@ -540,7 +540,8 @@ const celebrateProgressDef: ToolDefinition = {
 const flagPerfectionismPatternForMayaDef: ToolDefinition = {
   id: 'flagPerfectionismPatternForMaya',
   name: 'Flag Perfectionism Pattern for Maya',
-  description: 'Alert Maya when perfectionism patterns could benefit from habit-based interventions',
+  description:
+    'Alert Maya when perfectionism patterns could benefit from habit-based interventions',
   domain: 'perfectionism',
   tags: ['cross-persona', 'perfectionism', 'habits', 'maya'],
 
@@ -549,7 +550,9 @@ const flagPerfectionismPatternForMayaDef: ToolDefinition = {
       description: getToolDescription('flagPerfectionismPatternForMaya'),
       parameters: z.object({
         pattern: z.string().describe('The perfectionism pattern observed'),
-        impactArea: z.enum(['work', 'relationships', 'health', 'creativity', 'general']).describe('Where this shows up'),
+        impactArea: z
+          .enum(['work', 'relationships', 'health', 'creativity', 'general'])
+          .describe('Where this shows up'),
         readyForChange: z.boolean().describe('Is the person ready to work on this?'),
       }),
       execute: async ({ pattern, impactArea, readyForChange }) => {

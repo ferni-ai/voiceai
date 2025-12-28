@@ -348,7 +348,11 @@ describe('VoiceMemory', () => {
 /**
  * Create a synthetic audio signal with speech-like characteristics
  */
-function createToneWithSpeech(frequency: number, sampleRate: number, durationSec: number): Float32Array {
+function createToneWithSpeech(
+  frequency: number,
+  sampleRate: number,
+  durationSec: number
+): Float32Array {
   const numSamples = Math.floor(sampleRate * durationSec);
   const samples = new Float32Array(numSamples);
 

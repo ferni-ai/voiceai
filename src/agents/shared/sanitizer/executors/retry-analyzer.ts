@@ -78,10 +78,7 @@ function extractToolFromPattern(text: string): string | null {
 /**
  * Generate retry prompt based on the detected issue
  */
-function generateRetryPrompt(
-  suggestedTool: string,
-  originalMessage: string
-): string {
+function generateRetryPrompt(suggestedTool: string, originalMessage: string): string {
   // Customize prompt based on tool type
   if (suggestedTool.toLowerCase().includes('music') || suggestedTool === 'playMusic') {
     return `The user asked: "${originalMessage}"
@@ -94,7 +91,10 @@ Instead, output the JSON function call IMMEDIATELY:
 Do not add any text before or after the JSON.`;
   }
 
-  if (suggestedTool.toLowerCase().includes('handoff') || suggestedTool.toLowerCase().includes('transfer')) {
+  if (
+    suggestedTool.toLowerCase().includes('handoff') ||
+    suggestedTool.toLowerCase().includes('transfer')
+  ) {
     return `The user asked: "${originalMessage}"
 
 IMPORTANT: Do NOT announce the transfer. Execute it directly with JSON:
@@ -214,4 +214,3 @@ export function clearRetryCounter(session: object): void {
 export function getRetryCount(session: object): number {
   return sessionRetryCounters.get(session) ?? 0;
 }
-

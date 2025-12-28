@@ -66,7 +66,10 @@ export {
 } from '../../services/conversation-state.js';
 
 // Convenience functions (inlined from deprecated orchestration/)
-import { createToolComposer as _createToolComposer, type ComposedResult as _ComposedResult } from '../orchestrator/tool-composer.js';
+import {
+  createToolComposer as _createToolComposer,
+  type ComposedResult as _ComposedResult,
+} from '../orchestrator/tool-composer.js';
 import { getConversationState as _getConversationState } from '../../services/conversation-state.js';
 
 /** Quick helper to get suggested next tools for a session */

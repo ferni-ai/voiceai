@@ -201,7 +201,8 @@ describe('Trust Context Injection', () => {
 
     it('should check for events needing reminders', async () => {
       const { buildTrustAwareContext } = await import('../trust-context.js');
-      const { getEventsNeedingReminders } = await import('../../../services/trust-systems/index.js');
+      const { getEventsNeedingReminders } =
+        await import('../../../services/trust-systems/index.js');
 
       const input = createMockInput();
       await buildTrustAwareContext(input);

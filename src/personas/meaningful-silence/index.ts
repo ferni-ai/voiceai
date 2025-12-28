@@ -54,4 +54,3 @@ export {
   getSilenceContent,
 } from '../meaningful-silence.js';
 export { default } from '../meaningful-silence.js';
-

@@ -58,9 +58,7 @@ describe('StoryUnlocks', () => {
 
       expect(unlocked.length).toBeGreaterThan(0);
       // Surface stories should be available early
-      const surfaceStories = unlocked.filter(
-        (u) => u.story.requirements.depth === 'surface'
-      );
+      const surfaceStories = unlocked.filter((u) => u.story.requirements.depth === 'surface');
       expect(surfaceStories.length).toBeGreaterThan(0);
     });
 
@@ -375,9 +373,7 @@ describe('StoryUnlocks', () => {
 
       // Coffee ritual fits 'tired' emotion, should score higher with match
       const coffeeWithMatch = withMatch.find((u) => u.story.id === 'coffee-ritual');
-      const coffeeWithoutMatch = withoutMatch.find(
-        (u) => u.story.id === 'coffee-ritual'
-      );
+      const coffeeWithoutMatch = withoutMatch.find((u) => u.story.id === 'coffee-ritual');
 
       if (coffeeWithMatch && coffeeWithoutMatch) {
         expect(coffeeWithMatch.fitScore).toBeGreaterThan(coffeeWithoutMatch.fitScore);

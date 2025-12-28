@@ -197,7 +197,9 @@ export async function loadInteractions(
 /**
  * Analyze interactions to build energy wave profile.
  */
-export function analyzeEnergyPatterns(interactions: ConversationInteraction[]): EnergyWaveProfile | null {
+export function analyzeEnergyPatterns(
+  interactions: ConversationInteraction[]
+): EnergyWaveProfile | null {
   if (interactions.length < 10) return null;
 
   const userId = interactions[0].userId;
@@ -212,11 +214,20 @@ export function analyzeEnergyPatterns(interactions: ConversationInteraction[]): 
   }
 
   // Find optimal times for each type
-  const optimalTimes: Record<ConversationType, TimeSlot[]> = {} as Record<ConversationType, TimeSlot[]>;
+  const optimalTimes: Record<ConversationType, TimeSlot[]> = {} as Record<
+    ConversationType,
+    TimeSlot[]
+  >;
 
   const types: ConversationType[] = [
-    'deep_emotional', 'practical_planning', 'light_chat', 'problem_solving',
-    'creative', 'reflective', 'motivational', 'learning',
+    'deep_emotional',
+    'practical_planning',
+    'light_chat',
+    'problem_solving',
+    'creative',
+    'reflective',
+    'motivational',
+    'learning',
   ];
 
   for (const type of types) {
@@ -232,7 +243,9 @@ export function analyzeEnergyPatterns(interactions: ConversationInteraction[]): 
     for (const interaction of typeInteractions) {
       const hourBlock = Math.floor(interaction.hourOfDay / 3) * 3;
       const key = `${interaction.dayOfWeek}-${hourBlock}`;
-      const score = interaction.engagement * 0.4 + interaction.depth * 0.3 +
+      const score =
+        interaction.engagement * 0.4 +
+        interaction.depth * 0.3 +
         (interaction.outcome === 'positive' ? 0.3 : interaction.outcome === 'neutral' ? 0.15 : 0);
 
       const existing = timeScores.get(key) || { total: 0, count: 0 };
@@ -345,23 +358,21 @@ export function getTimingRecommendation(
   const currentHour = now.getHours();
 
   // Use default if no profile
-  const optimalSlots = profile?.optimalTimes[conversationType] || DEFAULT_OPTIMAL_TIMES[conversationType];
+  const optimalSlots =
+    profile?.optimalTimes[conversationType] || DEFAULT_OPTIMAL_TIMES[conversationType];
 
   // Check if current time is optimal
   const isInOptimalSlot = optimalSlots.some(
     (slot) =>
-      slot.dayOfWeek === currentDay &&
-      currentHour >= slot.hourStart &&
-      currentHour < slot.hourEnd
+      slot.dayOfWeek === currentDay && currentHour >= slot.hourStart && currentHour < slot.hourEnd
   );
 
   // Check if in low energy time
-  const isLowEnergy = profile?.lowEnergyTimes.some(
-    (slot) =>
-      slot.dayOfWeek === currentDay &&
-      currentHour >= slot.hourStart &&
-      currentHour < slot.hourEnd
-  ) ?? false;
+  const isLowEnergy =
+    profile?.lowEnergyTimes.some(
+      (slot) =>
+        slot.dayOfWeek === currentDay && currentHour >= slot.hourStart && currentHour < slot.hourEnd
+    ) ?? false;
 
   if (isInOptimalSlot && !isLowEnergy) {
     return {
@@ -418,19 +429,18 @@ export async function buildEnergyWaveContext(userId: string): Promise<string> {
   // Check current energy state
   const isLowEnergy = profile.lowEnergyTimes.some(
     (slot) =>
-      slot.dayOfWeek === currentDay &&
-      currentHour >= slot.hourStart &&
-      currentHour < slot.hourEnd
+      slot.dayOfWeek === currentDay && currentHour >= slot.hourStart && currentHour < slot.hourEnd
   );
 
-  const isPeakEnergy = profile.dailyPattern.peakHours.includes(currentHour) &&
+  const isPeakEnergy =
+    profile.dailyPattern.peakHours.includes(currentHour) &&
     profile.weeklyPattern.highEnergyDays.includes(currentDay);
 
   if (isLowEnergy) {
     sections.push('[ENERGY AWARENESS]');
     sections.push(
       `⚡ This tends to be a lower energy time for this person.\n` +
-      `Keep conversation lighter. Save deep topics for their better times.`
+        `Keep conversation lighter. Save deep topics for their better times.`
     );
 
     // Suggest better times for heavy topics
@@ -443,7 +453,7 @@ export async function buildEnergyWaveContext(userId: string): Promise<string> {
     sections.push('[ENERGY AWARENESS]');
     sections.push(
       `🌟 This is typically a high-energy time for this person.\n` +
-      `Good window for deeper conversations or challenging topics if needed.`
+        `Good window for deeper conversations or challenging topics if needed.`
     );
   }
 
@@ -457,7 +467,7 @@ export async function buildEnergyWaveContext(userId: string): Promise<string> {
     if (inReflectiveTime) {
       sections.push(
         `\n📅 Sunday reflection window: This is when they're most open to ` +
-        `looking back on the week and processing experiences.`
+          `looking back on the week and processing experiences.`
       );
     }
   }
@@ -476,4 +486,3 @@ export const energyWaveMapping = {
   getRecommendation: getTimingRecommendation,
   buildContext: buildEnergyWaveContext,
 };
-

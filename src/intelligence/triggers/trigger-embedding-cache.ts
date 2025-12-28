@@ -169,10 +169,12 @@ export class TriggerEmbeddingCache {
 
               // Update access time in Firestore (non-blocking)
               docRef
-                .update(cleanForFirestore({
-                  accessedAt: new Date(),
-                  accessCount: cached.accessCount,
-                }))
+                .update(
+                  cleanForFirestore({
+                    accessedAt: new Date(),
+                    accessCount: cached.accessCount,
+                  })
+                )
                 .catch((err) => {
                   log.debug({ error: String(err) }, 'Failed to update Firestore access time');
                 });
@@ -253,7 +255,10 @@ export class TriggerEmbeddingCache {
     if (!this.firestoreDb) return;
 
     try {
-      await this.firestoreDb.collection(this.config.firestoreCollection).doc(triggerId).set(cleanForFirestore(cached));
+      await this.firestoreDb
+        .collection(this.config.firestoreCollection)
+        .doc(triggerId)
+        .set(cleanForFirestore(cached));
     } catch (error) {
       log.error({ error: String(error), triggerId }, 'Firestore set failed');
       throw error;

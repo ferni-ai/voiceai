@@ -43,40 +43,98 @@ export interface TinyWinTrackerResult extends TextGameResult {
 
 const OPENING_PROMPTS = [
   "What's one tiny win from today? It can be as small as getting out of bed.",
-  "Tell me something that went well today—even if it seems small.",
+  'Tell me something that went well today—even if it seems small.',
   "What's a small victory you can celebrate today?",
   "Name one thing you did today that you're proud of. No win is too small.",
   "What's one thing that went right today?",
 ];
 
 const CELEBRATION_RESPONSES = [
-  "That counts! 🎉 Celebrating the small stuff matters.",
+  'That counts! 🎉 Celebrating the small stuff matters.',
   "Yes! That's absolutely a win worth noting.",
-  "I love that. Small wins add up to big momentum.",
+  'I love that. Small wins add up to big momentum.',
   "That's real progress. Don't underestimate it.",
   "Perfect example of a tiny win. You noticed it—that's huge.",
-  "That matters more than you might think. Well done.",
+  'That matters more than you might think. Well done.',
 ];
 
 const FOLLOW_UP_PROMPTS = [
-  "Got another one? What else went well?",
+  'Got another one? What else went well?',
   "That's great. Any other wins to add?",
-  "Nice. Is there another tiny win hiding in your day?",
-  "Love it. What else can we celebrate?",
+  'Nice. Is there another tiny win hiding in your day?',
+  'Love it. What else can we celebrate?',
 ];
 
 const CLOSING_MESSAGES = [
-  "You collected {count} tiny win(s) today. Keep noticing these—they build momentum.",
-  "{count} win(s) acknowledged. The practice of noticing wins changes how you see your days.",
+  'You collected {count} tiny win(s) today. Keep noticing these—they build momentum.',
+  '{count} win(s) acknowledged. The practice of noticing wins changes how you see your days.',
   "That's {count} tiny win(s). Research shows celebrating small wins builds resilience.",
   "{count} win(s) in the bank. Come back tomorrow and we'll find more.",
 ];
 
 const WIN_CATEGORIES: Record<string, string[]> = {
-  'self-care': ['shower', 'ate', 'slept', 'rest', 'exercise', 'walk', 'water', 'break', 'bed', 'coffee', 'tea', 'meal', 'cook', 'sleep', 'nap'],
-  'productivity': ['finish', 'complete', 'done', 'submit', 'send', 'email', 'call', 'meeting', 'work', 'task', 'project', 'deadline', 'organize', 'clean'],
-  'connection': ['friend', 'family', 'talk', 'chat', 'text', 'call', 'visit', 'help', 'listen', 'support', 'hug', 'conversation', 'connect'],
-  'growth': ['learn', 'try', 'new', 'first', 'practice', 'read', 'study', 'improve', 'challenge', 'step', 'courage', 'brave'],
+  'self-care': [
+    'shower',
+    'ate',
+    'slept',
+    'rest',
+    'exercise',
+    'walk',
+    'water',
+    'break',
+    'bed',
+    'coffee',
+    'tea',
+    'meal',
+    'cook',
+    'sleep',
+    'nap',
+  ],
+  productivity: [
+    'finish',
+    'complete',
+    'done',
+    'submit',
+    'send',
+    'email',
+    'call',
+    'meeting',
+    'work',
+    'task',
+    'project',
+    'deadline',
+    'organize',
+    'clean',
+  ],
+  connection: [
+    'friend',
+    'family',
+    'talk',
+    'chat',
+    'text',
+    'call',
+    'visit',
+    'help',
+    'listen',
+    'support',
+    'hug',
+    'conversation',
+    'connect',
+  ],
+  growth: [
+    'learn',
+    'try',
+    'new',
+    'first',
+    'practice',
+    'read',
+    'study',
+    'improve',
+    'challenge',
+    'step',
+    'courage',
+    'brave',
+  ],
 };
 
 // ============================================================================
@@ -100,7 +158,7 @@ function categorizeWin(text: string): TinyWin['category'] {
   const lower = text.toLowerCase();
 
   for (const [category, keywords] of Object.entries(WIN_CATEGORIES)) {
-    if (keywords.some(k => lower.includes(k))) {
+    if (keywords.some((k) => lower.includes(k))) {
       return category as TinyWin['category'];
     }
   }
@@ -131,7 +189,9 @@ function parseYesNo(input: string): boolean | null {
   if (['yes', 'y', 'yeah', 'yep', 'sure', 'ok', 'another', 'more'].includes(lower)) {
     return true;
   }
-  if (['no', 'n', 'nope', 'done', "that's it", "i'm done", "that's all", 'enough'].includes(lower)) {
+  if (
+    ['no', 'n', 'nope', 'done', "that's it", "i'm done", "that's all", 'enough'].includes(lower)
+  ) {
     return false;
   }
   return null;
@@ -146,9 +206,10 @@ export function processInput(state: TinyWinTrackerState, input: string): TinyWin
 
   // Check for quit commands
   if (lower === 'stop' || lower === 'quit' || lower === 'exit') {
-    const closing = state.wins.length > 0
-      ? getClosing(state.wins.length)
-      : "No worries! Tiny wins are waiting to be noticed. Come back anytime.";
+    const closing =
+      state.wins.length > 0
+        ? getClosing(state.wins.length)
+        : 'No worries! Tiny wins are waiting to be noticed. Come back anytime.';
 
     return {
       message: closing,
@@ -278,7 +339,7 @@ export function processInput(state: TinyWinTrackerState, input: string): TinyWin
 
   // Default
   return {
-    message: "Tell me a tiny win from your day.",
+    message: 'Tell me a tiny win from your day.',
     gameOver: false,
     newState: state,
   };

@@ -144,7 +144,9 @@ export async function recordConflict(
 export async function updateConflictResolution(
   userId: string,
   conflictId: string,
-  updates: Partial<Pick<ConflictRecord, 'outcome' | 'effectiveApproaches' | 'reflection' | 'resolutionTimeHours'>>
+  updates: Partial<
+    Pick<ConflictRecord, 'outcome' | 'effectiveApproaches' | 'reflection' | 'resolutionTimeHours'>
+  >
 ): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
@@ -186,7 +188,7 @@ export async function loadConflictHistory(
     }
 
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ConflictRecord));
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as ConflictRecord);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load conflict history');
     return [];
@@ -243,9 +245,8 @@ export function analyzeConflictPattern(conflicts: ConflictRecord[]): ConflictPat
 
   // Average cooldown
   const cooldowns = conflicts.filter((c) => c.cooldownNeeded > 0).map((c) => c.cooldownNeeded);
-  const averageCooldown = cooldowns.length > 0
-    ? cooldowns.reduce((a, b) => a + b, 0) / cooldowns.length
-    : 2;
+  const averageCooldown =
+    cooldowns.length > 0 ? cooldowns.reduce((a, b) => a + b, 0) / cooldowns.length : 2;
 
   // Common conflict types
   const typeCounts = new Map<ConflictType, number>();
@@ -384,25 +385,35 @@ export async function buildConflictResolutionContext(
     );
 
     if (personPattern) {
-      sections.push(`📊 History with ${personPattern.person} (${personPattern.conflictCount} past conflicts):`);
+      sections.push(
+        `📊 History with ${personPattern.person} (${personPattern.conflictCount} past conflicts):`
+      );
 
       if (personPattern.effectiveApproaches.length > 0) {
-        sections.push(`✅ What works: ${personPattern.effectiveApproaches.map((a) => APPROACH_LABELS[a]).join(', ')}`);
+        sections.push(
+          `✅ What works: ${personPattern.effectiveApproaches.map((a) => APPROACH_LABELS[a]).join(', ')}`
+        );
       }
 
       if (personPattern.ineffectiveApproaches.length > 0) {
-        sections.push(`❌ What to avoid: ${personPattern.ineffectiveApproaches.map((a) => APPROACH_LABELS[a]).join(', ')}`);
+        sections.push(
+          `❌ What to avoid: ${personPattern.ineffectiveApproaches.map((a) => APPROACH_LABELS[a]).join(', ')}`
+        );
       }
 
       if (personPattern.triggerTopics.length > 0) {
         sections.push(`⚠️ Common triggers: ${personPattern.triggerTopics.join(', ')}`);
       }
 
-      sections.push(`⏱️ Usually needs ${Math.round(personPattern.averageCooldown)} hours before resolving`);
+      sections.push(
+        `⏱️ Usually needs ${Math.round(personPattern.averageCooldown)} hours before resolving`
+      );
 
       const successRate = Math.round(personPattern.resolutionRate * 100);
       if (successRate < 50) {
-        sections.push(`\n💡 Resolution rate with ${personPattern.person} is ${successRate}%. Consider suggesting professional support.`);
+        sections.push(
+          `\n💡 Resolution rate with ${personPattern.person} is ${successRate}%. Consider suggesting professional support.`
+        );
       }
     }
   }
@@ -423,7 +434,9 @@ export async function buildConflictResolutionContext(
       .slice(0, 3);
 
     if (topApproaches.length > 0) {
-      sections.push(`• Most effective approaches: ${topApproaches.map(([a]) => APPROACH_LABELS[a]).join(', ')}`);
+      sections.push(
+        `• Most effective approaches: ${topApproaches.map(([a]) => APPROACH_LABELS[a]).join(', ')}`
+      );
     }
 
     // Challenging relationships
@@ -449,4 +462,3 @@ export const conflictResolution = {
   getRecommendations: getConflictRecommendations,
   buildContext: buildConflictResolutionContext,
 };
-

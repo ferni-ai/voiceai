@@ -42,8 +42,8 @@ export const RAPPORT_CONFIG = {
     turnBalance: 0.15,
     interruptionQuality: 0.15,
     engagement: 0.25,
-    emotionalAlignment: 0.20,
-    flowContinuity: 0.10,
+    emotionalAlignment: 0.2,
+    flowContinuity: 0.1,
     trustSignals: 0.15,
   },
 
@@ -106,7 +106,10 @@ export function getRapportScorer(sessionId: string): RapportScorer {
 export function resetRapportScorer(sessionId: string): void {
   const scorer = scorers.get(sessionId);
   if (scorer) {
-    log.debug({ sessionId, observations: scorer.getState().observationCount }, 'Resetting rapport scorer');
+    log.debug(
+      { sessionId, observations: scorer.getState().observationCount },
+      'Resetting rapport scorer'
+    );
   }
   scorers.delete(sessionId);
 }
@@ -456,7 +459,10 @@ export class RapportScorer {
   /**
    * Calculate trend from recent scores
    */
-  private calculateTrend(currentScore: number): { trend: 'improving' | 'declining' | 'stable'; trendRate: number } {
+  private calculateTrend(currentScore: number): {
+    trend: 'improving' | 'declining' | 'stable';
+    trendRate: number;
+  } {
     if (this.scoreHistory.length < RAPPORT_CONFIG.TREND_WINDOW) {
       return { trend: 'stable', trendRate: 0 };
     }
@@ -492,7 +498,10 @@ export class RapportScorer {
    */
   private calculateConfidence(): number {
     // More observations = higher confidence
-    const obsConfidence = Math.min(1, this.observationCount / RAPPORT_CONFIG.MIN_OBSERVATIONS_HIGH_CONFIDENCE);
+    const obsConfidence = Math.min(
+      1,
+      this.observationCount / RAPPORT_CONFIG.MIN_OBSERVATIONS_HIGH_CONFIDENCE
+    );
 
     // Recent updates across signals = higher confidence
     const now = Date.now();

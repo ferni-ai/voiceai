@@ -56,9 +56,7 @@ export interface PerformanceResult {
  * @param config - Performance configuration
  * @returns Result with cleanup function and summary getter
  */
-export async function initializePerformance(
-  config: PerformanceConfig
-): Promise<PerformanceResult> {
+export async function initializePerformance(config: PerformanceConfig): Promise<PerformanceResult> {
   const {
     userId,
     personaId,
@@ -129,4 +127,3 @@ export async function initializePerformance(
     };
   }
 }
-

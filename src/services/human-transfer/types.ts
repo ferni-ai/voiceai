@@ -359,4 +359,3 @@ export interface TransferRecord {
   /** Follow-up notes */
   followUpNotes?: string;
 }
-

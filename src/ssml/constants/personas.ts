@@ -12,4 +12,3 @@ export const PERSONA_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bMaya\b/g, replacement: 'My-uh', description: 'Persona name' },
   // Alex, Jordan, Peter are standard English pronunciations
 ];
-

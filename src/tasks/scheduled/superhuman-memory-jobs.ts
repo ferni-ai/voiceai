@@ -201,9 +201,14 @@ export class UserMemoryReindexJob extends ScheduledJob<ReindexJobConfig, Reindex
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
-      await db.collection('bogle_users').doc(userId).update(cleanForFirestore({
-        lastMemoryIndexAt: new Date().toISOString(),
-      }));
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .update(
+          cleanForFirestore({
+            lastMemoryIndexAt: new Date().toISOString(),
+          })
+        );
     } catch (error) {
       log.warn({ error, userId }, 'Could not mark user as indexed');
     }

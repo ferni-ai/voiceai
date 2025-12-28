@@ -54,13 +54,13 @@ export const contactCaptureDefinition: DataCaptureDefinition = {
       "my dad's number is",
       "my sister's number is",
       "my brother's number is",
-      "number is",
-      "phone is",
-      "email is",
-      "email address is",
-      "lives at",
-      "address is",
-      "works at",
+      'number is',
+      'phone is',
+      'email is',
+      'email address is',
+      'lives at',
+      'address is',
+      'works at',
     ],
     patterns: [
       // "My mom's number is 555-1234"
@@ -202,4 +202,3 @@ export const contactCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

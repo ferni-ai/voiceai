@@ -96,16 +96,19 @@ const allMockTools = [mockTelephonyConverse, mockTelephonyCall, mockWellnessTool
 
 // Helper to create a score map
 function createScoreMap() {
-  const scoreMap = new Map<string, {
-    pattern: number;
-    keyword: number;
-    embedding: number;
-    context: number;
-    history: number;
-    holistic?: number;
-    matchedBy: MatchLayer[];
-    matchReason: string[];
-  }>();
+  const scoreMap = new Map<
+    string,
+    {
+      pattern: number;
+      keyword: number;
+      embedding: number;
+      context: number;
+      history: number;
+      holistic?: number;
+      matchedBy: MatchLayer[];
+      matchReason: string[];
+    }
+  >();
 
   // Initialize with base scores
   allMockTools.forEach((tool) => {
@@ -214,7 +217,7 @@ describe('Holistic NLU - Compound Intent Detection', () => {
   });
 
   it('should suggest multiple tool categories for compound intents', () => {
-    const result = detectMultipleIntents("I need to budget better and start exercising");
+    const result = detectMultipleIntents('I need to budget better and start exercising');
 
     expect(result.isCompound).toBe(true);
     expect(result.suggestedToolCategories.length).toBeGreaterThan(1);
@@ -265,7 +268,7 @@ describe('Holistic NLU - Tool Routing Adjustments', () => {
 
     // Conversational call should NOT get the personal relationship boost
     const converseAdjustment = result.toolAdjustments.get('telephony_converse');
-    const personalBoost = converseAdjustment?.reasons.some(r =>
+    const personalBoost = converseAdjustment?.reasons.some((r) =>
       r.includes('Personal relationship')
     );
     expect(personalBoost).toBeFalsy();
@@ -333,26 +336,20 @@ describe('Holistic NLU - Integration Proof', () => {
     const timings: Record<string, number> = {};
 
     // Run holistic layer for "call my mom"
-    runHolisticLayer(
-      'How do I call my mom?',
-      'test-session',
-      allMockTools,
-      scoreMap,
-      timings
-    );
+    runHolisticLayer('How do I call my mom?', 'test-session', allMockTools, scoreMap, timings);
 
     // Get final scores after holistic adjustments
     const converseScores = scoreMap.get('telephony_converse');
     const callScores = scoreMap.get('telephony_call');
 
     // Calculate total scores
-    const converseTotal = (converseScores?.pattern || 0) +
+    const converseTotal =
+      (converseScores?.pattern || 0) +
       (converseScores?.keyword || 0) +
       (converseScores?.holistic || 0);
 
-    const callTotal = (callScores?.pattern || 0) +
-      (callScores?.keyword || 0) +
-      (callScores?.holistic || 0);
+    const callTotal =
+      (callScores?.pattern || 0) + (callScores?.keyword || 0) + (callScores?.holistic || 0);
 
     console.log('\n📊 PROOF - Score Comparison:');
     console.log(`  telephony_converse: ${converseTotal.toFixed(3)}`);
@@ -382,7 +379,7 @@ describe('Holistic NLU - Extended Emotional Vocabulary', () => {
   });
 
   it('should detect shame/guilt emotion', () => {
-    const context = analyzeHolisticContext("I feel so ashamed about what I did");
+    const context = analyzeHolisticContext('I feel so ashamed about what I did');
 
     expect(context.emotion).not.toBeNull();
     expect(context.emotion?.type).toBe('ashamed');
@@ -390,7 +387,7 @@ describe('Holistic NLU - Extended Emotional Vocabulary', () => {
   });
 
   it('should detect surprise emotion', () => {
-    const context = analyzeHolisticContext("I was completely shocked by the news");
+    const context = analyzeHolisticContext('I was completely shocked by the news');
 
     expect(context.emotion).not.toBeNull();
     expect(context.emotion?.type).toBe('surprised');
@@ -415,7 +412,7 @@ describe('Holistic NLU - Extended Emotional Vocabulary', () => {
   });
 
   it('should detect love/affection emotion', () => {
-    const context = analyzeHolisticContext("I love spending time with them");
+    const context = analyzeHolisticContext('I love spending time with them');
 
     expect(context.emotion).not.toBeNull();
     expect(context.emotion?.type).toBe('loving');
@@ -448,7 +445,7 @@ describe('Holistic NLU - Extended Emotional Vocabulary', () => {
   });
 
   it('should detect disgust emotion', () => {
-    const context = analyzeHolisticContext("I was completely disgusted by their behavior");
+    const context = analyzeHolisticContext('I was completely disgusted by their behavior');
 
     expect(context.emotion).not.toBeNull();
     expect(context.emotion?.type).toBe('disgusted');
@@ -458,7 +455,7 @@ describe('Holistic NLU - Extended Emotional Vocabulary', () => {
 
 describe('Holistic NLU - Temporal Urgency Vocabulary', () => {
   it('should detect emergency urgency (critical)', () => {
-    const context = analyzeHolisticContext("This is an emergency, I need help right away!");
+    const context = analyzeHolisticContext('This is an emergency, I need help right away!');
 
     expect(context.time).not.toBeNull();
     expect(context.time?.type).toBe('emergency');
@@ -468,7 +465,7 @@ describe('Holistic NLU - Temporal Urgency Vocabulary', () => {
 
   it('should detect deadline urgency (high)', () => {
     // Use "due date" which is unique to deadline category
-    const context = analyzeHolisticContext("I have a due date and need to finish this");
+    const context = analyzeHolisticContext('I have a due date and need to finish this');
 
     expect(context.time).not.toBeNull();
     expect(context.time?.type).toBe('deadline');
@@ -478,7 +475,7 @@ describe('Holistic NLU - Temporal Urgency Vocabulary', () => {
 
   it('should detect near-future timing (medium urgency)', () => {
     // Use "shortly" which is unique to soon category
-    const context = analyzeHolisticContext("I need to do this shortly");
+    const context = analyzeHolisticContext('I need to do this shortly');
 
     expect(context.time).not.toBeNull();
     expect(context.time?.type).toBe('soon');
@@ -486,7 +483,7 @@ describe('Holistic NLU - Temporal Urgency Vocabulary', () => {
   });
 
   it('should detect seasonal timing', () => {
-    const context = analyzeHolisticContext("I need to plan something for Christmas");
+    const context = analyzeHolisticContext('I need to plan something for Christmas');
 
     expect(context.time).not.toBeNull();
     expect(context.time?.type).toBe('seasonal');
@@ -504,7 +501,7 @@ describe('Holistic NLU - Temporal Urgency Vocabulary', () => {
 describe('Holistic NLU - Group Relationship Vocabulary', () => {
   it('should detect team/group relationships with committee', () => {
     // Use "committee" which is unique to group_team
-    const context = analyzeHolisticContext("I need to coordinate with the committee");
+    const context = analyzeHolisticContext('I need to coordinate with the committee');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('group_team');
@@ -513,7 +510,7 @@ describe('Holistic NLU - Group Relationship Vocabulary', () => {
 
   it('should detect team/group with department', () => {
     // "department" is unique to group_team
-    const context = analyzeHolisticContext("I need to talk to the department");
+    const context = analyzeHolisticContext('I need to talk to the department');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('group_team');
@@ -522,7 +519,7 @@ describe('Holistic NLU - Group Relationship Vocabulary', () => {
 
   it('should detect community with temple', () => {
     // "temple" is unique to community category
-    const context = analyzeHolisticContext("I want to visit the temple");
+    const context = analyzeHolisticContext('I want to visit the temple');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('community');
@@ -530,7 +527,7 @@ describe('Holistic NLU - Group Relationship Vocabulary', () => {
   });
 
   it('should detect church/congregation context', () => {
-    const context = analyzeHolisticContext("I want to volunteer with my congregation");
+    const context = analyzeHolisticContext('I want to volunteer with my congregation');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('community');
@@ -538,7 +535,7 @@ describe('Holistic NLU - Group Relationship Vocabulary', () => {
   });
 
   it('should detect social group relationships', () => {
-    const context = analyzeHolisticContext("I need to check in with my book club");
+    const context = analyzeHolisticContext('I need to check in with my book club');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('social_group');
@@ -547,14 +544,14 @@ describe('Holistic NLU - Group Relationship Vocabulary', () => {
 
   it('should detect meetup context', () => {
     // "meetup" is unique to social_group
-    const context = analyzeHolisticContext("I have a meetup tomorrow");
+    const context = analyzeHolisticContext('I have a meetup tomorrow');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('social_group');
   });
 
   it('should detect alumni/cohort relationships', () => {
-    const context = analyzeHolisticContext("I want to reconnect with my alumni");
+    const context = analyzeHolisticContext('I want to reconnect with my alumni');
 
     expect(context.relationship).not.toBeNull();
     expect(context.relationship?.type).toBe('social_group');
@@ -575,7 +572,7 @@ describe('Holistic NLU - Combined Context Detection', () => {
 
   it('should detect group + emotion combination', () => {
     // Use "committee" which is unique to group_team
-    const context = analyzeHolisticContext("The committee is exhausted from the project");
+    const context = analyzeHolisticContext('The committee is exhausted from the project');
 
     expect(context.relationship?.type).toBe('group_team');
     expect(context.emotion?.type).toBe('exhausted');
@@ -584,7 +581,7 @@ describe('Holistic NLU - Combined Context Detection', () => {
 
   it('should detect seasonal + positive emotion combination', () => {
     // Use "looking forward" which is unique to anticipating, and Christmas for seasonal
-    const context = analyzeHolisticContext("Looking forward to Christmas!");
+    const context = analyzeHolisticContext('Looking forward to Christmas!');
 
     expect(context.emotion?.type).toBe('anticipating');
     // seasonal boosts life-planning
@@ -682,16 +679,19 @@ describe('Holistic NLU - E2E Routing Effects', () => {
 
   it('should boost telephony_converse for personal relationships ("call my mom")', () => {
     // Initialize score map with equal base scores for both telephony tools
-    const scoreMap = new Map<string, {
-      pattern: number;
-      keyword: number;
-      embedding: number;
-      context: number;
-      history: number;
-      holistic?: number;
-      matchedBy: MatchLayer[];
-      matchReason: string[];
-    }>();
+    const scoreMap = new Map<
+      string,
+      {
+        pattern: number;
+        keyword: number;
+        embedding: number;
+        context: number;
+        history: number;
+        holistic?: number;
+        matchedBy: MatchLayer[];
+        matchReason: string[];
+      }
+    >();
 
     // Both telephony tools start with equal scores
     scoreMap.set('telephony_converse', {
@@ -733,10 +733,12 @@ describe('Holistic NLU - E2E Routing Effects', () => {
 
     // Conversational should have holistic score (personal relationship boost)
     expect(converseScores.holistic).toBeGreaterThan(0);
-    expect(converseScores.matchReason.some(r => r.includes('Personal relationship'))).toBe(true);
+    expect(converseScores.matchReason.some((r) => r.includes('Personal relationship'))).toBe(true);
 
     // Simple call should be penalized for personal relationships
-    expect(callScores.matchReason.some(r => r.includes('penalty') || r.includes('NOT simple call'))).toBe(true);
+    expect(
+      callScores.matchReason.some((r) => r.includes('penalty') || r.includes('NOT simple call'))
+    ).toBe(true);
   });
 
   it('should boost wellness tools and suppress music for crisis detection', () => {
@@ -755,16 +757,19 @@ describe('Holistic NLU - E2E Routing Effects', () => {
       },
     };
 
-    const scoreMap = new Map<string, {
-      pattern: number;
-      keyword: number;
-      embedding: number;
-      context: number;
-      history: number;
-      holistic?: number;
-      matchedBy: MatchLayer[];
-      matchReason: string[];
-    }>();
+    const scoreMap = new Map<
+      string,
+      {
+        pattern: number;
+        keyword: number;
+        embedding: number;
+        context: number;
+        history: number;
+        holistic?: number;
+        matchedBy: MatchLayer[];
+        matchReason: string[];
+      }
+    >();
 
     // Initialize tools with equal scores
     const tools = [mockCrisisTool, mockWellnessTool, mockMusicTool];
@@ -782,7 +787,7 @@ describe('Holistic NLU - E2E Routing Effects', () => {
 
     const timings: Record<string, number> = {};
     const result = runHolisticLayer(
-      "I want to end it all, I can't go on",  // Crisis language
+      "I want to end it all, I can't go on", // Crisis language
       'test-session',
       tools,
       scoreMap,
@@ -795,26 +800,31 @@ describe('Holistic NLU - E2E Routing Effects', () => {
     // Crisis tool should be heavily boosted
     const crisisScores = scoreMap.get('crisis_support')!;
     expect(crisisScores.holistic).toBeGreaterThan(0);
-    expect(crisisScores.matchReason.some(r => r.includes('CRISIS DETECTED'))).toBe(true);
+    expect(crisisScores.matchReason.some((r) => r.includes('CRISIS DETECTED'))).toBe(true);
 
     // Music should be penalized in crisis
     const musicScores = scoreMap.get('music_play')!;
-    expect(musicScores.matchReason.some(r =>
-      r.includes('CRISIS DETECTED') && r.includes('entertainment')
-    )).toBe(true);
+    expect(
+      musicScores.matchReason.some(
+        (r) => r.includes('CRISIS DETECTED') && r.includes('entertainment')
+      )
+    ).toBe(true);
   });
 
   it('should boost wellness domain for stressed emotional state', () => {
-    const scoreMap = new Map<string, {
-      pattern: number;
-      keyword: number;
-      embedding: number;
-      context: number;
-      history: number;
-      holistic?: number;
-      matchedBy: MatchLayer[];
-      matchReason: string[];
-    }>();
+    const scoreMap = new Map<
+      string,
+      {
+        pattern: number;
+        keyword: number;
+        embedding: number;
+        context: number;
+        history: number;
+        holistic?: number;
+        matchedBy: MatchLayer[];
+        matchReason: string[];
+      }
+    >();
 
     // Initialize wellness and music tools with equal scores
     [mockWellnessTool, mockMusicTool].forEach((tool) => {
@@ -867,7 +877,7 @@ describe('Holistic NLU - E2E Routing Effects', () => {
     expect(result.holisticContext.relationship).not.toBeNull();
     expect(result.holisticContext.emotion).not.toBeNull();
     expect(result.holisticContext.sentiment).toBeDefined();
-    expect(result.holisticContext.overallUrgency).toBeDefined();  // Note: internal type uses overallUrgency
+    expect(result.holisticContext.overallUrgency).toBeDefined(); // Note: internal type uses overallUrgency
     expect(result.holisticContext.domainBoosts).toBeDefined();
 
     // Should detect family relationship
@@ -902,9 +912,9 @@ describe('Holistic NLU - routeUserInput API', () => {
 
     // HolisticContextSummary fields (converted from internal HolisticContext)
     expect(result.holisticContext).toMatchObject({
-      relationshipType: expect.any(String),      // family_immediate from "mom"
-      emotionType: expect.any(String),           // stressed
-      sentiment: expect.any(String),             // negative
+      relationshipType: expect.any(String), // family_immediate from "mom"
+      emotionType: expect.any(String), // stressed
+      sentiment: expect.any(String), // negative
       isCompoundIntent: expect.any(Boolean),
       domainBoosts: expect.any(Object),
     });
@@ -935,7 +945,7 @@ describe('Holistic NLU - routeUserInput API', () => {
   it('should detect compound intent in holisticContext', async () => {
     const { routeUserInput } = await import('../router.js');
 
-    const result = await routeUserInput("Call my dad and then check my calendar", {
+    const result = await routeUserInput('Call my dad and then check my calendar', {
       sessionId: 'compound-test',
       userId: 'test-user',
     });
@@ -948,7 +958,7 @@ describe('Holistic NLU - routeUserInput API', () => {
   it('should return undefined holisticContext for simple queries (no emotional/relational signals)', async () => {
     const { routeUserInput } = await import('../router.js');
 
-    const result = await routeUserInput("What time is it?", {
+    const result = await routeUserInput('What time is it?', {
       sessionId: 'simple-test',
       userId: 'test-user',
     });

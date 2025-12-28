@@ -35,7 +35,9 @@ import {
 vi.mock('../../memory/embedding-cache.js', () => ({
   embedCached: vi.fn().mockImplementation(async (text: string) => ({
     ok: true,
-    value: Array(768).fill(0).map(() => Math.random()),
+    value: Array(768)
+      .fill(0)
+      .map(() => Math.random()),
   })),
 }));
 
@@ -71,14 +73,35 @@ describe('Personality Module E2E', () => {
       const turns = [
         { emotion: 'neutral', intensity: 0.5, topics: ['greeting'], context: 'Hi there!' },
         { emotion: 'curious', intensity: 0.6, topics: ['work'], context: 'How was your day?' },
-        { emotion: 'stress', intensity: 0.7, topics: ['work', 'deadline'], context: 'So much to do...' },
-        { emotion: 'anxiety', intensity: 0.8, topics: ['work', 'boss'], context: 'My boss is upset' },
-        { emotion: 'stress', intensity: 0.9, topics: ['work', 'pressure'], context: 'Everything is overwhelming' },
+        {
+          emotion: 'stress',
+          intensity: 0.7,
+          topics: ['work', 'deadline'],
+          context: 'So much to do...',
+        },
+        {
+          emotion: 'anxiety',
+          intensity: 0.8,
+          topics: ['work', 'boss'],
+          context: 'My boss is upset',
+        },
+        {
+          emotion: 'stress',
+          intensity: 0.9,
+          topics: ['work', 'pressure'],
+          context: 'Everything is overwhelming',
+        },
       ];
 
       // Record each turn
       turns.forEach((turn) => {
-        recordEmotionalDataPoint(testUserId, turn.emotion, turn.intensity, turn.topics, turn.context);
+        recordEmotionalDataPoint(
+          testUserId,
+          turn.emotion,
+          turn.intensity,
+          turn.topics,
+          turn.context
+        );
       });
 
       // Verify history is recorded
@@ -106,7 +129,9 @@ describe('Personality Module E2E', () => {
       expect(callbacks.some((c) => c.type === 'milestone')).toBe(true);
 
       // Timing should suggest appropriate response - processing_aloud because it's thinking through feelings
-      expect(['processing_aloud', 'needs_to_be_heard', 'vulnerable_share']).toContain(timing.intent);
+      expect(['processing_aloud', 'needs_to_be_heard', 'vulnerable_share']).toContain(
+        timing.intent
+      );
     });
 
     it('should track growth over time', () => {
@@ -297,17 +322,11 @@ describe('Personality Module E2E', () => {
 
     it('should integrate with shouldSharePersonalMoment', () => {
       // High relevance + venting = don't share
-      const ventingResult = shouldSharePersonalMoment(
-        "I'm SO annoyed right now! Ugh!!",
-        0.9
-      );
+      const ventingResult = shouldSharePersonalMoment("I'm SO annoyed right now! Ugh!!", 0.9);
       expect(ventingResult.should).toBe(false);
 
       // High relevance + seeking perspective = share
-      const seekingResult = shouldSharePersonalMoment(
-        'What do you think about that?',
-        0.8
-      );
+      const seekingResult = shouldSharePersonalMoment('What do you think about that?', 0.8);
       expect(seekingResult.should).toBe(true);
     });
   });
@@ -428,4 +447,3 @@ describe('Personality Module E2E', () => {
     });
   });
 });
-

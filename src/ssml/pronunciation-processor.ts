@@ -13,7 +13,7 @@
  * @module ssml/pronunciation-processor
  */
 
-import { FINANCIAL_END, FINANCIAL_PRONUNCIATIONS, FINANCIAL_START } from './constants.js';
+import { ALL_PRONUNCIATIONS, FINANCIAL_END, FINANCIAL_START } from './constants/index.js';
 import type { PronunciationEntry } from './types.js';
 
 // =============================================================================
@@ -114,7 +114,7 @@ function categorizePatterns(): PatternCategory[] {
   ];
 
   // Categorize each pattern
-  for (const entry of FINANCIAL_PRONUNCIATIONS) {
+  for (const entry of ALL_PRONUNCIATIONS) {
     const patternStr = entry.pattern.source;
 
     // Check pattern characteristics
@@ -259,7 +259,7 @@ export function estimatePatternChecks(text: string): {
   }
 
   return {
-    total: FINANCIAL_PRONUNCIATIONS.length,
+    total: ALL_PRONUNCIATIONS.length,
     checked,
     skipped,
     categories: categoryStats,

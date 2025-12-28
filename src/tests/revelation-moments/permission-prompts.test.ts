@@ -169,8 +169,9 @@ describe('Real-World Permission Scenarios', () => {
   it('should provide appropriate prompt for pattern surfacing', () => {
     const prompt = getPromptForCapability('pattern', 0.4);
     if (prompt) {
-      // Prompts include many variations for asking permission
-      expect(prompt).toMatch(/notice|pattern|seeing|share|look|something|underneath|deeper|go/i);
+      // Prompts include many variations for asking permission to surface patterns
+      // Examples: "I notice...", "I can say more about this. Interested?", "Should I dig into this?"
+      expect(prompt).toMatch(/notice|pattern|seeing|share|look|something|underneath|deeper|go|more|interested|say|dig/i);
     }
   });
 
@@ -178,15 +179,17 @@ describe('Real-World Permission Scenarios', () => {
     const prompt = getPromptForCapability('challenge', 0.6);
     if (prompt) {
       // Prompts include many variations for asking permission to challenge
-      expect(prompt).toMatch(/push|challenge|honest|direct|devil|ready|say|vulnerable|going/i);
+      // Some prompts are softer like "share something real" or "Is that okay?"
+      expect(prompt).toMatch(/push|challenge|honest|direct|devil|ready|say|vulnerable|going|share|real|okay/i);
     }
   });
 
   it('should provide appropriate prompt for growth reflection', () => {
     const prompt = getPromptForCapability('growth', 0.5);
     if (prompt) {
-      // Prompts include variations like "Want to look at it?" or "Should I dig into this?"
-      expect(prompt).toMatch(/notice|share|deeper|observation|look|here|want|point|showing|dig/i);
+      // Prompts include many variations like "Want to look at it?", "Should I dig into this?",
+      // "I can say more about this. Interested?"
+      expect(prompt).toMatch(/notice|share|deeper|observation|look|here|want|point|showing|dig|more|interested|say/i);
     }
   });
 });

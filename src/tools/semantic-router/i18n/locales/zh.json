@@ -5,7 +5,11 @@
 
   "weather_current": {
     "phrases": ["天气怎么样", "现在天气", "外面怎么样", "下雨吗", "冷不冷", "热不热", "需要带伞吗"],
-    "patterns": ["^(?:今天|现在)?天气(?:怎么样)?", "^(?:下雨|下雪|冷|热)(?:吗)?", "^需要(?:带)?(?:伞|外套)(?:吗)?"],
+    "patterns": [
+      "^(?:今天|现在)?天气(?:怎么样)?",
+      "^(?:下雨|下雪|冷|热)(?:吗)?",
+      "^需要(?:带)?(?:伞|外套)(?:吗)?"
+    ],
     "keywords": [
       { "word": "天气", "weight": 1.0 },
       { "word": "温度", "weight": 0.9 },
@@ -18,42 +22,66 @@
   "weather_forecast": {
     "phrases": ["天气预报", "明天天气", "这周天气", "周末天气"],
     "patterns": ["^(?:明天|这周|周末)?天气预报", "^(?:会)?(?:下雨|下雪)(?:吗)?"],
-    "keywords": [{ "word": "预报", "weight": 1.0 }, { "word": "明天", "weight": 0.8 }],
+    "keywords": [
+      { "word": "预报", "weight": 1.0 },
+      { "word": "明天", "weight": 0.8 }
+    ],
     "antiKeywords": ["现在", "今天"]
   },
 
   "calendar_list_events": {
     "phrases": ["我的日历", "今天有什么安排", "我的日程", "有会议吗", "我忙吗"],
-    "patterns": ["^(?:显示|看|查看)?(?:我的)?日(?:历|程)", "^(?:今天|明天)?(?:有)?(?:会议|安排)(?:吗)?"],
-    "keywords": [{ "word": "日历", "weight": 1.0 }, { "word": "日程", "weight": 0.9 }, { "word": "会议", "weight": 0.8 }],
+    "patterns": [
+      "^(?:显示|看|查看)?(?:我的)?日(?:历|程)",
+      "^(?:今天|明天)?(?:有)?(?:会议|安排)(?:吗)?"
+    ],
+    "keywords": [
+      { "word": "日历", "weight": 1.0 },
+      { "word": "日程", "weight": 0.9 },
+      { "word": "会议", "weight": 0.8 }
+    ],
     "antiKeywords": ["创建", "添加", "取消"]
   },
 
   "calendar_create_event": {
     "phrases": ["创建会议", "添加日程", "安排会议", "预约时间"],
     "patterns": ["^(?:创建|添加|安排|预约)(?:一个)?(?:会议|日程|活动)"],
-    "keywords": [{ "word": "创建", "weight": 1.0 }, { "word": "添加", "weight": 0.9 }, { "word": "安排", "weight": 0.9 }],
+    "keywords": [
+      { "word": "创建", "weight": 1.0 },
+      { "word": "添加", "weight": 0.9 },
+      { "word": "安排", "weight": 0.9 }
+    ],
     "antiKeywords": ["显示", "查看", "取消"]
   },
 
   "habit_track": {
     "phrases": ["完成了", "做完了", "记录习惯", "我冥想了", "我锻炼了", "去健身房了"],
     "patterns": ["^(?:完成|做完|做了)(?:了)?(.+)?", "^(?:冥想|锻炼|健身|跑步)(?:了)?"],
-    "keywords": [{ "word": "完成", "weight": 0.9 }, { "word": "冥想", "weight": 0.9 }, { "word": "锻炼", "weight": 0.9 }],
+    "keywords": [
+      { "word": "完成", "weight": 0.9 },
+      { "word": "冥想", "weight": 0.9 },
+      { "word": "锻炼", "weight": 0.9 }
+    ],
     "antiKeywords": ["创建", "添加", "新"]
   },
 
   "memory_save": {
     "phrases": ["记住这个", "别忘了", "保存一下", "记一下", "帮我记住"],
     "patterns": ["^(?:请)?记住(.+)?", "^别忘(?:了)?(.+)?", "^(?:保存|记录)(.+)?"],
-    "keywords": [{ "word": "记住", "weight": 1.0 }, { "word": "忘", "weight": 0.9 }],
+    "keywords": [
+      { "word": "记住", "weight": 1.0 },
+      { "word": "忘", "weight": 0.9 }
+    ],
     "antiKeywords": ["什么", "什么时候", "谁"]
   },
 
   "memory_recall": {
     "phrases": ["我说过什么", "你记得吗", "你知道什么", "我的什么", "想起来"],
     "patterns": ["^(?:我说)?(?:过)?什么", "^你(?:记得|知道)(?:吗)?", "^(?:想起|回忆)(.+)?"],
-    "keywords": [{ "word": "记得", "weight": 1.0 }, { "word": "想起", "weight": 0.9 }],
+    "keywords": [
+      { "word": "记得", "weight": 1.0 },
+      { "word": "想起", "weight": 0.9 }
+    ],
     "antiKeywords": ["保存", "记住", "别忘"]
   },
 
@@ -72,28 +100,41 @@
   "spotify_play": {
     "phrases": ["播放音乐", "放首歌", "播放", "放点音乐", "我想听"],
     "patterns": ["^播放(.+)?", "^放(?:首|点)?(.+)?", "^(?:我想)?听(.+)?"],
-    "keywords": [{ "word": "播放", "weight": 1.0 }, { "word": "音乐", "weight": 0.8 }, { "word": "歌", "weight": 0.7 }],
+    "keywords": [
+      { "word": "播放", "weight": 1.0 },
+      { "word": "音乐", "weight": 0.8 },
+      { "word": "歌", "weight": 0.7 }
+    ],
     "antiKeywords": ["停止", "暂停", "下一首"]
   },
 
   "spotify_pause": {
     "phrases": ["暂停", "停止音乐", "停一下"],
     "patterns": ["^(?:暂停|停止)(?:音乐)?"],
-    "keywords": [{ "word": "暂停", "weight": 1.0 }, { "word": "停止", "weight": 0.9 }],
+    "keywords": [
+      { "word": "暂停", "weight": 1.0 },
+      { "word": "停止", "weight": 0.9 }
+    ],
     "antiKeywords": ["播放", "继续"]
   },
 
   "spotify_skip": {
     "phrases": ["下一首", "跳过", "跳过这首", "下一个"],
     "patterns": ["^下一(?:首|个)", "^跳过(?:这首)?"],
-    "keywords": [{ "word": "下一首", "weight": 1.0 }, { "word": "跳过", "weight": 1.0 }],
+    "keywords": [
+      { "word": "下一首", "weight": 1.0 },
+      { "word": "跳过", "weight": 1.0 }
+    ],
     "antiKeywords": ["上一首", "返回"]
   },
 
   "info_time": {
     "phrases": ["现在几点", "告诉我时间", "几点了"],
     "patterns": ["^(?:现在)?几点(?:了)?", "^告诉我(?:现在)?(?:时间|几点)"],
-    "keywords": [{ "word": "时间", "weight": 1.0 }, { "word": "几点", "weight": 1.0 }],
+    "keywords": [
+      { "word": "时间", "weight": 1.0 },
+      { "word": "几点", "weight": 1.0 }
+    ],
     "antiKeywords": ["天气", "日历"]
   },
 
@@ -112,7 +153,10 @@
   "set_timer": {
     "phrases": ["设置计时器", "定时", "开始计时"],
     "patterns": ["^(?:设置|开始)?计时(?:器)?(.+)?", "^定时(.+)?"],
-    "keywords": [{ "word": "计时器", "weight": 1.0 }, { "word": "分钟", "weight": 0.7 }],
+    "keywords": [
+      { "word": "计时器", "weight": 1.0 },
+      { "word": "分钟", "weight": 0.7 }
+    ],
     "antiKeywords": ["闹钟", "提醒"]
   },
 
@@ -126,105 +170,159 @@
   "set_alarm": {
     "phrases": ["设置闹钟", "叫我起床", "闹钟"],
     "patterns": ["^(?:设置)?闹钟(.+)?", "^叫我(?:起床)?(.+)?"],
-    "keywords": [{ "word": "闹钟", "weight": 1.0 }, { "word": "起床", "weight": 0.9 }],
+    "keywords": [
+      { "word": "闹钟", "weight": 1.0 },
+      { "word": "起床", "weight": 0.9 }
+    ],
     "antiKeywords": ["计时器", "提醒"]
   },
 
   "burnout_assess": {
     "phrases": ["我累坏了", "我精疲力竭", "我筋疲力尽", "我撑不住了"],
     "patterns": ["^我(?:很)?(?:累|累坏|精疲力竭|筋疲力尽)", "^我(?:撑不住|受不了)(?:了)?"],
-    "keywords": [{ "word": "累", "weight": 1.0 }, { "word": "精疲力竭", "weight": 1.0 }],
+    "keywords": [
+      { "word": "累", "weight": 1.0 },
+      { "word": "精疲力竭", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "career_coaching": {
     "phrases": ["职业建议", "职业帮助", "想换工作", "要不要辞职"],
     "patterns": ["^(?:职业|工作)(?:建议|帮助|咨询)", "^(?:要不要|想)?(?:辞职|换工作)"],
-    "keywords": [{ "word": "职业", "weight": 1.0 }, { "word": "工作", "weight": 0.8 }, { "word": "辞职", "weight": 0.7 }],
+    "keywords": [
+      { "word": "职业", "weight": 1.0 },
+      { "word": "工作", "weight": 0.8 },
+      { "word": "辞职", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "decision_help": {
     "phrases": ["帮我决定", "我不知道该怎么选", "我很犹豫", "应该怎么办"],
     "patterns": ["^(?:帮我)?决定(.+)?", "^我(?:不知道|很犹豫)", "^应该(?:怎么)?(?:办|选)"],
-    "keywords": [{ "word": "决定", "weight": 1.0 }, { "word": "选择", "weight": 1.0 }, { "word": "犹豫", "weight": 0.8 }],
+    "keywords": [
+      { "word": "决定", "weight": 1.0 },
+      { "word": "选择", "weight": 1.0 },
+      { "word": "犹豫", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "dream_clarify": {
     "phrases": ["我的梦想是什么", "帮我找到梦想", "我不知道我想要什么"],
     "patterns": ["^(?:我的)?梦想(?:是)?(?:什么)?", "^我不知道(?:我想要)?什么"],
-    "keywords": [{ "word": "梦想", "weight": 1.0 }, { "word": "目标", "weight": 0.8 }],
+    "keywords": [
+      { "word": "梦想", "weight": 1.0 },
+      { "word": "目标", "weight": 0.8 }
+    ],
     "antiKeywords": ["睡觉", "做梦", "噩梦"]
   },
 
   "grief_support": {
     "phrases": ["我失去了亲人", "有人去世了", "我在悲伤中", "我很想念他们"],
-    "patterns": ["^我(?:失去|丢失)(?:了)?(?:亲人|朋友|家人)", "^(?:有人)?去世(?:了)?", "^我(?:很)?(?:悲伤|难过)"],
-    "keywords": [{ "word": "悲伤", "weight": 1.0 }, { "word": "去世", "weight": 1.0 }, { "word": "失去", "weight": 0.9 }],
+    "patterns": [
+      "^我(?:失去|丢失)(?:了)?(?:亲人|朋友|家人)",
+      "^(?:有人)?去世(?:了)?",
+      "^我(?:很)?(?:悲伤|难过)"
+    ],
+    "keywords": [
+      { "word": "悲伤", "weight": 1.0 },
+      { "word": "去世", "weight": 1.0 },
+      { "word": "失去", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "anger_support": {
     "phrases": ["我很生气", "我很愤怒", "我控制不住我的怒气"],
     "patterns": ["^我(?:很)?(?:生气|愤怒)", "^我控制不(?:住|了)(?:我的)?(?:怒气|脾气)"],
-    "keywords": [{ "word": "生气", "weight": 1.0 }, { "word": "愤怒", "weight": 1.0 }],
+    "keywords": [
+      { "word": "生气", "weight": 1.0 },
+      { "word": "愤怒", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "gratitude_practice": {
     "phrases": ["感恩练习", "我感激什么", "帮我感恩"],
     "patterns": ["^感恩(?:练习)?", "^我(?:应该)?感(?:激|恩)(?:什么)?"],
-    "keywords": [{ "word": "感恩", "weight": 1.0 }, { "word": "感激", "weight": 1.0 }],
+    "keywords": [
+      { "word": "感恩", "weight": 1.0 },
+      { "word": "感激", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "self_compassion": {
     "phrases": ["我对自己太苛刻了", "我讨厌自己", "我不够好", "我觉得自己是个失败者"],
     "patterns": ["^我(?:对自己)?(?:太)?苛刻", "^我(?:讨厌|不喜欢)自己", "^我(?:不够|不够)?好"],
-    "keywords": [{ "word": "苛刻", "weight": 0.7 }, { "word": "自我", "weight": 0.6 }, { "word": "失败", "weight": 0.8 }],
+    "keywords": [
+      { "word": "苛刻", "weight": 0.7 },
+      { "word": "自我", "weight": 0.6 },
+      { "word": "失败", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "loneliness_support": {
     "phrases": ["我很孤独", "我感到孤立", "我没有朋友", "没人理解我"],
     "patterns": ["^我(?:很)?(?:孤独|孤立)", "^我没(?:有)?朋友"],
-    "keywords": [{ "word": "孤独", "weight": 1.0 }, { "word": "孤立", "weight": 0.9 }],
+    "keywords": [
+      { "word": "孤独", "weight": 1.0 },
+      { "word": "孤立", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "sleep_help": {
     "phrases": ["我睡不着", "帮我睡觉", "失眠", "睡眠问题"],
     "patterns": ["^我(?:睡不着|失眠)", "^(?:帮我)?睡(?:觉)?"],
-    "keywords": [{ "word": "睡", "weight": 1.0 }, { "word": "失眠", "weight": 1.0 }],
+    "keywords": [
+      { "word": "睡", "weight": 1.0 },
+      { "word": "失眠", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "motivation_boost": {
     "phrases": ["我需要动力", "我没有动力", "帮我开始", "我在拖延"],
     "patterns": ["^我(?:需要|没有)动力", "^我(?:在)?拖延"],
-    "keywords": [{ "word": "动力", "weight": 1.0 }, { "word": "拖延", "weight": 0.9 }],
+    "keywords": [
+      { "word": "动力", "weight": 1.0 },
+      { "word": "拖延", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "boundary_coaching": {
     "phrases": ["我不会说不", "帮我设定界限", "人们在利用我"],
     "patterns": ["^我(?:不会|不能)说不", "^(?:帮我)?设(?:定|立)界限"],
-    "keywords": [{ "word": "界限", "weight": 1.0 }, { "word": "说不", "weight": 0.7 }],
+    "keywords": [
+      { "word": "界限", "weight": 1.0 },
+      { "word": "说不", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "imposter_syndrome": {
     "phrases": ["我觉得自己是冒牌货", "冒名顶替综合症", "我不配", "他们会发现我不够好"],
     "patterns": ["^我(?:觉得|感觉)(?:自己是)?(?:冒牌货|骗子)", "^我不(?:配|值得)"],
-    "keywords": [{ "word": "冒牌货", "weight": 1.0 }, { "word": "配", "weight": 0.8 }],
+    "keywords": [
+      { "word": "冒牌货", "weight": 1.0 },
+      { "word": "配", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "relationship_advice": {
     "phrases": ["感情建议", "帮助我的感情", "和伴侣有问题", "我们总是吵架"],
     "patterns": ["^(?:感情|关系)(?:建议|帮助)", "^(?:和)?伴侣(?:有)?问题"],
-    "keywords": [{ "word": "感情", "weight": 1.0 }, { "word": "关系", "weight": 0.9 }, { "word": "伴侣", "weight": 0.9 }],
+    "keywords": [
+      { "word": "感情", "weight": 1.0 },
+      { "word": "关系", "weight": 0.9 },
+      { "word": "伴侣", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
@@ -238,28 +336,41 @@
   "smart_home_thermostat": {
     "phrases": ["调节温度", "开暖气", "开空调", "变暖一点", "变凉一点"],
     "patterns": ["^(?:调节|设置)?温度", "^开(?:暖气|空调)"],
-    "keywords": [{ "word": "温度", "weight": 1.0 }, { "word": "暖气", "weight": 0.8 }, { "word": "空调", "weight": 0.8 }],
+    "keywords": [
+      { "word": "温度", "weight": 1.0 },
+      { "word": "暖气", "weight": 0.8 },
+      { "word": "空调", "weight": 0.8 }
+    ],
     "antiKeywords": ["天气"]
   },
 
   "define_word": {
     "phrases": ["定义", "是什么意思", "的意思是", "什么意思"],
     "patterns": ["^(?:定义)?(.+)(?:是什么意思)?", "^(.+)(?:的)?意思(?:是)?(?:什么)?"],
-    "keywords": [{ "word": "定义", "weight": 1.0 }, { "word": "意思", "weight": 1.0 }],
+    "keywords": [
+      { "word": "定义", "weight": 1.0 },
+      { "word": "意思", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "translate": {
     "phrases": ["翻译", "怎么说", "用英语怎么说", "翻译成中文"],
     "patterns": ["^翻译(.+)?", "^(?:用)?(?:英语|西班牙语|法语)(?:怎么说)?"],
-    "keywords": [{ "word": "翻译", "weight": 1.0 }, { "word": "英语", "weight": 0.8 }],
+    "keywords": [
+      { "word": "翻译", "weight": 1.0 },
+      { "word": "英语", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "calculate": {
     "phrases": ["计算", "等于多少", "结果是什么", "数学题"],
     "patterns": ["^计算(.+)?", "^(?:等于)?多少", "^结果(?:是)?(?:什么)?"],
-    "keywords": [{ "word": "计算", "weight": 1.0 }, { "word": "数学", "weight": 0.9 }],
+    "keywords": [
+      { "word": "计算", "weight": 1.0 },
+      { "word": "数学", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
@@ -273,36 +384,50 @@
   "get_directions": {
     "phrases": ["怎么去", "去的路线", "导航到"],
     "patterns": ["^怎么去(.+)?", "^(?:去)?(.+)(?:的)?路线", "^导航(?:到)?(.+)?"],
-    "keywords": [{ "word": "路线", "weight": 1.0 }, { "word": "导航", "weight": 1.0 }],
+    "keywords": [
+      { "word": "路线", "weight": 1.0 },
+      { "word": "导航", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "book_search": {
     "phrases": ["找一本书", "推荐书", "我应该读什么", "书籍推荐"],
     "patterns": ["^(?:找|推荐)(?:一本)?书", "^我(?:应该)?读(?:什么)?"],
-    "keywords": [{ "word": "书", "weight": 1.0 }, { "word": "读", "weight": 0.8 }],
+    "keywords": [
+      { "word": "书", "weight": 1.0 },
+      { "word": "读", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "podcast_find": {
     "phrases": ["找播客", "推荐播客", "我应该听什么播客"],
     "patterns": ["^(?:找|推荐)(?:一个)?播客", "^(?:我应该)?听(?:什么)?(?:播客)?"],
-    "keywords": [{ "word": "播客", "weight": 1.0 }, { "word": "听", "weight": 0.7 }],
+    "keywords": [
+      { "word": "播客", "weight": 1.0 },
+      { "word": "听", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "movie_recommend": {
     "phrases": ["推荐电影", "我应该看什么电影", "找一部电影"],
     "patterns": ["^推荐(?:一部)?电影", "^(?:我应该)?看(?:什么)?电影"],
-    "keywords": [{ "word": "电影", "weight": 1.0 }, { "word": "看", "weight": 0.7 }],
+    "keywords": [
+      { "word": "电影", "weight": 1.0 },
+      { "word": "看", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "restaurant_find": {
     "phrases": ["找餐厅", "去哪吃", "推荐餐厅", "吃晚饭的地方"],
     "patterns": ["^(?:找|推荐)(?:一家)?餐厅", "^去(?:哪|哪里)吃(?:饭)?"],
-    "keywords": [{ "word": "餐厅", "weight": 1.0 }, { "word": "吃", "weight": 0.8 }],
+    "keywords": [
+      { "word": "餐厅", "weight": 1.0 },
+      { "word": "吃", "weight": 0.8 }
+    ],
     "antiKeywords": []
   }
 }
-

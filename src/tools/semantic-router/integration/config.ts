@@ -508,8 +508,8 @@ export const GEMINI_ROCK_SOLID_PRESET: Partial<SemanticRouterConfig> = {
   },
   thresholds: {
     autoExecute: 0.72, // Aggressive: execute at 72% confidence
-    confirm: 0.60, // Confirm with user at 60%
-    hint: 0.40, // Hint to LLM at 40%
+    confirm: 0.6, // Confirm with user at 60%
+    hint: 0.4, // Hint to LLM at 40%
     minimum: 0.25, // Consider matches at 25%
     maxLatencyMs: 100,
     maxEmbeddings: 25, // More embeddings = better matching
@@ -573,7 +573,10 @@ export function isGeminiProblemPhrase(input: string): boolean {
  */
 export function getGeminiConfidenceBoost(input: string): number {
   if (isGeminiProblemPhrase(input)) {
-    log.debug({ input: input.slice(0, 50) }, '🎯 Gemini problem phrase detected - boosting confidence');
+    log.debug(
+      { input: input.slice(0, 50) },
+      '🎯 Gemini problem phrase detected - boosting confidence'
+    );
     return 1.15; // 15% confidence boost
   }
   return 1.0;
@@ -734,11 +737,12 @@ export function getCalibrationStats(): {
   // If we have many near-misses with high confidence, suggest lowering threshold
   if (nearMisses.length > calibrationLog.length * 0.15) {
     const avgNearMissConfidence =
-      nearMisses.reduce((sum, nm) => sum + (thresholds.autoExecute - nm.gap), 0) / nearMisses.length;
+      nearMisses.reduce((sum, nm) => sum + (thresholds.autoExecute - nm.gap), 0) /
+      nearMisses.length;
     if (avgNearMissConfidence > 0.75) {
       suggestedThresholdAdjustments.autoExecute = {
         current: thresholds.autoExecute,
-        suggested: Math.max(0.70, avgNearMissConfidence - 0.05),
+        suggested: Math.max(0.7, avgNearMissConfidence - 0.05),
         reason: `${nearMisses.length} near-misses (${((nearMisses.length / calibrationLog.length) * 100).toFixed(0)}%) with avg confidence ${avgNearMissConfidence.toFixed(2)}`,
       };
     }

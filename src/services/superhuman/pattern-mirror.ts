@@ -202,10 +202,12 @@ function updateTopicList(
       existing.voiceMarkersWhenDiscussing.avgPitch =
         (oldPitch * (existing.mentionCount - 1) + data.voiceMarkers.pitch) / existing.mentionCount;
       existing.voiceMarkersWhenDiscussing.avgSpeechRate =
-        (oldRate * (existing.mentionCount - 1) + data.voiceMarkers.speechRate) / existing.mentionCount;
+        (oldRate * (existing.mentionCount - 1) + data.voiceMarkers.speechRate) /
+        existing.mentionCount;
     }
     existing.voiceMarkersWhenDiscussing.avgEnergy =
-      (existing.voiceMarkersWhenDiscussing.avgEnergy * (existing.mentionCount - 1) + data.voiceEnergy) /
+      (existing.voiceMarkersWhenDiscussing.avgEnergy * (existing.mentionCount - 1) +
+        data.voiceEnergy) /
       existing.mentionCount;
 
     if (data.sentiment) {
@@ -275,7 +277,9 @@ function updateFadingTopics(profile: PatternMirrorProfile, currentTopic: string)
           currentFrequency: counts.recent === 0 ? 'never' : 'rare',
           lastMentioned: lastEntry ? new Date(lastEntry.timestamp) : thirtyDaysAgo,
           daysSinceLastMention: lastEntry
-            ? Math.floor((now.getTime() - new Date(lastEntry.timestamp).getTime()) / (24 * 60 * 60 * 1000))
+            ? Math.floor(
+                (now.getTime() - new Date(lastEntry.timestamp).getTime()) / (24 * 60 * 60 * 1000)
+              )
             : 30,
           wasEnergizing,
           surfacedToUser: false,
@@ -420,14 +424,15 @@ export function getPatternToSurface(userId: string): PatternInsight | null {
 
   // Priority 3: Recent word-voice mismatches
   const recentMismatches = profile.wordVoiceMismatches.filter(
-    (m) => !m.surfacedToUser && Date.now() - new Date(m.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000
+    (m) =>
+      !m.surfacedToUser && Date.now() - new Date(m.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000
   );
   if (recentMismatches.length >= 2) {
     const topics = [...new Set(recentMismatches.map((m) => m.topic))];
     insights.push({
       type: 'voice_mismatch',
       insight: `I've noticed your voice tells a different story than your words sometimes, especially about ${topics[0]}.`,
-      gentleProbe: "How are you really feeling about that?",
+      gentleProbe: 'How are you really feeling about that?',
       topic: topics[0],
       priority: 7,
     });
@@ -610,4 +615,3 @@ export const patternMirror = {
 };
 
 export default patternMirror;
-

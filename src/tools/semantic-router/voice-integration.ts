@@ -35,10 +35,7 @@ import {
 } from './tool-definitions/index.js';
 
 // Import capability checker for runtime availability checks
-import {
-  isToolAvailable,
-  getUnavailabilityReason,
-} from './capability-checker.js';
+import { isToolAvailable, getUnavailabilityReason } from './capability-checker.js';
 
 // Import i18n support
 import {
@@ -171,7 +168,11 @@ export async function warmStartSession(context: WarmStartContext): Promise<{
       const deepContext = getDeepContext(context.sessionId);
       for (const topic of context.recentTopics) {
         // Add each topic to context to prime the router
-        updateContextWithInput(context.sessionId, `Thinking about ${topic}`, deepContext.currentTurn);
+        updateContextWithInput(
+          context.sessionId,
+          `Thinking about ${topic}`,
+          deepContext.currentTurn
+        );
         primedTopics.push(topic);
       }
       log.debug(
@@ -410,7 +411,7 @@ export async function initializeVoiceRouter(): Promise<void> {
   if (initPromise) {
     return initPromise;
   }
-  
+
   if (initialized) return;
 
   initPromise = doInitializeVoiceRouter();
@@ -423,15 +424,15 @@ export async function initializeVoiceRouter(): Promise<void> {
 
 async function doInitializeVoiceRouter(): Promise<void> {
   if (initialized) return;
-  
+
   const isDev = process.env.NODE_ENV === 'development';
   const startTime = performance.now();
-  
+
   log.info({ isDev }, 'Initializing voice semantic router...');
 
   // Get the registry
   const registry = getToolRegistry();
-  
+
   // CAPABILITY FILTERING: Only register tools whose backing services are configured
   // This prevents hallucination by ensuring we don't route to unavailable tools
   const availableTools = getAvailableToolDefinitions();
@@ -443,13 +444,13 @@ async function doInitializeVoiceRouter(): Promise<void> {
     },
     '🔧 Tools filtered by capability availability'
   );
-  
+
   // IMPORTANT: Merge locale triggers into tool definitions BEFORE registering
   // This adds patterns like "check the weather" from en.json to the hardcoded definitions
   // Without this, many natural phrases won't match!
   const localizedTools = await mergeLocaleIntoTools(availableTools);
   log.info({ localeToolCount: localizedTools.length }, '🌐 Locale merged into tool definitions');
-  
+
   // Register all tools WITH locale patterns
   registry.registerMany(localizedTools);
 
@@ -472,11 +473,11 @@ async function doInitializeVoiceRouter(): Promise<void> {
   // Always use Google embeddings for best quality (text-embedding-004)
   // Firestore caching makes subsequent calls fast (~30-80ms first call, cached after)
   // =========================================================================
-  
+
   log.info({ isDev }, '☁️ Using Google embeddings (text-embedding-004)');
   const embeddingProvider = createEmbeddingProvider('google');
   await router.initialize(embeddingProvider);
-  
+
   // Load pre-computed embeddings from Firestore (fast!)
   // These are computed once on first deploy, then cached
   if (!isDev) {
@@ -486,14 +487,18 @@ async function doInitializeVoiceRouter(): Promise<void> {
   // =========================================================================
   // ASYNC BACKGROUND TASKS (fire-and-forget, don't block)
   // =========================================================================
-  
+
   // Load English locale in background
-  preloadLocales(['en']).catch(() => {/* ignore */});
+  preloadLocales(['en']).catch(() => {
+    /* ignore */
+  });
 
   // NER engine in background
   initializeNER()
     .then(() => log.info('🔍 NER engine initialized'))
-    .catch(() => {/* regex fallback works fine */});
+    .catch(() => {
+      /* regex fallback works fine */
+    });
 
   // Streaming router (sync, fast) - use available tools only
   try {
@@ -502,7 +507,7 @@ async function doInitializeVoiceRouter(): Promise<void> {
   } catch {
     // Non-fatal
   }
-  
+
   const duration = performance.now() - startTime;
   log.info({ durationMs: Math.round(duration), isDev }, '✅ Voice router initialized');
 
@@ -512,25 +517,24 @@ async function doInitializeVoiceRouter(): Promise<void> {
 
 /**
  * Load pre-computed embeddings from Firestore cache (background, non-blocking)
- * 
+ *
  * On first deploy, embeddings are computed and cached.
  * Subsequent startups load from cache (fast).
  */
 async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): Promise<void> {
   try {
-    const { getToolEmbeddingIndex, initializeToolEmbeddingIndex } = await import(
-      './persistence/index.js'
-    );
-    
+    const { getToolEmbeddingIndex, initializeToolEmbeddingIndex } =
+      await import('./persistence/index.js');
+
     // Initialize the embedding index service
     await initializeToolEmbeddingIndex();
     const indexService = getToolEmbeddingIndex();
-    
+
     // Batch load embeddings from Firestore cache
     const embeddings = await indexService.batchGetToolEmbeddings(
       allToolDefinitions as SemanticToolDefinition[]
     );
-    
+
     const stats = indexService.getStats();
     log.info(
       {
@@ -541,7 +545,7 @@ async function loadCachedEmbeddingsAsync(embeddingProvider: EmbeddingProvider): 
       },
       '☁️ Tool embeddings loaded from Firestore cache'
     );
-    
+
     // If we had to compute fresh embeddings, they're now cached for next time
     if (stats.computedFresh > 0) {
       log.info(
@@ -795,9 +799,8 @@ export async function routeVoiceInput(
       // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
       // This prevents the race condition where LLM (running in parallel) outputs JSON for the same tool
       try {
-        const { markToolExecutedBySemanticRouter } = await import(
-          '../../agents/shared/tool-call-sanitizer.js'
-        );
+        const { markToolExecutedBySemanticRouter } =
+          await import('../../agents/shared/tool-call-sanitizer.js');
         markToolExecutedBySemanticRouter(context.sessionId, action.toolId);
       } catch (err) {
         log.warn({ error: String(err) }, 'Failed to mark tool as executed for deduplication');
@@ -1045,7 +1048,9 @@ function generateLLMHint(type: string, action: RouterAction): string {
       if (action.type === 'clarify') {
         const hint = `[TOOL HINT] To use a tool, need: ${action.missingInfo.join(', ')}. Ask naturally.`;
         // Add warning to prevent fabrication
-        return hint + ' Do NOT pretend the action happened if you do not have the required information.';
+        return (
+          hint + ' Do NOT pretend the action happened if you do not have the required information.'
+        );
       }
       break;
   }
@@ -1503,7 +1508,8 @@ export function getFeedbackSummary(): {
     totalCorrections += stats.correctionCount;
     totalExecutionTime += stats.avgExecutionTimeMs * stats.totalExecutions;
 
-    const correctionRate = stats.totalExecutions > 10 ? stats.correctionCount / stats.totalExecutions : 0;
+    const correctionRate =
+      stats.totalExecutions > 10 ? stats.correctionCount / stats.totalExecutions : 0;
     if (correctionRate > 0.1) {
       // Flag tools with >10% correction rate
       toolsWithHighCorrectionRate.push({ toolId, correctionRate });

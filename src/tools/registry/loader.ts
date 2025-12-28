@@ -33,7 +33,7 @@ import { ALL_TOOL_DOMAINS, type ToolDefinition, type ToolDomain } from './types.
 /**
  * Essential domains that are always loaded at startup.
  * These are needed for basic agent functionality.
- * 
+ *
  * NOTE: Without semantic router, Gemini needs tools available at session start.
  * If a tool isn't here, Gemini won't know it can call it!
  */

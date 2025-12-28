@@ -2,7 +2,7 @@
  * HTTP Tool Executor
  *
  * Executes HTTP-based marketplace tools by calling external endpoints.
- * 
+ *
  * SECURITY NOTES:
  * - User IDs are anonymized before being sent to external endpoints
  * - Internal/private URLs are blocked
@@ -48,7 +48,10 @@ export async function executeHttpTool(
   const anonymizedUserId = anonymizeUserId(context.userId, manifest.id);
   const requestId = generateSecureId('req');
 
-  log.debug({ toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout, requestId }, 'Executing HTTP tool');
+  log.debug(
+    { toolId: manifest.id, endpoint, timeoutMs: effectiveTimeout, requestId },
+    'Executing HTTP tool'
+  );
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), effectiveTimeout);

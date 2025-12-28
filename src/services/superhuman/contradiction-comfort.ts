@@ -86,7 +86,7 @@ const CONTRADICTION_PATTERNS: ContradictionPattern[] = [
     validations: [
       "You can be excited about what's ahead AND grieve what you're leaving behind.",
       "Both are true - the excitement and the sadness. You don't have to pick one.",
-      "It makes sense to feel both. New beginnings always carry goodbyes.",
+      'It makes sense to feel both. New beginnings always carry goodbyes.',
     ],
     examples: ['new job', 'moving', 'graduation', 'promotion', 'new relationship'],
   },
@@ -104,7 +104,7 @@ const CONTRADICTION_PATTERNS: ContradictionPattern[] = [
     validations: [
       'You can love someone AND be furious with them. Both are real.',
       "Anger doesn't cancel out love. They can coexist.",
-      'Loving someone and being angry with them isn\'t a contradiction - it\'s human.',
+      "Loving someone and being angry with them isn't a contradiction - it's human.",
     ],
     examples: ['family', 'partner', 'friend', 'parent', 'child'],
   },
@@ -156,7 +156,7 @@ const CONTRADICTION_PATTERNS: ContradictionPattern[] = [
   {
     emotions: ['want', 'fear'],
     validations: [
-      "Wanting something and being afraid of it can happen at the same time.",
+      'Wanting something and being afraid of it can happen at the same time.',
       "The things we want most are often the scariest. That's okay.",
       "Fear doesn't mean you don't want it. Both feelings are telling you something.",
     ],
@@ -175,7 +175,7 @@ const CONTRADICTION_PATTERNS: ContradictionPattern[] = [
     emotions: ['angry', 'understanding'],
     validations: [
       "Understanding why someone did something doesn't mean you can't still be angry.",
-      'You can get it AND still be mad. Those aren\'t mutually exclusive.',
+      "You can get it AND still be mad. Those aren't mutually exclusive.",
       "Empathy doesn't require you to stop being angry. Both can coexist.",
     ],
     examples: ['betrayal', 'hurt', 'disappointment'],
@@ -183,7 +183,7 @@ const CONTRADICTION_PATTERNS: ContradictionPattern[] = [
   {
     emotions: ['strong', 'broken'],
     validations: [
-      'You can be strong AND broken at the same time. Strength isn\'t the absence of brokenness.',
+      "You can be strong AND broken at the same time. Strength isn't the absence of brokenness.",
       "Feeling broken doesn't mean you're not also strong. You can be both.",
       'The strongest people often carry the deepest cracks. Both are true.',
     ],
@@ -285,7 +285,8 @@ export function detectContradiction(
       const confidence = calculateConfidence(detectedMarkers, hasE1, hasE2);
 
       // Select validation phrase
-      const validation = pattern.validations[Math.floor(Math.random() * pattern.validations.length)];
+      const validation =
+        pattern.validations[Math.floor(Math.random() * pattern.validations.length)];
 
       // Extract or infer topic
       const detectedTopic = topic || inferTopicFromMessage(message, pattern.examples);
@@ -452,7 +453,9 @@ export async function recordContradiction(
 /**
  * Load user's contradiction profile.
  */
-export async function loadContradictionProfile(userId: string): Promise<ContradictionProfile | null> {
+export async function loadContradictionProfile(
+  userId: string
+): Promise<ContradictionProfile | null> {
   const db = getFirestoreDb();
   if (!db) return null;
 
@@ -496,7 +499,7 @@ export function buildContradictionContext(detection: ContradictionDetection): st
     `Validation to offer: "${detection.validationPhrase}"`,
     '',
     'Hold space for complexity. Resist the urge to simplify.',
-    "Don't say \"but\" - say \"AND\". Both emotions are real.",
+    'Don\'t say "but" - say "AND". Both emotions are real.',
   ];
 
   return sections.join('\n');
@@ -515,7 +518,7 @@ export async function buildContradictionAwarenessContext(userId: string): Promis
   if (profile.frequentPatterns.length > 0) {
     const topPatterns = profile.frequentPatterns.sort((a, b) => b.count - a.count).slice(0, 3);
 
-    sections.push("This user often holds space for contradictory emotions:");
+    sections.push('This user often holds space for contradictory emotions:');
     for (const pattern of topPatterns) {
       sections.push(`- ${pattern.emotions[0]} AND ${pattern.emotions[1]} (${pattern.count} times)`);
     }
@@ -536,10 +539,7 @@ export async function buildContradictionAwarenessContext(userId: string): Promis
 export function getValidationPhrase(emotion1: string, emotion2: string): string | null {
   for (const pattern of CONTRADICTION_PATTERNS) {
     const [e1, e2] = pattern.emotions;
-    if (
-      (emotion1 === e1 && emotion2 === e2) ||
-      (emotion1 === e2 && emotion2 === e1)
-    ) {
+    if ((emotion1 === e1 && emotion2 === e2) || (emotion1 === e2 && emotion2 === e1)) {
       return pattern.validations[Math.floor(Math.random() * pattern.validations.length)];
     }
   }
@@ -552,10 +552,7 @@ export function getValidationPhrase(emotion1: string, emotion2: string): string 
 export function areCommonlyCoexisting(emotion1: string, emotion2: string): boolean {
   for (const pattern of CONTRADICTION_PATTERNS) {
     const [e1, e2] = pattern.emotions;
-    if (
-      (emotion1 === e1 && emotion2 === e2) ||
-      (emotion1 === e2 && emotion2 === e1)
-    ) {
+    if ((emotion1 === e1 && emotion2 === e2) || (emotion1 === e2 && emotion2 === e1)) {
       return true;
     }
   }
@@ -577,4 +574,3 @@ export const contradictionComfort = {
 };
 
 export default contradictionComfort;
-

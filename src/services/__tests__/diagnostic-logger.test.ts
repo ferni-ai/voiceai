@@ -223,7 +223,9 @@ describe('DiagnosticLogger', () => {
       it('should log section title', () => {
         diag.section('TEST SECTION');
         const calls = consoleSpy.mock.calls;
-        expect(calls.some((call: unknown[]) => String(call[0]).includes('TEST SECTION'))).toBe(true);
+        expect(calls.some((call: unknown[]) => String(call[0]).includes('TEST SECTION'))).toBe(
+          true
+        );
       });
     });
 
@@ -273,19 +275,24 @@ describe('DiagnosticLogger', () => {
       it('should log elapsed time when done called', async () => {
         const done = diag.time('test', 'Operation');
         // Simulate some work
-        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
         done();
         expect(consoleSpy).toHaveBeenCalled();
       });
 
       it('should include elapsed time in log', async () => {
         const done = diag.time('api', 'API call');
-        await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 5);
+        });
         done();
 
         // Find the perf log call
         const perfCall = consoleSpy.mock.calls.find(
-          (call: unknown[]) => String(call[0]).includes('completed') || ((call[1] as Record<string, unknown>)?.elapsed)
+          (call: unknown[]) =>
+            String(call[0]).includes('completed') || (call[1] as Record<string, unknown>)?.elapsed
         );
         expect(perfCall).toBeDefined();
       });

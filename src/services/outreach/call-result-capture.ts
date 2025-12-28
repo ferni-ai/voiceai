@@ -11,7 +11,10 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/call-on-behalf.js';
+import type {
+  CallOutcome,
+  OnBehalfCallRequest,
+} from '../../tools/domains/telephony/call-on-behalf.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -81,7 +84,10 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
   } catch (error) {
     // Store in memory as fallback
     callResultStore.set(result.callId, result);
-    log.warn({ error: String(error), callId: result.callId }, 'Firestore unavailable, stored in memory');
+    log.warn(
+      { error: String(error), callId: result.callId },
+      'Firestore unavailable, stored in memory'
+    );
   }
 }
 
@@ -418,7 +424,10 @@ export async function captureCallResult(
     // 8. Create follow-up actions
     await createFollowUpActions(request.userId, callId, outcome, request);
 
-    log.info({ callId, userId: request.userId }, 'Call result captured successfully (push + email + calendar)');
+    log.info(
+      { callId, userId: request.userId },
+      'Call result captured successfully (push + email + calendar)'
+    );
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -435,9 +444,8 @@ async function sendCallResultPushNotification(
   callId: string
 ): Promise<void> {
   try {
-    const { sendPushNotification, isPushNotificationsAvailable } = await import(
-      './delivery/push-notifications.js'
-    );
+    const { sendPushNotification, isPushNotificationsAvailable } =
+      await import('./delivery/push-notifications.js');
 
     if (!isPushNotificationsAvailable()) {
       log.debug({ callId }, 'Push notifications not available, skipping');
@@ -458,9 +466,7 @@ async function sendCallResultPushNotification(
       body = 'They should call back soon.';
     } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
       title = `📞 Couldn't reach ${contactName}`;
-      body = outcome.callbackRequired
-        ? 'Want me to try again later?'
-        : outcome.outcome;
+      body = outcome.callbackRequired ? 'Want me to try again later?' : outcome.outcome;
     } else {
       title = `📞 Call update: ${contactName}`;
       body = outcome.outcome;
@@ -503,7 +509,10 @@ async function sendCallResultEmail(
     // Get user's email
     const email = await getUserEmail(request.userId);
     if (!email) {
-      log.debug({ callId, userId: request.userId }, 'No email configured, skipping email notification');
+      log.debug(
+        { callId, userId: request.userId },
+        'No email configured, skipping email notification'
+      );
       return;
     }
 
@@ -576,9 +585,13 @@ function buildCallResultEmailContent(
 
   // What happened
   if (outcome.objectiveAchieved) {
-    lines.push(`Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`);
+    lines.push(
+      `Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`
+    );
   } else if (outcome.status === 'voicemail') {
-    lines.push(`I left a voicemail for ${contactName}. I made sure to keep it warm and natural - just like you would.`);
+    lines.push(
+      `I left a voicemail for ${contactName}. I made sure to keep it warm and natural - just like you would.`
+    );
   } else if (outcome.status === 'no_answer') {
     lines.push(`I tried calling ${contactName} but couldn't get through. No answer.`);
   } else if (outcome.status === 'busy') {
@@ -665,7 +678,9 @@ async function createCallbackCalendarEvent(
       contactPhone ? `Phone: ${contactPhone}` : '',
       '',
       `Created by Ferni`,
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     await createEvent(request.userId, {
       title: `📞 Call ${contactName} back`,

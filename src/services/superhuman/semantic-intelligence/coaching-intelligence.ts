@@ -21,78 +21,78 @@ const log = createLogger({ module: 'coaching-intelligence' });
 
 export interface AdviceEffectivenessProfile {
   userId: string;
-  
+
   // What approaches work?
   effectiveApproaches: {
-    directSuggestions: number;    // "You should..."
-    gentleNudges: number;         // "Have you considered..."
-    questioningApproach: number;  // "What do you think about..."
-    storytelling: number;         // "I knew someone who..."
-    dataAndEvidence: number;      // "Research shows..."
-    emotionalValidation: number;  // Validate first, suggest later
+    directSuggestions: number; // "You should..."
+    gentleNudges: number; // "Have you considered..."
+    questioningApproach: number; // "What do you think about..."
+    storytelling: number; // "I knew someone who..."
+    dataAndEvidence: number; // "Research shows..."
+    emotionalValidation: number; // Validate first, suggest later
   };
-  
+
   // What domains are they receptive in?
   receptiveTopics: string[];
   resistantTopics: string[];
-  
+
   // What framing works?
   framingPreferences: {
-    positiveBased: number;        // "You could gain..."
-    negativeBased: number;        // "You might lose..."
-    neutralBased: number;         // "One option is..."
+    positiveBased: number; // "You could gain..."
+    negativeBased: number; // "You might lose..."
+    neutralBased: number; // "One option is..."
   };
-  
+
   // Sample size
   totalAdviceGiven: number;
   totalOutcomesTracked: number;
-  
+
   lastUpdated: Date;
 }
 
 export interface LearningStyle {
   userId: string;
-  
+
   // Primary learning preference
   primary: 'data_driven' | 'story_driven' | 'experience_driven' | 'reflection_driven';
-  
+
   // Scores for each style
   scores: {
-    dataDriven: number;           // Show me the research
-    storyDriven: number;          // Tell me about others
-    experienceDriven: number;     // Let me try it
-    reflectionDriven: number;     // Let me think about it
+    dataDriven: number; // Show me the research
+    storyDriven: number; // Tell me about others
+    experienceDriven: number; // Let me try it
+    reflectionDriven: number; // Let me think about it
   };
-  
+
   // Evidence
   indicators: string[];
-  
+
   lastUpdated: Date;
 }
 
 export interface ResistancePattern {
   userId: string;
-  
+
   // Topics they deflect
   deflectedTopics: Array<{
     topic: string;
     deflectionCount: number;
     lastDeflection: Date;
   }>;
-  
+
   // Times they're closed off
   closedOffPatterns: Array<{
     context: string;
     frequency: number;
   }>;
-  
+
   // Patterns in pushback
   pushbackPatterns: Array<{
     trigger: string;
     response: string;
     frequency: number;
   }>;
-  
+
   lastUpdated: Date;
 }
 
@@ -138,16 +138,16 @@ export async function recordAdviceOutcome(
     result: 'positive' | 'negative' | 'neutral';
   }
 ): Promise<void> {
-  let profile = effectivenessCache.get(userId) ?? await loadEffectivenessProfile(userId);
-  
+  let profile = effectivenessCache.get(userId) ?? (await loadEffectivenessProfile(userId));
+
   if (!profile) {
     profile = createDefaultProfile(userId);
   }
-  
+
   // Update approach effectiveness
   const wasEffective = outcome.followed && outcome.result === 'positive';
   const adjustment = wasEffective ? 0.1 : -0.05;
-  
+
   switch (outcome.approach) {
     case 'direct':
       profile.effectiveApproaches.directSuggestions = clamp(
@@ -180,7 +180,7 @@ export async function recordAdviceOutcome(
       );
       break;
   }
-  
+
   // Update framing preferences
   const framingAdjustment = wasEffective ? 0.1 : -0.05;
   switch (outcome.framing) {
@@ -200,27 +200,27 @@ export async function recordAdviceOutcome(
       );
       break;
   }
-  
+
   // Update topic receptivity
   if (wasEffective) {
     if (!profile.receptiveTopics.includes(outcome.topic)) {
       profile.receptiveTopics.push(outcome.topic);
     }
-    profile.resistantTopics = profile.resistantTopics.filter(t => t !== outcome.topic);
+    profile.resistantTopics = profile.resistantTopics.filter((t) => t !== outcome.topic);
   } else if (!outcome.followed) {
     if (!profile.resistantTopics.includes(outcome.topic)) {
       profile.resistantTopics.push(outcome.topic);
     }
   }
-  
+
   // Update counts
   profile.totalOutcomesTracked++;
   profile.lastUpdated = new Date();
-  
+
   // Save
   await saveEffectivenessProfile(userId, profile);
   effectivenessCache.set(userId, profile);
-  
+
   log.debug({ userId, approach: outcome.approach, wasEffective }, '📊 Advice outcome recorded');
 }
 
@@ -245,11 +245,11 @@ export async function getBestApproach(
   if (!profile || profile.totalOutcomesTracked < CONFIG.MIN_OUTCOMES_FOR_EFFECTIVENESS) {
     return null;
   }
-  
+
   const approaches = profile.effectiveApproaches;
   const entries = Object.entries(approaches) as Array<[string, number]>;
   const sorted = entries.sort((a, b) => b[1] - a[1]);
-  
+
   return {
     approach: sorted[0][0],
     score: sorted[0][1],
@@ -284,7 +284,7 @@ const LEARNING_STYLE_INDICATORS = {
  */
 export function detectLearningStyleFromText(text: string): Partial<LearningStyle['scores']> {
   const scores: Partial<LearningStyle['scores']> = {};
-  
+
   for (const [style, patterns] of Object.entries(LEARNING_STYLE_INDICATORS)) {
     for (const pattern of patterns) {
       if (pattern.test(text)) {
@@ -293,38 +293,40 @@ export function detectLearningStyleFromText(text: string): Partial<LearningStyle
       }
     }
   }
-  
+
   return scores;
 }
 
 /**
  * Update learning style profile.
  */
-export async function updateLearningStyle(
-  userId: string,
-  text: string
-): Promise<void> {
+export async function updateLearningStyle(userId: string, text: string): Promise<void> {
   const detected = detectLearningStyleFromText(text);
   if (Object.keys(detected).length === 0) return;
-  
-  let style = learningStyleCache.get(userId) ?? await loadLearningStyle(userId);
-  
+
+  let style = learningStyleCache.get(userId) ?? (await loadLearningStyle(userId));
+
   if (!style) {
     style = {
       userId,
       primary: 'reflection_driven',
-      scores: { dataDriven: 0.25, storyDriven: 0.25, experienceDriven: 0.25, reflectionDriven: 0.25 },
+      scores: {
+        dataDriven: 0.25,
+        storyDriven: 0.25,
+        experienceDriven: 0.25,
+        reflectionDriven: 0.25,
+      },
       indicators: [],
       lastUpdated: new Date(),
     };
   }
-  
+
   // Update scores
   for (const [key, value] of Object.entries(detected)) {
     const scoreKey = key as keyof LearningStyle['scores'];
     style.scores[scoreKey] = clamp(style.scores[scoreKey] + value);
   }
-  
+
   // Normalize scores
   const total = Object.values(style.scores).reduce((a, b) => a + b, 0);
   if (total > 0) {
@@ -332,7 +334,7 @@ export async function updateLearningStyle(
       style.scores[key] /= total;
     }
   }
-  
+
   // Determine primary
   const entries = Object.entries(style.scores) as Array<[keyof LearningStyle['scores'], number]>;
   const sorted = entries.sort((a, b) => b[1] - a[1]);
@@ -345,15 +347,15 @@ export async function updateLearningStyle(
     };
     style.primary = styleMap[sorted[0][0]];
   }
-  
+
   // Add indicator
   if (Object.keys(detected).length > 0) {
     style.indicators.push(text.slice(0, 100));
     style.indicators = style.indicators.slice(-10);
   }
-  
+
   style.lastUpdated = new Date();
-  
+
   // Save
   await saveLearningStyle(userId, style);
   learningStyleCache.set(userId, style);
@@ -375,12 +377,9 @@ export async function getLearningStyle(userId: string): Promise<LearningStyle | 
 /**
  * Record topic deflection.
  */
-export async function recordDeflection(
-  userId: string,
-  topic: string
-): Promise<void> {
-  let resistance = resistanceCache.get(userId) ?? await loadResistancePattern(userId);
-  
+export async function recordDeflection(userId: string, topic: string): Promise<void> {
+  let resistance = resistanceCache.get(userId) ?? (await loadResistancePattern(userId));
+
   if (!resistance) {
     resistance = {
       userId,
@@ -390,8 +389,8 @@ export async function recordDeflection(
       lastUpdated: new Date(),
     };
   }
-  
-  const existing = resistance.deflectedTopics.find(d => d.topic === topic);
+
+  const existing = resistance.deflectedTopics.find((d) => d.topic === topic);
   if (existing) {
     existing.deflectionCount++;
     existing.lastDeflection = new Date();
@@ -402,9 +401,9 @@ export async function recordDeflection(
       lastDeflection: new Date(),
     });
   }
-  
+
   resistance.lastUpdated = new Date();
-  
+
   await saveResistancePattern(userId, resistance);
   resistanceCache.set(userId, resistance);
 }
@@ -417,8 +416,8 @@ export async function recordPushback(
   trigger: string,
   response: string
 ): Promise<void> {
-  let resistance = resistanceCache.get(userId) ?? await loadResistancePattern(userId);
-  
+  let resistance = resistanceCache.get(userId) ?? (await loadResistancePattern(userId));
+
   if (!resistance) {
     resistance = {
       userId,
@@ -428,8 +427,8 @@ export async function recordPushback(
       lastUpdated: new Date(),
     };
   }
-  
-  const existing = resistance.pushbackPatterns.find(p => p.trigger === trigger);
+
+  const existing = resistance.pushbackPatterns.find((p) => p.trigger === trigger);
   if (existing) {
     existing.frequency++;
   } else {
@@ -439,9 +438,9 @@ export async function recordPushback(
       frequency: 1,
     });
   }
-  
+
   resistance.lastUpdated = new Date();
-  
+
   await saveResistancePattern(userId, resistance);
   resistanceCache.set(userId, resistance);
 }
@@ -458,17 +457,14 @@ export async function getResistancePattern(userId: string): Promise<ResistancePa
 /**
  * Check if topic is sensitive.
  */
-export async function isTopicSensitive(
-  userId: string,
-  topic: string
-): Promise<boolean> {
+export async function isTopicSensitive(userId: string, topic: string): Promise<boolean> {
   const resistance = await getResistancePattern(userId);
   if (!resistance) return false;
-  
-  const deflected = resistance.deflectedTopics.find(d =>
-    d.topic.toLowerCase() === topic.toLowerCase() && d.deflectionCount >= 2
+
+  const deflected = resistance.deflectedTopics.find(
+    (d) => d.topic.toLowerCase() === topic.toLowerCase() && d.deflectionCount >= 2
   );
-  
+
   return !!deflected;
 }
 
@@ -488,16 +484,19 @@ export async function getCoachingRecommendations(
     getLearningStyle(userId),
     getResistancePattern(userId),
   ]);
-  
+
   const recommendation: CoachingRecommendation = {
     approach: 'balanced',
     framing: 'neutral',
     timing: 'when they bring it up',
     warnings: [],
   };
-  
+
   // Approach recommendation
-  if (effectiveness && effectiveness.totalOutcomesTracked >= CONFIG.MIN_OUTCOMES_FOR_EFFECTIVENESS) {
+  if (
+    effectiveness &&
+    effectiveness.totalOutcomesTracked >= CONFIG.MIN_OUTCOMES_FOR_EFFECTIVENESS
+  ) {
     const best = await getBestApproach(userId);
     if (best) {
       const approachMap: Record<string, string> = {
@@ -510,21 +509,24 @@ export async function getCoachingRecommendations(
       };
       recommendation.approach = approachMap[best.approach] ?? 'balanced';
     }
-    
+
     // Framing recommendation
     const framing = effectiveness.framingPreferences;
-    if (framing.positiveBased > framing.negativeBased && framing.positiveBased > framing.neutralBased) {
+    if (
+      framing.positiveBased > framing.negativeBased &&
+      framing.positiveBased > framing.neutralBased
+    ) {
       recommendation.framing = 'positive (focus on gains)';
     } else if (framing.negativeBased > framing.positiveBased) {
       recommendation.framing = 'loss-aversion (focus on what they might miss)';
     }
-    
+
     // Topic resistance
     if (topic && effectiveness.resistantTopics.includes(topic)) {
       recommendation.warnings.push(`They've resisted advice about ${topic} before`);
     }
   }
-  
+
   // Learning style adjustment
   if (learningStyle) {
     const styleAdvice: Record<LearningStyle['primary'], string> = {
@@ -535,18 +537,20 @@ export async function getCoachingRecommendations(
     };
     recommendation.approach += ` - ${styleAdvice[learningStyle.primary]}`;
   }
-  
+
   // Resistance warnings
   if (resistance && topic) {
-    const deflected = resistance.deflectedTopics.find(d =>
-      d.topic.toLowerCase() === topic.toLowerCase()
+    const deflected = resistance.deflectedTopics.find(
+      (d) => d.topic.toLowerCase() === topic.toLowerCase()
     );
     if (deflected && deflected.deflectionCount >= 2) {
-      recommendation.warnings.push(`They tend to deflect this topic (${deflected.deflectionCount}x)`);
+      recommendation.warnings.push(
+        `They tend to deflect this topic (${deflected.deflectionCount}x)`
+      );
       recommendation.timing = 'approach very gently';
     }
   }
-  
+
   return recommendation;
 }
 
@@ -557,29 +561,26 @@ export async function getCoachingRecommendations(
 /**
  * Format coaching intelligence for LLM context.
  */
-export async function formatCoachingContext(
-  userId: string,
-  topic?: string
-): Promise<string> {
+export async function formatCoachingContext(userId: string, topic?: string): Promise<string> {
   const recommendations = await getCoachingRecommendations(userId, topic);
   const learningStyle = await getLearningStyle(userId);
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     'COACHING INTELLIGENCE - How to help THIS person',
     '═══════════════════════════════════════════════════════════',
     '',
   ];
-  
+
   lines.push(`RECOMMENDED APPROACH: ${recommendations.approach}`);
   lines.push(`FRAMING: ${recommendations.framing}`);
   lines.push(`TIMING: ${recommendations.timing}`);
-  
+
   if (learningStyle) {
     lines.push('');
     lines.push(`LEARNING STYLE: ${learningStyle.primary.replace('_', ' ')}`);
   }
-  
+
   if (recommendations.warnings.length > 0) {
     lines.push('');
     lines.push('⚠️ WARNINGS:');
@@ -587,10 +588,10 @@ export async function formatCoachingContext(
       lines.push(`  - ${warning}`);
     }
   }
-  
+
   lines.push('');
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -630,10 +631,12 @@ function createDefaultProfile(userId: string): AdviceEffectivenessProfile {
 // PERSISTENCE
 // ============================================================================
 
-async function loadEffectivenessProfile(userId: string): Promise<AdviceEffectivenessProfile | null> {
+async function loadEffectivenessProfile(
+  userId: string
+): Promise<AdviceEffectivenessProfile | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -641,9 +644,9 @@ async function loadEffectivenessProfile(userId: string): Promise<AdviceEffective
       .collection('coaching_intelligence')
       .doc('effectiveness')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     return {
       ...data,
@@ -655,10 +658,13 @@ async function loadEffectivenessProfile(userId: string): Promise<AdviceEffective
   }
 }
 
-async function saveEffectivenessProfile(userId: string, profile: AdviceEffectivenessProfile): Promise<void> {
+async function saveEffectivenessProfile(
+  userId: string,
+  profile: AdviceEffectivenessProfile
+): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -674,7 +680,7 @@ async function saveEffectivenessProfile(userId: string, profile: AdviceEffective
 async function loadLearningStyle(userId: string): Promise<LearningStyle | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -682,9 +688,9 @@ async function loadLearningStyle(userId: string): Promise<LearningStyle | null> 
       .collection('coaching_intelligence')
       .doc('learning_style')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     return {
       ...data,
@@ -699,7 +705,7 @@ async function loadLearningStyle(userId: string): Promise<LearningStyle | null> 
 async function saveLearningStyle(userId: string, style: LearningStyle): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -715,7 +721,7 @@ async function saveLearningStyle(userId: string, style: LearningStyle): Promise<
 async function loadResistancePattern(userId: string): Promise<ResistancePattern | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -723,21 +729,25 @@ async function loadResistancePattern(userId: string): Promise<ResistancePattern 
       .collection('coaching_intelligence')
       .doc('resistance')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     return {
       ...data,
-      deflectedTopics: (data.deflectedTopics ?? []).map((d: { topic: string; deflectionCount: number; lastDeflection: unknown }) => ({
-        ...d,
-        lastDeflection: typeof d.lastDeflection === 'object' && d.lastDeflection && 'toDate' in d.lastDeflection 
-          ? (d.lastDeflection as { toDate: () => Date }).toDate() 
-          : new Date(d.lastDeflection as string | number),
-      })),
-      lastUpdated: data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated 
-        ? data.lastUpdated.toDate() 
-        : new Date(data.lastUpdated),
+      deflectedTopics: (data.deflectedTopics ?? []).map(
+        (d: { topic: string; deflectionCount: number; lastDeflection: unknown }) => ({
+          ...d,
+          lastDeflection:
+            typeof d.lastDeflection === 'object' && d.lastDeflection && 'toDate' in d.lastDeflection
+              ? (d.lastDeflection as { toDate: () => Date }).toDate()
+              : new Date(d.lastDeflection as string | number),
+        })
+      ),
+      lastUpdated:
+        data.lastUpdated && typeof data.lastUpdated === 'object' && 'toDate' in data.lastUpdated
+          ? data.lastUpdated.toDate()
+          : new Date(data.lastUpdated),
     } as ResistancePattern;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load resistance pattern');
@@ -748,7 +758,7 @@ async function loadResistancePattern(userId: string): Promise<ResistancePattern 
 async function saveResistancePattern(userId: string, pattern: ResistancePattern): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -786,27 +796,26 @@ export const coachingIntelligence = {
   recordOutcome: recordAdviceOutcome,
   getEffectiveness: getEffectivenessProfile,
   getBestApproach,
-  
+
   // Learning style
   detectStyle: detectLearningStyleFromText,
   updateStyle: updateLearningStyle,
   getStyle: getLearningStyle,
-  
+
   // Resistance
   recordDeflection,
   recordPushback,
   getResistance: getResistancePattern,
   isTopicSensitive,
-  
+
   // Recommendations
   getRecommendations: getCoachingRecommendations,
-  
+
   // Context
   format: formatCoachingContext,
-  
+
   // Cache
   clearCache: clearCoachingCache,
 };
 
 export default coachingIntelligence;
-

@@ -76,7 +76,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasImplementationIntention = nudges.some(n => n.type === 'implementation_intention');
+      const hasImplementationIntention = nudges.some((n) => n.type === 'implementation_intention');
 
       expect(hasImplementationIntention).toBe(true);
     });
@@ -90,7 +90,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasLossFraming = nudges.some(n => n.type === 'loss_framing');
+      const hasLossFraming = nudges.some((n) => n.type === 'loss_framing');
 
       expect(hasLossFraming).toBe(true);
     });
@@ -104,7 +104,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasCommitment = nudges.some(n => n.type === 'commitment_device');
+      const hasCommitment = nudges.some((n) => n.type === 'commitment_device');
 
       expect(hasCommitment).toBe(true);
     });
@@ -118,7 +118,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasChunking = nudges.some(n => n.type === 'chunking');
+      const hasChunking = nudges.some((n) => n.type === 'chunking');
 
       expect(hasChunking).toBe(true);
     });
@@ -132,7 +132,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasSocialProof = nudges.some(n => n.type === 'social_proof');
+      const hasSocialProof = nudges.some((n) => n.type === 'social_proof');
 
       expect(hasSocialProof).toBe(true);
     });
@@ -160,7 +160,7 @@ describe('NudgeEngine', () => {
       };
 
       const nudges = selectNudges(context);
-      const hasFrictionReduction = nudges.some(n => n.type === 'friction_reduction');
+      const hasFrictionReduction = nudges.some((n) => n.type === 'friction_reduction');
 
       expect(hasFrictionReduction).toBe(true);
     });
@@ -208,7 +208,7 @@ describe('NudgeEngine', () => {
       expect(intention.successRate).toBe(0);
     });
 
-    it('should store intention in user\'s list', () => {
+    it("should store intention in user's list", () => {
       createImplementationIntention(
         testUserId,
         'read more',
@@ -256,7 +256,7 @@ describe('NudgeEngine', () => {
       expect(commitment.witnesses).toEqual(['Alice', 'Bob']);
     });
 
-    it('should store commitment in user\'s list', () => {
+    it("should store commitment in user's list", () => {
       createCommitment(testUserId, 'Test commitment');
 
       const activeCommitments = getActiveCommitments(testUserId);
@@ -276,7 +276,7 @@ describe('NudgeEngine', () => {
       recordIntentionOutcome(testUserId, intention.id, true);
 
       const intentions = getImplementationIntentions(testUserId);
-      const updated = intentions.find(i => i.id === intention.id);
+      const updated = intentions.find((i) => i.id === intention.id);
 
       expect(updated?.timesTriggered).toBe(1);
       expect(updated?.successRate).toBe(1);
@@ -295,7 +295,7 @@ describe('NudgeEngine', () => {
       recordIntentionOutcome(testUserId, intention.id, true);
 
       const intentions = getImplementationIntentions(testUserId);
-      const updated = intentions.find(i => i.id === intention.id);
+      const updated = intentions.find((i) => i.id === intention.id);
 
       expect(updated?.timesTriggered).toBe(3);
       // Success rate: 2/3 ≈ 0.667
@@ -322,7 +322,7 @@ describe('NudgeEngine', () => {
       updateCommitmentStatus(testUserId, commitment.id, 'fulfilled');
 
       const activeCommitments = getActiveCommitments(testUserId);
-      expect(activeCommitments.find(c => c.id === commitment.id)).toBeUndefined();
+      expect(activeCommitments.find((c) => c.id === commitment.id)).toBeUndefined();
     });
 
     it('should update commitment to broken', () => {
@@ -331,7 +331,7 @@ describe('NudgeEngine', () => {
       updateCommitmentStatus(testUserId, commitment.id, 'broken');
 
       const activeCommitments = getActiveCommitments(testUserId);
-      expect(activeCommitments.find(c => c.id === commitment.id)).toBeUndefined();
+      expect(activeCommitments.find((c) => c.id === commitment.id)).toBeUndefined();
     });
 
     it('should handle unknown commitment gracefully', () => {
@@ -349,8 +349,8 @@ describe('NudgeEngine', () => {
       updateCommitmentStatus(testUserId, commitment1.id, 'fulfilled');
 
       const activeCommitments = getActiveCommitments(testUserId);
-      expect(activeCommitments.find(c => c.id === commitment1.id)).toBeUndefined();
-      expect(activeCommitments.find(c => c.id === commitment2.id)).toBeDefined();
+      expect(activeCommitments.find((c) => c.id === commitment1.id)).toBeUndefined();
+      expect(activeCommitments.find((c) => c.id === commitment2.id)).toBeDefined();
     });
 
     it('should return empty array for unknown user', () => {
@@ -440,7 +440,12 @@ describe('NudgeEngine', () => {
   });
 
   describe('nudge types coverage', () => {
-    const allStages: NudgeContext['currentStage'][] = ['considering', 'planning', 'acting', 'maintaining'];
+    const allStages: NudgeContext['currentStage'][] = [
+      'considering',
+      'planning',
+      'acting',
+      'maintaining',
+    ];
 
     it('should generate nudges for all stages', () => {
       for (const stage of allStages) {
@@ -456,7 +461,14 @@ describe('NudgeEngine', () => {
       }
     });
 
-    const allGoalTypes: NudgeContext['goalType'][] = ['health', 'productivity', 'relationship', 'financial', 'growth', 'habit'];
+    const allGoalTypes: NudgeContext['goalType'][] = [
+      'health',
+      'productivity',
+      'relationship',
+      'financial',
+      'growth',
+      'habit',
+    ];
 
     it('should generate nudges for all goal types', () => {
       for (const goalType of allGoalTypes) {

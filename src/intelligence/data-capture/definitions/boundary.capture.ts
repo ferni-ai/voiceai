@@ -14,7 +14,17 @@ const log = createLogger({ module: 'data-capture:boundary' });
 
 // Category detection
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  loss: ['death', 'died', 'passed away', 'funeral', 'lost', 'gone', 'miscarriage', 'divorce', 'breakup'],
+  loss: [
+    'death',
+    'died',
+    'passed away',
+    'funeral',
+    'lost',
+    'gone',
+    'miscarriage',
+    'divorce',
+    'breakup',
+  ],
   trauma: ['abuse', 'assault', 'accident', 'trauma', 'ptsd', 'attacked'],
   health: ['diagnosis', 'cancer', 'disease', 'illness', 'surgery', 'hospital', 'mental health'],
   family: ['family', 'parent', 'dad', 'mom', 'sibling', 'brother', 'sister', 'estranged'],
@@ -39,13 +49,13 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
       "it's too painful to talk about",
       "i'd rather not discuss",
       "let's not go there",
-      "can we change the subject",
+      'can we change the subject',
       "i'm not ready to talk about",
-      "still too raw",
-      "too soon to talk about",
-      "i hate when people bring up",
-      "please avoid",
-      "off limits",
+      'still too raw',
+      'too soon to talk about',
+      'i hate when people bring up',
+      'please avoid',
+      'off limits',
     ],
     patterns: [
       /(?:don't|do not|please don't)\s+(?:ask|talk|bring up|mention)\s+(?:about\s+)?(.+)/i,
@@ -60,7 +70,7 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
       { word: "can't discuss", weight: 0.9 },
       { word: 'too painful', weight: 0.9 },
       { word: 'too raw', weight: 0.85 },
-      { word: "rather not", weight: 0.8 },
+      { word: 'rather not', weight: 0.8 },
       { word: 'change the subject', weight: 0.85 },
     ],
     antiKeywords: [],
@@ -93,9 +103,7 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
       type: 'string',
       description: 'Why this is sensitive',
       required: false,
-      extractionPatterns: [
-        /(?:because|since|after)\s+(.+?)(?:\.|,|$)/i,
-      ],
+      extractionPatterns: [/(?:because|since|after)\s+(.+?)(?:\.|,|$)/i],
     },
   ],
 
@@ -120,16 +128,32 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
     }
 
     // Determine severity
-    let severity: 'never' | 'only_if_they_bring_up' | 'gentle_only' | 'time_sensitive' = 'only_if_they_bring_up';
-    if (severityIndicator.includes('never') || severityIndicator.includes('absolutely') ||
-        severityIndicator.includes('can\'t handle') || severityIndicator.includes('too painful')) {
+    let severity: 'never' | 'only_if_they_bring_up' | 'gentle_only' | 'time_sensitive' =
+      'only_if_they_bring_up';
+    if (
+      severityIndicator.includes('never') ||
+      severityIndicator.includes('absolutely') ||
+      severityIndicator.includes("can't handle") ||
+      severityIndicator.includes('too painful')
+    ) {
       severity = 'never';
     } else if (severityIndicator.includes('please') || severityIndicator.includes('really')) {
       severity = 'only_if_they_bring_up';
     }
 
     // Determine category
-    let category: 'loss' | 'trauma' | 'health' | 'family' | 'relationship' | 'work' | 'financial' | 'identity' | 'comparison' | 'achievement' | 'other' = 'other';
+    let category:
+      | 'loss'
+      | 'trauma'
+      | 'health'
+      | 'family'
+      | 'relationship'
+      | 'work'
+      | 'financial'
+      | 'identity'
+      | 'comparison'
+      | 'achievement'
+      | 'other' = 'other';
     const topicLower = topic.toLowerCase();
     for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
       if (keywords.some((kw) => topicLower.includes(kw))) {
@@ -139,7 +163,10 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
     }
 
     // Extract trigger keywords
-    const triggerKeywords = topic.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    const triggerKeywords = topic
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
 
     try {
       const { recordBoundary } = await import('../../../services/superhuman/protective-silence.js');
@@ -166,4 +193,3 @@ export const boundaryCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

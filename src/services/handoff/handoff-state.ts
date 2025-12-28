@@ -21,11 +21,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 
 // Re-export types from the types layer for convenience
-export type {
-  HandoffRecord,
-  HandoffContext,
-  HandoffState,
-} from '../../types/handoff.js';
+export type { HandoffRecord, HandoffContext, HandoffState } from '../../types/handoff.js';
 
 import type { HandoffRecord, HandoffContext, HandoffState } from '../../types/handoff.js';
 

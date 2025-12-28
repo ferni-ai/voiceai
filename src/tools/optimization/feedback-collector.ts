@@ -25,10 +25,18 @@ import { getLogger } from '../../utils/safe-logger.js';
 // ============================================================================
 
 // Re-export types for backwards compatibility
-export type { FeedbackType, FeedbackRecord, FeedbackSummary } from '../../types/optimization-types.js';
+export type {
+  FeedbackType,
+  FeedbackRecord,
+  FeedbackSummary,
+} from '../../types/optimization-types.js';
 
 // Import types for internal use
-import type { FeedbackType, FeedbackRecord, FeedbackSummary } from '../../types/optimization-types.js';
+import type {
+  FeedbackType,
+  FeedbackRecord,
+  FeedbackSummary,
+} from '../../types/optimization-types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 export interface ConversationContext {

@@ -170,7 +170,8 @@ describe('Persona Tool Integration', () => {
       const commTools = toolRegistry.getByDomain('communication');
       const toolIds = commTools.map((t) => t.id);
 
-      const expectedTools = ['sendMessage', 'draftMessage', 'analyzeMessage', 'scheduleReminder'];
+      // Note: sendMessage/draftMessage were consolidated into 'reachOut'
+      const expectedTools = ['reachOut', 'analyzeMessage', 'scheduleReminder'];
 
       for (const expected of expectedTools) {
         expect(toolIds, `Communication domain missing expected tool: ${expected}`).toContain(
@@ -250,8 +251,8 @@ describe('Persona Tool Integration', () => {
         allTools.push(...domainTools.map((t) => t.id));
       }
 
-      expect(allTools).toContain('sendMessage');
-      expect(allTools).toContain('draftMessage');
+      // Note: sendMessage/draftMessage were consolidated into 'reachOut'
+      expect(allTools).toContain('reachOut');
       expect(allTools).toContain('manageAppointment');
     });
   });

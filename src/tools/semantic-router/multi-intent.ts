@@ -60,10 +60,7 @@ const COMPOUND_PATTERNS = {
     /(.+?)\s+(?:while also|while)\s+(.+)/i,
   ],
   // Conditional: if X then Y
-  conditional: [
-    /(?:if)\s+(.+?)\s+(?:then|,)\s+(.+)/i,
-    /(.+?)\s+(?:unless|otherwise)\s+(.+)/i,
-  ],
+  conditional: [/(?:if)\s+(.+?)\s+(?:then|,)\s+(.+)/i, /(.+?)\s+(?:unless|otherwise)\s+(.+)/i],
   // Multiple concerns
   concerns: [
     /(?:i(?:'m| am)?\s+(?:worried|stressed|anxious|concerned)\s+about)\s+(.+?)\s+(?:and|but also|plus)\s+(.+)/i,
@@ -164,9 +161,7 @@ function extractEntities(text: string): Map<string, string> {
   }
 
   // Contact name entities (simple extraction)
-  const contactMatch = text.match(
-    /(?:call|text|email|message|contact|reach)\s+(?:my\s+)?(\w+)/i
-  );
+  const contactMatch = text.match(/(?:call|text|email|message|contact|reach)\s+(?:my\s+)?(\w+)/i);
   if (contactMatch && !['the', 'a', 'my'].includes(contactMatch[1].toLowerCase())) {
     entities.set('contact', contactMatch[1]);
   }
@@ -259,14 +254,10 @@ export function detectMultipleIntents(text: string): MultiIntentResult {
   }
 
   // Analyze each segment
-  const allIntents = segments.map((segment, index) =>
-    analyzeIntentSegment(segment, index)
-  );
+  const allIntents = segments.map((segment, index) => analyzeIntentSegment(segment, index));
 
   // Sort by confidence to determine primary
-  const sortedIntents = [...allIntents].sort(
-    (a, b) => b.confidence - a.confidence
-  );
+  const sortedIntents = [...allIntents].sort((a, b) => b.confidence - a.confidence);
 
   const primaryIntent = sortedIntents[0];
   const secondaryIntents = sortedIntents.slice(1);
@@ -312,9 +303,7 @@ export function detectMultipleIntents(text: string): MultiIntentResult {
  * Get tools to consider based on multi-intent analysis.
  * Returns category boosts that should be applied to tool matching.
  */
-export function getMultiIntentBoosts(
-  result: MultiIntentResult
-): Map<string, number> {
+export function getMultiIntentBoosts(result: MultiIntentResult): Map<string, number> {
   const boosts = new Map<string, number>();
 
   if (!result.primaryIntent) return boosts;
@@ -354,10 +343,7 @@ export function getMultiIntentBoosts(
 /**
  * Check if a tool category matches any detected intent.
  */
-export function matchesAnyIntent(
-  result: MultiIntentResult,
-  category: string
-): boolean {
+export function matchesAnyIntent(result: MultiIntentResult, category: string): boolean {
   return result.suggestedToolCategories.includes(category);
 }
 

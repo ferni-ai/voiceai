@@ -184,4 +184,3 @@ describe('Burnout Recovery Domain Tools', () => {
     });
   });
 });
-

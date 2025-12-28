@@ -31,7 +31,9 @@ const motivationCoachingDef: ToolDefinition = {
       description: 'Provide motivation coaching based on what drives the user',
       parameters: z.object({
         area: z.string().optional().describe('Area needing motivation'),
-        currentState: z.enum(['stuck', 'discouraged', 'procrastinating', 'overwhelmed', 'general']).optional(),
+        currentState: z
+          .enum(['stuck', 'discouraged', 'procrastinating', 'overwhelmed', 'general'])
+          .optional(),
       }),
       execute: async ({ area, currentState }) => {
         log.info({ agentId: ctx.agentId, area }, 'Providing motivation coaching');
@@ -1392,9 +1394,8 @@ const wellnessCheckinDef: ToolDefinition = {
 
         response += `Let's take a moment to check in with how you're doing across different dimensions.\n\n`;
 
-        const areas = focus === 'full' || !focus
-          ? ['physical', 'mental', 'social', 'purpose']
-          : [focus];
+        const areas =
+          focus === 'full' || !focus ? ['physical', 'mental', 'social', 'purpose'] : [focus];
 
         if (areas.includes('physical')) {
           response += `**Physical Wellness:**\n`;
@@ -1491,4 +1492,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

@@ -253,7 +253,9 @@ describe('Performance Regression Tests', () => {
 
     it('should measure async operations accurately', async () => {
       const { durationMs } = await measureTime(async () => {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 50);
+        });
         return 'done';
       });
 
@@ -265,7 +267,9 @@ describe('Performance Regression Tests', () => {
 
     it('should collect benchmark statistics', async () => {
       const stats = await benchmark(async () => {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
         return 'done';
       }, 3);
 
@@ -371,10 +375,14 @@ describe('Performance Regression Tests', () => {
     it('should process simulated turn within budget', async () => {
       const { durationMs } = await measureTime(async () => {
         // Simulate analysis
-        await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 20);
+        });
 
         // Simulate context building
-        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
 
         return { analysis: {}, context: [] };
       });
@@ -391,7 +399,9 @@ describe('Performance Regression Tests', () => {
 
     it('should analyze within budget', async () => {
       const { durationMs } = await measureTime(async () => {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 30); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 30);
+        });
         return { emotion: 'neutral', topics: [] };
       });
 
@@ -407,7 +417,9 @@ describe('Performance Regression Tests', () => {
 
     it('should build context within budget', async () => {
       const { durationMs } = await measureTime(async () => {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 15); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 15);
+        });
         return { injections: [], elapsedMs: 15 };
       });
 
@@ -430,13 +442,19 @@ describe('Performance Regression Tests', () => {
     it('should complete prewarm simulation within budget', async () => {
       const { durationMs } = await measureTime(async () => {
         // Phase 1: External packages (simulated)
-        await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 50);
+        });
 
         // Phase 2: Internal modules (simulated)
-        await new Promise<void>((resolve) => { setTimeout(resolve, 30); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 30);
+        });
 
         // Phase 3: Heavy resources (simulated)
-        await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 50);
+        });
 
         return { deps: 'loaded' };
       });
@@ -519,7 +537,9 @@ describe('Performance Regression Tests', () => {
       const stats = await benchmark(async () => {
         // Random delay for variance
         const delay = Math.random() * 20 + 5;
-        await new Promise<void>((resolve) => { setTimeout(resolve, delay); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delay);
+        });
       }, 5);
 
       // With random delays, we expect some variance

@@ -57,7 +57,12 @@ import type { SemanticIntelligenceContext } from './types.js';
 // V3.2+ imports
 import { insightBroker, getInsightsToSurface, formatInsightsForPrompt } from './insight-broker.js';
 import { openLoops, formatOpenLoopsContext } from './open-loops.js';
-import { ferniCommitments, formatCommitmentsForContext, getPendingCommitments, getAvoidanceTopics } from './ferni-commitments.js';
+import {
+  ferniCommitments,
+  formatCommitmentsForContext,
+  getPendingCommitments,
+  getAvoidanceTopics,
+} from './ferni-commitments.js';
 import { relationshipGraph, formatGraphForContext } from './relationship-graph.js';
 import { temporalPatterns, formatTemporalContext } from './temporal-patterns.js';
 import { behavioralIntelligence, formatBehavioralContext } from './behavioral-intelligence.js';
@@ -84,11 +89,7 @@ const metricsStore = new LRUCache<string, MetricSample[]>({
 /**
  * Record a metric value for performance tracking.
  */
-function recordMetric(
-  name: string,
-  value: number,
-  labels?: Record<string, string>
-): void {
+function recordMetric(name: string, value: number, labels?: Record<string, string>): void {
   const samples = metricsStore.get(name) || [];
   samples.push({ value, timestamp: Date.now(), labels });
 
@@ -665,13 +666,12 @@ export async function buildSemanticIntelligenceContext(
         currentEmotion: currentContext?.emotion,
         isSessionStart: currentContext?.isSessionStart,
         hourOfDay: new Date().getHours(),
-      }).then(insights => formatInsightsForPrompt(insights)),
+      }).then((insights) => formatInsightsForPrompt(insights)),
       formatOpenLoopsContext(userId),
       // Need to load commitments then format
-      Promise.all([
-        getPendingCommitments(userId),
-        getAvoidanceTopics(userId),
-      ]).then(([commitments, avoidance]) => formatCommitmentsForContext(commitments, avoidance)),
+      Promise.all([getPendingCommitments(userId), getAvoidanceTopics(userId)]).then(
+        ([commitments, avoidance]) => formatCommitmentsForContext(commitments, avoidance)
+      ),
       // V3.3 Relational Network
       formatGraphForContext(userId, currentContext?.personMentioned),
       // V3.4 Temporal Intelligence
@@ -719,9 +719,7 @@ export async function buildSemanticIntelligenceContext(
 /**
  * Format semantic intelligence context as a single string for LLM injection.
  */
-export function formatSemanticIntelligenceContext(
-  context: SemanticIntelligenceContext
-): string {
+export function formatSemanticIntelligenceContext(context: SemanticIntelligenceContext): string {
   const sections: string[] = [];
 
   // V3.0 Core sections
@@ -776,7 +774,7 @@ export function formatSemanticIntelligenceContext(
 
   sections.push('');
   sections.push('═══════════════════════════════════════════════════════════');
-  sections.push('NOTE: Use these insights naturally. Don\'t force or read verbatim.');
+  sections.push("NOTE: Use these insights naturally. Don't force or read verbatim.");
   sections.push('═══════════════════════════════════════════════════════════');
 
   return sections.join('\n');
@@ -789,9 +787,7 @@ export function formatSemanticIntelligenceContext(
 /**
  * Get a quick summary of semantic intelligence state for a user.
  */
-export async function getSemanticIntelligenceSummary(
-  userId: string
-): Promise<{
+export async function getSemanticIntelligenceSummary(userId: string): Promise<{
   correlationCount: number;
   activeArcs: number;
   trackedPeople: number;
@@ -799,21 +795,19 @@ export async function getSemanticIntelligenceSummary(
   growthWeeks: number;
   hiddenThreads: number;
 }> {
-  const [correlations, arcs, relationships, pending, fingerprint, threads] =
-    await Promise.all([
-      getRelevantCorrelations(userId, {}),
-      getActiveArcs(userId),
-      getImpactfulRelationships(userId),
-      getPendingFollowUps(userId),
-      getGrowthFingerprint(userId),
-      getUnconsciousConnections(userId),
-    ]);
+  const [correlations, arcs, relationships, pending, fingerprint, threads] = await Promise.all([
+    getRelevantCorrelations(userId, {}),
+    getActiveArcs(userId),
+    getImpactfulRelationships(userId),
+    getPendingFollowUps(userId),
+    getGrowthFingerprint(userId),
+    getUnconsciousConnections(userId),
+  ]);
 
   return {
     correlationCount: correlations.length,
     activeArcs: arcs.length,
-    trackedPeople:
-      (relationships.energizing.length || 0) + (relationships.draining.length || 0),
+    trackedPeople: (relationships.energizing.length || 0) + (relationships.draining.length || 0),
     pendingDecisions: pending.length,
     growthWeeks: fingerprint?.snapshots.length || 0,
     hiddenThreads: threads.length,
@@ -835,24 +829,24 @@ export function clearSemanticIntelligenceCache(userId?: string): void {
   counterfactualMemory.clearCache(userId);
   growthFingerprint.clearCache(userId);
   crossSessionThreading.clearCache(userId);
-  
+
   // V3.2 Proactive Intelligence
   insightBroker.clearCache(userId);
   openLoops.clearCache(userId);
   ferniCommitments.clearCache(userId);
-  
+
   // V3.3 Relational Network
   relationshipGraph.clearCache(userId);
-  
+
   // V3.4 Temporal Intelligence
   temporalPatterns.clearCache(userId);
-  
+
   // V3.5 Behavioral Intelligence
   behavioralIntelligence.clearCache(userId);
-  
+
   // V3.6 Coaching Intelligence
   coachingIntelligence.clearCache(userId);
-  
+
   // V3.7 Self-Awareness
   selfAwareness.clearCache(userId);
 
@@ -887,4 +881,3 @@ export const semanticIntelligence = {
 };
 
 export default semanticIntelligence;
-

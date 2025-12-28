@@ -81,10 +81,7 @@ export const tellJokeTool: SemanticToolDefinition = {
       description: 'Type of joke',
       required: false,
       enumValues: ['any', 'dad', 'pun', 'clever', 'absurd'],
-      extractionPatterns: [
-        /(dad|pun|clever|absurd)\s+joke/i,
-        /joke.*?(dad|pun|clever|absurd)/i,
-      ],
+      extractionPatterns: [/(dad|pun|clever|absurd)\s+joke/i, /joke.*?(dad|pun|clever|absurd)/i],
     },
   ],
 
@@ -296,4 +293,3 @@ export const miniStoryTool: SemanticToolDefinition = {
 // ============================================================================
 
 export const humorTools: SemanticToolDefinition[] = [tellJokeTool, funFactTool, miniStoryTool];
-

@@ -8,10 +8,7 @@
  * @module tools/semantic-router/tool-definitions/group-conversation
  */
 
-import type {
-  SemanticToolDefinition,
-  ToolExecutionResult,
-} from '../types.js';
+import type { SemanticToolDefinition, ToolExecutionResult } from '../types.js';
 
 // ============================================================================
 // START TEAM ROUNDTABLE
@@ -60,7 +57,7 @@ export const startRoundtableTool: SemanticToolDefinition = {
 
   examples: [
     'start a roundtable with Peter and Maya',
-    'let\'s have a team discussion about my career',
+    "let's have a team discussion about my career",
     'bring in the team to discuss my finances',
     'I want to talk to Peter, Maya, and Jordan together',
     'roundtable discussion about my goals',
@@ -177,7 +174,7 @@ export const inviteParticipantTool: SemanticToolDefinition = {
     'call my friend Sarah',
     'invite John to this conversation',
     'add my mom to the call',
-    'let\'s include my colleague Mike',
+    "let's include my colleague Mike",
     'start a conference call with my partner',
     'dial my friend at 555-1234',
     'bring my wife into this chat',
@@ -323,9 +320,7 @@ export const endGroupConversationTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Why the conversation is ending',
       required: false,
-      extractionPatterns: [
-        /(?:because|since)\s+(.+)/i,
-      ],
+      extractionPatterns: [/(?:because|since)\s+(.+)/i],
     },
     {
       name: 'summarize',
@@ -344,9 +339,10 @@ export const endGroupConversationTool: SemanticToolDefinition = {
         summarize: args.summarize ?? true,
         reason: args.reason,
       },
-      naturalResponse: args.summarize !== false
-        ? "Wrapping up the conversation. Let me give everyone a quick goodbye."
-        : "Ending the group conversation now.",
+      naturalResponse:
+        args.summarize !== false
+          ? 'Wrapping up the conversation. Let me give everyone a quick goodbye.'
+          : 'Ending the group conversation now.',
       speakImmediately: true,
       sideEffects: ['group_conversation_ended'],
     };
@@ -365,4 +361,3 @@ export const groupConversationTools: SemanticToolDefinition[] = [
   inviteParticipantTool,
   endGroupConversationTool,
 ];
-

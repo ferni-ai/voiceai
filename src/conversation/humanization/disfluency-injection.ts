@@ -571,7 +571,9 @@ export class DisfluencyEngine {
 
     // Use persona-specific patterns when available
     if (type === 'filled_pause' && personaPrefs.filledPauseStyle.length > 0) {
-      const pattern = seededPick(`${Date.now()}:filled_pause`, personaPrefs.filledPauseStyle) ?? personaPrefs.filledPauseStyle[0];
+      const pattern =
+        seededPick(`${Date.now()}:filled_pause`, personaPrefs.filledPauseStyle) ??
+        personaPrefs.filledPauseStyle[0];
       return {
         pattern,
         ssml: `<break time="150ms"/>${pattern}<break time="200ms"/>`,
@@ -579,7 +581,9 @@ export class DisfluencyEngine {
     }
 
     if (type === 'discourse_marker' && personaPrefs.discourseMarkers.length > 0) {
-      const pattern = seededPick(`${Date.now()}:discourse_marker`, personaPrefs.discourseMarkers) ?? personaPrefs.discourseMarkers[0];
+      const pattern =
+        seededPick(`${Date.now()}:discourse_marker`, personaPrefs.discourseMarkers) ??
+        personaPrefs.discourseMarkers[0];
       return {
         pattern,
         ssml: `${pattern},<break time="100ms"/>`,
@@ -598,7 +602,7 @@ export class DisfluencyEngine {
     // Use seeded float for deterministic but varied pause durations
     const seed = `${Date.now()}:pause:${type}`;
     const variance = seededFloat(seed);
-    
+
     switch (type) {
       case 'filled_pause':
         return 200 + variance * 150; // 200-350ms

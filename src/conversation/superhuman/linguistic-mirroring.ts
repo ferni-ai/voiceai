@@ -556,7 +556,9 @@ export class LinguisticMirroringEngine {
       return { text, applications: [] };
     }
 
-    const filler = seededPick(`${Date.now()}:filler`, this.profile.comfortFillers) ?? this.profile.comfortFillers[0];
+    const filler =
+      seededPick(`${Date.now()}:filler`, this.profile.comfortFillers) ??
+      this.profile.comfortFillers[0];
 
     // Don't double up fillers
     if (text.toLowerCase().includes(filler)) {

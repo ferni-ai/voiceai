@@ -209,14 +209,24 @@ import { buildPatternMirrorContext } from './pattern-mirror.js';
 import { buildFutureSelfContext, getRecentLetter } from './future-self.js';
 
 // V2 Better Than Human imports
-import { buildVoiceBiomarkersContext, type VoiceBiomarkers as CurrentVoiceBiomarkers } from './voice-biomarkers.js';
+import {
+  buildVoiceBiomarkersContext,
+  type VoiceBiomarkers as CurrentVoiceBiomarkers,
+} from './voice-biomarkers.js';
 import { buildMoodCalendarContext } from './mood-calendar.js';
 import { buildSocialBatteryContext } from './social-battery.js';
 import { buildConflictResolutionContext } from './conflict-resolution-memory.js';
 import { buildProtectiveSilenceContext } from './protective-silence.js';
-import { buildCalendarPrepContext, type CalendarEvent as PrepCalendarEvent } from './calendar-prep-coaching.js';
+import {
+  buildCalendarPrepContext,
+  type CalendarEvent as PrepCalendarEvent,
+} from './calendar-prep-coaching.js';
 import { buildEnergyWaveContext } from './energy-wave-mapping.js';
-import { buildVocabularyContext, buildVagueEmotionContext, detectVagueEmotions } from './emotional-vocabulary.js';
+import {
+  buildVocabularyContext,
+  buildVagueEmotionContext,
+  detectVagueEmotions,
+} from './emotional-vocabulary.js';
 import { buildRecoveryContext } from './recovery-tracking.js';
 import { buildInsideJokeContext } from './inside-joke-memory.js';
 

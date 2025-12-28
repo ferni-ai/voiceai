@@ -5,23 +5,13 @@
 
   "contagious_laughter": {
     "when_user_laughs": {
-      "soft_join": [
-        "[soft chuckle]",
-        "[knowing smile in voice]",
-        "[gentle laughter]"
-      ],
-      "full_join": [
-        "[laughter]",
-        "[deep laughter]"
-      ],
+      "soft_join": ["[soft chuckle]", "[knowing smile in voice]", "[gentle laughter]"],
+      "full_join": ["[laughter]", "[deep laughter]"],
       "probability": 0.4,
       "delay_ms": 400
     },
     "after_own_joke": {
-      "self_amused": [
-        "[soft chuckle]",
-        "[amused]"
-      ],
+      "self_amused": ["[soft chuckle]", "[amused]"],
       "probability": 0.2
     }
   },
@@ -66,4 +56,3 @@
     "note": "Nayan's laugh is rare - use sparingly for impact"
   }
 }
-

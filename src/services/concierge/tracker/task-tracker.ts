@@ -377,23 +377,27 @@ export class TaskTracker {
         .doc(request.userId)
         .collection('concierge_requests')
         .doc(request.id)
-        .set(cleanForFirestore({
-          ...request,
-          createdAt: request.createdAt.toISOString(),
-          updatedAt: request.updatedAt.toISOString(),
-          completedAt: request.completedAt?.toISOString(),
-        }));
+        .set(
+          cleanForFirestore({
+            ...request,
+            createdAt: request.createdAt.toISOString(),
+            updatedAt: request.updatedAt.toISOString(),
+            completedAt: request.completedAt?.toISOString(),
+          })
+        );
 
       // Also store in global collection for admin queries
       await db
         .collection('concierge_requests')
         .doc(request.id)
-        .set(cleanForFirestore({
-          ...request,
-          createdAt: request.createdAt.toISOString(),
-          updatedAt: request.updatedAt.toISOString(),
-          completedAt: request.completedAt?.toISOString(),
-        }));
+        .set(
+          cleanForFirestore({
+            ...request,
+            createdAt: request.createdAt.toISOString(),
+            updatedAt: request.updatedAt.toISOString(),
+            completedAt: request.completedAt?.toISOString(),
+          })
+        );
     } catch (error) {
       log.error({ error: String(error), requestId: request.id }, 'Failed to persist request');
     }

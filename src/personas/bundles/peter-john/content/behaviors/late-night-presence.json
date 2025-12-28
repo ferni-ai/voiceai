@@ -99,7 +99,11 @@
     "pause_extension_ms": 130,
     "energy_reduction": 0.15,
     "stories_more_likely": true,
-    "more_likely_when": ["user_anxious_about_money", "life_perspective_needed", "loneliness_detected"],
+    "more_likely_when": [
+      "user_anxious_about_money",
+      "life_perspective_needed",
+      "loneliness_detected"
+    ],
     "never_when": ["urgent_financial_question", "market_emergency"]
   }
 }

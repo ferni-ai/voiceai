@@ -97,7 +97,8 @@ export interface VariantStats {
 export const INTELLIGENT_VS_SEMANTIC_EXPERIMENT: RoutingExperiment = {
   id: 'intelligent-vs-semantic',
   name: 'Intelligent Routing vs Semantic Routing',
-  description: 'Compare the new 6-strategy intelligent routing cascade with the existing semantic router',
+  description:
+    'Compare the new 6-strategy intelligent routing cascade with the existing semantic router',
   control: {
     name: 'Semantic Routing (Control)',
     routingType: 'semantic',
@@ -234,10 +235,7 @@ class RoutingABTestingService {
 
     // Determine variant
     let cumulativePercent = 0;
-    const allVariants = [
-      { id: 'control', ...experiment.control },
-      ...experiment.variants,
-    ];
+    const allVariants = [{ id: 'control', ...experiment.control }, ...experiment.variants];
 
     for (let i = 0; i < allVariants.length; i++) {
       cumulativePercent += experiment.trafficAllocation[i];
@@ -249,7 +247,10 @@ class RoutingABTestingService {
           assignedAt: new Date(),
         };
         this.assignments.set(key, assignment);
-        log.debug({ userId, experimentId, variantId: assignment.variantId }, 'User assigned to variant');
+        log.debug(
+          { userId, experimentId, variantId: assignment.variantId },
+          'User assigned to variant'
+        );
         return assignment;
       }
     }
@@ -310,12 +311,7 @@ class RoutingABTestingService {
   /**
    * Record a metric for experiment
    */
-  recordMetric(
-    userId: string,
-    experimentId: string,
-    metric: string,
-    value: number
-  ): void {
+  recordMetric(userId: string, experimentId: string, metric: string, value: number): void {
     const assignment = this.assignments.get(`${userId}:${experimentId}`);
     if (!assignment) return;
 
@@ -366,15 +362,18 @@ class RoutingABTestingService {
       return {
         variantId,
         sampleSize: successMetrics.length,
-        successRate: successMetrics.length > 0
-          ? successMetrics.reduce((sum, m) => sum + m.value, 0) / successMetrics.length
-          : 0,
-        avgLatencyMs: latencyMetrics.length > 0
-          ? latencyMetrics.reduce((sum, m) => sum + m.value, 0) / latencyMetrics.length
-          : 0,
-        avgConfidence: confidenceMetrics.length > 0
-          ? confidenceMetrics.reduce((sum, m) => sum + m.value, 0) / confidenceMetrics.length
-          : 0,
+        successRate:
+          successMetrics.length > 0
+            ? successMetrics.reduce((sum, m) => sum + m.value, 0) / successMetrics.length
+            : 0,
+        avgLatencyMs:
+          latencyMetrics.length > 0
+            ? latencyMetrics.reduce((sum, m) => sum + m.value, 0) / latencyMetrics.length
+            : 0,
+        avgConfidence:
+          confidenceMetrics.length > 0
+            ? confidenceMetrics.reduce((sum, m) => sum + m.value, 0) / confidenceMetrics.length
+            : 0,
         userSatisfaction: 0, // Would need separate tracking
       };
     };
@@ -394,25 +393,34 @@ class RoutingABTestingService {
     }
 
     // Calculate confidence (simplified - should use proper statistical tests)
-    const totalSamples = controlStats.sampleSize + variantStats.reduce((sum, v) => sum + v.sampleSize, 0);
+    const totalSamples =
+      controlStats.sampleSize + variantStats.reduce((sum, v) => sum + v.sampleSize, 0);
     const confidenceLevel = Math.min(0.95, totalSamples / (experiment.minSampleSize * 3));
 
     // Generate recommendations
     const recommendations: string[] = [];
     if (controlStats.sampleSize < experiment.minSampleSize) {
-      recommendations.push(`Need more samples in control (${controlStats.sampleSize}/${experiment.minSampleSize})`);
+      recommendations.push(
+        `Need more samples in control (${controlStats.sampleSize}/${experiment.minSampleSize})`
+      );
     }
     for (const stats of variantStats) {
       if (stats.sampleSize < experiment.minSampleSize) {
-        recommendations.push(`Need more samples in ${stats.variantId} (${stats.sampleSize}/${experiment.minSampleSize})`);
+        recommendations.push(
+          `Need more samples in ${stats.variantId} (${stats.sampleSize}/${experiment.minSampleSize})`
+        );
       }
       if (stats.avgLatencyMs > controlStats.avgLatencyMs * 1.5) {
-        recommendations.push(`${stats.variantId} has ${Math.round((stats.avgLatencyMs / controlStats.avgLatencyMs - 1) * 100)}% higher latency`);
+        recommendations.push(
+          `${stats.variantId} has ${Math.round((stats.avgLatencyMs / controlStats.avgLatencyMs - 1) * 100)}% higher latency`
+        );
       }
     }
 
     if (winner && confidenceLevel >= 0.95) {
-      recommendations.push(`✅ ${winner} is the winner with ${Math.round(bestSuccessRate * 100)}% success rate`);
+      recommendations.push(
+        `✅ ${winner} is the winner with ${Math.round(bestSuccessRate * 100)}% success rate`
+      );
     }
 
     return {
@@ -502,9 +510,7 @@ export function enableIntelligentRouting(trafficPercent = 50): void {
   const service = getABTestingService();
 
   // Update traffic allocation
-  const experiment = service.getActiveExperiments().find(
-    (e) => e.id === 'intelligent-vs-semantic'
-  );
+  const experiment = service.getActiveExperiments().find((e) => e.id === 'intelligent-vs-semantic');
   if (experiment) {
     const controlPercent = 100 - trafficPercent;
     const variantPercent = trafficPercent / experiment.variants.length;
@@ -533,4 +539,3 @@ export function getExperimentDashboard(): {
 
   return { experiments, results };
 }
-

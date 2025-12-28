@@ -440,7 +440,10 @@ export const createMockTurnProcessorResult = (
 /**
  * Wait for all pending promises/timers
  */
-export const flushPromises = () => new Promise<void>((resolve) => { setImmediate(resolve); });
+export const flushPromises = () =>
+  new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
 
 /**
  * Create an emotional user message scenario

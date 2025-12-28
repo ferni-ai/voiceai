@@ -250,35 +250,56 @@
   "spotify_pause": {
     "phrases": ["pausa", "pausa a música", "para a música", "para de tocar"],
     "patterns": ["^(?:pausa|para)\\s+(?:a\\s+)?(?:música)?", "^para\\s+de\\s+tocar"],
-    "keywords": [{ "word": "pausa", "weight": 1.0 }, { "word": "para", "weight": 0.9 }],
+    "keywords": [
+      { "word": "pausa", "weight": 1.0 },
+      { "word": "para", "weight": 0.9 }
+    ],
     "antiKeywords": ["toca", "coloca", "continua"]
   },
 
   "spotify_skip": {
     "phrases": ["próxima música", "pula", "pula essa música", "próxima"],
     "patterns": ["^(?:próxima|pula)\\s+(?:essa\\s+)?(?:música)?"],
-    "keywords": [{ "word": "próxima", "weight": 1.0 }, { "word": "pula", "weight": 1.0 }],
+    "keywords": [
+      { "word": "próxima", "weight": 1.0 },
+      { "word": "pula", "weight": 1.0 }
+    ],
     "antiKeywords": ["anterior", "volta"]
   },
 
   "set_timer": {
     "phrases": ["coloca um timer", "timer de", "inicia um timer"],
     "patterns": ["^(?:coloca|inicia)\\s+(?:um\\s+)?timer\\s+(?:de\\s+)?(.+)"],
-    "keywords": [{ "word": "timer", "weight": 1.0 }, { "word": "minutos", "weight": 0.7 }],
+    "keywords": [
+      { "word": "timer", "weight": 1.0 },
+      { "word": "minutos", "weight": 0.7 }
+    ],
     "antiKeywords": ["alarme", "lembrete"]
   },
 
   "set_reminder": {
     "phrases": ["me lembra de", "coloca um lembrete", "lembrete para", "não esquece de me lembrar"],
-    "patterns": ["^(?:me\\s+)?lembra\\s+(?:de\\s+)?(.+)", "^(?:coloca|cria)\\s+(?:um\\s+)?lembrete\\s+(?:para\\s+)?(.+)"],
-    "keywords": [{ "word": "lembra", "weight": 1.0 }, { "word": "lembrete", "weight": 1.0 }],
+    "patterns": [
+      "^(?:me\\s+)?lembra\\s+(?:de\\s+)?(.+)",
+      "^(?:coloca|cria)\\s+(?:um\\s+)?lembrete\\s+(?:para\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "lembra", "weight": 1.0 },
+      { "word": "lembrete", "weight": 1.0 }
+    ],
     "antiKeywords": ["timer", "alarme"]
   },
 
   "set_alarm": {
     "phrases": ["coloca um alarme", "me acorda", "alarme para"],
-    "patterns": ["^(?:coloca|configura)\\s+(?:um\\s+)?alarme\\s+(?:para\\s+)?(.+)", "^me\\s+acorda\\s+(?:às?\\s+)?(.+)"],
-    "keywords": [{ "word": "alarme", "weight": 1.0 }, { "word": "acorda", "weight": 0.9 }],
+    "patterns": [
+      "^(?:coloca|configura)\\s+(?:um\\s+)?alarme\\s+(?:para\\s+)?(.+)",
+      "^me\\s+acorda\\s+(?:às?\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "alarme", "weight": 1.0 },
+      { "word": "acorda", "weight": 0.9 }
+    ],
     "antiKeywords": ["timer", "lembrete"]
   },
 
@@ -464,12 +485,7 @@
   },
 
   "sleep_help": {
-    "phrases": [
-      "não consigo dormir",
-      "me ajuda a dormir",
-      "insônia",
-      "problemas para dormir"
-    ],
+    "phrases": ["não consigo dormir", "me ajuda a dormir", "insônia", "problemas para dormir"],
     "patterns": [
       "^não\\s+consigo\\s+(?:pegar\\s+no\\s+sono|dormir)",
       "^(?:me\\s+ajuda|preciso\\s+de\\s+ajuda)\\s+(?:para|a)\\s+dormir"
@@ -558,14 +574,29 @@
   },
 
   "smart_home_lights": {
-    "phrases": ["acende as luzes", "apaga as luzes", "diminui as luzes", "luzes acesas", "luzes apagadas"],
+    "phrases": [
+      "acende as luzes",
+      "apaga as luzes",
+      "diminui as luzes",
+      "luzes acesas",
+      "luzes apagadas"
+    ],
     "patterns": ["^(?:acende|apaga)\\s+(?:as\\s+)?luzes?", "^luzes?\\s+(?:acesas?|apagadas?)"],
-    "keywords": [{ "word": "luzes", "weight": 1.0 }, { "word": "luz", "weight": 1.0 }],
+    "keywords": [
+      { "word": "luzes", "weight": 1.0 },
+      { "word": "luz", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "smart_home_thermostat": {
-    "phrases": ["ajusta a temperatura", "aumenta o aquecimento", "diminui o ar", "faz mais quente", "faz mais frio"],
+    "phrases": [
+      "ajusta a temperatura",
+      "aumenta o aquecimento",
+      "diminui o ar",
+      "faz mais quente",
+      "faz mais frio"
+    ],
     "patterns": [
       "^(?:ajusta|muda)\\s+(?:a\\s+)?temperatura",
       "^(?:aumenta|diminui)\\s+(?:o\\s+)?(?:aquecimento|ar|ar-condicionado)"
@@ -581,64 +612,153 @@
 
   "define_word": {
     "phrases": ["define", "o que significa", "definição de", "o que quer dizer"],
-    "patterns": ["^define\\s+(.+)", "^o\\s+que\\s+(?:significa|quer\\s+dizer)\\s+(.+)", "^(?:qual\\s+é\\s+a\\s+)?definição\\s+de\\s+(.+)"],
-    "keywords": [{ "word": "define", "weight": 1.0 }, { "word": "definição", "weight": 1.0 }, { "word": "significa", "weight": 0.9 }],
+    "patterns": [
+      "^define\\s+(.+)",
+      "^o\\s+que\\s+(?:significa|quer\\s+dizer)\\s+(.+)",
+      "^(?:qual\\s+é\\s+a\\s+)?definição\\s+de\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "define", "weight": 1.0 },
+      { "word": "definição", "weight": 1.0 },
+      { "word": "significa", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "translate": {
-    "phrases": ["traduz", "como se diz", "o que é isso em", "fala em espanhol", "traduz para francês"],
-    "patterns": ["^traduz\\s+(.+)", "^como\\s+(?:se\\s+diz|fala)\\s+(.+)", "^(?:o\\s+que\\s+é\\s+isso|fala)\\s+em\\s+(\\w+)"],
-    "keywords": [{ "word": "traduz", "weight": 1.0 }, { "word": "espanhol", "weight": 0.8 }, { "word": "francês", "weight": 0.8 }],
+    "phrases": [
+      "traduz",
+      "como se diz",
+      "o que é isso em",
+      "fala em espanhol",
+      "traduz para francês"
+    ],
+    "patterns": [
+      "^traduz\\s+(.+)",
+      "^como\\s+(?:se\\s+diz|fala)\\s+(.+)",
+      "^(?:o\\s+que\\s+é\\s+isso|fala)\\s+em\\s+(\\w+)"
+    ],
+    "keywords": [
+      { "word": "traduz", "weight": 1.0 },
+      { "word": "espanhol", "weight": 0.8 },
+      { "word": "francês", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "calculate": {
     "phrases": ["calcula", "quanto é", "qual é o resultado de", "problema de matemática"],
-    "patterns": ["^calcula\\s+(.+)", "^quanto\\s+(?:é|dá)\\s+(.+)", "^qual\\s+(?:é\\s+o\\s+)?resultado\\s+de\\s+(.+)"],
-    "keywords": [{ "word": "calcula", "weight": 1.0 }, { "word": "matemática", "weight": 0.9 }, { "word": "mais", "weight": 0.7 }],
+    "patterns": [
+      "^calcula\\s+(.+)",
+      "^quanto\\s+(?:é|dá)\\s+(.+)",
+      "^qual\\s+(?:é\\s+o\\s+)?resultado\\s+de\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "calcula", "weight": 1.0 },
+      { "word": "matemática", "weight": 0.9 },
+      { "word": "mais", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "news_update": {
-    "phrases": ["quais são as notícias", "notícias de hoje", "últimas notícias", "o que está acontecendo no mundo"],
-    "patterns": ["^(?:quais\\s+são|me\\s+dá)\\s+(?:as\\s+)?(?:últimas\\s+)?notícias", "^notícias\\s+(?:de\\s+)?hoje"],
-    "keywords": [{ "word": "notícias", "weight": 1.0 }, { "word": "manchetes", "weight": 0.9 }],
+    "phrases": [
+      "quais são as notícias",
+      "notícias de hoje",
+      "últimas notícias",
+      "o que está acontecendo no mundo"
+    ],
+    "patterns": [
+      "^(?:quais\\s+são|me\\s+dá)\\s+(?:as\\s+)?(?:últimas\\s+)?notícias",
+      "^notícias\\s+(?:de\\s+)?hoje"
+    ],
+    "keywords": [
+      { "word": "notícias", "weight": 1.0 },
+      { "word": "manchetes", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "get_directions": {
     "phrases": ["como chegar em", "direções para", "rota para", "navega para"],
-    "patterns": ["^(?:me\\s+dá\\s+)?(?:as\\s+)?direções\\s+(?:para|até)\\s+(.+)", "^como\\s+(?:chegar|ir)\\s+(?:em|até|para)\\s+(.+)"],
-    "keywords": [{ "word": "direções", "weight": 1.0 }, { "word": "navega", "weight": 1.0 }, { "word": "rota", "weight": 0.9 }],
+    "patterns": [
+      "^(?:me\\s+dá\\s+)?(?:as\\s+)?direções\\s+(?:para|até)\\s+(.+)",
+      "^como\\s+(?:chegar|ir)\\s+(?:em|até|para)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "direções", "weight": 1.0 },
+      { "word": "navega", "weight": 1.0 },
+      { "word": "rota", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "book_search": {
     "phrases": ["encontra um livro", "recomendação de livro", "sugere um livro", "o que devo ler"],
-    "patterns": ["^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?livro", "^o\\s+que\\s+(?:devo|posso)\\s+ler"],
-    "keywords": [{ "word": "livro", "weight": 1.0 }, { "word": "ler", "weight": 0.8 }, { "word": "leitura", "weight": 0.8 }],
+    "patterns": [
+      "^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?livro",
+      "^o\\s+que\\s+(?:devo|posso)\\s+ler"
+    ],
+    "keywords": [
+      { "word": "livro", "weight": 1.0 },
+      { "word": "ler", "weight": 0.8 },
+      { "word": "leitura", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "podcast_find": {
-    "phrases": ["encontra um podcast", "recomendação de podcast", "sugere um podcast", "qual podcast ouvir"],
-    "patterns": ["^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?podcast", "^qual\\s+podcast\\s+(?:devo|posso)\\s+ouvir"],
-    "keywords": [{ "word": "podcast", "weight": 1.0 }, { "word": "ouvir", "weight": 0.7 }],
+    "phrases": [
+      "encontra um podcast",
+      "recomendação de podcast",
+      "sugere um podcast",
+      "qual podcast ouvir"
+    ],
+    "patterns": [
+      "^(?:encontra|recomenda|sugere)\\s+(?:me\\s+)?(?:um\\s+)?podcast",
+      "^qual\\s+podcast\\s+(?:devo|posso)\\s+ouvir"
+    ],
+    "keywords": [
+      { "word": "podcast", "weight": 1.0 },
+      { "word": "ouvir", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "movie_recommend": {
-    "phrases": ["recomenda um filme", "que filme assistir", "sugestão de filme", "encontra um filme"],
-    "patterns": ["^(?:recomenda|sugere|encontra)\\s+(?:me\\s+)?(?:um\\s+)?filme", "^(?:que|qual)\\s+filme\\s+(?:devo|posso)\\s+assistir"],
-    "keywords": [{ "word": "filme", "weight": 1.0 }, { "word": "assistir", "weight": 0.7 }],
+    "phrases": [
+      "recomenda um filme",
+      "que filme assistir",
+      "sugestão de filme",
+      "encontra um filme"
+    ],
+    "patterns": [
+      "^(?:recomenda|sugere|encontra)\\s+(?:me\\s+)?(?:um\\s+)?filme",
+      "^(?:que|qual)\\s+filme\\s+(?:devo|posso)\\s+assistir"
+    ],
+    "keywords": [
+      { "word": "filme", "weight": 1.0 },
+      { "word": "assistir", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "restaurant_find": {
-    "phrases": ["encontra um restaurante", "onde comer", "recomendação de restaurante", "um lugar para jantar"],
-    "patterns": ["^(?:encontra|recomenda)\\s+(?:me\\s+)?(?:um\\s+)?restaurante", "^onde\\s+(?:devo|posso)\\s+(?:comer|jantar)"],
-    "keywords": [{ "word": "restaurante", "weight": 1.0 }, { "word": "comer", "weight": 0.8 }, { "word": "jantar", "weight": 0.7 }],
+    "phrases": [
+      "encontra um restaurante",
+      "onde comer",
+      "recomendação de restaurante",
+      "um lugar para jantar"
+    ],
+    "patterns": [
+      "^(?:encontra|recomenda)\\s+(?:me\\s+)?(?:um\\s+)?restaurante",
+      "^onde\\s+(?:devo|posso)\\s+(?:comer|jantar)"
+    ],
+    "keywords": [
+      { "word": "restaurante", "weight": 1.0 },
+      { "word": "comer", "weight": 0.8 },
+      { "word": "jantar", "weight": 0.7 }
+    ],
     "antiKeywords": []
   }
 }

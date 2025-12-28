@@ -49,4 +49,3 @@ export function getSilencePresencePhrase(level: PresenceLevel | undefined): stri
   if (phrases.length === 0) return null;
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
-

@@ -272,10 +272,12 @@ export class QuantFirestoreService {
         .collection('financial_profile')
         .doc('current');
 
-      await docRef.update(cleanForFirestore({
-        ...updates,
-        updatedAt: new Date().toISOString(),
-      }));
+      await docRef.update(
+        cleanForFirestore({
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        })
+      );
       log.debug({ userId, fields: Object.keys(updates) }, 'Financial profile updated');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to update financial profile');

@@ -407,7 +407,12 @@ export async function recordIdentityShift(
   // Save
   const db = getFirestoreDb();
   if (db) {
-    await db.collection('bogle_users').doc(userId).collection('meta').doc('identity').set(cleanForFirestore(identity));
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('meta')
+      .doc('identity')
+      .set(cleanForFirestore(identity));
   }
   identityCache.set(userId, identity);
 

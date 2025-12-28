@@ -131,7 +131,9 @@ describe('HumanizationSignalEmitter', () => {
     });
 
     it('should not emit when no callback', async () => {
-      initHumanizationSignalEmitter(null as unknown as (type: string, payload: Record<string, unknown>) => Promise<void>);
+      initHumanizationSignalEmitter(
+        null as unknown as (type: string, payload: Record<string, unknown>) => Promise<void>
+      );
 
       await emitHumanizationSignal({
         signalType: 'breakthrough',
@@ -160,9 +162,11 @@ describe('HumanizationSignalEmitter', () => {
       mockSendData.mockRejectedValueOnce(new Error('Send failed'));
 
       // Should not throw
-      await expect(emitHumanizationSignal({
-        signalType: 'breakthrough',
-      })).resolves.not.toThrow();
+      await expect(
+        emitHumanizationSignal({
+          signalType: 'breakthrough',
+        })
+      ).resolves.not.toThrow();
     });
   });
 
@@ -252,33 +256,45 @@ describe('HumanizationSignalEmitter', () => {
     it('signalVulnerability should emit', async () => {
       await signalVulnerability();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'vulnerability',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'vulnerability',
+        })
+      );
     });
 
     it('signalDisengagement should emit', async () => {
       await signalDisengagement();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'disengagement',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'disengagement',
+        })
+      );
     });
 
     it('signalHighEngagement should emit', async () => {
       await signalHighEngagement();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'high_engagement',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'high_engagement',
+        })
+      );
     });
 
     it('signalMindChange should emit', async () => {
       await signalMindChange();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'mind_change',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'mind_change',
+        })
+      );
     });
 
     it('signalMemoryCallback should emit with all fields', async () => {
@@ -289,27 +305,36 @@ describe('HumanizationSignalEmitter', () => {
         'heavy'
       );
 
-      expect(mockSendData).toHaveBeenCalledWith('memory_callback', expect.objectContaining({
-        quotedPhrase: 'your goal to run a marathon',
-        emotionalWeight: 'heavy',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'memory_callback',
+        expect.objectContaining({
+          quotedPhrase: 'your goal to run a marathon',
+          emotionalWeight: 'heavy',
+        })
+      );
     });
 
     it('signalRunningJoke should emit', async () => {
       await signalRunningJoke('the coffee incident');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'running_joke',
-        content: 'the coffee incident',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'running_joke',
+          content: 'the coffee incident',
+        })
+      );
     });
 
     it('signalPhysicalPresence should emit', async () => {
       await signalPhysicalPresence();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'physical_presence',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'physical_presence',
+        })
+      );
     });
 
     it('signalSpontaneousThought function should be callable', async () => {
@@ -326,24 +351,30 @@ describe('HumanizationSignalEmitter', () => {
         emotionalLoad: 0.4,
       });
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'mood_drift',
-        mood: {
-          energy: 0.6,
-          engagement: 0.8,
-          emotionalLoad: 0.4,
-        },
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'mood_drift',
+          mood: {
+            energy: 0.6,
+            engagement: 0.8,
+            emotionalLoad: 0.4,
+          },
+        })
+      );
     });
 
     it('signalSilenceMoment should emit with mapped reason', async () => {
       await signalSilenceMoment(3000, 'emotional');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'silence_moment',
-        silenceDuration: 3000,
-        silenceReason: 'emotional',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'silence_moment',
+          silenceDuration: 3000,
+          silenceReason: 'emotional',
+        })
+      );
     });
 
     it('signalSilenceMoment accepts different silence reasons', () => {
@@ -356,52 +387,70 @@ describe('HumanizationSignalEmitter', () => {
     it('signalAnticipation should emit', async () => {
       await signalAnticipation();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'anticipation',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'anticipation',
+        })
+      );
     });
 
     it('signalEvidencePresented should emit', async () => {
       await signalEvidencePresented();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'evidence_presented',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'evidence_presented',
+        })
+      );
     });
 
     it('signalTopicWeightShift should map weight to intensity', async () => {
       await signalTopicWeightShift('heavy');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'topic_weight_shift',
-        intensity: 0.8,
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'topic_weight_shift',
+          intensity: 0.8,
+        })
+      );
     });
 
     it('signalRelationshipMilestone should emit', async () => {
       await signalRelationshipMilestone('friend');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'relationship_milestone',
-        relationshipStage: 'friend',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'relationship_milestone',
+          relationshipStage: 'friend',
+        })
+      );
     });
 
     it('signalEmotionalArcPeak should emit', async () => {
       await signalEmotionalArcPeak(0.85);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'emotional_arc_peak',
-        intensity: 0.85,
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'emotional_arc_peak',
+          intensity: 0.85,
+        })
+      );
     });
 
     it('signalEmotionalArcRelease should emit', async () => {
       await signalEmotionalArcRelease();
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'emotional_arc_release',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'emotional_arc_release',
+        })
+      );
     });
   });
 
@@ -423,38 +472,50 @@ describe('HumanizationSignalEmitter', () => {
     it('signalProactiveMemory should emit', async () => {
       await signalProactiveMemory('commitment', 'your promise to call mom', 0.75);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'proactive_memory',
-        memoryType: 'commitment',
-        content: 'your promise to call mom',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'proactive_memory',
+          memoryType: 'commitment',
+          content: 'your promise to call mom',
+        })
+      );
     });
 
     it('signalVoiceStateDetected should emit', async () => {
       await signalVoiceStateDetected('tired', 0.65);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'voice_state_detected',
-        voiceState: 'tired',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'voice_state_detected',
+          voiceState: 'tired',
+        })
+      );
     });
 
     it('signalNeedPredicted should emit', async () => {
       await signalNeedPredicted('venting', 0.8);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'need_predicted',
-        predictedNeed: 'venting',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'need_predicted',
+          predictedNeed: 'venting',
+        })
+      );
     });
 
     it('signalEmotionalTrajectory should emit', async () => {
       await signalEmotionalTrajectory('improving', 0.6);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'emotional_trajectory',
-        emotionalTrajectory: 'improving',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'emotional_trajectory',
+          emotionalTrajectory: 'improving',
+        })
+      );
     });
   });
 
@@ -462,94 +523,126 @@ describe('HumanizationSignalEmitter', () => {
     it('signalEmotionalBondDeepen should emit', async () => {
       await signalEmotionalBondDeepen('trust', 0.85);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'emotional_bond_deepen',
-        bondType: 'trust',
-        bondLevel: 0.85,
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'emotional_bond_deepen',
+          bondType: 'trust',
+          bondLevel: 0.85,
+        })
+      );
     });
 
     it('signalProtectiveInstinct should emit', async () => {
       await signalProtectiveInstinct('self-criticism detected');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'protective_instinct',
-        protectionTrigger: 'self-criticism detected',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'protective_instinct',
+          protectionTrigger: 'self-criticism detected',
+        })
+      );
     });
 
     it('signalSpontaneousDelight should emit', async () => {
       await signalSpontaneousDelight('achievement');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'spontaneous_delight',
-        delightType: 'achievement',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'spontaneous_delight',
+          delightType: 'achievement',
+        })
+      );
     });
 
     it('signalInsideJokeCallback should emit', async () => {
       await signalInsideJokeCallback('established', 'the parking incident');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'inside_joke_callback',
-        jokePhase: 'established',
-        jokeContent: 'the parking incident',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'inside_joke_callback',
+          jokePhase: 'established',
+          jokeContent: 'the parking incident',
+        })
+      );
     });
 
     it('signalSuperhumanObservation should emit', async () => {
       await signalSuperhumanObservation('behavioral', 'you always pause before difficult topics');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'superhuman_observation',
-        observationType: 'behavioral',
-        observationContent: 'you always pause before difficult topics',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'superhuman_observation',
+          observationType: 'behavioral',
+          observationContent: 'you always pause before difficult topics',
+        })
+      );
     });
 
     it('signalVisibleVulnerability should emit', async () => {
       await signalVisibleVulnerability('uncertainty');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'visible_vulnerability',
-        vulnerabilityType: 'uncertainty',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'visible_vulnerability',
+          vulnerabilityType: 'uncertainty',
+        })
+      );
     });
 
     it('signalTemporalInsight should emit', async () => {
-      await signalTemporalInsight('this time last year you were struggling with this same decision');
+      await signalTemporalInsight(
+        'this time last year you were struggling with this same decision'
+      );
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'temporal_insight',
-        temporalInsight: 'this time last year you were struggling with this same decision',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'temporal_insight',
+          temporalInsight: 'this time last year you were struggling with this same decision',
+        })
+      );
     });
 
     it('signalMetaRelationshipMoment should emit', async () => {
       await signalMetaRelationshipMoment('depth acknowledgment');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'meta_relationship_moment',
-        metaRelationshipType: 'depth acknowledgment',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'meta_relationship_moment',
+          metaRelationshipType: 'depth acknowledgment',
+        })
+      );
     });
 
     it('signalSomaticPresence should emit', async () => {
       await signalSomaticPresence('breathing deeply');
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'somatic_presence',
-        somaticCue: 'breathing deeply',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'somatic_presence',
+          somaticCue: 'breathing deeply',
+        })
+      );
     });
 
     it('signalAnticipatoryPresence should emit', async () => {
       await signalAnticipatoryPresence(0.9);
 
-      expect(mockSendData).toHaveBeenCalledWith('humanization_signal', expect.objectContaining({
-        signalType: 'anticipatory_presence',
-        intensity: 0.9,
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'humanization_signal',
+        expect.objectContaining({
+          signalType: 'anticipatory_presence',
+          intensity: 0.9,
+        })
+      );
     });
   });
 
@@ -575,9 +668,12 @@ describe('HumanizationSignalEmitter', () => {
         dominantEmotion: 'curiosity',
       });
 
-      expect(mockSendData).toHaveBeenCalledWith('emotional_arc', expect.objectContaining({
-        phase: 'building',
-      }));
+      expect(mockSendData).toHaveBeenCalledWith(
+        'emotional_arc',
+        expect.objectContaining({
+          phase: 'building',
+        })
+      );
     });
   });
 });

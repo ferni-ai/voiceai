@@ -289,7 +289,9 @@ export async function waitUntilHealthy(
       throw new Error(`Agent startup failed: ${health.issues.join(', ')}`);
     }
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, pollInterval); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, pollInterval);
+    });
   }
 
   const finalHealth = getStartupHealth();

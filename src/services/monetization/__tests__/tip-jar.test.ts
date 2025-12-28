@@ -364,11 +364,13 @@ describe('TipJar', () => {
     it('should have non-pushy language', () => {
       const pushyPhrases = ['you must', 'you have to', 'you need to', 'required'];
 
-      Object.values(VALUE_CAPTURE_PROMPTS).flat().forEach((prompt) => {
-        pushyPhrases.forEach((phrase) => {
-          expect(prompt.toLowerCase()).not.toContain(phrase);
+      Object.values(VALUE_CAPTURE_PROMPTS)
+        .flat()
+        .forEach((prompt) => {
+          pushyPhrases.forEach((phrase) => {
+            expect(prompt.toLowerCase()).not.toContain(phrase);
+          });
         });
-      });
     });
 
     it('should include "no pressure" or similar opt-out language', () => {
@@ -405,15 +407,19 @@ describe('TipJar', () => {
         /\bgive\b.*\bcents\b/i,
       ];
 
-      Object.values(VALUE_CAPTURE_PROMPTS).flat().forEach((prompt) => {
-        // Get first actual sentence (before first period or exclamation)
-        const firstSentence = prompt.split(/[.!]/)[0].toLowerCase();
-        const asksForMoney = askingForMoneyPatterns.some((pattern) => pattern.test(firstSentence));
+      Object.values(VALUE_CAPTURE_PROMPTS)
+        .flat()
+        .forEach((prompt) => {
+          // Get first actual sentence (before first period or exclamation)
+          const firstSentence = prompt.split(/[.!]/)[0].toLowerCase();
+          const asksForMoney = askingForMoneyPatterns.some((pattern) =>
+            pattern.test(firstSentence)
+          );
 
-        // First sentence should NOT ask for money (celebrate first)
-        // Note: "saving money" is celebrating an achievement, not asking for money
-        expect(asksForMoney).toBe(false);
-      });
+          // First sentence should NOT ask for money (celebrate first)
+          // Note: "saving money" is celebrating an achievement, not asking for money
+          expect(asksForMoney).toBe(false);
+        });
     });
   });
 

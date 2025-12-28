@@ -283,9 +283,7 @@ export class AudioProsodyExtractor {
       windowSize: this.window.features.length,
       hasBaseline: this.baselineFeatures !== null,
       voicingRatio:
-        this.totalFramesProcessed > 0
-          ? this.voicedFrameCount / this.totalFramesProcessed
-          : 0,
+        this.totalFramesProcessed > 0 ? this.voicedFrameCount / this.totalFramesProcessed : 0,
     };
   }
 
@@ -316,8 +314,7 @@ export class AudioProsodyExtractor {
       samples[i] = this.audioBuffer[(this.bufferReadPos + i) % bufferLen];
     }
     // Advance read position by hop size (not full count) for overlapping frames
-    this.bufferReadPos =
-      (this.bufferReadPos + this.config.hopSize) % bufferLen;
+    this.bufferReadPos = (this.bufferReadPos + this.config.hopSize) % bufferLen;
     return samples;
   }
 
@@ -380,9 +377,7 @@ export class AudioProsodyExtractor {
     };
   }
 
-  private extractPitch(
-    samples: Float32Array
-  ): {
+  private extractPitch(samples: Float32Array): {
     pitchMean: number;
     pitchStd: number;
     pitchMin: number;
@@ -404,12 +399,7 @@ export class AudioProsodyExtractor {
 
     for (let start = 0; start + frameSize <= samples.length; start += hopSize) {
       const frame = samples.slice(start, start + frameSize);
-      const { pitch, isVoiced } = this.autocorrelationPitch(
-        frame,
-        minLag,
-        maxLag,
-        sampleRate
-      );
+      const { pitch, isVoiced } = this.autocorrelationPitch(frame, minLag, maxLag, sampleRate);
 
       totalFrames++;
       if (isVoiced && pitch > 0) {
@@ -429,9 +419,7 @@ export class AudioProsodyExtractor {
     }
 
     const mean = pitchValues.reduce((a, b) => a + b, 0) / pitchValues.length;
-    const variance =
-      pitchValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) /
-      pitchValues.length;
+    const variance = pitchValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / pitchValues.length;
 
     return {
       pitchMean: mean,
@@ -483,9 +471,7 @@ export class AudioProsodyExtractor {
     return { pitch, isVoiced };
   }
 
-  private extractEnergy(
-    samples: Float32Array
-  ): { mean: number; std: number; max: number } {
+  private extractEnergy(samples: Float32Array): { mean: number; std: number; max: number } {
     const frameSize = this.config.frameSize;
     const hopSize = this.config.hopSize;
     const energyValues: number[] = [];
@@ -509,8 +495,7 @@ export class AudioProsodyExtractor {
 
     const mean = energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
     const variance =
-      energyValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) /
-      energyValues.length;
+      energyValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / energyValues.length;
 
     return {
       mean,
@@ -519,9 +504,7 @@ export class AudioProsodyExtractor {
     };
   }
 
-  private analyzePauses(
-    samples: Float32Array
-  ): {
+  private analyzePauses(samples: Float32Array): {
     count: number;
     meanDuration: number;
     maxDuration: number;
@@ -622,8 +605,7 @@ export class AudioProsodyExtractor {
       for (let i = 1; i < amplitudes.length; i++) {
         perturbation += Math.abs(amplitudes[i] - amplitudes[i - 1]);
       }
-      shimmer =
-        avgAmp > 0 ? perturbation / (amplitudes.length - 1) / avgAmp : 0;
+      shimmer = avgAmp > 0 ? perturbation / (amplitudes.length - 1) / avgAmp : 0;
     }
 
     // Simplified HNR calculation
@@ -640,8 +622,7 @@ export class AudioProsodyExtractor {
       noisePower += residual * residual;
     }
 
-    const hnr =
-      noisePower > 1e-10 ? 10 * Math.log10(signalPower / noisePower) : 30;
+    const hnr = noisePower > 1e-10 ? 10 * Math.log10(signalPower / noisePower) : 30;
 
     return {
       jitter: Math.min(1, Math.max(0, jitter)),
@@ -650,9 +631,7 @@ export class AudioProsodyExtractor {
     };
   }
 
-  private extractSpectralFeatures(
-    samples: Float32Array
-  ): { centroid: number; flux: number } {
+  private extractSpectralFeatures(samples: Float32Array): { centroid: number; flux: number } {
     // Simplified spectral centroid using energy distribution
     const frameSize = this.config.frameSize;
     const sampleRate = this.config.sampleRate;
@@ -726,9 +705,7 @@ export class AudioProsodyExtractor {
     }
 
     // High speech rate → stress
-    const speechRateThreshold = baseline
-      ? baseline.speechRate * 1.3
-      : 6;
+    const speechRateThreshold = baseline ? baseline.speechRate * 1.3 : 6;
     if (features.speechRate > speechRateThreshold) {
       stress += 0.2 * Math.min(1, features.speechRate / 8);
     }
@@ -746,10 +723,7 @@ export class AudioProsodyExtractor {
     return Math.min(1, stress);
   }
 
-  private calculateArousal(
-    features: AcousticFeatures,
-    baseline: AcousticFeatures | null
-  ): number {
+  private calculateArousal(features: AcousticFeatures, baseline: AcousticFeatures | null): number {
     let arousal = 0.5; // Start neutral
 
     // Higher pitch → higher arousal
@@ -764,8 +738,7 @@ export class AudioProsodyExtractor {
 
     // Faster speech → higher arousal
     const baselineSpeechRate = baseline?.speechRate || 4;
-    const rateDeviation =
-      (features.speechRate - baselineSpeechRate) / baselineSpeechRate;
+    const rateDeviation = (features.speechRate - baselineSpeechRate) / baselineSpeechRate;
     arousal += rateDeviation * 0.2;
 
     // Wider pitch range → higher arousal
@@ -774,10 +747,7 @@ export class AudioProsodyExtractor {
     return Math.min(1, Math.max(0, arousal));
   }
 
-  private calculateValence(
-    features: AcousticFeatures,
-    baseline: AcousticFeatures | null
-  ): number {
+  private calculateValence(features: AcousticFeatures, baseline: AcousticFeatures | null): number {
     let valence = 0; // Neutral
 
     // Higher pitch mean → more positive (simplistic but common)
@@ -853,9 +823,7 @@ export class AudioProsodyExtractor {
     return markers;
   }
 
-  private detectBreathingPattern(
-    features: AcousticFeatures
-  ): 'normal' | 'rapid' | 'shallow' {
+  private detectBreathingPattern(features: AcousticFeatures): 'normal' | 'rapid' | 'shallow' {
     // Rapid: short pauses between speech bursts
     if (features.pauseMeanDuration < 0.3 && features.pauseCount > 2) {
       return 'rapid';

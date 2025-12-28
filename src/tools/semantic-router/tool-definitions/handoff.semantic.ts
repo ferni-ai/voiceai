@@ -254,7 +254,8 @@ export const habitHelpTool: SemanticToolDefinition = {
 export const researchHelpTool: SemanticToolDefinition = {
   id: 'handoff_peter_implicit',
   name: 'Research Help (Peter)',
-  description: 'User wants help with research, learning, or deep-diving into topics - suggest Peter',
+  description:
+    'User wants help with research, learning, or deep-diving into topics - suggest Peter',
   shortDescription: 'get research help from Peter',
   category: 'handoff',
 
@@ -403,7 +404,7 @@ export const communicationHelpTool: SemanticToolDefinition = {
       success: true,
       data: { targetPersona: 'alex', topic: args.topic },
       naturalResponse:
-        "Alex is fantastic at navigating these kinds of conversations. Let me connect you.",
+        'Alex is fantastic at navigating these kinds of conversations. Let me connect you.',
       speakImmediately: true,
       sideEffects: ['persona_handoff_suggested'],
     };
@@ -486,8 +487,7 @@ export const planningHelpTool: SemanticToolDefinition = {
     return {
       success: true,
       data: { targetPersona: 'jordan', eventType: args.eventType },
-      naturalResponse:
-        'Jordan is amazing at making moments special. Let me connect you with her.',
+      naturalResponse: 'Jordan is amazing at making moments special. Let me connect you with her.',
       speakImmediately: true,
       sideEffects: ['persona_handoff_suggested'],
     };

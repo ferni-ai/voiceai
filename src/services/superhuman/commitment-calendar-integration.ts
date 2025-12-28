@@ -435,17 +435,19 @@ async function storeCommitmentAlert(
     await db
       .collection(`users/${userId}/superhuman_alerts`)
       .doc(`commitment_conflicts_${Date.now()}`)
-      .set(cleanForFirestore({
-        type: 'commitment_conflict',
-        conflicts: conflicts.map((c) => ({
-          commitmentId: c.commitmentId,
-          commitmentText: c.commitmentText,
-          severity: c.severity,
-          suggestion: c.suggestion,
-        })),
-        createdAt: new Date().toISOString(),
-        acknowledged: false,
-      }));
+      .set(
+        cleanForFirestore({
+          type: 'commitment_conflict',
+          conflicts: conflicts.map((c) => ({
+            commitmentId: c.commitmentId,
+            commitmentText: c.commitmentText,
+            severity: c.severity,
+            suggestion: c.suggestion,
+          })),
+          createdAt: new Date().toISOString(),
+          acknowledged: false,
+        })
+      );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to store commitment alert');
   }

@@ -65,17 +65,19 @@ async function execute(
           .doc(ctx.userId)
           .collection('habits')
           .doc(habitId)
-          .set(cleanForFirestore({
-            id: habitId,
-            name,
-            domain,
-            cue: cue || null,
-            glidepathLevel: 1, // Start at tiny version
-            streak: 0,
-            completions: 0,
-            createdAt: new Date(),
-            status: 'active',
-          }));
+          .set(
+            cleanForFirestore({
+              id: habitId,
+              name,
+              domain,
+              cue: cue || null,
+              glidepathLevel: 1, // Start at tiny version
+              streak: 0,
+              completions: 0,
+              createdAt: new Date(),
+              status: 'active',
+            })
+          );
 
         log.info({ habitId, userId: ctx.userId }, '✅ Habit created');
 
@@ -137,17 +139,21 @@ async function execute(
           const isConsecutiveDay =
             lastCompletion && now.getTime() - lastCompletion.getTime() < 48 * 60 * 60 * 1000; // Within 48 hours
 
-          await habitRef.update(cleanForFirestore({
-            completions: (habitData?.completions || 0) + 1,
-            streak: isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1,
-            lastCompletedAt: now,
-          }));
+          await habitRef.update(
+            cleanForFirestore({
+              completions: (habitData?.completions || 0) + 1,
+              streak: isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1,
+              lastCompletedAt: now,
+            })
+          );
 
           // Log the completion
-          await habitRef.collection('logs').add(cleanForFirestore({
-            completedAt: now,
-            notes: notes || null,
-          }));
+          await habitRef.collection('logs').add(
+            cleanForFirestore({
+              completedAt: now,
+              notes: notes || null,
+            })
+          );
 
           const newStreak = isConsecutiveDay ? (habitData?.streak || 0) + 1 : 1;
 

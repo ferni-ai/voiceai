@@ -86,7 +86,7 @@ describe('CallQualityMonitor', () => {
       });
 
       const activeCalls = getActiveCalls();
-      const session = activeCalls.find(c => c.callId === callId);
+      const session = activeCalls.find((c) => c.callId === callId);
       expect(session?.connectionTimeMs).toBe(500);
     });
 
@@ -107,7 +107,7 @@ describe('CallQualityMonitor', () => {
       });
 
       const activeCalls = getActiveCalls();
-      const session = activeCalls.find(c => c.callId === callId);
+      const session = activeCalls.find((c) => c.callId === callId);
       expect(session?.firstResponseTimeMs).toBe(1500);
     });
 
@@ -132,7 +132,7 @@ describe('CallQualityMonitor', () => {
         type: 'user_speech',
       });
 
-      const session = getActiveCalls().find(c => c.callId === callId);
+      const session = getActiveCalls().find((c) => c.callId === callId);
       expect(session?.userSpeechCount).toBe(2);
     });
 
@@ -151,7 +151,7 @@ describe('CallQualityMonitor', () => {
         type: 'agent_speech',
       });
 
-      const session = getActiveCalls().find(c => c.callId === callId);
+      const session = getActiveCalls().find((c) => c.callId === callId);
       expect(session?.agentSpeechCount).toBe(1);
     });
 
@@ -176,7 +176,7 @@ describe('CallQualityMonitor', () => {
         type: 'interruption',
       });
 
-      const session = getActiveCalls().find(c => c.callId === callId);
+      const session = getActiveCalls().find((c) => c.callId === callId);
       expect(session?.interruptionCount).toBe(2);
     });
 
@@ -195,7 +195,7 @@ describe('CallQualityMonitor', () => {
         type: 'silence_detected',
       });
 
-      const session = getActiveCalls().find(c => c.callId === callId);
+      const session = getActiveCalls().find((c) => c.callId === callId);
       expect(session?.silenceCount).toBe(1);
     });
 
@@ -220,7 +220,7 @@ describe('CallQualityMonitor', () => {
         type: 'handoff_success',
       });
 
-      const session = getActiveCalls().find(c => c.callId === callId);
+      const session = getActiveCalls().find((c) => c.callId === callId);
       expect(session?.handoffAttempts).toBe(1);
       expect(session?.handoffSuccesses).toBe(1);
     });
@@ -242,10 +242,10 @@ describe('CallQualityMonitor', () => {
       });
 
       const activeCalls = getActiveCalls();
-      expect(activeCalls.find(c => c.callId === callId)).toBeUndefined();
+      expect(activeCalls.find((c) => c.callId === callId)).toBeUndefined();
 
       const recentCalls = getRecentCalls();
-      const completed = recentCalls.find(c => c.callId === callId);
+      const completed = recentCalls.find((c) => c.callId === callId);
       expect(completed?.endReason).toBe('natural');
       expect(completed?.totalDurationMs).toBe(30000);
     });
@@ -266,7 +266,7 @@ describe('CallQualityMonitor', () => {
       });
 
       const recentCalls = getRecentCalls();
-      const completed = recentCalls.find(c => c.callId === callId);
+      const completed = recentCalls.find((c) => c.callId === callId);
       expect(completed?.endReason).toBe('disconnect');
     });
 
@@ -286,7 +286,7 @@ describe('CallQualityMonitor', () => {
       });
 
       const recentCalls = getRecentCalls();
-      const completed = recentCalls.find(c => c.callId === callId);
+      const completed = recentCalls.find((c) => c.callId === callId);
       expect(completed?.endReason).toBe('error');
     });
   });
@@ -296,7 +296,7 @@ describe('CallQualityMonitor', () => {
       startCall('easy-call-1', 'user-1', 'ferni');
 
       const activeCalls = getActiveCalls();
-      expect(activeCalls.find(c => c.callId === 'easy-call-1')).toBeDefined();
+      expect(activeCalls.find((c) => c.callId === 'easy-call-1')).toBeDefined();
     });
 
     it('should end a call naturally', () => {
@@ -304,7 +304,7 @@ describe('CallQualityMonitor', () => {
       endCall('easy-call-2', 'natural');
 
       const recentCalls = getRecentCalls();
-      expect(recentCalls.find(c => c.callId === 'easy-call-2')?.endReason).toBe('natural');
+      expect(recentCalls.find((c) => c.callId === 'easy-call-2')?.endReason).toBe('natural');
     });
 
     it('should end a call with disconnect', () => {
@@ -312,7 +312,7 @@ describe('CallQualityMonitor', () => {
       endCall('easy-call-3', 'disconnect');
 
       const recentCalls = getRecentCalls();
-      expect(recentCalls.find(c => c.callId === 'easy-call-3')?.endReason).toBe('disconnect');
+      expect(recentCalls.find((c) => c.callId === 'easy-call-3')?.endReason).toBe('disconnect');
     });
 
     it('should end a call with error', () => {
@@ -320,7 +320,7 @@ describe('CallQualityMonitor', () => {
       endCall('easy-call-4', 'error');
 
       const recentCalls = getRecentCalls();
-      expect(recentCalls.find(c => c.callId === 'easy-call-4')?.endReason).toBe('error');
+      expect(recentCalls.find((c) => c.callId === 'easy-call-4')?.endReason).toBe('error');
     });
   });
 

@@ -187,7 +187,7 @@ describe('Boundaries Domain Tools', () => {
       const tool = toolDef!.create(mockContext);
       const result = await tool.execute({
         boundarySet: "I don't work after 6pm",
-        howTested: "They keep calling me at night",
+        howTested: 'They keep calling me at night',
         personReaction: 'guilt-trip',
       });
       expect(result).toContain('boundary');
@@ -261,10 +261,3 @@ describe('Boundaries Domain Tools', () => {
     });
   });
 });
-
-
-
-
-
-
-

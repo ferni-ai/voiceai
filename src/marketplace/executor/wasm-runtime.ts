@@ -310,7 +310,7 @@ export class WasmRuntime {
     // Compile the module
     const compiled = await WebAssembly.compile(wasmBytes);
     this.moduleCache.set(moduleId, compiled);
-    
+
     log.debug({ moduleId, cacheSize: this.moduleCache.size() }, 'WASM module compiled and cached');
 
     // Extract exports
@@ -358,7 +358,10 @@ export class WasmRuntime {
     if (!compiled) {
       return {
         success: false,
-        error: { code: 'MODULE_NOT_FOUND', message: `Module '${moduleId}' not compiled or cache expired` },
+        error: {
+          code: 'MODULE_NOT_FOUND',
+          message: `Module '${moduleId}' not compiled or cache expired`,
+        },
         metrics: { fuelConsumed: 0, memoryUsedBytes: 0, executionTimeMs: 0 },
       };
     }

@@ -558,8 +558,8 @@ const releaseUrgencyDef: ToolDefinition = {
 // ============================================================================
 
 const goodEnoughDef: ToolDefinition = {
-  id: 'celebrateSufficiency',
-  name: 'Celebrate Sufficiency',
+  id: 'goodEnough',
+  name: 'Good Enough',
   description: 'Celebrate good enough as a valid endpoint',
   domain: 'quiet-growth',
   additionalDomains: ['decisions', 'self-compassion'],

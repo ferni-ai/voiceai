@@ -355,7 +355,10 @@ describe('ToolExecutionReliability', () => {
       vi.useRealTimers(); // Need real timers for duration
 
       const executor = vi.fn().mockImplementation(
-        () => new Promise<string>((resolve) => { setTimeout(() => resolve('done'), 10); })
+        () =>
+          new Promise<string>((resolve) => {
+            setTimeout(() => resolve('done'), 10);
+          })
       );
 
       await executeWithReliability('durationTool', executor);

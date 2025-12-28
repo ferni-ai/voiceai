@@ -135,9 +135,8 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'scheduleReminder',
     'manageContact',
     'findBusiness',
-    // Communication Tools
-    'sendMessage',
-    'draftMessage',
+    // Communication Tools (sendMessage/draftMessage consolidated into reachOut)
+    'reachOut',
     'analyzeMessage',
     'rolePlayConversation',
     'communicationStrategy',

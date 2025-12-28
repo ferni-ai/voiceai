@@ -46,13 +46,13 @@ describe('Human Transfer Service', () => {
     });
 
     it('should detect domestic violence signals', () => {
-      const signals = detectCrisisSignals("My partner hits me when they get angry");
+      const signals = detectCrisisSignals('My partner hits me when they get angry');
       expect(signals.severity).toBeGreaterThanOrEqual(6);
       expect(signals.domesticViolence).toBe(true);
     });
 
     it('should return low severity for normal conversation', () => {
-      const signals = detectCrisisSignals("I had a great day at work today");
+      const signals = detectCrisisSignals('I had a great day at work today');
       expect(signals.severity).toBeLessThan(3);
       expect(signals.rawSignals).toHaveLength(0);
     });
@@ -72,7 +72,9 @@ describe('Human Transfer Service', () => {
     });
 
     it('should classify therapy for ongoing mental health concerns', () => {
-      const signals = detectCrisisSignals("I've been feeling depressed for months and can't function");
+      const signals = detectCrisisSignals(
+        "I've been feeling depressed for months and can't function"
+      );
       const decision = classifyEscalation(signals);
       expect(['therapy', 'crisis_support']).toContain(decision.type);
     });
@@ -94,22 +96,20 @@ describe('Human Transfer Service', () => {
   describe('humanTransfer.evaluateTransferNeed', () => {
     it('should detect when professional help is needed', () => {
       const decision = humanTransfer.evaluateTransferNeed(
-        "My therapist retired and I really need to talk to someone professional"
+        'My therapist retired and I really need to talk to someone professional'
       );
       expect(decision.type).not.toBe('none');
     });
 
     it('should not flag normal coaching conversations', () => {
-      const decision = humanTransfer.evaluateTransferNeed(
-        "I want to improve my morning routine"
-      );
+      const decision = humanTransfer.evaluateTransferNeed('I want to improve my morning routine');
       expect(decision.type).toBe('none');
     });
   });
 
   describe('humanTransfer.isCrisis', () => {
     it('should return true for crisis content', () => {
-      expect(humanTransfer.isCrisis("I want to kill myself")).toBe(true);
+      expect(humanTransfer.isCrisis('I want to kill myself')).toBe(true);
     });
 
     it('should return false for non-crisis content', () => {
@@ -127,7 +127,7 @@ describe('Human Transfer Service', () => {
 
     it('should include 988 lifeline', () => {
       const resources = humanTransfer.getCrisisResources();
-      const has988 = resources.some(r => r.contact.includes('988'));
+      const has988 = resources.some((r) => r.contact.includes('988'));
       expect(has988).toBe(true);
     });
   });
@@ -135,19 +135,25 @@ describe('Human Transfer Service', () => {
   describe('generateTransferSummary', () => {
     it('should generate a summary with key information', async () => {
       // generateTransferSummary expects: (type, userProfile, conversations, crisisContext?)
-      const summary = await generateTransferSummary('therapy', {
-        preferredName: 'Test User',
-        currentConcerns: ['Anxiety'],
-      }, {
-        summaries: [{
-          date: new Date().toISOString(),
-          summary: 'User discussed anxiety. They mentioned feeling anxious all the time.',
-          topics: ['anxiety', 'mental health'],
-          mood: 'anxious',
-        }],
-        keyMoments: ['First discussed anxiety triggers'],
-        themes: ['anxiety management'],
-      });
+      const summary = await generateTransferSummary(
+        'therapy',
+        {
+          preferredName: 'Test User',
+          currentConcerns: ['Anxiety'],
+        },
+        {
+          summaries: [
+            {
+              date: new Date().toISOString(),
+              summary: 'User discussed anxiety. They mentioned feeling anxious all the time.',
+              topics: ['anxiety', 'mental health'],
+              mood: 'anxious',
+            },
+          ],
+          keyMoments: ['First discussed anxiety triggers'],
+          themes: ['anxiety management'],
+        }
+      );
 
       expect(summary).toBeDefined();
       expect(summary.urgency).toBeDefined();
@@ -193,4 +199,3 @@ describe('Human Transfer Service', () => {
     });
   });
 });
-

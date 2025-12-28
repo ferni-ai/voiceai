@@ -418,11 +418,13 @@ export async function recordExecution(
         .doc(userId)
         .collection(WEBHOOKS_COLLECTION)
         .doc(webhookId)
-        .update(cleanForFirestore({
-          successCount: webhook.successCount,
-          failureCount: webhook.failureCount,
-          lastTriggeredAt: webhook.lastTriggeredAt,
-        }));
+        .update(
+          cleanForFirestore({
+            successCount: webhook.successCount,
+            failureCount: webhook.failureCount,
+            lastTriggeredAt: webhook.lastTriggeredAt,
+          })
+        );
     } catch (error) {
       log.error({ userId, webhookId, error: String(error) }, 'Failed to record execution');
     }
@@ -569,10 +571,12 @@ export async function validateSiriToken(userId: string, token: string): Promise<
       .doc(userId)
       .collection(SIRI_TOKENS_COLLECTION)
       .doc(siriToken.id)
-      .update(cleanForFirestore({
-        lastUsedAt: new Date().toISOString(),
-        usageCount: (siriToken.usageCount || 0) + 1,
-      }));
+      .update(
+        cleanForFirestore({
+          lastUsedAt: new Date().toISOString(),
+          usageCount: (siriToken.usageCount || 0) + 1,
+        })
+      );
 
     return siriToken;
   } catch (error) {

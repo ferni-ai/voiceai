@@ -10,7 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { BreathPauseDetector } from '../live-backchanneling/breath-pause.js';
 import { createSessionManager, type SessionService } from '../session-service.js';
-import type { BackchannelEngine} from './decision-engine.js';
+import type { BackchannelEngine } from './decision-engine.js';
 import { createBackchannelEngine } from './decision-engine.js';
 import type { BackchannelEngineOptions, BackchannelMode } from './types.js';
 

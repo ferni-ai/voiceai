@@ -72,11 +72,14 @@ export interface ToolExecutionContext {
     timestamp: number;
   }>;
   /** Active tool sessions (e.g., music playing, timer running) */
-  activeToolSessions: Map<string, {
-    toolId: string;
-    state: Record<string, unknown>;
-    startedAt: number;
-  }>;
+  activeToolSessions: Map<
+    string,
+    {
+      toolId: string;
+      state: Record<string, unknown>;
+      startedAt: number;
+    }
+  >;
   /** User's frequent tools (for personalization) */
   frequentTools: string[];
 }
@@ -829,9 +832,10 @@ export function getToolContextForHandoff(state: HandoffSessionState): {
     recentTools,
     activeToolSessions: activeSessions,
     frequentTools: ctx.frequentTools.slice(0, 5),
-    lastRoutingQuery: ctx.routingHistory.length > 0
-      ? ctx.routingHistory[ctx.routingHistory.length - 1].query
-      : null,
+    lastRoutingQuery:
+      ctx.routingHistory.length > 0
+        ? ctx.routingHistory[ctx.routingHistory.length - 1].query
+        : null,
     summary: summaryParts.length > 0 ? summaryParts.join('. ') : 'No recent tool activity.',
   };
 }
@@ -847,9 +851,3 @@ export function clearToolExecutionContext(state: HandoffSessionState): void {
     frequentTools: [],
   };
 }
-
-
-
-
-
-

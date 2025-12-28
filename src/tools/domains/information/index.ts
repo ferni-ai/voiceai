@@ -167,7 +167,8 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
 
             // Recognize placeholder values that mean "use my location"
             const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
-            const isPlaceholder = location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
+            const isPlaceholder =
+              location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
 
             // Use detected location if not provided OR if placeholder (TikTok-style personalization)
             let effectiveLocation = isPlaceholder ? undefined : location;
@@ -223,7 +224,8 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
 
             // Recognize placeholder values that mean "use my location"
             const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
-            const isPlaceholder = location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
+            const isPlaceholder =
+              location && PLACEHOLDER_LOCATIONS.includes(location.toLowerCase().trim());
 
             // Use detected location if not provided OR if placeholder
             let effectiveLocation = isPlaceholder ? undefined : location;

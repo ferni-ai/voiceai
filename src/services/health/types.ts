@@ -237,12 +237,7 @@ export interface HealthPreferences {
  */
 export interface HealthAlert {
   /** Alert type */
-  type:
-    | 'poor_sleep'
-    | 'stress_elevated'
-    | 'inactivity'
-    | 'meditation_lapse'
-    | 'cycle_awareness';
+  type: 'poor_sleep' | 'stress_elevated' | 'inactivity' | 'meditation_lapse' | 'cycle_awareness';
 
   /** Severity */
   severity: 'low' | 'medium' | 'high';
@@ -304,4 +299,3 @@ export interface HealthTrends {
   /** Generated at */
   generatedAt: string;
 }
-

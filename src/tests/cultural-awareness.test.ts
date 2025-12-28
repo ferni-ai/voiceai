@@ -180,13 +180,22 @@ describe('Cultural Awareness Service', () => {
     it('should detect weekends', () => {
       const now = new Date();
       const dayOfWeek = now.getDay();
+      const month = now.getMonth();
+      const day = now.getDate();
 
       const result = isFinanciallyRelevantDate();
 
       // If it's a weekend, should be marked as relevant
+      // Note: other conditions (tax season, end of quarter) take priority in the implementation
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         expect(result.relevant).toBe(true);
-        expect(result.reason).toBe('market closed for weekend');
+        // Weekend reason only applies if no other condition is true
+        const isTaxSeason = (month === 2 && day >= 15) || (month === 3 && day <= 15);
+        const isEndOfQuarter =
+          (month === 2 || month === 5 || month === 8 || month === 11) && day >= 25;
+        if (!isTaxSeason && !isEndOfQuarter) {
+          expect(result.reason).toBe('market closed for weekend');
+        }
       }
     });
   });

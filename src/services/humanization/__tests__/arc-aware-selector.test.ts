@@ -191,13 +191,13 @@ describe('ArcAwareSelector', () => {
     it('should return guidance for peak phase', () => {
       const guidance = getPhaseGuidance('peak');
 
-      expect(guidance.some(g => g.includes('present'))).toBe(true);
+      expect(guidance.some((g) => g.includes('present'))).toBe(true);
     });
 
     it('should return guidance for closing phase', () => {
       const guidance = getPhaseGuidance('closing');
 
-      expect(guidance.some(g => g.includes('wrap'))).toBe(true);
+      expect(guidance.some((g) => g.includes('wrap'))).toBe(true);
     });
   });
 

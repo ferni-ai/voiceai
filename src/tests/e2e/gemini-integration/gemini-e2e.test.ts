@@ -45,7 +45,9 @@ const RATE_LIMIT_DELAY = 6500; // ms between tests (Gemini 2.0 flash-exp has 10 
 
 // Helper to add delay between tests
 async function rateLimit(): Promise<void> {
-  await new Promise<void>((resolve) => { setTimeout(resolve, RATE_LIMIT_DELAY); });
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, RATE_LIMIT_DELAY);
+  });
 }
 
 // ============================================================================

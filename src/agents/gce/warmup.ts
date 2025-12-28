@@ -90,7 +90,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const audioPrewarmStart = Date.now();
-          const { prewarmConversationalAudio } = await import('../shared/conversational-audio-cache.js');
+          const { prewarmConversationalAudio } =
+            await import('../shared/conversational-audio-cache.js');
           const cachedCount = await prewarmConversationalAudio();
           log('✅ Conversational audio pre-cached (greetings, handoffs, banter)', {
             durationMs: Date.now() - audioPrewarmStart,

@@ -138,20 +138,20 @@ async function getAlphaVantageQuote(symbol: string): Promise<{
 
 // Common crypto symbol mappings
 const CRYPTO_MAPPINGS: Record<string, string> = {
-  'btc': 'bitcoin',
-  'eth': 'ethereum',
-  'xrp': 'ripple',
-  'doge': 'dogecoin',
-  'sol': 'solana',
-  'ada': 'cardano',
-  'dot': 'polkadot',
-  'matic': 'polygon',
-  'link': 'chainlink',
-  'ltc': 'litecoin',
-  'avax': 'avalanche-2',
-  'shib': 'shiba-inu',
-  'usdc': 'usd-coin',
-  'usdt': 'tether',
+  btc: 'bitcoin',
+  eth: 'ethereum',
+  xrp: 'ripple',
+  doge: 'dogecoin',
+  sol: 'solana',
+  ada: 'cardano',
+  dot: 'polkadot',
+  matic: 'polygon',
+  link: 'chainlink',
+  ltc: 'litecoin',
+  avax: 'avalanche-2',
+  shib: 'shiba-inu',
+  usdc: 'usd-coin',
+  usdt: 'tether',
 };
 
 /**
@@ -165,15 +165,15 @@ async function getCryptoPrice(cryptoId: string): Promise<{
   symbol: string;
 } | null> {
   const log = getLogger();
-  
+
   // Map common symbols to CoinGecko IDs
   const coinId = CRYPTO_MAPPINGS[cryptoId.toLowerCase()] || cryptoId.toLowerCase();
-  
+
   try {
     const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`;
-    const response = await fetch(url, { 
+    const response = await fetch(url, {
       signal: AbortSignal.timeout(8000),
-      headers: { 'Accept': 'application/json' }
+      headers: { Accept: 'application/json' },
     });
 
     if (!response.ok) {
@@ -181,11 +181,14 @@ async function getCryptoPrice(cryptoId: string): Promise<{
       return null;
     }
 
-    const data = (await response.json()) as Record<string, {
-      usd?: number;
-      usd_24h_change?: number;
-      usd_market_cap?: number;
-    }>;
+    const data = (await response.json()) as Record<
+      string,
+      {
+        usd?: number;
+        usd_24h_change?: number;
+        usd_market_cap?: number;
+      }
+    >;
 
     const coinData = data[coinId];
     if (!coinData?.usd) {
@@ -214,21 +217,23 @@ export async function getCryptoQuote(symbol: string): Promise<string> {
   log.info({ symbol }, '🪙 Getting crypto quote');
 
   const crypto = await getCryptoPrice(symbol);
-  
+
   if (!crypto) {
     return `I couldn't find data for "${symbol}". Try common names like BTC, ETH, DOGE, or SOL.`;
   }
 
   const direction = crypto.change24h >= 0 ? 'up' : 'down';
-  const priceStr = crypto.price >= 1 
-    ? `$${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : `$${crypto.price.toFixed(6)}`;
-  
-  const marketCapStr = crypto.marketCap >= 1e12 
-    ? `$${(crypto.marketCap / 1e12).toFixed(2)}T`
-    : crypto.marketCap >= 1e9
-    ? `$${(crypto.marketCap / 1e9).toFixed(2)}B`
-    : `$${(crypto.marketCap / 1e6).toFixed(2)}M`;
+  const priceStr =
+    crypto.price >= 1
+      ? `$${crypto.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `$${crypto.price.toFixed(6)}`;
+
+  const marketCapStr =
+    crypto.marketCap >= 1e12
+      ? `$${(crypto.marketCap / 1e12).toFixed(2)}T`
+      : crypto.marketCap >= 1e9
+        ? `$${(crypto.marketCap / 1e9).toFixed(2)}B`
+        : `$${(crypto.marketCap / 1e6).toFixed(2)}M`;
 
   return `${crypto.name} (${crypto.symbol}) is at ${priceStr}, ${direction} ${Math.abs(crypto.change24h).toFixed(2)}% in the last 24 hours. Market cap: ${marketCapStr}.`;
 }
@@ -247,11 +252,12 @@ export async function getCryptoOverview(): Promise<string> {
     const crypto = await getCryptoPrice(coinId);
     if (crypto) {
       const arrow = crypto.change24h >= 0 ? '↑' : '↓';
-      const priceStr = crypto.price >= 1000 
-        ? `$${(crypto.price / 1000).toFixed(1)}K`
-        : crypto.price >= 1 
-        ? `$${crypto.price.toFixed(0)}`
-        : `$${crypto.price.toFixed(4)}`;
+      const priceStr =
+        crypto.price >= 1000
+          ? `$${(crypto.price / 1000).toFixed(1)}K`
+          : crypto.price >= 1
+            ? `$${crypto.price.toFixed(0)}`
+            : `$${crypto.price.toFixed(4)}`;
       results.push(`${crypto.name}: ${priceStr} ${arrow}${Math.abs(crypto.change24h).toFixed(1)}%`);
     }
   }
@@ -391,9 +397,12 @@ export function createMarketDataTools() {
     }),
 
     getCryptoQuote: llm.tool({
-      description: 'Get cryptocurrency price and 24-hour change. Use for Bitcoin (BTC), Ethereum (ETH), Solana (SOL), Dogecoin (DOGE), and other popular cryptocurrencies.',
+      description:
+        'Get cryptocurrency price and 24-hour change. Use for Bitcoin (BTC), Ethereum (ETH), Solana (SOL), Dogecoin (DOGE), and other popular cryptocurrencies.',
       parameters: z.object({
-        symbol: z.string().describe('Crypto symbol or name (e.g., BTC, ETH, DOGE, SOL, bitcoin, ethereum)'),
+        symbol: z
+          .string()
+          .describe('Crypto symbol or name (e.g., BTC, ETH, DOGE, SOL, bitcoin, ethereum)'),
       }),
       execute: async ({ symbol }) => {
         getLogger().info(`Looking up crypto: ${symbol}`);
@@ -402,7 +411,8 @@ export function createMarketDataTools() {
     }),
 
     getCryptoOverview: llm.tool({
-      description: 'Get an overview of top cryptocurrencies including Bitcoin, Ethereum, Solana, and Dogecoin. Use when user asks about the crypto market in general.',
+      description:
+        'Get an overview of top cryptocurrencies including Bitcoin, Ethereum, Solana, and Dogecoin. Use when user asks about the crypto market in general.',
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting crypto market overview');

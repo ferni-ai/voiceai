@@ -173,54 +173,63 @@ export function safeFireAndForget(
     }, timeoutMs);
   }
 
-  fn()
-    .then(() => {
-      if (timeoutId) clearTimeout(timeoutId);
+  // Helper to handle errors (both sync and async)
+  const handleError = (error: unknown) => {
+    if (timeoutId) clearTimeout(timeoutId);
 
-      const durationMs = Date.now() - startTime;
+    const durationMs = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
-      if (trackMetrics) {
-        metrics.successCount++;
-        const contextMetrics = metrics.byContext.get(context);
-        if (contextMetrics) contextMetrics.successes++;
+    if (trackMetrics) {
+      metrics.failureCount++;
+      const contextMetrics = metrics.byContext.get(context);
+      if (contextMetrics) {
+        contextMetrics.failures++;
+        contextMetrics.lastError = errorMessage;
+        contextMetrics.lastErrorAt = new Date();
       }
+    }
 
-      if (logSuccess) {
-        log.debug({ context, durationMs, didTimeout }, `Fire-and-forget "${context}" completed`);
-      }
-    })
-    .catch((error: unknown) => {
-      if (timeoutId) clearTimeout(timeoutId);
+    // Log with deduplication
+    if (shouldLogFailure(context)) {
+      const logFn = critical ? log.error.bind(log) : log.warn.bind(log);
+      logFn(
+        {
+          context,
+          error: errorMessage,
+          durationMs,
+          didTimeout,
+          stack:
+            error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : undefined,
+        },
+        `Fire-and-forget "${context}" failed`
+      );
+    }
+  };
 
-      const durationMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+  // Wrap in try-catch to handle synchronous throws
+  try {
+    fn()
+      .then(() => {
+        if (timeoutId) clearTimeout(timeoutId);
 
-      if (trackMetrics) {
-        metrics.failureCount++;
-        const contextMetrics = metrics.byContext.get(context);
-        if (contextMetrics) {
-          contextMetrics.failures++;
-          contextMetrics.lastError = errorMessage;
-          contextMetrics.lastErrorAt = new Date();
+        const durationMs = Date.now() - startTime;
+
+        if (trackMetrics) {
+          metrics.successCount++;
+          const contextMetrics = metrics.byContext.get(context);
+          if (contextMetrics) contextMetrics.successes++;
         }
-      }
 
-      // Log with deduplication
-      if (shouldLogFailure(context)) {
-        const logFn = critical ? log.error.bind(log) : log.warn.bind(log);
-        logFn(
-          {
-            context,
-            error: errorMessage,
-            durationMs,
-            didTimeout,
-            stack:
-              error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : undefined,
-          },
-          `Fire-and-forget "${context}" failed (non-fatal)`
-        );
-      }
-    });
+        if (logSuccess) {
+          log.debug({ context, durationMs, didTimeout }, `Fire-and-forget "${context}" completed`);
+        }
+      })
+      .catch(handleError);
+  } catch (syncError) {
+    // Handle synchronous throws the same way as async errors
+    handleError(syncError);
+  }
 }
 
 /**

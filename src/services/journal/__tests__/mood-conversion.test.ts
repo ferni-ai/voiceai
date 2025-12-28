@@ -72,9 +72,7 @@ describe('MoodConversion', () => {
     });
 
     it('should have positive moods with scores >= 7', () => {
-      const positiveMoods = Object.values(MOOD_DEFINITIONS).filter(
-        (m) => m.valence === 'positive'
-      );
+      const positiveMoods = Object.values(MOOD_DEFINITIONS).filter((m) => m.valence === 'positive');
 
       for (const mood of positiveMoods) {
         expect(mood.score).toBeGreaterThanOrEqual(7);
@@ -82,9 +80,7 @@ describe('MoodConversion', () => {
     });
 
     it('should have negative moods with scores <= 3', () => {
-      const negativeMoods = Object.values(MOOD_DEFINITIONS).filter(
-        (m) => m.valence === 'negative'
-      );
+      const negativeMoods = Object.values(MOOD_DEFINITIONS).filter((m) => m.valence === 'negative');
 
       for (const mood of negativeMoods) {
         expect(mood.score).toBeLessThanOrEqual(3);
@@ -92,9 +88,7 @@ describe('MoodConversion', () => {
     });
 
     it('should have neutral moods with scores 4-6', () => {
-      const neutralMoods = Object.values(MOOD_DEFINITIONS).filter(
-        (m) => m.valence === 'neutral'
-      );
+      const neutralMoods = Object.values(MOOD_DEFINITIONS).filter((m) => m.valence === 'neutral');
 
       for (const mood of neutralMoods) {
         expect(mood.score).toBeGreaterThanOrEqual(4);

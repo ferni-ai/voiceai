@@ -42,7 +42,10 @@ export function clearSessionClosing(sessionId: string): void {
   if (closingSessions.has(sessionId)) {
     const duration = Date.now() - (closingSessions.get(sessionId) || 0);
     closingSessions.delete(sessionId);
-    log.debug({ sessionId, closingDurationMs: duration }, '🗑️ Session cleared from closing tracker');
+    log.debug(
+      { sessionId, closingDurationMs: duration },
+      '🗑️ Session cleared from closing tracker'
+    );
   }
 }
 
@@ -53,4 +56,3 @@ export function clearSessionClosing(sessionId: string): void {
 export function getClosingSessionCount(): number {
   return closingSessions.size;
 }
-

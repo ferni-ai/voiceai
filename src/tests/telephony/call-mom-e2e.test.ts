@@ -28,7 +28,9 @@ const mockCartesiaFetch = vi.fn().mockResolvedValue({
 });
 
 // Mock Storage (GCS)
-const mockStorageUpload = vi.fn().mockResolvedValue([{ publicUrl: () => 'https://storage.test/audio.mp3' }]);
+const mockStorageUpload = vi
+  .fn()
+  .mockResolvedValue([{ publicUrl: () => 'https://storage.test/audio.mp3' }]);
 vi.mock('@google-cloud/storage', () => ({
   Storage: vi.fn(() => ({
     bucket: () => ({
@@ -152,14 +154,17 @@ interface ExtractedIntent {
 
 function extractCallIntent(utterance: string): ExtractedIntent {
   const lower = utterance.toLowerCase();
-  
+
   // Check if this is a call request
-  const isCallRequest = /\b(call|phone|voicemail|leave a message|ring|give\s+\w+\s+a\s+call|make\s+a\s+call)\b/i.test(lower);
-  
+  const isCallRequest =
+    /\b(call|phone|voicemail|leave a message|ring|give\s+\w+\s+a\s+call|make\s+a\s+call)\b/i.test(
+      lower
+    );
+
   if (!isCallRequest) {
     return { tool: 'unknown', contact: '', message: '' };
   }
-  
+
   // Extract contact - comprehensive patterns
   const contactPatterns = [
     // Direct patterns
@@ -175,7 +180,7 @@ function extractCallIntent(utterance: string): ExtractedIntent {
     // "send a voicemail to X" pattern
     /\bsend\s+a\s+voicemail\s+to\s+(?:my\s+)?(\w+)/i,
   ];
-  
+
   let contact = '';
   for (const pattern of contactPatterns) {
     const match = lower.match(pattern);
@@ -188,10 +193,12 @@ function extractCallIntent(utterance: string): ExtractedIntent {
       }
     }
   }
-  
+
   // If no contact found, try to find any name-like word after call-related verbs
   if (!contact) {
-    const fallbackMatch = lower.match(/(?:call|phone|ring|voicemail|message)\s+(?:to\s+)?(?:my\s+)?(\w+)/i);
+    const fallbackMatch = lower.match(
+      /(?:call|phone|ring|voicemail|message)\s+(?:to\s+)?(?:my\s+)?(\w+)/i
+    );
     if (fallbackMatch && fallbackMatch[1]) {
       const word = fallbackMatch[1].toLowerCase();
       if (!['to', 'for', 'a', 'the', 'and', 'my'].includes(word)) {
@@ -199,7 +206,7 @@ function extractCallIntent(utterance: string): ExtractedIntent {
       }
     }
   }
-  
+
   // Extract message (everything after "and", "saying", "to tell", etc.)
   const messagePatterns = [
     /\band\s+(.+)$/i,
@@ -208,7 +215,7 @@ function extractCallIntent(utterance: string): ExtractedIntent {
     /\btell\s+(?:her|him|them)\s+(.+)$/i,
     /\bwish\s+(?:her|him|them)\s+(.+)$/i,
   ];
-  
+
   let message = '';
   for (const pattern of messagePatterns) {
     const match = utterance.match(pattern);
@@ -217,7 +224,7 @@ function extractCallIntent(utterance: string): ExtractedIntent {
       break;
     }
   }
-  
+
   return {
     tool: contact ? 'makePhoneCall' : 'unknown',
     contact,
@@ -232,7 +239,7 @@ function extractCallIntent(utterance: string): ExtractedIntent {
 describe('Call Mom E2E Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup environment
     process.env.TWILIO_ACCOUNT_SID = 'test_sid';
     process.env.TWILIO_AUTH_TOKEN = 'test_token';
@@ -254,16 +261,16 @@ describe('Call Mom E2E Flow', () => {
       'should extract intent from: "$utterance"',
       ({ utterance, expectedContact, expectedMessage }) => {
         const intent = extractCallIntent(utterance);
-        
+
         if (expectedContact) {
           expect(intent.tool).toBe('makePhoneCall');
           expect(intent.contact.toLowerCase()).toBe(expectedContact.toLowerCase());
         }
-        
+
         if (expectedMessage) {
           // Message should contain key words from expected
           const keyWords = expectedMessage.split(' ').slice(0, 3);
-          keyWords.forEach(word => {
+          keyWords.forEach((word) => {
             if (word.length > 3) {
               expect(intent.message.toLowerCase()).toContain(word.toLowerCase());
             }
@@ -284,34 +291,30 @@ describe('Call Mom E2E Flow', () => {
       // Search simulation
       const searchContacts = (contacts: typeof mockContacts, query: string) => {
         const q = query.toLowerCase();
-        return contacts.filter(c => 
-          c.name.toLowerCase().includes(q) || 
-          c.relationship?.toLowerCase().includes(q)
+        return contacts.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.relationship?.toLowerCase().includes(q)
         );
       };
 
       const results = searchContacts(mockContacts, 'mom');
-      
+
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].name.toLowerCase()).toContain('mom');
       expect(results[0].phone).toBeTruthy();
     });
 
     it('should return empty when contact not found', async () => {
-      const mockContacts = [
-        { name: 'Mom', phone: '+15559876543', relationship: 'mother' },
-      ];
+      const mockContacts = [{ name: 'Mom', phone: '+15559876543', relationship: 'mother' }];
 
       const searchContacts = (contacts: typeof mockContacts, query: string) => {
         const q = query.toLowerCase();
-        return contacts.filter(c => 
-          c.name.toLowerCase().includes(q) || 
-          c.relationship?.toLowerCase().includes(q)
+        return contacts.filter(
+          (c) => c.name.toLowerCase().includes(q) || c.relationship?.toLowerCase().includes(q)
         );
       };
 
       const results = searchContacts(mockContacts, 'unknown-person');
-      
+
       expect(results.length).toBe(0);
     });
   });
@@ -341,9 +344,7 @@ describe('Call Mom E2E Flow', () => {
       }
 
       // Try to resolve contact
-      const found = contacts.find(c => 
-        c.name.toLowerCase().includes(contact!.toLowerCase())
-      );
+      const found = contacts.find((c) => c.name.toLowerCase().includes(contact!.toLowerCase()));
 
       if (found) {
         if (found.phone) {
@@ -375,10 +376,7 @@ describe('Call Mom E2E Flow', () => {
     it('should ask for number when contact not found', () => {
       const contacts: Array<{ name: string; phone?: string }> = [];
 
-      const result = simulateTelephonyExecutor(
-        { contact: 'mom' },
-        contacts
-      );
+      const result = simulateTelephonyExecutor({ contact: 'mom' }, contacts);
 
       expect(result).toContain("don't have");
       expect(result).toContain('mom');
@@ -396,17 +394,14 @@ describe('Call Mom E2E Flow', () => {
 
     it('should ask who to call if no contact or number', () => {
       const result = simulateTelephonyExecutor({}, []);
-      
+
       expect(result).toContain('Who should I call');
     });
 
     it('should handle contact without phone number', () => {
       const contacts = [{ name: 'Mom' }]; // No phone
 
-      const result = simulateTelephonyExecutor(
-        { contact: 'mom' },
-        contacts
-      );
+      const result = simulateTelephonyExecutor({ contact: 'mom' }, contacts);
 
       expect(result).toContain("don't have a phone number");
     });
@@ -414,57 +409,62 @@ describe('Call Mom E2E Flow', () => {
 
   describe('Full Flow Simulation', () => {
     // Simulate the full flow without real imports
-    interface Contact { name: string; phone?: string; email?: string; relationship?: string }
-    
+    interface Contact {
+      name: string;
+      phone?: string;
+      email?: string;
+      relationship?: string;
+    }
+
     function simulateFullFlow(
       utterance: string,
       userContacts: Contact[]
     ): { success: boolean; result: string; steps: string[] } {
       const steps: string[] = [];
-      
+
       // Step 1: Extract intent
       const intent = extractCallIntent(utterance);
       steps.push(`Intent: ${intent.tool} → ${intent.contact} (${intent.message || 'no message'})`);
-      
+
       if (intent.tool === 'unknown') {
         return { success: false, result: "I didn't understand that", steps };
       }
-      
+
       // Step 2: Generate JSON tool call (what LLM would emit)
       const toolCall = {
         fn: intent.tool,
         args: { contact: intent.contact, message: intent.message },
       };
       steps.push(`Tool call: {"fn":"${toolCall.fn}","args":${JSON.stringify(toolCall.args)}}`);
-      
+
       // Step 3: Resolve contact
-      const found = userContacts.find(c => 
+      const found = userContacts.find((c) =>
         c.name.toLowerCase().includes(intent.contact.toLowerCase())
       );
-      
+
       if (!found) {
         steps.push(`Contact resolution: NOT FOUND`);
-        return { 
-          success: false, 
+        return {
+          success: false,
           result: `I don't have ${intent.contact} in your contacts. What's their phone number?`,
-          steps 
+          steps,
         };
       }
-      
+
       steps.push(`Contact resolution: Found ${found.name} (${found.phone || 'no phone'})`);
-      
+
       if (!found.phone) {
         return {
           success: false,
           result: `I found ${found.name} but don't have their phone number.`,
-          steps
+          steps,
         };
       }
-      
+
       // Step 4: Execute call
       const result = `📞 Calling ${found.name} now: "${intent.message || 'checking in'}"`;
       steps.push(`Execution: Call initiated`);
-      
+
       return { success: true, result, steps };
     }
 
@@ -543,25 +543,25 @@ describe('Call Mom E2E Flow', () => {
           // Real system would catch network errors
           return {
             handled: true,
-            message: "I had trouble reaching out. Want me to try again?",
+            message: 'I had trouble reaching out. Want me to try again?',
           };
         case 'tts_failure':
           // Real system would fall back to Twilio's built-in TTS
           return {
             handled: true,
-            message: "📞 Calling with backup voice...",
+            message: '📞 Calling with backup voice...',
           };
         case 'success':
           return {
             handled: true,
-            message: "📞 Calling Mom now!",
+            message: '📞 Calling Mom now!',
           };
       }
     }
 
     it('should gracefully handle missing Twilio credentials', () => {
       const { handled, message } = simulateErrorScenario('missing_twilio');
-      
+
       expect(handled).toBe(true);
       expect(message).toBeTruthy();
       expect(message.length).toBeGreaterThan(0);
@@ -569,14 +569,14 @@ describe('Call Mom E2E Flow', () => {
 
     it('should handle network errors gracefully', () => {
       const { handled, message } = simulateErrorScenario('network_error');
-      
+
       expect(handled).toBe(true);
       expect(message).toContain('trouble');
     });
 
     it('should fallback when TTS fails', () => {
       const { handled, message } = simulateErrorScenario('tts_failure');
-      
+
       expect(handled).toBe(true);
       expect(message).toContain('backup');
     });
@@ -604,17 +604,13 @@ describe('Call Mom Utterance Variations', () => {
     'Send a voicemail to my mother',
     'Call my mom and wish her happy birthday',
     'Can you call mom and remind her about dinner?',
-    'Please phone my mother and tell her I\'m running late',
+    "Please phone my mother and tell her I'm running late",
   ];
 
-  it.each(UTTERANCE_VARIATIONS)(
-    'should recognize call intent from: "%s"',
-    (utterance) => {
-      const intent = extractCallIntent(utterance);
-      
-      expect(intent.tool).toBe('makePhoneCall');
-      expect(['mom', 'mother']).toContain(intent.contact.toLowerCase());
-    }
-  );
-});
+  it.each(UTTERANCE_VARIATIONS)('should recognize call intent from: "%s"', (utterance) => {
+    const intent = extractCallIntent(utterance);
 
+    expect(intent.tool).toBe('makePhoneCall');
+    expect(['mom', 'mother']).toContain(intent.contact.toLowerCase());
+  });
+});

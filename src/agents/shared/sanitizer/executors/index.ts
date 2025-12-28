@@ -16,9 +16,4 @@ export {
 } from './deduplication.js';
 
 // Retry analysis
-export {
-  analyzeForRetry,
-  clearRetryCounter,
-  getRetryCount,
-} from './retry-analyzer.js';
-
+export { analyzeForRetry, clearRetryCounter, getRetryCount } from './retry-analyzer.js';

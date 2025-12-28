@@ -110,6 +110,18 @@ const RELATIONSHIP_PATTERNS: RelationshipPattern[] = [
     type: 'friend',
     extractName: (m) => m[1],
   },
+  // Handle "talked/spoke to my best friend [Name]"
+  {
+    pattern: /(?:talked|spoke|chatted|met)\s+(?:to|with)\s+my\s+(?:best\s+)?friend\s+(\w+)/i,
+    type: 'friend',
+    extractName: (m) => m[1],
+  },
+  // Handle "with my best friend [Name]"
+  {
+    pattern: /with\s+my\s+(?:best\s+|close\s+|old\s+)?friend\s+(\w+)/i,
+    type: 'friend',
+    extractName: (m) => m[1],
+  },
 
   // Work
   {
@@ -149,7 +161,8 @@ const RELATIONSHIP_PATTERNS: RelationshipPattern[] = [
   // NAME-ONLY patterns (P3 FIX) - infer relationship from context
   // "[Name] was really helpful" → likely colleague
   {
-    pattern: /\b([A-Z][a-z]+)\s+(?:was|is|has been)\s+(?:really|so|very|super)\s+(?:helpful|supportive|kind|nice|great)/i,
+    pattern:
+      /\b([A-Z][a-z]+)\s+(?:was|is|has been)\s+(?:really|so|very|super)\s+(?:helpful|supportive|kind|nice|great)/i,
     type: 'colleague', // Default to colleague when context unclear
     extractName: (m) => m[1],
   },

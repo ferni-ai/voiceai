@@ -128,9 +128,8 @@ async function resolveContact(
 ): Promise<ResolvedContact | null> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { searchContacts } = await import(
-      '../../../services/contacts/contact-relationship-service.js'
-    );
+    const { searchContacts } =
+      await import('../../../services/contacts/contact-relationship-service.js');
 
     const results = await searchContacts(userId, contactQuery);
 
@@ -258,9 +257,8 @@ function inferObjective(purpose: string): CallObjective {
  */
 async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<string> {
   // Dynamic import to avoid circular dependencies
-  const { getOnBehalfCallOrchestrator } = await import(
-    '../../../services/outreach/on-behalf-call-orchestrator.js'
-  );
+  const { getOnBehalfCallOrchestrator } =
+    await import('../../../services/outreach/on-behalf-call-orchestrator.js');
 
   const orchestrator = getOnBehalfCallOrchestrator();
   return await orchestrator.initiateCall(request);
@@ -278,7 +276,19 @@ function inferRelationshipFromQuery(query: string): string | undefined {
   const queryLower = query.toLowerCase();
 
   // Family relationships
-  const familyWords = ['mom', 'mother', 'dad', 'father', 'brother', 'sister', 'grandma', 'grandpa', 'aunt', 'uncle', 'cousin'];
+  const familyWords = [
+    'mom',
+    'mother',
+    'dad',
+    'father',
+    'brother',
+    'sister',
+    'grandma',
+    'grandpa',
+    'aunt',
+    'uncle',
+    'cousin',
+  ];
   for (const word of familyWords) {
     if (queryLower.includes(word)) return word;
   }
@@ -302,9 +312,8 @@ async function saveContactForFuture(
   phone: string
 ): Promise<void> {
   try {
-    const { upsertContact } = await import(
-      '../../../services/contacts/contact-relationship-service.js'
-    );
+    const { upsertContact } =
+      await import('../../../services/contacts/contact-relationship-service.js');
 
     // Extract a clean name from the query
     const cleanName = contactQuery
@@ -341,8 +350,12 @@ const callOnBehalfSchema = z.object({
   phoneNumber: z
     .string()
     .optional()
-    .describe('Phone number if provided by user (e.g., "8018983303", "+1-801-898-3303"). Use this if the user explicitly provides a number.'),
-  purpose: z.string().describe('Why you are calling (e.g., "reschedule my appointment to next week")'),
+    .describe(
+      'Phone number if provided by user (e.g., "8018983303", "+1-801-898-3303"). Use this if the user explicitly provides a number.'
+    ),
+  purpose: z
+    .string()
+    .describe('Why you are calling (e.g., "reschedule my appointment to next week")'),
   additionalContext: z
     .string()
     .optional()
@@ -373,7 +386,14 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
     parameters: callOnBehalfSchema,
 
     execute: async (params) => {
-      const { contactQuery, phoneNumber, purpose, additionalContext, preferredTimes, recordingConsent } = params;
+      const {
+        contactQuery,
+        phoneNumber,
+        purpose,
+        additionalContext,
+        preferredTimes,
+        recordingConsent,
+      } = params;
 
       log.info(
         { userId: ctx.userId, contactQuery, phoneNumber: phoneNumber ? '***' : undefined, purpose },
@@ -391,7 +411,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           if (contact) {
             // Update existing contact with new phone number
             contact.phone = normalizedPhone;
-            log.info({ contactName: contact.name }, 'Using provided phone number for existing contact');
+            log.info(
+              { contactName: contact.name },
+              'Using provided phone number for existing contact'
+            );
           } else {
             // Create a temporary contact from the provided info
             contact = {
@@ -409,13 +432,17 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
         }
 
         if (!contact) {
-          return `I couldn't find a contact matching "${contactQuery}". ` +
-            `Could you tell me their phone number? For example, "call my mom at 555-123-4567"`;
+          return (
+            `I couldn't find a contact matching "${contactQuery}". ` +
+            `Could you tell me their phone number? For example, "call my mom at 555-123-4567"`
+          );
         }
 
         if (!contact.phone) {
-          return `I found ${contact.name}, but I don't have a phone number for them. ` +
-            `Could you provide their number?`;
+          return (
+            `I found ${contact.name}, but I don't have a phone number for them. ` +
+            `Could you provide their number?`
+          );
         }
 
         // Step 2: Infer call type and objective
@@ -456,7 +483,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             additionalContext,
           },
           recordingConsent: recordingConsent ?? true,
-          requiresHIPAA: callType === 'business' &&
+          requiresHIPAA:
+            callType === 'business' &&
             ['doctor', 'dentist', 'therapist', 'pharmacy', 'clinic', 'hospital'].some((kw) =>
               (contact.relationship || '').toLowerCase().includes(kw)
             ),
@@ -468,27 +496,30 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         if (!compliance.passed) {
           log.warn({ issues: compliance.issues }, 'Compliance check failed');
-          return `I can't make this call because: ${compliance.issues.join(', ')}. ` +
-            `Could you help me resolve these issues?`;
+          return (
+            `I can't make this call because: ${compliance.issues.join(', ')}. ` +
+            `Could you help me resolve these issues?`
+          );
         }
 
         // Step 6: Initiate the call
         const callId = await initiateOnBehalfCall(request);
 
-        log.info(
-          { callId, contactName: contact.name, purpose },
-          'Call initiated successfully'
-        );
+        log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
 
         // Step 7: Return confirmation
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
-        return `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `I'll let you know how it goes once the call is complete.`;
+        return (
+          `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
+          `I'll let you know how it goes once the call is complete.`
+        );
       } catch (error) {
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
 
-        return `Sorry, I ran into a problem trying to call ${contactQuery}. ` +
-          `Would you like me to try again, or is there another way I can help?`;
+        return (
+          `Sorry, I ran into a problem trying to call ${contactQuery}. ` +
+          `Would you like me to try again, or is there another way I can help?`
+        );
       }
     },
   });
@@ -498,10 +529,4 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // EXPORTS
 // ============================================================================
 
-export {
-  resolveContact,
-  inferCallType,
-  inferObjective,
-  initiateOnBehalfCall,
-  callOnBehalfSchema,
-};
+export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };

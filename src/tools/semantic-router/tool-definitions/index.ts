@@ -383,12 +383,7 @@ export {
 } from './essentials.semantic.js';
 
 // Humor (jokes, fun facts, stories)
-export {
-  humorTools,
-  tellJokeTool,
-  funFactTool,
-  miniStoryTool,
-} from './humor.semantic.js';
+export { humorTools, tellJokeTool, funFactTool, miniStoryTool } from './humor.semantic.js';
 
 // Wind-Down (evening routines, bedtime)
 export {

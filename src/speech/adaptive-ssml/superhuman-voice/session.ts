@@ -79,4 +79,3 @@ export function resetAllSuperhmanVoiceSessions(): void {
 export function getActiveSuperhmanVoiceSessionCount(): number {
   return sessions.size;
 }
-

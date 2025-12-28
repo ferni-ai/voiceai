@@ -16,11 +16,8 @@
 
 import { voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
-import type {
-  ReadableStream as NodeReadableStream} from 'node:stream/web';
-import {
-  TransformStream as NodeTransformStream,
-} from 'node:stream/web';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { TransformStream as NodeTransformStream } from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
@@ -137,9 +134,10 @@ export async function wrappedTtsNode(
   // SKIP when semantic routing is the primary tool calling method.
   // The semantic router handles tool execution BEFORE the LLM, so we don't need
   // to intercept JSON from the text stream anymore.
-  const skipJsonWorkaround = process.env.DISABLE_JSON_WORKAROUND === 'true' ||
+  const skipJsonWorkaround =
+    process.env.DISABLE_JSON_WORKAROUND === 'true' ||
     process.env.SEMANTIC_ROUTING_PRIMARY === 'true';
-  
+
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
     log.info('🎯 JSON workaround DISABLED - semantic routing is primary tool calling method');
@@ -147,7 +145,11 @@ export async function wrappedTtsNode(
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
-    const sanitizerWithFallback = createSanitizerWithMusicFallback(tools, options.session, sessionId);
+    const sanitizerWithFallback = createSanitizerWithMusicFallback(
+      tools,
+      options.session,
+      sessionId
+    );
     filteredText = text.pipeThrough(sanitizerWithFallback);
   }
 

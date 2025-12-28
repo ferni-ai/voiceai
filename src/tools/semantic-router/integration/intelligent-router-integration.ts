@@ -13,8 +13,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type {
-  IntelligentRouterOrchestrator} from '../advanced/intelligent/index.js';
+import type { IntelligentRouterOrchestrator } from '../advanced/intelligent/index.js';
 import {
   getIntelligentOrchestrator,
   initializeIntelligentOrchestrator,
@@ -93,7 +92,12 @@ export async function initializeIntelligentRouter(
       name: tool.name,
       description: tool.description || tool.shortDescription,
       // Parameters are defined in semantic tools but not typed - use empty array as fallback
-      parameters: [] as Array<{ name: string; type: string; required: boolean; description: string }>,
+      parameters: [] as Array<{
+        name: string;
+        type: string;
+        required: boolean;
+        description: string;
+      }>,
     }));
 
     // Set up LLM provider - prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
@@ -149,7 +153,7 @@ export async function initializeIntelligentRouter(
 
 /**
  * Create Firestore persistence for bandit optimizer
- * 
+ *
  * NOTE: Arms contain ToolArm objects with contextWeights as Map<string, number>.
  * Firestore only accepts plain objects, so we must convert all Maps.
  */
@@ -162,10 +166,10 @@ async function createBanditFirestorePersistence() {
       save: async (arms: Map<string, unknown>) => {
         // Convert Map to plain object, handling nested Maps in ToolArm.contextWeights
         const plainArms: Record<string, unknown> = {};
-        
+
         for (const [armId, arm] of arms) {
           const armObj = arm as Record<string, unknown>;
-          
+
           // Convert contextWeights Map to plain object
           let contextWeightsPlain: Record<string, number> = {};
           const cw = armObj.contextWeights;
@@ -181,7 +185,7 @@ async function createBanditFirestorePersistence() {
               }
             }
           }
-          
+
           // Build plain object for Firestore
           plainArms[armId] = {
             toolId: armObj.toolId,
@@ -189,17 +193,23 @@ async function createBanditFirestorePersistence() {
             failures: armObj.failures,
             attempts: armObj.attempts,
             averageReward: armObj.averageReward,
-            lastUpdated: armObj.lastUpdated instanceof Date 
-              ? armObj.lastUpdated.toISOString() 
-              : armObj.lastUpdated || new Date().toISOString(),
+            lastUpdated:
+              armObj.lastUpdated instanceof Date
+                ? armObj.lastUpdated.toISOString()
+                : armObj.lastUpdated || new Date().toISOString(),
             contextWeights: contextWeightsPlain,
           };
         }
-        
-        await db.collection('system_cache').doc('bandit_arms').set(cleanForFirestore({
-          arms: plainArms,
-          updatedAt: new Date(),
-        }));
+
+        await db
+          .collection('system_cache')
+          .doc('bandit_arms')
+          .set(
+            cleanForFirestore({
+              arms: plainArms,
+              updatedAt: new Date(),
+            })
+          );
         log.debug({ armCount: arms.size }, 'Bandit arms saved to Firestore');
       },
       load: async () => {
@@ -366,28 +376,28 @@ async function executeToolForResult(
         userId: context.userId,
         sessionId: context.sessionId,
         personaId: context.personaId,
-        conversationHistory: context.conversationHistory?.map((h) => ({
-          role: h.role as 'user' | 'assistant',
-          text: h.content,
-          timestamp: new Date(),
-        })) || [],
+        conversationHistory:
+          context.conversationHistory?.map((h) => ({
+            role: h.role as 'user' | 'assistant',
+            text: h.content,
+            timestamp: new Date(),
+          })) || [],
         services: null,
       };
 
       const result = await executeDomainTool(toolId, args, execContext);
-      
+
       // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
       if (result.success && context.sessionId) {
         try {
-          const { markToolExecutedBySemanticRouter } = await import(
-            '../../../agents/shared/tool-call-sanitizer.js'
-          );
+          const { markToolExecutedBySemanticRouter } =
+            await import('../../../agents/shared/tool-call-sanitizer.js');
           markToolExecutedBySemanticRouter(context.sessionId, toolId);
         } catch {
           // Non-critical - deduplication is defensive
         }
       }
-      
+
       return {
         success: result.success,
         naturalResponse: result.naturalResponse ?? '',
@@ -405,11 +415,12 @@ async function executeToolForResult(
         userId: context.userId,
         sessionId: context.sessionId,
         personaId: context.personaId,
-        conversationHistory: context.conversationHistory?.map((h) => ({
-          role: h.role as 'user' | 'assistant',
-          text: h.content,
-          timestamp: new Date(),
-        })) || [],
+        conversationHistory:
+          context.conversationHistory?.map((h) => ({
+            role: h.role as 'user' | 'assistant',
+            text: h.content,
+            timestamp: new Date(),
+          })) || [],
         services: null as unknown, // Services not available in intelligent router context
         originalText: '',
         confidence: 1.0,
@@ -420,9 +431,8 @@ async function executeToolForResult(
       // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
       if (context.sessionId) {
         try {
-          const { markToolExecutedBySemanticRouter } = await import(
-            '../../../agents/shared/tool-call-sanitizer.js'
-          );
+          const { markToolExecutedBySemanticRouter } =
+            await import('../../../agents/shared/tool-call-sanitizer.js');
           markToolExecutedBySemanticRouter(context.sessionId, toolId);
         } catch {
           // Non-critical - deduplication is defensive
@@ -436,7 +446,11 @@ async function executeToolForResult(
 
       // Type guard for tool execution result
       if (result && typeof result === 'object' && 'success' in result) {
-        const typedResult = result as { success?: boolean; naturalResponse?: string; error?: string };
+        const typedResult = result as {
+          success?: boolean;
+          naturalResponse?: string;
+          error?: string;
+        };
         return {
           success: typedResult.success ?? true,
           naturalResponse: typedResult.naturalResponse ?? 'Done.',
@@ -519,7 +533,11 @@ function createRouteResultFromDecision(decision: RoutingDecision): SemanticRoute
 
   return {
     intent: {
-      category: intentCategory as import('../types.js').ToolCategory | 'conversation' | 'clarification' | 'unknown',
+      category: intentCategory as
+        | import('../types.js').ToolCategory
+        | 'conversation'
+        | 'clarification'
+        | 'unknown',
       confidence: decision.confidence,
       mood: 'request',
       urgency: 'normal',
@@ -604,4 +622,3 @@ export function resetIntelligentRouter(): void {
   intelligentRouterInitialized = false;
   log.info('Intelligent router reset');
 }
-

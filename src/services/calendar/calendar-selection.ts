@@ -165,13 +165,16 @@ export async function updateSelectedCalendars(
     }
 
     // Save to Firestore
-    await firestore.collection(`users/${userId}/calendar_providers`).doc(provider).set(
-      cleanForFirestore({
-        selectedCalendars: updated,
-        updatedAt: new Date().toISOString(),
-      }),
-      { merge: true }
-    );
+    await firestore
+      .collection(`users/${userId}/calendar_providers`)
+      .doc(provider)
+      .set(
+        cleanForFirestore({
+          selectedCalendars: updated,
+          updatedAt: new Date().toISOString(),
+        }),
+        { merge: true }
+      );
 
     log.info(
       { userId, provider, selectedCount: updated.filter((c) => c.enabled).length },

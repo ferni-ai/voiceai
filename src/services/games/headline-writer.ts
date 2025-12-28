@@ -16,7 +16,14 @@ import type { TextGameResult } from './text-game-types.js';
 // TYPES
 // ============================================================================
 
-export type HeadlineTimeframe = 'today' | 'this_week' | 'this_month' | 'this_year' | 'past' | 'future' | 'dream';
+export type HeadlineTimeframe =
+  | 'today'
+  | 'this_week'
+  | 'this_month'
+  | 'this_year'
+  | 'past'
+  | 'future'
+  | 'dream';
 export type HeadlineTone = 'triumphant' | 'honest' | 'humorous' | 'hopeful' | 'any';
 
 export interface Headline {
@@ -50,79 +57,79 @@ export interface HeadlineWriterResult extends TextGameResult {
 // ============================================================================
 
 const TIMEFRAME_PROMPTS: Record<HeadlineTimeframe, string> = {
-  today: "If today made the front page, what would the headline be?",
+  today: 'If today made the front page, what would the headline be?',
   this_week: "What's the headline for your week so far?",
   this_month: "This month in one headline—what's the story?",
-  this_year: "If this year had a headline, what would it say?",
-  past: "Think of a pivotal moment from your past. What headline would it have gotten?",
+  this_year: 'If this year had a headline, what would it say?',
+  past: 'Think of a pivotal moment from your past. What headline would it have gotten?',
   future: "Fast forward 5 years. Your life is exactly how you want it. What's the headline?",
-  dream: "Your wildest dream comes true. What does the world read about you tomorrow?",
+  dream: 'Your wildest dream comes true. What does the world read about you tomorrow?',
 };
 
 const TONE_SUGGESTIONS: Record<HeadlineTone, string> = {
-  triumphant: "Write it like a victory announcement",
-  honest: "Be real—the unfiltered truth",
-  humorous: "Make yourself laugh",
-  hopeful: "Write it with optimism",
-  any: "Any tone that feels right",
+  triumphant: 'Write it like a victory announcement',
+  honest: 'Be real—the unfiltered truth',
+  humorous: 'Make yourself laugh',
+  hopeful: 'Write it with optimism',
+  any: 'Any tone that feels right',
 };
 
 const FOLLOW_UP_PROMPTS = [
   "What's the subheadline? (The smaller text that gives more detail)",
   "Now give me the subheadline—what's the rest of the story?",
-  "And the subheadline? What would readers learn next?",
+  'And the subheadline? What would readers learn next?',
 ];
 
 const REFLECTION_QUESTIONS: Record<HeadlineTimeframe, string[]> = {
   today: [
-    "What made today headline-worthy?",
-    "How would you feel reading this headline?",
+    'What made today headline-worthy?',
+    'How would you feel reading this headline?',
     "What's the 'why' behind this headline?",
   ],
   this_week: [
     "What's been driving this week's story?",
-    "Is this the headline you wanted to write?",
-    "What would need to change for a different headline next week?",
+    'Is this the headline you wanted to write?',
+    'What would need to change for a different headline next week?',
   ],
   this_month: [
     "What's the theme emerging in your life right now?",
-    "Looking at this headline, what matters most to you?",
-    "What would your past self think of this headline?",
+    'Looking at this headline, what matters most to you?',
+    'What would your past self think of this headline?',
   ],
   this_year: [
-    "This is quite a headline. What got you here?",
-    "How does it feel to see your year summed up like this?",
+    'This is quite a headline. What got you here?',
+    'How does it feel to see your year summed up like this?',
     "What's the one thing this headline captures?",
   ],
   past: [
-    "How did that moment change you?",
+    'How did that moment change you?',
     "What would you tell the 'you' in that headline?",
-    "How does writing it as a headline shift how you see it?",
+    'How does writing it as a headline shift how you see it?',
   ],
   future: [
-    "What excites you most about this headline becoming real?",
+    'What excites you most about this headline becoming real?',
     "What's one thing you could do today to move toward this?",
-    "Does this headline feel achievable? Why or why not?",
+    'Does this headline feel achievable? Why or why not?',
   ],
   dream: [
-    "What does this headline reveal about what you really want?",
-    "If this headline came true, who would you call first?",
+    'What does this headline reveal about what you really want?',
+    'If this headline came true, who would you call first?',
     "What's stopping this from being your actual future headline?",
   ],
 };
 
 const HEADLINE_FEEDBACK = [
   "That's a powerful headline.",
-  "I can see that story.",
+  'I can see that story.',
   "Now that's a front page moment.",
-  "Headlines reveal what matters most.",
+  'Headlines reveal what matters most.',
   "There's a whole story behind those words.",
 ];
 
 const PLAYFUL_RESPONSES = [
-  "Breaking news indeed!",
+  'Breaking news indeed!',
   "I'd read that article.",
-  "Extra, extra!",
+  'Extra, extra!',
   "Now that's news.",
 ];
 
@@ -194,9 +201,10 @@ function parseTimeframeChoice(input: string): HeadlineTimeframe | null {
 
 function getPromptMessage(state: HeadlineWriterState): string {
   const prompt = TIMEFRAME_PROMPTS[state.currentTimeframe];
-  const toneHint = state.suggestedTone !== 'any'
-    ? `\n\n(Suggestion: ${TONE_SUGGESTIONS[state.suggestedTone]})`
-    : '';
+  const toneHint =
+    state.suggestedTone !== 'any'
+      ? `\n\n(Suggestion: ${TONE_SUGGESTIONS[state.suggestedTone]})`
+      : '';
 
   if (state.round === 1) {
     return `📰 **Headline Writer**\n\n${prompt}${toneHint}`;
@@ -234,10 +242,12 @@ Pick a number or just describe it.`;
 function getSummary(headlines: Headline[]): string {
   if (headlines.length === 0) return '';
 
-  const summary = headlines.map((h, i) => {
-    const sub = h.subheadline ? `\n   ${h.subheadline}` : '';
-    return `${i + 1}. "${h.text}"${sub}`;
-  }).join('\n\n');
+  const summary = headlines
+    .map((h, i) => {
+      const sub = h.subheadline ? `\n   ${h.subheadline}` : '';
+      return `${i + 1}. "${h.text}"${sub}`;
+    })
+    .join('\n\n');
 
   return `Your headlines from today:\n\n${summary}\n\nThese headlines tell a story. Keep them somewhere you can look back on them.`;
 }
@@ -253,9 +263,10 @@ export function processInput(state: HeadlineWriterState, input: string): Headlin
   if (lower === 'stop' || lower === 'quit' || lower === 'exit' || lower === 'done') {
     const summary = getSummary(state.headlines);
     return {
-      message: state.headlines.length > 0
-        ? `Thanks for writing with me!\n\n${summary}`
-        : "No worries! Headlines will be here when you're ready.",
+      message:
+        state.headlines.length > 0
+          ? `Thanks for writing with me!\n\n${summary}`
+          : "No worries! Headlines will be here when you're ready.",
       gameOver: true,
       winner: null,
       newState: { ...state, phase: 'complete' },
@@ -343,7 +354,8 @@ export function processInput(state: HeadlineWriterState, input: string): Headlin
 
   // PHASE: Subheadline
   if (state.phase === 'subheadline' && state.currentHeadline) {
-    const skipSubheadline = lower === 'skip' || lower === 'pass' || lower === 'no' || lower === 'none';
+    const skipSubheadline =
+      lower === 'skip' || lower === 'pass' || lower === 'no' || lower === 'none';
 
     const completedHeadline: Headline = {
       text: state.currentHeadline.text!,
@@ -380,7 +392,7 @@ export function processInput(state: HeadlineWriterState, input: string): Headlin
     };
 
     return {
-      message: "Thank you for sharing that.\n\nWant to write another headline? (yes/no)",
+      message: 'Thank you for sharing that.\n\nWant to write another headline? (yes/no)',
       gameOver: false,
       newState,
     };
@@ -408,7 +420,7 @@ export function processInput(state: HeadlineWriterState, input: string): Headlin
     if (wantsAnother === false) {
       const summary = getSummary(state.headlines);
       return {
-        message: summary || "Thanks for playing Headline Writer!",
+        message: summary || 'Thanks for playing Headline Writer!',
         gameOver: true,
         winner: null,
         newState: { ...state, phase: 'complete' },
@@ -432,7 +444,8 @@ export function processInput(state: HeadlineWriterState, input: string): Headlin
     }
 
     return {
-      message: "Want to write another headline? Just say yes or no, or pick a topic (today, past, future, dream).",
+      message:
+        'Want to write another headline? Just say yes or no, or pick a topic (today, past, future, dream).',
       gameOver: false,
       newState: state,
     };

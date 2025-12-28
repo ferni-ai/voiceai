@@ -263,35 +263,64 @@
   "spotify_pause": {
     "phrases": ["pause", "pausiere die Musik", "stoppe die Musik", "halt an"],
     "patterns": ["^(?:pausiere?|stopp)\\s+(?:die\\s+)?Musik", "^halt\\s+(?:die\\s+Musik\\s+)?an"],
-    "keywords": [{ "word": "pause", "weight": 1.0 }, { "word": "stopp", "weight": 0.9 }],
+    "keywords": [
+      { "word": "pause", "weight": 1.0 },
+      { "word": "stopp", "weight": 0.9 }
+    ],
     "antiKeywords": ["spiel", "starte", "weiter"]
   },
 
   "spotify_skip": {
     "phrases": ["nächstes Lied", "überspringen", "überspring das Lied", "weiter"],
-    "patterns": ["^(?:nächstes?|weiter)\\s+(?:Lied)?", "^überspring(?:e)?\\s+(?:das\\s+)?(?:Lied)?"],
-    "keywords": [{ "word": "nächstes", "weight": 1.0 }, { "word": "überspringen", "weight": 1.0 }],
+    "patterns": [
+      "^(?:nächstes?|weiter)\\s+(?:Lied)?",
+      "^überspring(?:e)?\\s+(?:das\\s+)?(?:Lied)?"
+    ],
+    "keywords": [
+      { "word": "nächstes", "weight": 1.0 },
+      { "word": "überspringen", "weight": 1.0 }
+    ],
     "antiKeywords": ["vorheriges", "zurück"]
   },
 
   "set_timer": {
     "phrases": ["stell einen Timer", "Timer für", "starte einen Timer"],
     "patterns": ["^(?:stell|starte)\\s+(?:einen\\s+)?Timer\\s+(?:für\\s+)?(.+)"],
-    "keywords": [{ "word": "Timer", "weight": 1.0 }, { "word": "Minuten", "weight": 0.7 }],
+    "keywords": [
+      { "word": "Timer", "weight": 1.0 },
+      { "word": "Minuten", "weight": 0.7 }
+    ],
     "antiKeywords": ["Wecker", "Erinnerung"]
   },
 
   "set_reminder": {
-    "phrases": ["erinnere mich an", "stell eine Erinnerung", "Erinnerung für", "vergiss nicht mich zu erinnern"],
-    "patterns": ["^erinnere\\s+mich\\s+(?:an\\s+)?(.+)", "^(?:stell|erstelle)\\s+(?:eine\\s+)?Erinnerung\\s+(?:für\\s+)?(.+)"],
-    "keywords": [{ "word": "erinnere", "weight": 1.0 }, { "word": "Erinnerung", "weight": 1.0 }],
+    "phrases": [
+      "erinnere mich an",
+      "stell eine Erinnerung",
+      "Erinnerung für",
+      "vergiss nicht mich zu erinnern"
+    ],
+    "patterns": [
+      "^erinnere\\s+mich\\s+(?:an\\s+)?(.+)",
+      "^(?:stell|erstelle)\\s+(?:eine\\s+)?Erinnerung\\s+(?:für\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "erinnere", "weight": 1.0 },
+      { "word": "Erinnerung", "weight": 1.0 }
+    ],
     "antiKeywords": ["Timer", "Wecker"]
   },
 
   "set_alarm": {
     "phrases": ["stell einen Wecker", "weck mich", "Wecker für"],
-    "patterns": ["^(?:stell|stelle)\\s+(?:einen\\s+)?Wecker\\s+(?:für\\s+)?(.+)", "^weck\\s+mich\\s+(?:um\\s+)?(.+)"],
-    "keywords": [{ "word": "Wecker", "weight": 1.0 }, { "word": "weck", "weight": 0.9 }],
+    "patterns": [
+      "^(?:stell|stelle)\\s+(?:einen\\s+)?Wecker\\s+(?:für\\s+)?(.+)",
+      "^weck\\s+mich\\s+(?:um\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "Wecker", "weight": 1.0 },
+      { "word": "weck", "weight": 0.9 }
+    ],
     "antiKeywords": ["Timer", "Erinnerung"]
   },
 
@@ -520,11 +549,7 @@
   },
 
   "boundary_coaching": {
-    "phrases": [
-      "ich kann nicht nein sagen",
-      "hilf mir Grenzen zu setzen",
-      "Leute nutzen mich aus"
-    ],
+    "phrases": ["ich kann nicht nein sagen", "hilf mir Grenzen zu setzen", "Leute nutzen mich aus"],
     "patterns": [
       "^ich\\s+kann\\s+(?:nicht\\s+)?nein\\s+sagen",
       "^(?:hilf\\s+mir|ich\\s+muss)\\s+Grenzen\\s+(?:zu\\s+)?setzen"
@@ -577,13 +602,24 @@
 
   "smart_home_lights": {
     "phrases": ["Licht an", "Licht aus", "dimme das Licht", "Lichter an", "Lichter aus"],
-    "patterns": ["^(?:mach|schalte)\\s+(?:das\\s+)?Licht(?:er)?\\s+(?:an|aus)", "^Licht(?:er)?\\s+(?:an|aus)"],
-    "keywords": [{ "word": "Licht", "weight": 1.0 }, { "word": "Lichter", "weight": 1.0 }],
+    "patterns": [
+      "^(?:mach|schalte)\\s+(?:das\\s+)?Licht(?:er)?\\s+(?:an|aus)",
+      "^Licht(?:er)?\\s+(?:an|aus)"
+    ],
+    "keywords": [
+      { "word": "Licht", "weight": 1.0 },
+      { "word": "Lichter", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "smart_home_thermostat": {
-    "phrases": ["stelle die Temperatur ein", "dreh die Heizung hoch", "mach es wärmer", "mach es kühler"],
+    "phrases": [
+      "stelle die Temperatur ein",
+      "dreh die Heizung hoch",
+      "mach es wärmer",
+      "mach es kühler"
+    ],
     "patterns": [
       "^(?:stelle|ändere)\\s+(?:die\\s+)?Temperatur",
       "^(?:dreh|mach)\\s+(?:die\\s+)?(?:Heizung|Klimaanlage)\\s+(?:hoch|runter)"
@@ -599,64 +635,158 @@
 
   "define_word": {
     "phrases": ["definiere", "was bedeutet", "Definition von", "was heißt"],
-    "patterns": ["^definiere\\s+(.+)", "^was\\s+(?:bedeutet|heißt)\\s+(.+)", "^(?:was\\s+ist\\s+die\\s+)?Definition\\s+von\\s+(.+)"],
-    "keywords": [{ "word": "definiere", "weight": 1.0 }, { "word": "Definition", "weight": 1.0 }, { "word": "bedeutet", "weight": 0.9 }],
+    "patterns": [
+      "^definiere\\s+(.+)",
+      "^was\\s+(?:bedeutet|heißt)\\s+(.+)",
+      "^(?:was\\s+ist\\s+die\\s+)?Definition\\s+von\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "definiere", "weight": 1.0 },
+      { "word": "Definition", "weight": 1.0 },
+      { "word": "bedeutet", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "translate": {
-    "phrases": ["übersetze", "wie sagt man", "was heißt das auf", "sag auf Spanisch", "übersetze ins Französische"],
-    "patterns": ["^übersetze\\s+(.+)", "^wie\\s+sagt\\s+man\\s+(.+)", "^(?:was\\s+heißt\\s+das|sag)\\s+auf\\s+(\\w+)"],
-    "keywords": [{ "word": "übersetze", "weight": 1.0 }, { "word": "Spanisch", "weight": 0.8 }, { "word": "Französisch", "weight": 0.8 }],
+    "phrases": [
+      "übersetze",
+      "wie sagt man",
+      "was heißt das auf",
+      "sag auf Spanisch",
+      "übersetze ins Französische"
+    ],
+    "patterns": [
+      "^übersetze\\s+(.+)",
+      "^wie\\s+sagt\\s+man\\s+(.+)",
+      "^(?:was\\s+heißt\\s+das|sag)\\s+auf\\s+(\\w+)"
+    ],
+    "keywords": [
+      { "word": "übersetze", "weight": 1.0 },
+      { "word": "Spanisch", "weight": 0.8 },
+      { "word": "Französisch", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "calculate": {
     "phrases": ["berechne", "wie viel ist", "was ist das Ergebnis von", "Matheaufgabe"],
-    "patterns": ["^berechne\\s+(.+)", "^wie\\s+viel\\s+(?:ist|sind)\\s+(.+)", "^was\\s+ist\\s+(?:das\\s+Ergebnis\\s+von\\s+)?(.+)"],
-    "keywords": [{ "word": "berechne", "weight": 1.0 }, { "word": "Mathe", "weight": 0.9 }, { "word": "plus", "weight": 0.7 }],
+    "patterns": [
+      "^berechne\\s+(.+)",
+      "^wie\\s+viel\\s+(?:ist|sind)\\s+(.+)",
+      "^was\\s+ist\\s+(?:das\\s+Ergebnis\\s+von\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "berechne", "weight": 1.0 },
+      { "word": "Mathe", "weight": 0.9 },
+      { "word": "plus", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "news_update": {
-    "phrases": ["was gibt es Neues", "Nachrichten", "letzte Neuigkeiten", "was passiert in der Welt"],
-    "patterns": ["^(?:was\\s+gibt\\s+es|gib\\s+mir)\\s+(?:die\\s+)?(?:letzten\\s+)?(?:Nachrichten|Neuigkeiten)", "^Nachrichten\\s+(?:von\\s+)?heute"],
-    "keywords": [{ "word": "Nachrichten", "weight": 1.0 }, { "word": "Neuigkeiten", "weight": 1.0 }],
+    "phrases": [
+      "was gibt es Neues",
+      "Nachrichten",
+      "letzte Neuigkeiten",
+      "was passiert in der Welt"
+    ],
+    "patterns": [
+      "^(?:was\\s+gibt\\s+es|gib\\s+mir)\\s+(?:die\\s+)?(?:letzten\\s+)?(?:Nachrichten|Neuigkeiten)",
+      "^Nachrichten\\s+(?:von\\s+)?heute"
+    ],
+    "keywords": [
+      { "word": "Nachrichten", "weight": 1.0 },
+      { "word": "Neuigkeiten", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "get_directions": {
     "phrases": ["Wegbeschreibung zu", "wie komme ich zu", "navigiere zu", "Route zu"],
-    "patterns": ["^(?:gib\\s+mir\\s+)?(?:die\\s+)?Wegbeschreibung\\s+(?:zu|nach)\\s+(.+)", "^wie\\s+komme\\s+ich\\s+(?:zu|nach)\\s+(.+)"],
-    "keywords": [{ "word": "Wegbeschreibung", "weight": 1.0 }, { "word": "navigiere", "weight": 1.0 }, { "word": "Route", "weight": 0.9 }],
+    "patterns": [
+      "^(?:gib\\s+mir\\s+)?(?:die\\s+)?Wegbeschreibung\\s+(?:zu|nach)\\s+(.+)",
+      "^wie\\s+komme\\s+ich\\s+(?:zu|nach)\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "Wegbeschreibung", "weight": 1.0 },
+      { "word": "navigiere", "weight": 1.0 },
+      { "word": "Route", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "book_search": {
-    "phrases": ["finde mir ein Buch", "Buchempfehlung", "schlage ein Buch vor", "was sollte ich lesen"],
-    "patterns": ["^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:ein\\s+)?Buch\\s+vor?", "^was\\s+(?:sollte|kann)\\s+ich\\s+lesen"],
-    "keywords": [{ "word": "Buch", "weight": 1.0 }, { "word": "lesen", "weight": 0.8 }, { "word": "empfehle", "weight": 0.7 }],
+    "phrases": [
+      "finde mir ein Buch",
+      "Buchempfehlung",
+      "schlage ein Buch vor",
+      "was sollte ich lesen"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:ein\\s+)?Buch\\s+vor?",
+      "^was\\s+(?:sollte|kann)\\s+ich\\s+lesen"
+    ],
+    "keywords": [
+      { "word": "Buch", "weight": 1.0 },
+      { "word": "lesen", "weight": 0.8 },
+      { "word": "empfehle", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "podcast_find": {
-    "phrases": ["finde einen Podcast", "Podcast-Empfehlung", "schlage einen Podcast vor", "welchen Podcast hören"],
-    "patterns": ["^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:einen\\s+)?Podcast\\s+vor?", "^welchen\\s+Podcast\\s+(?:sollte|kann)\\s+ich\\s+hören"],
-    "keywords": [{ "word": "Podcast", "weight": 1.0 }, { "word": "hören", "weight": 0.7 }],
+    "phrases": [
+      "finde einen Podcast",
+      "Podcast-Empfehlung",
+      "schlage einen Podcast vor",
+      "welchen Podcast hören"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle|schlage)\\s+(?:mir\\s+)?(?:einen\\s+)?Podcast\\s+vor?",
+      "^welchen\\s+Podcast\\s+(?:sollte|kann)\\s+ich\\s+hören"
+    ],
+    "keywords": [
+      { "word": "Podcast", "weight": 1.0 },
+      { "word": "hören", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "movie_recommend": {
-    "phrases": ["empfehle einen Film", "welchen Film schauen", "Filmvorschlag", "finde mir einen Film"],
-    "patterns": ["^(?:empfehle|schlage|finde)\\s+(?:mir\\s+)?(?:einen\\s+)?Film\\s+vor?", "^welchen\\s+Film\\s+(?:sollte|kann)\\s+ich\\s+(?:an)?schauen"],
-    "keywords": [{ "word": "Film", "weight": 1.0 }, { "word": "schauen", "weight": 0.7 }],
+    "phrases": [
+      "empfehle einen Film",
+      "welchen Film schauen",
+      "Filmvorschlag",
+      "finde mir einen Film"
+    ],
+    "patterns": [
+      "^(?:empfehle|schlage|finde)\\s+(?:mir\\s+)?(?:einen\\s+)?Film\\s+vor?",
+      "^welchen\\s+Film\\s+(?:sollte|kann)\\s+ich\\s+(?:an)?schauen"
+    ],
+    "keywords": [
+      { "word": "Film", "weight": 1.0 },
+      { "word": "schauen", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "restaurant_find": {
-    "phrases": ["finde ein Restaurant", "wo sollte ich essen", "Restaurant-Empfehlung", "ein Ort zum Essen"],
-    "patterns": ["^(?:finde|empfehle)\\s+(?:mir\\s+)?(?:ein\\s+)?Restaurant", "^wo\\s+(?:sollte|kann)\\s+ich\\s+(?:essen|Essen\\s+gehen)"],
-    "keywords": [{ "word": "Restaurant", "weight": 1.0 }, { "word": "essen", "weight": 0.8 }, { "word": "Essen", "weight": 0.7 }],
+    "phrases": [
+      "finde ein Restaurant",
+      "wo sollte ich essen",
+      "Restaurant-Empfehlung",
+      "ein Ort zum Essen"
+    ],
+    "patterns": [
+      "^(?:finde|empfehle)\\s+(?:mir\\s+)?(?:ein\\s+)?Restaurant",
+      "^wo\\s+(?:sollte|kann)\\s+ich\\s+(?:essen|Essen\\s+gehen)"
+    ],
+    "keywords": [
+      { "word": "Restaurant", "weight": 1.0 },
+      { "word": "essen", "weight": 0.8 },
+      { "word": "Essen", "weight": 0.7 }
+    ],
     "antiKeywords": []
   }
 }

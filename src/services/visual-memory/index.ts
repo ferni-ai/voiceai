@@ -102,11 +102,7 @@ import {
   buildVisualContext,
   getVisualContextInjection,
 } from './visual-memory-store.js';
-import type {
-  VisualUploadRequest,
-  VisualSearchRequest,
-  VisualMemoryPreferences,
-} from './types.js';
+import type { VisualUploadRequest, VisualSearchRequest, VisualMemoryPreferences } from './types.js';
 
 /**
  * Unified Visual Memory API
@@ -211,9 +207,7 @@ import type { ContextInjection } from '../../intelligence/context-builders/core/
  *
  * Priority: 74 (below health at 76, above general at 70)
  */
-export async function buildVisualMemoryInjection(
-  userId: string
-): Promise<ContextInjection | null> {
+export async function buildVisualMemoryInjection(userId: string): Promise<ContextInjection | null> {
   try {
     const context = await buildVisualContext(userId);
 
@@ -239,4 +233,3 @@ export async function buildVisualMemoryInjection(
 }
 
 export default visualMemory;
-

@@ -33,8 +33,7 @@ import {
   getRandomPhrase,
   type BetterThanHumanContent,
 } from '../../conversation/superhuman/content-loader.js';
-import type {
-  BuilderCategory} from './index.js';
+import type { BuilderCategory } from './index.js';
 import {
   createHighInjection,
   createHintInjection,

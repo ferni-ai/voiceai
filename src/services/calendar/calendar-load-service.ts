@@ -452,7 +452,10 @@ export async function recordBurnoutPattern(
 
   try {
     const docId = `burnout_${Date.now()}`;
-    await firestore.collection(`users/${userId}/burnout_patterns`).doc(docId).set(cleanForFirestore(pattern));
+    await firestore
+      .collection(`users/${userId}/burnout_patterns`)
+      .doc(docId)
+      .set(cleanForFirestore(pattern));
 
     log.info({ userId, pattern, docId }, '📊 Recorded burnout pattern for future matching');
     return pattern;

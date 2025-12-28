@@ -367,8 +367,10 @@ export async function getUserMemory(userId: string): Promise<ConversationMemory 
       userId: data.userId as string,
       totalConversations: data.totalConversations as number,
       totalDuration: data.totalDuration as number,
-      firstConversation: (data.firstConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
-      lastConversation: (data.lastConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
+      firstConversation:
+        (data.firstConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
+      lastConversation:
+        (data.lastConversation as { toDate: () => Date } | undefined)?.toDate() ?? new Date(),
       topics:
         (data.topics as FirestoreTopic[] | undefined)?.map((t) => ({
           topic: t.topic,

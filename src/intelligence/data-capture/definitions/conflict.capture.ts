@@ -14,29 +14,29 @@ const log = createLogger({ module: 'data-capture:conflict' });
 
 // Map conflict indicators to types
 const CONFLICT_TYPE_MAP: Record<string, string> = {
-  'disagreement': 'disagreement',
-  'disagree': 'disagreement',
+  disagreement: 'disagreement',
+  disagree: 'disagreement',
   'different opinion': 'disagreement',
-  'misunderstanding': 'miscommunication',
-  'miscommunication': 'miscommunication',
+  misunderstanding: 'miscommunication',
+  miscommunication: 'miscommunication',
   "didn't understand": 'miscommunication',
   'crossed a line': 'boundary_violation',
-  'boundary': 'boundary_violation',
-  'overstepped': 'boundary_violation',
+  boundary: 'boundary_violation',
+  overstepped: 'boundary_violation',
   'let down': 'unmet_expectations',
-  'disappointed': 'unmet_expectations',
+  disappointed: 'unmet_expectations',
   "didn't follow through": 'unmet_expectations',
   "didn't do what": 'unmet_expectations',
   'same fight': 'recurring_issue',
-  'again': 'recurring_issue',
+  again: 'recurring_issue',
   'keeps happening': 'recurring_issue',
-  'always': 'recurring_issue',
-  'argument': 'disagreement',
-  'fight': 'disagreement',
-  'blowup': 'emotional_flooding',
-  'exploded': 'emotional_flooding',
+  always: 'recurring_issue',
+  argument: 'disagreement',
+  fight: 'disagreement',
+  blowup: 'emotional_flooding',
+  exploded: 'emotional_flooding',
   'lost it': 'emotional_flooding',
-  'snapped': 'emotional_flooding',
+  snapped: 'emotional_flooding',
 };
 
 export const conflictCaptureDefinition: DataCaptureDefinition = {
@@ -137,7 +137,10 @@ export const conflictCaptureDefinition: DataCaptureDefinition = {
     context: DataCaptureContext
   ): Promise<string | null> => {
     const person = String(extractedArgs.person || '').trim();
-    const relationship = String(extractedArgs.relationship || '').toLowerCase().trim() || 'other';
+    const relationship =
+      String(extractedArgs.relationship || '')
+        .toLowerCase()
+        .trim() || 'other';
     const rawConflictType = String(extractedArgs.conflictType || '').toLowerCase();
     const trigger = String(extractedArgs.trigger || '').slice(0, 200);
 
@@ -156,12 +159,21 @@ export const conflictCaptureDefinition: DataCaptureDefinition = {
     }
 
     try {
-      const { recordConflict } = await import('../../../services/superhuman/conflict-resolution-memory.js');
+      const { recordConflict } =
+        await import('../../../services/superhuman/conflict-resolution-memory.js');
 
       await recordConflict(context.userId, {
         withPerson: person,
         relationship,
-        conflictType: conflictType as 'disagreement' | 'miscommunication' | 'boundary_violation' | 'unmet_expectations' | 'values_clash' | 'recurring_issue' | 'external_stress' | 'emotional_flooding',
+        conflictType: conflictType as
+          | 'disagreement'
+          | 'miscommunication'
+          | 'boundary_violation'
+          | 'unmet_expectations'
+          | 'values_clash'
+          | 'recurring_issue'
+          | 'external_stress'
+          | 'emotional_flooding',
         triggers: trigger ? [trigger] : [],
         approachesTried: [],
         effectiveApproaches: [],
@@ -183,4 +195,3 @@ export const conflictCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

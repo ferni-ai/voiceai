@@ -53,7 +53,7 @@ export const DEFAULT_CONFIG = getDefaultConfig();
 
 /**
  * Check if semantic routing is enabled globally
- * 
+ *
  * DISABLED BY DEFAULT (Dec 2024): Semantic routing has too many false positives
  * (e.g., "bluegrass" → trauma support because "blue" is in sadness vocabulary).
  * JSON function calling workaround is more reliable. Re-enable with:

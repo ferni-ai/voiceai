@@ -350,12 +350,7 @@ describe('FeatureFlags', () => {
     it('should execute callback when flag is enabled', async () => {
       await setFlag('trust.sentiment-timeline', { enabled: true, percentage: 100 });
 
-      const result = withFlag(
-        'trust.sentiment-timeline',
-        'user-123',
-        () => 'executed',
-        'fallback'
-      );
+      const result = withFlag('trust.sentiment-timeline', 'user-123', () => 'executed', 'fallback');
 
       expect(result).toBe('executed');
     });
@@ -363,12 +358,7 @@ describe('FeatureFlags', () => {
     it('should return fallback when flag is disabled', async () => {
       await setFlag('trust.sentiment-timeline', { enabled: false, percentage: 0 });
 
-      const result = withFlag(
-        'trust.sentiment-timeline',
-        'user-123',
-        () => 'executed',
-        'fallback'
-      );
+      const result = withFlag('trust.sentiment-timeline', 'user-123', () => 'executed', 'fallback');
 
       expect(result).toBe('fallback');
     });

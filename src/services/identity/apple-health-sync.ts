@@ -63,13 +63,18 @@ export async function generateSyncToken(
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    await db.collection(SYNC_TOKEN_COLLECTION).doc(userId).set(cleanForFirestore({
-      hashedToken,
-      deviceId,
-      deviceName,
-      createdAt: new Date().toISOString(),
-      lastUsedAt: null,
-    }));
+    await db
+      .collection(SYNC_TOKEN_COLLECTION)
+      .doc(userId)
+      .set(
+        cleanForFirestore({
+          hashedToken,
+          deviceId,
+          deviceName,
+          createdAt: new Date().toISOString(),
+          lastUsedAt: null,
+        })
+      );
 
     log.info({ userId, deviceId }, 'Generated Apple Health sync token');
 
@@ -418,11 +423,13 @@ async function storeWorkout(
     .doc(userId)
     .collection('workouts')
     .doc(workout.id)
-    .set(cleanForFirestore({
-      ...workout,
-      day,
-      syncedAt: new Date().toISOString(),
-    }));
+    .set(
+      cleanForFirestore({
+        ...workout,
+        day,
+        syncedAt: new Date().toISOString(),
+      })
+    );
 }
 
 async function storeMindfulnessSession(

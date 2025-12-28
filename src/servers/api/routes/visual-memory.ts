@@ -87,10 +87,7 @@ export async function handleVisualMemoryRoutes(
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-User-ID'
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-ID');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -147,7 +144,11 @@ export async function handleVisualMemoryRoutes(
       }
 
       log.info({ userId, memoryId: result.memoryId }, 'Visual memory uploaded');
-      sendJson(res, 200, { success: true, memoryId: result.memoryId, quickAnalysis: result.quickAnalysis });
+      sendJson(res, 200, {
+        success: true,
+        memoryId: result.memoryId,
+        quickAnalysis: result.quickAnalysis,
+      });
       return true;
     } catch (error) {
       log.error({ userId, error: String(error) }, 'Visual memory upload failed');
@@ -316,4 +317,3 @@ export async function handleVisualMemoryRoutes(
   // Not a visual memory route we handle
   return false;
 }
-

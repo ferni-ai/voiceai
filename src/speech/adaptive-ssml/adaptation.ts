@@ -24,9 +24,7 @@ import {
 /**
  * Map 3-level energy to 5-level for humanization system
  */
-function mapTo5Level(
-  energy: EnergyLevel
-): 'very_low' | 'low' | 'neutral' | 'elevated' | 'high' {
+function mapTo5Level(energy: EnergyLevel): 'very_low' | 'low' | 'neutral' | 'elevated' | 'high' {
   switch (energy) {
     case 'low':
       return 'low';

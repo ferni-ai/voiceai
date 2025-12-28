@@ -242,10 +242,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       activeCallsStore.set(callId, call);
       this.emit('call-initiated', call);
 
-      log.info(
-        { callId, roomName, callSid, scriptType },
-        'On-behalf call initiated successfully'
-      );
+      log.info({ callId, roomName, callSid, scriptType }, 'On-behalf call initiated successfully');
 
       return callId;
     } catch (error) {
@@ -354,10 +351,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     // Generate TwiML for SIP bridge
     const twiml = this.generateSipBridgeTwiml(roomName);
 
-    log.debug(
-      { callId, to: this.maskPhone(e164Phone), roomName },
-      'Initiating Twilio call'
-    );
+    log.debug({ callId, to: this.maskPhone(e164Phone), roomName }, 'Initiating Twilio call');
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${this.config.twilioAccountSid}/Calls.json`,
@@ -375,9 +369,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
           StatusCallback: `${this.config.webhookBaseUrl}/api/webhooks/call-status`,
           StatusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'].join(' '),
           StatusCallbackMethod: 'POST',
-          MachineDetection: this.config.voicemailDetectionEnabled
-            ? 'DetectMessageEnd'
-            : 'Enable',
+          MachineDetection: this.config.voicemailDetectionEnabled ? 'DetectMessageEnd' : 'Enable',
           MachineDetectionTimeout: '5',
           Timeout: this.config.maxRingSeconds.toString(),
         }),
@@ -490,10 +482,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
   /**
    * Handle machine detection (voicemail)
    */
-  async handleMachineDetection(
-    callId: string,
-    machineResult: string
-  ): Promise<string | null> {
+  async handleMachineDetection(callId: string, machineResult: string): Promise<string | null> {
     const call = activeCallsStore.get(callId);
     if (!call) {
       return null;
@@ -578,20 +567,32 @@ class OnBehalfCallOrchestrator extends EventEmitter {
 
     // Determine relationship depth for tone
     const relationship = (contact.relationship || '').toLowerCase();
-    const isClose = ['mother', 'mom', 'father', 'dad', 'spouse', 'wife', 'husband', 'partner']
-      .includes(relationship);
+    const isClose = [
+      'mother',
+      'mom',
+      'father',
+      'dad',
+      'spouse',
+      'wife',
+      'husband',
+      'partner',
+    ].includes(relationship);
 
     if (isClose) {
-      return `Hey ${contact.name}, it's Ferni calling for ${userName}. ` +
+      return (
+        `Hey ${contact.name}, it's Ferni calling for ${userName}. ` +
         `${userName} wanted me to ${purpose}... ` +
         `Just know they're thinking of you. ` +
-        `Love you. Bye.`;
+        `Love you. Bye.`
+      );
     }
 
-    return `Hi ${contact.name}, this is Ferni, calling on behalf of ${userName}. ` +
+    return (
+      `Hi ${contact.name}, this is Ferni, calling on behalf of ${userName}. ` +
       `${userName} wanted me to ${purpose}. ` +
       `They wanted to make sure you got this message. ` +
-      `Take care, and talk soon.`;
+      `Take care, and talk soon.`
+    );
   }
 
   /**

@@ -83,7 +83,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       const { detectAdviceWithLLM } = await import('../llm-detector.js');
 
       const result = await detectAdviceWithLLM(
-        "How does that make you feel? What do you think would help in this situation?"
+        'How does that make you feel? What do you think would help in this situation?'
       );
 
       expect(result.containsAdvice).toBe(false);
@@ -100,7 +100,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       );
 
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('sarah'))).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('sarah'))).toBe(true);
     });
 
     it('should extract relationship mentions', async () => {
@@ -112,7 +112,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       );
 
       expect(result.length).toBeGreaterThanOrEqual(2);
-      expect(result.some(p => p.relationship === 'parent')).toBe(true);
+      expect(result.some((p) => p.relationship === 'parent')).toBe(true);
     });
 
     it('should extract multiple people', async () => {
@@ -144,8 +144,8 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       const { detectAdviceOutcomeWithLLM } = await import('../llm-detector.js');
 
       const result = await detectAdviceOutcomeWithLLM(
-        "I tried that breathing technique you mentioned and it really helped! I felt so much calmer afterward.",
-        "Try deep breathing when you feel anxious - 4 seconds in, 4 out"
+        'I tried that breathing technique you mentioned and it really helped! I felt so much calmer afterward.',
+        'Try deep breathing when you feel anxious - 4 seconds in, 4 out'
       );
 
       expect(result.referencesAdvice).toBe(true);
@@ -158,8 +158,8 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       const { detectAdviceOutcomeWithLLM } = await import('../llm-detector.js');
 
       const result = await detectAdviceOutcomeWithLLM(
-        "I tried talking to my boss like you suggested but it completely backfired. Now things are worse.",
-        "Have you tried having an honest conversation with your boss?"
+        'I tried talking to my boss like you suggested but it completely backfired. Now things are worse.',
+        'Have you tried having an honest conversation with your boss?'
       );
 
       expect(result.referencesAdvice).toBe(true);
@@ -173,7 +173,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
 
       const result = await detectAdviceOutcomeWithLLM(
         "I know you said I should take a vacation but I just can't right now with everything going on at work.",
-        "Taking a vacation would help you recharge"
+        'Taking a vacation would help you recharge'
       );
 
       expect(result.referencesAdvice).toBe(true);
@@ -185,8 +185,8 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       const { detectAdviceOutcomeWithLLM } = await import('../llm-detector.js');
 
       const result = await detectAdviceOutcomeWithLLM(
-        "I had a great weekend hiking with friends in the mountains.",
-        "Try journaling before bed to improve your sleep"
+        'I had a great weekend hiking with friends in the mountains.',
+        'Try journaling before bed to improve your sleep'
       );
 
       expect(result.referencesAdvice).toBe(false);
@@ -229,7 +229,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
 
       const startTime = Date.now();
       const result = await detectAdviceHybrid(
-        "You should definitely take that opportunity - it sounds perfect for you!"
+        'You should definitely take that opportunity - it sounds perfect for you!'
       );
       const elapsed = Date.now() - startTime;
 
@@ -243,7 +243,7 @@ describe.skipIf(SKIP_TESTS)('Production LLM Tests', () => {
       const { detectAdviceHybrid } = await import('../llm-detector.js');
 
       const result = await detectAdviceHybrid(
-        "I wonder if stepping back and looking at this from a different angle might give you some new perspective."
+        'I wonder if stepping back and looking at this from a different angle might give you some new perspective.'
       );
 
       // This subtle pattern might or might not be caught by regex
@@ -260,8 +260,8 @@ describe.skipIf(SKIP_TESTS)('LLM Latency Benchmarks', () => {
 
     const samples = [
       "I'd recommend starting with small steps",
-      "That sounds really difficult",
-      "Have you considered talking to a professional?",
+      'That sounds really difficult',
+      'Have you considered talking to a professional?',
     ];
 
     const latencies: number[] = [];
@@ -283,4 +283,3 @@ describe.skipIf(SKIP_TESTS)('LLM Latency Benchmarks', () => {
     expect(avgLatency).toBeLessThan(500);
   });
 });
-

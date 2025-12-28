@@ -213,7 +213,10 @@ async function startIdentitySession(
           : undefined;
 
       if (ipLocation?.city) {
-        diag.session('📍 IP location detected', { city: ipLocation.city, region: ipLocation.regionCode });
+        diag.session('📍 IP location detected', {
+          city: ipLocation.city,
+          region: ipLocation.regionCode,
+        });
       }
 
       // Fire and forget - don't block on this

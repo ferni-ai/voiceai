@@ -431,14 +431,19 @@ export async function generateAndCacheHeroes(): Promise<number> {
             expiresAt: new Date(Date.now() + CONFIG.ttl.heroes),
           };
 
-          await db.collection(CONFIG.collections.heroes).doc(cacheKey).set(cleanForFirestore(cached));
+          await db
+            .collection(CONFIG.collections.heroes)
+            .doc(cacheKey)
+            .set(cleanForFirestore(cached));
           generated++;
 
           log.info({ cacheKey, headline: cached.headline }, 'Cached hero variation');
         }
 
         // Rate limit: wait 1 second between generations
-        await new Promise<void>((resolve) => { setTimeout(resolve, 1000); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 1000);
+        });
       } catch (error) {
         log.error({ error: String(error), timeBlock, visitorType }, 'Error generating hero');
       }
@@ -469,7 +474,10 @@ export async function generateAndCacheSocialProof(): Promise<number> {
         expiresAt: new Date(Date.now() + CONFIG.ttl.socialProof),
       };
 
-      await db.collection(CONFIG.collections.socialProof).doc(cached.id).set(cleanForFirestore(cached));
+      await db
+        .collection(CONFIG.collections.socialProof)
+        .doc(cached.id)
+        .set(cleanForFirestore(cached));
 
       log.info({ count: cached.messages.length }, 'Cached social proof messages');
       return cached.messages.length;

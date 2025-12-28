@@ -1695,7 +1695,9 @@ describe('Voice Agent Critical Paths', () => {
   describe('Performance', () => {
     // Simulated async operations for testing
     const simulateOperation = (durationMs: number): Promise<void> => {
-      return new Promise<void>((resolve) => { setTimeout(resolve, durationMs); });
+      return new Promise<void>((resolve) => {
+        setTimeout(resolve, durationMs);
+      });
     };
 
     it('should respond within acceptable latency', async () => {

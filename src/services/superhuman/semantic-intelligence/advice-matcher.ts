@@ -125,7 +125,7 @@ export async function findMatchingAdvice(
 
     // Boost advice from last 7 days
     if (ageDays < 7) {
-      match.confidence *= 1 + (0.2 * (7 - ageDays) / 7);
+      match.confidence *= 1 + (0.2 * (7 - ageDays)) / 7;
     }
   }
 
@@ -152,10 +152,7 @@ export async function findMatchingAdvice(
 /**
  * Semantic matching using embeddings.
  */
-async function semanticMatch(
-  userText: string,
-  pastAdvice: PastAdvice[]
-): Promise<AdviceMatch[]> {
+async function semanticMatch(userText: string, pastAdvice: PastAdvice[]): Promise<AdviceMatch[]> {
   const matches: AdviceMatch[] = [];
 
   try {
@@ -240,12 +237,56 @@ function topicMatch(userText: string, pastAdvice: PastAdvice[]): AdviceMatch[] {
  */
 function extractKeyTerms(text: string): string[] {
   const stopWords = new Set([
-    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been',
-    'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
-    'you', 'your', 'i', 'my', 'me', 'we', 'our', 'it', 'its',
-    'this', 'that', 'these', 'those', 'should', 'could', 'would',
-    'try', 'maybe', 'perhaps', 'might', 'can', 'will', 'do', 'does',
-    'and', 'or', 'but', 'if', 'then', 'so', 'just', 'about',
+    'a',
+    'an',
+    'the',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'you',
+    'your',
+    'i',
+    'my',
+    'me',
+    'we',
+    'our',
+    'it',
+    'its',
+    'this',
+    'that',
+    'these',
+    'those',
+    'should',
+    'could',
+    'would',
+    'try',
+    'maybe',
+    'perhaps',
+    'might',
+    'can',
+    'will',
+    'do',
+    'does',
+    'and',
+    'or',
+    'but',
+    'if',
+    'then',
+    'so',
+    'just',
+    'about',
   ]);
 
   const words = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
@@ -278,9 +319,7 @@ const adviceEmbeddingCache = new Map<string, number[]>();
  * Pre-compute and cache embeddings for advice.
  * Call this when loading past advice to speed up matching.
  */
-export async function precomputeAdviceEmbeddings(
-  advice: PastAdvice[]
-): Promise<void> {
+export async function precomputeAdviceEmbeddings(advice: PastAdvice[]): Promise<void> {
   try {
     const { embed } = await import('../../../memory/embeddings.js');
 
@@ -314,4 +353,3 @@ export function clearAdviceEmbeddingCache(): void {
 // ============================================================================
 
 export { EXPLICIT_REFERENCE_PATTERNS, IMPLICIT_FOLLOW_PATTERNS };
-

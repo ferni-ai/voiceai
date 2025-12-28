@@ -189,14 +189,9 @@ import {
   type FirstTimeVulnerabilityResult,
 } from './first-time-vulnerability.js';
 
-import {
-  recordLinguisticPatterns,
-  buildLinguisticContext,
-} from './linguistic-mirroring.js';
+import { recordLinguisticPatterns, buildLinguisticContext } from './linguistic-mirroring.js';
 
-import {
-  buildProtectiveMemoryContext,
-} from './boundary-memory.js';
+import { buildProtectiveMemoryContext } from './boundary-memory.js';
 
 /**
  * Unified trust context for a conversation turn

@@ -518,7 +518,11 @@ describe('CameoTypes', () => {
         currentCameoId: null,
         cameoStartTime: null,
         lastCameoEndTime: Date.now(),
-        personasWhoCameoed: new Set(['peter-john', 'maya-santos', 'jordan-taylor'] as CameoPersonaId[]),
+        personasWhoCameoed: new Set([
+          'peter-john',
+          'maya-santos',
+          'jordan-taylor',
+        ] as CameoPersonaId[]),
         totalCameosThisSession: 3,
         cameoHistory: [],
       };

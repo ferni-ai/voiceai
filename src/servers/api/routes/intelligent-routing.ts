@@ -34,9 +34,8 @@ export async function handleIntelligentRoutingRoutes(
   // ============================================================================
   if (pathname === '/api/intelligent-routing/dashboard' && method === 'GET') {
     try {
-      const { getDashboardData } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/observability.js'
-      );
+      const { getDashboardData } =
+        await import('../../../tools/semantic-router/advanced/intelligent/observability.js');
 
       const dashboard = getDashboardData();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -55,9 +54,8 @@ export async function handleIntelligentRoutingRoutes(
   // ============================================================================
   if (pathname === '/api/intelligent-routing/alerts' && method === 'GET') {
     try {
-      const { checkAlerts } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/observability.js'
-      );
+      const { checkAlerts } =
+        await import('../../../tools/semantic-router/advanced/intelligent/observability.js');
 
       const alerts = checkAlerts();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -76,9 +74,8 @@ export async function handleIntelligentRoutingRoutes(
   // ============================================================================
   if (pathname.startsWith('/api/intelligent-routing/strategy/') && method === 'GET') {
     try {
-      const { getStrategyMetrics } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/observability.js'
-      );
+      const { getStrategyMetrics } =
+        await import('../../../tools/semantic-router/advanced/intelligent/observability.js');
       type RoutingStrategy =
         | 'intent-classifier'
         | 'semantic-router'
@@ -87,7 +84,10 @@ export async function handleIntelligentRoutingRoutes(
         | 'goal-planner'
         | 'bandit-optimizer';
 
-      const strategy = pathname.replace('/api/intelligent-routing/strategy/', '') as RoutingStrategy;
+      const strategy = pathname.replace(
+        '/api/intelligent-routing/strategy/',
+        ''
+      ) as RoutingStrategy;
       const metrics = getStrategyMetrics(strategy);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(metrics));
@@ -105,9 +105,8 @@ export async function handleIntelligentRoutingRoutes(
   // ============================================================================
   if (pathname === '/api/intelligent-routing/ab-test/results' && method === 'GET') {
     try {
-      const { getExperimentDashboard } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/ab-testing.js'
-      );
+      const { getExperimentDashboard } =
+        await import('../../../tools/semantic-router/advanced/intelligent/ab-testing.js');
 
       const results = getExperimentDashboard();
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -135,9 +134,8 @@ export async function handleIntelligentRoutingRoutes(
         return true;
       }
 
-      const { enableIntelligentRouting } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/ab-testing.js'
-      );
+      const { enableIntelligentRouting } =
+        await import('../../../tools/semantic-router/advanced/intelligent/ab-testing.js');
 
       enableIntelligentRouting(percentage);
 
@@ -158,13 +156,11 @@ export async function handleIntelligentRoutingRoutes(
   // ============================================================================
   if (pathname === '/api/intelligent-routing/status' && method === 'GET') {
     try {
-      const { isIntelligentRouterInitialized, getIntelligentRoutingStats } = await import(
-        '../../../tools/semantic-router/integration/intelligent-router-integration.js'
-      );
+      const { isIntelligentRouterInitialized, getIntelligentRoutingStats } =
+        await import('../../../tools/semantic-router/integration/intelligent-router-integration.js');
 
-      const { getExperimentDashboard } = await import(
-        '../../../tools/semantic-router/advanced/intelligent/ab-testing.js'
-      );
+      const { getExperimentDashboard } =
+        await import('../../../tools/semantic-router/advanced/intelligent/ab-testing.js');
 
       const { experiments } = getExperimentDashboard();
       const experiment = experiments.find((e) => e.id === 'intelligent-vs-semantic');
@@ -208,9 +204,8 @@ export async function handleIntelligentRoutingRoutes(
         return true;
       }
 
-      const { recordIntelligentOutcome } = await import(
-        '../../../tools/semantic-router/integration/intelligent-router-integration.js'
-      );
+      const { recordIntelligentOutcome } =
+        await import('../../../tools/semantic-router/integration/intelligent-router-integration.js');
 
       // Create a minimal decision object for recording
       // Using 'as const' to satisfy type constraints

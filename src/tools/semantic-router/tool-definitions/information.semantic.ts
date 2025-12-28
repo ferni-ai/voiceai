@@ -501,11 +501,7 @@ export const stockTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Stock ticker symbol',
       required: false,
-      extractionPatterns: [
-        /(.+?)\s+stock/i,
-        /price\s+of\s+(.+)/i,
-        /quote\s+(?:for\s+)?(.+)/i,
-      ],
+      extractionPatterns: [/(.+?)\s+stock/i, /price\s+of\s+(.+)/i, /quote\s+(?:for\s+)?(.+)/i],
     },
   ],
 

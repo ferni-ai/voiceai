@@ -83,4 +83,3 @@ export function calculateProsodicMirroring(userWPM: number | undefined): {
 
   return { speedMultiplier, reason };
 }
-

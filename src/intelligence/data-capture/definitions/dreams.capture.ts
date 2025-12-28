@@ -143,7 +143,15 @@ export const dreamCaptureDefinition: DataCaptureDefinition = {
       const { recordDreamMention } = await import('../../../services/superhuman/dream-keeper.js');
       await recordDreamMention(context.userId, {
         statement: cleanDream,
-        type: dreamType as 'career' | 'creative' | 'adventure' | 'relationship' | 'impact' | 'lifestyle' | 'growth' | 'healing',
+        type: dreamType as
+          | 'career'
+          | 'creative'
+          | 'adventure'
+          | 'relationship'
+          | 'impact'
+          | 'lifestyle'
+          | 'growth'
+          | 'healing',
         confidence: 0.8,
       });
 
@@ -160,4 +168,3 @@ export const dreamCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

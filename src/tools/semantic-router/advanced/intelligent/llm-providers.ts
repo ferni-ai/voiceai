@@ -17,7 +17,11 @@
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { LLMProvider as FallbackLLMProvider, ToolCandidate } from './llm-fallback.js';
 import type { ReActLLMProvider, ToolDescription as ReActTool } from './react-reasoning.js';
-import type { GoalPlannerLLMProvider, ToolDefinition as PlannerTool, PlanStep } from './goal-planner.js';
+import type {
+  GoalPlannerLLMProvider,
+  ToolDefinition as PlannerTool,
+  PlanStep,
+} from './goal-planner.js';
 
 const log = createLogger({ module: 'intelligent-llm-providers' });
 
@@ -78,7 +82,8 @@ export interface LLMPlanResult {
 /**
  * Unified LLM provider with all intelligent routing capabilities
  */
-export interface UnifiedLLMProvider extends FallbackLLMProvider, ReActLLMProvider, GoalPlannerLLMProvider {
+export interface UnifiedLLMProvider
+  extends FallbackLLMProvider, ReActLLMProvider, GoalPlannerLLMProvider {
   /** Select the best tool for a user input */
   selectTool(input: string, candidates: ToolCandidate[]): Promise<LLMToolSelectionResult>;
   /** Perform ReAct reasoning to select and explain tool choice */
@@ -165,7 +170,13 @@ Respond in JSON:
  * Create a Gemini-based LLM provider
  */
 export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvider {
-  const { apiKey, model = 'gemini-2.0-flash-exp', temperature = 0.3, maxTokens = 1024, timeoutMs = 5000 } = config;
+  const {
+    apiKey,
+    model = 'gemini-2.0-flash-exp',
+    temperature = 0.3,
+    maxTokens = 1024,
+    timeoutMs = 5000,
+  } = config;
 
   async function callGemini(prompt: string): Promise<string> {
     const startTime = performance.now();
@@ -195,10 +206,7 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-      log.debug(
-        { model, latencyMs: performance.now() - startTime },
-        'Gemini call complete'
-      );
+      log.debug({ model, latencyMs: performance.now() - startTime }, 'Gemini call complete');
 
       return text;
     } catch (error) {
@@ -218,9 +226,10 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
         .map((t) => `- ${t.toolId}: ${t.description} (confidence: ${t.confidence.toFixed(2)})`)
         .join('\n');
 
-      const prompt = GEMINI_TOOL_SELECTION_PROMPT
-        .replace('{input}', input)
-        .replace('{tools}', toolsText);
+      const prompt = GEMINI_TOOL_SELECTION_PROMPT.replace('{input}', input).replace(
+        '{tools}',
+        toolsText
+      );
 
       try {
         const response = await callGemini(prompt);
@@ -246,13 +255,9 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
 
     // ReAct Reasoning interface
     async reason(input: string, tools: ReActTool[], context?: Record<string, unknown>) {
-      const toolsText = tools
-        .map((t) => `- ${t.id}: ${t.description}`)
-        .join('\n');
+      const toolsText = tools.map((t) => `- ${t.id}: ${t.description}`).join('\n');
 
-      const prompt = GEMINI_REACT_PROMPT
-        .replace('{input}', input)
-        .replace('{tools}', toolsText);
+      const prompt = GEMINI_REACT_PROMPT.replace('{input}', input).replace('{tools}', toolsText);
 
       try {
         const response = await callGemini(prompt);
@@ -261,7 +266,10 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
         return {
           steps: parsed.steps || [],
           selectedToolId: parsed.selectedToolId,
-          selectedArgs: parsed.steps?.find((s: { type: string; args?: Record<string, unknown> }) => s.type === 'action')?.args || {},
+          selectedArgs:
+            parsed.steps?.find(
+              (s: { type: string; args?: Record<string, unknown> }) => s.type === 'action'
+            )?.args || {},
           confidence: parsed.confidence || 0.5,
           reasoning: parsed.reasoning || '',
         };
@@ -281,26 +289,35 @@ export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvi
     async createPlan(goal: string, tools: PlannerTool[], context?: Record<string, unknown>) {
       const toolsText = tools
         .map((t) => {
-          const params = t.parameters?.map((p) => `${p.name}${p.required ? '*' : ''}`).join(', ') || '';
+          const params =
+            t.parameters?.map((p) => `${p.name}${p.required ? '*' : ''}`).join(', ') || '';
           return `- ${t.id}: ${t.description} (params: ${params || 'none'})`;
         })
         .join('\n');
 
-      const prompt = GEMINI_PLAN_PROMPT
-        .replace('{goal}', goal)
-        .replace('{tools}', toolsText);
+      const prompt = GEMINI_PLAN_PROMPT.replace('{goal}', goal).replace('{tools}', toolsText);
 
       try {
         const response = await callGemini(prompt);
         const parsed = JSON.parse(response);
 
         return {
-          steps: (parsed.steps || []).map((s: { toolId?: string; description?: string; args?: Record<string, unknown>; dependsOn?: number[] }, i: number) => ({
-            toolId: s.toolId || null,
-            description: s.description || '',
-            args: s.args || {},
-            dependsOn: s.dependsOn || [],
-          })),
+          steps: (parsed.steps || []).map(
+            (
+              s: {
+                toolId?: string;
+                description?: string;
+                args?: Record<string, unknown>;
+                dependsOn?: number[];
+              },
+              i: number
+            ) => ({
+              toolId: s.toolId || null,
+              description: s.description || '',
+              args: s.args || {},
+              dependsOn: s.dependsOn || [],
+            })
+          ),
           explanation: parsed.reasoning || '',
           canAutoExecute: parsed.confidence > 0.8,
         };
@@ -322,7 +339,13 @@ const OPENAI_SYSTEM_PROMPT = `You are a precise tool selection and planning assi
  * Create an OpenAI-based LLM provider
  */
 export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvider {
-  const { apiKey, model = 'gpt-4o-mini', temperature = 0.3, maxTokens = 1024, timeoutMs = 5000 } = config;
+  const {
+    apiKey,
+    model = 'gpt-4o-mini',
+    temperature = 0.3,
+    maxTokens = 1024,
+    timeoutMs = 5000,
+  } = config;
 
   async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
     const startTime = performance.now();
@@ -355,10 +378,7 @@ export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvi
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || '';
 
-      log.debug(
-        { model, latencyMs: performance.now() - startTime },
-        'OpenAI call complete'
-      );
+      log.debug({ model, latencyMs: performance.now() - startTime }, 'OpenAI call complete');
 
       return text;
     } catch (error) {
@@ -373,9 +393,7 @@ export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvi
     generate: (prompt: string) => callOpenAI(OPENAI_SYSTEM_PROMPT, prompt),
 
     async selectTool(input: string, candidates: ToolCandidate[]) {
-      const toolsText = candidates
-        .map((t) => `- ${t.toolId}: ${t.description}`)
-        .join('\n');
+      const toolsText = candidates.map((t) => `- ${t.toolId}: ${t.description}`).join('\n');
 
       const prompt = `Select the best tool for this request. Respond with JSON: {"selectedToolId": "id", "reasoning": "why", "confidence": 0.9}
 
@@ -423,7 +441,10 @@ ${toolsText}`;
         return {
           steps: parsed.steps || [],
           selectedToolId: parsed.selectedToolId,
-          selectedArgs: parsed.steps?.find((s: { type: string; args?: Record<string, unknown> }) => s.type === 'action')?.args || {},
+          selectedArgs:
+            parsed.steps?.find(
+              (s: { type: string; args?: Record<string, unknown> }) => s.type === 'action'
+            )?.args || {},
           confidence: parsed.confidence || 0.5,
           reasoning: parsed.reasoning || '',
         };
@@ -454,12 +475,19 @@ ${toolsText}`;
         const parsed = JSON.parse(response);
 
         return {
-          steps: (parsed.steps || []).map((s: { toolId?: string; description?: string; args?: Record<string, unknown>; dependsOn?: number[] }) => ({
-            toolId: s.toolId || null,
-            description: s.description || '',
-            args: s.args || {},
-            dependsOn: s.dependsOn || [],
-          })),
+          steps: (parsed.steps || []).map(
+            (s: {
+              toolId?: string;
+              description?: string;
+              args?: Record<string, unknown>;
+              dependsOn?: number[];
+            }) => ({
+              toolId: s.toolId || null,
+              description: s.description || '',
+              args: s.args || {},
+              dependsOn: s.dependsOn || [],
+            })
+          ),
           explanation: parsed.explanation || parsed.reasoning || '',
           canAutoExecute: parsed.canAutoExecute ?? parsed.confidence > 0.8,
         };
@@ -479,7 +507,13 @@ ${toolsText}`;
  * Create a Claude-based LLM provider
  */
 export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvider {
-  const { apiKey, model = 'claude-3-haiku-20240307', temperature = 0.3, maxTokens = 1024, timeoutMs = 5000 } = config;
+  const {
+    apiKey,
+    model = 'claude-3-haiku-20240307',
+    temperature = 0.3,
+    maxTokens = 1024,
+    timeoutMs = 5000,
+  } = config;
 
   async function callClaude(prompt: string): Promise<string> {
     const startTime = performance.now();
@@ -508,10 +542,7 @@ export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvi
       const data = await response.json();
       const text = data.content?.[0]?.text || '';
 
-      log.debug(
-        { model, latencyMs: performance.now() - startTime },
-        'Claude call complete'
-      );
+      log.debug({ model, latencyMs: performance.now() - startTime }, 'Claude call complete');
 
       // Extract JSON from response (Claude may include explanation text)
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -528,9 +559,7 @@ export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvi
     generate: callClaude,
 
     async selectTool(input: string, candidates: ToolCandidate[]) {
-      const toolsText = candidates
-        .map((t) => `- ${t.toolId}: ${t.description}`)
-        .join('\n');
+      const toolsText = candidates.map((t) => `- ${t.toolId}: ${t.description}`).join('\n');
 
       const prompt = `Select the best tool for: "${input}"
 
@@ -608,12 +637,19 @@ Respond with: {"steps": [{"toolId": "...", "description": "...", "args": {}, "de
         const parsed = JSON.parse(response);
 
         return {
-          steps: (parsed.steps || []).map((s: { toolId?: string; description?: string; args?: Record<string, unknown>; dependsOn?: number[] }) => ({
-            toolId: s.toolId || null,
-            description: s.description || '',
-            args: s.args || {},
-            dependsOn: s.dependsOn || [],
-          })),
+          steps: (parsed.steps || []).map(
+            (s: {
+              toolId?: string;
+              description?: string;
+              args?: Record<string, unknown>;
+              dependsOn?: number[];
+            }) => ({
+              toolId: s.toolId || null,
+              description: s.description || '',
+              args: s.args || {},
+              dependsOn: s.dependsOn || [],
+            })
+          ),
           explanation: parsed.explanation || '',
           canAutoExecute: parsed.canAutoExecute ?? parsed.confidence > 0.8,
         };
@@ -673,4 +709,3 @@ export function createProviderFromEnv(): UnifiedLLMProvider | null {
   log.warn('No LLM provider configured - LLM fallback will be disabled');
   return null;
 }
-

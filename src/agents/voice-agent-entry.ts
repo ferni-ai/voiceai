@@ -2301,7 +2301,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         `[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`
       );
       const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
-      coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: true });
+      // FIX: Disable interruptions for greeting - iOS background noise was cutting it off
+      coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: false });
       // Store fallback greeting too
       userData.greetingText = fallbackGreeting;
       userData.greetingInjected = false;

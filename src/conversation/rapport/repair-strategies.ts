@@ -107,7 +107,10 @@ const STRATEGY_CONFIGS: Record<Exclude<RepairStrategyType, 'none'>, StrategyConf
 /**
  * Select the most appropriate repair strategy based on current score and state
  */
-export function selectRepairStrategy(score: RapportScore, repairState: RepairState): RepairStrategy {
+export function selectRepairStrategy(
+  score: RapportScore,
+  repairState: RepairState
+): RepairStrategy {
   const now = Date.now();
 
   // If score is good, no repair needed
@@ -141,7 +144,10 @@ export function selectRepairStrategy(score: RapportScore, repairState: RepairSta
     }
 
     // Check decline rate
-    if (conditions.minDeclineRate !== undefined && Math.abs(score.trendRate) < conditions.minDeclineRate) {
+    if (
+      conditions.minDeclineRate !== undefined &&
+      Math.abs(score.trendRate) < conditions.minDeclineRate
+    ) {
       continue;
     }
 

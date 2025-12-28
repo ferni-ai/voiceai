@@ -1621,9 +1621,7 @@ A human friend would be honest about technical difficulties. So are you.
  * @param userId - User ID to fetch health data for
  * @returns Context injection with health insights, or null if disabled/unavailable
  */
-export async function buildUserHealthInjection(
-  userId: string
-): Promise<ContextInjection | null> {
+export async function buildUserHealthInjection(userId: string): Promise<ContextInjection | null> {
   // Check cache first (60s TTL)
   const cacheKey = `${userId}:health`;
   const cached = getCachedInjection(cacheKey);
@@ -1642,7 +1640,8 @@ export async function buildUserHealthInjection(
       result = {
         category: coreInjection.category || 'better_than_human',
         content: coreInjection.content,
-        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+        priority:
+          coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
       };
     }
 
@@ -1689,7 +1688,8 @@ export async function buildVisualMemoryInjections(
       result = {
         category: coreInjection.category || 'better_than_human',
         content: coreInjection.content,
-        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+        priority:
+          coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
       };
     }
 
@@ -1716,9 +1716,7 @@ export async function buildVisualMemoryInjections(
  * @param userId - User ID to fetch ambient context for
  * @returns Context injection with location/time awareness, or null
  */
-export async function buildAmbientModeInjections(
-  userId: string
-): Promise<ContextInjection | null> {
+export async function buildAmbientModeInjections(userId: string): Promise<ContextInjection | null> {
   // Check cache first (60s TTL)
   const cacheKey = `${userId}:ambient`;
   const cached = getCachedInjection(cacheKey);
@@ -1737,7 +1735,8 @@ export async function buildAmbientModeInjections(
       result = {
         category: coreInjection.category || 'better_than_human',
         content: coreInjection.content,
-        priority: coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
+        priority:
+          coreInjection.priority === 'critical' ? 95 : coreInjection.priority === 'high' ? 80 : 60,
       };
     }
 

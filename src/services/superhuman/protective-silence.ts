@@ -200,7 +200,12 @@ export function checkBoundaries(
 
   for (const boundary of boundaries) {
     // Check topic
-    if (boundary.topic.toLowerCase().split(' ').some((word) => textLower.includes(word))) {
+    if (
+      boundary.topic
+        .toLowerCase()
+        .split(' ')
+        .some((word) => textLower.includes(word))
+    ) {
       matchedBoundaries.push(boundary);
       continue;
     }
@@ -223,7 +228,12 @@ export function checkBoundaries(
   }
 
   // Find the most severe boundary
-  const severityOrder: BoundarySeverity[] = ['never', 'only_if_they_bring_up', 'gentle_only', 'time_sensitive'];
+  const severityOrder: BoundarySeverity[] = [
+    'never',
+    'only_if_they_bring_up',
+    'gentle_only',
+    'time_sensitive',
+  ];
   const sorted = [...matchedBoundaries].sort(
     (a, b) => severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity)
   );
@@ -233,7 +243,8 @@ export function checkBoundaries(
 
   switch (mostSevere.severity) {
     case 'never':
-      guidance = `⛔ DO NOT bring up "${mostSevere.topic}". ${mostSevere.reason || ''}. ` +
+      guidance =
+        `⛔ DO NOT bring up "${mostSevere.topic}". ${mostSevere.reason || ''}. ` +
         `If they mention it, acknowledge briefly but don't probe.`;
       break;
     case 'only_if_they_bring_up':
@@ -280,14 +291,19 @@ export async function inferBoundaryFromReaction(
 
   // Check if boundary already exists
   const existing = await loadBoundaries(userId);
-  const existingBoundary = existing.find(
-    (b) => b.topic.toLowerCase() === topic.toLowerCase()
-  );
+  const existingBoundary = existing.find((b) => b.topic.toLowerCase() === topic.toLowerCase());
 
   if (existingBoundary) {
     // Potentially escalate severity if reaction was more severe
-    const currentIndex = ['gentle_only', 'time_sensitive', 'only_if_they_bring_up', 'never'].indexOf(existingBoundary.severity);
-    const newIndex = ['gentle_only', 'time_sensitive', 'only_if_they_bring_up', 'never'].indexOf(severityMap[reactionType]);
+    const currentIndex = [
+      'gentle_only',
+      'time_sensitive',
+      'only_if_they_bring_up',
+      'never',
+    ].indexOf(existingBoundary.severity);
+    const newIndex = ['gentle_only', 'time_sensitive', 'only_if_they_bring_up', 'never'].indexOf(
+      severityMap[reactionType]
+    );
 
     if (newIndex > currentIndex && existingBoundary.id) {
       await updateBoundary(userId, existingBoundary.id, {
@@ -303,8 +319,13 @@ export async function inferBoundaryFromReaction(
     topic,
     severity: severityMap[reactionType],
     category: 'other',
-    reason: context ? `Inferred from reaction: ${context}` : `User ${reactionType} when this came up`,
-    triggerKeywords: topic.toLowerCase().split(' ').filter((w) => w.length > 3),
+    reason: context
+      ? `Inferred from reaction: ${context}`
+      : `User ${reactionType} when this came up`,
+    triggerKeywords: topic
+      .toLowerCase()
+      .split(' ')
+      .filter((w) => w.length > 3),
     source: 'detected_reaction',
   });
 }
@@ -392,4 +413,3 @@ export const protectiveSilence = {
   checkResponseSafety,
   buildContext: buildProtectiveSilenceContext,
 };
-

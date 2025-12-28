@@ -22,9 +22,18 @@
 import { createLogger } from '../utils/safe-logger.js';
 import { getVoiceTremorDetector, type VoiceTremorResult } from './voice-tremor.js';
 import type { VoiceEmotionResult, ProsodyFeatures } from './audio-prosody/types.js';
-import type { EmotionalState } from '../agents/processors/types.js';
 
 const log = createLogger({ module: 'ConcernDetection' });
+
+/**
+ * Minimal emotional state interface for concern detection.
+ * This avoids importing from agents layer (architecture violation).
+ * Only includes fields actually used by concern detection.
+ */
+export interface ConcernEmotionalState {
+  /** Distress level 0-1 */
+  distressLevel?: number;
+}
 
 // ============================================================================
 // TYPES
@@ -96,7 +105,7 @@ export interface ConcernDetectionInput {
   /** Pre-analyzed voice emotion (optional) */
   voiceEmotion?: VoiceEmotionResult;
   /** Current emotional state from turn processor */
-  emotionalState?: EmotionalState;
+  emotionalState?: ConcernEmotionalState;
 }
 
 // ============================================================================

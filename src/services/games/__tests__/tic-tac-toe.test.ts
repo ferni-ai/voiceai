@@ -259,77 +259,59 @@ describe('TicTacToe', () => {
   describe('checkWinner', () => {
     it('should detect horizontal wins', () => {
       // Top row
-      expect(
-        checkWinner({ cells: ['X', 'X', 'X', null, null, null, null, null, null] })
-      ).toBe('X');
+      expect(checkWinner({ cells: ['X', 'X', 'X', null, null, null, null, null, null] })).toBe('X');
       // Middle row
-      expect(
-        checkWinner({ cells: [null, null, null, 'O', 'O', 'O', null, null, null] })
-      ).toBe('O');
+      expect(checkWinner({ cells: [null, null, null, 'O', 'O', 'O', null, null, null] })).toBe('O');
       // Bottom row
-      expect(
-        checkWinner({ cells: [null, null, null, null, null, null, 'X', 'X', 'X'] })
-      ).toBe('X');
+      expect(checkWinner({ cells: [null, null, null, null, null, null, 'X', 'X', 'X'] })).toBe('X');
     });
 
     it('should detect vertical wins', () => {
       // Left column
-      expect(
-        checkWinner({ cells: ['X', null, null, 'X', null, null, 'X', null, null] })
-      ).toBe('X');
+      expect(checkWinner({ cells: ['X', null, null, 'X', null, null, 'X', null, null] })).toBe('X');
       // Center column
-      expect(
-        checkWinner({ cells: [null, 'O', null, null, 'O', null, null, 'O', null] })
-      ).toBe('O');
+      expect(checkWinner({ cells: [null, 'O', null, null, 'O', null, null, 'O', null] })).toBe('O');
       // Right column
-      expect(
-        checkWinner({ cells: [null, null, 'X', null, null, 'X', null, null, 'X'] })
-      ).toBe('X');
+      expect(checkWinner({ cells: [null, null, 'X', null, null, 'X', null, null, 'X'] })).toBe('X');
     });
 
     it('should detect diagonal wins', () => {
       // Top-left to bottom-right
-      expect(
-        checkWinner({ cells: ['X', null, null, null, 'X', null, null, null, 'X'] })
-      ).toBe('X');
+      expect(checkWinner({ cells: ['X', null, null, null, 'X', null, null, null, 'X'] })).toBe('X');
       // Top-right to bottom-left
-      expect(
-        checkWinner({ cells: [null, null, 'O', null, 'O', null, 'O', null, null] })
-      ).toBe('O');
+      expect(checkWinner({ cells: [null, null, 'O', null, 'O', null, 'O', null, null] })).toBe('O');
     });
 
     it('should return null for no winner', () => {
       expect(
         checkWinner({ cells: ['X', 'O', 'X', null, null, null, null, null, null] })
       ).toBeNull();
-      expect(checkWinner({ cells: [null, null, null, null, null, null, null, null, null] })).toBeNull();
+      expect(
+        checkWinner({ cells: [null, null, null, null, null, null, null, null, null] })
+      ).toBeNull();
     });
 
     it('should return null for draw state', () => {
       // X O X / X X O / O X O
-      expect(
-        checkWinner({ cells: ['X', 'O', 'X', 'X', 'X', 'O', 'O', 'X', 'O'] })
-      ).toBeNull();
+      expect(checkWinner({ cells: ['X', 'O', 'X', 'X', 'X', 'O', 'O', 'X', 'O'] })).toBeNull();
     });
   });
 
   describe('isBoardFull', () => {
     it('should return false for empty board', () => {
-      expect(
-        isBoardFull({ cells: [null, null, null, null, null, null, null, null, null] })
-      ).toBe(false);
+      expect(isBoardFull({ cells: [null, null, null, null, null, null, null, null, null] })).toBe(
+        false
+      );
     });
 
     it('should return false for partially filled board', () => {
-      expect(
-        isBoardFull({ cells: ['X', null, null, null, 'O', null, null, null, null] })
-      ).toBe(false);
+      expect(isBoardFull({ cells: ['X', null, null, null, 'O', null, null, null, null] })).toBe(
+        false
+      );
     });
 
     it('should return true for full board', () => {
-      expect(
-        isBoardFull({ cells: ['X', 'O', 'X', 'X', 'X', 'O', 'O', 'X', 'O'] })
-      ).toBe(true);
+      expect(isBoardFull({ cells: ['X', 'O', 'X', 'X', 'X', 'O', 'O', 'X', 'O'] })).toBe(true);
     });
   });
 

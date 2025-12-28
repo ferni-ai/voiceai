@@ -257,9 +257,8 @@ async function sendEmailNotification(
   requestId: string
 ): Promise<NotificationResult> {
   try {
-    const { sendEmail: sendViaDelivery, isEmailDeliveryAvailable } = await import(
-      '../../outreach/delivery/email-delivery.js'
-    );
+    const { sendEmail: sendViaDelivery, isEmailDeliveryAvailable } =
+      await import('../../outreach/delivery/email-delivery.js');
 
     if (!isEmailDeliveryAvailable()) {
       log.debug({ email }, 'Email delivery not available, skipping');
@@ -371,7 +370,13 @@ export async function notifyRequestComplete(
       case 'email':
         if (prefs.email) {
           const { subject, body } = formatEmailResults(request);
-          result = await sendEmailNotification(prefs.email, subject, body, request.userId, request.id);
+          result = await sendEmailNotification(
+            prefs.email,
+            subject,
+            body,
+            request.userId,
+            request.id
+          );
           if (result.success) return result;
         }
         break;

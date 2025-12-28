@@ -148,7 +148,7 @@ describe('HumanFirst2FA', () => {
       });
 
       it('should detect "hard to admit"', () => {
-        const result = detectMagicMoment("This is hard to admit, but...");
+        const result = detectMagicMoment('This is hard to admit, but...');
 
         expect(result.isMagicMoment).toBe(true);
         expect(result.momentType).toBe('vulnerability_shared');

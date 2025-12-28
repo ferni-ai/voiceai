@@ -78,43 +78,103 @@ const RELATIONSHIP_PATTERNS: Array<{
   // Children
   { pattern: /\b(my |the |our )?(son)\b/i, relationship: 'child', confidence: 0.95 },
   { pattern: /\b(my |the |our )?(daughter)\b/i, relationship: 'child', confidence: 0.95 },
-  { pattern: /\b(my |the |our )?(kid|child|baby|toddler)\b/i, relationship: 'child', confidence: 0.85 },
+  {
+    pattern: /\b(my |the |our )?(kid|child|baby|toddler)\b/i,
+    relationship: 'child',
+    confidence: 0.85,
+  },
   { pattern: /\b(my |the |our )?(kids|children)\b/i, relationship: 'child', confidence: 0.85 },
 
   // Extended Family
-  { pattern: /\b(my |the )?(grandma|grandmother|nana|granny)\b/i, relationship: 'extended_family', confidence: 0.95 },
-  { pattern: /\b(my |the )?(grandpa|grandfather|papa|gramps)\b/i, relationship: 'extended_family', confidence: 0.95 },
+  {
+    pattern: /\b(my |the )?(grandma|grandmother|nana|granny)\b/i,
+    relationship: 'extended_family',
+    confidence: 0.95,
+  },
+  {
+    pattern: /\b(my |the )?(grandpa|grandfather|papa|gramps)\b/i,
+    relationship: 'extended_family',
+    confidence: 0.95,
+  },
   { pattern: /\b(my |the )?(aunt|auntie)\b/i, relationship: 'extended_family', confidence: 0.9 },
   { pattern: /\b(my |the )?(uncle)\b/i, relationship: 'extended_family', confidence: 0.9 },
   { pattern: /\b(my |the )?(cousin)\b/i, relationship: 'extended_family', confidence: 0.9 },
   { pattern: /\b(my |the )?(niece|nephew)\b/i, relationship: 'extended_family', confidence: 0.9 },
-  { pattern: /\b(my |the )?(in-laws?|mother-in-law|father-in-law)\b/i, relationship: 'extended_family', confidence: 0.9 },
+  {
+    pattern: /\b(my |the )?(in-laws?|mother-in-law|father-in-law)\b/i,
+    relationship: 'extended_family',
+    confidence: 0.9,
+  },
 
   // Friends
-  { pattern: /\b(my |a |the )?(best friend|bestie|bff)\b/i, relationship: 'friend', confidence: 0.95 },
+  {
+    pattern: /\b(my |a |the )?(best friend|bestie|bff)\b/i,
+    relationship: 'friend',
+    confidence: 0.95,
+  },
   { pattern: /\b(my |a |the )?(friend)\b/i, relationship: 'friend', confidence: 0.85 },
   { pattern: /\b(my |a |the )?(buddy|pal)\b/i, relationship: 'friend', confidence: 0.8 },
 
   // Romantic (non-spouse)
   { pattern: /\b(my |the )?(girlfriend|gf)\b/i, relationship: 'romantic', confidence: 0.95 },
   { pattern: /\b(my |the )?(boyfriend|bf)\b/i, relationship: 'romantic', confidence: 0.95 },
-  { pattern: /\b(my |the |an )?(ex|ex-girlfriend|ex-boyfriend|ex-wife|ex-husband)\b/i, relationship: 'romantic', confidence: 0.9 },
+  {
+    pattern: /\b(my |the |an )?(ex|ex-girlfriend|ex-boyfriend|ex-wife|ex-husband)\b/i,
+    relationship: 'romantic',
+    confidence: 0.9,
+  },
 
   // Work
-  { pattern: /\b(my |the |a )?(boss|manager|supervisor)\b/i, relationship: 'coworker', confidence: 0.9 },
-  { pattern: /\b(my |a |the )?(coworker|colleague|co-worker)\b/i, relationship: 'coworker', confidence: 0.85 },
+  {
+    pattern: /\b(my |the |a )?(boss|manager|supervisor)\b/i,
+    relationship: 'coworker',
+    confidence: 0.9,
+  },
+  {
+    pattern: /\b(my |a |the )?(coworker|colleague|co-worker)\b/i,
+    relationship: 'coworker',
+    confidence: 0.85,
+  },
   { pattern: /\b(my |the )?(team|team member)\b/i, relationship: 'coworker', confidence: 0.7 },
 
   // Professional
-  { pattern: /\b(my |the |a )?(doctor|dr\.?|physician)\b/i, relationship: 'professional', confidence: 0.9 },
-  { pattern: /\b(my |the |a )?(therapist|counselor|psychiatrist|psychologist)\b/i, relationship: 'professional', confidence: 0.9 },
-  { pattern: /\b(my |the |a )?(lawyer|attorney)\b/i, relationship: 'professional', confidence: 0.9 },
-  { pattern: /\b(my |the |a )?(teacher|professor|instructor|coach)\b/i, relationship: 'professional', confidence: 0.85 },
-  { pattern: /\b(my |the |a )?(accountant|advisor|consultant)\b/i, relationship: 'professional', confidence: 0.8 },
+  {
+    pattern: /\b(my |the |a )?(doctor|dr\.?|physician)\b/i,
+    relationship: 'professional',
+    confidence: 0.9,
+  },
+  {
+    pattern: /\b(my |the |a )?(therapist|counselor|psychiatrist|psychologist)\b/i,
+    relationship: 'professional',
+    confidence: 0.9,
+  },
+  {
+    pattern: /\b(my |the |a )?(lawyer|attorney)\b/i,
+    relationship: 'professional',
+    confidence: 0.9,
+  },
+  {
+    pattern: /\b(my |the |a )?(teacher|professor|instructor|coach)\b/i,
+    relationship: 'professional',
+    confidence: 0.85,
+  },
+  {
+    pattern: /\b(my |the |a )?(accountant|advisor|consultant)\b/i,
+    relationship: 'professional',
+    confidence: 0.8,
+  },
 
   // Acquaintances
-  { pattern: /\b(my |the |a )?(neighbor|neighbour)\b/i, relationship: 'acquaintance', confidence: 0.85 },
-  { pattern: /\b(my |the |a )?(roommate|housemate)\b/i, relationship: 'acquaintance', confidence: 0.85 },
+  {
+    pattern: /\b(my |the |a )?(neighbor|neighbour)\b/i,
+    relationship: 'acquaintance',
+    confidence: 0.85,
+  },
+  {
+    pattern: /\b(my |the |a )?(roommate|housemate)\b/i,
+    relationship: 'acquaintance',
+    confidence: 0.85,
+  },
   { pattern: /\b(my |the |a )?(landlord)\b/i, relationship: 'acquaintance', confidence: 0.8 },
 
   // Pets
@@ -137,10 +197,18 @@ const NAME_CONTEXT_PATTERNS: Array<{
   confidence: number;
 }> = [
   // "[Name] called/texted/messaged me"
-  { pattern: /\b([A-Z][a-z]+)\s+(?:called|texted|messaged|emailed|contacted)\s+me\b/i, nameGroup: 1, confidence: 0.9 },
+  {
+    pattern: /\b([A-Z][a-z]+)\s+(?:called|texted|messaged|emailed|contacted)\s+me\b/i,
+    nameGroup: 1,
+    confidence: 0.9,
+  },
 
   // "talked/spoke to/with [Name]"
-  { pattern: /\b(?:talked|spoke|chatted)\s+(?:to|with)\s+([A-Z][a-z]+)\b/i, nameGroup: 1, confidence: 0.85 },
+  {
+    pattern: /\b(?:talked|spoke|chatted)\s+(?:to|with)\s+([A-Z][a-z]+)\b/i,
+    nameGroup: 1,
+    confidence: 0.85,
+  },
 
   // "met [Name]" or "saw [Name]"
   { pattern: /\b(?:met|saw|visited)\s+([A-Z][a-z]+)\b/i, nameGroup: 1, confidence: 0.8 },
@@ -155,7 +223,11 @@ const NAME_CONTEXT_PATTERNS: Array<{
   { pattern: /\bwith\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/i, nameGroup: 1, confidence: 0.75 },
 
   // "[Name] said/told/asked"
-  { pattern: /\b([A-Z][a-z]+)\s+(?:said|told|asked|mentioned|suggested)\b/i, nameGroup: 1, confidence: 0.85 },
+  {
+    pattern: /\b([A-Z][a-z]+)\s+(?:said|told|asked|mentioned|suggested)\b/i,
+    nameGroup: 1,
+    confidence: 0.85,
+  },
 
   // "from [Name]" (got a message from...)
   { pattern: /\bfrom\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/i, nameGroup: 1, confidence: 0.7 },
@@ -164,10 +236,18 @@ const NAME_CONTEXT_PATTERNS: Array<{
   { pattern: /\b([A-Z][a-z]+)'s\s+\w+/i, nameGroup: 1, confidence: 0.8 },
 
   // "my friend [Name]" or "my sister [Name]"
-  { pattern: /\bmy\s+(?:friend|sister|brother|cousin|neighbor|coworker|boss)\s+([A-Z][a-z]+)\b/i, nameGroup: 1, confidence: 0.95 },
+  {
+    pattern: /\bmy\s+(?:friend|sister|brother|cousin|neighbor|coworker|boss)\s+([A-Z][a-z]+)\b/i,
+    nameGroup: 1,
+    confidence: 0.95,
+  },
 
   // "called [Name]" or "texted [Name]"
-  { pattern: /\b(?:called|texted|messaged|emailed)\s+([A-Z][a-z]+)\b/i, nameGroup: 1, confidence: 0.85 },
+  {
+    pattern: /\b(?:called|texted|messaged|emailed)\s+([A-Z][a-z]+)\b/i,
+    nameGroup: 1,
+    confidence: 0.85,
+  },
 ];
 
 /**
@@ -176,35 +256,207 @@ const NAME_CONTEXT_PATTERNS: Array<{
  */
 const COMMON_NAMES = new Set([
   // Common English names (subset)
-  'james', 'john', 'robert', 'michael', 'david', 'william', 'richard', 'joseph', 'thomas', 'charles',
-  'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen',
-  'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua', 'kenneth',
-  'nancy', 'betty', 'margaret', 'sandra', 'ashley', 'dorothy', 'kimberly', 'emily', 'donna', 'michelle',
-  'alex', 'sam', 'chris', 'jordan', 'taylor', 'casey', 'riley', 'jamie', 'morgan', 'avery',
-  'emma', 'olivia', 'ava', 'sophia', 'isabella', 'mia', 'charlotte', 'amelia', 'harper', 'evelyn',
-  'liam', 'noah', 'oliver', 'elijah', 'lucas', 'mason', 'logan', 'alexander', 'ethan', 'jacob',
-  'ben', 'max', 'tom', 'nick', 'jake', 'ryan', 'kevin', 'brian', 'eric', 'jason',
-  'lisa', 'anna', 'kate', 'amy', 'rachel', 'laura', 'helen', 'julie', 'grace', 'victoria',
+  'james',
+  'john',
+  'robert',
+  'michael',
+  'david',
+  'william',
+  'richard',
+  'joseph',
+  'thomas',
+  'charles',
+  'mary',
+  'patricia',
+  'jennifer',
+  'linda',
+  'elizabeth',
+  'barbara',
+  'susan',
+  'jessica',
+  'sarah',
+  'karen',
+  'daniel',
+  'matthew',
+  'anthony',
+  'mark',
+  'donald',
+  'steven',
+  'paul',
+  'andrew',
+  'joshua',
+  'kenneth',
+  'nancy',
+  'betty',
+  'margaret',
+  'sandra',
+  'ashley',
+  'dorothy',
+  'kimberly',
+  'emily',
+  'donna',
+  'michelle',
+  'alex',
+  'sam',
+  'chris',
+  'jordan',
+  'taylor',
+  'casey',
+  'riley',
+  'jamie',
+  'morgan',
+  'avery',
+  'emma',
+  'olivia',
+  'ava',
+  'sophia',
+  'isabella',
+  'mia',
+  'charlotte',
+  'amelia',
+  'harper',
+  'evelyn',
+  'liam',
+  'noah',
+  'oliver',
+  'elijah',
+  'lucas',
+  'mason',
+  'logan',
+  'alexander',
+  'ethan',
+  'jacob',
+  'ben',
+  'max',
+  'tom',
+  'nick',
+  'jake',
+  'ryan',
+  'kevin',
+  'brian',
+  'eric',
+  'jason',
+  'lisa',
+  'anna',
+  'kate',
+  'amy',
+  'rachel',
+  'laura',
+  'helen',
+  'julie',
+  'grace',
+  'victoria',
   // Common nicknames
-  'mike', 'matt', 'dan', 'dave', 'bob', 'rob', 'bill', 'joe', 'jim', 'tim',
-  'sue', 'jen', 'jess', 'liz', 'beth', 'meg', 'kate', 'kim', 'sam', 'alex',
+  'mike',
+  'matt',
+  'dan',
+  'dave',
+  'bob',
+  'rob',
+  'bill',
+  'joe',
+  'jim',
+  'tim',
+  'sue',
+  'jen',
+  'jess',
+  'liz',
+  'beth',
+  'meg',
+  'kate',
+  'kim',
+  'sam',
+  'alex',
 ]);
 
 /**
  * Words that look like names but aren't (filter list).
  */
 const NOT_NAMES = new Set([
-  'i', 'me', 'my', 'you', 'your', 'he', 'she', 'it', 'they', 'we', 'us',
-  'the', 'a', 'an', 'this', 'that', 'these', 'those',
-  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
-  'today', 'tomorrow', 'yesterday', 'morning', 'afternoon', 'evening', 'night',
-  'called', 'said', 'told', 'asked', 'met', 'saw', 'talked', 'spoke',
-  'just', 'really', 'actually', 'basically', 'honestly', 'literally',
-  'think', 'feel', 'know', 'want', 'need', 'like', 'love', 'hate',
-  'good', 'bad', 'great', 'nice', 'fine', 'okay',
-  'yes', 'no', 'maybe', 'sure', 'thanks', 'sorry',
-  'ferni', 'peter', 'maya', 'jordan', 'alex', 'nayan', // Our personas
+  'i',
+  'me',
+  'my',
+  'you',
+  'your',
+  'he',
+  'she',
+  'it',
+  'they',
+  'we',
+  'us',
+  'the',
+  'a',
+  'an',
+  'this',
+  'that',
+  'these',
+  'those',
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+  'today',
+  'tomorrow',
+  'yesterday',
+  'morning',
+  'afternoon',
+  'evening',
+  'night',
+  'called',
+  'said',
+  'told',
+  'asked',
+  'met',
+  'saw',
+  'talked',
+  'spoke',
+  'just',
+  'really',
+  'actually',
+  'basically',
+  'honestly',
+  'literally',
+  'think',
+  'feel',
+  'know',
+  'want',
+  'need',
+  'like',
+  'love',
+  'hate',
+  'good',
+  'bad',
+  'great',
+  'nice',
+  'fine',
+  'okay',
+  'yes',
+  'no',
+  'maybe',
+  'sure',
+  'thanks',
+  'sorry',
+  'ferni',
+  'peter',
+  'maya',
+  'jordan',
+  'alex',
+  'nayan', // Our personas
 ]);
 
 // ============================================================================
@@ -278,7 +530,10 @@ export function extractPersons(text: string): ExtractedPerson[] {
   // 3. Sort by confidence (highest first)
   extracted.sort((a, b) => b.confidence - a.confidence);
 
-  log.debug({ count: extracted.length, persons: extracted.map(p => p.name) }, '👥 Extracted persons');
+  log.debug(
+    { count: extracted.length, persons: extracted.map((p) => p.name) },
+    '👥 Extracted persons'
+  );
 
   return extracted;
 }
@@ -375,4 +630,3 @@ function extractContextSnippet(text: string, matchIndex: number, matchLength: nu
 // ============================================================================
 
 export { COMMON_NAMES, NOT_NAMES };
-

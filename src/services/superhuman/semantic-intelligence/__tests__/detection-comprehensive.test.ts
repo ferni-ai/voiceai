@@ -40,12 +40,16 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
     if (userText.includes('what do you think') || userText.includes('how do you feel')) {
       return mockAdviceResponse(false, null, 0.1);
     }
-    
+
     // IMPLICIT/SUBTLE ADVICE
     if (userText.includes('what if we') || userText.includes('another way to think')) {
       return mockAdviceResponse(true, 'philosophical', 0.75);
     }
-    if (userText.includes("it's okay to") || userText.includes("you're allowed") || userText.includes("you don't have to")) {
+    if (
+      userText.includes("it's okay to") ||
+      userText.includes("you're allowed") ||
+      userText.includes("you don't have to")
+    ) {
       return mockAdviceResponse(true, 'emotional', 0.8);
     }
     if (userText.includes('some people find') || userText.includes("one thing that's worked")) {
@@ -56,10 +60,18 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
     }
 
     // EXPLICIT ADVICE (from original tests)
-    if (userText.includes('you should') || userText.includes("i'd suggest") || userText.includes("i'd recommend")) {
+    if (
+      userText.includes('you should') ||
+      userText.includes("i'd suggest") ||
+      userText.includes("i'd recommend")
+    ) {
       return mockAdviceResponse(true, 'behavioral', 0.9);
     }
-    if (userText.includes('try setting') || userText.includes('try keeping') || userText.includes('gratitude journal')) {
+    if (
+      userText.includes('try setting') ||
+      userText.includes('try keeping') ||
+      userText.includes('gratitude journal')
+    ) {
       return mockAdviceResponse(true, 'practical', 0.92);
     }
     if (userText.includes('pomodoro') || userText.includes('technique')) {
@@ -93,7 +105,10 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
     if (userText.includes('sounds like') || userText.includes("what i'm hearing")) {
       return mockAdviceResponse(false, null, 0.1);
     }
-    if (userText.includes('how does that make you feel') || userText.includes('what do you think')) {
+    if (
+      userText.includes('how does that make you feel') ||
+      userText.includes('what do you think')
+    ) {
       return mockAdviceResponse(false, null, 0.1);
     }
     if (userText.includes('you seem to be') || userText.includes('i notice you')) {
@@ -116,7 +131,10 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
   // ========== PERSON EXTRACTION ==========
   if (isPersonPrompt) {
     // MULTIPLE PEOPLE
-    if (userText.includes('mom and dad') || userText.includes('mom') && userText.includes('dad')) {
+    if (
+      userText.includes('mom and dad') ||
+      (userText.includes('mom') && userText.includes('dad'))
+    ) {
       return mockPersonsResponse([
         { name: 'mom', relationship: 'parent', confidence: 0.95 },
         { name: 'dad', relationship: 'parent', confidence: 0.95 },
@@ -129,9 +147,11 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
         { name: 'Jennifer', relationship: null, isProperName: true, confidence: 0.9 },
       ]);
     }
-    if ((userText.includes('boss') || userText.includes('my boss')) && 
-        (userText.includes('wife') || userText.includes('my wife')) && 
-        (userText.includes('therapist') || userText.includes('my therapist'))) {
+    if (
+      (userText.includes('boss') || userText.includes('my boss')) &&
+      (userText.includes('wife') || userText.includes('my wife')) &&
+      (userText.includes('therapist') || userText.includes('my therapist'))
+    ) {
       return mockPersonsResponse([
         { name: 'boss', relationship: 'coworker', confidence: 0.9 },
         { name: 'wife', relationship: 'spouse', confidence: 0.95 },
@@ -141,41 +161,73 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
 
     // COMPLEX NAME PATTERNS
     if (userText.includes('dr. sarah johnson') || userText.includes('dr sarah johnson')) {
-      return mockPersonsResponse([{ name: 'Dr. Sarah Johnson', relationship: 'professional', isProperName: true, confidence: 0.95 }]);
+      return mockPersonsResponse([
+        {
+          name: 'Dr. Sarah Johnson',
+          relationship: 'professional',
+          isProperName: true,
+          confidence: 0.95,
+        },
+      ]);
     }
     if (userText.includes('professor martinez')) {
-      return mockPersonsResponse([{ name: 'Professor Martinez', relationship: 'professional', isProperName: true, confidence: 0.9 }]);
+      return mockPersonsResponse([
+        {
+          name: 'Professor Martinez',
+          relationship: 'professional',
+          isProperName: true,
+          confidence: 0.9,
+        },
+      ]);
     }
     if (userText.includes('mary-anne') || userText.includes('mary anne')) {
-      return mockPersonsResponse([{ name: 'Mary-Anne', relationship: null, isProperName: true, confidence: 0.85 }]);
+      return mockPersonsResponse([
+        { name: 'Mary-Anne', relationship: null, isProperName: true, confidence: 0.85 },
+      ]);
     }
     if (userText.includes('jean-pierre')) {
-      return mockPersonsResponse([{ name: 'Jean-Pierre', relationship: null, isProperName: true, confidence: 0.85 }]);
+      return mockPersonsResponse([
+        { name: 'Jean-Pierre', relationship: null, isProperName: true, confidence: 0.85 },
+      ]);
     }
     if (userText.includes("o'brien")) {
-      return mockPersonsResponse([{ name: "O'Brien", relationship: null, isProperName: true, confidence: 0.85 }]);
+      return mockPersonsResponse([
+        { name: "O'Brien", relationship: null, isProperName: true, confidence: 0.85 },
+      ]);
     }
 
     // STEP/IN-LAW RELATIONSHIPS
     if (userText.includes('stepmom') || userText.includes('step mom')) {
-      return mockPersonsResponse([{ name: 'stepmom', relationship: 'extended_family', confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'stepmom', relationship: 'extended_family', confidence: 0.9 },
+      ]);
     }
     if (userText.includes('stepdad') || userText.includes('step dad')) {
-      return mockPersonsResponse([{ name: 'stepdad', relationship: 'extended_family', confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'stepdad', relationship: 'extended_family', confidence: 0.9 },
+      ]);
     }
     if (userText.includes('mother-in-law') || userText.includes('mother in law')) {
-      return mockPersonsResponse([{ name: 'mother-in-law', relationship: 'extended_family', confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'mother-in-law', relationship: 'extended_family', confidence: 0.9 },
+      ]);
     }
     if (userText.includes('father-in-law') || userText.includes('father in law')) {
-      return mockPersonsResponse([{ name: 'father-in-law', relationship: 'extended_family', confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'father-in-law', relationship: 'extended_family', confidence: 0.9 },
+      ]);
     }
 
     // WORK RELATIONSHIPS
     if (userText.includes('team lead')) {
-      return mockPersonsResponse([{ name: 'team lead', relationship: 'coworker', confidence: 0.85 }]);
+      return mockPersonsResponse([
+        { name: 'team lead', relationship: 'coworker', confidence: 0.85 },
+      ]);
     }
     if (userText.includes('new hire')) {
-      return mockPersonsResponse([{ name: 'new hire', relationship: 'coworker', confidence: 0.75 }]);
+      return mockPersonsResponse([
+        { name: 'new hire', relationship: 'coworker', confidence: 0.75 },
+      ]);
     }
     if (userText.includes('hr called') || userText.includes('hr ')) {
       return mockPersonsResponse([{ name: 'HR', relationship: 'professional', confidence: 0.7 }]);
@@ -206,7 +258,9 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
       return mockPersonsResponse([{ name: 'husband', relationship: 'spouse', confidence: 0.95 }]);
     }
     if (userText.includes('my therapist')) {
-      return mockPersonsResponse([{ name: 'therapist', relationship: 'professional', confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'therapist', relationship: 'professional', confidence: 0.9 },
+      ]);
     }
 
     // PETS
@@ -217,10 +271,14 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
 
     // PROPER NAMES
     if (userText.includes('sarah')) {
-      return mockPersonsResponse([{ name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 },
+      ]);
     }
     if (userText.includes('mike')) {
-      return mockPersonsResponse([{ name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 }]);
+      return mockPersonsResponse([
+        { name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 },
+      ]);
     }
 
     // NON-PERSON (should return empty)
@@ -243,22 +301,33 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
     const lowerContents = userMessage; // Use extracted message for matching
 
     // SPECIFIC POSITIVE OUTCOMES (check first - most specific patterns)
-    if (lowerContents.includes('sleeping so much better') || lowerContents.includes('really helped')) {
+    if (
+      lowerContents.includes('sleeping so much better') ||
+      lowerContents.includes('really helped')
+    ) {
       return mockOutcomeResponse(true, 'followed', 'positive', 0.9);
     }
     if (lowerContents.includes('went great') || lowerContents.includes('it worked')) {
       return mockOutcomeResponse(true, 'followed', 'positive', 0.9);
     }
-    if (lowerContents.includes('cleared my head') || lowerContents.includes('thanks for the suggestion')) {
+    if (
+      lowerContents.includes('cleared my head') ||
+      lowerContents.includes('thanks for the suggestion')
+    ) {
       return mockOutcomeResponse(true, 'followed', 'positive', 0.85);
     }
-    if (lowerContents.includes('really understanding') || lowerContents.includes('actually understanding')) {
+    if (
+      lowerContents.includes('really understanding') ||
+      lowerContents.includes('actually understanding')
+    ) {
       return mockOutcomeResponse(true, 'followed', 'positive', 0.85);
     }
-    
+
     // DELAYED POSITIVE
-    if (lowerContents.includes('remember when you suggested') || 
-        (lowerContents.includes('weeks') && lowerContents.includes('every day'))) {
+    if (
+      lowerContents.includes('remember when you suggested') ||
+      (lowerContents.includes('weeks') && lowerContents.includes('every day'))
+    ) {
       return mockOutcomeResponse(true, 'followed', 'positive', 0.8);
     }
 
@@ -266,17 +335,17 @@ function createComprehensiveMockResponse(contents: string): { text: string } {
     if (lowerContents.includes('made things worse') || lowerContents.includes("didn't work")) {
       return mockOutcomeResponse(true, 'followed', 'negative', 0.85);
     }
-    
+
     // PARTIAL OUTCOMES
     if (lowerContents.includes("couldn't stick with") || lowerContents.includes("couldn't do it")) {
       return mockOutcomeResponse(true, 'partial', 'neutral', 0.75);
     }
 
     // IGNORED
-    if (lowerContents.includes("i know i should") && lowerContents.includes("can't")) {
+    if (lowerContents.includes('i know i should') && lowerContents.includes("can't")) {
       return mockOutcomeResponse(true, 'ignored', 'neutral', 0.8);
     }
-    if (lowerContents.includes("not for me") || lowerContents.includes("never been able to")) {
+    if (lowerContents.includes('not for me') || lowerContents.includes('never been able to')) {
       return mockOutcomeResponse(true, 'ignored', 'neutral', 0.75);
     }
 
@@ -305,10 +374,17 @@ function mockAdviceResponse(containsAdvice: boolean, category: string | null, co
   };
 }
 
-function mockPersonsResponse(persons: Array<{ name: string; relationship?: string | null; isProperName?: boolean; confidence: number }>) {
+function mockPersonsResponse(
+  persons: Array<{
+    name: string;
+    relationship?: string | null;
+    isProperName?: boolean;
+    confidence: number;
+  }>
+) {
   return {
     text: JSON.stringify({
-      persons: persons.map(p => ({
+      persons: persons.map((p) => ({
         name: p.name,
         relationship: p.relationship || null,
         isProperName: p.isProperName ?? false,
@@ -399,7 +475,9 @@ describe('1. Implicit/Subtle Advice Detection', () => {
     });
 
     it('should detect "Another way to think about it..."', async () => {
-      const result = await detectAdviceWithLLM('Another way to think about it is to focus on what you can control.');
+      const result = await detectAdviceWithLLM(
+        'Another way to think about it is to focus on what you can control.'
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('philosophical');
     });
@@ -413,7 +491,9 @@ describe('1. Implicit/Subtle Advice Detection', () => {
     });
 
     it('should detect "You don\'t have to have it all figured out"', async () => {
-      const result = await detectAdviceWithLLM("You don't have to have it all figured out right now.");
+      const result = await detectAdviceWithLLM(
+        "You don't have to have it all figured out right now."
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('emotional');
     });
@@ -433,7 +513,9 @@ describe('1. Implicit/Subtle Advice Detection', () => {
     });
 
     it('should detect "One thing that\'s worked for others..."', async () => {
-      const result = await detectAdviceWithLLM("One thing that's worked for others is starting small.");
+      const result = await detectAdviceWithLLM(
+        "One thing that's worked for others is starting small."
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('practical');
     });
@@ -495,7 +577,9 @@ describe('2. Non-Advice False Positives', () => {
     });
 
     it('should NOT detect "I notice you\'ve mentioned work stress a few times"', async () => {
-      const result = await detectAdviceWithLLM("I notice you've mentioned work stress a few times.");
+      const result = await detectAdviceWithLLM(
+        "I notice you've mentioned work stress a few times."
+      );
       expect(result.containsAdvice).toBe(false);
     });
   });
@@ -519,7 +603,9 @@ describe('2. Non-Advice False Positives', () => {
     });
 
     it('should NOT detect "Meditation has been shown to reduce cortisol"', async () => {
-      const result = await detectAdviceWithLLM('Meditation has been shown to reduce cortisol levels.');
+      const result = await detectAdviceWithLLM(
+        'Meditation has been shown to reduce cortisol levels.'
+      );
       expect(result.containsAdvice).toBe(false);
     });
   });
@@ -549,7 +635,9 @@ describe('3. Domain-Specific Advice', () => {
 
   describe('Health/wellness', () => {
     it('should detect "Make sure you\'re drinking enough water"', async () => {
-      const result = await detectAdviceWithLLM("Make sure you're drinking enough water throughout the day.");
+      const result = await detectAdviceWithLLM(
+        "Make sure you're drinking enough water throughout the day."
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('behavioral');
     });
@@ -577,7 +665,9 @@ describe('3. Domain-Specific Advice', () => {
 
   describe('Career', () => {
     it('should detect "Updating your LinkedIn might open some doors"', async () => {
-      const result = await detectAdviceWithLLM('Updating your LinkedIn profile might open some doors.');
+      const result = await detectAdviceWithLLM(
+        'Updating your LinkedIn profile might open some doors.'
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('practical');
     });
@@ -591,13 +681,17 @@ describe('3. Domain-Specific Advice', () => {
 
   describe('Finance', () => {
     it('should detect "A budget might help reduce that anxiety"', async () => {
-      const result = await detectAdviceWithLLM('A budget might help reduce that financial anxiety.');
+      const result = await detectAdviceWithLLM(
+        'A budget might help reduce that financial anxiety.'
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('practical');
     });
 
     it('should detect "Starting with just $50/month in savings"', async () => {
-      const result = await detectAdviceWithLLM('Starting with just $50/month in savings could make a difference.');
+      const result = await detectAdviceWithLLM(
+        'Starting with just $50/month in savings could make a difference.'
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('practical');
     });
@@ -611,7 +705,9 @@ describe('3. Domain-Specific Advice', () => {
     });
 
     it('should detect "CBT techniques might help with those thoughts"', async () => {
-      const result = await detectAdviceWithLLM('CBT techniques might help with those intrusive thoughts.');
+      const result = await detectAdviceWithLLM(
+        'CBT techniques might help with those intrusive thoughts.'
+      );
       expect(result.containsAdvice).toBe(true);
       expect(result.category).toBe('practical');
     });
@@ -632,13 +728,17 @@ describe('4. Complex Name Patterns', () => {
     it('should extract "Dr. Sarah Johnson"', async () => {
       const result = await extractPersonsWithLLM('Dr. Sarah Johnson called about my test results.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.includes('Sarah Johnson') || p.name.includes('Dr.'))).toBe(true);
+      expect(result.some((p) => p.name.includes('Sarah Johnson') || p.name.includes('Dr.'))).toBe(
+        true
+      );
     });
 
     it('should extract "Professor Martinez"', async () => {
-      const result = await extractPersonsWithLLM('Professor Martinez assigned the homework yesterday.');
+      const result = await extractPersonsWithLLM(
+        'Professor Martinez assigned the homework yesterday.'
+      );
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('martinez'))).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('martinez'))).toBe(true);
     });
   });
 
@@ -646,13 +746,13 @@ describe('4. Complex Name Patterns', () => {
     it('should extract "Mary-Anne"', async () => {
       const result = await extractPersonsWithLLM('I talked to Mary-Anne about the project.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('mary'))).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('mary'))).toBe(true);
     });
 
     it('should extract "Jean-Pierre"', async () => {
       const result = await extractPersonsWithLLM('Jean-Pierre is visiting from France next week.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('jean'))).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('jean'))).toBe(true);
     });
   });
 
@@ -660,7 +760,7 @@ describe('4. Complex Name Patterns', () => {
     it('should extract "O\'Brien"', async () => {
       const result = await extractPersonsWithLLM("O'Brien sent me the email this morning.");
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('brien'))).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('brien'))).toBe(true);
     });
   });
 });
@@ -678,24 +778,26 @@ describe('5. Multiple People Extraction', () => {
   it('should extract both "Mom and Dad"', async () => {
     const result = await extractPersonsWithLLM('Mom and Dad are fighting again.');
     expect(result.length).toBe(2);
-    expect(result.some(p => p.name.toLowerCase() === 'mom')).toBe(true);
-    expect(result.some(p => p.name.toLowerCase() === 'dad')).toBe(true);
+    expect(result.some((p) => p.name.toLowerCase() === 'mom')).toBe(true);
+    expect(result.some((p) => p.name.toLowerCase() === 'dad')).toBe(true);
   });
 
   it('should extract three people: Sarah, Mike, Jennifer', async () => {
     const result = await extractPersonsWithLLM('Sarah told Mike what happened with Jennifer.');
     expect(result.length).toBe(3);
-    expect(result.some(p => p.name === 'Sarah')).toBe(true);
-    expect(result.some(p => p.name === 'Mike')).toBe(true);
-    expect(result.some(p => p.name === 'Jennifer')).toBe(true);
+    expect(result.some((p) => p.name === 'Sarah')).toBe(true);
+    expect(result.some((p) => p.name === 'Mike')).toBe(true);
+    expect(result.some((p) => p.name === 'Jennifer')).toBe(true);
   });
 
   it('should extract multiple relationship types', async () => {
-    const result = await extractPersonsWithLLM('My boss, my wife, and my therapist all said the same thing.');
+    const result = await extractPersonsWithLLM(
+      'My boss, my wife, and my therapist all said the same thing.'
+    );
     expect(result.length).toBe(3);
-    expect(result.some(p => p.relationship === 'coworker')).toBe(true);
-    expect(result.some(p => p.relationship === 'spouse')).toBe(true);
-    expect(result.some(p => p.relationship === 'professional')).toBe(true);
+    expect(result.some((p) => p.relationship === 'coworker')).toBe(true);
+    expect(result.some((p) => p.relationship === 'spouse')).toBe(true);
+    expect(result.some((p) => p.relationship === 'professional')).toBe(true);
   });
 });
 
@@ -713,14 +815,14 @@ describe('6. Extended Family & Work Relationships', () => {
     it('should extract "stepmom"', async () => {
       const result = await extractPersonsWithLLM('My stepmom is visiting this weekend.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.name.toLowerCase().includes('stepmom'))).toBe(true);
-      expect(result.some(p => p.relationship === 'extended_family')).toBe(true);
+      expect(result.some((p) => p.name.toLowerCase().includes('stepmom'))).toBe(true);
+      expect(result.some((p) => p.relationship === 'extended_family')).toBe(true);
     });
 
     it('should extract "stepdad"', async () => {
       const result = await extractPersonsWithLLM('Stepdad helped me move last weekend.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.relationship === 'extended_family')).toBe(true);
+      expect(result.some((p) => p.relationship === 'extended_family')).toBe(true);
     });
   });
 
@@ -728,13 +830,13 @@ describe('6. Extended Family & Work Relationships', () => {
     it('should extract "mother-in-law"', async () => {
       const result = await extractPersonsWithLLM('Mother-in-law is making dinner tonight.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.relationship === 'extended_family')).toBe(true);
+      expect(result.some((p) => p.relationship === 'extended_family')).toBe(true);
     });
 
     it('should extract "father-in-law"', async () => {
       const result = await extractPersonsWithLLM("My father-in-law's advice was really helpful.");
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.relationship === 'extended_family')).toBe(true);
+      expect(result.some((p) => p.relationship === 'extended_family')).toBe(true);
     });
   });
 
@@ -742,13 +844,13 @@ describe('6. Extended Family & Work Relationships', () => {
     it('should extract "team lead"', async () => {
       const result = await extractPersonsWithLLM('My team lead suggested I take on this project.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.relationship === 'coworker')).toBe(true);
+      expect(result.some((p) => p.relationship === 'coworker')).toBe(true);
     });
 
     it('should extract "new hire"', async () => {
       const result = await extractPersonsWithLLM('The new hire is struggling with the onboarding.');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(p => p.relationship === 'coworker')).toBe(true);
+      expect(result.some((p) => p.relationship === 'coworker')).toBe(true);
     });
   });
 });
@@ -836,7 +938,7 @@ describe('8. Advice Outcome Detection', () => {
       expect(result.sentiment).toBe('negative');
     });
 
-    it('should detect partial outcome: couldn\'t stick with it', async () => {
+    it("should detect partial outcome: couldn't stick with it", async () => {
       const result = await detectAdviceOutcomeWithLLM(
         "I tried the morning workout thing but I just couldn't stick with it.",
         'Exercise in the morning'
@@ -847,7 +949,7 @@ describe('8. Advice Outcome Detection', () => {
   });
 
   describe('Ignored advice', () => {
-    it('should detect ignored: knows should but can\'t', async () => {
+    it("should detect ignored: knows should but can't", async () => {
       const result = await detectAdviceOutcomeWithLLM(
         "I know I should take time off but I just can't right now.",
         'You should take a vacation'
@@ -943,17 +1045,17 @@ describe('10. Integration Scenarios', () => {
 
   it('should handle complex turn with multiple people and advice', async () => {
     const userMessage = 'My mom thinks I should quit my job and my therapist agrees.';
-    
+
     // Extract persons
     const persons = await extractPersonsWithLLM(userMessage);
     expect(persons.length).toBeGreaterThanOrEqual(2);
-    expect(persons.some(p => p.name.toLowerCase().includes('mom'))).toBe(true);
-    expect(persons.some(p => p.name.toLowerCase().includes('therapist'))).toBe(true);
+    expect(persons.some((p) => p.name.toLowerCase().includes('mom'))).toBe(true);
+    expect(persons.some((p) => p.name.toLowerCase().includes('therapist'))).toBe(true);
   });
 
   it('should detect advice in agent response', async () => {
     const agentResponse = "That's a big decision. Have you considered making a pros and cons list?";
-    
+
     const advice = await detectAdviceWithLLM(agentResponse);
     expect(advice.containsAdvice).toBe(true);
     expect(advice.category).toBe('practical');
@@ -961,21 +1063,21 @@ describe('10. Integration Scenarios', () => {
 
   it('should track full advice → outcome flow', async () => {
     const originalAdvice = 'Try setting boundaries with your colleague.';
-    const userFollowUp = 'I tried setting that boundary like you said. Sarah was actually really understanding about it!';
-    
+    const userFollowUp =
+      'I tried setting that boundary like you said. Sarah was actually really understanding about it!';
+
     // Check if advice was given
     const adviceCheck = await detectAdviceWithLLM(originalAdvice);
     expect(adviceCheck.containsAdvice).toBe(true);
-    
+
     // Check outcome
     const outcome = await detectAdviceOutcomeWithLLM(userFollowUp, originalAdvice);
     expect(outcome.referencesAdvice).toBe(true);
     expect(outcome.outcome).toBe('followed');
     expect(outcome.sentiment).toBe('positive');
-    
+
     // Check person extraction from follow-up
     const persons = await extractPersonsWithLLM(userFollowUp);
-    expect(persons.some(p => p.name === 'Sarah')).toBe(true);
+    expect(persons.some((p) => p.name === 'Sarah')).toBe(true);
   });
 });
-

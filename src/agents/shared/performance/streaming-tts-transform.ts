@@ -345,8 +345,7 @@ function recordStreamingMetrics(metrics: StreamingTTSMetrics): void {
   const n = globalMetrics.totalSessions;
   globalMetrics.avgFirstChunkLatencyMs =
     ((n - 1) * globalMetrics.avgFirstChunkLatencyMs + metrics.firstChunkLatencyMs) / n;
-  globalMetrics.avgTotalChunks =
-    ((n - 1) * globalMetrics.avgTotalChunks + metrics.totalChunks) / n;
+  globalMetrics.avgTotalChunks = ((n - 1) * globalMetrics.avgTotalChunks + metrics.totalChunks) / n;
 
   // Update min/max
   if (metrics.firstChunkLatencyMs < globalMetrics.minFirstChunkLatencyMs) {

@@ -665,10 +665,12 @@ export async function recordGiftGiven(userId: string, gift: Omit<PastGift, 'date
       .collection('bogle_users')
       .doc(userId)
       .collection('gift_history')
-      .add(cleanForFirestore({
-        ...gift,
-        date: new Date(),
-      }));
+      .add(
+        cleanForFirestore({
+          ...gift,
+          date: new Date(),
+        })
+      );
 
     log.info({ userId, contactId: gift.contactId }, 'Gift recorded');
   } catch (error) {

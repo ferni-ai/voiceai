@@ -109,7 +109,7 @@ describe('EmotionDetection', () => {
     describe('Excited detection', () => {
       const excitedPhrases = [
         "I'm so excited about this!",
-        "This is amazing!!",
+        'This is amazing!!',
         "I can't wait to start",
         'Best day ever!',
         "I'm pumped!",
@@ -349,7 +349,7 @@ describe('EmotionDetection', () => {
     });
 
     it('should return true for highly sad user', () => {
-      expect(isUserDistressed("I feel so empty and hopeless")).toBe(true);
+      expect(isUserDistressed('I feel so empty and hopeless')).toBe(true);
     });
 
     it('should return false for happy user', () => {
@@ -382,19 +382,34 @@ describe('EmotionDetection', () => {
   describe('getResponseStyle', () => {
     describe('Distressed/Anxious/Sad response style', () => {
       it('should use slow pace for distressed', () => {
-        const style = getResponseStyle({ primary: 'distressed', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'distressed',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.pace).toBe('slow');
         expect(style.tone).toBe('gentle');
         expect(style.pauseMultiplier).toBe(1.5);
       });
 
       it('should use slow pace for anxious', () => {
-        const style = getResponseStyle({ primary: 'anxious', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'anxious',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.pace).toBe('slow');
       });
 
       it('should use slow pace for sad', () => {
-        const style = getResponseStyle({ primary: 'sad', confidence: 0.8, energy: 'low', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'sad',
+          confidence: 0.8,
+          energy: 'low',
+          keywords: [],
+        });
         expect(style.pace).toBe('slow');
         expect(style.tone).toBe('gentle');
       });
@@ -402,14 +417,24 @@ describe('EmotionDetection', () => {
 
     describe('Excited/Happy response style', () => {
       it('should use fast pace for high-energy excitement', () => {
-        const style = getResponseStyle({ primary: 'excited', confidence: 0.8, energy: 'high', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'excited',
+          confidence: 0.8,
+          energy: 'high',
+          keywords: [],
+        });
         expect(style.pace).toBe('fast');
         expect(style.tone).toBe('enthusiastic');
         expect(style.pauseMultiplier).toBe(0.8);
       });
 
       it('should use normal pace for medium-energy happiness', () => {
-        const style = getResponseStyle({ primary: 'happy', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'happy',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.pace).toBe('normal');
         expect(style.tone).toBe('enthusiastic');
       });
@@ -417,20 +442,35 @@ describe('EmotionDetection', () => {
 
     describe('Angry/Frustrated response style', () => {
       it('should use supportive tone for angry', () => {
-        const style = getResponseStyle({ primary: 'angry', confidence: 0.8, energy: 'high', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'angry',
+          confidence: 0.8,
+          energy: 'high',
+          keywords: [],
+        });
         expect(style.tone).toBe('supportive');
         expect(style.pauseMultiplier).toBe(1.2);
       });
 
       it('should use supportive tone for frustrated', () => {
-        const style = getResponseStyle({ primary: 'frustrated', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'frustrated',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.tone).toBe('supportive');
       });
     });
 
     describe('Confused response style', () => {
       it('should use slow pace with warm tone', () => {
-        const style = getResponseStyle({ primary: 'confused', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'confused',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.pace).toBe('slow');
         expect(style.tone).toBe('warm');
         expect(style.pauseMultiplier).toBe(1.3);
@@ -439,7 +479,12 @@ describe('EmotionDetection', () => {
 
     describe('Grateful response style', () => {
       it('should use warm tone', () => {
-        const style = getResponseStyle({ primary: 'grateful', confidence: 0.8, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'grateful',
+          confidence: 0.8,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.tone).toBe('warm');
         expect(style.pauseMultiplier).toBe(1.0);
       });
@@ -447,7 +492,12 @@ describe('EmotionDetection', () => {
 
     describe('Neutral response style', () => {
       it('should use warm tone with normal pace', () => {
-        const style = getResponseStyle({ primary: 'neutral', confidence: 0.5, energy: 'medium', keywords: [] });
+        const style = getResponseStyle({
+          primary: 'neutral',
+          confidence: 0.5,
+          energy: 'medium',
+          keywords: [],
+        });
         expect(style.pace).toBe('normal');
         expect(style.tone).toBe('warm');
         expect(style.pauseMultiplier).toBe(1.0);
@@ -482,8 +532,8 @@ describe('EmotionDetection', () => {
         const messages = [
           "I'm feeling really down today",
           'Still struggling with things',
-          "Getting a bit better now",
-          "Actually feeling good!",
+          'Getting a bit better now',
+          'Actually feeling good!',
         ];
 
         const analysis = analyzeConversationEmotion(messages);
@@ -517,11 +567,7 @@ describe('EmotionDetection', () => {
 
     describe('Average energy calculation', () => {
       it('should calculate high average energy', () => {
-        const messages = [
-          "I'M SO EXCITED!!!",
-          "This is AMAZING!!!",
-          "Can't wait for tomorrow!!",
-        ];
+        const messages = ["I'M SO EXCITED!!!", 'This is AMAZING!!!', "Can't wait for tomorrow!!"];
 
         const analysis = analyzeConversationEmotion(messages);
         expect(analysis.averageEnergy).toBe('high');
@@ -539,11 +585,7 @@ describe('EmotionDetection', () => {
       });
 
       it('should calculate medium average energy', () => {
-        const messages = [
-          'Having a normal day',
-          'Things are going okay',
-          'Nothing too exciting',
-        ];
+        const messages = ['Having a normal day', 'Things are going okay', 'Nothing too exciting'];
 
         const analysis = analyzeConversationEmotion(messages);
         expect(analysis.averageEnergy).toBe('medium');

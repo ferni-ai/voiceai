@@ -46,11 +46,7 @@ function generateSineWave(
 /**
  * Generate white noise for testing
  */
-function generateNoise(
-  duration: number,
-  sampleRate: number,
-  amplitude = 0.3
-): Float32Array {
+function generateNoise(duration: number, sampleRate: number, amplitude = 0.3): Float32Array {
   const samples = Math.floor(duration * sampleRate);
   const buffer = new Float32Array(samples);
 

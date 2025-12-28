@@ -124,7 +124,16 @@ const EMOTION_ALTERNATIVES: Record<string, string[]> = {
 };
 
 // Common fillers
-const FILLER_WORDS = ['like', 'you know', 'basically', 'literally', 'um', 'uh', 'so yeah', 'I mean'];
+const FILLER_WORDS = [
+  'like',
+  'you know',
+  'basically',
+  'literally',
+  'um',
+  'uh',
+  'so yeah',
+  'I mean',
+];
 
 // ============================================================================
 // IN-MEMORY STATE
@@ -240,7 +249,10 @@ function extractSignaturePhrases(message: string, profile: LinguisticProfile): v
 
   for (let len = minLength; len <= maxLength && len <= words.length; len++) {
     for (let i = 0; i <= words.length - len; i++) {
-      const phrase = words.slice(i, i + len).join(' ').toLowerCase();
+      const phrase = words
+        .slice(i, i + len)
+        .join(' ')
+        .toLowerCase();
 
       // Skip common phrases
       if (isCommonPhrase(phrase)) continue;
@@ -283,7 +295,7 @@ function isCommonPhrase(phrase: string): boolean {
     'kind of',
     'sort of',
     'i guess',
-    'i don\'t know',
+    "i don't know",
     'i just',
     'to be',
     'it was',
@@ -302,7 +314,8 @@ function isCommonPhrase(phrase: string): boolean {
 function updateSpeechPatterns(message: string, profile: LinguisticProfile): void {
   // Sentence length
   const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 0);
-  const avgWords = sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / (sentences.length || 1);
+  const avgWords =
+    sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / (sentences.length || 1);
 
   // Weighted average with existing
   const oldAvg = profile.speechPatterns.avgSentenceLength;
@@ -321,7 +334,8 @@ function updateSpeechPatterns(message: string, profile: LinguisticProfile): void
   }
 
   // Contractions
-  const hasContractions = /['']/.test(message) && /(I['']m|don['']t|can['']t|won['']t|it['']s)/i.test(message);
+  const hasContractions =
+    /['']/.test(message) && /(I['']m|don['']t|can['']t|won['']t|it['']s)/i.test(message);
   if (hasContractions) {
     profile.speechPatterns.prefersContractions = true;
   }
@@ -445,7 +459,9 @@ export function buildLinguisticContext(userId: string): string {
   const sections: string[] = ['[LINGUISTIC MIRRORING]'];
 
   // Emotion vocabulary
-  const emotionTerms = Object.entries(profile.emotionVocabulary).filter(([_, terms]) => terms.length > 0);
+  const emotionTerms = Object.entries(profile.emotionVocabulary).filter(
+    ([_, terms]) => terms.length > 0
+  );
   if (emotionTerms.length > 0) {
     sections.push('Their emotion vocabulary:');
     for (const [emotion, terms] of emotionTerms.slice(0, 5)) {
@@ -479,7 +495,9 @@ export function buildLinguisticContext(userId: string): string {
   // Speech style
   sections.push(`Formality level: ${profile.speechPatterns.formalityLevel}`);
   if (profile.speechPatterns.usesFillers) {
-    sections.push(`They use fillers like: ${profile.speechPatterns.commonFillers.slice(0, 3).join(', ')}`);
+    sections.push(
+      `They use fillers like: ${profile.speechPatterns.commonFillers.slice(0, 3).join(', ')}`
+    );
   }
 
   sections.push('');
@@ -556,4 +574,3 @@ export const linguisticMirroring = {
 };
 
 export default linguisticMirroring;
-

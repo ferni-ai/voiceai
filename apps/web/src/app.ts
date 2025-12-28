@@ -3001,6 +3001,8 @@ class VoiceAIApp {
     const volumeCallback = (volume: number) => {
       waveformUI.setVolume(volume);
       coachUI.setVolume(volume);
+      // 🔊 Bass speaker effect - avatar pulses with voice
+      presenceUI.setVoiceVolume(volume);
     };
 
     // Prefer MediaStreamTrack - works better for WebRTC streams

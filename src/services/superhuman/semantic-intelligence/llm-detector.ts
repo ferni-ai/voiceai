@@ -291,7 +291,12 @@ function parsePersonResponse(text: string): LLMPersonResult | null {
 
     return {
       persons: parsed.persons.map(
-        (p: { name?: string; relationship?: string; isProperName?: boolean; confidence?: number }) => ({
+        (p: {
+          name?: string;
+          relationship?: string;
+          isProperName?: boolean;
+          confidence?: number;
+        }) => ({
           name: p.name || 'unknown',
           relationship: p.relationship as PersonRelationship | null,
           isProperName: Boolean(p.isProperName),
@@ -399,16 +404,21 @@ export async function detectAdviceOutcomeWithLLM(
   }
 
   const cacheKey = `outcome:${previousAdvice.slice(0, 50)}:${userMessage.slice(0, 50)}`;
-  const prompt = OUTCOME_DETECTION_PROMPT
-    .replace('{advice}', previousAdvice.slice(0, 200))
-    .replace('{message}', userMessage.slice(0, 300));
+  const prompt = OUTCOME_DETECTION_PROMPT.replace('{advice}', previousAdvice.slice(0, 200)).replace(
+    '{message}',
+    userMessage.slice(0, 300)
+  );
 
   // BUGFIX: Parameter order was reversed (prompt, cacheKey) not (cacheKey, prompt)
   const result = await callLLM<LLMOutcomeResult>(prompt, cacheKey, parseOutcomeResponse);
 
   if (result.success && result.data) {
     log.debug(
-      { cached: result.cached, latencyMs: result.latencyMs, references: result.data.referencesAdvice },
+      {
+        cached: result.cached,
+        latencyMs: result.latencyMs,
+        references: result.data.referencesAdvice,
+      },
       '📊 LLM outcome detection'
     );
     return result.data;
@@ -432,9 +442,7 @@ import { extractPersons as extractPersonsRegex } from './person-extractor.js';
  * - Low regex confidence (<0.3) → no advice
  * - Middle range (0.3-0.7) → use LLM for classification
  */
-export async function detectAdviceHybrid(
-  text: string
-): Promise<LLMAdviceResult> {
+export async function detectAdviceHybrid(text: string): Promise<LLMAdviceResult> {
   // Try regex first (fast)
   const regexResult = detectAdviceRegex(text);
 
@@ -460,7 +468,7 @@ export async function detectAdviceHybrid(
 
   // Uncertain → use LLM
   const llmResult = await detectAdviceWithLLM(text);
-  
+
   // If LLM gave us a confident result, use it
   if (llmResult.confidence > 0) {
     return llmResult;
@@ -543,4 +551,3 @@ export function getLLMDetectorStats(): { cacheSize: number; circuitOpen: boolean
     circuitOpen: !llmCircuitBreaker.canRequest(),
   };
 }
-

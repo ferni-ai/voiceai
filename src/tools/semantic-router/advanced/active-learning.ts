@@ -15,7 +15,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 // Note: Uses simplified ToolMatch from local modules
-import type { TrainingExample} from './datasets.js';
+import type { TrainingExample } from './datasets.js';
 import { logRoutingDecision } from './datasets.js';
 import { getCalibrator, CalibratedResult } from './uncertainty.js';
 import { getPersonalizationEngine } from './personalization.js';

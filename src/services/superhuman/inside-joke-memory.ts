@@ -126,7 +126,7 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
       .limit(100)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as SharedMoment));
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as SharedMoment);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load shared moments');
     return [];
@@ -136,10 +136,7 @@ export async function loadSharedMoments(userId: string): Promise<SharedMoment[]>
 /**
  * Update a moment after referencing it.
  */
-export async function recordMomentReference(
-  userId: string,
-  momentId: string
-): Promise<void> {
+export async function recordMomentReference(userId: string, momentId: string): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
 
@@ -154,12 +151,14 @@ export async function recordMomentReference(
     if (!doc.exists) return;
 
     const moment = doc.data() as SharedMoment;
-    await docRef.update(cleanForFirestore({
-      timesReferenced: (moment.timesReferenced || 0) + 1,
-      lastReferencedAt: Date.now(),
-      // Increase resonance with use (memories get stronger)
-      resonance: Math.min(1, moment.resonance + 0.05),
-    }));
+    await docRef.update(
+      cleanForFirestore({
+        timesReferenced: (moment.timesReferenced || 0) + 1,
+        lastReferencedAt: Date.now(),
+        // Increase resonance with use (memories get stronger)
+        resonance: Math.min(1, moment.resonance + 0.05),
+      })
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to record reference');
   }
@@ -189,7 +188,10 @@ export function findCallbackOpportunities(
       let appropriateness = moment.resonance;
 
       // Reduce appropriateness if mood is negative and moment is lighthearted
-      if (currentMood === 'negative' && (moment.type === 'silly_moment' || moment.type === 'inside_joke')) {
+      if (
+        currentMood === 'negative' &&
+        (moment.type === 'silly_moment' || moment.type === 'inside_joke')
+      ) {
         appropriateness *= 0.3;
       }
 
@@ -202,7 +204,10 @@ export function findCallbackOpportunities(
       }
 
       // Boost if it's been a while (callback from the archives)
-      if (!moment.lastReferencedAt || (Date.now() - moment.lastReferencedAt) > 30 * 24 * 60 * 60 * 1000) {
+      if (
+        !moment.lastReferencedAt ||
+        Date.now() - moment.lastReferencedAt > 30 * 24 * 60 * 60 * 1000
+      ) {
         appropriateness *= 1.2;
       }
 
@@ -234,7 +239,16 @@ export function detectPotentialMoment(
   const textLower = text.toLowerCase();
 
   // Detect humor/laughter
-  const laughIndicators = ['haha', 'lol', 'lmao', '😂', '🤣', 'that\'s funny', 'that\'s hilarious', 'i can\'t'];
+  const laughIndicators = [
+    'haha',
+    'lol',
+    'lmao',
+    '😂',
+    '🤣',
+    "that's funny",
+    "that's hilarious",
+    "i can't",
+  ];
   if (laughIndicators.some((l) => textLower.includes(l))) {
     return {
       isPotential: true,
@@ -244,7 +258,12 @@ export function detectPotentialMoment(
   }
 
   // Detect shared discovery
-  const discoveryIndicators = ['i never thought of it that way', 'that\'s a good point', 'mind blown', 'never realized'];
+  const discoveryIndicators = [
+    'i never thought of it that way',
+    "that's a good point",
+    'mind blown',
+    'never realized',
+  ];
   if (discoveryIndicators.some((d) => textLower.includes(d))) {
     return {
       isPotential: true,
@@ -254,7 +273,12 @@ export function detectPotentialMoment(
   }
 
   // Detect breakthrough
-  const breakthroughIndicators = ['i finally understand', 'that\'s what it is', 'this changes everything', 'you\'re right'];
+  const breakthroughIndicators = [
+    'i finally understand',
+    "that's what it is",
+    'this changes everything',
+    "you're right",
+  ];
   if (breakthroughIndicators.some((b) => textLower.includes(b))) {
     return {
       isPotential: true,
@@ -265,7 +289,7 @@ export function detectPotentialMoment(
 
   // Detect memorable quotes (user sharing something profound)
   if (context === 'user' && text.length > 50 && text.length < 200) {
-    const quoteIndicators = ['i always say', 'my motto is', 'here\'s the thing', 'the way i see it'];
+    const quoteIndicators = ['i always say', 'my motto is', "here's the thing", 'the way i see it'];
     if (quoteIndicators.some((q) => textLower.includes(q))) {
       return {
         isPotential: true,
@@ -349,7 +373,7 @@ export async function buildInsideJokeContext(
 
   sections.push(
     'These shared memories make your relationship feel real and lasting. ' +
-    'Use callbacks sparingly but meaningfully.'
+      'Use callbacks sparingly but meaningfully.'
   );
 
   return sections.join('\n');
@@ -359,8 +383,10 @@ export async function buildInsideJokeContext(
  * Generate callback suggestion for LLM.
  */
 export function suggestCallback(opportunity: CallbackOpportunity): string {
-  return `Consider naturally referencing your shared history: "${opportunity.naturalCallback}" ` +
-    `(They mentioned "${opportunity.triggerMatch}" which connects to when ${opportunity.moment.context}).`;
+  return (
+    `Consider naturally referencing your shared history: "${opportunity.naturalCallback}" ` +
+    `(They mentioned "${opportunity.triggerMatch}" which connects to when ${opportunity.moment.context}).`
+  );
 }
 
 // ============================================================================
@@ -377,4 +403,3 @@ export const insideJokeMemory = {
   buildContext: buildInsideJokeContext,
   suggestCallback,
 };
-

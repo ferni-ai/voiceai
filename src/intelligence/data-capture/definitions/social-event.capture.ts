@@ -39,7 +39,7 @@ const EVENT_TYPE_MAP: Record<string, { type: string; baseDuration: number }> = {
   'family dinner': { type: 'family', baseDuration: 120 },
   'family gathering': { type: 'family', baseDuration: 180 },
   'visited family': { type: 'family', baseDuration: 180 },
-  'parents': { type: 'family', baseDuration: 120 },
+  parents: { type: 'family', baseDuration: 120 },
   'in-laws': { type: 'family', baseDuration: 120 },
   thanksgiving: { type: 'family', baseDuration: 360 },
   christmas: { type: 'family', baseDuration: 480 },
@@ -99,7 +99,13 @@ export const socialEventCaptureDefinition: DataCaptureDefinition = {
       { word: 'alone', weight: 0.7 },
       { word: 'argument', weight: 0.9 },
     ],
-    antiKeywords: ['should i go to', 'thinking about', 'planning to', 'want to go to', 'might go to'],
+    antiKeywords: [
+      'should i go to',
+      'thinking about',
+      'planning to',
+      'want to go to',
+      'might go to',
+    ],
   },
 
   arguments: [
@@ -131,10 +137,7 @@ export const socialEventCaptureDefinition: DataCaptureDefinition = {
       type: 'string',
       description: 'Additional context about the event',
       required: false,
-      extractionPatterns: [
-        /with\s+(.+?)(?:\.|,|$)/i,
-        /at\s+(.+?)(?:\.|,|$)/i,
-      ],
+      extractionPatterns: [/with\s+(.+?)(?:\.|,|$)/i, /at\s+(.+?)(?:\.|,|$)/i],
     },
   ],
 
@@ -149,7 +152,9 @@ export const socialEventCaptureDefinition: DataCaptureDefinition = {
     extractedArgs: Record<string, unknown>,
     context: DataCaptureContext
   ): Promise<string | null> => {
-    const rawEventType = String(extractedArgs.eventType || '').toLowerCase().trim();
+    const rawEventType = String(extractedArgs.eventType || '')
+      .toLowerCase()
+      .trim();
     const durationStr = String(extractedArgs.duration || '');
     const eventContext = String(extractedArgs.context || '').slice(0, 200);
 
@@ -188,7 +193,16 @@ export const socialEventCaptureDefinition: DataCaptureDefinition = {
 
       await recordSocialEvent(
         context.userId,
-        eventMapping.type as 'large_gathering' | 'small_group' | 'one_on_one' | 'family' | 'work_meeting' | 'deep_conversation' | 'casual_chat' | 'conflict' | 'alone_time',
+        eventMapping.type as
+          | 'large_gathering'
+          | 'small_group'
+          | 'one_on_one'
+          | 'family'
+          | 'work_meeting'
+          | 'deep_conversation'
+          | 'casual_chat'
+          | 'conflict'
+          | 'alone_time',
         durationMinutes,
         eventContext || undefined
       );
@@ -206,4 +220,3 @@ export const socialEventCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

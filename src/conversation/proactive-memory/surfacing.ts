@@ -49,7 +49,8 @@ export class SurfacingEngine {
         `You were on my mind. How did ${event.content} go?`,
         `First things first—how was ${event.content}?`,
       ];
-      const phrase = seededPick(`${this.currentSessionId}:opening:event:${event.id}`, phrases) ?? phrases[0];
+      const phrase =
+        seededPick(`${this.currentSessionId}:opening:event:${event.id}`, phrases) ?? phrases[0];
       return {
         memory: event,
         triggerType: 'opening',
@@ -77,7 +78,8 @@ export class SurfacingEngine {
         `I wanted to check in—any progress on ${goal.content}?`,
         `Been curious about ${goal.content}. How's that going?`,
       ];
-      const phrase = seededPick(`${this.currentSessionId}:opening:goal:${goal.id}`, phrases) ?? phrases[0];
+      const phrase =
+        seededPick(`${this.currentSessionId}:opening:goal:${goal.id}`, phrases) ?? phrases[0];
       return {
         memory: goal,
         triggerType: 'opening',
@@ -101,7 +103,8 @@ export class SurfacingEngine {
         `Any updates on ${person.content}?`,
         relationship ? `How's your ${relationship} ${person.content}?` : `How's ${person.content}?`,
       ];
-      const phrase = seededPick(`${this.currentSessionId}:opening:person:${person.id}`, phrases) ?? phrases[0];
+      const phrase =
+        seededPick(`${this.currentSessionId}:opening:person:${person.id}`, phrases) ?? phrases[0];
       return {
         memory: person,
         triggerType: 'opening',
@@ -140,7 +143,8 @@ export class SurfacingEngine {
                 `How did that ${memory.content} end up going?`,
               ];
 
-        const phrase = seededPick(`${this.currentSessionId}:time_based:${memory.id}`, phrases) ?? phrases[0];
+        const phrase =
+          seededPick(`${this.currentSessionId}:time_based:${memory.id}`, phrases) ?? phrases[0];
         suggestions.push({
           memory,
           triggerType: 'time_based',

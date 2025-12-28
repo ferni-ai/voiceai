@@ -272,7 +272,9 @@ async function waitForRevisionReady(
     }
 
     // Wait before polling again
-    await new Promise<void>((resolve) => { setTimeout(resolve, 5000); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 5000);
+    });
   }
 
   return false;

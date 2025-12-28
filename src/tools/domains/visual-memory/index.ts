@@ -40,12 +40,10 @@ const recallVisualMemoryDef: ToolDefinition = {
       parameters: z.object({
         query: z
           .string()
-          .describe('Description of what to search for (e.g., "photos of my dog", "that receipt from last week")'),
-        limit: z
-          .number()
-          .optional()
-          .default(3)
-          .describe('Maximum number of results to return'),
+          .describe(
+            'Description of what to search for (e.g., "photos of my dog", "that receipt from last week")'
+          ),
+        limit: z.number().optional().default(3).describe('Maximum number of results to return'),
       }),
       execute: async ({ query, limit }) => {
         try {
@@ -72,7 +70,17 @@ const recallVisualMemoryDef: ToolDefinition = {
           const count = results.length;
           const descriptions = results
             .map(
-              (r: { memory: { aiDescription?: string; detectedLabels?: string[]; userDescription?: string }; relevanceScore: number }, i: number) =>
+              (
+                r: {
+                  memory: {
+                    aiDescription?: string;
+                    detectedLabels?: string[];
+                    userDescription?: string;
+                  };
+                  relevanceScore: number;
+                },
+                i: number
+              ) =>
                 `${i + 1}. ${r.memory.aiDescription || r.memory.detectedLabels?.slice(0, 3).join(', ') || 'An image'}${r.memory.userDescription ? ` - "${r.memory.userDescription}"` : ''}`
             )
             .join('\n');
@@ -81,7 +89,10 @@ const recallVisualMemoryDef: ToolDefinition = {
 
           return `I found ${count} photo${count > 1 ? 's' : ''} matching "${query}":\n${descriptions}`;
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId, query }, 'Visual memory recall failed');
+          log.error(
+            { error: String(error), userId: ctx.userId, query },
+            'Visual memory recall failed'
+          );
           return 'I had trouble searching my visual memory. Let me try again in a moment.';
         }
       },
@@ -105,9 +116,7 @@ const describeSharedPhotoDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('describeSharedPhoto'),
       parameters: z.object({
-        memoryId: z
-          .string()
-          .describe('The ID of the visual memory to describe'),
+        memoryId: z.string().describe('The ID of the visual memory to describe'),
       }),
       execute: async ({ memoryId }) => {
         try {
@@ -127,13 +136,25 @@ const describeSharedPhotoDef: ToolDefinition = {
           } else if (memory.visionAnalysis) {
             // Build from vision analysis
             if (memory.visionAnalysis.labels?.length) {
-              parts.push(`I see: ${memory.visionAnalysis.labels.slice(0, 5).map(l => l.name).join(', ')}`);
+              parts.push(
+                `I see: ${memory.visionAnalysis.labels
+                  .slice(0, 5)
+                  .map((l) => l.name)
+                  .join(', ')}`
+              );
             }
             if (memory.visionAnalysis.dominantColors?.length) {
-              parts.push(`The dominant colors are ${memory.visionAnalysis.dominantColors.slice(0, 3).map(c => c.hex).join(', ')}`);
+              parts.push(
+                `The dominant colors are ${memory.visionAnalysis.dominantColors
+                  .slice(0, 3)
+                  .map((c) => c.hex)
+                  .join(', ')}`
+              );
             }
             if (memory.visionAnalysis.text?.fullText) {
-              parts.push(`There's text that says: "${memory.visionAnalysis.text.fullText.slice(0, 100)}"`);
+              parts.push(
+                `There's text that says: "${memory.visionAnalysis.text.fullText.slice(0, 100)}"`
+              );
             }
           } else if (memory.detectedLabels?.length) {
             parts.push(`I see: ${memory.detectedLabels.slice(0, 5).join(', ')}`);
@@ -150,7 +171,10 @@ const describeSharedPhotoDef: ToolDefinition = {
 
           return parts.join(' ');
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId, memoryId }, 'Describe photo failed');
+          log.error(
+            { error: String(error), userId: ctx.userId, memoryId },
+            'Describe photo failed'
+          );
           return 'I had trouble describing that photo. Let me try again.';
         }
       },
@@ -173,11 +197,7 @@ const listRecentPhotosDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('listRecentPhotos'),
       parameters: z.object({
-        limit: z
-          .number()
-          .optional()
-          .default(5)
-          .describe('Number of recent photos to list'),
+        limit: z.number().optional().default(5).describe('Number of recent photos to list'),
       }),
       execute: async ({ limit }) => {
         try {
@@ -198,7 +218,8 @@ const listRecentPhotosDef: ToolDefinition = {
           const count = memories.length;
           const list = memories
             .map((m, i) => {
-              const desc = m.aiDescription || m.detectedLabels?.slice(0, 2).join(', ') || 'An image';
+              const desc =
+                m.aiDescription || m.detectedLabels?.slice(0, 2).join(', ') || 'An image';
               const date = m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'recently';
               return `${i + 1}. ${desc} (${date})`;
             })
@@ -265,7 +286,8 @@ const countVisualMemoriesDef: ToolDefinition = {
 const recallEmotionalContextDef: ToolDefinition = {
   id: 'recallEmotionalContext',
   name: 'Recall Emotional Context',
-  description: 'Remember how a photo made the user feel when they shared it. Better than human emotional memory.',
+  description:
+    'Remember how a photo made the user feel when they shared it. Better than human emotional memory.',
   domain: 'memory',
   tags: ['memory', 'visual', 'emotional', 'better-than-human'],
 
@@ -281,7 +303,7 @@ const recallEmotionalContextDef: ToolDefinition = {
 
           const isEnabled = await visualMemory.isEnabled(ctx.userId);
           if (!isEnabled) {
-            return "I need visual memory enabled to recall emotional contexts from photos.";
+            return 'I need visual memory enabled to recall emotional contexts from photos.';
           }
 
           const searchResult = await visualMemory.search({
@@ -306,10 +328,18 @@ const recallEmotionalContextDef: ToolDefinition = {
 
           // Infer emotional context from metadata
           const emotions: string[] = [];
-          if (memory.detectedLabels?.some((l: string) => ['smile', 'happy', 'celebration'].includes(l.toLowerCase()))) {
+          if (
+            memory.detectedLabels?.some((l: string) =>
+              ['smile', 'happy', 'celebration'].includes(l.toLowerCase())
+            )
+          ) {
             emotions.push('joy');
           }
-          if (memory.detectedLabels?.some((l: string) => ['family', 'people', 'group'].includes(l.toLowerCase()))) {
+          if (
+            memory.detectedLabels?.some((l: string) =>
+              ['family', 'people', 'group'].includes(l.toLowerCase())
+            )
+          ) {
             emotions.push('connection');
           }
 
@@ -324,7 +354,10 @@ const recallEmotionalContextDef: ToolDefinition = {
 
           return response;
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId, query }, 'Recall emotional context failed');
+          log.error(
+            { error: String(error), userId: ctx.userId, query },
+            'Recall emotional context failed'
+          );
           return "I couldn't recall the emotional context right now.";
         }
       },
@@ -351,7 +384,7 @@ const findMomentsOfJoyDef: ToolDefinition = {
 
           const isEnabled = await visualMemory.isEnabled(ctx.userId);
           if (!isEnabled) {
-            return "Enable visual memory to let me remember your moments of joy.";
+            return 'Enable visual memory to let me remember your moments of joy.';
           }
 
           // Search for joy-related images
@@ -400,7 +433,9 @@ const rememberWhenDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('rememberWhen'),
       parameters: z.object({
-        moment: z.string().describe('What moment or period to remember (e.g., "last birthday", "that trip to...")'),
+        moment: z
+          .string()
+          .describe('What moment or period to remember (e.g., "last birthday", "that trip to...")'),
       }),
       execute: async ({ moment }) => {
         try {
@@ -408,7 +443,7 @@ const rememberWhenDef: ToolDefinition = {
 
           const isEnabled = await visualMemory.isEnabled(ctx.userId);
           if (!isEnabled) {
-            return "Enable visual memory so I can help you remember when...";
+            return 'Enable visual memory so I can help you remember when...';
           }
 
           const searchResult = await visualMemory.search({
@@ -436,7 +471,10 @@ const rememberWhenDef: ToolDefinition = {
           response += `\n---\n\n`;
           response += `*These moments are safe with me. Would you like to tell me more about any of them?*`;
 
-          log.info({ userId: ctx.userId, moment, count: memories.length }, 'Nostalgic recall completed');
+          log.info(
+            { userId: ctx.userId, moment, count: memories.length },
+            'Nostalgic recall completed'
+          );
 
           return response;
         } catch (error) {
@@ -476,4 +514,3 @@ export {
 };
 
 export default getToolDefinitions;
-

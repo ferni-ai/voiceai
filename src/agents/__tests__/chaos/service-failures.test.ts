@@ -31,7 +31,9 @@ import {
  * Simulate network latency
  */
 async function simulateLatency(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 /**

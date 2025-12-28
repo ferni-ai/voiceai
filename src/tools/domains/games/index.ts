@@ -376,12 +376,30 @@ Use when user says things like:
 - "Let's build a story together"
 - "I want to play something"`,
       domain: 'games',
-      tags: ['games', 'text-games', 'tic-tac-toe', '20-questions', 'word-association', 'would-you-rather', 'story-builder', 'interactive', 'fun'],
+      tags: [
+        'games',
+        'text-games',
+        'tic-tac-toe',
+        '20-questions',
+        'word-association',
+        'would-you-rather',
+        'story-builder',
+        'interactive',
+        'fun',
+      ],
       create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('startTextGame'),
           parameters: z.object({
-            gameType: z.enum(['tic-tac-toe', '20-questions', 'word-association', 'would-you-rather', 'story-builder']).describe('Which text game to play'),
+            gameType: z
+              .enum([
+                'tic-tac-toe',
+                '20-questions',
+                'word-association',
+                'would-you-rather',
+                'story-builder',
+              ])
+              .describe('Which text game to play'),
             userGoesFirst: z
               .boolean()
               .optional()

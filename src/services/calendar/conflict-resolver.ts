@@ -300,11 +300,13 @@ export async function resolveConflict(
     }
 
     // Mark conflict as resolved
-    await conflictRef.update(cleanForFirestore({
-      resolvedAt: new Date().toISOString(),
-      resolution,
-      resolvedBy,
-    }));
+    await conflictRef.update(
+      cleanForFirestore({
+        resolvedAt: new Date().toISOString(),
+        resolution,
+        resolvedBy,
+      })
+    );
 
     log.info({ userId, conflictId, resolution, resolvedBy }, 'Resolved calendar conflict');
 

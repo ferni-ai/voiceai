@@ -20,11 +20,10 @@ export const healthcareScript: CallScriptTemplate = {
   identityDisclosure:
     "I'm an AI assistant. {userName} has authorized me to call regarding their appointment.",
 
-  recordingConsentScript:
-    'This call may be recorded for quality purposes. Is that okay with you?',
+  recordingConsentScript: 'This call may be recorded for quality purposes. Is that okay with you?',
 
   hipaaNote:
-    "I understand you may have privacy requirements. {userName} has authorized me to " +
+    'I understand you may have privacy requirements. {userName} has authorized me to ' +
     'discuss their appointment scheduling with you. I will not be discussing any medical ' +
     'conditions or private health information.',
 
@@ -52,8 +51,7 @@ export const healthcareScript: CallScriptTemplate = {
       "I'm calling to request a prescription refill for {userName}. {details}. " +
       'Could you help me with that process?',
 
-    general:
-      "I'm calling on behalf of {userName} regarding their healthcare. {details}.",
+    general: "I'm calling on behalf of {userName} regarding their healthcare. {details}.",
   },
 
   // -------------------------------------------------------------------------

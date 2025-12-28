@@ -109,7 +109,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
    * Speak text with interrupt awareness.
    * Applies recovery softening if the user interrupted us previously.
    * This makes agent responses feel less abrupt after an interrupt.
-   * 
+   *
    * CRITICAL: Checks if session is closing before speaking to prevent
    * errors during handoffs when the old agent's session is draining.
    */
@@ -783,65 +783,68 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         earlyAckAgentStateHandler = null;
       }
 
-      earlyAckTimer = setTimeout(async () => {
-        // CRITICAL: Check if session is closing before trying to speak
-        // This prevents errors during handoffs when the old agent's session is draining
-        const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
-        if (isSessionClosing(sessionId)) {
-          diag.state('Early dead air skipped - session is closing');
-          earlyAckTimer = null;
-          return;
-        }
-
-        if (!conversationManager.isAgentSpeaking()) {
-          const timeSinceStop = Date.now() - userStoppedAt;
-          if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-            // Dead air prevention: Use stage directions pattern for contextual check-ins
-            // Behavioral instructions are used to guide the LLM's response style
-            // without leaking into speech (uses [INTERNAL GUIDANCE] format internally).
-            const lastTranscript = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
-            const turnCount = userData.turnCount ?? 0;
-
-            // Build contextual stage directions
-            const contextParts = [
-              `The user has been silent for ${Math.round(timeSinceStop / 1000)} seconds after speaking.`,
-              'Check in briefly to show you are present and listening.',
-              'Keep it SHORT (under 10 words). Be warm but not needy.',
-              "Don't ask questions - just acknowledge you're here.",
-            ];
-
-            // Add context about what they were discussing if available
-            if (lastTranscript && lastTranscript.length > 10) {
-              contextParts.push(`They were talking about: "${lastTranscript.slice(0, 100)}..."`);
-            }
-
-            // Adjust tone based on conversation stage
-            if (turnCount < 3) {
-              contextParts.push('This is early in the conversation - be welcoming.');
-            } else if (turnCount > 10) {
-              contextParts.push('You have rapport now - be casual and natural.');
-            }
-
-            // PROMINENT LOG: Show dead air timing
-            diag.state('🎭 [DEAD AIR] Early acknowledgment', {
-              waitedSec: Math.round(timeSinceStop / 1000),
-              persona: sessionPersona.id,
-              turnCount,
-              hasContext: !!lastTranscript,
-            });
-
-            // Use generateReplyWithContext which formats as behavioral instructions
-            void generateReplyWithContext(session, {
-              context: contextParts,
-              fallbackMessage: "I'm here whenever you're ready.",
-              allowInterruptions: true,
-              logContext: 'early-dead-air-checkin',
-            });
+      earlyAckTimer = setTimeout(
+        async () => {
+          // CRITICAL: Check if session is closing before trying to speak
+          // This prevents errors during handoffs when the old agent's session is draining
+          const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
+          if (isSessionClosing(sessionId)) {
+            diag.state('Early dead air skipped - session is closing');
+            earlyAckTimer = null;
+            return;
           }
-        }
-        earlyAckTimer = null;
-      // HUMANIZATION FIX: Add ±25% randomization to early acknowledgment timing
-      }, SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * (0.75 + Math.random() * 0.5));
+
+          if (!conversationManager.isAgentSpeaking()) {
+            const timeSinceStop = Date.now() - userStoppedAt;
+            if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
+              // Dead air prevention: Use stage directions pattern for contextual check-ins
+              // Behavioral instructions are used to guide the LLM's response style
+              // without leaking into speech (uses [INTERNAL GUIDANCE] format internally).
+              const lastTranscript = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
+              const turnCount = userData.turnCount ?? 0;
+
+              // Build contextual stage directions
+              const contextParts = [
+                `The user has been silent for ${Math.round(timeSinceStop / 1000)} seconds after speaking.`,
+                'Check in briefly to show you are present and listening.',
+                'Keep it SHORT (under 10 words). Be warm but not needy.',
+                "Don't ask questions - just acknowledge you're here.",
+              ];
+
+              // Add context about what they were discussing if available
+              if (lastTranscript && lastTranscript.length > 10) {
+                contextParts.push(`They were talking about: "${lastTranscript.slice(0, 100)}..."`);
+              }
+
+              // Adjust tone based on conversation stage
+              if (turnCount < 3) {
+                contextParts.push('This is early in the conversation - be welcoming.');
+              } else if (turnCount > 10) {
+                contextParts.push('You have rapport now - be casual and natural.');
+              }
+
+              // PROMINENT LOG: Show dead air timing
+              diag.state('🎭 [DEAD AIR] Early acknowledgment', {
+                waitedSec: Math.round(timeSinceStop / 1000),
+                persona: sessionPersona.id,
+                turnCount,
+                hasContext: !!lastTranscript,
+              });
+
+              // Use generateReplyWithContext which formats as behavioral instructions
+              void generateReplyWithContext(session, {
+                context: contextParts,
+                fallbackMessage: "I'm here whenever you're ready.",
+                allowInterruptions: true,
+                logContext: 'early-dead-air-checkin',
+              });
+            }
+          }
+          earlyAckTimer = null;
+          // HUMANIZATION FIX: Add ±25% randomization to early acknowledgment timing
+        },
+        SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 * (0.75 + Math.random() * 0.5)
+      );
 
       // Clean up timer if agent starts speaking
       const cleanupEarlyAck = () => {
@@ -1122,7 +1125,9 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
             }
           } else if (silenceInstructions.fallback) {
             // No LLM instructions (e.g., music playing) - use fallback if present
-            void sayWithInterruptAwareness(silenceInstructions.fallback, { allowInterruptions: true });
+            void sayWithInterruptAwareness(silenceInstructions.fallback, {
+              allowInterruptions: true,
+            });
           }
 
           // If we offered music, actually play it after a short delay

@@ -131,7 +131,7 @@ async function loadSafetyDisclaimer(): Promise<string | null> {
  * 3. identity/function-calling-specialty.md (persona-specific tools)
  *
  * Falls back to legacy identity/function-calling.md if new files don't exist.
- * 
+ *
  * SKIP when SEMANTIC_ROUTING_PRIMARY=true:
  * When semantic routing handles all tool calls, we don't want the LLM
  * to output JSON function calls (they would be spoken as text).
@@ -378,7 +378,7 @@ let modelBaseInstructionsCache: string | null = null;
  * - Honesty rules
  * - Voice output guidance
  * - Safety boundaries
- * 
+ *
  * NOTE: OpenAI Realtime has native function calling, so JSON format
  * instructions are SKIPPED to prevent the LLM from outputting "fn:speak" etc.
  */
@@ -416,7 +416,7 @@ export async function loadModelBaseInstructions(): Promise<string> {
 **Safety:**
 - You're a coach, not an advisor
 - Never give medical, financial, or legal advice`;
-    
+
     log.info('🔮 OpenAI Realtime: Using minimal instructions (native function calling)');
     return openAIInstructions;
   }

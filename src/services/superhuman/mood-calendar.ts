@@ -68,7 +68,12 @@ export interface MoodCalendarSummary {
   /** Best times for the user emotionally */
   bestTimes: Array<{ dayOfWeek: number; hourRange: string; avgMood: number }>;
   /** Challenging times */
-  challengingTimes: Array<{ dayOfWeek: number; hourRange: string; avgMood: number; suggestion: string }>;
+  challengingTimes: Array<{
+    dayOfWeek: number;
+    hourRange: string;
+    avgMood: number;
+    suggestion: string;
+  }>;
   /** Detected patterns */
   patterns: MoodPattern[];
   /** Predictions for upcoming days */
@@ -144,10 +149,7 @@ export async function recordMoodEntry(
 /**
  * Load mood entries for a user.
  */
-export async function loadMoodEntries(
-  userId: string,
-  daysBack = 90
-): Promise<MoodEntry[]> {
+export async function loadMoodEntries(userId: string, daysBack = 90): Promise<MoodEntry[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -192,7 +194,8 @@ export function detectMoodPatterns(entries: MoodEntry[]): MoodPattern[] {
   for (const [day, dayEntries] of byDayOfWeek.entries()) {
     if (dayEntries.length < 3) continue;
 
-    const avgScore = dayEntries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / dayEntries.length;
+    const avgScore =
+      dayEntries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / dayEntries.length;
     const overallAvg = entries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / entries.length;
 
     // Check for significantly different days
@@ -230,7 +233,8 @@ export function detectMoodPatterns(entries: MoodEntry[]): MoodPattern[] {
   for (const block of timeBlocks) {
     if (block.entries.length < 5) continue;
 
-    const avgScore = block.entries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / block.entries.length;
+    const avgScore =
+      block.entries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / block.entries.length;
     const overallAvg = entries.reduce((sum, e) => sum + MOOD_SCORES[e.mood], 0) / entries.length;
 
     if (avgScore < overallAvg - 0.12) {
@@ -247,14 +251,17 @@ export function detectMoodPatterns(entries: MoodEntry[]): MoodPattern[] {
   // Sunday night anxiety pattern (common)
   const sundayEvenings = entries.filter((e) => e.dayOfWeek === 0 && e.hourOfDay >= 17);
   if (sundayEvenings.length >= 3) {
-    const anxiousCount = sundayEvenings.filter((e) => e.mood === 'anxious' || e.mood === 'overwhelmed').length;
+    const anxiousCount = sundayEvenings.filter(
+      (e) => e.mood === 'anxious' || e.mood === 'overwhelmed'
+    ).length;
     if (anxiousCount / sundayEvenings.length > 0.5) {
       patterns.push({
         pattern: 'sunday_scaries',
         confidence: sundayEvenings.length / 8,
         occurrences: anxiousCount,
         description: 'You experience "Sunday scaries" - anticipatory anxiety before the work week',
-        recommendation: 'Try a calming Sunday evening routine, or plan something enjoyable for Monday morning',
+        recommendation:
+          'Try a calming Sunday evening routine, or plan something enjoyable for Monday morning',
       });
     }
   }
@@ -335,10 +342,15 @@ export async function getMoodCalendarSummary(userId: string): Promise<MoodCalend
   const timeSlots = new Map<string, { scores: number[]; entries: number }>();
   for (const entry of entries) {
     const hourRange =
-      entry.hourOfDay < 6 ? 'night' :
-      entry.hourOfDay < 12 ? 'morning' :
-      entry.hourOfDay < 17 ? 'afternoon' :
-      entry.hourOfDay < 22 ? 'evening' : 'night';
+      entry.hourOfDay < 6
+        ? 'night'
+        : entry.hourOfDay < 12
+          ? 'morning'
+          : entry.hourOfDay < 17
+            ? 'afternoon'
+            : entry.hourOfDay < 22
+              ? 'evening'
+              : 'night';
 
     const key = `${entry.dayOfWeek}-${hourRange}`;
     const existing = timeSlots.get(key) || { scores: [], entries: 0 };
@@ -361,12 +373,15 @@ export async function getMoodCalendarSummary(userId: string): Promise<MoodCalend
     hourRange: t.range,
     avgMood: t.avgMood,
   }));
-  const challengingTimes = sorted.slice(-3).reverse().map((t) => ({
-    dayOfWeek: t.day,
-    hourRange: t.range,
-    avgMood: t.avgMood,
-    suggestion: `Consider lighter activities on ${DAY_NAMES[t.day]} ${t.range}`,
-  }));
+  const challengingTimes = sorted
+    .slice(-3)
+    .reverse()
+    .map((t) => ({
+      dayOfWeek: t.day,
+      hourRange: t.range,
+      avgMood: t.avgMood,
+      suggestion: `Consider lighter activities on ${DAY_NAMES[t.day]} ${t.range}`,
+    }));
 
   // Generate predictions for next 7 days
   const predictions: MoodPrediction[] = [];
@@ -413,13 +428,11 @@ export async function buildMoodCalendarContext(userId: string): Promise<string> 
   const currentHour = now.getHours();
 
   // Check if current time matches a challenging pattern
-  const currentChallenging = summary.challengingTimes.find(
-    (t) => t.dayOfWeek === currentDayOfWeek
-  );
+  const currentChallenging = summary.challengingTimes.find((t) => t.dayOfWeek === currentDayOfWeek);
   if (currentChallenging && currentChallenging.avgMood < 0.4) {
     sections.push(
       `🕐 Note: ${DAY_NAMES[currentDayOfWeek]} ${currentChallenging.hourRange} tends to be harder for this person. ` +
-      `Extra warmth may help.`
+        `Extra warmth may help.`
     );
   }
 
@@ -443,8 +456,7 @@ export async function buildMoodCalendarContext(userId: string): Promise<string> 
     sections.push('\n⚠️ Upcoming challenging times predicted:');
     for (const pred of significantPredictions.slice(0, 2)) {
       sections.push(
-        `• ${DAY_NAMES[pred.dayOfWeek]} around ${pred.hourOfDay}:00 - ` +
-        `${pred.historicalBasis}`
+        `• ${DAY_NAMES[pred.dayOfWeek]} around ${pred.hourOfDay}:00 - ` + `${pred.historicalBasis}`
       );
     }
   }
@@ -464,4 +476,3 @@ export const moodCalendar = {
   getSummary: getMoodCalendarSummary,
   buildContext: buildMoodCalendarContext,
 };
-

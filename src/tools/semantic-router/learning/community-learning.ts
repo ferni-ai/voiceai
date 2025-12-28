@@ -377,41 +377,45 @@ async function updatePatternInFirestore(
       // Calculate confidence
       const confidence = calculateConfidence(userCount, occurrenceCount);
 
-      await patternRef.update(cleanForFirestore({
-        userHashes: Array.from(existingUsers),
-        userCount,
-        occurrenceCount,
-        keywords: Array.from(existingKeywords).slice(0, 20), // Limit keywords
-        confidence,
-        isActive: userCount >= MIN_USERS_FOR_ACTIVE && occurrenceCount >= MIN_OCCURRENCES,
-        updatedAt: new Date(),
-        // Add query pattern example
-        queryExamples: addQueryExample(
-          (data?.queryExamples as QueryExample[]) || [],
-          normalizedQuery
-        ),
-      }));
+      await patternRef.update(
+        cleanForFirestore({
+          userHashes: Array.from(existingUsers),
+          userCount,
+          occurrenceCount,
+          keywords: Array.from(existingKeywords).slice(0, 20), // Limit keywords
+          confidence,
+          isActive: userCount >= MIN_USERS_FOR_ACTIVE && occurrenceCount >= MIN_OCCURRENCES,
+          updatedAt: new Date(),
+          // Add query pattern example
+          queryExamples: addQueryExample(
+            (data?.queryExamples as QueryExample[]) || [],
+            normalizedQuery
+          ),
+        })
+      );
 
       if (isNewUser) {
         log.info({ patternId, userCount, confidence }, 'Community pattern updated with new user');
       }
     } else {
       // Create new pattern
-      await patternRef.set(cleanForFirestore({
-        patternId,
-        incorrectTool,
-        correctTool,
-        queryPattern: extractQueryPattern(normalizedQuery),
-        keywords,
-        userHashes: [userHash],
-        userCount: 1,
-        occurrenceCount: 1,
-        confidence: 0.1, // Low initial confidence
-        isActive: false, // Not active until threshold reached
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        queryExamples: [{ query: normalizedQuery, count: 1 }],
-      }));
+      await patternRef.set(
+        cleanForFirestore({
+          patternId,
+          incorrectTool,
+          correctTool,
+          queryPattern: extractQueryPattern(normalizedQuery),
+          keywords,
+          userHashes: [userHash],
+          userCount: 1,
+          occurrenceCount: 1,
+          confidence: 0.1, // Low initial confidence
+          isActive: false, // Not active until threshold reached
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          queryExamples: [{ query: normalizedQuery, count: 1 }],
+        })
+      );
 
       log.debug({ patternId, incorrectTool, correctTool }, 'New community pattern created');
     }

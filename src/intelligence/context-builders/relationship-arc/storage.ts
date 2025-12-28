@@ -315,10 +315,7 @@ export async function forceStageTransition(
 /**
  * Get unreferenced key moments for callbacks (by userId - async)
  */
-export async function getUnreferencedMomentsAsync(
-  userId: string,
-  limit = 5
-): Promise<KeyMoment[]> {
+export async function getUnreferencedMomentsAsync(userId: string, limit = 5): Promise<KeyMoment[]> {
   const data = await loadRelationshipArcData(userId);
   if (!data) return [];
 

@@ -179,10 +179,7 @@ export class EmbeddingWorker {
   /**
    * Find similar cached embeddings (fast approximate search)
    */
-  findSimilar(
-    queryVector: EmbeddingVector,
-    topK = 5
-  ): Array<{ text: string; similarity: number }> {
+  findSimilar(queryVector: EmbeddingVector, topK = 5): Array<{ text: string; similarity: number }> {
     const results: Array<{ text: string; similarity: number }> = [];
 
     const cacheEntries = Array.from(this.cache.values());
@@ -342,7 +339,9 @@ export class EmbeddingWorker {
         }
 
         // Small delay to avoid overwhelming API
-        await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 100);
+        });
       }
     } catch (error) {
       log.error({ error }, 'Pre-warm failed');

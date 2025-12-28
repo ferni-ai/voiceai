@@ -125,7 +125,15 @@ export function buildCallScript(
     preferredTimes?: string[];
   }
 ): string {
-  const { agentName, userName, contactName, purpose, objective, additionalContext, preferredTimes } = params;
+  const {
+    agentName,
+    userName,
+    contactName,
+    purpose,
+    objective,
+    additionalContext,
+    preferredTimes,
+  } = params;
 
   const parts: string[] = [];
 
@@ -146,9 +154,7 @@ export function buildCallScript(
       .replace('{contactName}', contactName)
   );
   parts.push(
-    template.identityDisclosure
-      .replace('{agentName}', agentName)
-      .replace('{userName}', userName)
+    template.identityDisclosure.replace('{agentName}', agentName).replace('{userName}', userName)
   );
 
   // Recording consent if applicable

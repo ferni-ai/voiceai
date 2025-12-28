@@ -285,11 +285,15 @@ describe('CacheAwareTTS', () => {
 
       const mockDefaultTTS = vi.fn();
 
-      const result = await processTTSWithCache('I hear you.', {
-        voiceId: 'ferni',
-        emotion: 'neutral',
-        sessionId: 'test',
-      }, mockDefaultTTS);
+      const result = await processTTSWithCache(
+        'I hear you.',
+        {
+          voiceId: 'ferni',
+          emotion: 'neutral',
+          sessionId: 'test',
+        },
+        mockDefaultTTS
+      );
 
       // Read frames from the stream
       const reader = result.getReader();
@@ -304,9 +308,9 @@ describe('CacheAwareTTS', () => {
       // Should have at least one frame
       expect(frames.length).toBeGreaterThan(0);
 
-      // Each frame should have expected properties
-      const firstFrame = frames[0] as { data: Uint8Array; sampleRate: number; channels: number };
-      expect(firstFrame.data).toBeInstanceOf(Uint8Array);
+      // Each frame should have expected properties (Int16Array for PCM audio data)
+      const firstFrame = frames[0] as { data: Int16Array; sampleRate: number; channels: number };
+      expect(firstFrame.data).toBeInstanceOf(Int16Array);
       expect(firstFrame.sampleRate).toBe(24000);
       expect(firstFrame.channels).toBe(1);
     });

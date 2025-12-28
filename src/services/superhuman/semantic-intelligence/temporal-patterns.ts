@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getFirestoreDb, } from '../firestore-utils.js';
+import { getFirestoreDb } from '../firestore-utils.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'temporal-patterns' });
@@ -21,16 +21,16 @@ const log = createLogger({ module: 'temporal-patterns' });
 // ============================================================================
 
 export interface HourlyPattern {
-  hour: number;              // 0-23
-  dominantEmotions: Map<string, number>;  // emotion -> frequency
-  energyLevel: number;       // 0-1
-  receptivity: number;       // 0-1 (how open to deeper conversation)
+  hour: number; // 0-23
+  dominantEmotions: Map<string, number>; // emotion -> frequency
+  energyLevel: number; // 0-1
+  receptivity: number; // 0-1 (how open to deeper conversation)
   commonTopics: string[];
   sampleSize: number;
 }
 
 export interface DayOfWeekPattern {
-  day: number;               // 0-6 (Sunday = 0)
+  day: number; // 0-6 (Sunday = 0)
   dominantEmotions: Map<string, number>;
   energyLevel: number;
   stressLevel: number;
@@ -40,14 +40,14 @@ export interface DayOfWeekPattern {
 
 export interface SeasonalPattern {
   season: 'spring' | 'summer' | 'fall' | 'winter';
-  moodBaseline: number;      // -1 to 1
-  energyBaseline: number;    // 0-1
+  moodBaseline: number; // -1 to 1
+  energyBaseline: number; // 0-1
   commonThemes: string[];
-  warnings: string[];        // e.g., "Watch for winter blues"
+  warnings: string[]; // e.g., "Watch for winter blues"
 }
 
 export interface LifeStageIndicator {
-  stage: string;             // "early_career", "new_parent", etc.
+  stage: string; // "early_career", "new_parent", etc.
   confidence: number;
   indicators: string[];
   since?: Date;
@@ -68,8 +68,8 @@ export interface TemporalContext {
   currentHourPattern?: HourlyPattern;
   currentDayPattern?: DayOfWeekPattern;
   seasonalContext?: string;
-  anomaly?: string;          // "This is unusually late for you" 
-  recommendation?: string;   // "Evening seems to be your reflective time"
+  anomaly?: string; // "This is unusually late for you"
+  recommendation?: string; // "Evening seems to be your reflective time"
 }
 
 // ============================================================================
@@ -83,12 +83,12 @@ const CONFIG = {
   LATE_NIGHT_END: 5,
   MORNING_START: 6,
   MORNING_END: 10,
-  
+
   SEASONS: {
-    spring: [2, 3, 4],     // Mar, Apr, May
-    summer: [5, 6, 7],     // Jun, Jul, Aug
-    fall: [8, 9, 10],      // Sep, Oct, Nov
-    winter: [11, 0, 1],    // Dec, Jan, Feb
+    spring: [2, 3, 4], // Mar, Apr, May
+    summer: [5, 6, 7], // Jun, Jul, Aug
+    fall: [8, 9, 10], // Sep, Oct, Nov
+    winter: [11, 0, 1], // Dec, Jan, Feb
   },
 };
 
@@ -97,12 +97,15 @@ const CONFIG = {
 // ============================================================================
 
 const snapshotCache = new Map<string, TemporalSnapshot[]>();
-const patternCache = new Map<string, {
-  hourly: Map<number, HourlyPattern>;
-  daily: Map<number, DayOfWeekPattern>;
-  seasonal: Map<string, SeasonalPattern>;
-  computed: Date;
-}>();
+const patternCache = new Map<
+  string,
+  {
+    hourly: Map<number, HourlyPattern>;
+    daily: Map<number, DayOfWeekPattern>;
+    seasonal: Map<string, SeasonalPattern>;
+    computed: Date;
+  }
+>();
 
 // ============================================================================
 // RECORDING
@@ -121,7 +124,7 @@ export async function recordSnapshot(
   }
 ): Promise<void> {
   const now = new Date();
-  
+
   const snapshot: TemporalSnapshot = {
     timestamp: now,
     hourOfDay: now.getHours(),
@@ -132,14 +135,17 @@ export async function recordSnapshot(
     topic: data.topic,
     energyLevel: data.energyLevel,
   };
-  
+
   // Save
   await saveSnapshot(userId, snapshot);
-  
+
   // Invalidate pattern cache (will recompute on next access)
   patternCache.delete(userId);
-  
-  log.debug({ userId, hour: snapshot.hourOfDay, day: snapshot.dayOfWeek }, '⏰ Temporal snapshot recorded');
+
+  log.debug(
+    { userId, hour: snapshot.hourOfDay, day: snapshot.dayOfWeek },
+    '⏰ Temporal snapshot recorded'
+  );
 }
 
 // ============================================================================
@@ -151,16 +157,16 @@ export async function recordSnapshot(
  */
 async function computePatterns(userId: string): Promise<void> {
   const snapshots = await loadSnapshots(userId);
-  
+
   if (snapshots.length < CONFIG.MIN_SAMPLES_FOR_PATTERN) {
     return;
   }
-  
+
   // Initialize pattern maps
   const hourly = new Map<number, HourlyPattern>();
   const daily = new Map<number, DayOfWeekPattern>();
   const seasonal = new Map<string, SeasonalPattern>();
-  
+
   // Initialize hourly patterns
   for (let h = 0; h < 24; h++) {
     hourly.set(h, {
@@ -172,7 +178,7 @@ async function computePatterns(userId: string): Promise<void> {
       sampleSize: 0,
     });
   }
-  
+
   // Initialize daily patterns
   for (let d = 0; d < 7; d++) {
     daily.set(d, {
@@ -184,7 +190,7 @@ async function computePatterns(userId: string): Promise<void> {
       sampleSize: 0,
     });
   }
-  
+
   // Initialize seasonal patterns
   for (const season of ['spring', 'summer', 'fall', 'winter'] as const) {
     seasonal.set(cleanForFirestore(season), {
@@ -195,18 +201,18 @@ async function computePatterns(userId: string): Promise<void> {
       warnings: [],
     });
   }
-  
+
   // Topic counters
   const hourlyTopics = new Map<number, Map<string, number>>();
   const dailyTopics = new Map<number, Map<string, number>>();
   const seasonalThemes = new Map<string, Map<string, number>>();
-  
+
   // Process snapshots
   for (const snap of snapshots) {
     const hour = snap.hourOfDay;
     const day = snap.dayOfWeek;
     const season = getSeasonFromMonth(snap.month);
-    
+
     // Hourly
     const hp = hourly.get(hour)!;
     hp.sampleSize++;
@@ -221,7 +227,7 @@ async function computePatterns(userId: string): Promise<void> {
       const topics = hourlyTopics.get(hour)!;
       topics.set(snap.topic, (topics.get(snap.topic) || 0) + 1);
     }
-    
+
     // Daily
     const dp = daily.get(day)!;
     dp.sampleSize++;
@@ -236,7 +242,7 @@ async function computePatterns(userId: string): Promise<void> {
       const topics = dailyTopics.get(day)!;
       topics.set(snap.topic, (topics.get(snap.topic) || 0) + 1);
     }
-    
+
     // Seasonal
     const sp = seasonal.get(season)!;
     if (snap.emotionIntensity !== undefined && snap.emotion) {
@@ -252,28 +258,28 @@ async function computePatterns(userId: string): Promise<void> {
       themes.set(snap.topic, (themes.get(snap.topic) || 0) + 1);
     }
   }
-  
+
   // Finalize hourly topics
   for (const [hour, topics] of hourlyTopics) {
     const hp = hourly.get(hour)!;
     hp.commonTopics = getTopN(topics, 5);
     hp.receptivity = computeReceptivity(hour, hp);
   }
-  
+
   // Finalize daily topics
   for (const [day, topics] of dailyTopics) {
     const dp = daily.get(day)!;
     dp.commonTopics = getTopN(topics, 5);
     dp.stressLevel = computeStressLevel(dp);
   }
-  
+
   // Finalize seasonal themes
   for (const [season, themes] of seasonalThemes) {
     const sp = seasonal.get(season)!;
     sp.commonThemes = getTopN(themes, 5);
     sp.warnings = generateSeasonalWarnings(sp);
   }
-  
+
   // Store in cache
   patternCache.set(cleanForFirestore(userId), {
     hourly,
@@ -297,7 +303,7 @@ export async function getHourlyPattern(
   await ensurePatterns(userId);
   const patterns = patternCache.get(userId);
   if (!patterns) return null;
-  
+
   const targetHour = hour ?? new Date().getHours();
   return patterns.hourly.get(targetHour) ?? null;
 }
@@ -312,7 +318,7 @@ export async function getDayPattern(
   await ensurePatterns(userId);
   const patterns = patternCache.get(userId);
   if (!patterns) return null;
-  
+
   const targetDay = day ?? new Date().getDay();
   return patterns.daily.get(targetDay) ?? null;
 }
@@ -327,7 +333,7 @@ export async function getSeasonalPattern(
   await ensurePatterns(userId);
   const patterns = patternCache.get(userId);
   if (!patterns) return null;
-  
+
   const targetSeason = season ?? getSeasonFromMonth(new Date().getMonth());
   return patterns.seasonal.get(targetSeason) ?? null;
 }
@@ -339,18 +345,18 @@ export async function getTemporalContext(userId: string): Promise<TemporalContex
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();
-  
+
   const [hourPattern, dayPattern, seasonPattern] = await Promise.all([
     getHourlyPattern(userId, hour),
     getDayPattern(userId, day),
     getSeasonalPattern(userId),
   ]);
-  
+
   const context: TemporalContext = {
     currentHourPattern: hourPattern ?? undefined,
     currentDayPattern: dayPattern ?? undefined,
   };
-  
+
   // Generate seasonal context
   if (seasonPattern) {
     if (seasonPattern.moodBaseline < -0.3) {
@@ -359,27 +365,27 @@ export async function getTemporalContext(userId: string): Promise<TemporalContex
       context.seasonalContext = `${capitalize(seasonPattern.season)} is typically a positive time for them.`;
     }
   }
-  
+
   // Detect anomalies
   if (hour >= CONFIG.LATE_NIGHT_START || hour < CONFIG.LATE_NIGHT_END) {
     if (hourPattern && hourPattern.sampleSize < 5) {
-      context.anomaly = "This is unusually late for them to be talking.";
+      context.anomaly = 'This is unusually late for them to be talking.';
     }
   }
-  
+
   // Generate recommendations
   if (hourPattern && hourPattern.receptivity > 0.7) {
-    context.recommendation = "This tends to be a good time for deeper conversations.";
+    context.recommendation = 'This tends to be a good time for deeper conversations.';
   } else if (hourPattern && hourPattern.receptivity < 0.3) {
     context.recommendation = "They're usually not in a reflective mood at this time.";
   }
-  
+
   // Day-specific insights
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   if (dayPattern && dayPattern.stressLevel > 0.7) {
     context.recommendation = `${dayNames[day]} tends to be stressful for them.`;
   }
-  
+
   return context;
 }
 
@@ -400,11 +406,11 @@ export async function detectAnomaly(
 ): Promise<string | null> {
   const hour = new Date().getHours();
   const pattern = await getHourlyPattern(userId, hour);
-  
+
   if (!pattern || pattern.sampleSize < CONFIG.MIN_SAMPLES_FOR_PATTERN) {
     return null;
   }
-  
+
   // Check emotion anomaly
   if (current.emotion) {
     const usualEmotions = [...pattern.dominantEmotions.keys()];
@@ -412,7 +418,7 @@ export async function detectAnomaly(
       return `They don't usually feel ${current.emotion} at this hour.`;
     }
   }
-  
+
   // Check energy anomaly
   if (current.energyLevel !== undefined) {
     const diff = Math.abs(current.energyLevel - pattern.energyLevel);
@@ -420,11 +426,11 @@ export async function detectAnomaly(
       if (current.energyLevel > pattern.energyLevel) {
         return "They're more energetic than usual at this time.";
       } else {
-        return "They seem lower energy than usual at this time.";
+        return 'They seem lower energy than usual at this time.';
       }
     }
   }
-  
+
   return null;
 }
 
@@ -441,7 +447,7 @@ export async function formatTemporalContext(userId: string): Promise<string> {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const hour = now.getHours();
   const day = now.getDay();
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     'TEMPORAL AWARENESS - Time-based patterns',
@@ -450,22 +456,32 @@ export async function formatTemporalContext(userId: string): Promise<string> {
     `Current: ${dayNames[day]}, ${formatHour(hour)}`,
     '',
   ];
-  
+
   // Hour pattern
-  if (context.currentHourPattern && context.currentHourPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+  if (
+    context.currentHourPattern &&
+    context.currentHourPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN
+  ) {
     const hp = context.currentHourPattern;
     const topEmotion = getTopEmotion(hp.dominantEmotions);
     lines.push(`At this hour, they usually feel: ${topEmotion || 'varied'}`);
-    lines.push(`Energy level: ${hp.energyLevel > 0.6 ? 'High' : hp.energyLevel < 0.4 ? 'Low' : 'Medium'}`);
-    lines.push(`Receptivity: ${hp.receptivity > 0.6 ? 'Open to depth' : hp.receptivity < 0.4 ? 'Surface level' : 'Normal'}`);
+    lines.push(
+      `Energy level: ${hp.energyLevel > 0.6 ? 'High' : hp.energyLevel < 0.4 ? 'Low' : 'Medium'}`
+    );
+    lines.push(
+      `Receptivity: ${hp.receptivity > 0.6 ? 'Open to depth' : hp.receptivity < 0.4 ? 'Surface level' : 'Normal'}`
+    );
     if (hp.commonTopics.length > 0) {
       lines.push(`Common topics: ${hp.commonTopics.slice(0, 3).join(', ')}`);
     }
     lines.push('');
   }
-  
+
   // Day pattern
-  if (context.currentDayPattern && context.currentDayPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN) {
+  if (
+    context.currentDayPattern &&
+    context.currentDayPattern.sampleSize >= CONFIG.MIN_SAMPLES_FOR_PATTERN
+  ) {
     const dp = context.currentDayPattern;
     if (dp.stressLevel > 0.6) {
       lines.push(`⚠️ ${dayNames[day]} is typically stressful for them.`);
@@ -474,27 +490,27 @@ export async function formatTemporalContext(userId: string): Promise<string> {
     }
     lines.push('');
   }
-  
+
   // Seasonal context
   if (context.seasonalContext) {
     lines.push(context.seasonalContext);
     lines.push('');
   }
-  
+
   // Anomaly
   if (context.anomaly) {
     lines.push(`📍 ${context.anomaly}`);
     lines.push('');
   }
-  
+
   // Recommendation
   if (context.recommendation) {
     lines.push(`💡 ${context.recommendation}`);
     lines.push('');
   }
-  
+
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -514,10 +530,10 @@ function getSeasonFromMonth(month: number): 'spring' | 'summer' | 'fall' | 'wint
 function getEmotionValence(emotion: string): number {
   const positive = ['happy', 'excited', 'grateful', 'calm', 'content', 'hopeful', 'proud'];
   const negative = ['sad', 'anxious', 'angry', 'stressed', 'frustrated', 'worried', 'fearful'];
-  
+
   const lower = emotion.toLowerCase();
-  if (positive.some(e => lower.includes(e))) return 1;
-  if (negative.some(e => lower.includes(e))) return -1;
+  if (positive.some((e) => lower.includes(e))) return 1;
+  if (negative.some((e) => lower.includes(e))) return -1;
   return 0;
 }
 
@@ -554,27 +570,27 @@ function computeStressLevel(pattern: DayOfWeekPattern): number {
   const stressEmotions = ['stressed', 'anxious', 'overwhelmed', 'frustrated'];
   let stressCount = 0;
   let total = 0;
-  
+
   for (const [emotion, count] of pattern.dominantEmotions) {
     total += count;
-    if (stressEmotions.some(s => emotion.toLowerCase().includes(s))) {
+    if (stressEmotions.some((s) => emotion.toLowerCase().includes(s))) {
       stressCount += count;
     }
   }
-  
+
   return total > 0 ? stressCount / total : 0.5;
 }
 
 function generateSeasonalWarnings(pattern: SeasonalPattern): string[] {
   const warnings: string[] = [];
-  
+
   if (pattern.season === 'winter' && pattern.moodBaseline < -0.3) {
     warnings.push('Watch for winter blues');
   }
   if (pattern.energyBaseline < 0.3) {
     warnings.push(`Energy tends to dip in ${pattern.season}`);
   }
-  
+
   return warnings;
 }
 
@@ -592,7 +608,7 @@ function capitalize(s: string): string {
 async function ensurePatterns(userId: string): Promise<void> {
   const cached = patternCache.get(userId);
   const now = Date.now();
-  
+
   // Recompute if cache is old (>30 min) or doesn't exist
   if (!cached || now - cached.computed.getTime() > 30 * 60 * 1000) {
     await computePatterns(userId);
@@ -606,10 +622,10 @@ async function ensurePatterns(userId: string): Promise<void> {
 async function loadSnapshots(userId: string): Promise<TemporalSnapshot[]> {
   const cached = snapshotCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -618,15 +634,15 @@ async function loadSnapshots(userId: string): Promise<TemporalSnapshot[]> {
       .orderBy('timestamp', 'desc')
       .limit(CONFIG.MAX_SNAPSHOTS)
       .get();
-    
-    const snapshots = snapshot.docs.map(doc => {
+
+    const snapshots = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         timestamp: data.timestamp?.toDate?.() ?? new Date(data.timestamp),
       } as TemporalSnapshot;
     });
-    
+
     snapshotCache.set(userId, snapshots);
     return snapshots;
   } catch (error) {
@@ -638,7 +654,7 @@ async function loadSnapshots(userId: string): Promise<TemporalSnapshot[]> {
 async function saveSnapshot(userId: string, snapshot: TemporalSnapshot): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     const id = `snap_${snapshot.timestamp.getTime()}`;
     await db
@@ -647,7 +663,7 @@ async function saveSnapshot(userId: string, snapshot: TemporalSnapshot): Promise
       .collection('temporal_snapshots')
       .doc(id)
       .set(cleanForFirestore(snapshot));
-    
+
     // Update cache
     const cached = snapshotCache.get(userId) ?? [];
     cached.unshift(snapshot);
@@ -690,4 +706,3 @@ export const temporalPatterns = {
 };
 
 export default temporalPatterns;
-

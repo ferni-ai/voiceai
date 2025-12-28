@@ -437,7 +437,8 @@ function aggregateMetrics(metrics: EngagementMetrics[]): AggregatedMetrics {
     sessions: n,
     avgTurnCount: sum.turnCount / n,
     avgSessionDurationMs: sum.sessionDurationMs / n,
-    avgPositiveResponseRate: sum.totalResponses > 0 ? sum.positiveResponses / sum.totalResponses : 0,
+    avgPositiveResponseRate:
+      sum.totalResponses > 0 ? sum.positiveResponses / sum.totalResponses : 0,
     avgNoticingEngagementRate:
       sum.noticingsTriggered > 0 ? sum.noticingsAcknowledged / sum.noticingsTriggered : 0,
     avgExpressionEngagementRate:
@@ -479,7 +480,8 @@ function calculateSignificance(
   // Simplified significance calculation
   // In production, use proper statistical tests (t-test, chi-squared, etc.)
   const minSampleSize = 30;
-  const hasSufficientData = control.sessions >= minSampleSize && treatment.sessions >= minSampleSize;
+  const hasSufficientData =
+    control.sessions >= minSampleSize && treatment.sessions >= minSampleSize;
 
   // Consider significant if:
   // 1. Sufficient sample size
@@ -541,8 +543,8 @@ Positive Response Rate  ${(ctrl.avgPositiveResponseRate * 100).toFixed(1).padSta
 
 🧠 PERSONALITY SYSTEM METRICS (Treatment Only)
 ───────────────────────────────────────────────────────────────
-Noticing Engagement Rate:    ${(sig.noticingEngagementDelta).toFixed(1)}%
-Expression Engagement Rate:  ${(sig.expressionEngagementDelta).toFixed(1)}%
+Noticing Engagement Rate:    ${sig.noticingEngagementDelta.toFixed(1)}%
+Expression Engagement Rate:  ${sig.expressionEngagementDelta.toFixed(1)}%
 Avg Breakthrough Rate:       ${treat.avgBreakthroughRate.toFixed(2)} per session
 Avg Vulnerability Rate:      ${treat.avgVulnerabilityRate.toFixed(2)} per session
 
@@ -603,10 +605,3 @@ export const _testing = {
     sessionMetrics.clear();
   },
 };
-
-
-
-
-
-
-

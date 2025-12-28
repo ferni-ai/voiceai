@@ -15,56 +15,56 @@ const log = createLogger({ module: 'data-capture:recovery-event' });
 // Map event types
 const RECOVERY_EVENT_TYPES: Record<string, { type: string; baseIntensity: number }> = {
   // Conflict
-  'fight': { type: 'conflict', baseIntensity: 0.7 },
-  'argument': { type: 'conflict', baseIntensity: 0.7 },
-  'blowup': { type: 'conflict', baseIntensity: 0.8 },
+  fight: { type: 'conflict', baseIntensity: 0.7 },
+  argument: { type: 'conflict', baseIntensity: 0.7 },
+  blowup: { type: 'conflict', baseIntensity: 0.8 },
   // Bad news
   'bad news': { type: 'bad_news', baseIntensity: 0.7 },
   'found out': { type: 'bad_news', baseIntensity: 0.6 },
   'got news': { type: 'bad_news', baseIntensity: 0.6 },
   // Rejection
-  'rejected': { type: 'rejection', baseIntensity: 0.8 },
+  rejected: { type: 'rejection', baseIntensity: 0.8 },
   'turned down': { type: 'rejection', baseIntensity: 0.7 },
   "didn't get": { type: 'rejection', baseIntensity: 0.6 },
   'passed over': { type: 'rejection', baseIntensity: 0.7 },
   // Loss
-  'lost': { type: 'loss', baseIntensity: 0.9 },
-  'died': { type: 'loss', baseIntensity: 0.95 },
+  lost: { type: 'loss', baseIntensity: 0.9 },
+  died: { type: 'loss', baseIntensity: 0.95 },
   'passed away': { type: 'loss', baseIntensity: 0.95 },
-  'funeral': { type: 'loss', baseIntensity: 0.9 },
-  'breakup': { type: 'loss', baseIntensity: 0.85 },
-  'ended': { type: 'loss', baseIntensity: 0.7 },
+  funeral: { type: 'loss', baseIntensity: 0.9 },
+  breakup: { type: 'loss', baseIntensity: 0.85 },
+  ended: { type: 'loss', baseIntensity: 0.7 },
   // Intense work
-  'deadline': { type: 'intense_work', baseIntensity: 0.6 },
-  'crunch': { type: 'intense_work', baseIntensity: 0.7 },
+  deadline: { type: 'intense_work', baseIntensity: 0.6 },
+  crunch: { type: 'intense_work', baseIntensity: 0.7 },
   'all-nighter': { type: 'intense_work', baseIntensity: 0.8 },
   'worked all': { type: 'intense_work', baseIntensity: 0.7 },
   'pulled an all-nighter': { type: 'intense_work', baseIntensity: 0.8 },
   // Social
   'big event': { type: 'social_event', baseIntensity: 0.5 },
-  'party': { type: 'social_event', baseIntensity: 0.4 },
-  'wedding': { type: 'social_event', baseIntensity: 0.5 },
-  'conference': { type: 'social_event', baseIntensity: 0.6 },
+  party: { type: 'social_event', baseIntensity: 0.4 },
+  wedding: { type: 'social_event', baseIntensity: 0.5 },
+  conference: { type: 'social_event', baseIntensity: 0.6 },
   // Emotional conversation
   'heavy conversation': { type: 'emotional_conversation', baseIntensity: 0.7 },
   'emotional talk': { type: 'emotional_conversation', baseIntensity: 0.7 },
   'heart-to-heart': { type: 'emotional_conversation', baseIntensity: 0.6 },
   // Medical
-  'surgery': { type: 'medical_procedure', baseIntensity: 0.8 },
-  'procedure': { type: 'medical_procedure', baseIntensity: 0.6 },
-  'doctor': { type: 'medical_procedure', baseIntensity: 0.4 },
+  surgery: { type: 'medical_procedure', baseIntensity: 0.8 },
+  procedure: { type: 'medical_procedure', baseIntensity: 0.6 },
+  doctor: { type: 'medical_procedure', baseIntensity: 0.4 },
   // Stress
   'panic attack': { type: 'anxiety_peak', baseIntensity: 0.9 },
   'anxiety attack': { type: 'anxiety_peak', baseIntensity: 0.9 },
-  'breakdown': { type: 'anxiety_peak', baseIntensity: 0.85 },
-  'meltdown': { type: 'anxiety_peak', baseIntensity: 0.8 },
+  breakdown: { type: 'anxiety_peak', baseIntensity: 0.85 },
+  meltdown: { type: 'anxiety_peak', baseIntensity: 0.8 },
   // Disappointment
-  'disappointed': { type: 'disappointment', baseIntensity: 0.6 },
+  disappointed: { type: 'disappointment', baseIntensity: 0.6 },
   'let down': { type: 'disappointment', baseIntensity: 0.6 },
   // Embarrassment
-  'embarrassed': { type: 'embarrassment', baseIntensity: 0.5 },
-  'humiliated': { type: 'embarrassment', baseIntensity: 0.7 },
-  'mortified': { type: 'embarrassment', baseIntensity: 0.7 },
+  embarrassed: { type: 'embarrassment', baseIntensity: 0.5 },
+  humiliated: { type: 'embarrassment', baseIntensity: 0.7 },
+  mortified: { type: 'embarrassment', baseIntensity: 0.7 },
 };
 
 export const recoveryEventCaptureDefinition: DataCaptureDefinition = {
@@ -173,11 +173,24 @@ export const recoveryEventCaptureDefinition: DataCaptureDefinition = {
     }
 
     try {
-      const { startRecoveryTracking } = await import('../../../services/superhuman/recovery-tracking.js');
+      const { startRecoveryTracking } =
+        await import('../../../services/superhuman/recovery-tracking.js');
 
       await startRecoveryTracking(
         context.userId,
-        eventType.type as 'conflict' | 'bad_news' | 'rejection' | 'loss' | 'intense_work' | 'social_event' | 'emotional_conversation' | 'medical_procedure' | 'high_stress' | 'disappointment' | 'embarrassment' | 'anxiety_peak',
+        eventType.type as
+          | 'conflict'
+          | 'bad_news'
+          | 'rejection'
+          | 'loss'
+          | 'intense_work'
+          | 'social_event'
+          | 'emotional_conversation'
+          | 'medical_procedure'
+          | 'high_stress'
+          | 'disappointment'
+          | 'embarrassment'
+          | 'anxiety_peak',
         intensity,
         eventDescription.slice(0, 200)
       );
@@ -195,4 +208,3 @@ export const recoveryEventCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

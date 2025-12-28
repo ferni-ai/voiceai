@@ -161,10 +161,7 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
         throw new Error('No target persona in voiceSwitch event');
       }
 
-      log.info(
-        { sessionId, targetPersonaId },
-        '🎯 [EVENT-HANDLER] Target persona extracted'
-      );
+      log.info({ sessionId, targetPersonaId }, '🎯 [EVENT-HANDLER] Target persona extracted');
 
       diag.entry(`🔄 voiceSwitch: Switching to ${targetPersonaId}`);
 

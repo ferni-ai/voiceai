@@ -199,4 +199,3 @@ describe('Travel Domain Tools', () => {
     });
   });
 });
-

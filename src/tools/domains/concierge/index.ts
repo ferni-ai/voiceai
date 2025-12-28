@@ -528,10 +528,7 @@ const prepareForUpcomingEventDef: ToolDefinition = {
       }),
       execute: async ({ eventTitle, eventDate, eventType, attendees }) => {
         try {
-          log.info(
-            { userId: ctx.userId, eventTitle, eventDate },
-            'Preparing for upcoming event'
-          );
+          log.info({ userId: ctx.userId, eventTitle, eventDate }, 'Preparing for upcoming event');
 
           // Build event context for prep
           const eventDateTimestamp = new Date(eventDate).getTime();
@@ -588,7 +585,7 @@ const proactiveConciergeCheckInDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Proactively review what\'s coming up and identify where concierge services could help.',
+        "Proactively review what's coming up and identify where concierge services could help.",
       parameters: z.object({}),
       execute: async () => {
         try {

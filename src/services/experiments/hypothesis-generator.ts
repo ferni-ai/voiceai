@@ -617,10 +617,15 @@ export async function updateHypothesisStatus(
 ): Promise<void> {
   const db = getFirestore();
 
-  await db.collection('generated_hypotheses').doc(hypothesisId).update(cleanForFirestore({
-    status,
-    updatedAt: FieldValue.serverTimestamp(),
-  }));
+  await db
+    .collection('generated_hypotheses')
+    .doc(hypothesisId)
+    .update(
+      cleanForFirestore({
+        status,
+        updatedAt: FieldValue.serverTimestamp(),
+      })
+    );
 
   log.info({ hypothesisId, status }, 'Hypothesis status updated');
 }

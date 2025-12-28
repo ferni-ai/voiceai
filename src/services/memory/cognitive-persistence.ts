@@ -419,7 +419,10 @@ export async function recordTopicExplained(
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(cleanForFirestore(state), { merge: true });
+      await firestore
+        .collection(KNOWLEDGE_COLLECTION)
+        .doc(userId)
+        .set(cleanForFirestore(state), { merge: true });
     } catch (error) {
       getLogger().warn({ userId, error }, 'Failed to save knowledge state to Firestore');
     }
@@ -474,7 +477,10 @@ export async function recordDemonstratedUnderstanding(
     const firestore = await getFirestore();
     if (firestore) {
       try {
-        await firestore.collection(KNOWLEDGE_COLLECTION).doc(userId).set(cleanForFirestore(state), { merge: true });
+        await firestore
+          .collection(KNOWLEDGE_COLLECTION)
+          .doc(userId)
+          .set(cleanForFirestore(state), { merge: true });
       } catch (error) {
         getLogger().warn({ userId, error }, 'Failed to save demonstrated understanding');
       }
@@ -549,10 +555,12 @@ export async function validateUncertaintyStatement(
           .get();
 
         if (!query.empty) {
-          await query.docs[0].ref.update(cleanForFirestore({
-            wasCorrect,
-            userFeedback,
-          }));
+          await query.docs[0].ref.update(
+            cleanForFirestore({
+              wasCorrect,
+              userFeedback,
+            })
+          );
         }
       } catch (error) {
         getLogger().warn({ userId, error }, 'Failed to update uncertainty validation');

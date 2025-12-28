@@ -30,7 +30,9 @@ describe('safeFireAndForget', () => {
     fireAndForget(mockFn, 'test-success');
 
     // Wait for microtask queue to flush
-    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
 
     expect(mockFn).toHaveBeenCalledTimes(1);
   });
@@ -43,7 +45,9 @@ describe('safeFireAndForget', () => {
     expect(() => fireAndForget(mockFn, 'test-error')).not.toThrow();
 
     // Wait for promise to settle
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     expect(mockFn).toHaveBeenCalledTimes(1);
   });
@@ -59,7 +63,9 @@ describe('safeFireAndForget', () => {
 
     fireAndForget(mockFn, 'test-sync-promise');
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     expect(executed).toBe(true);
     expect(mockFn).toHaveBeenCalledTimes(1);
@@ -68,7 +74,9 @@ describe('safeFireAndForget', () => {
   it('should execute immediately without blocking', () => {
     let executed = false;
     const slowFn = vi.fn(async () => {
-      await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
       executed = true;
     });
 
@@ -92,7 +100,9 @@ describe('safeFireAndForget', () => {
     fireAndForget(mockFn, 'test-concurrent-2');
     fireAndForget(mockFn, 'test-concurrent-3');
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     expect(mockFn).toHaveBeenCalledTimes(3);
     expect(calls).toHaveLength(3);
@@ -122,7 +132,9 @@ describe('safeFireAndForget', () => {
     fireAndForget(failingFn, 'test-failing');
     fireAndForget(successFn, 'test-success-after-fail');
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     expect(results).toContain('started');
     expect(results).toContain('success');
@@ -133,7 +145,9 @@ describe('safeFireAndForget', () => {
 
     fireAndForget(mockFn, 'test-string-error');
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     // Should not crash
     expect(mockFn).toHaveBeenCalledTimes(1);
@@ -144,7 +158,9 @@ describe('safeFireAndForget', () => {
 
     fireAndForget(mockFn, 'test-undefined-error');
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     // Should not crash
     expect(mockFn).toHaveBeenCalledTimes(1);
@@ -159,7 +175,9 @@ describe('safeFireAndForget', () => {
       critical: false,
     });
 
-    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
 
     expect(mockFn).toHaveBeenCalledTimes(1);
   });

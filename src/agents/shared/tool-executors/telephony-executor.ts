@@ -52,7 +52,7 @@ async function execute(
     log.info({ contact, purpose, preferredChannel, userId }, '🤝 Unified outreach initiated');
 
     if (!contact) {
-      return "Who would you like me to reach out to?";
+      return 'Who would you like me to reach out to?';
     }
 
     if (!purpose) {
@@ -61,16 +61,15 @@ async function execute(
 
     try {
       // Import the unified outreach service functions
-      const { searchContacts } = await import(
-        '../../../services/contacts/contact-relationship-service.js'
-      );
+      const { searchContacts } =
+        await import('../../../services/contacts/contact-relationship-service.js');
       const { callWithPersonaVoice } = await import('../../../services/voice/voice-call.js');
       const { sendSMS } = await import('../../../services/outreach/delivery/sms-delivery.js');
       const { sendEmail } = await import('../../../services/outreach/delivery/email-delivery.js');
-      
+
       // Resolve contact info
       let contactInfo: { name: string; phone?: string; email?: string } | null = null;
-      
+
       const matches = await searchContacts(userId, contact);
       if (matches.length > 0) {
         const match = matches[0];
@@ -80,70 +79,82 @@ async function execute(
           email: match.email,
         };
       }
-      
+
       if (!contactInfo) {
         return `I don't have ${contact} in your contacts. Can you give me their phone number or email?`;
       }
-      
+
       // Generate simple message
       const messageToSend = message || purpose;
       const personaId = ctx.personaId || 'ferni';
       const outreachId = `outreach_${Date.now()}`;
-      
+
       // Determine channel (simplified logic)
       let selectedChannel = preferredChannel;
       if (!selectedChannel || selectedChannel === 'auto') {
         // Default: text if we have phone, email if we only have email
         selectedChannel = contactInfo.phone ? 'text' : 'email';
-        
+
         // Upgrade to call for certain purposes
         const purposeLower = purpose.toLowerCase();
-        if (purposeLower.includes('check in') || purposeLower.includes('talk') || purposeLower.includes('conversation')) {
+        if (
+          purposeLower.includes('check in') ||
+          purposeLower.includes('talk') ||
+          purposeLower.includes('conversation')
+        ) {
           selectedChannel = 'call';
         }
       }
-      
+
       // Execute the outreach based on channel
       if (selectedChannel === 'call' || selectedChannel === 'conversation') {
         if (!contactInfo.phone) {
           return `I don't have ${contactInfo.name}'s phone number. Should I send an email instead?`;
         }
-        const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, { fallbackToTwilioVoice: true });
+        const result = await callWithPersonaVoice(contactInfo.phone, messageToSend, personaId, {
+          fallbackToTwilioVoice: true,
+        });
         if (result.success) {
           return `📞 Calling ${contactInfo.name} now: "${messageToSend}"`;
         }
         return `I couldn't call ${contactInfo.name}. ${result.message || 'Want me to try texting?'}`;
       }
-      
+
       if (selectedChannel === 'text') {
         if (!contactInfo.phone) {
           return `I don't have ${contactInfo.name}'s phone number. Should I send an email instead?`;
         }
-        const result = await sendSMS({ to: contactInfo.phone, body: messageToSend, personaId, userId, outreachId });
+        const result = await sendSMS({
+          to: contactInfo.phone,
+          body: messageToSend,
+          personaId,
+          userId,
+          outreachId,
+        });
         if (result.success) {
           return `📱 Texted ${contactInfo.name}: "${messageToSend}"`;
         }
         return `I couldn't text ${contactInfo.name}. ${result.error || 'Want me to try email?'}`;
       }
-      
+
       if (selectedChannel === 'email') {
         if (!contactInfo.email) {
           return `I don't have ${contactInfo.name}'s email. Should I try calling or texting?`;
         }
-        const result = await sendEmail({ 
-          to: contactInfo.email, 
-          subject: `From Ferni: ${purpose.slice(0, 50)}`, 
-          body: messageToSend, 
-          personaId, 
-          userId, 
-          outreachId 
+        const result = await sendEmail({
+          to: contactInfo.email,
+          subject: `From Ferni: ${purpose.slice(0, 50)}`,
+          body: messageToSend,
+          personaId,
+          userId,
+          outreachId,
         });
         if (result.success) {
           return `📧 Emailed ${contactInfo.name}: "${messageToSend}"`;
         }
         return `I couldn't email ${contactInfo.name}. ${result.error}`;
       }
-      
+
       return `I'm not sure how to reach ${contactInfo.name}. What's the best way?`;
     } catch (error) {
       log.error({ error: String(error), contact, purpose }, '🤝 Unified outreach failed');
@@ -162,10 +173,14 @@ async function execute(
     const phoneNumber = args.phoneNumber as string;
     // callAndConverse uses 'purpose', callOnBehalf uses 'objective'
     const objective = (args.objective || args.purpose) as string;
-    const callType = (args.callType as string) || (fnLower === 'callandconverse' ? 'personal' : 'business');
+    const callType =
+      (args.callType as string) || (fnLower === 'callandconverse' ? 'personal' : 'business');
     const tone = args.tone as string; // warm, casual, professional (for callAndConverse)
 
-    log.info({ contact, objective, callType, tone, userId, fn: fnLower }, '📞 Initiating phone call');
+    log.info(
+      { contact, objective, callType, tone, userId, fn: fnLower },
+      '📞 Initiating phone call'
+    );
 
     // Validate required info
     if (!contact && !phoneNumber) {
@@ -179,9 +194,8 @@ async function execute(
     if (!resolvedPhoneNumber && contact) {
       try {
         // Try to look up the contact in the user's contacts
-        const { searchContacts } = await import(
-          '../../../services/contacts/contact-relationship-service.js'
-        );
+        const { searchContacts } =
+          await import('../../../services/contacts/contact-relationship-service.js');
         const results = await searchContacts(userId, contact);
 
         if (results.length > 0) {
@@ -202,16 +216,18 @@ async function execute(
           return `I don't have ${contact}'s phone number saved yet. What number should I call?`;
         }
       } catch (lookupError) {
-        log.warn({ error: String(lookupError), contact }, '📞 Contact lookup failed, asking for number');
+        log.warn(
+          { error: String(lookupError), contact },
+          '📞 Contact lookup failed, asking for number'
+        );
         return `I couldn't look up ${contact}'s number right now. Can you tell me what number to call?`;
       }
     }
 
     try {
       // Lazy load the telephony domain tool
-      const { createCallOnBehalfTool } = await import(
-        '../../../tools/domains/telephony/call-on-behalf.js'
-      );
+      const { createCallOnBehalfTool } =
+        await import('../../../tools/domains/telephony/call-on-behalf.js');
 
       // Create the tool with context
       const tool = createCallOnBehalfTool({
@@ -288,4 +304,3 @@ export const telephonyExecutor: DomainExecutor = {
 };
 
 export default telephonyExecutor;
-

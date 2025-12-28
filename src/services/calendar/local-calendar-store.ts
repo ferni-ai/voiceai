@@ -129,7 +129,10 @@ async function persistEvent(userId: string, event: CalendarEvent): Promise<void>
   };
 
   try {
-    await firestore.collection(LOCAL_CALENDAR_COLLECTION).doc(event.id).set(cleanForFirestore(stored));
+    await firestore
+      .collection(LOCAL_CALENDAR_COLLECTION)
+      .doc(event.id)
+      .set(cleanForFirestore(stored));
   } catch (error) {
     log.error({ error: String(error), eventId: event.id }, 'Failed to persist local event');
   }

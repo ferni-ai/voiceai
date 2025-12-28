@@ -323,9 +323,21 @@ describe('AdminActivityService', () => {
 
     it('should filter by type in memory', () => {
       const inMemoryLog: ActivityEvent[] = [
-        { id: 'act-1', type: 'handoff', action: 'test', description: 'Test', timestamp: new Date() },
+        {
+          id: 'act-1',
+          type: 'handoff',
+          action: 'test',
+          description: 'Test',
+          timestamp: new Date(),
+        },
         { id: 'act-2', type: 'agent', action: 'test', description: 'Test', timestamp: new Date() },
-        { id: 'act-3', type: 'handoff', action: 'test', description: 'Test', timestamp: new Date() },
+        {
+          id: 'act-3',
+          type: 'handoff',
+          action: 'test',
+          description: 'Test',
+          timestamp: new Date(),
+        },
         { id: 'act-4', type: 'system', action: 'test', description: 'Test', timestamp: new Date() },
       ];
 
@@ -340,7 +352,13 @@ describe('AdminActivityService', () => {
 
       const inMemoryLog: ActivityEvent[] = [
         { id: 'act-1', type: 'system', action: 'test', description: 'New', timestamp: new Date() },
-        { id: 'act-2', type: 'system', action: 'test', description: 'Old', timestamp: new Date('2020-01-01') },
+        {
+          id: 'act-2',
+          type: 'system',
+          action: 'test',
+          description: 'Old',
+          timestamp: new Date('2020-01-01'),
+        },
         { id: 'act-3', type: 'system', action: 'test', description: 'New', timestamp: new Date() },
       ];
 
@@ -385,7 +403,12 @@ describe('AdminActivityService', () => {
     });
 
     describe('Agent events', () => {
-      const agentActions = ['tool_execution', 'response_generated', 'context_loaded', 'memory_retrieved'];
+      const agentActions = [
+        'tool_execution',
+        'response_generated',
+        'context_loaded',
+        'memory_retrieved',
+      ];
 
       it.each(agentActions)('should support %s action', (action) => {
         const event: ActivityEvent = {
@@ -402,7 +425,12 @@ describe('AdminActivityService', () => {
     });
 
     describe('Trust events', () => {
-      const trustActions = ['identity_verified', 'voice_enrolled', '2fa_completed', 'session_authenticated'];
+      const trustActions = [
+        'identity_verified',
+        'voice_enrolled',
+        '2fa_completed',
+        'session_authenticated',
+      ];
 
       it.each(trustActions)('should support %s action', (action) => {
         const event: ActivityEvent = {
@@ -483,7 +511,7 @@ describe('AdminActivityService', () => {
         },
       };
 
-      expect((event.metadata?.evaluatedResponses as string[])).toHaveLength(3);
+      expect(event.metadata?.evaluatedResponses as string[]).toHaveLength(3);
       expect((event.metadata?.scores as number[]).reduce((a, b) => a + b, 0) / 3).toBeCloseTo(0.9);
     });
   });
@@ -507,9 +535,27 @@ describe('AdminActivityService', () => {
 
     it('should sort by timestamp descending', () => {
       const events: ActivityEvent[] = [
-        { id: 'act-1', type: 'system', action: 'test', description: 'Oldest', timestamp: new Date('2024-01-01') },
-        { id: 'act-2', type: 'system', action: 'test', description: 'Middle', timestamp: new Date('2024-06-01') },
-        { id: 'act-3', type: 'system', action: 'test', description: 'Newest', timestamp: new Date('2024-12-01') },
+        {
+          id: 'act-1',
+          type: 'system',
+          action: 'test',
+          description: 'Oldest',
+          timestamp: new Date('2024-01-01'),
+        },
+        {
+          id: 'act-2',
+          type: 'system',
+          action: 'test',
+          description: 'Middle',
+          timestamp: new Date('2024-06-01'),
+        },
+        {
+          id: 'act-3',
+          type: 'system',
+          action: 'test',
+          description: 'Newest',
+          timestamp: new Date('2024-12-01'),
+        },
       ];
 
       const sorted = events.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());

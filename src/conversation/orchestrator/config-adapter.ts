@@ -21,8 +21,7 @@ import {
   type HumanizationConfig,
 } from '../humanization/config.js';
 
-import type {
-  HUMANIZING_PRESETS} from '../humanizing-config.js';
+import type { HUMANIZING_PRESETS } from '../humanizing-config.js';
 import {
   applyPreset as applyHumanizingPreset,
   getHumanizingConfig,

@@ -28,7 +28,10 @@ import {
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { getDefaultStore } from '../../../../memory/index.js';
-import { getPersonaDisplayName, getCanonicalPersonaId } from '../../../../personas/voice-registry.js';
+import {
+  getPersonaDisplayName,
+  getCanonicalPersonaId,
+} from '../../../../personas/voice-registry.js';
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'proactive-outreach' });
@@ -247,7 +250,7 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
 
         // Determine delivery method (voice → call for API compatibility)
         const deliveryMethod: ReminderDeliveryMethod =
-          method === 'voice' ? 'call' : (method || (contactInfo.phone ? 'sms' : 'email'));
+          method === 'voice' ? 'call' : method || (contactInfo.phone ? 'sms' : 'email');
 
         // Parse the time
         const now = new Date();
@@ -294,7 +297,8 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
           message: `${personaName}: ${message}`,
           scheduledFor,
           deliveryMethod,
-          deliveryAddress: (deliveryMethod === 'email' ? contactInfo.email : contactInfo.phone) || '',
+          deliveryAddress:
+            (deliveryMethod === 'email' ? contactInfo.email : contactInfo.phone) || '',
         });
 
         if (!reminder?.id) {
@@ -306,9 +310,10 @@ Use for: follow-ups, accountability check-ins, celebrations, and scheduled remin
           minute: '2-digit',
           hour12: true,
         });
-        const dateStr = scheduledFor.toDateString() !== now.toDateString()
-          ? ` on ${scheduledFor.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`
-          : '';
+        const dateStr =
+          scheduledFor.toDateString() !== now.toDateString()
+            ? ` on ${scheduledFor.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`
+            : '';
 
         return `📅 I'll ${deliveryMethod === 'email' ? 'email' : 'text'} you at ${timeStr}${dateStr}. I won't forget!`;
       },
@@ -332,10 +337,7 @@ export const sendImmediateOutreachDef: ToolDefinition = {
 Use when you need to reach them right now outside of the conversation.`,
       parameters: z.object({
         message: z.string().describe('The message to send'),
-        method: z
-          .enum(['sms', 'email', 'call'])
-          .optional()
-          .describe('Delivery method'),
+        method: z.enum(['sms', 'email', 'call']).optional().describe('Delivery method'),
       }),
       execute: async ({ message, method }) => {
         if (!ctx.userId) {
@@ -430,13 +432,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
 // ============================================================================
 
 export function getAgentToUserOutreachDefinitions(): ToolDefinition[] {
-  return [
-    saveContactInfoDef,
-    scheduleReminderDef,
-    sendImmediateOutreachDef,
-    callUserDef,
-  ];
+  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef, callUserDef];
 }
 
 export default getAgentToUserOutreachDefinitions;
-

@@ -155,8 +155,10 @@ export function calculateStressTrajectory(
   const firstHalf = recentReadings.slice(0, midpoint);
   const secondHalf = recentReadings.slice(midpoint);
 
-  const avgFirst = firstHalf.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / firstHalf.length;
-  const avgSecond = secondHalf.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / secondHalf.length;
+  const avgFirst =
+    firstHalf.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / firstHalf.length;
+  const avgSecond =
+    secondHalf.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / secondHalf.length;
 
   const change = avgSecond - avgFirst;
 
@@ -257,8 +259,10 @@ export async function getBiomarkerTrends(userId: string): Promise<BiomarkerTrend
   }
 
   // Fatigue trend
-  const baselineFatigue = baseline.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / baseline.length;
-  const recentFatigue = recent.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / recent.length;
+  const baselineFatigue =
+    baseline.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / baseline.length;
+  const recentFatigue =
+    recent.reduce((sum, r) => sum + r.biomarkers.fatigueLevel, 0) / recent.length;
   const fatigueChange = ((recentFatigue - baselineFatigue) / baselineFatigue) * 100;
 
   trends.push({
@@ -270,8 +274,10 @@ export async function getBiomarkerTrends(userId: string): Promise<BiomarkerTrend
   });
 
   // Hydration trend
-  const baselineHydration = baseline.reduce((sum, r) => sum + r.biomarkers.hydrationEstimate, 0) / baseline.length;
-  const recentHydration = recent.reduce((sum, r) => sum + r.biomarkers.hydrationEstimate, 0) / recent.length;
+  const baselineHydration =
+    baseline.reduce((sum, r) => sum + r.biomarkers.hydrationEstimate, 0) / baseline.length;
+  const recentHydration =
+    recent.reduce((sum, r) => sum + r.biomarkers.hydrationEstimate, 0) / recent.length;
   const hydrationChange = ((recentHydration - baselineHydration) / baselineHydration) * 100;
 
   trends.push({
@@ -308,21 +314,21 @@ export async function buildVoiceBiomarkersContext(
     if (fatigueLevel > 0.6) {
       sections.push(
         `[VOICE BIOMARKER] User's voice shows signs of fatigue (${Math.round(fatigueLevel * 100)}% confidence). ` +
-        `Consider: shorter responses, more warmth, avoid complex topics.`
+          `Consider: shorter responses, more warmth, avoid complex topics.`
       );
     }
 
     if (hydrationEstimate < 0.4) {
       sections.push(
         `[VOICE BIOMARKER] Voice patterns suggest dehydration. ` +
-        `If appropriate, gently encourage water/self-care.`
+          `If appropriate, gently encourage water/self-care.`
       );
     }
 
     if (illnessRisk > 0.5) {
       sections.push(
         `[VOICE BIOMARKER] Voice patterns suggest possible illness (${Math.round(illnessRisk * 100)}% risk). ` +
-        `Be extra gentle. Consider asking how they're feeling physically.`
+          `Be extra gentle. Consider asking how they're feeling physically.`
       );
     }
   }
@@ -333,12 +339,12 @@ export async function buildVoiceBiomarkersContext(
     if (trajectory === 'rising') {
       sections.push(
         `[VOICE TREND] Stress/fatigue has been rising over recent conversations. ` +
-        `This person may be heading toward burnout. Proactively check in.`
+          `This person may be heading toward burnout. Proactively check in.`
       );
     } else if (trajectory === 'falling') {
       sections.push(
         `[VOICE TREND] Stress/fatigue has been decreasing. They're recovering. ` +
-        `Acknowledge their progress subtly.`
+          `Acknowledge their progress subtly.`
       );
     }
   }
@@ -349,7 +355,7 @@ export async function buildVoiceBiomarkersContext(
       if (trend.metric === 'fatigue' && trend.direction === 'declining') {
         sections.push(
           `[WELLNESS ALERT] Fatigue levels up ${Math.abs(Math.round(trend.percentChange))}% vs baseline. ` +
-          `Consider asking about sleep or energy levels.`
+            `Consider asking about sleep or energy levels.`
         );
       }
     }
@@ -370,4 +376,3 @@ export const voiceBiomarkers = {
   buildContext: buildVoiceBiomarkersContext,
   calculateStressTrajectory,
 };
-

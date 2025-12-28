@@ -737,7 +737,10 @@ export function createTravelTools() {
             budget,
           });
         } catch (calendarError) {
-          getLogger().warn({ error: calendarError, tripId: trip.id }, 'Failed to sync trip to calendar');
+          getLogger().warn(
+            { error: calendarError, tripId: trip.id },
+            'Failed to sync trip to calendar'
+          );
         }
 
         const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));

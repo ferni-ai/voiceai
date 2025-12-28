@@ -54,14 +54,14 @@ const CRISIS_SERVICES: Record<string, CrisisService> = {
     description: 'Support for domestic violence survivors',
     specialization: ['domestic-violence', 'safety-planning'],
   },
-  'samhsa': {
+  samhsa: {
     name: 'SAMHSA National Helpline',
     phone: '1-800-662-4357',
     available: '24/7, 365 days',
     description: 'Free treatment referrals and information',
     specialization: ['substance-abuse', 'addiction', 'treatment-referral'],
   },
-  'trevor': {
+  trevor: {
     name: 'Trevor Project',
     phone: '1-866-488-7386',
     sms: 'START to 678-678',
@@ -70,7 +70,7 @@ const CRISIS_SERVICES: Record<string, CrisisService> = {
     description: 'Crisis intervention for LGBTQ+ young people',
     specialization: ['lgbtq', 'youth', 'crisis'],
   },
-  'veterans': {
+  veterans: {
     name: 'Veterans Crisis Line',
     phone: '988, then press 1',
     sms: '838255',
@@ -152,9 +152,7 @@ export function getAvailableServices(escalationType: EscalationType): CrisisServ
 /**
  * Initiate warm transfer to human professional
  */
-export async function initiateWarmTransfer(
-  request: TransferRequest
-): Promise<TransferResult> {
+export async function initiateWarmTransfer(request: TransferRequest): Promise<TransferResult> {
   const { userId, decision, consent, summary } = request;
 
   log.info(
@@ -203,7 +201,8 @@ export async function initiateWarmTransfer(
       return {
         success: false,
         reason: 'Unknown transfer type',
-        message: "I want to make sure you get the right support. Let's figure out what would help most.",
+        message:
+          "I want to make sure you get the right support. Let's figure out what would help most.",
       };
   }
 }
@@ -270,7 +269,7 @@ async function initiateTherapyTransfer(
 ): Promise<TransferResult> {
   // For now, provide curated list of resources
   // Future: integrate with BetterHelp/Talkspace APIs
-  
+
   const resources = [
     {
       name: THERAPY_PLATFORMS.psychologyToday.name,
@@ -521,4 +520,3 @@ export const transferFlow = {
   initiateWarmTransfer,
   generateConsentRequest,
 };
-

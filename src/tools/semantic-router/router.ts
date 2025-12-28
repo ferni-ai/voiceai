@@ -55,9 +55,7 @@ const log = createLogger({ module: 'semantic-router' });
  * Convert internal HolisticLayerResult to external HolisticContextSummary.
  * This provides a clean, serializable representation for downstream consumers.
  */
-function toHolisticContextSummary(
-  holisticResult: HolisticLayerResult
-): HolisticContextSummary {
+function toHolisticContextSummary(holisticResult: HolisticLayerResult): HolisticContextSummary {
   const ctx = holisticResult.holisticContext;
   const multiIntent = holisticResult.multiIntent;
 
@@ -74,7 +72,7 @@ function toHolisticContextSummary(
     relationshipSentiment: ctx.relationship?.sentiment,
     emotionType: ctx.emotion?.type,
     emotionValence: ctx.emotion?.valence,
-    urgency: ctx.overallUrgency,  // HolisticContext uses overallUrgency
+    urgency: ctx.overallUrgency, // HolisticContext uses overallUrgency
     sentiment: ctx.sentiment,
     isCrisis: ctx.sentiment === 'crisis',
     isCompoundIntent: multiIntent.isCompound,
@@ -438,7 +436,7 @@ export class SemanticRouter {
     recordRoutingMetrics(
       action.type,
       action.type === 'execute' || action.type === 'confirm' || action.type === 'hint'
-        ? matchResult.matches[0]?.toolId ?? null
+        ? (matchResult.matches[0]?.toolId ?? null)
         : null,
       matchResult.matches[0]?.confidence ?? 0,
       metadata.totalTimeMs

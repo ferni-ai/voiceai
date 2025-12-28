@@ -183,9 +183,11 @@ export async function persistTurn(
     // Increment turn count (fire and forget - don't await)
     if (FieldValue) {
       conversationRef
-        .update(cleanForFirestore({
-          turnCount: FieldValue.increment(1),
-        }))
+        .update(
+          cleanForFirestore({
+            turnCount: FieldValue.increment(1),
+          })
+        )
         .catch((err) => {
           // Non-critical - log for production monitoring
           log.warn({ error: String(err) }, 'Turn count increment failed (non-critical)');
@@ -216,9 +218,11 @@ export async function endConversation(userId: string, conversationId: string): P
       .doc(userId)
       .collection('conversations')
       .doc(conversationId)
-      .update(cleanForFirestore({
-        endedAt: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          endedAt: new Date(),
+        })
+      );
 
     log.info({ userId, conversationId }, '🏁 Conversation ended, ready for summarization');
   } catch (error) {
@@ -407,17 +411,24 @@ export async function markSummarized(
       .doc(userId)
       .collection('conversations')
       .doc(conversationId)
-      .update(cleanForFirestore({
-        summarized: true,
-        summary,
-        summarizedAt: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          summarized: true,
+          summary,
+          summarizedAt: new Date(),
+        })
+      );
 
     // Also update the user's lastConversationSummary
-    await firestore.collection('bogle_users').doc(userId).update(cleanForFirestore({
-      lastConversationSummary: summary,
-      lastContact: new Date(),
-    }));
+    await firestore
+      .collection('bogle_users')
+      .doc(userId)
+      .update(
+        cleanForFirestore({
+          lastConversationSummary: summary,
+          lastContact: new Date(),
+        })
+      );
 
     log.info(
       { userId, conversationId, summaryPreview: summary.slice(0, 50) },

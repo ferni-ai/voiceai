@@ -62,12 +62,7 @@ export const whatCanYouDoTool: SemanticToolDefinition = {
     'Tell me what you do',
   ],
 
-  counterExamples: [
-    'Set a timer',
-    'What is the weather?',
-    'Play music',
-    'What time is it?',
-  ],
+  counterExamples: ['Set a timer', 'What is the weather?', 'Play music', 'What time is it?'],
 
   arguments: [
     {
@@ -75,7 +70,16 @@ export const whatCanYouDoTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Category to focus on',
       required: false,
-      enumValues: ['all', 'productivity', 'coaching', 'fun', 'smart-home', 'communication', 'finance', 'wellness'],
+      enumValues: [
+        'all',
+        'productivity',
+        'coaching',
+        'fun',
+        'smart-home',
+        'communication',
+        'finance',
+        'wellness',
+      ],
       extractionPatterns: [
         /(?:help\s+with|about)\s+(productivity|coaching|fun|smart.?home|communication|finance|wellness)/i,
       ],
@@ -186,10 +190,7 @@ export const quickCaptureTool: SemanticToolDefinition = {
       description: 'How urgent',
       required: false,
       enumValues: ['now', 'soon', 'someday', 'just-remember'],
-      extractionPatterns: [
-        /(urgent|asap|right\s+away|now)/i,
-        /(soon|later|eventually)/i,
-      ],
+      extractionPatterns: [/(urgent|asap|right\s+away|now)/i, /(soon|later|eventually)/i],
     },
   ],
 
@@ -261,12 +262,7 @@ export const recentContextTool: SemanticToolDefinition = {
     'What do you remember about my habits?',
   ],
 
-  counterExamples: [
-    'Set a reminder',
-    'Create a note',
-    'What can you do?',
-    'Play music',
-  ],
+  counterExamples: ['Set a reminder', 'Create a note', 'What can you do?', 'Play music'],
 
   arguments: [
     {
@@ -275,18 +271,14 @@ export const recentContextTool: SemanticToolDefinition = {
       description: 'How far back to look',
       required: false,
       enumValues: ['today', 'yesterday', 'this-week', 'last-week', 'this-month', 'all-time'],
-      extractionPatterns: [
-        /(today|yesterday|this\s+week|last\s+week|this\s+month)/i,
-      ],
+      extractionPatterns: [/(today|yesterday|this\s+week|last\s+week|this\s+month)/i],
     },
     {
       name: 'topic',
       type: 'string',
       description: 'Specific topic to recall',
       required: false,
-      extractionPatterns: [
-        /(?:about|regarding|on)\s+(?:my\s+)?(.+?)(?:\s+please)?$/i,
-      ],
+      extractionPatterns: [/(?:about|regarding|on)\s+(?:my\s+)?(.+?)(?:\s+please)?$/i],
     },
   ],
 
@@ -373,20 +365,23 @@ export const setPreferenceTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Type of preference',
       required: false,
-      enumValues: ['temperature', 'distance', 'time-format', 'nickname', 'timezone', 'language', 'voice-speed'],
-      extractionPatterns: [
-        /(temperature|distance|time|timezone|language|speed)/i,
+      enumValues: [
+        'temperature',
+        'distance',
+        'time-format',
+        'nickname',
+        'timezone',
+        'language',
+        'voice-speed',
       ],
+      extractionPatterns: [/(temperature|distance|time|timezone|language|speed)/i],
     },
     {
       name: 'value',
       type: 'string',
       description: 'Preference value',
       required: true,
-      extractionPatterns: [
-        /(?:call\s+me|name\s+is)\s+(.+)/i,
-        /(?:use|prefer)\s+(.+)/i,
-      ],
+      extractionPatterns: [/(?:call\s+me|name\s+is)\s+(.+)/i, /(?:use|prefer)\s+(.+)/i],
     },
   ],
 
@@ -420,4 +415,3 @@ export const essentialsTools: SemanticToolDefinition[] = [
   recentContextTool,
   setPreferenceTool,
 ];
-

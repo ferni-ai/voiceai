@@ -91,7 +91,11 @@ const log = createLogger({ module: 'human-transfer' });
 // UNIFIED API
 // ============================================================================
 
-import { detectCrisisSignals, classifyEscalation, classifyWithContext } from './escalation-classifier.js';
+import {
+  detectCrisisSignals,
+  classifyEscalation,
+  classifyWithContext,
+} from './escalation-classifier.js';
 import { generateTransferSummary, generateMinimalSummary } from './context-summary.js';
 import {
   evaluateTransferNeed,
@@ -200,9 +204,7 @@ export const humanTransfer = {
 /**
  * Build context injection for LLM when transfer might be needed
  */
-export function buildTransferAwarenessContext(
-  decision: EscalationDecision
-): string | null {
+export function buildTransferAwarenessContext(decision: EscalationDecision): string | null {
   if (decision.type === 'none') return null;
 
   const sections: string[] = [];
@@ -263,4 +265,3 @@ export async function logTransferEvent(
 }
 
 export default humanTransfer;
-

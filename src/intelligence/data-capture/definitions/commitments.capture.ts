@@ -18,8 +18,7 @@ const log = createLogger({ module: 'CommitmentCapture' });
 export const commitmentCaptureDefinition: DataCaptureDefinition = {
   id: 'capture_commitment',
   name: 'Commitment Capture',
-  description:
-    'Captures intentions, promises, and decisions mentioned naturally in conversation',
+  description: 'Captures intentions, promises, and decisions mentioned naturally in conversation',
   category: 'commitment',
 
   triggers: {
@@ -131,7 +130,11 @@ export const commitmentCaptureDefinition: DataCaptureDefinition = {
     extractedArgs: Record<string, unknown>,
     context: DataCaptureContext
   ): Promise<string | null> => {
-    const { commitment, type: rawType, target } = extractedArgs as {
+    const {
+      commitment,
+      type: rawType,
+      target,
+    } = extractedArgs as {
       commitment?: string;
       type?: string;
       target?: string;
@@ -197,4 +200,3 @@ export const commitmentCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

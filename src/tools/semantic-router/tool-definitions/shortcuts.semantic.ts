@@ -51,7 +51,7 @@ export const quickAlarmTool: SemanticToolDefinition = {
   examples: [
     'Set an alarm for 7am',
     'Wake me up at 6:30',
-    'Set alarm for 8 o\'clock',
+    "Set alarm for 8 o'clock",
     'Morning alarm at 7',
   ],
 
@@ -77,9 +77,7 @@ export const quickAlarmTool: SemanticToolDefinition = {
       type: 'string',
       description: 'Label for the alarm',
       required: false,
-      extractionPatterns: [
-        /(?:for|called|named)\s+"?([^"]+)"?$/i,
-      ],
+      extractionPatterns: [/(?:for|called|named)\s+"?([^"]+)"?$/i],
     },
   ],
 
@@ -115,13 +113,7 @@ export const quickTimerTool: SemanticToolDefinition = {
   category: 'utility',
 
   triggers: {
-    phrases: [
-      'set a timer',
-      'timer for',
-      'minute timer',
-      'start timer',
-      'countdown',
-    ],
+    phrases: ['set a timer', 'timer for', 'minute timer', 'start timer', 'countdown'],
     patterns: [
       /^(?:set\s+)?(?:a\s+)?timer\s+(?:for\s+)?(\d+)\s*(minute|second|hour)/i,
       /^(\d+)\s*(minute|second|hour)\s+timer/i,
@@ -143,11 +135,7 @@ export const quickTimerTool: SemanticToolDefinition = {
     'Start countdown for 2 hours',
   ],
 
-  counterExamples: [
-    'Set an alarm for 7am',
-    'Remind me in 5 minutes',
-    'Wake me up',
-  ],
+  counterExamples: ['Set an alarm for 7am', 'Remind me in 5 minutes', 'Wake me up'],
 
   arguments: [
     {
@@ -165,9 +153,7 @@ export const quickTimerTool: SemanticToolDefinition = {
       type: 'string',
       description: 'What the timer is for',
       required: false,
-      extractionPatterns: [
-        /(?:for|called)\s+"?([^"]+)"?$/i,
-      ],
+      extractionPatterns: [/(?:for|called)\s+"?([^"]+)"?$/i],
     },
   ],
 
@@ -237,11 +223,7 @@ export const quickWeatherTool: SemanticToolDefinition = {
     'Weather forecast',
   ],
 
-  counterExamples: [
-    'Play rain sounds',
-    "What's the weather channel?",
-    'Weather report music',
-  ],
+  counterExamples: ['Play rain sounds', "What's the weather channel?", 'Weather report music'],
 
   arguments: [
     {
@@ -321,12 +303,7 @@ export const quickMusicTool: SemanticToolDefinition = {
     'Play Taylor Swift',
   ],
 
-  counterExamples: [
-    'Play a game',
-    'Play a video',
-    'Play a movie',
-    'Set alarm to play music',
-  ],
+  counterExamples: ['Play a game', 'Play a video', 'Play a movie', 'Set alarm to play music'],
 
   arguments: [
     {
@@ -406,11 +383,7 @@ export const quickCalendarTool: SemanticToolDefinition = {
     'What do I have this week?',
   ],
 
-  counterExamples: [
-    'Set a reminder',
-    'Set an alarm',
-    'What time is it?',
-  ],
+  counterExamples: ['Set a reminder', 'Set an alarm', 'What time is it?'],
 
   arguments: [
     {
@@ -419,19 +392,14 @@ export const quickCalendarTool: SemanticToolDefinition = {
       description: 'Check or add',
       required: false,
       enumValues: ['check', 'add', 'list'],
-      extractionPatterns: [
-        /(add|schedule|put)/i,
-        /(show|check|what)/i,
-      ],
+      extractionPatterns: [/(add|schedule|put)/i, /(show|check|what)/i],
     },
     {
       name: 'date',
       type: 'string',
       description: 'Date for calendar',
       required: false,
-      extractionPatterns: [
-        /(?:today|tomorrow|this\s+week|next\s+\w+)/i,
-      ],
+      extractionPatterns: [/(?:today|tomorrow|this\s+week|next\s+\w+)/i],
     },
   ],
 
@@ -499,11 +467,7 @@ export const quickSmartHomeTool: SemanticToolDefinition = {
     'Turn off the living room lights',
   ],
 
-  counterExamples: [
-    'Play some light music',
-    'Set a timer',
-    'Temperature in New York',
-  ],
+  counterExamples: ['Play some light music', 'Set a timer', 'Temperature in New York'],
 
   arguments: [
     {
@@ -511,9 +475,7 @@ export const quickSmartHomeTool: SemanticToolDefinition = {
       type: 'string',
       description: 'What to do',
       required: true,
-      extractionPatterns: [
-        /^(.+)$/i,
-      ],
+      extractionPatterns: [/^(.+)$/i],
     },
     {
       name: 'room',
@@ -558,4 +520,3 @@ export const shortcutsTools: SemanticToolDefinition[] = [
   quickCalendarTool,
   quickSmartHomeTool,
 ];
-

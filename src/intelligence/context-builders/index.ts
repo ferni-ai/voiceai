@@ -34,7 +34,7 @@ import type {
   ContextInjection,
   ContextPriority,
 } from './core/types.js';
-import type { BuilderCategory} from './core/categories.js';
+import type { BuilderCategory } from './core/categories.js';
 import { BUILDER_CATEGORIES, getBuilderCategory } from './core/categories.js';
 import {
   checkPerformanceIssues,

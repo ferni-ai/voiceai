@@ -22,7 +22,13 @@ const log = createLogger({ module: 'HandoffIntelligence' });
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'maya-santos' | 'alex-chen' | 'peter-john' | 'jordan-taylor' | 'nayan-patel';
+export type PersonaId =
+  | 'ferni'
+  | 'maya-santos'
+  | 'alex-chen'
+  | 'peter-john'
+  | 'jordan-taylor'
+  | 'nayan-patel';
 
 export interface HandoffCandidate {
   personaId: PersonaId;
@@ -180,7 +186,15 @@ export const TEAM_PROFILES: Record<PersonaId, TeamMemberProfile> = {
   'nayan-patel': {
     id: 'nayan-patel',
     name: 'Nayan',
-    specializations: ['wisdom', 'philosophy', 'deep questions', 'meaning', 'spiritual', 'long-term thinking', 'patience'],
+    specializations: [
+      'wisdom',
+      'philosophy',
+      'deep questions',
+      'meaning',
+      'spiritual',
+      'long-term thinking',
+      'patience',
+    ],
     keywords: [
       'meaning',
       'purpose',
@@ -352,7 +366,13 @@ export function recordHandoff(
  */
 export function getUnmetTeamMembers(userId: string): PersonaId[] {
   const experience = getOrCreateExperience(userId);
-  const allPersonas: PersonaId[] = ['maya-santos', 'alex-chen', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+  const allPersonas: PersonaId[] = [
+    'maya-santos',
+    'alex-chen',
+    'peter-john',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
 
   return allPersonas.filter((p) => !experience.metPersonas.includes(p));
 }

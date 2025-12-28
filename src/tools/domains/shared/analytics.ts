@@ -71,10 +71,12 @@ async function sendToAnalyticsService(event: ToolUsageEvent): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(EVENTS_COLLECTION).add(cleanForFirestore({
-      ...event,
-      timestamp: event.timestamp,
-    }));
+    await db.collection(EVENTS_COLLECTION).add(
+      cleanForFirestore({
+        ...event,
+        timestamp: event.timestamp,
+      })
+    );
 
     // Update aggregated metrics
     const metricsRef = db.collection(METRICS_COLLECTION).doc(`${event.domain}:${event.toolId}`);

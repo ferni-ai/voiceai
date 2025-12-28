@@ -74,11 +74,13 @@ export async function saveThesis(
     domainData: options.domainData ?? {},
   };
 
-  const docRef = await thesesRef.add(cleanForFirestore({
-    ...thesisDoc,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  }));
+  const docRef = await thesesRef.add(
+    cleanForFirestore({
+      ...thesisDoc,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+  );
 
   log.info({ userId, domain, thesisId: docRef.id }, 'Thesis saved');
 
@@ -201,14 +203,16 @@ export async function updateThesis(
     trigger: update.trigger ?? 'scheduled_review',
   };
 
-  await thesisRef.update(cleanForFirestore({
-    updates: FieldValue.arrayUnion({
-      ...thesisUpdate,
-      date: FieldValue.serverTimestamp(),
-    }),
-    updatedAt: FieldValue.serverTimestamp(),
-    lastReviewed: FieldValue.serverTimestamp(),
-  }));
+  await thesisRef.update(
+    cleanForFirestore({
+      updates: FieldValue.arrayUnion({
+        ...thesisUpdate,
+        date: FieldValue.serverTimestamp(),
+      }),
+      updatedAt: FieldValue.serverTimestamp(),
+      lastReviewed: FieldValue.serverTimestamp(),
+    })
+  );
 
   log.info({ userId, thesisId, stillValid: update.stillValid }, 'Thesis updated');
 

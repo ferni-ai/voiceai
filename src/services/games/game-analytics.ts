@@ -131,10 +131,12 @@ async function saveEventToFirestore(event: GameEvent): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(EVENTS_COLLECTION).add(cleanForFirestore({
-      ...event,
-      timestamp: event.timestamp,
-    }));
+    await db.collection(EVENTS_COLLECTION).add(
+      cleanForFirestore({
+        ...event,
+        timestamp: event.timestamp,
+      })
+    );
   } catch (error) {
     log.warn({ error, eventType: event.type }, 'Failed to save game event to Firestore');
   }

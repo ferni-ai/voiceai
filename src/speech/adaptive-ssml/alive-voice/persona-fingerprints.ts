@@ -435,7 +435,10 @@ export function applyPersonaFingerprint(text: string, context: AliveVoiceContext
     const lateNightPacing = getLateNightPacing(personaId);
     if (lateNightPacing) {
       speedModifier *= lateNightPacing.speedMultiplier;
-      log.debug({ personaId, multiplier: lateNightPacing.speedMultiplier }, 'Applied late night pacing');
+      log.debug(
+        { personaId, multiplier: lateNightPacing.speedMultiplier },
+        'Applied late night pacing'
+      );
     }
   }
 

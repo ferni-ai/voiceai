@@ -347,15 +347,20 @@ export async function updateContactNotes(
 
     const docId = email.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-    await db.collection('bogle_users').doc(userId).collection('contact_notes').doc(docId).set(
-      cleanForFirestore({
-        email: email.toLowerCase(),
-        notes,
-        relationshipType,
-        updatedAt: new Date().toISOString(),
-      }),
-      { merge: true }
-    );
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('contact_notes')
+      .doc(docId)
+      .set(
+        cleanForFirestore({
+          email: email.toLowerCase(),
+          notes,
+          relationshipType,
+          updatedAt: new Date().toISOString(),
+        }),
+        { merge: true }
+      );
 
     log.debug({ userId, email }, 'Contact notes updated');
   } catch (error) {

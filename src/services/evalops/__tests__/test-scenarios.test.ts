@@ -23,32 +23,34 @@ describe('TestScenarios', () => {
   describe('Scenario Collections', () => {
     it('should have persona voice scenarios', () => {
       expect(personaVoiceScenarios.length).toBeGreaterThan(0);
-      expect(personaVoiceScenarios.every(s => s.category === 'persona_voice')).toBe(true);
+      expect(personaVoiceScenarios.every((s) => s.category === 'persona_voice')).toBe(true);
     });
 
     it('should have boundary respect scenarios', () => {
       expect(boundaryRespectScenarios.length).toBeGreaterThan(0);
-      expect(boundaryRespectScenarios.every(s => s.category === 'boundary_respect')).toBe(true);
+      expect(boundaryRespectScenarios.every((s) => s.category === 'boundary_respect')).toBe(true);
     });
 
     it('should have emotional intelligence scenarios', () => {
       expect(emotionalIntelligenceScenarios.length).toBeGreaterThan(0);
-      expect(emotionalIntelligenceScenarios.every(s => s.category === 'emotional_intelligence')).toBe(true);
+      expect(
+        emotionalIntelligenceScenarios.every((s) => s.category === 'emotional_intelligence')
+      ).toBe(true);
     });
 
     it('should have trust building scenarios', () => {
       expect(trustBuildingScenarios.length).toBeGreaterThan(0);
-      expect(trustBuildingScenarios.every(s => s.category === 'trust_building')).toBe(true);
+      expect(trustBuildingScenarios.every((s) => s.category === 'trust_building')).toBe(true);
     });
 
     it('should have safety scenarios', () => {
       expect(safetyScenarios.length).toBeGreaterThan(0);
-      expect(safetyScenarios.every(s => s.category === 'safety')).toBe(true);
+      expect(safetyScenarios.every((s) => s.category === 'safety')).toBe(true);
     });
 
     it('should have helpfulness scenarios', () => {
       expect(helpfulnessScenarios.length).toBeGreaterThan(0);
-      expect(helpfulnessScenarios.every(s => s.category === 'helpfulness')).toBe(true);
+      expect(helpfulnessScenarios.every((s) => s.category === 'helpfulness')).toBe(true);
     });
 
     it('should combine all scenarios in ALL_TEST_SCENARIOS', () => {
@@ -93,7 +95,7 @@ describe('TestScenarios', () => {
     });
 
     it('scenarios should have unique IDs', () => {
-      const ids = ALL_TEST_SCENARIOS.map(s => s.id);
+      const ids = ALL_TEST_SCENARIOS.map((s) => s.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
@@ -103,7 +105,7 @@ describe('TestScenarios', () => {
     it('should return persona voice scenarios', () => {
       const scenarios = getScenariosByCategory('persona_voice');
       expect(scenarios.length).toBe(personaVoiceScenarios.length);
-      expect(scenarios.every(s => s.category === 'persona_voice')).toBe(true);
+      expect(scenarios.every((s) => s.category === 'persona_voice')).toBe(true);
     });
 
     it('should return boundary respect scenarios', () => {
@@ -122,16 +124,16 @@ describe('TestScenarios', () => {
       const scenarios = getScenariosForPersona('ferni');
 
       // Should include ferni-specific scenarios
-      expect(scenarios.some(s => s.id === 'ferni-voice-career-stuck')).toBe(true);
+      expect(scenarios.some((s) => s.id === 'ferni-voice-career-stuck')).toBe(true);
 
       // Should include general scenarios (empty applicablePersonas)
-      expect(scenarios.some(s => s.applicablePersonas.length === 0)).toBe(true);
+      expect(scenarios.some((s) => s.applicablePersonas.length === 0)).toBe(true);
     });
 
     it('should return scenarios applicable to peter-john', () => {
       const scenarios = getScenariosForPersona('peter-john');
 
-      expect(scenarios.some(s => s.id === 'peter-voice-investment-question')).toBe(true);
+      expect(scenarios.some((s) => s.id === 'peter-voice-investment-question')).toBe(true);
     });
 
     it('should include universal scenarios for any persona', () => {
@@ -139,8 +141,8 @@ describe('TestScenarios', () => {
       const peterScenarios = getScenariosForPersona('peter-john');
 
       // Both should include universal safety scenarios
-      const ferniSafety = ferniScenarios.filter(s => s.category === 'safety');
-      const peterSafety = peterScenarios.filter(s => s.category === 'safety');
+      const ferniSafety = ferniScenarios.filter((s) => s.category === 'safety');
+      const peterSafety = peterScenarios.filter((s) => s.category === 'safety');
 
       expect(ferniSafety.length).toBeGreaterThan(0);
       expect(peterSafety.length).toBe(ferniSafety.length);
@@ -150,7 +152,7 @@ describe('TestScenarios', () => {
       const scenarios = getScenariosForPersona('unknown-persona');
 
       // Should get universal scenarios only
-      expect(scenarios.every(s => s.applicablePersonas.length === 0)).toBe(true);
+      expect(scenarios.every((s) => s.applicablePersonas.length === 0)).toBe(true);
     });
   });
 
@@ -159,25 +161,25 @@ describe('TestScenarios', () => {
       const critical = getCriticalScenarios();
 
       expect(critical.length).toBeGreaterThan(0);
-      expect(critical.every(s => s.severity === 'critical')).toBe(true);
+      expect(critical.every((s) => s.severity === 'critical')).toBe(true);
     });
 
     it('should include safety-related critical scenarios', () => {
       const critical = getCriticalScenarios();
 
-      expect(critical.some(s => s.category === 'safety')).toBe(true);
+      expect(critical.some((s) => s.category === 'safety')).toBe(true);
     });
 
     it('should include boundary-related critical scenarios', () => {
       const critical = getCriticalScenarios();
 
-      expect(critical.some(s => s.category === 'boundary_respect')).toBe(true);
+      expect(critical.some((s) => s.category === 'boundary_respect')).toBe(true);
     });
   });
 
   describe('Persona Voice Scenarios', () => {
     it('should have ferni career stuck scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'ferni-voice-career-stuck');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'ferni-voice-career-stuck');
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('ferni');
@@ -185,7 +187,9 @@ describe('TestScenarios', () => {
     });
 
     it('should have peter investment scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'peter-voice-investment-question');
+      const scenario = personaVoiceScenarios.find(
+        (s) => s.id === 'peter-voice-investment-question'
+      );
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('peter-john');
@@ -193,7 +197,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have maya habit scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'maya-voice-habit-struggle');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'maya-voice-habit-struggle');
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('maya-santos');
@@ -201,7 +205,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have alex email scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'alex-voice-email-help');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'alex-voice-email-help');
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('alex-chen');
@@ -209,7 +213,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have jordan wedding scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'jordan-voice-wedding-planning');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'jordan-voice-wedding-planning');
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('jordan-taylor');
@@ -217,7 +221,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have nayan meaning scenario', () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'nayan-voice-meaning-crisis');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'nayan-voice-meaning-crisis');
 
       expect(scenario).toBeDefined();
       expect(scenario?.applicablePersonas).toContain('nayan-patel');
@@ -227,7 +231,7 @@ describe('TestScenarios', () => {
 
   describe('Safety Scenarios', () => {
     it('should have crisis referral scenario', () => {
-      const scenario = safetyScenarios.find(s => s.id === 'safety-crisis-referral');
+      const scenario = safetyScenarios.find((s) => s.id === 'safety-crisis-referral');
 
       expect(scenario).toBeDefined();
       expect(scenario?.severity).toBe('critical');
@@ -236,7 +240,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have no medical diagnosis scenario', () => {
-      const scenario = safetyScenarios.find(s => s.id === 'safety-no-medical-diagnosis');
+      const scenario = safetyScenarios.find((s) => s.id === 'safety-no-medical-diagnosis');
 
       expect(scenario).toBeDefined();
       expect(scenario?.severity).toBe('critical');
@@ -244,7 +248,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have no specific investment advice scenario', () => {
-      const scenario = safetyScenarios.find(s => s.id === 'safety-no-specific-investment-advice');
+      const scenario = safetyScenarios.find((s) => s.id === 'safety-no-specific-investment-advice');
 
       expect(scenario).toBeDefined();
       expect(scenario?.expected.shouldAvoid).toContain('yes, buy');
@@ -253,7 +257,7 @@ describe('TestScenarios', () => {
 
   describe('Emotional Intelligence Scenarios', () => {
     it('should have grief response scenario', () => {
-      const scenario = emotionalIntelligenceScenarios.find(s => s.id === 'ei-grief-response');
+      const scenario = emotionalIntelligenceScenarios.find((s) => s.id === 'ei-grief-response');
 
       expect(scenario).toBeDefined();
       expect(scenario?.severity).toBe('critical');
@@ -262,14 +266,18 @@ describe('TestScenarios', () => {
     });
 
     it('should have anxiety acknowledgment scenario', () => {
-      const scenario = emotionalIntelligenceScenarios.find(s => s.id === 'ei-anxiety-acknowledgment');
+      const scenario = emotionalIntelligenceScenarios.find(
+        (s) => s.id === 'ei-anxiety-acknowledgment'
+      );
 
       expect(scenario).toBeDefined();
       expect(scenario?.expected.shouldAvoid).toContain('just relax');
     });
 
     it('should have excitement matching scenario', () => {
-      const scenario = emotionalIntelligenceScenarios.find(s => s.id === 'ei-excitement-matching');
+      const scenario = emotionalIntelligenceScenarios.find(
+        (s) => s.id === 'ei-excitement-matching'
+      );
 
       expect(scenario).toBeDefined();
       expect(scenario?.expected.shouldInclude).toContain('congratulations');
@@ -278,7 +286,7 @@ describe('TestScenarios', () => {
 
   describe('Boundary Respect Scenarios', () => {
     it('should have explicit topic boundary scenario', () => {
-      const scenario = boundaryRespectScenarios.find(s => s.id === 'boundary-explicit-topic');
+      const scenario = boundaryRespectScenarios.find((s) => s.id === 'boundary-explicit-topic');
 
       expect(scenario).toBeDefined();
       expect(scenario?.severity).toBe('critical');
@@ -286,7 +294,7 @@ describe('TestScenarios', () => {
     });
 
     it('should have trauma redirect scenario', () => {
-      const scenario = boundaryRespectScenarios.find(s => s.id === 'boundary-trauma-redirect');
+      const scenario = boundaryRespectScenarios.find((s) => s.id === 'boundary-trauma-redirect');
 
       expect(scenario).toBeDefined();
       expect(scenario?.severity).toBe('critical');
@@ -296,12 +304,14 @@ describe('TestScenarios', () => {
 
   describe('runScenario', () => {
     it('should run a scenario with passing response', async () => {
-      const scenario = personaVoiceScenarios.find(s => s.id === 'ferni-voice-career-stuck');
+      const scenario = personaVoiceScenarios.find((s) => s.id === 'ferni-voice-career-stuck');
       if (!scenario) throw new Error('Scenario not found');
 
-      const mockResponse = vi.fn().mockResolvedValue(
-        "That's such a powerful question. I'm curious - when you say stuck, what does that feel like in your heart? Let me share a story that might resonate..."
-      );
+      const mockResponse = vi
+        .fn()
+        .mockResolvedValue(
+          "That's such a powerful question. I'm curious - when you say stuck, what does that feel like in your heart? Let me share a story that might resonate..."
+        );
 
       const result = await runScenario(scenario, 'ferni', mockResponse);
 
@@ -314,12 +324,12 @@ describe('TestScenarios', () => {
     });
 
     it('should detect missing expected items', async () => {
-      const scenario = safetyScenarios.find(s => s.id === 'safety-crisis-referral');
+      const scenario = safetyScenarios.find((s) => s.id === 'safety-crisis-referral');
       if (!scenario) throw new Error('Scenario not found');
 
-      const mockResponse = vi.fn().mockResolvedValue(
-        "That sounds hard. Have you tried going for a walk?"
-      );
+      const mockResponse = vi
+        .fn()
+        .mockResolvedValue('That sounds hard. Have you tried going for a walk?');
 
       const result = await runScenario(scenario, 'ferni', mockResponse);
 
@@ -328,12 +338,14 @@ describe('TestScenarios', () => {
     });
 
     it('should detect avoided items violations', async () => {
-      const scenario = emotionalIntelligenceScenarios.find(s => s.id === 'ei-grief-response');
+      const scenario = emotionalIntelligenceScenarios.find((s) => s.id === 'ei-grief-response');
       if (!scenario) throw new Error('Scenario not found');
 
-      const mockResponse = vi.fn().mockResolvedValue(
-        "I'm sorry for your loss, but on the bright side, at least she's not suffering anymore."
-      );
+      const mockResponse = vi
+        .fn()
+        .mockResolvedValue(
+          "I'm sorry for your loss, but on the bright side, at least she's not suffering anymore."
+        );
 
       const result = await runScenario(scenario, 'ferni', mockResponse);
 
@@ -381,14 +393,16 @@ describe('TestScenarios', () => {
       const results = await runCriticalScenarios('ferni', mockResponse);
 
       const criticalCount = getCriticalScenarios().filter(
-        s => s.applicablePersonas.length === 0 || s.applicablePersonas.includes('ferni')
+        (s) => s.applicablePersonas.length === 0 || s.applicablePersonas.includes('ferni')
       ).length;
 
       expect(results.length).toBe(criticalCount);
     });
 
     it('should return results for each scenario', async () => {
-      const mockResponse = vi.fn().mockResolvedValue('I care about you. Please contact a professional or crisis line.');
+      const mockResponse = vi
+        .fn()
+        .mockResolvedValue('I care about you. Please contact a professional or crisis line.');
 
       const results = await runCriticalScenarios('ferni', mockResponse);
 
@@ -402,7 +416,7 @@ describe('TestScenarios', () => {
 
   describe('Score Calculations', () => {
     it('should calculate include score correctly', async () => {
-      const scenario: typeof ALL_TEST_SCENARIOS[0] = {
+      const scenario: (typeof ALL_TEST_SCENARIOS)[0] = {
         id: 'test-include',
         name: 'Test Include',
         category: 'helpfulness',
@@ -425,7 +439,7 @@ describe('TestScenarios', () => {
     });
 
     it('should calculate avoid score correctly', async () => {
-      const scenario: typeof ALL_TEST_SCENARIOS[0] = {
+      const scenario: (typeof ALL_TEST_SCENARIOS)[0] = {
         id: 'test-avoid',
         name: 'Test Avoid',
         category: 'safety',
@@ -448,7 +462,7 @@ describe('TestScenarios', () => {
     });
 
     it('should calculate overall score as average', async () => {
-      const scenario: typeof ALL_TEST_SCENARIOS[0] = {
+      const scenario: (typeof ALL_TEST_SCENARIOS)[0] = {
         id: 'test-overall',
         name: 'Test Overall',
         category: 'helpfulness',

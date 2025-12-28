@@ -539,12 +539,12 @@ export function recordPrematureAdvice(
     topic,
     userReaction: reaction,
     timestamp: new Date(),
-    waitUntil: reaction === 'defensive' || reaction === 'overwhelmed' 
-      ? 'they_bring_it_up' 
-      : 'milestone',
-    canRetryAfter: reaction === 'dismissed' 
-      ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 2 weeks
-      : undefined,
+    waitUntil:
+      reaction === 'defensive' || reaction === 'overwhelmed' ? 'they_bring_it_up' : 'milestone',
+    canRetryAfter:
+      reaction === 'dismissed'
+        ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 2 weeks
+        : undefined,
   };
 
   records.push(record);
@@ -560,7 +560,10 @@ export function recordPrematureAdvice(
 /**
  * Check if we should avoid giving advice about a topic.
  */
-export function shouldAvoidAdviceAbout(userId: string, topic: string): {
+export function shouldAvoidAdviceAbout(
+  userId: string,
+  topic: string
+): {
   shouldAvoid: boolean;
   reason?: string;
   waitUntil?: string;
@@ -608,8 +611,8 @@ export function detectBoundarySoftening(
 
   const lowerTopic = topic.toLowerCase();
   const boundary = profile.boundaries.find(
-    (b) => b.topic.toLowerCase() === lowerTopic || 
-           b.relatedTerms.some((t) => lowerTopic.includes(t))
+    (b) =>
+      b.topic.toLowerCase() === lowerTopic || b.relatedTerms.some((t) => lowerTopic.includes(t))
   );
 
   if (!boundary) return null;
@@ -642,7 +645,7 @@ export function detectBoundarySoftening(
   // Calculate if ready to reapproach (3+ signs = ready)
   if (softening.signs.length >= 3) {
     softening.readyToReapproach = true;
-    softening.suggestedApproach = 
+    softening.suggestedApproach =
       `They've shown signs of being more open to discussing ${boundary.topic}. ` +
       `If relevant, you might gently check if they want to revisit this.`;
   }
@@ -660,9 +663,11 @@ export function getBoundarySoftening(userId: string, topic: string): BoundarySof
   if (!softenings) return null;
 
   const lowerTopic = topic.toLowerCase();
-  return softenings.find(
-    (s) => s.topic.toLowerCase() === lowerTopic || lowerTopic.includes(s.topic.toLowerCase())
-  ) || null;
+  return (
+    softenings.find(
+      (s) => s.topic.toLowerCase() === lowerTopic || lowerTopic.includes(s.topic.toLowerCase())
+    ) || null
+  );
 }
 
 /**
@@ -676,7 +681,8 @@ export function buildProtectiveMemoryContext(userId: string): string {
   if (boundaries.length > 0) {
     sections.push('Topics to avoid:');
     for (const boundary of boundaries.filter((b) => !b.userReopened).slice(0, 5)) {
-      const strength = boundary.strength === 'absolute' ? '🚫' : boundary.strength === 'strong' ? '⚠️' : '💡';
+      const strength =
+        boundary.strength === 'absolute' ? '🚫' : boundary.strength === 'strong' ? '⚠️' : '💡';
       sections.push(`${strength} ${boundary.topic} (${boundary.type})`);
     }
     sections.push('');

@@ -10,11 +10,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { FirestoreInstance } from './types.js';
-import {
-  RECOVERY_INTERVAL_MS,
-  MAX_RECOVERY_ATTEMPTS,
-  FIRESTORE_BATCH_SIZE,
-} from './types.js';
+import { RECOVERY_INTERVAL_MS, MAX_RECOVERY_ATTEMPTS, FIRESTORE_BATCH_SIZE } from './types.js';
 import type { FallbackCache } from './fallback-cache.js';
 
 const log = getLogger();
@@ -189,11 +185,7 @@ export async function migrateCacheToFirestore(
     }
   }
 
-  log.info(
-    { migrated, failed, remaining: fallbackCache.size },
-    '📥 Cache migration complete'
-  );
+  log.info({ migrated, failed, remaining: fallbackCache.size }, '📥 Cache migration complete');
 
   return { migrated, failed };
 }
-

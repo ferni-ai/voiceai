@@ -513,9 +513,7 @@ export function formatMetricsReport(personaId: string, sessionId?: string): stri
       : 0;
 
   const noticingRate =
-    metrics.totalTurns > 0
-      ? Math.round((metrics.turnsWithNoticing / metrics.totalTurns) * 100)
-      : 0;
+    metrics.totalTurns > 0 ? Math.round((metrics.turnsWithNoticing / metrics.totalTurns) * 100) : 0;
 
   const throttleRate =
     metrics.turnsWithNoticing > 0
@@ -609,10 +607,3 @@ export const sharedPersonalityTelemetry = {
 };
 
 export default sharedPersonalityTelemetry;
-
-
-
-
-
-
-

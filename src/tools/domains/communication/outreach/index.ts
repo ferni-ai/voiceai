@@ -54,11 +54,7 @@ import type { ToolDefinition } from '../../../registry/types.js';
  * Get all outreach tool definitions
  */
 export function getOutreachToolDefinitions(): ToolDefinition[] {
-  return [
-    getUnifiedOutreachDefinition(),
-    ...getBatchOutreachDefinitions(),
-  ];
+  return [getUnifiedOutreachDefinition(), ...getBatchOutreachDefinitions()];
 }
 
 export default getOutreachToolDefinitions;
-

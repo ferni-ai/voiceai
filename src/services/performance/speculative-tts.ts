@@ -554,10 +554,7 @@ class SpeculativeTTSEngine {
       yield result.audio;
 
       if (isFirstChunk) {
-        log.debug(
-          { chars: buffer.trim().length },
-          '🚀 First TTS chunk sent (final flush)'
-        );
+        log.debug({ chars: buffer.trim().length }, '🚀 First TTS chunk sent (final flush)');
       }
     }
   }
@@ -631,7 +628,10 @@ class SpeculativeTTSEngine {
 
       return result;
     } catch (error) {
-      log.warn({ text: text.slice(0, 50), voiceId, emotion, error: String(error) }, 'TTS generation failed');
+      log.warn(
+        { text: text.slice(0, 50), voiceId, emotion, error: String(error) },
+        'TTS generation failed'
+      );
       throw error;
     }
   }
@@ -647,7 +647,10 @@ class SpeculativeTTSEngine {
     const apiKey = getCartesiaApiKey();
 
     if (!apiKey) {
-      log.debug({ text: text.slice(0, 50), voiceId }, 'CARTESIA_API_KEY not set, using empty buffer');
+      log.debug(
+        { text: text.slice(0, 50), voiceId },
+        'CARTESIA_API_KEY not set, using empty buffer'
+      );
       return new ArrayBuffer(0);
     }
 

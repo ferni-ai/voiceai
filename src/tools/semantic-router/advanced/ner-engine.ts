@@ -144,7 +144,8 @@ export async function initializeNER(): Promise<void> {
     // NOTE: These plugins may fail in production due to ESM/CJS issues
     // with transitive dependencies like suffix-thumb. This is non-fatal.
     try {
-      const datesModule = (await import('compromise-dates')) as unknown as CompromisePluginModuleShape;
+      const datesModule =
+        (await import('compromise-dates')) as unknown as CompromisePluginModuleShape;
       nlpDates = datesModule.default;
       if (nlpDates) {
         nlp!.plugin(nlpDates);
@@ -159,7 +160,8 @@ export async function initializeNER(): Promise<void> {
     }
 
     try {
-      const numbersModule = (await import('compromise-numbers')) as unknown as CompromisePluginModuleShape;
+      const numbersModule =
+        (await import('compromise-numbers')) as unknown as CompromisePluginModuleShape;
       nlpNumbers = numbersModule.default;
       if (nlpNumbers) {
         nlp!.plugin(nlpNumbers);

@@ -783,7 +783,7 @@ export function addDynamicEnergyBuilds(text: string, _emotion: string): string {
     {
       pattern: /\b(that['']s hard)\b(?=\.\s*(i hear|but))/gi,
       emotion: 'sympathetic',
-      speed: 0.90,
+      speed: 0.9,
       pause: 200,
     },
     {
@@ -917,7 +917,7 @@ export const MAYA_SANTOS_SPEECH_CONFIG = {
   /** Base speech speed (upbeat friend pace, NOT slow) */
   baseSpeed: 0.98,
   /** Minimum speed - NEVER go below 0.90 to avoid breathy/intimate sound */
-  minSpeed: 0.90,
+  minSpeed: 0.9,
   /** Maximum speed for celebrations */
   maxSpeed: 1.05,
   /** Whether to enable encouragement warmth */

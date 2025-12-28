@@ -932,13 +932,15 @@ export const DOMAIN_METADATA = {
   // "Better Than Human" Core Domains
   'visual-memory': {
     name: 'Visual Memory',
-    description: 'Photo recall, image analysis, and visual context - Ferni remembers every photo you share',
+    description:
+      'Photo recall, image analysis, and visual context - Ferni remembers every photo you share',
     icon: '📸',
     status: 'active',
   },
   'ambient-mode': {
     name: 'Ambient Mode',
-    description: 'Continuous presence, location awareness, and proactive nudges - Ferni knows when to check in',
+    description:
+      'Continuous presence, location awareness, and proactive nudges - Ferni knows when to check in',
     icon: '🌙',
     status: 'active',
   },

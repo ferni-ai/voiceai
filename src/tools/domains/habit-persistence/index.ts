@@ -384,12 +384,15 @@ const surfacePatternInsightDef: ToolDefinition = {
             oneTime: false,
           });
 
-          const targetName = targetPersona === 'all' ? 'the team' : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
 
           return `**Pattern Shared with ${targetName}**\n\nI've noted this pattern: "${patternDescription}"\n\n${targetPersona !== 'all' ? `${targetName} will have this context when you talk to them.` : 'The whole team will be aware of this.'}\n\nThis is how we work together—I notice the behaviors, and the team can support you from their expertise.`;
         } catch (error) {
           getLogger().error({ error }, 'Failed to share pattern insight');
-          return "I made a note of this pattern. Let me keep an eye on it.";
+          return 'I made a note of this pattern. Let me keep an eye on it.';
         }
       },
     });
@@ -423,7 +426,9 @@ const getTeamInsightsDef: ToolDefinition = {
           if (insights.length > 0) {
             response += `**From the team:**\n`;
             for (const item of insights.slice(0, 3)) {
-              const sourceName = item.insight.sourcePersona.charAt(0).toUpperCase() + item.insight.sourcePersona.slice(1);
+              const sourceName =
+                item.insight.sourcePersona.charAt(0).toUpperCase() +
+                item.insight.sourcePersona.slice(1);
               response += `• ${sourceName}: ${item.insight.summary}\n`;
             }
             response += `\n`;
@@ -450,7 +455,8 @@ const getTeamInsightsDef: ToolDefinition = {
 const flagMilestoneForJordanDef: ToolDefinition = {
   id: 'flagMilestoneForJordan',
   name: 'Flag Milestone for Jordan',
-  description: "Alert Jordan when a habit milestone is reached that's worth celebrating or turning into a bigger goal",
+  description:
+    "Alert Jordan when a habit milestone is reached that's worth celebrating or turning into a bigger goal",
   domain: 'habit-persistence',
   tags: ['cross-persona', 'milestones', 'jordan'],
 
@@ -461,7 +467,9 @@ const flagMilestoneForJordanDef: ToolDefinition = {
         milestone: z.string().describe('The milestone achieved'),
         habitName: z.string().describe('The habit that reached this milestone'),
         streakDays: z.number().optional().describe('Days in streak if applicable'),
-        readyForBiggerGoal: z.boolean().describe('Is this person ready to expand this habit into a bigger goal?'),
+        readyForBiggerGoal: z
+          .boolean()
+          .describe('Is this person ready to expand this habit into a bigger goal?'),
         suggestion: z.string().optional().describe('What bigger goal might be right'),
       }),
       execute: async ({ milestone, habitName, streakDays, readyForBiggerGoal, suggestion }) => {

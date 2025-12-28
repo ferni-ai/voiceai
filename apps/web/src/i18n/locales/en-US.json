@@ -59,6 +59,11 @@
     "releaseToRefresh": "Release to refresh"
   },
 
+  "transcript": {
+    "enabled": "Transcription on",
+    "disabled": "Transcription off"
+  },
+
   "placeholders": {
     "customAmount": "Custom amount",
     "searchConversations": "Search conversations...",
@@ -224,6 +229,7 @@
       "appleHealth": "Apple Health",
       "supportFerniExpanded": "Support Ferni",
       "voiceId": "Your Voice",
+      "showTranscript": "Show Transcript",
       "householdMembers": "Family & Household",
       "contactInfo": "How to Reach You",
       "exportData": "Download Your Story",

@@ -87,7 +87,9 @@ export function createMockLLMStream(
     }
 
     for (let i = 0; i < words.length; i++) {
-      await new Promise<void>((resolve) => { setTimeout(resolve, tokenDelay); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, tokenDelay);
+      });
 
       const isLast = i === words.length - 1;
       yield {
@@ -200,7 +202,9 @@ export class MockLLMClient {
     this.callHistory.push({ messages: [...messages], response });
 
     // Simulate processing time
-    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     return response;
   }

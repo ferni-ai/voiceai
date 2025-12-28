@@ -108,4 +108,3 @@ export const MAX_FALLBACK_CACHE_SIZE = 10_000;
 export const RECOVERY_INTERVAL_MS = 60_000;
 export const MAX_RECOVERY_ATTEMPTS = 10;
 export const FIRESTORE_BATCH_SIZE = 500;
-

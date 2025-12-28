@@ -127,10 +127,7 @@ function isProduction(): boolean {
 /**
  * Set security headers on response
  */
-export function setSecurityHeaders(
-  res: ServerResponse,
-  config: SecurityHeadersConfig = {}
-): void {
+export function setSecurityHeaders(res: ServerResponse, config: SecurityHeadersConfig = {}): void {
   const inProduction = isProduction();
 
   // HSTS - Only in production with HTTPS

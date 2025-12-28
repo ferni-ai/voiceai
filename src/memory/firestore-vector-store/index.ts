@@ -94,4 +94,3 @@ export function resetFirestoreVectorStore(): void {
 
 // Default export for backward compatibility
 export default FirestoreVectorStore;
-

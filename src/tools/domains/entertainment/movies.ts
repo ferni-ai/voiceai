@@ -36,7 +36,7 @@ interface MovieInfo {
  */
 async function searchMovie(query: string): Promise<MovieInfo | null> {
   const log = getLogger();
-  
+
   if (!TMDB_API_KEY) {
     log.debug('🎬 TMDB API key not configured');
     return null;
@@ -67,21 +67,21 @@ async function searchMovie(query: string): Promise<MovieInfo | null> {
     }
 
     const movie = data.results[0];
-    
+
     // Get additional details
     const detailsUrl = `${TMDB_BASE_URL}/movie/${movie.id}?api_key=${TMDB_API_KEY}`;
     const detailsResponse = await fetch(detailsUrl, { signal: AbortSignal.timeout(5000) });
-    
+
     let runtime: number | undefined;
     let genres: string[] | undefined;
-    
+
     if (detailsResponse.ok) {
       const details = (await detailsResponse.json()) as {
         runtime?: number;
         genres?: Array<{ name: string }>;
       };
       runtime = details.runtime;
-      genres = details.genres?.map(g => g.name);
+      genres = details.genres?.map((g) => g.name);
     }
 
     return {
@@ -105,7 +105,7 @@ async function searchMovie(query: string): Promise<MovieInfo | null> {
  */
 async function getNowPlaying(): Promise<MovieInfo[]> {
   const log = getLogger();
-  
+
   if (!TMDB_API_KEY) {
     log.debug('🎬 TMDB API key not configured');
     return [];
@@ -130,7 +130,7 @@ async function getNowPlaying(): Promise<MovieInfo[]> {
       }>;
     };
 
-    return (data.results || []).slice(0, 5).map(movie => ({
+    return (data.results || []).slice(0, 5).map((movie) => ({
       id: movie.id,
       title: movie.title,
       overview: movie.overview,
@@ -149,7 +149,7 @@ async function getNowPlaying(): Promise<MovieInfo[]> {
  */
 async function getUpcomingMovies(): Promise<MovieInfo[]> {
   const log = getLogger();
-  
+
   if (!TMDB_API_KEY) {
     return [];
   }
@@ -173,7 +173,7 @@ async function getUpcomingMovies(): Promise<MovieInfo[]> {
       }>;
     };
 
-    return (data.results || []).slice(0, 5).map(movie => ({
+    return (data.results || []).slice(0, 5).map((movie) => ({
       id: movie.id,
       title: movie.title,
       overview: movie.overview,
@@ -208,11 +208,10 @@ export async function getMovieInfo(title: string): Promise<string> {
   const runtimeStr = movie.runtime ? ` ${movie.runtime} minutes.` : '';
   const genreStr = movie.genres?.length ? ` Genres: ${movie.genres.join(', ')}.` : '';
   const yearStr = movie.releaseDate ? ` (${movie.releaseDate.split('-')[0]})` : '';
-  
+
   // Truncate overview if too long
-  const overview = movie.overview.length > 200 
-    ? movie.overview.substring(0, 197) + '...'
-    : movie.overview;
+  const overview =
+    movie.overview.length > 200 ? movie.overview.substring(0, 197) + '...' : movie.overview;
 
   return `${movie.title}${yearStr}:${ratingStr}.${runtimeStr}${genreStr} ${overview}`;
 }
@@ -231,7 +230,7 @@ export async function getMoviesNowPlaying(): Promise<string> {
   }
 
   const movieList = movies
-    .map(m => {
+    .map((m) => {
       const rating = m.rating > 0 ? ` (${m.rating.toFixed(1)}/10)` : '';
       return `${m.title}${rating}`;
     })
@@ -254,8 +253,10 @@ export async function getUpcomingMoviesList(): Promise<string> {
   }
 
   const movieList = movies
-    .map(m => {
-      const date = m.releaseDate ? ` (${new Date(m.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})` : '';
+    .map((m) => {
+      const date = m.releaseDate
+        ? ` (${new Date(m.releaseDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`
+        : '';
       return `${m.title}${date}`;
     })
     .join(', ');
@@ -265,7 +266,7 @@ export async function getUpcomingMoviesList(): Promise<string> {
 
 /**
  * Get showtimes for a movie (requires location)
- * Note: This provides a search suggestion since actual showtimes require 
+ * Note: This provides a search suggestion since actual showtimes require
  * theater-specific APIs or web scraping
  */
 export async function getMovieShowtimes(title: string, location: string): Promise<string> {
@@ -274,14 +275,14 @@ export async function getMovieShowtimes(title: string, location: string): Promis
 
   // Verify the movie exists
   const movie = await searchMovie(title);
-  
+
   if (!movie) {
     return `I couldn't find "${title}". Check the title and try again.`;
   }
 
   // Generate search suggestion
   const searchQuery = encodeURIComponent(`${movie.title} showtimes ${location}`);
-  
+
   return `For ${movie.title} showtimes near ${location}, I'd recommend checking Fandango, AMC, or Google for the most accurate local listings. The movie is currently ${movie.rating > 0 ? `rated ${movie.rating.toFixed(1)}/10` : 'in theaters'}. Would you like me to tell you more about the movie instead?`;
 }
 
@@ -294,7 +295,8 @@ export function createMovieTools() {
 
   return {
     getMovieInfo: llm.tool({
-      description: 'Get information about a specific movie including rating, runtime, genres, and description. Use when user asks about a movie.',
+      description:
+        'Get information about a specific movie including rating, runtime, genres, and description. Use when user asks about a movie.',
       parameters: z.object({
         title: z.string().describe('Name of the movie'),
       }),
@@ -305,7 +307,8 @@ export function createMovieTools() {
     }),
 
     getMoviesNowPlaying: llm.tool({
-      description: 'Get a list of movies currently playing in theaters. Use when user asks what movies are out, in theaters, or playing now.',
+      description:
+        'Get a list of movies currently playing in theaters. Use when user asks what movies are out, in theaters, or playing now.',
       parameters: z.object({}),
       execute: async () => {
         logger.info('🎬 Now playing tool called');
@@ -314,7 +317,8 @@ export function createMovieTools() {
     }),
 
     getUpcomingMovies: llm.tool({
-      description: 'Get a list of upcoming movies coming to theaters soon. Use when user asks about upcoming releases or what movies are coming out.',
+      description:
+        'Get a list of upcoming movies coming to theaters soon. Use when user asks about upcoming releases or what movies are coming out.',
       parameters: z.object({}),
       execute: async () => {
         logger.info('🎬 Upcoming movies tool called');
@@ -323,7 +327,8 @@ export function createMovieTools() {
     }),
 
     getMovieShowtimes: llm.tool({
-      description: 'Get showtime information for a movie in a specific location. Use when user asks for showtimes or when a movie is playing.',
+      description:
+        'Get showtime information for a movie in a specific location. Use when user asks for showtimes or when a movie is playing.',
       parameters: z.object({
         title: z.string().describe('Name of the movie'),
         location: z.string().describe('City or zip code for local theaters'),
@@ -337,6 +342,3 @@ export function createMovieTools() {
 }
 
 export default createMovieTools;
-
-
-

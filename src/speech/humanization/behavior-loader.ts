@@ -65,10 +65,7 @@ function isCacheValid(cached: CachedProfile): boolean {
 /**
  * Load a single JSON behavior file
  */
-async function loadBehaviorFile<T>(
-  personaId: string,
-  fileName: string
-): Promise<T | null> {
+async function loadBehaviorFile<T>(personaId: string, fileName: string): Promise<T | null> {
   try {
     const filePath = join(BUNDLES_PATH, personaId, 'content', 'behaviors', fileName);
     const content = await fs.readFile(filePath, 'utf-8');
@@ -82,9 +79,7 @@ async function loadBehaviorFile<T>(
 /**
  * Load complete speech profile for a persona
  */
-export async function loadSpeechProfile(
-  personaId: string
-): Promise<PersonaSpeechProfile> {
+export async function loadSpeechProfile(personaId: string): Promise<PersonaSpeechProfile> {
   // Check cache
   const cached = profileCache.get(personaId);
   if (cached && isCacheValid(cached)) {
@@ -137,18 +132,21 @@ export async function loadSpeechProfile(
   // Cache
   profileCache.set(personaId, { profile, loadedAt: new Date() });
 
-  log.debug({
-    personaId,
-    hasImperfections: !!imperfections,
-    hasThinking: !!thinkingSounds,
-    hasLateNight: !!lateNightPresence,
-    hasCallbacks: !!callbacks,
-    hasLaughter: !!laughterContagion,
-    hasEnergy: !!energyMatching,
-    hasCelebrations: !!celebrations,
-    hasCatchphrases: !!catchphrases,
-    hasAnticipation: !!anticipation,
-  }, 'Loaded speech profile');
+  log.debug(
+    {
+      personaId,
+      hasImperfections: !!imperfections,
+      hasThinking: !!thinkingSounds,
+      hasLateNight: !!lateNightPresence,
+      hasCallbacks: !!callbacks,
+      hasLaughter: !!laughterContagion,
+      hasEnergy: !!energyMatching,
+      hasCelebrations: !!celebrations,
+      hasCatchphrases: !!catchphrases,
+      hasAnticipation: !!anticipation,
+    },
+    'Loaded speech profile'
+  );
 
   return profile;
 }
@@ -189,7 +187,7 @@ function hashCode(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash;
@@ -236,7 +234,7 @@ function matchesContext(
   // Check for "less likely" matches (negative boost)
   const lessLikely = usageRules.less_likely_when || [];
   for (const condition of lessLikely) {
-    if (contextKeywords.some(k => k.toLowerCase().includes(condition.toLowerCase()))) {
+    if (contextKeywords.some((k) => k.toLowerCase().includes(condition.toLowerCase()))) {
       return { matches: false, boost: -0.5 };
     }
   }
@@ -245,7 +243,7 @@ function matchesContext(
   const moreLikely = usageRules.more_likely_when || [];
   let boost = 0;
   for (const condition of moreLikely) {
-    if (contextKeywords.some(k => k.toLowerCase().includes(condition.toLowerCase()))) {
+    if (contextKeywords.some((k) => k.toLowerCase().includes(condition.toLowerCase()))) {
       boost += 0.2;
     }
   }
@@ -463,7 +461,13 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
       turnMultiplier: 0.05,
       maxBehaviorsPerResponse: 2,
       minCharsBetweenInjections: 50,
-      preferredCategories: ['excitement_overflow', 'restarts', 'natural_restarts', 'thinking_aloud', 'vocal_vulnerability'],
+      preferredCategories: [
+        'excitement_overflow',
+        'restarts',
+        'natural_restarts',
+        'thinking_aloud',
+        'vocal_vulnerability',
+      ],
       avoidCategories: [],
     },
     warm: {
@@ -471,7 +475,15 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
       turnMultiplier: 0.04,
       maxBehaviorsPerResponse: 2,
       minCharsBetweenInjections: 60,
-      preferredCategories: ['empathy_sounds', 'genuine_processing', 'celebration_overflow', 'vocal_vulnerability', 'natural_restarts', 'warm_processing', 'celebration_warmth'],
+      preferredCategories: [
+        'empathy_sounds',
+        'genuine_processing',
+        'celebration_overflow',
+        'vocal_vulnerability',
+        'natural_restarts',
+        'warm_processing',
+        'celebration_warmth',
+      ],
       avoidCategories: [],
     },
     efficient: {
@@ -479,7 +491,12 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
       turnMultiplier: 0.03,
       maxBehaviorsPerResponse: 1,
       minCharsBetweenInjections: 80,
-      preferredCategories: ['efficient_processing', 'grounding_sounds', 'natural_restarts', 'vocal_vulnerability'],
+      preferredCategories: [
+        'efficient_processing',
+        'grounding_sounds',
+        'natural_restarts',
+        'vocal_vulnerability',
+      ],
       avoidCategories: ['excitement_overflow', 'celebration_overflow'],
     },
     contemplative: {
@@ -487,7 +504,13 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
       turnMultiplier: 0.02,
       maxBehaviorsPerResponse: 2,
       minCharsBetweenInjections: 100,
-      preferredCategories: ['contemplative_sounds', 'wisdom_building', 'presence_sounds', 'vocal_vulnerability', 'natural_restarts'],
+      preferredCategories: [
+        'contemplative_sounds',
+        'wisdom_building',
+        'presence_sounds',
+        'vocal_vulnerability',
+        'natural_restarts',
+      ],
       avoidCategories: ['excitement_overflow', 'restarts'],
     },
     analytical: {
@@ -495,7 +518,15 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
       turnMultiplier: 0.03,
       maxBehaviorsPerResponse: 1,
       minCharsBetweenInjections: 70,
-      preferredCategories: ['thinking_aloud', 'self_corrections', 'grandfatherly_processing', 'vocal_vulnerability', 'natural_restarts', 'research_precision', 'elderly_warmth'],
+      preferredCategories: [
+        'thinking_aloud',
+        'self_corrections',
+        'grandfatherly_processing',
+        'vocal_vulnerability',
+        'natural_restarts',
+        'research_precision',
+        'elderly_warmth',
+      ],
       avoidCategories: ['excitement_overflow', 'empathy_sounds'],
     },
   };
@@ -521,9 +552,16 @@ export function getInjectionConfig(personaId: string): InjectionConfig {
  * Preload speech profiles for all known personas
  */
 export async function preloadAllSpeechProfiles(): Promise<void> {
-  const personas = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel', 'peter-john'];
+  const personas = [
+    'ferni',
+    'maya-santos',
+    'jordan-taylor',
+    'alex-chen',
+    'nayan-patel',
+    'peter-john',
+  ];
 
-  await Promise.all(personas.map(p => loadSpeechProfile(p)));
+  await Promise.all(personas.map((p) => loadSpeechProfile(p)));
 
   log.info({ count: personas.length }, 'Preloaded speech profiles');
 }
@@ -995,7 +1033,7 @@ export function shouldUseCallback(
     return { shouldUse: false, phrase: null };
   }
 
-  const callback = profile.callbacks.callbacks.find(c => c.id === callbackId);
+  const callback = profile.callbacks.callbacks.find((c) => c.id === callbackId);
   if (!callback) {
     return { shouldUse: false, phrase: null };
   }
@@ -1023,7 +1061,10 @@ export function shouldUseCallback(
 /**
  * Select appropriate breath category based on persona and context
  */
-function selectBreathCategory(personaId: string, context: BehaviorSelectionContext): BreathCategory {
+function selectBreathCategory(
+  personaId: string,
+  context: BehaviorSelectionContext
+): BreathCategory {
   const { emotional, content } = context;
 
   // Persona-specific category selection
@@ -1072,7 +1113,14 @@ function selectBreathCategory(personaId: string, context: BehaviorSelectionConte
 /**
  * Celebration intensity levels
  */
-export type CelebrationIntensity = 'small' | 'big' | 'growth' | 'effort' | 'quiet' | 'courage' | 'consistency';
+export type CelebrationIntensity =
+  | 'small'
+  | 'big'
+  | 'growth'
+  | 'effort'
+  | 'quiet'
+  | 'courage'
+  | 'consistency';
 
 /**
  * Detect what type of celebration is appropriate
@@ -1454,4 +1502,3 @@ export function getPendingItemPhrase(
       return getRandomPhrase(pending_items.goal_tracking, seed);
   }
 }
-

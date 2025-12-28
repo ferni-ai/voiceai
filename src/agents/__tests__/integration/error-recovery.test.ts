@@ -194,7 +194,9 @@ describe('Retry Patterns', () => {
 
             const delay = baseDelay * Math.pow(2, i);
             delays.push(delay);
-            await new Promise<void>((resolve) => { setTimeout(resolve, delay); });
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, delay);
+            });
           }
         }
         throw new Error('Should not reach here');
@@ -280,7 +282,9 @@ describe('Retry Patterns', () => {
               throw lastError;
             }
 
-            await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, 10);
+            });
           }
         }
 
@@ -638,7 +642,9 @@ describe('Recovery Verification', () => {
           consecutiveSuccesses = 0;
         }
 
-        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
       }
 
       return false;

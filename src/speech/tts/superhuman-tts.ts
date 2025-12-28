@@ -407,7 +407,9 @@ export class SuperhumanTTS extends tts.TTS {
       },
       async *[Symbol.asyncIterator]() {
         // Wait for text
-        await new Promise<void>((r) => { setTimeout(r, 10); });
+        await new Promise<void>((r) => {
+          setTimeout(r, 10);
+        });
         const text = streamState._text;
 
         if (!text) {
@@ -424,9 +426,7 @@ export class SuperhumanTTS extends tts.TTS {
     } as unknown as tts.SynthesizeStream;
   }
 
-  private async *streamAudio(
-    result: any
-  ): AsyncGenerator<{ type: string; frame?: AudioFrame }> {
+  private async *streamAudio(result: any): AsyncGenerator<{ type: string; frame?: AudioFrame }> {
     // If we have audio data directly in result
     if (result.audio_base64) {
       const binaryString = atob(result.audio_base64);

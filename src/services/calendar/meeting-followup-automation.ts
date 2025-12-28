@@ -146,10 +146,12 @@ async function updateCommitmentStatus(
     .doc(userId)
     .collection(COLLECTION_COMMITMENTS)
     .doc(commitmentId)
-    .update(cleanForFirestore({
-      status,
-      updatedAt: new Date(),
-    }));
+    .update(
+      cleanForFirestore({
+        status,
+        updatedAt: new Date(),
+      })
+    );
 }
 
 async function saveFollowUpTask(
@@ -170,7 +172,12 @@ async function saveFollowUpTask(
     createdAt: now,
   };
 
-  await db.collection('bogle_users').doc(userId).collection(COLLECTION_FOLLOWUPS).doc(id).set(cleanForFirestore(doc));
+  await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection(COLLECTION_FOLLOWUPS)
+    .doc(id)
+    .set(cleanForFirestore(doc));
 
   return doc;
 }
@@ -507,9 +514,11 @@ export async function processRecentMeetingsForFollowUp(
         });
 
         // Mark as processed
-        await doc.ref.update(cleanForFirestore({
-          processedAt: new Date(),
-        }));
+        await doc.ref.update(
+          cleanForFirestore({
+            processedAt: new Date(),
+          })
+        );
 
         processedCount++;
       } catch (error) {

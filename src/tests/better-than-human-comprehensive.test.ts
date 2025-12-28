@@ -28,6 +28,7 @@ import {
 import { detectCrisis } from '../services/superhuman/emotional-first-aid.js';
 import { detectUnsaidSignals } from '../services/trust-systems/reading-between-lines.js';
 import { embed, cosineSimilarity } from '../memory/embeddings.js';
+import { extractRelationships } from '../intelligence/triggers/extractors/relationship-extractor.js';
 
 // ============================================================================
 // TEST CONFIGURATION
@@ -553,15 +554,11 @@ describe('Relationship Network - Better Than Human', () => {
 
   describe('Relationship Extraction', () => {
     it('should detect relationship mentions in utterances', () => {
-      // Simple pattern-based detection test
-      const relationshipPatterns = [
-        /my (mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|therapist|doctor)/i,
-        /(\w+)'s my (friend|colleague|sister|brother)/i,
-      ];
-
+      // Use the actual relationship extractor for accurate testing
       let detected = 0;
       for (const { utterance, expected } of RELATIONSHIP_MENTIONS) {
-        const hasMatch = relationshipPatterns.some((p) => p.test(utterance));
+        const result = extractRelationships(utterance);
+        const hasMatch = result.relationships.length > 0;
         if (hasMatch) {
           detected++;
         } else {

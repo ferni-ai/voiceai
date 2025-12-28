@@ -379,4 +379,3 @@ describe('Smart Home Domain Integration', () => {
     });
   });
 });
-

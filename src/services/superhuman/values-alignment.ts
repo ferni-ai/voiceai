@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, } from './firestore-utils.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'values-alignment' });

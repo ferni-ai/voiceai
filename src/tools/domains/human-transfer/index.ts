@@ -91,7 +91,7 @@ However, always listen for:
             const flags = Object.entries(decision.safetyFlags)
               .filter(([_, v]) => v)
               .map(([k]) => k.replace(/([A-Z])/g, ' $1').trim());
-            
+
             if (flags.length > 0) {
               response += `**Safety Flags:** ${flags.join(', ')}\n\n`;
             }
@@ -111,7 +111,7 @@ However, always listen for:
           return response;
         } catch (error) {
           log.error({ error: String(error) }, 'Error evaluating human transfer');
-          
+
           // Always return crisis resources on error
           return `**Assessment Error** - Returning default crisis resources:
 
@@ -302,7 +302,7 @@ I can continue supporting you, and a dedicated coach could add another layer of 
           return `I'd like to help connect you with the right support. What specific area would be most helpful?`;
         } catch (error) {
           log.error({ error: String(error) }, 'Error initiating human transfer');
-          
+
           // Always return crisis resources
           return `I encountered an issue, but here are resources that can help:
 
@@ -425,4 +425,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

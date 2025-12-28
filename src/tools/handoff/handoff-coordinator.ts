@@ -52,7 +52,7 @@ import {
   type ValidationOptions,
 } from './pre-validation.js';
 import { resolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
-import type { HandoffTransaction} from './handoff-transaction.js';
+import type { HandoffTransaction } from './handoff-transaction.js';
 import { createTransaction } from './handoff-transaction.js';
 import {
   EventSequencer,
@@ -60,7 +60,7 @@ import {
   type SequencedEvent,
   type HandoffEventType,
 } from './event-sequencer.js';
-import type { HandoffStateManager} from './handoff-state-manager.js';
+import type { HandoffStateManager } from './handoff-state-manager.js';
 import { getHandoffManager } from './handoff-state-manager.js';
 import { recordHandoffMetrics, type HandoffMetricsData } from '../../services/handoff-metrics.js';
 

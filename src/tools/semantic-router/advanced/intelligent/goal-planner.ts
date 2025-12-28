@@ -201,7 +201,12 @@ export class GoalPlanner {
     let count = 0;
 
     // Dates/times
-    if (/(?:tomorrow|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(input)) count++;
+    if (
+      /(?:tomorrow|next\s+\w+|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(
+        input
+      )
+    )
+      count++;
     if (/\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm)/i.test(input)) count++;
 
     // Locations
@@ -211,7 +216,9 @@ export class GoalPlanner {
     if (/(?:with|for|call|text)\s+[A-Z][a-z]+/.test(input)) count++;
 
     // Actions (verbs at start)
-    const actions = input.match(/(?:^|\.\s+)(?:check|get|find|look|set|play|send|call|book|reserve)/gi);
+    const actions = input.match(
+      /(?:^|\.\s+)(?:check|get|find|look|set|play|send|call|book|reserve)/gi
+    );
     if (actions) count += actions.length;
 
     return count;
@@ -282,7 +289,9 @@ export class GoalPlanner {
   ): string {
     const toolList = tools
       .slice(0, 20)
-      .map((t) => `- ${t.id}: ${t.description} (params: ${t.parameters.map((p) => p.name).join(', ')})`)
+      .map(
+        (t) => `- ${t.id}: ${t.description} (params: ${t.parameters.map((p) => p.name).join(', ')})`
+      )
       .join('\n');
 
     const constraintsStr = context?.constraints?.length
@@ -431,7 +440,8 @@ Respond ONLY with valid JSON:`;
       subGoals: steps.map((s) => s.description),
       steps,
       confidence: steps.length > 0 ? 0.5 : 0.2,
-      summary: steps.length > 0 ? `Execute ${steps.length} matched tools` : 'No matching tools found',
+      summary:
+        steps.length > 0 ? `Execute ${steps.length} matched tools` : 'No matching tools found',
       estimatedTotalMs: steps.length * 500,
       strategy: 'sequential',
       createdAt: new Date(),
@@ -504,9 +514,7 @@ Respond ONLY with valid JSON:`;
         }
 
         // Check for critical failures
-        const criticalFailed = group.filter(
-          (s) => !s.optional && state.failedSteps.includes(s.id)
-        );
+        const criticalFailed = group.filter((s) => !s.optional && state.failedSteps.includes(s.id));
         if (criticalFailed.length > 0) {
           state.status = 'failed';
           state.error = `Critical step failed: ${criticalFailed[0].id}`;
@@ -671,6 +679,7 @@ Estimated time: ${Math.round(plan.estimatedTotalMs / 1000)}s`;
  * Check if a plan should auto-execute
  */
 export function shouldAutoExecute(plan: ExecutionPlan, threshold = 0.8): boolean {
-  return plan.confidence >= threshold && plan.steps.every((s) => !s.optional || s.dependsOn.length === 0);
+  return (
+    plan.confidence >= threshold && plan.steps.every((s) => !s.optional || s.dependsOn.length === 0)
+  );
 }
-

@@ -72,41 +72,37 @@ const metrics = {
  */
 const COMMON_GREETINGS: Record<string, string[]> = {
   ferni: [
-    'Hey. What\'s going on?',
-    'Hey. What\'s up?',
+    "Hey. What's going on?",
+    "Hey. What's up?",
     'Hey. Talk to me.',
-    'Hey. What\'s happening?',
-    'Hey. What\'s on your mind?',
+    "Hey. What's happening?",
+    "Hey. What's on your mind?",
     'Hey.',
     'Morning.',
     'Oh, hey.',
   ],
   'maya-santos': [
-    'Hey! What\'s on your mind?',
+    "Hey! What's on your mind?",
     'Hey! How can I help?',
     'Hi! What are we working on today?',
     'Hey!',
   ],
   'peter-john': [
     'Hey! What are you thinking about?',
-    'Hey! What\'s interesting?',
-    'Hey! What\'s on your mind?',
+    "Hey! What's interesting?",
+    "Hey! What's on your mind?",
     'Hey!',
   ],
-  'alex-chen': [
-    'Hey! What\'s up?',
-    'Hey! Alex here. What\'s up?',
-    'Hey! What\'s going on?',
-  ],
+  'alex-chen': ["Hey! What's up?", "Hey! Alex here. What's up?", "Hey! What's going on?"],
   'jordan-taylor': [
     'Hey! What are we planning?',
-    'Hey! What\'s happening?',
+    "Hey! What's happening?",
     'Hey! Tell me everything!',
   ],
   'nayan-patel': [
-    'Hey. I\'m listening.',
+    "Hey. I'm listening.",
     'Hey. What brings you?',
-    'Hello, friend. What\'s on your mind?',
+    "Hello, friend. What's on your mind?",
   ],
 };
 
@@ -122,10 +118,7 @@ const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-2-2025-03-07';
  * Generate TTS audio directly via Cartesia API.
  * Uses a lightweight direct call rather than full SDK for warmup speed.
  */
-async function generateGreetingAudio(
-  text: string,
-  voiceId: string
-): Promise<ArrayBuffer | null> {
+async function generateGreetingAudio(text: string, voiceId: string): Promise<ArrayBuffer | null> {
   const apiKey = process.env.CARTESIA_API_KEY;
   if (!apiKey) {
     log.debug('Cartesia API key not available for greeting cache');
@@ -240,10 +233,7 @@ export async function prewarmGreetingAudio(): Promise<number> {
   metrics.warmupDurationMs = Date.now() - startTime;
   metrics.greetingsCached = cachedCount;
 
-  log.info(
-    { cachedCount, durationMs: metrics.warmupDurationMs },
-    '⚡ Greeting audio cache warmed'
-  );
+  log.info({ cachedCount, durationMs: metrics.warmupDurationMs }, '⚡ Greeting audio cache warmed');
 
   return cachedCount;
 }
@@ -255,10 +245,7 @@ export async function prewarmGreetingAudio(): Promise<number> {
  * @param voiceId - The voice ID to use
  * @returns Cached audio buffer, or null if not cached
  */
-export function getCachedGreetingAudio(
-  text: string,
-  voiceId: string
-): ArrayBuffer | null {
+export function getCachedGreetingAudio(text: string, voiceId: string): ArrayBuffer | null {
   if (!warmupComplete) return null;
 
   const key = getCacheKey(text, voiceId);
@@ -293,9 +280,10 @@ export function getGreetingCacheMetrics() {
   return {
     ...metrics,
     cacheSize: greetingCache.size,
-    hitRate: metrics.cacheHits + metrics.cacheMisses > 0
-      ? metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)
-      : 0,
+    hitRate:
+      metrics.cacheHits + metrics.cacheMisses > 0
+        ? metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses)
+        : 0,
   };
 }
 
@@ -317,7 +305,7 @@ import { AudioFrame } from '@livekit/rtc-node';
 
 /**
  * Convert cached PCM audio to AudioFrames for LiveKit streaming.
- * 
+ *
  * This enables instant playback of pre-cached greetings without
  * going through the TTS pipeline.
  */
@@ -345,7 +333,7 @@ export function* splitCachedAudioIntoFrames(
 
 /**
  * Get cached greeting as a ReadableStream of AudioFrames.
- * 
+ *
  * This can be used directly with LiveKit's audio publishing.
  * Returns null if greeting is not cached.
  */

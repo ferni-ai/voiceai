@@ -204,7 +204,15 @@ describe('DailyRituals', () => {
 
       it('should have weather responses for all types', () => {
         const prompts = RITUAL_PROMPTS['ferni-sky-check'];
-        const weatherTypes = ['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'] as const;
+        const weatherTypes = [
+          'sunny',
+          'partly-cloudy',
+          'cloudy',
+          'rainy',
+          'stormy',
+          'foggy',
+          'rainbow',
+        ] as const;
 
         weatherTypes.forEach((weather) => {
           expect(prompts.weatherResponses[weather]).toBeDefined();
@@ -354,7 +362,8 @@ describe('DailyRituals', () => {
         const response = service.getWeatherResponse('sunny');
         expect(response).toBeDefined();
         // Response can be either "Clear skies..." or "Sunny inside..." (randomized)
-        const hasSunnyResponse = response.includes('Clear skies') || response.includes('Sunny inside');
+        const hasSunnyResponse =
+          response.includes('Clear skies') || response.includes('Sunny inside');
         expect(hasSunnyResponse).toBe(true);
       });
 

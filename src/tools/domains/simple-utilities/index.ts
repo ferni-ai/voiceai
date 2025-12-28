@@ -386,20 +386,10 @@ export {
 };
 
 // Humor tools
-export {
-  humorToolDefinitions,
-  tellJokeDef,
-  getFunFactDef,
-  tellMiniStoryDef,
-};
+export { humorToolDefinitions, tellJokeDef, getFunFactDef, tellMiniStoryDef };
 
 // Wind-down tools
-export {
-  winddownToolDefinitions,
-  windDownDef,
-  bedtimeCheckInDef,
-  sleepAffirmationDef,
-};
+export { winddownToolDefinitions, windDownDef, bedtimeCheckInDef, sleepAffirmationDef };
 
 // Cross-domain shortcuts
 export {

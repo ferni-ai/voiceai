@@ -190,7 +190,9 @@ async function warmLLMProvider(): Promise<{ success: boolean; timeMs: number }> 
 /**
  * Preload user preferences for specified users
  */
-async function warmUserPreferences(userIds: string[]): Promise<{ usersLoaded: number; timeMs: number }> {
+async function warmUserPreferences(
+  userIds: string[]
+): Promise<{ usersLoaded: number; timeMs: number }> {
   const start = performance.now();
 
   let usersLoaded = 0;
@@ -284,9 +286,7 @@ async function warmWithSampleQueries(): Promise<{ queriesRun: number; timeMs: nu
  * console.log(`Warmed in ${result.timings.totalMs}ms`);
  * ```
  */
-export async function warmIntelligentRouting(
-  config: WarmupConfig = {}
-): Promise<WarmupResult> {
+export async function warmIntelligentRouting(config: WarmupConfig = {}): Promise<WarmupResult> {
   const totalStart = performance.now();
   const errors: string[] = [];
 
@@ -479,4 +479,3 @@ export function stopPeriodicRefresh(): void {
     log.info('Stopped periodic cache refresh');
   }
 }
-

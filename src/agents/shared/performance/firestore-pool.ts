@@ -365,7 +365,9 @@ class FirestorePool {
 
           if (attempt < maxRetries) {
             const delay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
-            await new Promise<void>((resolve) => { setTimeout(resolve, delay); });
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, delay);
+            });
           }
         }
       }

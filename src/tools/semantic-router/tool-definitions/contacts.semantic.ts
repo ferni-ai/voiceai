@@ -131,7 +131,7 @@ export const saveContactTool: SemanticToolDefinition = {
       extractionPatterns: [
         // "number is 555-123-4567"
         /number\s+is\s+([0-9\-\(\)\s\+\.]+)/i,
-        // "phone is 555-123-4567"  
+        // "phone is 555-123-4567"
         /phone\s+is\s+([0-9\-\(\)\s\+\.]+)/i,
         // ": 555-123-4567" (after colon)
         /:\s*([0-9\-\(\)\s\+\.]+)/i,

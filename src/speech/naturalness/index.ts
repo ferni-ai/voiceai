@@ -36,10 +36,7 @@ import {
   resetAmbientAwareness,
   type AmbientAnalysisResult,
 } from '../ambient-awareness.js';
-import {
-  getRapportScorer,
-  resetRapportScorer,
-} from '../../conversation/rapport/rapport-scorer.js';
+import { getRapportScorer, resetRapportScorer } from '../../conversation/rapport/rapport-scorer.js';
 import type { TurnObservation } from '../../conversation/rapport/types.js';
 import {
   combineAdjustments,
@@ -95,10 +92,7 @@ const engines = new Map<string, NaturalnessEngineInstance>();
 /**
  * Get or create naturalness engine for a session
  */
-export function getNaturalnessEngine(
-  sessionId: string,
-  userId: string
-): NaturalnessEngineInstance {
+export function getNaturalnessEngine(sessionId: string, userId: string): NaturalnessEngineInstance {
   if (!engines.has(sessionId)) {
     engines.set(cleanForFirestore(sessionId), {
       sessionId,
@@ -203,10 +197,7 @@ export async function persistNaturalnessData(sessionId: string): Promise<void> {
  * 3. Get context injections for LLM
  * 4. Get verbal acknowledgments if needed
  */
-export function processTurn(
-  sessionId: string,
-  input: TurnInput
-): NaturalnessResult {
+export function processTurn(sessionId: string, input: TurnInput): NaturalnessResult {
   const engine = engines.get(sessionId);
   if (!engine) {
     log.warn({ sessionId }, 'NaturalnessEngine not found, returning defaults');
@@ -232,8 +223,12 @@ export function processTurn(
       sources.push({
         source: 'stress',
         speedMultiplier: stressAdaptation.speedMultiplier,
-        warmthLevel: stressAdaptation.warmthLevel === 'high' ? 'very_warm' :
-          stressAdaptation.warmthLevel === 'medium' ? 'warm' : 'neutral',
+        warmthLevel:
+          stressAdaptation.warmthLevel === 'high'
+            ? 'very_warm'
+            : stressAdaptation.warmthLevel === 'medium'
+              ? 'warm'
+              : 'neutral',
         extraPauseMs: Math.round((stressAdaptation.pauseMultiplier - 1) * 300),
         reason: stressAdaptation.reason,
         priority: 3, // High priority - stress is important
@@ -307,7 +302,11 @@ export function processTurn(
   const rapportScorer = getRapportScorer(sessionId);
   const rapportScore = rapportScorer.recordObservation(rapportObs);
 
-  if (rapportScore.level === 'needs_attention' || rapportScore.level === 'repair_needed' || rapportScore.level === 'critical') {
+  if (
+    rapportScore.level === 'needs_attention' ||
+    rapportScore.level === 'repair_needed' ||
+    rapportScore.level === 'critical'
+  ) {
     activeSystems.push('rapport');
     const repairStrategy = rapportScorer.getRepairStrategy();
 
@@ -339,9 +338,9 @@ export function processTurn(
         const verbalCues: Record<string, string> = {
           validate_feeling: "I hear you, and I want you to know I'm fully here with you.",
           slow_down: "Let me take a moment to really understand what you're sharing.",
-          check_in: "Before we continue, I just want to check in - how are you feeling right now?",
+          check_in: 'Before we continue, I just want to check in - how are you feeling right now?',
           give_space: "Take all the time you need. I'm here whenever you're ready.",
-          show_interest: "I really want to understand this better. Tell me more.",
+          show_interest: 'I really want to understand this better. Tell me more.',
         };
         const cue = verbalCues[repairStrategy.type];
         if (cue) {
@@ -473,14 +472,15 @@ function buildRapportObservation(context: TurnContextInput): TurnObservation {
       agentTalkTimeMs: context.agentWordCount * msPerWord,
       userTalkTimeMs: context.userWordCount * msPerWord,
     },
-    interruption: context.agentInterrupted || context.userInterrupted
-      ? {
-          agentInterrupted: context.agentInterrupted ?? false,
-          userInterrupted: context.userInterrupted ?? false,
-          overlapMs: 0, // Would need audio timing
-          wasCollaborative: false,
-        }
-      : undefined,
+    interruption:
+      context.agentInterrupted || context.userInterrupted
+        ? {
+            agentInterrupted: context.agentInterrupted ?? false,
+            userInterrupted: context.userInterrupted ?? false,
+            overlapMs: 0, // Would need audio timing
+            wasCollaborative: false,
+          }
+        : undefined,
     engagement: {
       responseLength: context.responseLength ?? 'medium',
       userAskedQuestion: context.userAskedQuestion ?? false,
@@ -488,15 +488,16 @@ function buildRapportObservation(context: TurnContextInput): TurnObservation {
       userIntroducedTopic: false,
       userShowedEmotion: !!context.userEmotion,
     },
-    emotionalAlignment: context.userEmotion && context.agentEmotion
-      ? {
-          userEmotion: context.userEmotion,
-          agentEmotion: context.agentEmotion,
-          isAligned: context.emotionsAligned ?? false,
-          userEnergy: 0.5,
-          agentEnergy: 0.5,
-        }
-      : undefined,
+    emotionalAlignment:
+      context.userEmotion && context.agentEmotion
+        ? {
+            userEmotion: context.userEmotion,
+            agentEmotion: context.agentEmotion,
+            isAligned: context.emotionsAligned ?? false,
+            userEnergy: 0.5,
+            agentEnergy: 0.5,
+          }
+        : undefined,
     flowContinuity: {
       silenceDurationMs: context.silenceDurationMs ?? 500,
       topicShift: false,

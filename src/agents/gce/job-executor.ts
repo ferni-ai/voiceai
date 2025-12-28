@@ -127,7 +127,11 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     if (qualityStr !== lastQuality) {
       lastQuality = qualityStr;
       if (qualityStr === 'poor' || qualityStr === 'lost') {
-        log('⚠️ Connection quality degraded', { jobId, quality: qualityStr, participant: participant?.identity });
+        log('⚠️ Connection quality degraded', {
+          jobId,
+          quality: qualityStr,
+          participant: participant?.identity,
+        });
       }
     }
   });
@@ -145,13 +149,21 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
   // Track mute state changes - helps debug audio issues
   room.on(RoomEvent.TrackMuted, (publication, participant) => {
     if (publication.kind === TrackKind.KIND_AUDIO) {
-      log('🔇 Audio track muted', { jobId, participant: participant?.identity, trackSid: publication.sid });
+      log('🔇 Audio track muted', {
+        jobId,
+        participant: participant?.identity,
+        trackSid: publication.sid,
+      });
     }
   });
 
   room.on(RoomEvent.TrackUnmuted, (publication, participant) => {
     if (publication.kind === TrackKind.KIND_AUDIO) {
-      log('🔊 Audio track unmuted', { jobId, participant: participant?.identity, trackSid: publication.sid });
+      log('🔊 Audio track unmuted', {
+        jobId,
+        participant: participant?.identity,
+        trackSid: publication.sid,
+      });
     }
   });
 

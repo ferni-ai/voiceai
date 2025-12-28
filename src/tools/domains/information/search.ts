@@ -164,11 +164,17 @@ export async function searchRecipes(dish: string): Promise<string> {
 
     // Try to find recipe from related topics
     const recipeTopics = data.RelatedTopics?.filter(
-      (topic) => topic.Text && (topic.Text.toLowerCase().includes('recipe') || topic.Text.toLowerCase().includes('ingredient'))
+      (topic) =>
+        topic.Text &&
+        (topic.Text.toLowerCase().includes('recipe') ||
+          topic.Text.toLowerCase().includes('ingredient'))
     );
 
     if (recipeTopics && recipeTopics.length > 0) {
-      const recipes = recipeTopics.slice(0, 3).map((t) => `• ${t.Text}`).join('\n');
+      const recipes = recipeTopics
+        .slice(0, 3)
+        .map((t) => `• ${t.Text}`)
+        .join('\n');
       return `Here are some ${dish} recipes:\n\n${recipes}`;
     }
 

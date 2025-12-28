@@ -296,4 +296,3 @@ export const TOPIC_SPECIFIC_RESPONSES: Record<string, string[]> = {
     '<break time="400ms"/>Finding a home is finding a future. <break time="300ms"/>Worth thinking about.',
   ],
 };
-

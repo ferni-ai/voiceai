@@ -49,6 +49,8 @@ export const PREFERENCE_KEYS = {
   MENU_PINNED: 'ferni_menu_pinned',
   /** Dismissed feature hints */
   DISMISSED_HINTS: 'ferni_dismissed_hints',
+  /** Show live transcription (default OFF on iOS/mobile for cleaner UX) */
+  SHOW_TRANSCRIPTION: 'ferni_show_transcription',
 } as const;
 
 // ============================================================================

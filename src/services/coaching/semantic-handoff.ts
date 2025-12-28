@@ -32,14 +32,17 @@ const log = createLogger({ module: 'SemanticHandoff' });
  * Extended semantic patterns for each persona
  * These capture conceptual intent, not just keywords
  */
-const SEMANTIC_PATTERNS: Record<PersonaId, {
-  /** Direct phrases that strongly indicate this persona */
-  strongPatterns: RegExp[];
-  /** Weaker signals that contribute to score */
-  weakPatterns: RegExp[];
-  /** Conceptual themes (for future embedding matching) */
-  themes: string[];
-}> = {
+const SEMANTIC_PATTERNS: Record<
+  PersonaId,
+  {
+    /** Direct phrases that strongly indicate this persona */
+    strongPatterns: RegExp[];
+    /** Weaker signals that contribute to score */
+    weakPatterns: RegExp[];
+    /** Conceptual themes (for future embedding matching) */
+    themes: string[];
+  }
+> = {
   ferni: {
     strongPatterns: [],
     weakPatterns: [],
@@ -71,8 +74,12 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(structure|structured|organize)/i,
     ],
     themes: [
-      'building consistency', 'daily routines', 'habit formation',
-      'behavioral change', 'accountability', 'productivity systems',
+      'building consistency',
+      'daily routines',
+      'habit formation',
+      'behavioral change',
+      'accountability',
+      'productivity systems',
     ],
   },
 
@@ -109,8 +116,12 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(professional|workplace)/i,
     ],
     themes: [
-      'difficult conversations', 'setting boundaries', 'conflict resolution',
-      'assertive communication', 'message crafting', 'relationship dynamics',
+      'difficult conversations',
+      'setting boundaries',
+      'conflict resolution',
+      'assertive communication',
+      'message crafting',
+      'relationship dynamics',
     ],
   },
 
@@ -125,7 +136,7 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(comprehensive|thorough|detailed)\s*(overview|understanding|knowledge)/i,
       /\b(i've heard|heard\s*a\s*lot)\s*(about|of)\s+\w+.*(don't|do not)\s*(really\s*)?(understand|get|know)/i,
       /\b(quantum|AI|machine\s*learning|blockchain|crypto|tech|technology)\s*(computing|mechanics|physics)?/i,
-      // NEW: More natural research/learning expressions  
+      // NEW: More natural research/learning expressions
       /\b(how\s*(do|does)\s+\w+.*actually\s*(work|function))/i,
       /\b(what('s| is)\s*the\s*(deal|story|history)\s*(with|behind))/i,
       /\b(can\s*you\s*(recommend|suggest)\s*(some\s*)?(resources|books|articles))/i,
@@ -149,8 +160,12 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(deep\s*dive|rabbit\s*hole)/i,
     ],
     themes: [
-      'deep research', 'learning', 'understanding complex topics',
-      'curiosity', 'knowledge building', 'intellectual exploration',
+      'deep research',
+      'learning',
+      'understanding complex topics',
+      'curiosity',
+      'knowledge building',
+      'intellectual exploration',
     ],
   },
 
@@ -177,8 +192,12 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(offsite|gathering|get-together)/i,
     ],
     themes: [
-      'event planning', 'celebrations', 'milestones',
-      'travel planning', 'special occasions', 'making memories',
+      'event planning',
+      'celebrations',
+      'milestones',
+      'travel planning',
+      'special occasions',
+      'making memories',
     ],
   },
 
@@ -217,8 +236,12 @@ const SEMANTIC_PATTERNS: Record<PersonaId, {
       /\b(truly|really\s*want)/i,
     ],
     themes: [
-      'meaning of life', 'philosophy', 'wisdom',
-      'long-term thinking', 'existential questions', 'purpose',
+      'meaning of life',
+      'philosophy',
+      'wisdom',
+      'long-term thinking',
+      'existential questions',
+      'purpose',
     ],
   },
 };
@@ -238,10 +261,7 @@ interface SemanticScore {
 /**
  * Calculate semantic similarity score for a persona
  */
-function calculateSemanticScore(
-  message: string,
-  personaId: PersonaId
-): SemanticScore {
+function calculateSemanticScore(message: string, personaId: PersonaId): SemanticScore {
   const patterns = SEMANTIC_PATTERNS[personaId];
   if (!patterns) {
     return { personaId, score: 0, strongMatches: 0, weakMatches: 0, reason: 'No patterns' };
@@ -273,10 +293,13 @@ function calculateSemanticScore(
   const weakScore = Math.min(0.3, weakMatches * 0.1);
   const score = strongScore + weakScore;
 
-  const reason = [
-    strongMatches > 0 ? `${strongMatches} strong match(es)` : '',
-    weakMatches > 0 ? `${weakMatches} weak match(es)` : '',
-  ].filter(Boolean).join(', ') || 'No matches';
+  const reason =
+    [
+      strongMatches > 0 ? `${strongMatches} strong match(es)` : '',
+      weakMatches > 0 ? `${weakMatches} weak match(es)` : '',
+    ]
+      .filter(Boolean)
+      .join(', ') || 'No matches';
 
   return {
     personaId,
@@ -308,7 +331,13 @@ export function detectHandoffSemanticly(
 
   // Calculate scores for all personas
   const scores: SemanticScore[] = [];
-  const personas: PersonaId[] = ['maya-santos', 'alex-chen', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+  const personas: PersonaId[] = [
+    'maya-santos',
+    'alex-chen',
+    'peter-john',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
 
   for (const personaId of personas) {
     if (personaId === currentPersona) continue;
@@ -350,7 +379,8 @@ export function detectHandoffSemanticly(
           personaId: secondBest.personaId,
           reason: `Semantic match: ${secondBest.reason}`,
           confidence: Math.min(0.95, secondBest.score),
-          warmIntro: secondProfile.warmIntros[Math.floor(Math.random() * secondProfile.warmIntros.length)],
+          warmIntro:
+            secondProfile.warmIntros[Math.floor(Math.random() * secondProfile.warmIntros.length)],
           specialization: secondProfile.specializations,
         },
         currentPersona,

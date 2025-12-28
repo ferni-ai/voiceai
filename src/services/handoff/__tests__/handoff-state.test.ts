@@ -106,7 +106,14 @@ describe('HandoffState', () => {
 
     it('should trim history when exceeding max length', () => {
       // Available agent IDs to cycle through
-      const agents: AgentId[] = ['ferni', 'maya-santos', 'jordan-taylor', 'alex-chen', 'peter-john', 'nayan-patel'];
+      const agents: AgentId[] = [
+        'ferni',
+        'maya-santos',
+        'jordan-taylor',
+        'alex-chen',
+        'peter-john',
+        'nayan-patel',
+      ];
 
       // Fill up history to 55 (exceeding max of 50)
       for (let i = 0; i < 55; i++) {

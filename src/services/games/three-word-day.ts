@@ -39,10 +39,10 @@ export interface ThreeWordDayResult extends TextGameResult {
 
 const PROMPTS: Record<ThreeWordDayState['promptType'], string> = {
   day: "Describe your day today in exactly three words. Don't overthink it—what comes to mind first?",
-  mood: "How are you feeling right now? Give me exactly three words.",
-  week: "If you had to capture this week in just three words, what would they be?",
-  moment: "Think of a meaningful moment recently. Describe it in three words.",
-  year: "This year so far in three words—what comes to mind?",
+  mood: 'How are you feeling right now? Give me exactly three words.',
+  week: 'If you had to capture this week in just three words, what would they be?',
+  moment: 'Think of a meaningful moment recently. Describe it in three words.',
+  year: 'This year so far in three words—what comes to mind?',
   custom: '', // Will be replaced with custom prompt
 };
 
@@ -61,11 +61,80 @@ const REFLECTION_STARTERS = [
 ];
 
 const WORD_CATEGORY_HINTS: Record<string, string[]> = {
-  positive: ['happy', 'grateful', 'peaceful', 'excited', 'hopeful', 'productive', 'connected', 'accomplished', 'loved', 'energized', 'inspired', 'content', 'joyful', 'calm', 'optimistic'],
-  challenging: ['tired', 'stressed', 'anxious', 'overwhelmed', 'frustrated', 'confused', 'sad', 'lonely', 'stuck', 'exhausted', 'worried', 'uncertain', 'drained', 'lost', 'scattered'],
-  transitional: ['changing', 'growing', 'learning', 'waiting', 'processing', 'rebuilding', 'questioning', 'exploring', 'adjusting', 'reflecting', 'pivoting', 'emerging'],
-  relational: ['together', 'family', 'friends', 'connected', 'supported', 'loved', 'distant', 'lonely', 'understood', 'missed', 'appreciated'],
-  action: ['busy', 'moving', 'working', 'creating', 'building', 'planning', 'deciding', 'starting', 'finishing', 'hustling', 'grinding'],
+  positive: [
+    'happy',
+    'grateful',
+    'peaceful',
+    'excited',
+    'hopeful',
+    'productive',
+    'connected',
+    'accomplished',
+    'loved',
+    'energized',
+    'inspired',
+    'content',
+    'joyful',
+    'calm',
+    'optimistic',
+  ],
+  challenging: [
+    'tired',
+    'stressed',
+    'anxious',
+    'overwhelmed',
+    'frustrated',
+    'confused',
+    'sad',
+    'lonely',
+    'stuck',
+    'exhausted',
+    'worried',
+    'uncertain',
+    'drained',
+    'lost',
+    'scattered',
+  ],
+  transitional: [
+    'changing',
+    'growing',
+    'learning',
+    'waiting',
+    'processing',
+    'rebuilding',
+    'questioning',
+    'exploring',
+    'adjusting',
+    'reflecting',
+    'pivoting',
+    'emerging',
+  ],
+  relational: [
+    'together',
+    'family',
+    'friends',
+    'connected',
+    'supported',
+    'loved',
+    'distant',
+    'lonely',
+    'understood',
+    'missed',
+    'appreciated',
+  ],
+  action: [
+    'busy',
+    'moving',
+    'working',
+    'creating',
+    'building',
+    'planning',
+    'deciding',
+    'starting',
+    'finishing',
+    'hustling',
+    'grinding',
+  ],
 };
 
 // ============================================================================
@@ -93,7 +162,7 @@ export function createInitialState(
 function categorizeWord(word: string): string | null {
   const lower = word.toLowerCase();
   for (const [category, words] of Object.entries(WORD_CATEGORY_HINTS)) {
-    if (words.some(w => lower.includes(w) || w.includes(lower))) {
+    if (words.some((w) => lower.includes(w) || w.includes(lower))) {
       return category;
     }
   }
@@ -101,15 +170,18 @@ function categorizeWord(word: string): string | null {
 }
 
 function analyzeWordTriad(words: string[]): string {
-  const categories = words.map(w => categorizeWord(w)).filter(Boolean);
+  const categories = words.map((w) => categorizeWord(w)).filter(Boolean);
 
   // All same category
   if (categories.length >= 2 && new Set(categories).size === 1) {
     const cat = categories[0];
-    if (cat === 'positive') return "There's a lot of light in these words. It sounds like something good is happening.";
-    if (cat === 'challenging') return "These words carry some weight. It takes courage to name what's hard.";
-    if (cat === 'transitional') return "I sense movement in these words—you're in a season of change.";
-    if (cat === 'relational') return "People seem important in your world right now.";
+    if (cat === 'positive')
+      return "There's a lot of light in these words. It sounds like something good is happening.";
+    if (cat === 'challenging')
+      return "These words carry some weight. It takes courage to name what's hard.";
+    if (cat === 'transitional')
+      return "I sense movement in these words—you're in a season of change.";
+    if (cat === 'relational') return 'People seem important in your world right now.';
     if (cat === 'action') return "You're in motion. Lots of doing energy here.";
   }
 
@@ -123,7 +195,7 @@ function analyzeWordTriad(words: string[]): string {
   }
 
   // Default
-  return "These three words paint an interesting picture together.";
+  return 'These three words paint an interesting picture together.';
 }
 
 function generateInsight(words: string[]): string {
@@ -153,7 +225,7 @@ function parseThreeWords(input: string): string[] | null {
     .replace(/\band\b/g, ' ')
     .replace(/\./g, '')
     .split(/\s+/)
-    .filter(w => w.length > 0);
+    .filter((w) => w.length > 0);
 
   // If they gave exactly 3 words, great!
   if (words.length === 3) {
@@ -179,9 +251,10 @@ export function processInput(state: ThreeWordDayState, input: string): ThreeWord
   // Check for quit commands
   if (lower === 'stop' || lower === 'quit' || lower === 'done' || lower === 'end') {
     return {
-      message: state.words.length > 0
-        ? `Thanks for sharing "${state.words.join(', ')}". Take care!`
-        : "No worries! We can play another time.",
+      message:
+        state.words.length > 0
+          ? `Thanks for sharing "${state.words.join(', ')}". Take care!`
+          : 'No worries! We can play another time.',
       gameOver: true,
       winner: null,
       newState: { ...state, concluded: true },
@@ -194,7 +267,7 @@ export function processInput(state: ThreeWordDayState, input: string): ThreeWord
 
     if (!words) {
       return {
-        message: "Give me exactly three words—no more, no less. What three words capture it?",
+        message: 'Give me exactly three words—no more, no less. What three words capture it?',
         gameOver: false,
         newState: state,
       };
@@ -278,7 +351,7 @@ export function processInput(state: ThreeWordDayState, input: string): ThreeWord
 
   // Fallback
   return {
-    message: "Give me three words that capture how things are.",
+    message: 'Give me three words that capture how things are.',
     gameOver: false,
     newState: state,
   };

@@ -333,11 +333,13 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   });
 
   // Speak the greeting via coordinated speech system
+  // FIX: Disable interruptions for initial greeting to prevent iOS background noise from cutting off
+  // The greeting is the first thing users hear - must be reliable across all devices
   try {
     const speakResult = await routeSpeech(sessionId, enhancedGreeting, {
       priority: SpeechPriority.RESPONSE,
       source: 'direct',
-      allowInterruptions: true,
+      allowInterruptions: false, // CRITICAL: Greeting must complete on mobile/iOS
     });
     if (speakResult.accepted) {
       diag.tts('Greeting spoken via coordinator');

@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, } from './firestore-utils.js';
+import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'SilenceInterpreter' });
@@ -416,7 +416,11 @@ export async function recordSilenceOutcome(
     };
 
     // Add to history
-    const ref = db.collection('bogle_users').doc(userId).collection('silence_patterns').doc('profile');
+    const ref = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('silence_patterns')
+      .doc('profile');
 
     const doc = await ref.get();
 
@@ -500,10 +504,12 @@ export async function updateBaselineTolerance(userId: string): Promise<void> {
       .doc(userId)
       .collection('silence_patterns')
       .doc('profile')
-      .update(cleanForFirestore({
-        baselinePauseTolerance: avgDuration,
-        updatedAt: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          baselinePauseTolerance: avgDuration,
+          updatedAt: new Date(),
+        })
+      );
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to update baseline tolerance');
   }
@@ -567,7 +573,9 @@ export async function buildSilenceContext(userId: string): Promise<string> {
 
   // Recent patterns
   const recentEmotional = profile.silenceHistory.filter(
-    (s) => s.type === 'emotional' && Date.now() - new Date(s.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000
+    (s) =>
+      s.type === 'emotional' &&
+      Date.now() - new Date(s.timestamp).getTime() < 7 * 24 * 60 * 60 * 1000
   ).length;
 
   if (recentEmotional > 3) {
@@ -612,4 +620,3 @@ export const silenceInterpreter = {
 };
 
 export default silenceInterpreter;
-

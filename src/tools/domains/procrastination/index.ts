@@ -639,7 +639,10 @@ const flagProcrastinationPatternForMayaDef: ToolDefinition = {
       }),
       execute: async ({ pattern, triggerTask, emotionalRoot }) => {
         const log = getLogger();
-        log.info({ agentId: ctx.agentId, pattern, triggerTask }, 'Flagging procrastination for Maya');
+        log.info(
+          { agentId: ctx.agentId, pattern, triggerTask },
+          'Flagging procrastination for Maya'
+        );
 
         try {
           let content = `Procrastination pattern: "${pattern}" | Trigger: ${triggerTask}`;

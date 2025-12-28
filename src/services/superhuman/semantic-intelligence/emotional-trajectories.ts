@@ -14,11 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
-import type {
-  EmotionalArc,
-  EmotionalWaypoint,
-  ArcPhase,
-} from './types.js';
+import type { EmotionalArc, EmotionalWaypoint, ArcPhase } from './types.js';
 
 const log = createLogger({ module: 'emotional-trajectories' });
 
@@ -88,7 +84,7 @@ export async function recordEmotionalWaypoint(
   };
 
   // Load existing arcs
-  const arcs = arcCache.get(userId) || await loadArcs(userId);
+  const arcs = arcCache.get(userId) || (await loadArcs(userId));
 
   // Find matching arc or create new one
   const matchingArc = await findMatchingArc(arcs, newWaypoint, embedding);
@@ -239,7 +235,8 @@ function updateArcPhase(arc: EmotionalArc): void {
 
   // Check for recurring pattern
   const hasOldData = Date.now() - arc.startedAt > 30 * 24 * 60 * 60 * 1000; // 30 days old
-  const peakedBefore = arc.peakMoment && arc.peakMoment.timestamp < Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const peakedBefore =
+    arc.peakMoment && arc.peakMoment.timestamp < Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   if (delta > CONFIG.PHASE_CHANGE_THRESHOLD) {
     arc.phase = hasOldData && peakedBefore ? 'recurring' : 'building';
@@ -279,8 +276,7 @@ function updateArcTrend(arc: EmotionalArc): void {
   const slope = denominator !== 0 ? numerator / denominator : 0;
 
   // Also check variance
-  const variance =
-    recent.reduce((a, b) => a + (b.intensity - yMean) ** 2, 0) / n;
+  const variance = recent.reduce((a, b) => a + (b.intensity - yMean) ** 2, 0) / n;
 
   if (variance > 0.15) {
     arc.trend = 'volatile';
@@ -370,7 +366,7 @@ function detectTurningPoint(arc: EmotionalArc, waypoint: EmotionalWaypoint): voi
  * Get active emotional arcs for a user.
  */
 export async function getActiveArcs(userId: string): Promise<EmotionalArc[]> {
-  const arcs = arcCache.get(userId) || await loadArcs(userId);
+  const arcs = arcCache.get(userId) || (await loadArcs(userId));
 
   return arcs.filter(
     (arc) =>
@@ -413,15 +409,14 @@ export async function getRelevantArcs(
         relevance += 0.7;
       }
       // Check triggers
-      const triggerMatch = arc.waypoints.some(
-        (w) => w.trigger?.toLowerCase().includes(currentTopic.toLowerCase())
+      const triggerMatch = arc.waypoints.some((w) =>
+        w.trigger?.toLowerCase().includes(currentTopic.toLowerCase())
       );
       if (triggerMatch) relevance += 0.3;
     }
 
     // Boost for intensity
-    const recentIntensity =
-      arc.waypoints.slice(-3).reduce((a, b) => a + b.intensity, 0) / 3;
+    const recentIntensity = arc.waypoints.slice(-3).reduce((a, b) => a + b.intensity, 0) / 3;
     relevance *= 0.5 + recentIntensity;
 
     return { arc, relevance };
@@ -441,11 +436,7 @@ export async function buildEmotionalTrajectoryContext(
   userId: string,
   currentContext?: { emotion?: string; topic?: string }
 ): Promise<string> {
-  const arcs = await getRelevantArcs(
-    userId,
-    currentContext?.emotion,
-    currentContext?.topic
-  );
+  const arcs = await getRelevantArcs(userId, currentContext?.emotion, currentContext?.topic);
 
   if (arcs.length === 0) {
     return '';
@@ -453,16 +444,13 @@ export async function buildEmotionalTrajectoryContext(
 
   const sections: string[] = [
     '[EMOTIONAL TRAJECTORY ARCS - Seeing the Journey]',
-    "You see emotional journeys, not just moments. Reference these naturally.",
+    'You see emotional journeys, not just moments. Reference these naturally.',
     '',
   ];
 
   for (const arc of arcs) {
-    const durationDays = Math.floor(
-      (Date.now() - arc.startedAt) / (24 * 60 * 60 * 1000)
-    );
-    const recentIntensity =
-      arc.waypoints.slice(-3).reduce((a, b) => a + b.intensity, 0) / 3;
+    const durationDays = Math.floor((Date.now() - arc.startedAt) / (24 * 60 * 60 * 1000));
+    const recentIntensity = arc.waypoints.slice(-3).reduce((a, b) => a + b.intensity, 0) / 3;
 
     sections.push(`**${arc.theme}** (${arc.phase}, ${durationDays} days)`);
     sections.push(`  ${arc.narrative}`);
@@ -549,4 +537,3 @@ export const emotionalTrajectories = {
   buildContext: buildEmotionalTrajectoryContext,
   clearCache: clearArcCache,
 };
-

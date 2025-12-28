@@ -218,13 +218,13 @@ const WISDOM_FRAGMENTS = [
   "Readiness is a feeling, not a fact. You don't need to feel ready.",
   'The thing you keep putting off is usually the thing you most need to do.',
   "Small steps count. They're all steps.",
-  'You\'re allowed to change direction at any time.',
+  "You're allowed to change direction at any time.",
   'What feels like the end is often just a bend.',
-  "The hardest part is almost always starting. Once you start, momentum helps.",
-  'Your pace doesn\'t determine your worth.',
-  'You\'ve survived 100% of your worst days so far.',
-  "Rest is part of the process, not a break from it.",
-  "The people who love you want to see you happy, not perfect.",
+  'The hardest part is almost always starting. Once you start, momentum helps.',
+  "Your pace doesn't determine your worth.",
+  "You've survived 100% of your worst days so far.",
+  'Rest is part of the process, not a break from it.',
+  'The people who love you want to see you happy, not perfect.',
 ];
 
 const CATALYST_PHRASES = [
@@ -232,7 +232,7 @@ const CATALYST_PHRASES = [
   "You stopped waiting for the 'right time' and just started.",
   'You asked for help, even though it was hard.',
   'You chose yourself for once.',
-  'You stopped comparing your Chapter 1 to someone else\'s Chapter 20.',
+  "You stopped comparing your Chapter 1 to someone else's Chapter 20.",
   'You trusted that you could figure it out as you went.',
 ];
 
@@ -253,17 +253,9 @@ export async function generateFutureSelfLetter(
   const concerningPatterns = extractConcerningPatterns(context);
 
   // Generate both paths
-  const optimisticLetter = generateOptimisticLetter(
-    timeframe,
-    positivePatterns,
-    context
-  );
+  const optimisticLetter = generateOptimisticLetter(timeframe, positivePatterns, context);
 
-  const cautionaryLetter = generateCautionaryLetter(
-    timeframe,
-    concerningPatterns,
-    context
-  );
+  const cautionaryLetter = generateCautionaryLetter(timeframe, concerningPatterns, context);
 
   // Key insights
   const keyInsights = generateKeyInsights(positivePatterns, concerningPatterns, context);
@@ -381,9 +373,7 @@ function extractConcerningPatterns(context: FutureSelfContext): ConcerningPatter
   if (context.values?.length) {
     const stated = context.values.filter((v) => v.type === 'stated');
     const demonstrated = context.values.filter((v) => v.type === 'demonstrated');
-    const misaligned = stated.filter(
-      (sv) => !demonstrated.some((dv) => dv.value === sv.value)
-    );
+    const misaligned = stated.filter((sv) => !demonstrated.some((dv) => dv.value === sv.value));
 
     if (misaligned.length > 0) {
       patterns.push({
@@ -420,9 +410,10 @@ function generateOptimisticLetter(
   let template = templates[Math.floor(Math.random() * templates.length)];
 
   // Main insight from patterns
-  const mainInsight = patterns.length > 0
-    ? `The ${patterns[0].pattern.toLowerCase()} - it paid off.`
-    : "That thing you've been working on? It's bearing fruit.";
+  const mainInsight =
+    patterns.length > 0
+      ? `The ${patterns[0].pattern.toLowerCase()} - it paid off.`
+      : "That thing you've been working on? It's bearing fruit.";
 
   // Catalyst
   const catalystTemplate = CATALYST_PHRASES[Math.floor(Math.random() * CATALYST_PHRASES.length)];
@@ -462,9 +453,10 @@ function generateCautionaryLetter(
   let template = templates[Math.floor(Math.random() * templates.length)];
 
   // Main warning
-  const mainWarning = patterns.length > 0
-    ? patterns[0].pattern.toLowerCase()
-    : "things aren't where you wanted them to be";
+  const mainWarning =
+    patterns.length > 0
+      ? patterns[0].pattern.toLowerCase()
+      : "things aren't where you wanted them to be";
 
   // Warning sign
   const warningSign = patterns[0]?.signal || 'the little things adding up';
@@ -511,7 +503,9 @@ function generateKeyInsights(
   }
 
   if (context.narrative?.theme) {
-    insights.push(`Current life chapter: "${context.narrative.currentChapter}" (${context.narrative.theme} theme)`);
+    insights.push(
+      `Current life chapter: "${context.narrative.currentChapter}" (${context.narrative.theme} theme)`
+    );
   }
 
   if (context.dreams?.length) {
@@ -627,4 +621,3 @@ export const futureSelf = {
 };
 
 export default futureSelf;
-

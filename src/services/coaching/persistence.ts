@@ -260,7 +260,10 @@ export async function saveCoachingProfilesToFirestore(userId: string): Promise<b
     // Serialize dates for Firestore
     const serialized = JSON.parse(JSON.stringify(bundle));
 
-    await firestoreClient.collection(COACHING_COLLECTION).doc(userId).set(cleanForFirestore(serialized));
+    await firestoreClient
+      .collection(COACHING_COLLECTION)
+      .doc(userId)
+      .set(cleanForFirestore(serialized));
 
     log.info({ userId }, '💾 Saved coaching profiles to Firestore');
     return true;

@@ -20,7 +20,7 @@ function createMockResponse(contents: string): { text: string } {
   // Detect prompt type from content
   const isAdvicePrompt = contents.includes('Analyze if this text contains actionable advice');
   const isPersonPrompt = contents.includes('Extract all people mentioned');
-  const isOutcomePrompt = contents.includes('Determine if the user\'s message references');
+  const isOutcomePrompt = contents.includes("Determine if the user's message references");
 
   // Extract the actual user text from the prompt (between TEXT: " and ")
   // This avoids matching prompt example keywords like "Pomodoro" or "gratitude journal"
@@ -30,7 +30,10 @@ function createMockResponse(contents: string): { text: string } {
   // ========== ADVICE DETECTION ==========
   if (isAdvicePrompt) {
     // Match on extracted user text, not the full prompt
-    if (userText.includes('try keeping a gratitude journal') || userText.includes('gratitude journal')) {
+    if (
+      userText.includes('try keeping a gratitude journal') ||
+      userText.includes('gratitude journal')
+    ) {
       return {
         text: JSON.stringify({
           containsAdvice: true,
@@ -40,7 +43,10 @@ function createMockResponse(contents: string): { text: string } {
         }),
       };
     }
-    if (userText.includes('have you tried the pomodoro') || userText.includes('pomodoro technique')) {
+    if (
+      userText.includes('have you tried the pomodoro') ||
+      userText.includes('pomodoro technique')
+    ) {
       return {
         text: JSON.stringify({
           containsAdvice: true,
@@ -77,9 +83,7 @@ function createMockResponse(contents: string): { text: string } {
     if (userText.includes('my mom') || userText.includes('mom always')) {
       return {
         text: JSON.stringify({
-          persons: [
-            { name: 'mom', relationship: 'parent', isProperName: false, confidence: 0.95 },
-          ],
+          persons: [{ name: 'mom', relationship: 'parent', isProperName: false, confidence: 0.95 }],
         }),
       };
     }
@@ -95,9 +99,7 @@ function createMockResponse(contents: string): { text: string } {
     if (contents.includes('Sarah')) {
       return {
         text: JSON.stringify({
-          persons: [
-            { name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 },
-          ],
+          persons: [{ name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 }],
         }),
       };
     }
@@ -384,4 +386,3 @@ describe('LLM Detector - Failing Synthetic Cases', () => {
     });
   });
 });
-

@@ -285,7 +285,9 @@ function isRetryableError(error: unknown, config: Required<RetryConfig>): boolea
  * Sleep for specified duration
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 // ============================================================================

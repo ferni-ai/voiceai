@@ -158,10 +158,7 @@ function detectCapabilityQuestion(transcript: string): {
  * Call this when processing user input to check if honest context
  * should be injected about what actions have/haven't been taken.
  */
-export function buildHonestyContext(
-  sessionId: string,
-  userTranscript: string
-): HonestyContext {
+export function buildHonestyContext(sessionId: string, userTranscript: string): HonestyContext {
   // Detect if this is a capability question
   const detection = detectCapabilityQuestion(userTranscript);
 
@@ -197,10 +194,7 @@ export function buildHonestyContext(
 /**
  * Get the full context injection string for LLM prompt.
  */
-export function getHonestyInjection(
-  sessionId: string,
-  userTranscript: string
-): string | null {
+export function getHonestyInjection(sessionId: string, userTranscript: string): string | null {
   const context = buildHonestyContext(sessionId, userTranscript);
 
   if (!context.shouldInject || !context.context) {
@@ -245,4 +239,3 @@ export default {
   getHonestyInjection,
   getSessionActionSummary,
 };
-

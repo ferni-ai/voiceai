@@ -16,15 +16,18 @@
 		314AC7A45277FF0020B11B9C /* FerniWatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DA2E05840532330359EA25 /* FerniWatchContentView.swift */; };
 		35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76626BFFF99251B574EA46E0 /* HealthKitService.swift */; };
 		38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7222CEC31033F22CD392C9 /* SplashView.swift */; };
+		3A0CB6D3A74E5AFA11E8C252 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CD021796CD20632582F2EBE8 /* PrivacyInfo.xcprivacy */; };
 		3A5FB98442E72F8D2295C6AB /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7F58E1F2D8611AEA3CBDE1CF /* LiveKit */; };
 		4078804CAAF53E42D093BEF3 /* FerniColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F37C96354E4DC3C057391F /* FerniColors.swift */; };
 		42D2573C889B3D5EC1426B68 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */; };
+		44E30CF0700B3AC46F4302B2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 80886A6A6B004CA2AD50CE08 /* PrivacyInfo.xcprivacy */; };
 		4BB3AD21D871B1CED59D986B /* FerniWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B9381338280EB23E797FCCFF /* FerniWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4C29E322E47F2977BC20BD9A /* FerniWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A8805B6F5BFB5567F5C730 /* FerniWidgets.swift */; };
 		4F06D21EDF5371215633C7EE /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A8DFE9A0454A9EE06FF5E8AE /* FirebaseCore */; };
 		505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */; };
 		508D1E8B4967CF2734566569 /* ProactiveNotificationsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE5757EB868FB283604549B /* ProactiveNotificationsService.swift */; };
 		57DE7CF2E6546CEE347C0A4D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 96C325A386230CA06BECAE25 /* FirebaseAuth */; };
+		5E9DD86031A2487BF18CDB2C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F04FA1A9819A79553E2DFD9D /* Assets.xcassets */; };
 		61BEB49A3052CE32B516731C /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BB5080485676C54DDDF79C /* CalendarService.swift */; };
 		6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */; };
 		67228DEE2B28C781DB7B04F3 /* ContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505851F69FD089CE7650DEFF /* ContactsService.swift */; };
@@ -129,6 +132,7 @@
 		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		75739E78205CF9DE365E596F /* SiriShortcutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriShortcutsService.swift; sourceTree = "<group>"; };
 		76626BFFF99251B574EA46E0 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		80886A6A6B004CA2AD50CE08 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		89DA2E05840532330359EA25 /* FerniWatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchContentView.swift; sourceTree = "<group>"; };
 		8D708901B1EDA0A559D6914E /* FerniWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniWatch.entitlements; sourceTree = "<group>"; };
 		8D7222CEC31033F22CD392C9 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
@@ -146,9 +150,11 @@
 		C042064D8386AD5E095ADE89 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
 		CCE15D61BE583A97D8949108 /* FerniAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniAppIntents.swift; sourceTree = "<group>"; };
+		CD021796CD20632582F2EBE8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = FerniWatch/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D2AF779500BF6520526BF175 /* BetterThanHumanIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterThanHumanIntegration.swift; sourceTree = "<group>"; };
 		DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSection.swift; sourceTree = "<group>"; };
 		E03DE09C41C69126019ADA01 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F04FA1A9819A79553E2DFD9D /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = FerniWatch/Assets.xcassets; sourceTree = "<group>"; };
 		F20933E62906112CEBE251D0 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSLiveKitSession.swift; sourceTree = "<group>"; };
 		FF709012D71F089D59346C57 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
@@ -194,6 +200,7 @@
 				73427B6F3CBC0A271A7D438C /* Info.plist */,
 				34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */,
 				7EF3D26D13B368B036DE0B6B /* Preview Content */,
+				80886A6A6B004CA2AD50CE08 /* PrivacyInfo.xcprivacy */,
 			);
 			path = FerniVoice;
 			sourceTree = "<group>";
@@ -283,6 +290,8 @@
 				98E497A52D1874327EA2C4E8 /* FerniWatchApp.swift */,
 				89DA2E05840532330359EA25 /* FerniWatchContentView.swift */,
 				531E78BEC3733500965F8FB8 /* Info.plist */,
+				F04FA1A9819A79553E2DFD9D /* Assets.xcassets */,
+				CD021796CD20632582F2EBE8 /* PrivacyInfo.xcprivacy */,
 			);
 			path = FerniWatch;
 			sourceTree = "<group>";
@@ -367,8 +376,6 @@
 			dependencies = (
 			);
 			name = FerniWidgets;
-			packageProductDependencies = (
-			);
 			productName = FerniWidgets;
 			productReference = B9381338280EB23E797FCCFF /* FerniWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -429,8 +436,6 @@
 				73118FB788D53AD8A52E64A7 /* PBXTargetDependency */,
 			);
 			name = FerniVoiceTests;
-			packageProductDependencies = (
-			);
 			productName = FerniVoiceTests;
 			productReference = A8AF704CB96DE0ACBF0E9DA4 /* FerniVoiceTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -442,6 +447,7 @@
 				393FF504C52238128A29B493 /* Sources */,
 				2817C8B3D1558CAB1F9EB7CB /* Frameworks */,
 				997AF61115087A553062F783 /* Embed Foundation Extensions */,
+				F60DDE13334E3DEBE11CB19C /* Resources */,
 			);
 			buildRules = (
 			);
@@ -499,10 +505,11 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BDF0DFDA77C6EF37DCD56DCB /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */,
-				7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */,
+				2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "shared" */,
+				7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "client-sdk-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 14EF427128B5FF708EA0BF6D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -524,6 +531,16 @@
 				DCFABF9EE4A54F5003FD8FEF /* GoogleService-Info.plist in Resources */,
 				6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */,
 				933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */,
+				44E30CF0700B3AC46F4302B2 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F60DDE13334E3DEBE11CB19C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E9DD86031A2487BF18CDB2C /* Assets.xcassets in Resources */,
+				3A0CB6D3A74E5AFA11E8C252 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1000,11 +1017,11 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "../shared" */ = {
+		2C5D1A9AD60B483D4ED72FDA /* XCLocalSwiftPackageReference "shared" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../shared;
 		};
-		7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "../../vendor/client-sdk-swift" */ = {
+		7E49785416E2971D4A07B769 /* XCLocalSwiftPackageReference "client-sdk-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../vendor/client-sdk-swift";
 		};

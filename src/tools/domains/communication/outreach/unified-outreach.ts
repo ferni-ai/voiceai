@@ -274,9 +274,8 @@ async function gatherOutreachContext(
   const recentTopics = contact.topics?.slice(0, 5).map((t) => t.topic) || [];
 
   // Check for pending follow-ups
-  const pendingFollowUp = contact.pendingFollowUp?.completed === false
-    ? contact.pendingFollowUp.reason
-    : undefined;
+  const pendingFollowUp =
+    contact.pendingFollowUp?.completed === false ? contact.pendingFollowUp.reason : undefined;
 
   return {
     contact,
@@ -371,7 +370,13 @@ async function executeOutreach(
           primaryGoal: purpose,
           maxDuration: 5,
         },
-        persona: personaId as 'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan',
+        persona: personaId as
+          | 'ferni'
+          | 'maya-santos'
+          | 'peter-john'
+          | 'alex-chen'
+          | 'jordan-taylor'
+          | 'nayan',
       };
 
       const result = await makeConversationalCall(callContext);
@@ -611,7 +616,9 @@ Just tell me WHO and WHY. I'll handle the rest.`,
       customMessage: z
         .string()
         .optional()
-        .describe("Optional: Your own message. Otherwise I'll craft one based on your relationship."),
+        .describe(
+          "Optional: Your own message. Otherwise I'll craft one based on your relationship."
+        ),
     }),
 
     execute: async (params) => {
@@ -721,4 +728,3 @@ export function getUnifiedOutreachDefinition(): ToolDefinition {
 }
 
 export default createUnifiedOutreachTool;
-

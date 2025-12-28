@@ -219,10 +219,15 @@ export interface Framework {
   source?: string; // Citation
   steps?: string[];
   questions?: string[];
-  adaptations?: Partial<Record<FourTendency, {
-      framing: string;
-      motivation: string;
-    }>>;
+  adaptations?: Partial<
+    Record<
+      FourTendency,
+      {
+        framing: string;
+        motivation: string;
+      }
+    >
+  >;
 }
 
 /**

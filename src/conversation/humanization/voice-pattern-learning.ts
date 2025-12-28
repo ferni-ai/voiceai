@@ -266,7 +266,11 @@ export function recordVoiceObservation(sessionId: string, observation: VoiceObse
 /**
  * Exponential moving average update
  */
-function emaUpdate(current: number, newValue: number, alpha: number = VOICE_PATTERN_CONFIG.EMA_ALPHA): number {
+function emaUpdate(
+  current: number,
+  newValue: number,
+  alpha: number = VOICE_PATTERN_CONFIG.EMA_ALPHA
+): number {
   return alpha * newValue + (1 - alpha) * current;
 }
 

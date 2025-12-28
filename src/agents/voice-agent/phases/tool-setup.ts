@@ -48,15 +48,8 @@ export interface ToolSetupResult {
  * @returns Tool setup result with tools and metadata
  */
 export async function setupTools(config: ToolSetupConfig): Promise<ToolSetupResult> {
-  const {
-    personaId,
-    personaName,
-    userId,
-    userProfile,
-    subscriptionTier,
-    userLocation,
-    services,
-  } = config;
+  const { personaId, personaName, userId, userProfile, subscriptionTier, userLocation, services } =
+    config;
 
   // Import tool orchestrator
   const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
@@ -150,11 +143,13 @@ export async function getLocalizedVoice(
   }
 
   try {
-    const { getLocalizedVoiceId } = await import(
-      '../../../services/voice/cartesia-voice-localization.js'
-    );
+    const { getLocalizedVoiceId } =
+      await import('../../../services/voice/cartesia-voice-localization.js');
     // Cast to expected accent type - the service handles validation
-    const result = await getLocalizedVoiceId(personaId, userAccent as Parameters<typeof getLocalizedVoiceId>[1]);
+    const result = await getLocalizedVoiceId(
+      personaId,
+      userAccent as Parameters<typeof getLocalizedVoiceId>[1]
+    );
 
     log.info(
       {
@@ -183,4 +178,3 @@ export async function getLocalizedVoice(
     };
   }
 }
-

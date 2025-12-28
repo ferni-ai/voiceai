@@ -71,10 +71,7 @@ describe('AsyncEvents', () => {
     });
 
     it('should have analytics events', () => {
-      const analyticsEvents: EventType[] = [
-        'analytics:interaction',
-        'analytics:emotion-detected',
-      ];
+      const analyticsEvents: EventType[] = ['analytics:interaction', 'analytics:emotion-detected'];
 
       analyticsEvents.forEach((type) => {
         expect(type.startsWith('analytics:')).toBe(true);

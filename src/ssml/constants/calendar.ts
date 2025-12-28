@@ -50,6 +50,9 @@ export const CALENDAR_PRONUNCIATIONS: PronunciationEntry[] = [
   // Life Events (Jordan's domain)
   // -------------------------------------------------------------------------
   { pattern: /\bDOB\b/g, replacement: 'date of birth', description: 'Date of Birth' },
-  { pattern: /\bSSN\b/g, replacement: 'social security number', description: 'Social Security Number' },
+  {
+    pattern: /\bSSN\b/g,
+    replacement: 'social security number',
+    description: 'Social Security Number',
+  },
 ];
-

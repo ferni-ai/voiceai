@@ -14,7 +14,11 @@ export const COMMON_ABBREVIATIONS: PronunciationEntry[] = [
   { pattern: /\bFYI\b/gi, replacement: 'F Y I', description: 'For Your Information' },
   { pattern: /\bFWIW\b/gi, replacement: 'for what its worth', description: 'For What Its Worth' },
   { pattern: /\bIMO\b/g, replacement: 'in my opinion', description: 'In My Opinion' },
-  { pattern: /\bIMHO\b/g, replacement: 'in my humble opinion', description: 'In My Humble Opinion' },
+  {
+    pattern: /\bIMHO\b/g,
+    replacement: 'in my humble opinion',
+    description: 'In My Humble Opinion',
+  },
   { pattern: /\bBTW\b/gi, replacement: 'by the way', description: 'By The Way' },
   { pattern: /\bFAQ\b/g, replacement: 'F A Q', description: 'Frequently Asked Questions' },
   { pattern: /\bFAQs\b/g, replacement: 'F A Qs', description: 'Frequently Asked Questions' },
@@ -37,7 +41,11 @@ export const COMMON_ABBREVIATIONS: PronunciationEntry[] = [
   { pattern: /\bCMO\b/g, replacement: 'C M O', description: 'Chief Marketing Officer' },
   { pattern: /\bVP\b/g, replacement: 'V P', description: 'Vice President' },
   { pattern: /\bHR\b/g, replacement: 'H R', description: 'Human Resources' },
-  { pattern: /\bPM\b(?!\s*(am|pm))/gi, replacement: 'P M', description: 'Project Manager or Product Manager' },
+  {
+    pattern: /\bPM\b(?!\s*(am|pm))/gi,
+    replacement: 'P M',
+    description: 'Project Manager or Product Manager',
+  },
 
   // -------------------------------------------------------------------------
   // Countries & Languages
@@ -75,4 +83,3 @@ export const COMMON_ABBREVIATIONS: PronunciationEntry[] = [
   { pattern: /\bCOVID\b/gi, replacement: 'covid', description: 'COVID' },
   { pattern: /\bPCR\b/g, replacement: 'P C R', description: 'PCR test' },
 ];
-

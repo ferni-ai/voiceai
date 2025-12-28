@@ -143,7 +143,9 @@ describe('ReturningVisitor', () => {
       recordVisitorSession(session);
 
       // Give async operation time to complete
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockDb.runTransaction).toHaveBeenCalled();
     });
@@ -193,7 +195,9 @@ describe('ReturningVisitor', () => {
   });
 
   describe('getReturningVisitorExperience', () => {
-    const createVisitorContext = (overrides: Partial<ReturningVisitorContext> = {}): ReturningVisitorContext => ({
+    const createVisitorContext = (
+      overrides: Partial<ReturningVisitorContext> = {}
+    ): ReturningVisitorContext => ({
       visitorId: 'visitor-123',
       firstVisit: new Date('2024-01-01'),
       lastVisit: new Date('2024-12-01'),
@@ -305,7 +309,9 @@ describe('ReturningVisitor', () => {
   });
 
   describe('Experience Heuristics', () => {
-    const createContext = (overrides: Partial<ReturningVisitorContext> = {}): ReturningVisitorContext => ({
+    const createContext = (
+      overrides: Partial<ReturningVisitorContext> = {}
+    ): ReturningVisitorContext => ({
       visitorId: 'visitor-123',
       firstVisit: new Date('2024-01-01'),
       lastVisit: new Date(),
@@ -320,17 +326,13 @@ describe('ReturningVisitor', () => {
     });
 
     it('should be passive for second visit', async () => {
-      const experience = await getReturningVisitorExperience(
-        createContext({ visitCount: 2 })
-      );
+      const experience = await getReturningVisitorExperience(createContext({ visitCount: 2 }));
 
       expect(experience.chatBehavior).toBe('passive');
     });
 
     it('should be proactive after many visits', async () => {
-      const experience = await getReturningVisitorExperience(
-        createContext({ visitCount: 5 })
-      );
+      const experience = await getReturningVisitorExperience(createContext({ visitCount: 5 }));
 
       expect(experience.chatBehavior).toBe('proactive');
     });

@@ -210,16 +210,30 @@ export const relationshipCaptureDefinition: DataCaptureDefinition = {
     const relationship = detectRelationshipType(personName, context.transcript);
 
     try {
-      const { recordMention } = await import('../../../services/superhuman/relationship-network.js');
+      const { recordMention } =
+        await import('../../../services/superhuman/relationship-network.js');
       // Map to valid RelationshipType
-      const validType = ((): 'family' | 'friend' | 'colleague' | 'mentor' | 'partner' | 'acquaintance' | 'complicated' => {
+      const validType = (():
+        | 'family'
+        | 'friend'
+        | 'colleague'
+        | 'mentor'
+        | 'partner'
+        | 'acquaintance'
+        | 'complicated' => {
         switch (relationship) {
-          case 'family': return 'family';
-          case 'friend': return 'friend';
-          case 'colleague': return 'colleague';
-          case 'mentor': return 'mentor';
-          case 'romantic': return 'partner';
-          default: return 'acquaintance';
+          case 'family':
+            return 'family';
+          case 'friend':
+            return 'friend';
+          case 'colleague':
+            return 'colleague';
+          case 'mentor':
+            return 'mentor';
+          case 'romantic':
+            return 'partner';
+          default:
+            return 'acquaintance';
         }
       })();
       await recordMention(context.userId, {
@@ -242,4 +256,3 @@ export const relationshipCaptureDefinition: DataCaptureDefinition = {
     }
   },
 };
-

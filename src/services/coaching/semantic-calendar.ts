@@ -137,10 +137,7 @@ const CALENDAR_PATTERNS: Record<
       /\b(I\s*(need\s*to|have\s*to|should)\s*)?(cancel|bail\s*on|skip)/i,
       /\b(take|get)\s*(that|the|it)\s*(off|out\s*of)\s*(my\s*)?(calendar|schedule)/i,
     ],
-    weakPatterns: [
-      /\b(cancel|remove|delete|clear)/i,
-      /\b(skip|bail|back\s*out)/i,
-    ],
+    weakPatterns: [/\b(cancel|remove|delete|clear)/i, /\b(skip|bail|back\s*out)/i],
     examples: [
       'Cancel my 3pm meeting',
       'Remove the dentist appointment from my calendar',
@@ -197,10 +194,7 @@ const CALENDAR_PATTERNS: Record<
       /\b(scheduled\s*at\s*the\s*same\s*time)/i,
       /\b(conflict(s|ing)?|clash(es|ing)?)\s*(with|between)/i,
     ],
-    weakPatterns: [
-      /\b(conflict|overlap|clash)/i,
-      /\b(same\s*time|double)/i,
-    ],
+    weakPatterns: [/\b(conflict|overlap|clash)/i, /\b(same\s*time|double)/i],
     examples: [
       "I'm double-booked on Tuesday",
       'There is a conflict with my 2pm meeting',

@@ -134,6 +134,14 @@ const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   phone: ['telephony', 'communication', 'scheduling'],
   dial: ['telephony'],
   ring: ['telephony'],
+  voicemail: ['telephony'],
+  text: ['telephony', 'communication', 'scheduling'],
+  sms: ['telephony', 'communication', 'scheduling'],
+  message: ['telephony', 'communication', 'scheduling'],
+  'text my': ['telephony', 'communication'],
+  'send a text': ['telephony', 'communication'],
+  'send an sms': ['telephony', 'communication'],
+  'leave a voicemail': ['telephony'],
 
   // =========================================================================
   // WELLNESS & HEALTH TOPICS
@@ -395,11 +403,10 @@ const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
 
   // =========================================================================
   // COMMUNICATION & SOCIAL
+  // Note: 'text', 'sms', 'message' keywords are defined above in TELEPHONY section
+  // with domains ['telephony', 'communication'] - don't duplicate here
   // =========================================================================
-  text: ['communication', 'scheduling'],
   'text me': ['scheduling', 'communication'],
-  sms: ['communication', 'scheduling'],
-  message: ['communication', 'scheduling'],
   'send text': ['scheduling', 'communication'],
   'schedule text': ['scheduling'],
   'schedule call': ['scheduling', 'telephony'],
@@ -430,6 +437,31 @@ const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   christmas: ['awareness'],
   thanksgiving: ['awareness'],
   time: ['awareness', 'presence'],
+
+  // =========================================================================
+  // MEMORY & RECALL
+  // =========================================================================
+  remember: ['memory'],
+  recall: ['memory'],
+  forgot: ['memory'],
+  forget: ['memory'],
+  remind: ['memory', 'calendar'],
+  'remember that': ['memory'],
+  "don't forget": ['memory'],
+  'did i tell you': ['memory'],
+  'i told you': ['memory'],
+
+  // =========================================================================
+  // HANDOFF & TRANSFER
+  // =========================================================================
+  transfer: ['handoff'],
+  handoff: ['handoff'],
+  'transfer me': ['handoff'],
+  'talk to': ['handoff'],
+  'speak with': ['handoff'],
+  'connect me': ['handoff'],
+  'switch to': ['handoff'],
+  'let me talk to': ['handoff'],
 };
 
 /**
@@ -478,7 +510,15 @@ export class DynamicToolLoader {
     this.config = {
       // Essential domains are pre-loaded at startup (no race conditions)
       // telephony is essential because "call my mom" should work immediately
-      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment', 'information', 'telephony', 'communication'],
+      essentialDomains: [
+        'memory',
+        'handoff',
+        'awareness',
+        'entertainment',
+        'information',
+        'telephony',
+        'communication',
+      ],
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
       maxLoadedDomains: 10, // Increased to accommodate essential domains
       enableAutoUnload: true,

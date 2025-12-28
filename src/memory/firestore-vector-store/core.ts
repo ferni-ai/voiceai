@@ -23,10 +23,7 @@ import type {
   Query,
   VectorStoreHealth,
 } from './types.js';
-import {
-  DEFAULT_COLLECTION_NAME,
-  DEFAULT_EMBEDDING_DIMENSION,
-} from './types.js';
+import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
 import { extractEmbedding, matchesFilter } from './helpers.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
@@ -595,4 +592,3 @@ export class FirestoreVectorStore implements VectorStoreContract {
     this.recoveryManager.reset();
   }
 }
-

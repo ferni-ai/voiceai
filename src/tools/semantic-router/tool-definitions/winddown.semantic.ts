@@ -26,7 +26,7 @@ export const windDownTool: SemanticToolDefinition = {
   triggers: {
     phrases: [
       'wind down',
-      "help me relax",
+      'help me relax',
       'evening routine',
       'time to relax',
       'ready for bed',
@@ -68,12 +68,7 @@ export const windDownTool: SemanticToolDefinition = {
     'Prepare me for sleep',
   ],
 
-  counterExamples: [
-    'Wake me up',
-    'Morning routine',
-    'Give me energy',
-    'Start a workout',
-  ],
+  counterExamples: ['Wake me up', 'Morning routine', 'Give me energy', 'Start a workout'],
 
   arguments: [
     {
@@ -82,9 +77,7 @@ export const windDownTool: SemanticToolDefinition = {
       description: 'Wind-down style',
       required: false,
       enumValues: ['gentle', 'quick', 'full', 'meditation'],
-      extractionPatterns: [
-        /(gentle|quick|full|meditation)\s+(?:wind.?down|routine)/i,
-      ],
+      extractionPatterns: [/(gentle|quick|full|meditation)\s+(?:wind.?down|routine)/i],
     },
   ],
 
@@ -158,12 +151,7 @@ export const bedtimeCheckInTool: SemanticToolDefinition = {
     'Before I sleep, let me reflect',
   ],
 
-  counterExamples: [
-    'Morning check-in',
-    'Start my day',
-    "What's on my schedule?",
-    'Plan my day',
-  ],
+  counterExamples: ['Morning check-in', 'Start my day', "What's on my schedule?", 'Plan my day'],
 
   arguments: [
     {
@@ -172,9 +160,7 @@ export const bedtimeCheckInTool: SemanticToolDefinition = {
       description: 'Focus of reflection',
       required: false,
       enumValues: ['gratitude', 'accomplishments', 'lessons', 'general'],
-      extractionPatterns: [
-        /(?:focus\s+on|about)\s+(gratitude|accomplishments?|lessons?)/i,
-      ],
+      extractionPatterns: [/(?:focus\s+on|about)\s+(gratitude|accomplishments?|lessons?)/i],
     },
   ],
 
@@ -249,12 +235,7 @@ export const sleepAffirmationTool: SemanticToolDefinition = {
     'Help me drift off',
   ],
 
-  counterExamples: [
-    'Morning affirmation',
-    'Give me energy',
-    'Wake me up',
-    'Motivate me',
-  ],
+  counterExamples: ['Morning affirmation', 'Give me energy', 'Wake me up', 'Motivate me'],
 
   arguments: [
     {
@@ -263,9 +244,7 @@ export const sleepAffirmationTool: SemanticToolDefinition = {
       description: 'Theme of affirmation',
       required: false,
       enumValues: ['peace', 'gratitude', 'release', 'tomorrow', 'general'],
-      extractionPatterns: [
-        /(?:about|for)\s+(peace|gratitude|release|tomorrow)/i,
-      ],
+      extractionPatterns: [/(?:about|for)\s+(peace|gratitude|release|tomorrow)/i],
     },
   ],
 
@@ -298,4 +277,3 @@ export const winddownTools: SemanticToolDefinition[] = [
   bedtimeCheckInTool,
   sleepAffirmationTool,
 ];
-

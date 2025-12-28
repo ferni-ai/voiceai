@@ -209,10 +209,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
   // Morning/Evening greetings
   {
     intent: 'morning_greeting',
-    patterns: [
-      /good\s*morning/i,
-      /^(say|wish)\s*(her|him|them)?\s*(a\s*)?(good\s*)?morning/i,
-    ],
+    patterns: [/good\s*morning/i, /^(say|wish)\s*(her|him|them)?\s*(a\s*)?(good\s*)?morning/i],
     keywords: ['morning', 'wake up'],
     priority: 80,
   },
@@ -239,7 +236,10 @@ const INTENT_PATTERNS: IntentPattern[] = [
   },
   {
     intent: 'express_missing',
-    patterns: [/^(say|tell)\s*(that\s*)?(i\s*)?miss\s*(you|her|him|them)/i, /miss\s*(you|her|him|them)/i],
+    patterns: [
+      /^(say|tell)\s*(that\s*)?(i\s*)?miss\s*(you|her|him|them)/i,
+      /miss\s*(you|her|him|them)/i,
+    ],
     keywords: ['miss you', 'miss her', 'missing'],
     priority: 75,
   },
@@ -415,65 +415,25 @@ export function getTimeContext(): TimeContext {
  */
 const OPENINGS: Record<RelationshipStage, Record<string, string[]>> = {
   deep: {
-    default: [
-      'Hey {name}.',
-      'Hey {name}, it\'s me.',
-      '{name}!',
-      'Hi {name}.',
-    ],
-    morning: [
-      'Morning, {name}.',
-      'Hey {name}... morning.',
-      'Good morning, {name}.',
-    ],
-    evening: [
-      'Hey {name}.',
-      'Hi {name}... just calling before bed.',
-    ],
-    casual: [
-      'Hey.',
-      'Hey, it\'s me.',
-      '{name}.',
-    ],
+    default: ['Hey {name}.', "Hey {name}, it's me.", '{name}!', 'Hi {name}.'],
+    morning: ['Morning, {name}.', 'Hey {name}... morning.', 'Good morning, {name}.'],
+    evening: ['Hey {name}.', 'Hi {name}... just calling before bed.'],
+    casual: ['Hey.', "Hey, it's me.", '{name}.'],
   },
   established: {
-    default: [
-      'Hey {name}!',
-      'Hi {name}!',
-      '{name}! It\'s {sender}.',
-    ],
-    morning: [
-      'Good morning, {name}!',
-      'Morning, {name}!',
-    ],
-    evening: [
-      'Hey {name}!',
-      'Good evening, {name}.',
-    ],
+    default: ['Hey {name}!', 'Hi {name}!', "{name}! It's {sender}."],
+    morning: ['Good morning, {name}!', 'Morning, {name}!'],
+    evening: ['Hey {name}!', 'Good evening, {name}.'],
   },
   building: {
-    default: [
-      'Hey {name}, it\'s {sender}.',
-      'Hi {name}! It\'s {sender}.',
-    ],
-    morning: [
-      'Good morning, {name}! It\'s {sender}.',
-    ],
-    evening: [
-      'Hi {name}, it\'s {sender}.',
-    ],
+    default: ["Hey {name}, it's {sender}.", "Hi {name}! It's {sender}."],
+    morning: ["Good morning, {name}! It's {sender}."],
+    evening: ["Hi {name}, it's {sender}."],
   },
   new: {
-    default: [
-      'Hi {name}, this is {sender}.',
-      'Hello {name}, it\'s {sender}.',
-    ],
-    morning: [
-      'Good morning, {name}. This is {sender}.',
-    ],
-    evening: [
-      'Good evening, {name}. This is {sender}.',
-    ],
+    default: ['Hi {name}, this is {sender}.', "Hello {name}, it's {sender}."],
+    morning: ['Good morning, {name}. This is {sender}.'],
+    evening: ['Good evening, {name}. This is {sender}.'],
   },
 };
 
@@ -483,25 +443,21 @@ const OPENINGS: Record<RelationshipStage, Record<string, string[]>> = {
 const TRANSITIONS: Record<string, string[]> = {
   thinking_of_you: [
     'Just thinking about you.',
-    'You\'ve been on my mind.',
+    "You've been on my mind.",
     'Was just thinking of you.',
     'You crossed my mind.',
   ],
   check_in: [
     'Just wanted to check in.',
-    'Wanted to see how you\'re doing.',
+    "Wanted to see how you're doing.",
     'Just calling to check on you.',
   ],
   reaching_out: [
     'Just wanted to reach out.',
     'Wanted to give you a call.',
-    'Just had a minute and thought I\'d call.',
+    "Just had a minute and thought I'd call.",
   ],
-  no_reason: [
-    'No real reason for calling.',
-    'Nothing specific, just...',
-    'No agenda or anything.',
-  ],
+  no_reason: ['No real reason for calling.', 'Nothing specific, just...', 'No agenda or anything.'],
 };
 
 /**
@@ -511,8 +467,8 @@ const MAIN_MESSAGES: Record<MessageIntent, Record<RelationshipStage, string[]>> 
   morning_greeting: {
     deep: [
       'Hope you slept well. Just wanted to start your day with some love.',
-      'Wanted to catch you before the day gets crazy. Hope it\'s a good one.',
-      'Just wanted to say good morning and let you know I\'m thinking of you.',
+      "Wanted to catch you before the day gets crazy. Hope it's a good one.",
+      "Just wanted to say good morning and let you know I'm thinking of you.",
       'Starting my day thinking about you. Hope yours is wonderful.',
     ],
     established: [
@@ -520,14 +476,8 @@ const MAIN_MESSAGES: Record<MessageIntent, Record<RelationshipStage, string[]>> 
       'Just wanted to wish you a good morning.',
       'Hope your day is off to a good start.',
     ],
-    building: [
-      'Hope you have a wonderful day.',
-      'Wishing you a great morning.',
-    ],
-    new: [
-      'I hope you have a pleasant day.',
-      'Wishing you a good morning.',
-    ],
+    building: ['Hope you have a wonderful day.', 'Wishing you a great morning.'],
+    new: ['I hope you have a pleasant day.', 'Wishing you a good morning.'],
   },
 
   evening_greeting: {
@@ -540,12 +490,8 @@ const MAIN_MESSAGES: Record<MessageIntent, Record<RelationshipStage, string[]>> 
       'Hope you had a good day. Goodnight!',
       'Just wanted to say goodnight. Sleep well!',
     ],
-    building: [
-      'Hope you had a nice day. Goodnight.',
-    ],
-    new: [
-      'I hope you have a restful night.',
-    ],
+    building: ['Hope you had a nice day. Goodnight.'],
+    new: ['I hope you have a restful night.'],
   },
 
   general_greeting: {
@@ -556,220 +502,161 @@ const MAIN_MESSAGES: Record<MessageIntent, Record<RelationshipStage, string[]>> 
     ],
     established: [
       'Just wanted to say hi! How are things?',
-      'Hey! Just checking in. How\'s everything?',
+      "Hey! Just checking in. How's everything?",
     ],
-    building: [
-      'Just wanted to say hello and see how you\'re doing.',
-    ],
-    new: [
-      'Just wanted to reach out and say hello.',
-    ],
+    building: ["Just wanted to say hello and see how you're doing."],
+    new: ['Just wanted to reach out and say hello.'],
   },
 
   express_love: {
     deep: [
       'I love you. Just needed you to know that.',
-      'I love you so much. That\'s it. That\'s the whole message.',
+      "I love you so much. That's it. That's the whole message.",
       'Just calling to say I love you. Always.',
     ],
     established: [
       'Just wanted you to know how much I care about you.',
       'You mean so much to me. Just wanted to say that.',
     ],
-    building: [
-      'I really appreciate you. Just wanted you to know.',
-    ],
-    new: [
-      'I wanted to let you know how much I value our connection.',
-    ],
+    building: ['I really appreciate you. Just wanted you to know.'],
+    new: ['I wanted to let you know how much I value our connection.'],
   },
 
   express_missing: {
     deep: [
       'I miss you. A lot. Just needed you to know.',
       'Missing you today. Wish I could see you.',
-      'I miss you. Can\'t wait until we can talk or see each other.',
+      "I miss you. Can't wait until we can talk or see each other.",
     ],
     established: [
-      'I\'ve been missing you! We need to catch up soon.',
-      'Missing you! It\'s been too long.',
+      "I've been missing you! We need to catch up soon.",
+      "Missing you! It's been too long.",
     ],
-    building: [
-      'I\'ve been thinking about you. We should connect soon.',
-    ],
-    new: [
-      'It would be nice to catch up sometime.',
-    ],
+    building: ["I've been thinking about you. We should connect soon."],
+    new: ['It would be nice to catch up sometime.'],
   },
 
   thinking_of_you: {
     deep: [
-      'You\'ve been on my mind all day. Just had to call.',
-      'Couldn\'t stop thinking about you. Wanted you to know.',
+      "You've been on my mind all day. Just had to call.",
+      "Couldn't stop thinking about you. Wanted you to know.",
       'Something made me think of you, and I just had to reach out.',
     ],
     established: [
       'You popped into my head and I wanted to say hi.',
       'Been thinking about you. Hope all is well!',
     ],
-    building: [
-      'You came to mind and I wanted to reach out.',
-    ],
-    new: [
-      'I was thinking of you and wanted to check in.',
-    ],
+    building: ['You came to mind and I wanted to reach out.'],
+    new: ['I was thinking of you and wanted to check in.'],
   },
 
   check_in: {
     deep: [
       'How are you doing? Really. I want to know.',
       'Just checking on you. How are you holding up?',
-      'Wanted to make sure you\'re okay. How are things?',
+      "Wanted to make sure you're okay. How are things?",
     ],
     established: [
-      'How\'s everything going? Fill me in!',
-      'What\'s new with you? I want to hear everything.',
+      "How's everything going? Fill me in!",
+      "What's new with you? I want to hear everything.",
     ],
-    building: [
-      'How have you been? Would love to catch up.',
-    ],
-    new: [
-      'I wanted to check in and see how you\'re doing.',
-    ],
+    building: ['How have you been? Would love to catch up.'],
+    new: ["I wanted to check in and see how you're doing."],
   },
 
   birthday_wish: {
     deep: [
-      'Happy birthday! I can\'t believe another year has gone by. I love you so much.',
+      "Happy birthday! I can't believe another year has gone by. I love you so much.",
       'Happy birthday! You deserve the best day ever. I love you.',
     ],
     established: [
       'Happy birthday! Hope you have an amazing day!',
       'Happy birthday! Wishing you the best year yet!',
     ],
-    building: [
-      'Happy birthday! Hope it\'s a great one!',
-    ],
-    new: [
-      'Happy birthday! Wishing you a wonderful day.',
-    ],
+    building: ["Happy birthday! Hope it's a great one!"],
+    new: ['Happy birthday! Wishing you a wonderful day.'],
   },
 
   congratulations: {
     deep: [
       'I am so incredibly proud of you. You did it!',
-      'This is amazing! I knew you could do it. I\'m so proud.',
+      "This is amazing! I knew you could do it. I'm so proud.",
     ],
     established: [
       'Congratulations! You should be so proud of yourself!',
       'This is so exciting! Congratulations!',
     ],
-    building: [
-      'Congratulations! That\'s wonderful news!',
-    ],
-    new: [
-      'Congratulations on your achievement.',
-    ],
+    building: ["Congratulations! That's wonderful news!"],
+    new: ['Congratulations on your achievement.'],
   },
 
   sympathy: {
     deep: [
-      'I\'m so sorry. I\'m here for you, whatever you need.',
+      "I'm so sorry. I'm here for you, whatever you need.",
       'My heart is with you. I love you.',
     ],
-    established: [
-      'I\'m so sorry for what you\'re going through. I\'m here if you need anything.',
-    ],
-    building: [
-      'I\'m so sorry to hear about this. Please let me know if there\'s anything I can do.',
-    ],
-    new: [
-      'I\'m very sorry for your loss. My thoughts are with you.',
-    ],
+    established: ["I'm so sorry for what you're going through. I'm here if you need anything."],
+    building: ["I'm so sorry to hear about this. Please let me know if there's anything I can do."],
+    new: ["I'm very sorry for your loss. My thoughts are with you."],
   },
 
   encouragement: {
     deep: [
-      'You\'ve got this. I believe in you with everything I have.',
-      'I know you can do this. I\'m in your corner, always.',
+      "You've got this. I believe in you with everything I have.",
+      "I know you can do this. I'm in your corner, always.",
     ],
-    established: [
-      'You\'ve got this! I\'m rooting for you!',
-      'I believe in you! You can do this!',
-    ],
-    building: [
-      'I believe in you. You can do this.',
-    ],
-    new: [
-      'Wishing you the best. I know you\'ll do great.',
-    ],
+    established: ["You've got this! I'm rooting for you!", 'I believe in you! You can do this!'],
+    building: ['I believe in you. You can do this.'],
+    new: ["Wishing you the best. I know you'll do great."],
   },
 
   gratitude: {
     deep: [
-      'Thank you. For everything. I don\'t say it enough.',
-      'I\'m so grateful for you. Thank you for being you.',
+      "Thank you. For everything. I don't say it enough.",
+      "I'm so grateful for you. Thank you for being you.",
     ],
     established: [
       'Thank you so much! I really appreciate it!',
       'I wanted to say thank you. It means so much.',
     ],
-    building: [
-      'Thank you. I really appreciate it.',
-    ],
-    new: [
-      'Thank you very much. I appreciate your help.',
-    ],
+    building: ['Thank you. I really appreciate it.'],
+    new: ['Thank you very much. I appreciate your help.'],
   },
 
   apology: {
     deep: [
-      'I\'m sorry. I really am. I didn\'t mean to hurt you.',
-      'I messed up and I\'m sorry. You deserve better.',
+      "I'm sorry. I really am. I didn't mean to hurt you.",
+      "I messed up and I'm sorry. You deserve better.",
     ],
     established: [
-      'I\'m sorry about what happened. I feel terrible.',
-      'I wanted to apologize. I\'m really sorry.',
+      "I'm sorry about what happened. I feel terrible.",
+      "I wanted to apologize. I'm really sorry.",
     ],
-    building: [
-      'I owe you an apology. I\'m sorry.',
-    ],
-    new: [
-      'I wanted to apologize for the misunderstanding.',
-    ],
+    building: ["I owe you an apology. I'm sorry."],
+    new: ['I wanted to apologize for the misunderstanding.'],
   },
 
   good_news: {
     deep: [
-      'I have news and you\'re the first person I wanted to tell!',
+      "I have news and you're the first person I wanted to tell!",
       'Something happened and I had to tell you right away!',
     ],
     established: [
       'I have some exciting news to share!',
-      'Guess what happened! I couldn\'t wait to tell you!',
+      "Guess what happened! I couldn't wait to tell you!",
     ],
-    building: [
-      'I wanted to share some good news with you.',
-    ],
-    new: [
-      'I have some news I wanted to share.',
-    ],
+    building: ['I wanted to share some good news with you.'],
+    new: ['I have some news I wanted to share.'],
   },
 
   just_because: {
     deep: [
       'No real reason for calling. Just wanted to hear your voice.',
-      'I don\'t have anything specific to say. Just... thinking about you.',
+      "I don't have anything specific to say. Just... thinking about you.",
     ],
-    established: [
-      'Just calling to say hi! No agenda, just wanted to chat.',
-    ],
-    building: [
-      'Just thought I\'d reach out and see how things are going.',
-    ],
-    new: [
-      'I wanted to reach out and connect.',
-    ],
+    established: ['Just calling to say hi! No agenda, just wanted to chat.'],
+    building: ["Just thought I'd reach out and see how things are going."],
+    new: ['I wanted to reach out and connect.'],
   },
 
   custom: {
@@ -794,44 +681,21 @@ const CLOSINGS: Record<RelationshipStage, Record<string, string[]>> = {
     voicemail: [
       'Love you. No need to call back.',
       'Anyway, love you. Talk whenever.',
-      'That\'s it. Love you.',
+      "That's it. Love you.",
     ],
-    casual: [
-      'Okay, that\'s it. Love you.',
-      'Anyway. Love you.',
-      'Bye. Love you.',
-    ],
+    casual: ["Okay, that's it. Love you.", 'Anyway. Love you.', 'Bye. Love you.'],
   },
   established: {
-    default: [
-      'Talk soon!',
-      'Can\'t wait to catch up!',
-      'Let me know when you\'re free!',
-    ],
-    voicemail: [
-      'No need to call back. Just wanted you to know.',
-      'Talk whenever! No rush.',
-    ],
+    default: ['Talk soon!', "Can't wait to catch up!", "Let me know when you're free!"],
+    voicemail: ['No need to call back. Just wanted you to know.', 'Talk whenever! No rush.'],
   },
   building: {
-    default: [
-      'Talk soon.',
-      'Hope to hear from you.',
-      'Take care!',
-    ],
-    voicemail: [
-      'Feel free to call me back when you have time.',
-    ],
+    default: ['Talk soon.', 'Hope to hear from you.', 'Take care!'],
+    voicemail: ['Feel free to call me back when you have time.'],
   },
   new: {
-    default: [
-      'Take care.',
-      'Talk soon.',
-      'Have a great day.',
-    ],
-    voicemail: [
-      'Feel free to return my call at your convenience.',
-    ],
+    default: ['Take care.', 'Talk soon.', 'Have a great day.'],
+    voicemail: ['Feel free to return my call at your convenience.'],
   },
 };
 
@@ -839,26 +703,17 @@ const CLOSINGS: Record<RelationshipStage, Record<string, string[]>> = {
  * Personal touch phrases - add warmth based on context
  */
 const PERSONAL_TOUCHES: Record<string, string[]> = {
-  weekend: [
-    'Hope you\'re having a relaxing weekend.',
-    'Enjoy your weekend!',
-  ],
+  weekend: ["Hope you're having a relaxing weekend.", 'Enjoy your weekend!'],
   holiday_season: [
-    'Hope you\'re enjoying the holiday season.',
+    "Hope you're enjoying the holiday season.",
     'This time of year always makes me think of you.',
   ],
-  long_time: [
-    'I know it\'s been a while...',
-    'It\'s been too long.',
-  ],
+  long_time: ["I know it's been a while...", "It's been too long."],
   recent_struggle: [
     'I know things have been hard lately.',
-    'I\'ve been thinking about what you\'re going through.',
+    "I've been thinking about what you're going through.",
   ],
-  recent_win: [
-    'Still thinking about your good news!',
-    'Still so happy for you about...',
-  ],
+  recent_win: ['Still thinking about your good news!', 'Still so happy for you about...'],
 };
 
 // ============================================================================
@@ -1116,25 +971,48 @@ export function inferRelationshipStage(relationship: string): RelationshipStage 
   const lower = relationship.toLowerCase();
 
   const deepRelationships = [
-    'mother', 'mom', 'mama', 'father', 'dad', 'papa',
-    'spouse', 'wife', 'husband', 'partner',
-    'child', 'son', 'daughter',
+    'mother',
+    'mom',
+    'mama',
+    'father',
+    'dad',
+    'papa',
+    'spouse',
+    'wife',
+    'husband',
+    'partner',
+    'child',
+    'son',
+    'daughter',
   ];
 
   const establishedRelationships = [
-    'brother', 'sister', 'sibling',
-    'grandma', 'grandpa', 'grandmother', 'grandfather', 'grandparent',
-    'best friend', 'bestie',
+    'brother',
+    'sister',
+    'sibling',
+    'grandma',
+    'grandpa',
+    'grandmother',
+    'grandfather',
+    'grandparent',
+    'best friend',
+    'bestie',
   ];
 
   const buildingRelationships = [
-    'friend', 'cousin', 'aunt', 'uncle', 'niece', 'nephew',
-    'colleague', 'coworker',
+    'friend',
+    'cousin',
+    'aunt',
+    'uncle',
+    'niece',
+    'nephew',
+    'colleague',
+    'coworker',
   ];
 
-  if (deepRelationships.some(r => lower.includes(r))) return 'deep';
-  if (establishedRelationships.some(r => lower.includes(r))) return 'established';
-  if (buildingRelationships.some(r => lower.includes(r))) return 'building';
+  if (deepRelationships.some((r) => lower.includes(r))) return 'deep';
+  if (establishedRelationships.some((r) => lower.includes(r))) return 'established';
+  if (buildingRelationships.some((r) => lower.includes(r))) return 'building';
 
   return 'new';
 }

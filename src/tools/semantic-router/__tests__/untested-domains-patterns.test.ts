@@ -46,13 +46,7 @@ describe('Untested Domain Patterns (E2E Audit Dec 2024)', () => {
     coaching: ['coaching', 'coach me', 'life coaching', 'coaching session', 'coaching support'],
     dating: ['dating', 'dating advice', 'dating help', 'first date', 'dating profile'],
     gratitude: ['gratitude', 'grateful', 'thankful', 'gratitude practice', 'gratitude journal'],
-    grounding: [
-      'grounding',
-      'ground myself',
-      '5-4-3-2-1',
-      'grounding exercise',
-      'feel grounded',
-    ],
+    grounding: ['grounding', 'ground myself', '5-4-3-2-1', 'grounding exercise', 'feel grounded'],
     'human-transfer': [
       'human',
       'talk to human',
@@ -147,13 +141,16 @@ describe('Untested Domain Patterns (E2E Audit Dec 2024)', () => {
 
   describe('Pattern examples per domain', () => {
     // Test that each domain has representative patterns
-    it.each(Object.entries(expectedPatterns))('%s should have representative patterns', (domain, patterns) => {
-      expect(patterns.length).toBeGreaterThan(0);
-      // At least one pattern should be the domain name or close to it
-      const hasRootPattern = patterns.some(
-        (p) => p.toLowerCase().includes(domain.split('-')[0].toLowerCase())
-      );
-      expect(hasRootPattern).toBe(true);
-    });
+    it.each(Object.entries(expectedPatterns))(
+      '%s should have representative patterns',
+      (domain, patterns) => {
+        expect(patterns.length).toBeGreaterThan(0);
+        // At least one pattern should be the domain name or close to it
+        const hasRootPattern = patterns.some((p) =>
+          p.toLowerCase().includes(domain.split('-')[0].toLowerCase())
+        );
+        expect(hasRootPattern).toBe(true);
+      }
+    );
   });
 });

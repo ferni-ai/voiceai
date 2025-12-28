@@ -378,17 +378,16 @@ export function detectMicroWin(message: string): MicroWin | null {
         const celebration =
           llmContent.source === 'llm' && llmContent.content
             ? llmContent.content
-            : seededPick(`${Date.now()}:381`, celebrations) ?? celebrations[0];
+            : (seededPick(`${Date.now()}:381`, celebrations) ?? celebrations[0]);
 
         const win: MicroWin = {
           type: winType,
           magnitude: config.magnitude,
           trigger: match[0],
           celebration,
-          followUp:
-            !seededChance(`${Date.now()}:1`, 0.5)
-              ? seededPick(`${Date.now()}:390`, followUps) ?? followUps[0]
-              : undefined,
+          followUp: !seededChance(`${Date.now()}:1`, 0.5)
+            ? (seededPick(`${Date.now()}:390`, followUps) ?? followUps[0])
+            : undefined,
         };
 
         log.debug(

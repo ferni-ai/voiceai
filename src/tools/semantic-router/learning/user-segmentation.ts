@@ -605,7 +605,8 @@ export class UserSegmentationEngine {
       avgMessageLength,
       questionRatio,
       followupRate,
-      preferredStrategy: latencyTolerance < 0.3 ? 'fast' : latencyTolerance > 0.7 ? 'accurate' : 'balanced',
+      preferredStrategy:
+        latencyTolerance < 0.3 ? 'fast' : latencyTolerance > 0.7 ? 'accurate' : 'balanced',
       latencyTolerance,
       accuracyDemand,
       engagementLevel,
@@ -614,9 +615,7 @@ export class UserSegmentationEngine {
     };
   }
 
-  private groupBySessions(
-    interactions: InteractionEvent[]
-  ): InteractionEvent[][] {
+  private groupBySessions(interactions: InteractionEvent[]): InteractionEvent[][] {
     const sessions: InteractionEvent[][] = [];
     let currentSession: InteractionEvent[] = [];
 
@@ -812,7 +811,8 @@ export class UserSegmentationEngine {
     for (const fp of fingerprints) {
       stratCounts.set(fp.preferredStrategy, (stratCounts.get(fp.preferredStrategy) || 0) + 1);
     }
-    const preferredStrategy = [...stratCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'balanced';
+    const preferredStrategy =
+      [...stratCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'balanced';
 
     return {
       avgSessionDuration: sum('avgSessionDuration'),
@@ -855,9 +855,7 @@ export class UserSegmentationEngine {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function createEmptyFingerprint(
-  overrides: Partial<BehaviorFingerprint>
-): BehaviorFingerprint {
+function createEmptyFingerprint(overrides: Partial<BehaviorFingerprint>): BehaviorFingerprint {
   return {
     avgSessionDuration: 0,
     avgInteractionsPerSession: 0,

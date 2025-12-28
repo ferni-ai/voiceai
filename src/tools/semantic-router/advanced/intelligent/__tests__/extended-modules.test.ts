@@ -238,10 +238,7 @@ describe('Observability', () => {
 
     it('should calculate latency percentiles', () => {
       for (let i = 0; i < 100; i++) {
-        recordRoutingDecision(
-          { ...mockDecision, timing: { total: i } },
-          mockContext
-        );
+        recordRoutingDecision({ ...mockDecision, timing: { total: i } }, mockContext);
       }
 
       const metrics = getStrategyMetrics('intent-classifier');
@@ -344,9 +341,7 @@ describe('A/B Testing', () => {
       enableIntelligentRouting(50);
 
       const dashboard = getExperimentDashboard();
-      const experiment = dashboard.experiments.find(
-        (e) => e.id === 'intelligent-vs-semantic'
-      );
+      const experiment = dashboard.experiments.find((e) => e.id === 'intelligent-vs-semantic');
       expect(experiment?.active).toBe(true);
     });
   });
@@ -564,4 +559,3 @@ describe('LLM Providers', () => {
     });
   });
 });
-

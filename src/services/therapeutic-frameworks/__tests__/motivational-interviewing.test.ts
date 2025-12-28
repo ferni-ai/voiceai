@@ -84,7 +84,7 @@ describe('MotivationalInterviewing', () => {
       });
 
       it('should detect commitment statements', () => {
-        const result = detectChangeTalk("I will start exercising tomorrow");
+        const result = detectChangeTalk('I will start exercising tomorrow');
 
         expect(result.length).toBeGreaterThan(0);
         const commitmentResult = result.find((r) => r.type === 'commitment');
@@ -109,7 +109,7 @@ describe('MotivationalInterviewing', () => {
     describe('Strength Calculation', () => {
       it('should assign higher strength to commitment', () => {
         const desire = detectChangeTalk('I want to change');
-        const commitment = detectChangeTalk("I will change");
+        const commitment = detectChangeTalk('I will change');
 
         expect(commitment[0]?.strength).toBeGreaterThan(desire[0]?.strength || 0);
       });
@@ -180,7 +180,12 @@ describe('MotivationalInterviewing', () => {
   describe('OARS Response Generation', () => {
     it('should generate reflection for change talk', () => {
       const changeTalk = [
-        { type: 'desire' as const, statement: 'I want to exercise', strength: 0.7, timestamp: new Date() },
+        {
+          type: 'desire' as const,
+          statement: 'I want to exercise',
+          strength: 0.7,
+          timestamp: new Date(),
+        },
       ];
 
       const response = generateOARSResponse({ changeTalk });
@@ -208,7 +213,12 @@ describe('MotivationalInterviewing', () => {
     it('should include strategy explanation', () => {
       const response = generateOARSResponse({
         changeTalk: [
-          { type: 'commitment' as const, statement: 'I will try', strength: 0.9, timestamp: new Date() },
+          {
+            type: 'commitment' as const,
+            statement: 'I will try',
+            strength: 0.9,
+            timestamp: new Date(),
+          },
         ],
       });
 
@@ -250,9 +260,27 @@ describe('MotivationalInterviewing', () => {
       const topicUser = 'topic-user-123';
 
       recordChangeTalk(topicUser, [
-        { type: 'desire' as const, statement: 'I want', strength: 0.6, timestamp: new Date(), topic: 'exercise' },
-        { type: 'desire' as const, statement: 'I want', strength: 0.6, timestamp: new Date(), topic: 'exercise' },
-        { type: 'desire' as const, statement: 'I want', strength: 0.6, timestamp: new Date(), topic: 'diet' },
+        {
+          type: 'desire' as const,
+          statement: 'I want',
+          strength: 0.6,
+          timestamp: new Date(),
+          topic: 'exercise',
+        },
+        {
+          type: 'desire' as const,
+          statement: 'I want',
+          strength: 0.6,
+          timestamp: new Date(),
+          topic: 'exercise',
+        },
+        {
+          type: 'desire' as const,
+          statement: 'I want',
+          strength: 0.6,
+          timestamp: new Date(),
+          topic: 'diet',
+        },
       ]);
 
       const topics = getTopChangeTalkTopics(topicUser, 2);
@@ -266,8 +294,20 @@ describe('MotivationalInterviewing', () => {
       const ambUser = 'amb-user-123';
 
       recordChangeTalk(ambUser, [
-        { type: 'commitment' as const, statement: 'I will', strength: 0.9, timestamp: new Date(), topic: 'exercise' },
-        { type: 'desire' as const, statement: 'I want', strength: 0.4, timestamp: new Date(), topic: 'exercise' },
+        {
+          type: 'commitment' as const,
+          statement: 'I will',
+          strength: 0.9,
+          timestamp: new Date(),
+          topic: 'exercise',
+        },
+        {
+          type: 'desire' as const,
+          statement: 'I want',
+          strength: 0.4,
+          timestamp: new Date(),
+          topic: 'exercise',
+        },
       ]);
 
       const ambivalent = analyzeAmbivalence(ambUser);
@@ -279,8 +319,20 @@ describe('MotivationalInterviewing', () => {
       const consistUser = 'consist-user-123';
 
       recordChangeTalk(consistUser, [
-        { type: 'commitment' as const, statement: 'I will', strength: 0.9, timestamp: new Date(), topic: 'diet' },
-        { type: 'commitment' as const, statement: 'I promise', strength: 0.95, timestamp: new Date(), topic: 'diet' },
+        {
+          type: 'commitment' as const,
+          statement: 'I will',
+          strength: 0.9,
+          timestamp: new Date(),
+          topic: 'diet',
+        },
+        {
+          type: 'commitment' as const,
+          statement: 'I promise',
+          strength: 0.95,
+          timestamp: new Date(),
+          topic: 'diet',
+        },
       ]);
 
       const ambivalent = analyzeAmbivalence(consistUser);

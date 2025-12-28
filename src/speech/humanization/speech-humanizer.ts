@@ -29,11 +29,7 @@ import {
   isLateNightHours,
   getLateNightPacing,
 } from './behavior-loader.js';
-import {
-  detectCallbackTriggers,
-  selectCallback,
-  injectCallback,
-} from './callback-detector.js';
+import { detectCallbackTriggers, selectCallback, injectCallback } from './callback-detector.js';
 import type {
   BehaviorSelectionContext,
   SelectedBehavior,
@@ -121,7 +117,9 @@ export async function humanizeSpeech(
         );
         if (callback) {
           result = injectCallback(result, callback);
-          features.push(`callback:${callback.id}:${callback.useCallbackVersion ? 'repeat' : 'first'}`);
+          features.push(
+            `callback:${callback.id}:${callback.useCallbackVersion ? 'repeat' : 'first'}`
+          );
           appliedBehaviors.push({
             phrase: callback.phrase,
             category: `callback:${callback.trigger}`,
@@ -134,7 +132,11 @@ export async function humanizeSpeech(
             },
           });
           log.debug(
-            { personaId, callbackId: callback.id, type: callback.useCallbackVersion ? 'repeat' : 'first' },
+            {
+              personaId,
+              callbackId: callback.id,
+              type: callback.useCallbackVersion ? 'repeat' : 'first',
+            },
             'Injected callback phrase'
           );
         }
@@ -212,11 +214,7 @@ export async function humanizeSpeech(
 /**
  * Inject a behavior into text at the appropriate position
  */
-function injectBehavior(
-  text: string,
-  behavior: SelectedBehavior,
-  minCharsBetween: number
-): string {
+function injectBehavior(text: string, behavior: SelectedBehavior, minCharsBetween: number): string {
   const { phrase, position } = behavior;
 
   switch (position) {
@@ -317,7 +315,7 @@ function hashCode(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash);
@@ -466,7 +464,9 @@ export function quickHumanizeSync(
 
     // Try to add laughter contagion (celebration context)
     if (context?.isCelebration) {
-      const extendedContext = selectionContext as BehaviorSelectionContext & { userLaughed?: boolean };
+      const extendedContext = selectionContext as BehaviorSelectionContext & {
+        userLaughed?: boolean;
+      };
       const laughter = selectLaughterResponseSync(personaId, extendedContext);
       if (laughter) {
         result = `${laughter.phrase} ${result}`;
@@ -550,9 +550,7 @@ function mapEmotionToAgentTone(
 /**
  * Get all available imperfection categories for a persona
  */
-export async function getAvailableCategories(
-  personaId: string
-): Promise<ImperfectionCategory[]> {
+export async function getAvailableCategories(personaId: string): Promise<ImperfectionCategory[]> {
   const profile = await loadSpeechProfile(personaId);
 
   if (!profile.imperfections) {
@@ -607,7 +605,11 @@ export async function getAvailableCategories(
 // EXPORTS
 // =============================================================================
 
-export { loadSpeechProfile, clearSpeechProfileCache, preloadAllSpeechProfiles } from './behavior-loader.js';
+export {
+  loadSpeechProfile,
+  clearSpeechProfileCache,
+  preloadAllSpeechProfiles,
+} from './behavior-loader.js';
 export type {
   BehaviorSelectionContext,
   SelectedBehavior,
@@ -615,4 +617,3 @@ export type {
   ImperfectionCategory,
   PersonaSpeechProfile,
 } from './types.js';
-

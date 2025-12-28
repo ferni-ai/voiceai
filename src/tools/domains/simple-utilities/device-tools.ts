@@ -52,15 +52,9 @@ async function loadDevices(userId: string): Promise<DeviceInfo[]> {
     const store = getFirestoreStore();
     const db = await store.getDatabase();
 
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('devices')
-      .get();
+    const snapshot = await db.collection('bogle_users').doc(userId).collection('devices').get();
 
-    const deviceList = snapshot.docs.map((doc) =>
-      ({ id: doc.id, ...doc.data() }) as DeviceInfo
-    );
+    const deviceList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as DeviceInfo);
     devices.set(userId, deviceList);
     return deviceList;
   } catch (error) {
@@ -109,7 +103,7 @@ async function ringPhone(userId: string, deviceId: string): Promise<boolean> {
 const findMyPhoneDef: ToolDefinition = {
   id: 'findMyPhone',
   name: 'Find My Phone',
-  description: 'Ring your phone to find it, even if it\'s on silent',
+  description: "Ring your phone to find it, even if it's on silent",
   domain: 'simple-utilities',
   tags: ['find', 'phone', 'ring', 'locate', 'device'],
 
@@ -203,7 +197,7 @@ const stopRingingDef: ToolDefinition = {
 const checkBatteryDef: ToolDefinition = {
   id: 'checkBattery',
   name: 'Check Battery',
-  description: 'Check your phone\'s battery level',
+  description: "Check your phone's battery level",
   domain: 'simple-utilities',
   tags: ['battery', 'phone', 'device', 'status'],
 
@@ -247,8 +241,7 @@ const checkBatteryDef: ToolDefinition = {
         }
 
         const level = targetDevice.batteryLevel;
-        const emoji =
-          level > 80 ? '🔋' : level > 50 ? '🔋' : level > 20 ? '🪫' : '🪫';
+        const emoji = level > 80 ? '🔋' : level > 50 ? '🔋' : level > 20 ? '🪫' : '🪫';
         const status =
           level > 80
             ? 'Great!'
@@ -361,11 +354,4 @@ export const deviceToolDefinitions: ToolDefinition[] = [
   doNotDisturbDef,
 ];
 
-export {
-  findMyPhoneDef,
-  stopRingingDef,
-  checkBatteryDef,
-  listDevicesDef,
-  doNotDisturbDef,
-};
-
+export { findMyPhoneDef, stopRingingDef, checkBatteryDef, listDevicesDef, doNotDisturbDef };

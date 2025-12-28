@@ -55,8 +55,8 @@ export const ENVIRONMENT_CONFIG = {
   /** TTS adjustments by severity */
   TTS_ADJUSTMENTS: {
     minor: { volumeBoost: 0.05, clarity: false, speed: 1.0, pause: 0 },
-    moderate: { volumeBoost: 0.10, clarity: true, speed: 0.95, pause: 100 },
-    major: { volumeBoost: 0.15, clarity: true, speed: 0.90, pause: 200 },
+    moderate: { volumeBoost: 0.1, clarity: true, speed: 0.95, pause: 100 },
+    major: { volumeBoost: 0.15, clarity: true, speed: 0.9, pause: 200 },
   },
 
   /** Spectral thresholds for event detection */
@@ -79,35 +79,22 @@ export const ENVIRONMENT_CONFIG = {
 const DEFAULT_ACKNOWLEDGMENTS: Record<EnvironmentEventType, string[]> = {
   noise_increase: [
     "It's getting a bit noisy there.",
-    "I can hear some background noise.",
-    "Sounds like things are busy around you.",
+    'I can hear some background noise.',
+    'Sounds like things are busy around you.',
   ],
   noise_decrease: [],
-  new_voice: [
-    "Take your time.",
-    "I can wait.",
-    "Go ahead, I'm here when you're ready.",
-  ],
+  new_voice: ['Take your time.', 'I can wait.', "Go ahead, I'm here when you're ready."],
   doorbell: [
-    "I heard that—go ahead if you need to get the door.",
-    "Take your time if you need to get that.",
+    'I heard that—go ahead if you need to get the door.',
+    'Take your time if you need to get that.',
     "I'll be here when you're back.",
   ],
-  pet_sound: [
-    "Sounds like someone wants attention!",
-    "I heard a furry friend.",
-  ],
-  phone_ring: [
-    "I can wait if you need to get that.",
-    "No rush—take the call if you need to.",
-  ],
+  pet_sound: ['Sounds like someone wants attention!', 'I heard a furry friend.'],
+  phone_ring: ['I can wait if you need to get that.', 'No rush—take the call if you need to.'],
   music_start: [],
   music_stop: [],
   silence: [],
-  crowd_noise: [
-    "Sounds like you're in a busy place.",
-    "I'll speak a bit clearer for you.",
-  ],
+  crowd_noise: ["Sounds like you're in a busy place.", "I'll speak a bit clearer for you."],
 };
 
 // ============================================================================
@@ -132,7 +119,10 @@ export function getEnvironmentTracker(sessionId: string): EnvironmentTracker {
 export function resetEnvironmentTracker(sessionId: string): void {
   const tracker = trackers.get(sessionId);
   if (tracker) {
-    log.debug({ sessionId, eventCount: tracker.getState().recentEvents.length }, 'Resetting environment tracker');
+    log.debug(
+      { sessionId, eventCount: tracker.getState().recentEvents.length },
+      'Resetting environment tracker'
+    );
   }
   trackers.delete(sessionId);
 }
@@ -439,7 +429,8 @@ export class EnvironmentTracker {
   getState(): EnvironmentTrackerState {
     const baselineDb = this.getBaselineNoiseDb();
     const currentDb = this.recentSnapshots[this.recentSnapshots.length - 1]?.noiseDb ?? baselineDb;
-    const currentEnv = this.recentSnapshots[this.recentSnapshots.length - 1]?.environment ?? 'quiet';
+    const currentEnv =
+      this.recentSnapshots[this.recentSnapshots.length - 1]?.environment ?? 'quiet';
 
     return {
       sessionId: this.sessionId,

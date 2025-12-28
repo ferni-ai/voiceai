@@ -142,11 +142,13 @@ async function saveGiftToFirestore(userId: string, gift: Gift): Promise<void> {
       return;
     }
 
-    await collection.doc(gift.id).set(cleanForFirestore({
-      ...gift,
-      date: gift.date,
-      createdAt: new Date(),
-    }));
+    await collection.doc(gift.id).set(
+      cleanForFirestore({
+        ...gift,
+        date: gift.date,
+        createdAt: new Date(),
+      })
+    );
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to save gift to Firestore');
     // Don't throw - we still have it in cache

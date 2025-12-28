@@ -874,14 +874,16 @@ export async function persistEmotionalHistory(userId: string): Promise<void> {
     await (db as any)
       .collection('emotional_history')
       .doc(userId)
-      .set(cleanForFirestore({
-        userId,
-        dataPoints: history.map((dp) => ({
-          ...dp,
-          timestamp: dp.timestamp.toISOString(),
-        })),
-        lastUpdated: new Date().toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          userId,
+          dataPoints: history.map((dp) => ({
+            ...dp,
+            timestamp: dp.timestamp.toISOString(),
+          })),
+          lastUpdated: new Date().toISOString(),
+        })
+      );
 
     log.debug({ userId, dataPointCount: history.length }, 'Emotional history persisted');
   } catch (error) {

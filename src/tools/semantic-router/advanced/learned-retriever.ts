@@ -20,7 +20,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getKeywordWord, getKeywordWeight } from '../types.js';
 import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
-import type { TrainingExample} from './datasets.js';
+import type { TrainingExample } from './datasets.js';
 import { loadCombinedTrainingData } from './datasets.js';
 
 const log = createLogger({ module: 'semantic-router:learned-retriever' });

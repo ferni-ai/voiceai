@@ -303,28 +303,46 @@
   "spotify_pause": {
     "phrases": ["pause", "pause the music", "stop the music", "stop playing"],
     "patterns": ["^(?:pause|stop)\\s+(?:the\\s+)?(?:music|song|playback)"],
-    "keywords": [{ "word": "pause", "weight": 1.0 }, { "word": "stop", "weight": 0.9 }],
+    "keywords": [
+      { "word": "pause", "weight": 1.0 },
+      { "word": "stop", "weight": 0.9 }
+    ],
     "antiKeywords": ["play", "start", "resume"]
   },
 
   "spotify_skip": {
     "phrases": ["next song", "skip", "skip this song", "next track"],
     "patterns": ["^(?:next|skip)\\s+(?:this\\s+)?(?:song|track)?", "^play\\s+next"],
-    "keywords": [{ "word": "next", "weight": 1.0 }, { "word": "skip", "weight": 1.0 }],
+    "keywords": [
+      { "word": "next", "weight": 1.0 },
+      { "word": "skip", "weight": 1.0 }
+    ],
     "antiKeywords": ["previous", "back"]
   },
 
   "set_timer": {
     "phrases": ["set a timer", "timer for", "start a timer", "set timer"],
-    "patterns": ["^(?:set|start)\\s+(?:a\\s+)?timer\\s+(?:for\\s+)?(.+)", "^timer\\s+(?:for\\s+)?(.+)"],
-    "keywords": [{ "word": "timer", "weight": 1.0 }, { "word": "minutes", "weight": 0.7 }],
+    "patterns": [
+      "^(?:set|start)\\s+(?:a\\s+)?timer\\s+(?:for\\s+)?(.+)",
+      "^timer\\s+(?:for\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "timer", "weight": 1.0 },
+      { "word": "minutes", "weight": 0.7 }
+    ],
     "antiKeywords": ["alarm", "reminder"]
   },
 
   "set_reminder": {
     "phrases": ["remind me to", "set a reminder", "reminder to", "don't let me forget"],
-    "patterns": ["^remind\\s+me\\s+(?:to\\s+)?(.+)", "^(?:set|create)\\s+(?:a\\s+)?reminder\\s+(?:to\\s+)?(.+)"],
-    "keywords": [{ "word": "remind", "weight": 1.0 }, { "word": "reminder", "weight": 1.0 }],
+    "patterns": [
+      "^remind\\s+me\\s+(?:to\\s+)?(.+)",
+      "^(?:set|create)\\s+(?:a\\s+)?reminder\\s+(?:to\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "remind", "weight": 1.0 },
+      { "word": "reminder", "weight": 1.0 }
+    ],
     "antiKeywords": ["timer", "alarm"]
   },
 
@@ -633,14 +651,29 @@
   },
 
   "smart_home_lights": {
-    "phrases": ["turn on the lights", "turn off the lights", "dim the lights", "lights on", "lights off"],
+    "phrases": [
+      "turn on the lights",
+      "turn off the lights",
+      "dim the lights",
+      "lights on",
+      "lights off"
+    ],
     "patterns": ["^(?:turn|switch)\\s+(?:on|off)\\s+(?:the\\s+)?lights?", "^lights?\\s+(?:on|off)"],
-    "keywords": [{ "word": "lights", "weight": 1.0 }, { "word": "light", "weight": 1.0 }],
+    "keywords": [
+      { "word": "lights", "weight": 1.0 },
+      { "word": "light", "weight": 1.0 }
+    ],
     "antiKeywords": []
   },
 
   "smart_home_thermostat": {
-    "phrases": ["set the temperature", "turn up the heat", "turn down the AC", "make it warmer", "make it cooler"],
+    "phrases": [
+      "set the temperature",
+      "turn up the heat",
+      "turn down the AC",
+      "make it warmer",
+      "make it cooler"
+    ],
     "patterns": [
       "^(?:set|change)\\s+(?:the\\s+)?(?:temperature|thermostat)",
       "^(?:turn\\s+(?:up|down)|make\\s+it)\\s+(?:warmer|cooler|hotter|colder)"
@@ -656,71 +689,169 @@
 
   "define_word": {
     "phrases": ["define", "what does mean", "definition of", "what's the meaning of"],
-    "patterns": ["^define\\s+(.+)", "^what\\s+does\\s+(.+)\\s+mean", "^(?:what(?:'s| is)\\s+the\\s+)?(?:definition|meaning)\\s+of\\s+(.+)"],
-    "keywords": [{ "word": "define", "weight": 1.0 }, { "word": "definition", "weight": 1.0 }, { "word": "meaning", "weight": 0.9 }],
+    "patterns": [
+      "^define\\s+(.+)",
+      "^what\\s+does\\s+(.+)\\s+mean",
+      "^(?:what(?:'s| is)\\s+the\\s+)?(?:definition|meaning)\\s+of\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "define", "weight": 1.0 },
+      { "word": "definition", "weight": 1.0 },
+      { "word": "meaning", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "translate": {
-    "phrases": ["translate", "how do you say", "what's that in", "say in spanish", "translate to french"],
-    "patterns": ["^translate\\s+(.+)", "^how\\s+do\\s+you\\s+say\\s+(.+)", "^(?:what(?:'s| is)\\s+that\\s+in|say\\s+in)\\s+(\\w+)"],
-    "keywords": [{ "word": "translate", "weight": 1.0 }, { "word": "spanish", "weight": 0.8 }, { "word": "french", "weight": 0.8 }],
+    "phrases": [
+      "translate",
+      "how do you say",
+      "what's that in",
+      "say in spanish",
+      "translate to french"
+    ],
+    "patterns": [
+      "^translate\\s+(.+)",
+      "^how\\s+do\\s+you\\s+say\\s+(.+)",
+      "^(?:what(?:'s| is)\\s+that\\s+in|say\\s+in)\\s+(\\w+)"
+    ],
+    "keywords": [
+      { "word": "translate", "weight": 1.0 },
+      { "word": "spanish", "weight": 0.8 },
+      { "word": "french", "weight": 0.8 }
+    ],
     "antiKeywords": []
   },
 
   "calculate": {
     "phrases": ["calculate", "what is math", "how much is", "math problem"],
-    "patterns": ["^calculate\\s+(.+)", "^what\\s+is\\s+(\\d+.+\\d+)", "^how\\s+much\\s+is\\s+(\\d+.+)"],
-    "keywords": [{ "word": "calculate", "weight": 1.0 }, { "word": "math", "weight": 0.9 }, { "word": "plus", "weight": 0.7 }],
+    "patterns": [
+      "^calculate\\s+(.+)",
+      "^what\\s+is\\s+(\\d+.+\\d+)",
+      "^how\\s+much\\s+is\\s+(\\d+.+)"
+    ],
+    "keywords": [
+      { "word": "calculate", "weight": 1.0 },
+      { "word": "math", "weight": 0.9 },
+      { "word": "plus", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "news_update": {
-    "phrases": ["what's in the news", "news update", "latest news", "what's happening in the world"],
-    "patterns": ["^(?:what(?:'s| is)|tell\\s+me)\\s+(?:in\\s+)?(?:the\\s+)?(?:latest\\s+)?news", "^(?:news|headlines)\\s+(?:update|today)"],
-    "keywords": [{ "word": "news", "weight": 1.0 }, { "word": "headlines", "weight": 0.9 }, { "word": "happening", "weight": 0.6 }],
+    "phrases": [
+      "what's in the news",
+      "news update",
+      "latest news",
+      "what's happening in the world"
+    ],
+    "patterns": [
+      "^(?:what(?:'s| is)|tell\\s+me)\\s+(?:in\\s+)?(?:the\\s+)?(?:latest\\s+)?news",
+      "^(?:news|headlines)\\s+(?:update|today)"
+    ],
+    "keywords": [
+      { "word": "news", "weight": 1.0 },
+      { "word": "headlines", "weight": 0.9 },
+      { "word": "happening", "weight": 0.6 }
+    ],
     "antiKeywords": []
   },
 
   "get_directions": {
     "phrases": ["directions to", "how do I get to", "navigate to", "route to"],
-    "patterns": ["^(?:give\\s+me\\s+)?directions\\s+to\\s+(.+)", "^how\\s+do\\s+i\\s+get\\s+to\\s+(.+)", "^navigate\\s+to\\s+(.+)"],
-    "keywords": [{ "word": "directions", "weight": 1.0 }, { "word": "navigate", "weight": 1.0 }, { "word": "route", "weight": 0.9 }],
+    "patterns": [
+      "^(?:give\\s+me\\s+)?directions\\s+to\\s+(.+)",
+      "^how\\s+do\\s+i\\s+get\\s+to\\s+(.+)",
+      "^navigate\\s+to\\s+(.+)"
+    ],
+    "keywords": [
+      { "word": "directions", "weight": 1.0 },
+      { "word": "navigate", "weight": 1.0 },
+      { "word": "route", "weight": 0.9 }
+    ],
     "antiKeywords": []
   },
 
   "set_alarm": {
     "phrases": ["set an alarm", "wake me up", "alarm for", "set alarm"],
-    "patterns": ["^(?:set|create)\\s+(?:an\\s+)?alarm\\s+(?:for\\s+)?(.+)", "^wake\\s+me\\s+(?:up\\s+)?(?:at\\s+)?(.+)"],
-    "keywords": [{ "word": "alarm", "weight": 1.0 }, { "word": "wake", "weight": 0.9 }],
+    "patterns": [
+      "^(?:set|create)\\s+(?:an\\s+)?alarm\\s+(?:for\\s+)?(.+)",
+      "^wake\\s+me\\s+(?:up\\s+)?(?:at\\s+)?(.+)"
+    ],
+    "keywords": [
+      { "word": "alarm", "weight": 1.0 },
+      { "word": "wake", "weight": 0.9 }
+    ],
     "antiKeywords": ["timer", "reminder"]
   },
 
   "book_search": {
     "phrases": ["find me a book", "book recommendation", "suggest a book", "what should I read"],
-    "patterns": ["^(?:find|recommend|suggest)\\s+(?:me\\s+)?(?:a\\s+)?book", "^what\\s+(?:should|can)\\s+i\\s+read"],
-    "keywords": [{ "word": "book", "weight": 1.0 }, { "word": "read", "weight": 0.8 }, { "word": "recommend", "weight": 0.7 }],
+    "patterns": [
+      "^(?:find|recommend|suggest)\\s+(?:me\\s+)?(?:a\\s+)?book",
+      "^what\\s+(?:should|can)\\s+i\\s+read"
+    ],
+    "keywords": [
+      { "word": "book", "weight": 1.0 },
+      { "word": "read", "weight": 0.8 },
+      { "word": "recommend", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "podcast_find": {
-    "phrases": ["find a podcast", "podcast recommendation", "suggest a podcast", "what podcast should I listen to"],
-    "patterns": ["^(?:find|recommend|suggest)\\s+(?:me\\s+)?(?:a\\s+)?podcast", "^what\\s+podcast\\s+(?:should|can)\\s+i"],
-    "keywords": [{ "word": "podcast", "weight": 1.0 }, { "word": "listen", "weight": 0.7 }],
+    "phrases": [
+      "find a podcast",
+      "podcast recommendation",
+      "suggest a podcast",
+      "what podcast should I listen to"
+    ],
+    "patterns": [
+      "^(?:find|recommend|suggest)\\s+(?:me\\s+)?(?:a\\s+)?podcast",
+      "^what\\s+podcast\\s+(?:should|can)\\s+i"
+    ],
+    "keywords": [
+      { "word": "podcast", "weight": 1.0 },
+      { "word": "listen", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "movie_recommend": {
-    "phrases": ["recommend a movie", "what movie should I watch", "movie suggestion", "find me a movie"],
-    "patterns": ["^(?:recommend|suggest|find)\\s+(?:me\\s+)?(?:a\\s+)?movie", "^what\\s+(?:movie|film)\\s+(?:should|can)\\s+i\\s+watch"],
-    "keywords": [{ "word": "movie", "weight": 1.0 }, { "word": "film", "weight": 0.9 }, { "word": "watch", "weight": 0.7 }],
+    "phrases": [
+      "recommend a movie",
+      "what movie should I watch",
+      "movie suggestion",
+      "find me a movie"
+    ],
+    "patterns": [
+      "^(?:recommend|suggest|find)\\s+(?:me\\s+)?(?:a\\s+)?movie",
+      "^what\\s+(?:movie|film)\\s+(?:should|can)\\s+i\\s+watch"
+    ],
+    "keywords": [
+      { "word": "movie", "weight": 1.0 },
+      { "word": "film", "weight": 0.9 },
+      { "word": "watch", "weight": 0.7 }
+    ],
     "antiKeywords": []
   },
 
   "restaurant_find": {
-    "phrases": ["find a restaurant", "where should I eat", "restaurant recommendation", "dinner spot"],
-    "patterns": ["^(?:find|recommend)\\s+(?:me\\s+)?(?:a\\s+)?restaurant", "^where\\s+(?:should|can)\\s+i\\s+(?:eat|get\\s+food)"],
-    "keywords": [{ "word": "restaurant", "weight": 1.0 }, { "word": "eat", "weight": 0.8 }, { "word": "food", "weight": 0.7 }],
+    "phrases": [
+      "find a restaurant",
+      "where should I eat",
+      "restaurant recommendation",
+      "dinner spot"
+    ],
+    "patterns": [
+      "^(?:find|recommend)\\s+(?:me\\s+)?(?:a\\s+)?restaurant",
+      "^where\\s+(?:should|can)\\s+i\\s+(?:eat|get\\s+food)"
+    ],
+    "keywords": [
+      { "word": "restaurant", "weight": 1.0 },
+      { "word": "eat", "weight": 0.8 },
+      { "word": "food", "weight": 0.7 }
+    ],
     "antiKeywords": []
   }
 }

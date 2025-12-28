@@ -299,7 +299,7 @@ export function checkMilestones(userId: string): RelationshipMilestone[] {
           celebration: seededPick(`${Date.now()}:299`, celebrations) ?? celebrations[0],
           reflection:
             reflections.length > 0
-              ? seededPick(`${Date.now()}:302`, reflections) ?? reflections[0]
+              ? (seededPick(`${Date.now()}:302`, reflections) ?? reflections[0])
               : undefined,
         });
 

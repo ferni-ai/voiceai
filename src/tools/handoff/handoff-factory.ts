@@ -712,7 +712,9 @@ Do NOT try to transfer to them. This was just a quick hello.`,
       );
 
       // Wait for speech to (approximately) finish, then trigger the visual reveal
-      await new Promise<void>((resolve) => { setTimeout(resolve, revealDelayMs); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, revealDelayMs);
+      });
 
       // Now emit the event - visual celebration appears as speech finishes!
       cameoUnlockEvents.emit('memberUnlocked', {

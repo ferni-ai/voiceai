@@ -3,7 +3,7 @@
  *
  * Unified smart home control with support for multiple platforms:
  * - Home Assistant
- * - Philips Hue  
+ * - Philips Hue
  * - LIFX
  * - Ecobee
  *
@@ -264,19 +264,23 @@ const broadcastMessageDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Broadcast a message to all smart speakers and displays in your home. Like an intercom system. Use when user wants to announce something to the whole house or call someone.',
+      description:
+        'Broadcast a message to all smart speakers and displays in your home. Like an intercom system. Use when user wants to announce something to the whole house or call someone.',
       parameters: z.object({
         message: z.string().describe('The message to broadcast'),
-        target: z.enum(['all', 'living_room', 'bedroom', 'kitchen', 'office', 'kids_room']).optional().describe('Target room or "all" for whole house'),
+        target: z
+          .enum(['all', 'living_room', 'bedroom', 'kitchen', 'office', 'kids_room'])
+          .optional()
+          .describe('Target room or "all" for whole house'),
       }),
       execute: async ({ message, target = 'all' }) => {
         log.info({ agentId: ctx.agentId, message, target }, '📢 Broadcasting message');
 
         // This would integrate with Home Assistant, Google Home, or Alexa APIs
         // For now, return a simulated response
-        
+
         const targetStr = target === 'all' ? 'all speakers' : `the ${target.replace('_', ' ')}`;
-        
+
         return `Broadcasting to ${targetStr}: "${message}". Message sent! 📢`;
       },
     });
@@ -292,7 +296,8 @@ const intercomCallDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Start a two-way intercom call with a specific room. Use when user wants to talk to someone in another room.',
+      description:
+        'Start a two-way intercom call with a specific room. Use when user wants to talk to someone in another room.',
       parameters: z.object({
         room: z.string().describe('The room to call (e.g., "kitchen", "bedroom", "office")'),
       }),
@@ -300,7 +305,7 @@ const intercomCallDef: ToolDefinition = {
         log.info({ agentId: ctx.agentId, room }, '📞 Starting intercom call');
 
         // This would integrate with Home Assistant, Google Home, or Alexa APIs
-        
+
         return `Starting intercom to ${room}. Note: Two-way intercom requires smart speaker setup. For now, I can broadcast a message instead. Would you like me to send a message to ${room}?`;
       },
     });
@@ -316,14 +321,18 @@ const announceDinnerDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Quick shortcut to announce dinner is ready to the whole house. Use when user says "announce dinner" or "tell everyone dinner is ready".',
+      description:
+        'Quick shortcut to announce dinner is ready to the whole house. Use when user says "announce dinner" or "tell everyone dinner is ready".',
       parameters: z.object({
-        customMessage: z.string().optional().describe('Custom message (defaults to "Dinner is ready!")'),
+        customMessage: z
+          .string()
+          .optional()
+          .describe('Custom message (defaults to "Dinner is ready!")'),
       }),
       execute: async ({ customMessage }) => {
         const message = customMessage || 'Dinner is ready! Come and get it!';
         log.info({ agentId: ctx.agentId, message }, '🍽️ Announcing dinner');
-        
+
         return `Announcing to all speakers: "${message}" 🍽️`;
       },
     });

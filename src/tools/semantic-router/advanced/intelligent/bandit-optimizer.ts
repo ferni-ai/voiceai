@@ -125,7 +125,10 @@ const DEFAULT_CONFIG: BanditConfig = {
 export class BanditOptimizer {
   private config: BanditConfig;
   private arms = new Map<string, ToolArm>();
-  private pendingRewards = new Map<string, { toolId: string; time: Date; context?: RoutingContext }>();
+  private pendingRewards = new Map<
+    string,
+    { toolId: string; time: Date; context?: RoutingContext }
+  >();
   private persistCallback?: (arms: Map<string, ToolArm>) => Promise<void>;
   private loadCallback?: () => Promise<Map<string, ToolArm>>;
   private persistTimer?: ReturnType<typeof setInterval>;
@@ -191,7 +194,13 @@ export class BanditOptimizer {
    * Select the best tool using Thompson Sampling
    */
   select(candidates: string[], context?: RoutingContext): SelectionResult {
-    const samples: Array<{ toolId: string; sample: number; expected: number; ci: [number, number]; contextBoost: number }> = [];
+    const samples: Array<{
+      toolId: string;
+      sample: number;
+      expected: number;
+      ci: [number, number];
+      contextBoost: number;
+    }> = [];
 
     for (const toolId of candidates) {
       const arm = this.arms.get(toolId);
@@ -251,7 +260,12 @@ export class BanditOptimizer {
   /**
    * Record that a tool was selected (for delayed reward)
    */
-  recordSelection(toolId: string, userId: string, sessionId?: string, context?: RoutingContext): string {
+  recordSelection(
+    toolId: string,
+    userId: string,
+    sessionId?: string,
+    context?: RoutingContext
+  ): string {
     const selectionId = `${userId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     this.pendingRewards.set(selectionId, { toolId, time: new Date(), context });
 
@@ -440,10 +454,7 @@ export class BanditOptimizer {
     const std = Math.sqrt(variance);
     const z = 1.96; // 95% CI
 
-    return [
-      Math.max(0, mean - z * std),
-      Math.min(1, mean + z * std),
-    ];
+    return [Math.max(0, mean - z * std), Math.min(1, mean + z * std)];
   }
 
   /**
@@ -466,11 +477,12 @@ export class BanditOptimizer {
   getExplorationStats(): { explorationRate: number; totalSelections: number } {
     const total = Array.from(this.arms.values()).reduce((sum, arm) => sum + arm.attempts, 0);
     // Estimate based on variance
-    const avgVariance = Array.from(this.arms.values()).reduce((sum, arm) => {
-      const alpha = arm.successes + this.config.priorAlpha;
-      const beta = arm.failures + this.config.priorBeta;
-      return sum + (alpha * beta) / ((alpha + beta) ** 2 * (alpha + beta + 1));
-    }, 0) / this.arms.size;
+    const avgVariance =
+      Array.from(this.arms.values()).reduce((sum, arm) => {
+        const alpha = arm.successes + this.config.priorAlpha;
+        const beta = arm.failures + this.config.priorBeta;
+        return sum + (alpha * beta) / ((alpha + beta) ** 2 * (alpha + beta + 1));
+      }, 0) / this.arms.size;
 
     return {
       explorationRate: Math.min(1, avgVariance * 10), // Rough estimate
@@ -580,4 +592,3 @@ export function calculateExplicitReward(feedback: {
 
   return 0.5; // No feedback = neutral
 }
-

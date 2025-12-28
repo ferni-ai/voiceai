@@ -10,13 +10,25 @@ export const WELLNESS_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Exercise & Training
   // -------------------------------------------------------------------------
-  { pattern: /\bHIIT\b/g, replacement: 'hit training', description: 'High Intensity Interval Training' },
+  {
+    pattern: /\bHIIT\b/g,
+    replacement: 'hit training',
+    description: 'High Intensity Interval Training',
+  },
   { pattern: /\bLISS\b/g, replacement: 'liss', description: 'Low Intensity Steady State' },
   { pattern: /\bAMRAP\b/g, replacement: 'am-rap', description: 'As Many Reps As Possible' },
   { pattern: /\bEMOM\b/g, replacement: 'ee-mom', description: 'Every Minute On the Minute' },
   { pattern: /\bWOD\b/g, replacement: 'W O D', description: 'Workout of the Day' },
-  { pattern: /\bPR\b(?=\s+(in|for|on))/gi, replacement: 'personal record', description: 'Personal Record' },
-  { pattern: /\bPB\b(?=\s+(in|for|on))/gi, replacement: 'personal best', description: 'Personal Best' },
+  {
+    pattern: /\bPR\b(?=\s+(in|for|on))/gi,
+    replacement: 'personal record',
+    description: 'Personal Record',
+  },
+  {
+    pattern: /\bPB\b(?=\s+(in|for|on))/gi,
+    replacement: 'personal best',
+    description: 'Personal Best',
+  },
 
   // -------------------------------------------------------------------------
   // Health Metrics
@@ -38,8 +50,15 @@ export const WELLNESS_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Nutrition
   // -------------------------------------------------------------------------
-  { pattern: /\bIF\b(?=\s+(diet|fasting|protocol))/gi, replacement: 'intermittent fasting', description: 'Intermittent Fasting' },
+  {
+    pattern: /\bIF\b(?=\s+(diet|fasting|protocol))/gi,
+    replacement: 'intermittent fasting',
+    description: 'Intermittent Fasting',
+  },
   { pattern: /\bOMAD\b/g, replacement: 'oh-mad', description: 'One Meal A Day' },
-  { pattern: /\bCICO\b/g, replacement: 'calories in calories out', description: 'Calories In Calories Out' },
+  {
+    pattern: /\bCICO\b/g,
+    replacement: 'calories in calories out',
+    description: 'Calories In Calories Out',
+  },
 ];
-

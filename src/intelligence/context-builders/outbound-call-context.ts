@@ -89,8 +89,7 @@ export function clearOutboundCallContext(roomOrSessionId: string): void {
 
 export const outboundCallContextBuilder: ContextBuilder = {
   name: 'outbound-call-context',
-  description:
-    'Injects call purpose, script, and compliance guidance for outbound on-behalf calls',
+  description: 'Injects call purpose, script, and compliance guidance for outbound on-behalf calls',
   priority: 5, // Very high priority - must run early to set the stage
   category: BuilderCategory.CONTEXT,
 

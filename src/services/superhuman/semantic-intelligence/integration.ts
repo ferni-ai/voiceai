@@ -27,7 +27,11 @@ import { extractSmallDetails } from '../../../intelligence/conversation-quality.
 
 // Import enhanced extraction/matching (V3.1 improvements)
 import { extractPersons, getPrimaryPersonName } from './person-extractor.js';
-import { findMatchingAdvice, precomputeAdviceEmbeddings, type PastAdvice } from './advice-matcher.js';
+import {
+  findMatchingAdvice,
+  precomputeAdviceEmbeddings,
+  type PastAdvice,
+} from './advice-matcher.js';
 
 // V3.2 Proactive Intelligence
 import { openLoops, processUserTextForLoops } from './open-loops.js';
@@ -40,10 +44,18 @@ import { relationshipGraph, upsertPerson } from './relationship-graph.js';
 import { temporalPatterns, recordSnapshot as recordTemporalSnapshot } from './temporal-patterns.js';
 
 // V3.5 Behavioral Intelligence
-import { behavioralIntelligence, recordPotentialSabotage, updateBaseline } from './behavioral-intelligence.js';
+import {
+  behavioralIntelligence,
+  recordPotentialSabotage,
+  updateBaseline,
+} from './behavioral-intelligence.js';
 
 // V3.6 Coaching Intelligence
-import { coachingIntelligence, updateLearningStyle, recordDeflection } from './coaching-intelligence.js';
+import {
+  coachingIntelligence,
+  updateLearningStyle,
+  recordDeflection,
+} from './coaching-intelligence.js';
 
 // V3.7 Self-Awareness
 import { selfAwareness, recordDistortions, recordSelfPerception } from './self-awareness.js';
@@ -137,7 +149,7 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
   // Run all integrations in parallel, catching errors individually
   await Promise.allSettled([
     // V3 Core Systems (1-6)
-    
+
     // 1. Feed correlation mining with cross-domain signals
     recordCorrelationData(data).catch((e) =>
       log.warn({ error: String(e), userId }, 'Correlation mining error')
@@ -169,65 +181,57 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
     ),
 
     // V3.2 Proactive Intelligence
-    
+
     // 7. Detect open loops (intentions, concerns, life events)
     processUserTextForLoops(userId, userText, {
       emotion: textEmotion,
       emotionIntensity: textEmotionIntensity,
       topic,
       person: data.mentionedPerson,
-    }).catch((e) =>
-      log.warn({ error: String(e), userId }, 'Open loops detection error')
-    ),
+    }).catch((e) => log.warn({ error: String(e), userId }, 'Open loops detection error')),
 
     // V3.3 Relational Network
-    
+
     // 8. Update relationship graph with person data
     recordRelationshipGraphData(data).catch((e) =>
       log.warn({ error: String(e), userId }, 'Relationship graph error')
     ),
 
     // V3.4 Temporal Intelligence
-    
+
     // 9. Record temporal snapshot for pattern learning
     recordTemporalSnapshot(userId, {
       emotion: textEmotion,
       emotionIntensity: textEmotionIntensity,
       topic,
       energyLevel: data.energy,
-    }).catch((e) =>
-      log.warn({ error: String(e), userId }, 'Temporal patterns error')
-    ),
+    }).catch((e) => log.warn({ error: String(e), userId }, 'Temporal patterns error')),
 
     // V3.5 Behavioral Intelligence
-    
+
     // 10. Update emotional baseline
     textEmotion && textEmotionIntensity !== undefined
       ? updateBaseline(userId, {
           emotion: textEmotion,
           intensity: textEmotionIntensity,
           valence: getEmotionValence(textEmotion),
-        }).catch((e) =>
-          log.warn({ error: String(e), userId }, 'Behavioral baseline error')
-        )
+        }).catch((e) => log.warn({ error: String(e), userId }, 'Behavioral baseline error'))
       : Promise.resolve(),
 
     // 11. Detect self-sabotage patterns
     recordPotentialSabotage(userId, {
       context: userText,
-    }).catch((e) =>
-      log.warn({ error: String(e), userId }, 'Sabotage detection error')
-    ),
+    }).catch((e) => log.warn({ error: String(e), userId }, 'Sabotage detection error')),
 
     // V3.6 Coaching Intelligence
-    
+
     // 12. Update learning style
     updateLearningStyle(userId, userText).catch((e) =>
       log.warn({ error: String(e), userId }, 'Learning style error')
     ),
 
     // V3.7 Self-Awareness
-    
+
     // 13. Record cognitive distortions
     recordDistortions(userId, userText).catch((e) =>
       log.warn({ error: String(e), userId }, 'Distortion detection error')
@@ -249,11 +253,29 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
  * Helper to get emotion valence for baseline tracking
  */
 function getEmotionValence(emotion: string): number {
-  const positive = ['happy', 'excited', 'grateful', 'calm', 'content', 'hopeful', 'proud', 'relieved'];
-  const negative = ['sad', 'anxious', 'angry', 'stressed', 'frustrated', 'worried', 'fearful', 'overwhelmed'];
+  const positive = [
+    'happy',
+    'excited',
+    'grateful',
+    'calm',
+    'content',
+    'hopeful',
+    'proud',
+    'relieved',
+  ];
+  const negative = [
+    'sad',
+    'anxious',
+    'angry',
+    'stressed',
+    'frustrated',
+    'worried',
+    'fearful',
+    'overwhelmed',
+  ];
   const lower = emotion.toLowerCase();
-  if (positive.some(e => lower.includes(e))) return 1;
-  if (negative.some(e => lower.includes(e))) return -1;
+  if (positive.some((e) => lower.includes(e))) return 1;
+  if (negative.some((e) => lower.includes(e))) return -1;
   return 0;
 }
 
@@ -262,19 +284,29 @@ function getEmotionValence(emotion: string): number {
  */
 async function recordRelationshipGraphData(data: TurnSemanticData): Promise<void> {
   const { userId, userText, textEmotion, textEmotionIntensity, topic, mentionedPerson } = data;
-  
+
   if (!mentionedPerson) {
     // Try to extract persons from text
     const persons = extractPersons(userText);
     if (persons.length > 0) {
       const person = persons[0];
-      const sentiment = textEmotionIntensity !== undefined 
-        ? getEmotionValence(textEmotion ?? '') * textEmotionIntensity 
-        : undefined;
-      
+      const sentiment =
+        textEmotionIntensity !== undefined
+          ? getEmotionValence(textEmotion ?? '') * textEmotionIntensity
+          : undefined;
+
       await upsertPerson(userId, {
         name: person.name,
-        relationship: person.relationship as 'family' | 'friend' | 'romantic' | 'colleague' | 'professional' | 'acquaintance' | 'pet' | 'unknown' | undefined,
+        relationship: person.relationship as
+          | 'family'
+          | 'friend'
+          | 'romantic'
+          | 'colleague'
+          | 'professional'
+          | 'acquaintance'
+          | 'pet'
+          | 'unknown'
+          | undefined,
         emotion: textEmotion,
         sentiment,
         topic,
@@ -282,10 +314,11 @@ async function recordRelationshipGraphData(data: TurnSemanticData): Promise<void
       });
     }
   } else {
-    const sentiment = textEmotionIntensity !== undefined 
-      ? getEmotionValence(textEmotion ?? '') * textEmotionIntensity 
-      : undefined;
-    
+    const sentiment =
+      textEmotionIntensity !== undefined
+        ? getEmotionValence(textEmotion ?? '') * textEmotionIntensity
+        : undefined;
+
     await upsertPerson(userId, {
       name: mentionedPerson,
       emotion: textEmotion,
@@ -313,7 +346,18 @@ async function recordCorrelationData(data: TurnSemanticData): Promise<void> {
   // Record each domain with its emotional context
   for (const domain of domains) {
     await recordObservation(userId, {
-      domain: domain.domain as 'emotion' | 'topic' | 'person' | 'time' | 'energy' | 'behavior' | 'sleep' | 'work' | 'relationship' | 'health' | 'goal',
+      domain: domain.domain as
+        | 'emotion'
+        | 'topic'
+        | 'person'
+        | 'time'
+        | 'energy'
+        | 'behavior'
+        | 'sleep'
+        | 'work'
+        | 'relationship'
+        | 'health'
+        | 'goal',
       pattern: domain.signal,
       context: `${topic ?? 'general'}: ${userText.slice(0, 100)}`,
     });
@@ -345,13 +389,13 @@ async function recordEmotionalTrajectoryData(data: TurnSemanticData): Promise<vo
   } = data;
 
   // Determine primary emotion (prefer voice if confident)
-  const emotion = voiceEmotionConfidence && voiceEmotionConfidence > 0.6
-    ? voiceEmotion
-    : textEmotion;
+  const emotion =
+    voiceEmotionConfidence && voiceEmotionConfidence > 0.6 ? voiceEmotion : textEmotion;
 
-  const intensity = voiceEmotionConfidence && voiceEmotionConfidence > 0.6
-    ? voiceEmotionConfidence
-    : textEmotionIntensity;
+  const intensity =
+    voiceEmotionConfidence && voiceEmotionConfidence > 0.6
+      ? voiceEmotionConfidence
+      : textEmotionIntensity;
 
   if (!emotion || !intensity || intensity < 0.3) {
     return; // Skip weak emotional signals
@@ -361,12 +405,30 @@ async function recordEmotionalTrajectoryData(data: TurnSemanticData): Promise<vo
   const catalyst = detectEmotionalCatalyst(userText);
 
   // Map emotion to valence (-1 to 1)
-  const positiveEmotions = ['happy', 'excited', 'grateful', 'content', 'calm', 'hopeful', 'relieved', 'proud'];
-  const negativeEmotions = ['sad', 'anxious', 'angry', 'frustrated', 'stressed', 'overwhelmed', 'worried', 'fearful'];
+  const positiveEmotions = [
+    'happy',
+    'excited',
+    'grateful',
+    'content',
+    'calm',
+    'hopeful',
+    'relieved',
+    'proud',
+  ];
+  const negativeEmotions = [
+    'sad',
+    'anxious',
+    'angry',
+    'frustrated',
+    'stressed',
+    'overwhelmed',
+    'worried',
+    'fearful',
+  ];
   let valence = 0;
-  if (positiveEmotions.some(e => emotion.toLowerCase().includes(e))) {
+  if (positiveEmotions.some((e) => emotion.toLowerCase().includes(e))) {
     valence = intensity * 0.8;
-  } else if (negativeEmotions.some(e => emotion.toLowerCase().includes(e))) {
+  } else if (negativeEmotions.some((e) => emotion.toLowerCase().includes(e))) {
     valence = -intensity * 0.8;
   }
 
@@ -389,18 +451,36 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
   const { userId, userText, textEmotion, textEmotionIntensity, topic } = data;
 
   // Map emotion to sentiment (-1 to 1)
-  const positiveEmotions = ['happy', 'excited', 'grateful', 'content', 'calm', 'hopeful', 'relieved', 'proud'];
-  const negativeEmotions = ['sad', 'anxious', 'angry', 'frustrated', 'stressed', 'overwhelmed', 'worried', 'fearful'];
+  const positiveEmotions = [
+    'happy',
+    'excited',
+    'grateful',
+    'content',
+    'calm',
+    'hopeful',
+    'relieved',
+    'proud',
+  ];
+  const negativeEmotions = [
+    'sad',
+    'anxious',
+    'angry',
+    'frustrated',
+    'stressed',
+    'overwhelmed',
+    'worried',
+    'fearful',
+  ];
   let sentiment = 0;
-  if (textEmotion && positiveEmotions.some(e => textEmotion.toLowerCase().includes(e))) {
+  if (textEmotion && positiveEmotions.some((e) => textEmotion.toLowerCase().includes(e))) {
     sentiment = (textEmotionIntensity ?? 0.5) * 0.8;
-  } else if (textEmotion && negativeEmotions.some(e => textEmotion.toLowerCase().includes(e))) {
+  } else if (textEmotion && negativeEmotions.some((e) => textEmotion.toLowerCase().includes(e))) {
     sentiment = -(textEmotionIntensity ?? 0.5) * 0.8;
   }
 
   // V3.1: Use enhanced person extractor (NER-like with proper names and relationships)
   const enhancedPersons = extractPersons(userText);
-  
+
   // Also use existing extractors for compatibility
   const legacyMentions = extractPersonMentions(
     userText,
@@ -410,9 +490,7 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
 
   // Extract from small details (family members, pets)
   const details = extractSmallDetails(userText);
-  const personDetails = details.filter(
-    (d) => d.type === 'person_name' || d.type === 'pet_name'
-  );
+  const personDetails = details.filter((d) => d.type === 'person_name' || d.type === 'pet_name');
 
   // Track seen names to avoid duplicates
   const seenNames = new Set<string>();
@@ -478,7 +556,12 @@ async function recordGrowthData(data: TurnSemanticData): Promise<void> {
   const cognitive = detectCognitivePatterns(userText);
 
   // Map to the expected cognitive pattern type
-  let cognitivePattern: 'problem_solving' | 'catastrophizing' | 'growth' | 'self_compassion' | undefined;
+  let cognitivePattern:
+    | 'problem_solving'
+    | 'catastrophizing'
+    | 'growth'
+    | 'self_compassion'
+    | undefined;
   if (cognitive.includes('solution_seeking') || cognitive.includes('methodical')) {
     cognitivePattern = 'problem_solving';
   } else if (cognitive.includes('catastrophizing')) {
@@ -506,7 +589,7 @@ async function recordThreadingData(data: TurnSemanticData): Promise<void> {
 
   // Only record significant moments (not every turn)
   // Significant = has strong emotion OR mentions important topic
-  const isSignificant = 
+  const isSignificant =
     (textEmotionIntensity && textEmotionIntensity > 0.6) ||
     topic !== undefined ||
     userText.length > 100;
@@ -675,10 +758,7 @@ const NEGATIVE_OUTCOME_PATTERNS = [
  * V3.1: Now uses semantic matching to find the most relevant advice,
  * not just the most recent one.
  */
-export async function detectAdviceOutcome(
-  userId: string,
-  userText: string
-): Promise<void> {
+export async function detectAdviceOutcome(userId: string, userText: string): Promise<void> {
   if (!userId || userId === 'anonymous') {
     return;
   }
@@ -732,9 +812,7 @@ export async function detectAdviceOutcome(
     }
 
     // Use semantic match if confident, otherwise fall back to most recent
-    const targetAdvice = match && match.confidence > 0.5
-      ? match.advice
-      : pastAdviceList[0];
+    const targetAdvice = match && match.confidence > 0.5 ? match.advice : pastAdviceList[0];
 
     await recordAdviceOutcome(userId, targetAdvice.id, {
       followed: mentionsFollowThrough,
@@ -781,8 +859,16 @@ function extractDomainSignals(text: string): DomainSignal[] {
   // Work-related signals
   const workPatterns: PatternDef[] = [
     { pattern: /\b(work|job|boss|meeting|deadline|project|office)\b/i, signal: 'work_mention' },
-    { pattern: /\b(stressed|overwhelmed|busy|swamped)\b.*\b(work|job)\b/i, signal: 'work_stress', intensity: 0.8 },
-    { pattern: /\b(promoted|raise|success|win)\b.*\b(work|job)\b/i, signal: 'work_success', intensity: 0.9 },
+    {
+      pattern: /\b(stressed|overwhelmed|busy|swamped)\b.*\b(work|job)\b/i,
+      signal: 'work_stress',
+      intensity: 0.8,
+    },
+    {
+      pattern: /\b(promoted|raise|success|win)\b.*\b(work|job)\b/i,
+      signal: 'work_success',
+      intensity: 0.9,
+    },
   ];
 
   for (const { pattern, signal, intensity } of workPatterns) {
@@ -794,8 +880,16 @@ function extractDomainSignals(text: string): DomainSignal[] {
   // Sleep-related signals
   const sleepPatterns: PatternDef[] = [
     { pattern: /\b(tired|exhausted|sleep|insomnia|rest)\b/i, signal: 'sleep_issue' },
-    { pattern: /\b(couldn't sleep|can't sleep|up all night)\b/i, signal: 'sleep_deprivation', intensity: 0.9 },
-    { pattern: /\b(slept great|good night|well rested)\b/i, signal: 'sleep_quality_good', intensity: 0.8 },
+    {
+      pattern: /\b(couldn't sleep|can't sleep|up all night)\b/i,
+      signal: 'sleep_deprivation',
+      intensity: 0.9,
+    },
+    {
+      pattern: /\b(slept great|good night|well rested)\b/i,
+      signal: 'sleep_quality_good',
+      intensity: 0.8,
+    },
   ];
 
   for (const { pattern, signal, intensity } of sleepPatterns) {
@@ -819,7 +913,11 @@ function extractDomainSignals(text: string): DomainSignal[] {
 
   // Relationship-related signals
   const relationshipPatterns: PatternDef[] = [
-    { pattern: /\b(fight|argument|disagreed|conflict)\b/i, signal: 'relationship_conflict', intensity: 0.8 },
+    {
+      pattern: /\b(fight|argument|disagreed|conflict)\b/i,
+      signal: 'relationship_conflict',
+      intensity: 0.8,
+    },
     { pattern: /\b(date|romantic|love|partner)\b/i, signal: 'romantic' },
     { pattern: /\b(friend|friendship|hangout|social)\b/i, signal: 'social' },
   ];
@@ -966,9 +1064,23 @@ function extractKeyConcepts(text: string): string[] {
 
   // Life domains
   const domains = [
-    'work', 'career', 'job', 'family', 'relationship', 'health',
-    'money', 'finances', 'fitness', 'mental health', 'anxiety',
-    'depression', 'stress', 'sleep', 'goals', 'dreams', 'future',
+    'work',
+    'career',
+    'job',
+    'family',
+    'relationship',
+    'health',
+    'money',
+    'finances',
+    'fitness',
+    'mental health',
+    'anxiety',
+    'depression',
+    'stress',
+    'sleep',
+    'goals',
+    'dreams',
+    'future',
   ];
 
   for (const domain of domains) {
@@ -979,8 +1091,16 @@ function extractKeyConcepts(text: string): string[] {
 
   // Activities
   const activities = [
-    'exercise', 'meditation', 'journaling', 'therapy', 'reading',
-    'learning', 'travel', 'cooking', 'hobbies', 'volunteering',
+    'exercise',
+    'meditation',
+    'journaling',
+    'therapy',
+    'reading',
+    'learning',
+    'travel',
+    'cooking',
+    'hobbies',
+    'volunteering',
   ];
 
   for (const activity of activities) {
@@ -1043,4 +1163,3 @@ export {
   detectCognitivePatterns,
   extractKeyConcepts,
 };
-

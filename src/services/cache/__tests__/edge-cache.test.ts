@@ -117,7 +117,9 @@ describe('EdgeCache', () => {
       cache.set('key', 'value');
       expect(cache.get('key')).toBe('value');
 
-      await new Promise<void>((r) => { setTimeout(r, 100); });
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(cache.get('key')).toBeNull();
     });
@@ -131,7 +133,9 @@ describe('EdgeCache', () => {
       cache.set('short', 'value', 50);
       cache.set('long', 'value', 500);
 
-      await new Promise<void>((r) => { setTimeout(r, 100); });
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(cache.get('short')).toBeNull();
       expect(cache.get('long')).toBe('value');
@@ -147,7 +151,9 @@ describe('EdgeCache', () => {
       });
 
       cache.set('key', 'value');
-      await new Promise<void>((r) => { setTimeout(r, 70); }); // Past TTL, within stale grace
+      await new Promise<void>((r) => {
+        setTimeout(r, 70);
+      }); // Past TTL, within stale grace
 
       const result = cache.get('key');
       expect(result).toBe('value');
@@ -161,7 +167,9 @@ describe('EdgeCache', () => {
       });
 
       cache.set('key', 'value');
-      await new Promise<void>((r) => { setTimeout(r, 70); });
+      await new Promise<void>((r) => {
+        setTimeout(r, 70);
+      });
 
       cache.get('key'); // stale hit
 
@@ -177,7 +185,9 @@ describe('EdgeCache', () => {
       });
 
       cache.set('key', 'value');
-      await new Promise<void>((r) => { setTimeout(r, 100); }); // Past both TTL and stale grace
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      }); // Past both TTL and stale grace
 
       expect(cache.get('key')).toBeNull();
     });
@@ -351,7 +361,9 @@ describe('EdgeCache', () => {
       const cache = new EdgeCache<string>({ defaultTtlMs: 50 });
 
       cache.set('key', 'value');
-      await new Promise<void>((r) => { setTimeout(r, 100); });
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(cache.has('key')).toBe(false);
     });
@@ -442,7 +454,9 @@ describe('EdgeCache', () => {
 
       expect(cache.get('short')).toBe('value');
 
-      await new Promise<void>((r) => { setTimeout(r, 100); });
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      });
 
       expect(cache.get('short')).toBeNull();
     });

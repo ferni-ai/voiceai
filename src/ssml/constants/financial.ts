@@ -13,22 +13,50 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   { pattern: /\b401\s*[Kk]\b/g, replacement: 'four oh one K', description: 'Retirement account' },
   { pattern: /\b401\s*\(k\)\b/gi, replacement: 'four oh one K', description: 'Retirement account' },
-  { pattern: /\b403\s*[Bb]\b/g, replacement: 'four oh three B', description: 'Nonprofit retirement' },
-  { pattern: /\b457\s*[Bb]?\b/g, replacement: 'four fifty seven', description: 'Government retirement' },
+  {
+    pattern: /\b403\s*[Bb]\b/g,
+    replacement: 'four oh three B',
+    description: 'Nonprofit retirement',
+  },
+  {
+    pattern: /\b457\s*[Bb]?\b/g,
+    replacement: 'four fifty seven',
+    description: 'Government retirement',
+  },
   { pattern: /\bIRA\b/g, replacement: 'I R A', description: 'Individual Retirement Account' },
   { pattern: /\bRoth\s+IRA\b/gi, replacement: 'Roth I R A', description: 'After-tax retirement' },
-  { pattern: /\bSEP[\s-]?IRA\b/gi, replacement: 'sep I R A', description: 'Self-employed retirement' },
-  { pattern: /\bSIMPLE[\s-]?IRA\b/gi, replacement: 'simple I R A', description: 'Small business retirement' },
+  {
+    pattern: /\bSEP[\s-]?IRA\b/gi,
+    replacement: 'sep I R A',
+    description: 'Self-employed retirement',
+  },
+  {
+    pattern: /\bSIMPLE[\s-]?IRA\b/gi,
+    replacement: 'simple I R A',
+    description: 'Small business retirement',
+  },
 
   // -------------------------------------------------------------------------
   // Regulatory Bodies
   // -------------------------------------------------------------------------
   { pattern: /\bSEC\b/g, replacement: 'S E C', description: 'Securities and Exchange Commission' },
-  { pattern: /\bFINRA\b/g, replacement: 'fin-rah', description: 'Financial Industry Regulatory Authority' },
-  { pattern: /\bFDIC\b/g, replacement: 'F D I C', description: 'Federal Deposit Insurance Corporation' },
+  {
+    pattern: /\bFINRA\b/g,
+    replacement: 'fin-rah',
+    description: 'Financial Industry Regulatory Authority',
+  },
+  {
+    pattern: /\bFDIC\b/g,
+    replacement: 'F D I C',
+    description: 'Federal Deposit Insurance Corporation',
+  },
   { pattern: /\bFed\b/g, replacement: 'Fed', description: 'Federal Reserve' },
   { pattern: /\bFOMC\b/g, replacement: 'F O M C', description: 'Federal Open Market Committee' },
-  { pattern: /\bCFPB\b/g, replacement: 'C F P B', description: 'Consumer Financial Protection Bureau' },
+  {
+    pattern: /\bCFPB\b/g,
+    replacement: 'C F P B',
+    description: 'Consumer Financial Protection Bureau',
+  },
   { pattern: /\bOCC\b/g, replacement: 'O C C', description: 'Office of the Comptroller' },
   { pattern: /\bSIPC\b/g, replacement: 'S I P C', description: 'Securities Investor Protection' },
 
@@ -143,7 +171,11 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Investment Strategies
   // -------------------------------------------------------------------------
-  { pattern: /\bFIRE\b/g, replacement: 'fire movement', description: 'Financial Independence Retire Early' },
+  {
+    pattern: /\bFIRE\b/g,
+    replacement: 'fire movement',
+    description: 'Financial Independence Retire Early',
+  },
   { pattern: /\bDRIP\b/g, replacement: 'drip', description: 'Dividend Reinvestment Plan' },
   { pattern: /\bTLH\b/g, replacement: 'T L H', description: 'Tax Loss Harvesting' },
 
@@ -165,4 +197,3 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bFPL\b/g, replacement: 'F P L', description: 'Federal Poverty Level' },
   { pattern: /\bCOLA\b/g, replacement: 'cola', description: 'Cost of Living Adjustment' },
 ];
-

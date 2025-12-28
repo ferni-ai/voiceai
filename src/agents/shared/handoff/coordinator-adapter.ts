@@ -23,8 +23,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 
 // New coordinator system
-import type {
-  HandoffCoordinator} from '../../../tools/handoff/handoff-coordinator.js';
+import type { HandoffCoordinator } from '../../../tools/handoff/handoff-coordinator.js';
 import {
   createHandoffCoordinator,
   type BanterContext,
@@ -302,7 +301,9 @@ export class CoordinatorAdapter {
     }
 
     // OPTIMIZATION: Reduced from 150ms to 50ms - race condition prevention still works
-    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     // Step 1: Update VoiceManager internal state
     voiceManager.switchVoice(personaId);
@@ -392,8 +393,7 @@ export class CoordinatorAdapter {
       // Use specific banter if available, otherwise use generic fallback
       const fromDisplayName = getPersonaDisplayName(fromPersonaId);
       const toDisplayName = getPersonaDisplayName(toPersonaId);
-      const finalGoodbye =
-        goodbyePhrase || `Let me get ${toDisplayName} for you. One moment.`;
+      const finalGoodbye = goodbyePhrase || `Let me get ${toDisplayName} for you. One moment.`;
 
       log.info(
         { fromPersonaId, toPersonaId, hasSpecificBanter: !!goodbyePhrase, goodbye: finalGoodbye },
@@ -421,11 +421,15 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGoodbye, { allowInterruptions: false });
-        await new Promise<void>((resolve) => { setTimeout(resolve, 600); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 600);
+        });
         diag.entry('🎭 Soft open complete (coordinatedSay)');
       } catch {
         this.session.say(finalGoodbye, { allowInterruptions: false });
-        await new Promise<void>((resolve) => { setTimeout(resolve, 600); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 600);
+        });
         diag.entry('🎭 Soft open complete (session.say)');
       }
     } catch (err) {
@@ -458,7 +462,12 @@ export class CoordinatorAdapter {
       const finalGreeting = greetingPhrase || `Hey! ${displayName} here. How can I help?`;
 
       log.info(
-        { toPersonaId, fromPersonaId, hasSpecificBanter: !!greetingPhrase, greeting: finalGreeting },
+        {
+          toPersonaId,
+          fromPersonaId,
+          hasSpecificBanter: !!greetingPhrase,
+          greeting: finalGreeting,
+        },
         '🎭 Speaking arriving welcome'
       );
 
@@ -472,8 +481,8 @@ export class CoordinatorAdapter {
         timeoutMs: 4000,
         context: 'handoff-arriving-welcome',
         sessionId: this.sessionId,
-        bypassCircuitBreaker: true,       // CRITICAL: Don't let old failures block greeting
-        bypassSessionClosingCheck: true,  // CRITICAL: Session is valid for new agent
+        bypassCircuitBreaker: true, // CRITICAL: Don't let old failures block greeting
+        bypassSessionClosingCheck: true, // CRITICAL: Session is valid for new agent
       });
 
       if (result.success) {
@@ -489,7 +498,9 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGreeting, { allowInterruptions: false });
-        await new Promise<void>((resolve) => { setTimeout(resolve, 800); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 800);
+        });
         diag.entry('🎭 Arriving welcome complete (coordinatedSay)');
         return;
       } catch (coordErr) {
@@ -499,7 +510,9 @@ export class CoordinatorAdapter {
       // Fallback 2: Direct session.say (last resort - always works if session is valid)
       try {
         this.session.say(finalGreeting, { allowInterruptions: false });
-        await new Promise<void>((resolve) => { setTimeout(resolve, 800); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 800);
+        });
         diag.entry('🎭 Arriving welcome complete (session.say)');
       } catch (sayErr) {
         log.error({ error: String(sayErr), toPersonaId }, '🎭 ALL greeting methods failed!');

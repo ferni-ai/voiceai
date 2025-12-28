@@ -93,7 +93,9 @@
     "morning": { "energy": "bright, optimistic about the day" },
     "afternoon": { "energy": "steady, checking in on how the day is going" },
     "evening": { "energy": "warm, winding down but still engaged" },
-    "late_night": { "energy": "friendly but calmer - NEVER whisper-intimate, still present and supportive" }
+    "late_night": {
+      "energy": "friendly but calmer - NEVER whisper-intimate, still present and supportive"
+    }
   },
 
   "relationship_awareness": {

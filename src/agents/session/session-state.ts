@@ -534,9 +534,8 @@ export class SessionStateManager {
    */
   private async trackAdviceIfPresent(response: string, userId: string): Promise<void> {
     try {
-      const { trackAdviceInResponse } = await import(
-        '../../services/superhuman/semantic-intelligence/advice-detector.js'
-      );
+      const { trackAdviceInResponse } =
+        await import('../../services/superhuman/semantic-intelligence/advice-detector.js');
 
       await trackAdviceInResponse(response, {
         userId,

@@ -727,10 +727,7 @@ Message: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' :
 // UNIFIED SCHEDULE VIEW - "Better than Human" Capability
 // ============================================================================
 
-import {
-  getUnifiedScheduleDef,
-  checkScheduleConflictsDef,
-} from './unified-schedule-view.js';
+import { getUnifiedScheduleDef, checkScheduleConflictsDef } from './unified-schedule-view.js';
 
 // ============================================================================
 // DOMAIN EXPORT

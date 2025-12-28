@@ -22,13 +22,13 @@ const log = createLogger({ module: 'open-loops' });
 // ============================================================================
 
 export type OpenLoopType =
-  | 'advice'           // Advice given, awaiting outcome
-  | 'intention'        // User stated intention
-  | 'emotional_peak'   // High emotion, needs check-in
-  | 'life_event'       // Upcoming/recent event
-  | 'question'         // Question to revisit
-  | 'commitment'       // User committed to something
-  | 'concern';         // User expressed concern about something
+  | 'advice' // Advice given, awaiting outcome
+  | 'intention' // User stated intention
+  | 'emotional_peak' // High emotion, needs check-in
+  | 'life_event' // Upcoming/recent event
+  | 'question' // Question to revisit
+  | 'commitment' // User committed to something
+  | 'concern'; // User expressed concern about something
 
 export type OpenLoopStatus = 'open' | 'followed_up' | 'resolved' | 'expired' | 'dismissed';
 
@@ -36,27 +36,27 @@ export interface OpenLoop {
   id: string;
   userId: string;
   type: OpenLoopType;
-  
+
   // Content
   content: string;
   context: string;
-  
+
   // Timing
   created: Date;
-  followUpAfter: Date;      // Don't follow up before this
-  followUpBefore: Date;     // Follow up becomes less relevant
-  
+  followUpAfter: Date; // Don't follow up before this
+  followUpBefore: Date; // Follow up becomes less relevant
+
   // Tracking
   status: OpenLoopStatus;
-  priority: number;         // 1-10
-  followUpCount: number;    // How many times we've mentioned it
+  priority: number; // 1-10
+  followUpCount: number; // How many times we've mentioned it
   lastFollowUp?: Date;
-  
+
   // Resolution
   resolved?: boolean;
   resolvedAt?: Date;
   resolution?: string;
-  
+
   // Metadata
   relatedPerson?: string;
   relatedTopic?: string;
@@ -69,19 +69,19 @@ export interface OpenLoop {
 
 const CONFIG = {
   MAX_OPEN_LOOPS: 30,
-  MAX_FOLLOW_UPS: 3,        // Don't nag more than this
-  
+  MAX_FOLLOW_UPS: 3, // Don't nag more than this
+
   // Default follow-up windows by type (in hours)
   FOLLOW_UP_WINDOWS: {
-    advice: { after: 72, before: 336 },           // 3-14 days
-    intention: { after: 24, before: 168 },        // 1-7 days
-    emotional_peak: { after: 4, before: 48 },     // 4-48 hours
-    life_event: { after: 2, before: 72 },         // 2-72 hours (depends on event)
-    question: { after: 168, before: 720 },        // 1-4 weeks
-    commitment: { after: 48, before: 336 },       // 2-14 days
-    concern: { after: 24, before: 168 },          // 1-7 days
+    advice: { after: 72, before: 336 }, // 3-14 days
+    intention: { after: 24, before: 168 }, // 1-7 days
+    emotional_peak: { after: 4, before: 48 }, // 4-48 hours
+    life_event: { after: 2, before: 72 }, // 2-72 hours (depends on event)
+    question: { after: 168, before: 720 }, // 1-4 weeks
+    commitment: { after: 48, before: 336 }, // 2-14 days
+    concern: { after: 24, before: 168 }, // 1-7 days
   },
-  
+
   // Priority by type (base priority)
   TYPE_PRIORITY: {
     emotional_peak: 9,
@@ -123,11 +123,11 @@ export async function createOpenLoop(
 ): Promise<OpenLoop> {
   const now = new Date();
   const id = `loop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   const window = CONFIG.FOLLOW_UP_WINDOWS[loop.type];
   const afterHours = loop.followUpAfterHours ?? window.after;
   const beforeHours = loop.followUpBeforeHours ?? window.before;
-  
+
   const openLoop: OpenLoop = {
     id,
     userId,
@@ -144,20 +144,20 @@ export async function createOpenLoop(
     relatedTopic: loop.relatedTopic,
     emotionAtCreation: loop.emotionAtCreation,
   };
-  
+
   // Save
   await saveOpenLoop(userId, openLoop);
-  
+
   // Update cache
   const cached = loopCache.get(userId) ?? [];
   cached.push(openLoop);
   loopCache.set(userId, cached);
-  
+
   // Create proactive insight for follow-up
   await createFollowUpInsight(userId, openLoop);
-  
+
   log.debug({ userId, type: loop.type, priority: openLoop.priority }, '🔄 Open loop created');
-  
+
   return openLoop;
 }
 
@@ -167,33 +167,32 @@ export async function createOpenLoop(
 export async function getLoopsReadyForFollowUp(userId: string): Promise<OpenLoop[]> {
   const loops = await loadOpenLoops(userId);
   const now = new Date();
-  
-  return loops.filter(loop => {
-    if (loop.status !== 'open') return false;
-    if (now < loop.followUpAfter) return false;
-    if (now > loop.followUpBefore) return false;
-    if (loop.followUpCount >= CONFIG.MAX_FOLLOW_UPS) return false;
-    
-    return true;
-  }).sort((a, b) => b.priority - a.priority);
+
+  return loops
+    .filter((loop) => {
+      if (loop.status !== 'open') return false;
+      if (now < loop.followUpAfter) return false;
+      if (now > loop.followUpBefore) return false;
+      if (loop.followUpCount >= CONFIG.MAX_FOLLOW_UPS) return false;
+
+      return true;
+    })
+    .sort((a, b) => b.priority - a.priority);
 }
 
 /**
  * Mark a loop as followed up.
  */
-export async function markFollowedUp(
-  userId: string,
-  loopId: string
-): Promise<void> {
+export async function markFollowedUp(userId: string, loopId: string): Promise<void> {
   const loops = await loadOpenLoops(userId);
-  const loop = loops.find(l => l.id === loopId);
-  
+  const loop = loops.find((l) => l.id === loopId);
+
   if (loop) {
     loop.followUpCount++;
     loop.lastFollowUp = new Date();
     loop.status = 'followed_up';
     await saveOpenLoop(userId, loop);
-    
+
     log.debug({ userId, loopId, count: loop.followUpCount }, '✅ Loop followed up');
   }
 }
@@ -207,15 +206,15 @@ export async function resolveLoop(
   resolution?: string
 ): Promise<void> {
   const loops = await loadOpenLoops(userId);
-  const loop = loops.find(l => l.id === loopId);
-  
+  const loop = loops.find((l) => l.id === loopId);
+
   if (loop) {
     loop.status = 'resolved';
     loop.resolved = true;
     loop.resolvedAt = new Date();
     loop.resolution = resolution;
     await saveOpenLoop(userId, loop);
-    
+
     log.debug({ userId, loopId, resolution: resolution?.slice(0, 50) }, '✅ Loop resolved');
   }
 }
@@ -223,17 +222,14 @@ export async function resolveLoop(
 /**
  * Dismiss a loop (user doesn't want follow-up).
  */
-export async function dismissLoop(
-  userId: string,
-  loopId: string
-): Promise<void> {
+export async function dismissLoop(userId: string, loopId: string): Promise<void> {
   const loops = await loadOpenLoops(userId);
-  const loop = loops.find(l => l.id === loopId);
-  
+  const loop = loops.find((l) => l.id === loopId);
+
   if (loop) {
     loop.status = 'dismissed';
     await saveOpenLoop(userId, loop);
-    
+
     log.debug({ userId, loopId }, '🚫 Loop dismissed');
   }
 }
@@ -243,18 +239,15 @@ export async function dismissLoop(
  */
 export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
   const loops = await loadOpenLoops(userId);
-  return loops.filter(l => l.status === 'open');
+  return loops.filter((l) => l.status === 'open');
 }
 
 /**
  * Get open loops by type.
  */
-export async function getLoopsByType(
-  userId: string,
-  type: OpenLoopType
-): Promise<OpenLoop[]> {
+export async function getLoopsByType(userId: string, type: OpenLoopType): Promise<OpenLoop[]> {
   const loops = await loadOpenLoops(userId);
-  return loops.filter(l => l.type === type && l.status === 'open');
+  return loops.filter((l) => l.type === type && l.status === 'open');
 }
 
 // ============================================================================
@@ -265,23 +258,29 @@ const INTENTION_PATTERNS = [
   // "I'm going to..."
   { pattern: /\bi(?:'m| am) going to (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
   { pattern: /\bi(?:'m| am) gonna (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
-  
+
   // "I will..."
   { pattern: /\bi(?:'ll| will) (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
-  
+
   // "I plan to..."
   { pattern: /\bi plan to (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
   { pattern: /\bi(?:'m| am) planning to (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
-  
+
   // "I need to..."
   { pattern: /\bi need to (\w+(?:\s+\w+){0,5})/i, type: 'commitment' as OpenLoopType },
   { pattern: /\bi have to (\w+(?:\s+\w+){0,5})/i, type: 'commitment' as OpenLoopType },
   { pattern: /\bi should (\w+(?:\s+\w+){0,5})/i, type: 'intention' as OpenLoopType },
-  
+
   // Time-specific
-  { pattern: /\btomorrow i(?:'m| am|'ll| will) (\w+(?:\s+\w+){0,5})/i, type: 'life_event' as OpenLoopType },
-  { pattern: /\bthis week(?:end)? i(?:'m| am|'ll| will) (\w+(?:\s+\w+){0,5})/i, type: 'life_event' as OpenLoopType },
-  
+  {
+    pattern: /\btomorrow i(?:'m| am|'ll| will) (\w+(?:\s+\w+){0,5})/i,
+    type: 'life_event' as OpenLoopType,
+  },
+  {
+    pattern: /\bthis week(?:end)? i(?:'m| am|'ll| will) (\w+(?:\s+\w+){0,5})/i,
+    type: 'life_event' as OpenLoopType,
+  },
+
   // Commitments
   { pattern: /\bi promised (?:to )?(\w+(?:\s+\w+){0,5})/i, type: 'commitment' as OpenLoopType },
   { pattern: /\bi committed to (\w+(?:\s+\w+){0,5})/i, type: 'commitment' as OpenLoopType },
@@ -289,9 +288,17 @@ const INTENTION_PATTERNS = [
 
 const LIFE_EVENT_PATTERNS = [
   { pattern: /\b(job interview|interview)\b/i, event: 'job interview', priority: 9 },
-  { pattern: /\b(doctor(?:'s)? appointment|doctor visit)\b/i, event: 'doctor appointment', priority: 8 },
+  {
+    pattern: /\b(doctor(?:'s)? appointment|doctor visit)\b/i,
+    event: 'doctor appointment',
+    priority: 8,
+  },
   { pattern: /\b(first date|date tonight|date tomorrow)\b/i, event: 'date', priority: 7 },
-  { pattern: /\b(presentation|big meeting|important meeting)\b/i, event: 'work event', priority: 8 },
+  {
+    pattern: /\b(presentation|big meeting|important meeting)\b/i,
+    event: 'work event',
+    priority: 8,
+  },
   { pattern: /\b(exam|test|finals)\b/i, event: 'exam', priority: 8 },
   { pattern: /\b(wedding|funeral|graduation)\b/i, event: 'life event', priority: 9 },
   { pattern: /\b(moving|move(?:d)? (?:to|into))\b/i, event: 'moving', priority: 7 },
@@ -301,10 +308,22 @@ const LIFE_EVENT_PATTERNS = [
 ];
 
 const CONCERN_PATTERNS = [
-  { pattern: /\bi(?:'m| am) worried (?:about )?(\w+(?:\s+\w+){0,5})/i, type: 'concern' as OpenLoopType },
-  { pattern: /\bi(?:'m| am) concerned (?:about )?(\w+(?:\s+\w+){0,5})/i, type: 'concern' as OpenLoopType },
-  { pattern: /\bi(?:'m| am) scared (?:of |about )?(\w+(?:\s+\w+){0,5})/i, type: 'concern' as OpenLoopType },
-  { pattern: /\bi(?:'m| am) anxious (?:about )?(\w+(?:\s+\w+){0,5})/i, type: 'concern' as OpenLoopType },
+  {
+    pattern: /\bi(?:'m| am) worried (?:about )?(\w+(?:\s+\w+){0,5})/i,
+    type: 'concern' as OpenLoopType,
+  },
+  {
+    pattern: /\bi(?:'m| am) concerned (?:about )?(\w+(?:\s+\w+){0,5})/i,
+    type: 'concern' as OpenLoopType,
+  },
+  {
+    pattern: /\bi(?:'m| am) scared (?:of |about )?(\w+(?:\s+\w+){0,5})/i,
+    type: 'concern' as OpenLoopType,
+  },
+  {
+    pattern: /\bi(?:'m| am) anxious (?:about )?(\w+(?:\s+\w+){0,5})/i,
+    type: 'concern' as OpenLoopType,
+  },
   { pattern: /\bwhat if (\w+(?:\s+\w+){0,5})/i, type: 'concern' as OpenLoopType },
 ];
 
@@ -333,7 +352,7 @@ export function detectOpenLoops(
     relatedPerson?: string;
     relatedTopic?: string;
   }> = [];
-  
+
   // Check intention patterns
   for (const { pattern, type } of INTENTION_PATTERNS) {
     const match = userText.match(pattern);
@@ -347,7 +366,7 @@ export function detectOpenLoops(
       });
     }
   }
-  
+
   // Check life event patterns
   for (const { pattern, event, priority } of LIFE_EVENT_PATTERNS) {
     if (pattern.test(userText)) {
@@ -359,7 +378,7 @@ export function detectOpenLoops(
       });
     }
   }
-  
+
   // Check concern patterns
   for (const { pattern, type } of CONCERN_PATTERNS) {
     const match = userText.match(pattern);
@@ -373,7 +392,7 @@ export function detectOpenLoops(
       });
     }
   }
-  
+
   // Check for emotional peaks
   if (context.emotionIntensity && context.emotionIntensity > 0.8) {
     detected.push({
@@ -384,7 +403,7 @@ export function detectOpenLoops(
       relatedTopic: context.topic,
     });
   }
-  
+
   return detected;
 }
 
@@ -403,7 +422,7 @@ export async function processUserTextForLoops(
 ): Promise<OpenLoop[]> {
   const detected = detectOpenLoops(userText, context);
   const created: OpenLoop[] = [];
-  
+
   for (const item of detected) {
     const loop = await createOpenLoop(userId, {
       type: item.type,
@@ -416,11 +435,11 @@ export async function processUserTextForLoops(
     });
     created.push(loop);
   }
-  
+
   if (created.length > 0) {
     log.debug({ userId, count: created.length }, '🔄 Created open loops from user text');
   }
-  
+
   return created;
 }
 
@@ -428,13 +447,10 @@ export async function processUserTextForLoops(
 // INSIGHT GENERATION
 // ============================================================================
 
-async function createFollowUpInsight(
-  userId: string,
-  loop: OpenLoop
-): Promise<void> {
+async function createFollowUpInsight(userId: string, loop: OpenLoop): Promise<void> {
   const insightText = generateFollowUpText(loop);
   if (!insightText) return;
-  
+
   await createInsight(userId, {
     source: 'open_loop',
     priority: loop.priority >= 8 ? 'high' : loop.priority >= 5 ? 'medium' : 'low',
@@ -442,8 +458,12 @@ async function createFollowUpInsight(
     context: loop.content,
     surfaceWhen: [
       { type: 'session_start' },
-      ...(loop.relatedTopic ? [{ type: 'topic' as const, value: loop.relatedTopic, condition: 'contains' as const }] : []),
-      ...(loop.relatedPerson ? [{ type: 'person' as const, value: loop.relatedPerson, condition: 'contains' as const }] : []),
+      ...(loop.relatedTopic
+        ? [{ type: 'topic' as const, value: loop.relatedTopic, condition: 'contains' as const }]
+        : []),
+      ...(loop.relatedPerson
+        ? [{ type: 'person' as const, value: loop.relatedPerson, condition: 'contains' as const }]
+        : []),
     ],
     surfaceAfter: loop.followUpAfter,
     expiresAt: loop.followUpBefore,
@@ -482,10 +502,10 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
   // Check cache
   const cached = loopCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -495,19 +515,22 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
       .orderBy('created', 'desc')
       .limit(CONFIG.MAX_OPEN_LOOPS)
       .get();
-    
-    const loops = snapshot.docs.map(doc => {
+
+    const loops = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         created: data.created?.toDate?.() ?? new Date(data.created),
         followUpAfter: data.followUpAfter?.toDate?.() ?? new Date(data.followUpAfter),
         followUpBefore: data.followUpBefore?.toDate?.() ?? new Date(data.followUpBefore),
-        lastFollowUp: data.lastFollowUp?.toDate?.() ?? (data.lastFollowUp ? new Date(data.lastFollowUp) : undefined),
-        resolvedAt: data.resolvedAt?.toDate?.() ?? (data.resolvedAt ? new Date(data.resolvedAt) : undefined),
+        lastFollowUp:
+          data.lastFollowUp?.toDate?.() ??
+          (data.lastFollowUp ? new Date(data.lastFollowUp) : undefined),
+        resolvedAt:
+          data.resolvedAt?.toDate?.() ?? (data.resolvedAt ? new Date(data.resolvedAt) : undefined),
       } as OpenLoop;
     });
-    
+
     loopCache.set(userId, loops);
     return loops;
   } catch (error) {
@@ -519,7 +542,7 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
 async function saveOpenLoop(userId: string, loop: OpenLoop): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -555,18 +578,29 @@ export async function formatOpenLoopsContext(userId: string): Promise<string> {
 
   // Format each group
   for (const [type, typeLoops] of byType) {
-    const typeLabel = type === 'intention' ? '📋 STATED INTENTIONS' :
-                      type === 'life_event' ? '📅 LIFE EVENTS' :
-                      type === 'advice' ? '💡 ADVICE GIVEN' :
-                      type === 'commitment' ? '🎯 COMMITMENTS' :
-                      type === 'question' ? '❓ QUESTIONS' :
-                      type === 'concern' ? '💭 CONCERNS' :
-                      type === 'emotional_peak' ? '💗 EMOTIONAL MOMENTS' : '🔗 OPEN ITEMS';
-    
+    const typeLabel =
+      type === 'intention'
+        ? '📋 STATED INTENTIONS'
+        : type === 'life_event'
+          ? '📅 LIFE EVENTS'
+          : type === 'advice'
+            ? '💡 ADVICE GIVEN'
+            : type === 'commitment'
+              ? '🎯 COMMITMENTS'
+              : type === 'question'
+                ? '❓ QUESTIONS'
+                : type === 'concern'
+                  ? '💭 CONCERNS'
+                  : type === 'emotional_peak'
+                    ? '💗 EMOTIONAL MOMENTS'
+                    : '🔗 OPEN ITEMS';
+
     sections.push(typeLabel);
-    for (const loop of typeLoops.slice(0, 3)) { // Max 3 per type
+    for (const loop of typeLoops.slice(0, 3)) {
+      // Max 3 per type
       const daysAgo = Math.floor((Date.now() - loop.created.getTime()) / (1000 * 60 * 60 * 24));
-      const timeContext = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+      const timeContext =
+        daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
       sections.push(`  • "${loop.content}" (${timeContext})`);
       if (loop.context) sections.push(`    Context: ${loop.context}`);
     }
@@ -617,4 +651,3 @@ export const openLoops = {
 };
 
 export default openLoops;
-

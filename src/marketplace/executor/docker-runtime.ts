@@ -46,7 +46,10 @@ const APPROVED_BASE_IMAGES = new Set([
 /**
  * Validate Docker image is safe to use
  */
-function validateDockerImage(image: string, trustLevel: TrustLevel): { valid: boolean; reason?: string } {
+function validateDockerImage(
+  image: string,
+  trustLevel: TrustLevel
+): { valid: boolean; reason?: string } {
   // Basic format validation
   if (!isValidDockerImage(image)) {
     return { valid: false, reason: 'Invalid Docker image format' };
@@ -57,20 +60,23 @@ function validateDockerImage(image: string, trustLevel: TrustLevel): { valid: bo
     // Extract base image (remove tag/digest for comparison)
     const baseImage = image.split('@')[0]; // Remove digest
     const imageWithoutTag = baseImage.includes(':') ? baseImage : `${baseImage}:latest`;
-    
+
     // Check against approved list
     let isApproved = false;
     for (const approved of APPROVED_BASE_IMAGES) {
-      if (imageWithoutTag === approved || imageWithoutTag.startsWith(`${approved.split(':')[0]}:`)) {
+      if (
+        imageWithoutTag === approved ||
+        imageWithoutTag.startsWith(`${approved.split(':')[0]}:`)
+      ) {
         isApproved = true;
         break;
       }
     }
 
     if (!isApproved) {
-      return { 
-        valid: false, 
-        reason: `Image '${image}' not in approved list for ${trustLevel} tools` 
+      return {
+        valid: false,
+        reason: `Image '${image}' not in approved list for ${trustLevel} tools`,
       };
     }
   }
@@ -88,9 +94,20 @@ function validateCommand(command: string[]): { valid: boolean; reason?: string }
   }
 
   // Block dangerous commands
-  const dangerousCommands = ['rm', 'dd', 'mkfs', 'fdisk', 'mount', 'umount', 'chmod', 'chown', 'kill', 'pkill'];
+  const dangerousCommands = [
+    'rm',
+    'dd',
+    'mkfs',
+    'fdisk',
+    'mount',
+    'umount',
+    'chmod',
+    'chown',
+    'kill',
+    'pkill',
+  ];
   const firstArg = command[0].split('/').pop() || '';
-  
+
   if (dangerousCommands.includes(firstArg)) {
     return { valid: false, reason: `Command '${firstArg}' is not allowed` };
   }
@@ -237,7 +254,10 @@ export class DockerRuntime {
     // SECURITY: Validate Docker image
     const imageValidation = validateDockerImage(image, trustLevel);
     if (!imageValidation.valid) {
-      log.warn({ image, trustLevel, reason: imageValidation.reason }, 'Docker image validation failed');
+      log.warn(
+        { image, trustLevel, reason: imageValidation.reason },
+        'Docker image validation failed'
+      );
       return {
         success: false,
         exitCode: -1,
@@ -251,7 +271,10 @@ export class DockerRuntime {
     // SECURITY: Validate command
     const commandValidation = validateCommand(options.command);
     if (!commandValidation.valid) {
-      log.warn({ command: options.command, reason: commandValidation.reason }, 'Command validation failed');
+      log.warn(
+        { command: options.command, reason: commandValidation.reason },
+        'Command validation failed'
+      );
       return {
         success: false,
         exitCode: -1,

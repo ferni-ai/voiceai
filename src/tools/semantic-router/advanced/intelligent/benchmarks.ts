@@ -12,14 +12,8 @@
  */
 
 import { performance } from 'perf_hooks';
-import {
-  IntentClassifier,
-  initializeIntentClassifier,
-} from './intent-classifier.js';
-import {
-  BanditOptimizer,
-  initializeBanditOptimizer,
-} from './bandit-optimizer.js';
+import { IntentClassifier, initializeIntentClassifier } from './intent-classifier.js';
+import { BanditOptimizer, initializeBanditOptimizer } from './bandit-optimizer.js';
 import { FERNI_INTENTS } from './ferni-intents.js';
 
 // ============================================================================

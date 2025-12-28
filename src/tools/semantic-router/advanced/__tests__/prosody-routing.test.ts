@@ -8,14 +8,18 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
+// Mock logger - use vi.hoisted() to ensure mockLogger is defined before vi.mock() runs
+const mockLogger = vi.hoisted(() => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  child: vi.fn().mockReturnThis(),
+}));
+
 vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }),
+  createLogger: () => mockLogger,
+  getLogger: () => mockLogger,
 }));
 
 // Import after mocks
@@ -126,7 +130,7 @@ describe('AudioProsodyExtractor', () => {
       for (let i = 0; i < 60; i++) {
         const samples = new Float32Array(numSamples);
         for (let j = 0; j < numSamples; j++) {
-          samples[j] = Math.sin(2 * Math.PI * 200 * j / sampleRate) * 0.5;
+          samples[j] = Math.sin((2 * Math.PI * 200 * j) / sampleRate) * 0.5;
         }
         extractor.processAudioChunk(samples);
       }
@@ -169,7 +173,7 @@ describe('ProsodyRoutingEngine', () => {
       // Create test audio (sine wave)
       const samples = new Float32Array(1600);
       for (let i = 0; i < samples.length; i++) {
-        samples[i] = Math.sin(2 * Math.PI * 300 * i / 16000);
+        samples[i] = Math.sin((2 * Math.PI * 300 * i) / 16000);
       }
 
       const signals = engine.processAudio(userId, sessionId, samples);
@@ -193,7 +197,14 @@ describe('ProsodyRoutingEngine', () => {
           toolId: 'playMusic',
           confidence: 0.85,
           matchedBy: ['keyword'],
-          layerScores: { pattern: 0, keyword: 0.85, embedding: 0, context: 0, history: 0, holistic: 0 },
+          layerScores: {
+            pattern: 0,
+            keyword: 0.85,
+            embedding: 0,
+            context: 0,
+            history: 0,
+            holistic: 0,
+          },
           extractedArgs: { query: 'jazz' },
           missingArgs: [],
           matchReason: 'keyword match',
@@ -216,7 +227,14 @@ describe('ProsodyRoutingEngine', () => {
           toolId: 'test',
           confidence: 0.8,
           matchedBy: ['keyword'],
-          layerScores: { pattern: 0, keyword: 0.8, embedding: 0, context: 0, history: 0, holistic: 0 },
+          layerScores: {
+            pattern: 0,
+            keyword: 0.8,
+            embedding: 0,
+            context: 0,
+            history: 0,
+            holistic: 0,
+          },
           extractedArgs: {},
           missingArgs: [],
           matchReason: 'test',

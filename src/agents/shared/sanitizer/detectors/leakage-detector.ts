@@ -148,7 +148,7 @@ function detectAnnouncement(text: string): LeakageDetection {
       const toolName = match[1]?.toLowerCase();
       const teamMembers = getTeamMemberNames();
       const toolPatterns = getAllToolPatterns();
-      
+
       // Check if it's a team member name (handoff)
       if (teamMembers.includes(toolName)) {
         return {
@@ -157,7 +157,7 @@ function detectAnnouncement(text: string): LeakageDetection {
           pattern: 'announcement',
         };
       }
-      
+
       // Check if it's a known tool
       if (toolPatterns.some((p) => p.toLowerCase() === toolName)) {
         return {
@@ -176,7 +176,7 @@ function detectAnnouncement(text: string): LeakageDetection {
  */
 function detectIntention(text: string): LeakageDetection {
   const toolPatterns = getAllToolPatterns();
-  
+
   for (const pattern of INTENTION_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
@@ -199,7 +199,7 @@ function detectIntention(text: string): LeakageDetection {
 function detectToolParam(text: string): LeakageDetection {
   const toolPatterns = getAllToolPatterns();
   const paramPatterns = getParamPatterns();
-  
+
   // Check for "toolName param value" pattern
   for (const tool of toolPatterns) {
     for (const param of paramPatterns) {
@@ -207,7 +207,7 @@ function detectToolParam(text: string): LeakageDetection {
       const patternStr = `^${escapeRegex(tool)}\\s+${param}\\s+(.+)$`;
       const regex = new RegExp(patternStr, 'i');
       const match = text.match(regex);
-      
+
       if (match) {
         return {
           detected: true,
@@ -228,10 +228,10 @@ function detectToolParam(text: string): LeakageDetection {
 function detectToolMention(text: string): LeakageDetection {
   const toolPatterns = getAllToolPatterns();
   const lowerText = text.toLowerCase().trim();
-  
+
   for (const tool of toolPatterns) {
     const lowerTool = tool.toLowerCase();
-    
+
     // Exact match at start
     if (lowerText === lowerTool || lowerText.startsWith(`${lowerTool} `)) {
       return {
@@ -250,10 +250,10 @@ function detectToolMention(text: string): LeakageDetection {
 function detectMultiWordTool(text: string): LeakageDetection {
   const toolPatterns = getAllToolPatterns();
   const lowerText = text.toLowerCase();
-  
+
   // Find multi-word patterns (2+ words)
   const multiWordTools = toolPatterns.filter((t) => t.includes(' '));
-  
+
   for (const tool of multiWordTools) {
     if (lowerText.startsWith(tool.toLowerCase())) {
       return {
@@ -382,13 +382,13 @@ export function getReplacementText(detection: LeakageDetection): string {
 
   switch (detection.pattern) {
     case 'behavioral_marker':
-      return '';  // Remove entirely
+      return ''; // Remove entirely
     case 'internal_marker':
-      return '';  // Remove entirely
+      return ''; // Remove entirely
     case 'instruction_leakage':
-      return '';  // Remove entirely
+      return ''; // Remove entirely
     case 'fn_prefix_malformed':
-      return '';  // Remove entirely - JSON executor will handle
+      return ''; // Remove entirely - JSON executor will handle
     default:
       // For tool-related leakage, remove and let the tool execute
       return '';
@@ -416,4 +416,3 @@ export function looksLikeJsonFunctionCall(text: string): boolean {
     (trimmed.startsWith('{') && trimmed.includes("'fn'"))
   );
 }
-

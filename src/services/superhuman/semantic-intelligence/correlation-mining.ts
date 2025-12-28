@@ -14,12 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
-import type {
-  SemanticCorrelation,
-  CorrelationDomain,
-  InsightType,
-  CoOccurrence,
-} from './types.js';
+import type { SemanticCorrelation, CorrelationDomain, InsightType, CoOccurrence } from './types.js';
 
 const log = createLogger({ module: 'correlation-mining' });
 
@@ -103,12 +98,9 @@ export async function recordObservation(
 /**
  * Detect correlations between the new observation and recent ones.
  */
-async function detectCorrelations(
-  userId: string,
-  newObs: ObservationBuffer
-): Promise<void> {
+async function detectCorrelations(userId: string, newObs: ObservationBuffer): Promise<void> {
   const buffer = observationBuffers.get(userId) || [];
-  const correlations = correlationCache.get(userId) || await loadCorrelations(userId);
+  const correlations = correlationCache.get(userId) || (await loadCorrelations(userId));
 
   // Find observations within time window
   const recentObs = buffer.filter(
@@ -205,8 +197,7 @@ function updateCorrelation(
 
   // Recalculate strength (moving average)
   const recentStrengths = correlation.coOccurrences.slice(-10).map((c) => c.strengthAtTime);
-  correlation.strength =
-    recentStrengths.reduce((a, b) => a + b, 0) / recentStrengths.length;
+  correlation.strength = recentStrengths.reduce((a, b) => a + b, 0) / recentStrengths.length;
 
   // Update confidence based on observation count
   correlation.confidence = Math.min(0.95, correlation.observationCount / 15);
@@ -267,26 +258,20 @@ function generateInsight(correlation: SemanticCorrelation): string {
 
   // Template-based insight generation
   const templates: Record<string, (a: string, b: string) => string> = {
-    'emotion_topic': (a, b) =>
+    emotion_topic: (a, b) =>
       strength > 0.7
         ? `When ${b} comes up, you often feel ${a}`
         : `There's a connection between ${b} and feeling ${a}`,
-    'emotion_person': (a, b) =>
+    emotion_person: (a, b) =>
       strength > 0.7
         ? `Conversations about ${b} tend to bring up ${a}`
         : `${b} seems connected to ${a} for you`,
-    'emotion_time': (a, b) =>
-      `${b} is often when ${a} shows up`,
-    'energy_time': (a, b) =>
-      `Your energy tends to be ${a} during ${b}`,
-    'energy_topic': (a, b) =>
-      `${b} seems to affect your energy (${a})`,
-    'behavior_emotion': (a, b) =>
-      `When you're feeling ${b}, you tend to ${a}`,
-    'sleep_emotion': (a, b) =>
-      `${a} sleep patterns connect with ${b}`,
-    'work_energy': (a, b) =>
-      `${a} at work seems tied to ${b} energy`,
+    emotion_time: (a, b) => `${b} is often when ${a} shows up`,
+    energy_time: (a, b) => `Your energy tends to be ${a} during ${b}`,
+    energy_topic: (a, b) => `${b} seems to affect your energy (${a})`,
+    behavior_emotion: (a, b) => `When you're feeling ${b}, you tend to ${a}`,
+    sleep_emotion: (a, b) => `${a} sleep patterns connect with ${b}`,
+    work_energy: (a, b) => `${a} at work seems tied to ${b} energy`,
   };
 
   const key = `${domainA.type}_${domainB.type}`;
@@ -329,10 +314,7 @@ function inferInsightType(correlation: SemanticCorrelation): InsightType {
     return 'causal';
   }
 
-  if (
-    (domainA.type === 'health' || domainB.type === 'health') &&
-    correlation.strength < 0
-  ) {
+  if ((domainA.type === 'health' || domainB.type === 'health') && correlation.strength < 0) {
     return 'protective';
   }
 
@@ -355,7 +337,7 @@ export async function getRelevantCorrelations(
     timeOfDay?: string;
   }
 ): Promise<SemanticCorrelation[]> {
-  const correlations = correlationCache.get(userId) || await loadCorrelations(userId);
+  const correlations = correlationCache.get(userId) || (await loadCorrelations(userId));
 
   // Filter by confidence
   const confident = correlations.filter(
@@ -403,7 +385,7 @@ export async function getRelevantCorrelations(
     // Recency boost
     const daysSinceObserved = (Date.now() - corr.lastObserved) / (1000 * 60 * 60 * 24);
     const recencyBoost = Math.exp(-daysSinceObserved / CONFIG.DECAY_HALF_LIFE_DAYS);
-    relevance *= (0.5 + 0.5 * recencyBoost);
+    relevance *= 0.5 + 0.5 * recencyBoost;
 
     return { correlation: corr, relevance };
   });
@@ -528,4 +510,3 @@ export const correlationMining = {
   buildContext: buildCorrelationContext,
   clearCache: clearCorrelationCache,
 };
-

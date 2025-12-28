@@ -479,10 +479,12 @@ async function persistFeedback(feedback: RoutingFeedback): Promise<void> {
     await db
       .collection('semantic_routing_feedback')
       .doc(feedback.id)
-      .set(cleanForFirestore({
-        ...feedback,
-        timestamp: feedback.timestamp.toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...feedback,
+          timestamp: feedback.timestamp.toISOString(),
+        })
+      );
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist feedback');
   }
@@ -498,10 +500,12 @@ async function persistCorrection(correction: UserCorrection): Promise<void> {
       .doc(correction.userId)
       .collection('corrections')
       .doc(correction.id)
-      .set(cleanForFirestore({
-        ...correction,
-        timestamp: correction.timestamp.toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...correction,
+          timestamp: correction.timestamp.toISOString(),
+        })
+      );
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist correction');
   }
@@ -515,14 +519,16 @@ async function persistVocabulary(vocab: UserVocabulary): Promise<void> {
     await db
       .collection('semantic_routing_vocabulary')
       .doc(vocab.userId)
-      .set(cleanForFirestore({
-        ...vocab,
-        updatedAt: vocab.updatedAt.toISOString(),
-        phrases: vocab.phrases.map((p) => ({
-          ...p,
-          lastUsed: p.lastUsed.toISOString(),
-        })),
-      }));
+      .set(
+        cleanForFirestore({
+          ...vocab,
+          updatedAt: vocab.updatedAt.toISOString(),
+          phrases: vocab.phrases.map((p) => ({
+            ...p,
+            lastUsed: p.lastUsed.toISOString(),
+          })),
+        })
+      );
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist vocabulary');
   }
@@ -543,19 +549,27 @@ async function loadVocabulary(userId: string): Promise<UserVocabulary | undefine
       userId: String(data.userId ?? userId),
       updatedAt: new Date(String(data.updatedAt)),
       phrases: Array.isArray(data.phrases)
-        ? data.phrases.map(
-            (p: Record<string, unknown>) => ({
-              phrase: String(p.phrase ?? ''),
-              toolId: String(p.toolId ?? ''),
-              confidence: Number(p.confidence ?? 0),
-              usageCount: Number(p.usageCount ?? 0),
-              lastUsed: new Date(String(p.lastUsed)),
-              source: (p.source === 'explicit' ? 'explicit' : 'implicit') as 'explicit' | 'implicit',
-            })
-          )
+        ? data.phrases.map((p: Record<string, unknown>) => ({
+            phrase: String(p.phrase ?? ''),
+            toolId: String(p.toolId ?? ''),
+            confidence: Number(p.confidence ?? 0),
+            usageCount: Number(p.usageCount ?? 0),
+            lastUsed: new Date(String(p.lastUsed)),
+            source: (p.source === 'explicit' ? 'explicit' : 'implicit') as 'explicit' | 'implicit',
+          }))
         : [],
-      toolPreferences: (data.toolPreferences as Record<string, { boost: number; usageCount: number }>) ?? {},
-      timePatterns: (data.timePatterns as Record<string, { toolId: string; timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night'; dayOfWeek?: number; probability: number }>) ?? {},
+      toolPreferences:
+        (data.toolPreferences as Record<string, { boost: number; usageCount: number }>) ?? {},
+      timePatterns:
+        (data.timePatterns as Record<
+          string,
+          {
+            toolId: string;
+            timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night';
+            dayOfWeek?: number;
+            probability: number;
+          }
+        >) ?? {},
     };
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to load vocabulary');

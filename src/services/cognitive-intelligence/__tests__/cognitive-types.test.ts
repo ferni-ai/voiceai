@@ -74,7 +74,7 @@ describe('CognitiveIntelligence Types', () => {
 
     it('should support regex patterns for detection', () => {
       const patterns: RegExp[] = [/always/i, /never/i, /everyone/i];
-      const testText = 'Everyone always thinks I\'m wrong';
+      const testText = "Everyone always thinks I'm wrong";
 
       const matches = patterns.filter((p) => p.test(testText));
       expect(matches.length).toBeGreaterThan(0);
@@ -87,11 +87,11 @@ describe('CognitiveIntelligence Types', () => {
         type: 'mind_reading',
         confidence: 0.85,
         triggerPhrase: 'they probably think',
-        userMessage: 'They probably think I\'m stupid',
+        userMessage: "They probably think I'm stupid",
         detectedAt: new Date(),
         gentleChallenge: 'What evidence do you have for what they think?',
         reframe: 'Maybe they were just focused on their own concerns',
-        validation: 'It makes sense to care about others\' opinions',
+        validation: "It makes sense to care about others' opinions",
         patternCount: 3,
         relatedDistortions: ['personalization', 'fortune_telling'],
         isRecurring: true,
@@ -107,11 +107,11 @@ describe('CognitiveIntelligence Types', () => {
         type: 'all_or_nothing',
         confidence: 0.7,
         triggerPhrase: 'complete failure',
-        userMessage: 'I\'m a complete failure',
+        userMessage: "I'm a complete failure",
         detectedAt: new Date(),
         gentleChallenge: 'Can you think of any successes, even small ones?',
-        reframe: 'One setback doesn\'t define your whole worth',
-        validation: 'It hurts to feel like things aren\'t going well',
+        reframe: "One setback doesn't define your whole worth",
+        validation: "It hurts to feel like things aren't going well",
         topic: 'career',
         emotion: 'frustrated',
         emotionIntensity: 0.8,
@@ -333,15 +333,15 @@ describe('CognitiveIntelligence Types', () => {
         ],
         realityTest: [
           'On a scale of 1-10, how likely is this really?',
-          'What\'s the most realistic outcome?',
+          "What's the most realistic outcome?",
         ],
         decatastrophize: [
           'If the worst did happen, how would you cope?',
           'What resources would you have to handle it?',
         ],
-        ferniIntro: 'I notice you\'re imagining the worst...',
-        peterApproach: 'Let\'s look at the data objectively...',
-        mayaApproach: 'Let\'s break this down into smaller pieces...',
+        ferniIntro: "I notice you're imagining the worst...",
+        peterApproach: "Let's look at the data objectively...",
+        mayaApproach: "Let's break this down into smaller pieces...",
       };
 
       expect(sequence.evidenceFor).toHaveLength(2);
@@ -358,7 +358,7 @@ describe('CognitiveIntelligence Types', () => {
         realityTest: ['What would a 50% success look like?'],
         decatastrophize: ['What if partial success is still valuable?'],
         ferniIntro: 'I hear you seeing this in black and white...',
-        peterApproach: 'Let\'s quantify the spectrum of outcomes...',
+        peterApproach: "Let's quantify the spectrum of outcomes...",
       };
 
       expect(sequence.peterApproach).toContain('quantify');
@@ -401,12 +401,7 @@ describe('CognitiveIntelligence Types', () => {
     });
 
     it('should support all receptivity levels', () => {
-      const levels: SocraticContext['receptivity'][] = [
-        'high',
-        'medium',
-        'low',
-        'unknown',
-      ];
+      const levels: SocraticContext['receptivity'][] = ['high', 'medium', 'low', 'unknown'];
 
       levels.forEach((level) => {
         expect(typeof level).toBe('string');
@@ -429,7 +424,7 @@ describe('CognitiveIntelligence Types', () => {
         },
         automaticThoughts: [
           {
-            thought: 'I\'m terrible at my job',
+            thought: "I'm terrible at my job",
             beliefStrength: 85,
             distortions: ['all_or_nothing', 'labeling'],
           },
@@ -444,15 +439,13 @@ describe('CognitiveIntelligence Types', () => {
           { emotion: 'anxiety', intensity: 65 },
         ],
         bodySensations: ['tight chest', 'racing heart', 'sweaty palms'],
-        evidenceFor: [
-          'The feedback mentioned areas for improvement',
-        ],
+        evidenceFor: ['The feedback mentioned areas for improvement'],
         evidenceAgainst: [
-          'I\'ve received positive feedback before',
+          "I've received positive feedback before",
           'The feedback also mentioned strengths',
           'Colleagues still asked for my input after',
         ],
-        balancedThought: 'I received constructive feedback that doesn\'t define my overall ability',
+        balancedThought: "I received constructive feedback that doesn't define my overall ability",
         newBeliefStrength: 30,
         newEmotions: [
           { emotion: 'disappointment', intensity: 40 },
@@ -482,14 +475,12 @@ describe('CognitiveIntelligence Types', () => {
         },
         automaticThoughts: [
           {
-            thought: 'They don\'t care about me',
+            thought: "They don't care about me",
             beliefStrength: 90,
             distortions: ['mind_reading'],
           },
         ],
-        emotions: [
-          { emotion: 'hurt', intensity: 75 },
-        ],
+        emotions: [{ emotion: 'hurt', intensity: 75 }],
         evidenceFor: [],
         evidenceAgainst: [],
         source: 'ferni_suggested',
@@ -521,21 +512,27 @@ describe('CognitiveIntelligence Types', () => {
         avgDistortionsPerConversation: 1.5,
         overallTrend: 'improving',
         byDistortion: new Map([
-          ['catastrophizing', {
-            frequency: 12,
-            trend: 'improving',
-            successfulReframes: 8,
-            totalAttempts: 10,
-            reframeSuccessRate: 0.8,
-            lastDetected: new Date(),
-          }],
-          ['should_statements', {
-            frequency: 8,
-            trend: 'stable',
-            successfulReframes: 4,
-            totalAttempts: 7,
-            reframeSuccessRate: 0.57,
-          }],
+          [
+            'catastrophizing',
+            {
+              frequency: 12,
+              trend: 'improving',
+              successfulReframes: 8,
+              totalAttempts: 10,
+              reframeSuccessRate: 0.8,
+              lastDetected: new Date(),
+            },
+          ],
+          [
+            'should_statements',
+            {
+              frequency: 8,
+              trend: 'stable',
+              successfulReframes: 4,
+              totalAttempts: 7,
+              reframeSuccessRate: 0.57,
+            },
+          ],
         ]),
         thoughtRecordsCompleted: 5,
         avgEmotionReduction: 35,
@@ -581,11 +578,11 @@ describe('CognitiveIntelligence Types', () => {
           type: 'catastrophizing',
           confidence: 0.8,
           triggerPhrase: 'everything will fall apart',
-          userMessage: 'If this doesn\'t work, everything will fall apart',
+          userMessage: "If this doesn't work, everything will fall apart",
           detectedAt: new Date(),
           gentleChallenge: 'What are some other possible outcomes?',
-          reframe: 'One outcome doesn\'t determine everything',
-          validation: 'It\'s natural to worry about important things',
+          reframe: "One outcome doesn't determine everything",
+          validation: "It's natural to worry about important things",
           patternCount: 2,
           relatedDistortions: [],
           isRecurring: false,
@@ -597,7 +594,8 @@ describe('CognitiveIntelligence Types', () => {
           injectIntoContext: true,
           priority: 75,
         },
-        llmContext: 'User appears to be catastrophizing about outcomes. Consider gently exploring alternative perspectives.',
+        llmContext:
+          'User appears to be catastrophizing about outcomes. Consider gently exploring alternative perspectives.',
         priority: 75,
       };
 
@@ -665,7 +663,7 @@ describe('CognitiveIntelligence Types', () => {
         userMessage: 'I feel stupid, so I must be stupid',
         detectedAt: new Date(),
         gentleChallenge: 'Can feelings tell us facts about ourselves?',
-        reframe: 'Feeling something doesn\'t make it true',
+        reframe: "Feeling something doesn't make it true",
         validation: 'That feeling is uncomfortable',
         patternCount: 1,
         relatedDistortions: ['labeling'],
@@ -706,7 +704,7 @@ describe('CognitiveIntelligence Types', () => {
         timeOfDay: 'morning',
         dayOfWeek: 1,
         wasAddressed: true,
-        reframeAttempted: 'Can you think of times you didn\'t?',
+        reframeAttempted: "Can you think of times you didn't?",
         userResponse: 'resistant',
       };
 
@@ -731,13 +729,16 @@ describe('CognitiveIntelligence Types', () => {
         avgDistortionsPerConversation: 0.8,
         overallTrend: 'improving',
         byDistortion: new Map([
-          ['overgeneralization', {
-            frequency: 5,
-            trend: 'improving',
-            successfulReframes: 3,
-            totalAttempts: 5,
-            reframeSuccessRate: 0.6,
-          }],
+          [
+            'overgeneralization',
+            {
+              frequency: 5,
+              trend: 'improving',
+              successfulReframes: 3,
+              totalAttempts: 5,
+              reframeSuccessRate: 0.6,
+            },
+          ],
         ]),
         thoughtRecordsCompleted: 0,
         avgEmotionReduction: 0,

@@ -28,11 +28,7 @@ vi.mock('../persona-behavior-manager.js', () => ({
   loadPersonaBehaviors: vi.fn().mockResolvedValue({}),
 }));
 
-import {
-  type Holiday,
-  type Season,
-  type CulturalContext,
-} from '../cultural-awareness.js';
+import { type Holiday, type Season, type CulturalContext } from '../cultural-awareness.js';
 
 describe('CulturalAwareness', () => {
   describe('Holiday type', () => {
@@ -171,9 +167,24 @@ describe('CulturalAwareness', () => {
 
     it('should have greetings for greeting-worthy holidays', () => {
       const greetingHolidays: Holiday[] = [
-        { name: 'Christmas', date: new Date(2024, 11, 25), type: 'major', greetings: ['Merry Christmas!'] },
-        { name: 'Thanksgiving', date: new Date(2024, 10, 28), type: 'major', greetings: ['Happy Thanksgiving!'] },
-        { name: 'Independence Day', date: new Date(2024, 6, 4), type: 'major', greetings: ['Happy Fourth of July!'] },
+        {
+          name: 'Christmas',
+          date: new Date(2024, 11, 25),
+          type: 'major',
+          greetings: ['Merry Christmas!'],
+        },
+        {
+          name: 'Thanksgiving',
+          date: new Date(2024, 10, 28),
+          type: 'major',
+          greetings: ['Happy Thanksgiving!'],
+        },
+        {
+          name: 'Independence Day',
+          date: new Date(2024, 6, 4),
+          type: 'major',
+          greetings: ['Happy Fourth of July!'],
+        },
       ];
 
       greetingHolidays.forEach((holiday) => {
@@ -367,9 +378,7 @@ describe('CulturalAwareness', () => {
       const today = new Date(2024, 11, 20); // December 20
       const christmas = new Date(2024, 11, 25); // December 25
 
-      const daysUntil = Math.ceil(
-        (christmas.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
+      const daysUntil = Math.ceil((christmas.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       expect(daysUntil).toBe(5);
       expect(daysUntil).toBeLessThanOrEqual(7);
@@ -402,7 +411,10 @@ describe('CulturalAwareness', () => {
   describe('Greeting selection', () => {
     it('should have multiple greeting options for major holidays', () => {
       const christmasGreetings = ['Merry Christmas!', 'Happy holidays!'];
-      const thanksgivingGreetings = ['Happy Thanksgiving!', 'Hope you have a wonderful Thanksgiving!'];
+      const thanksgivingGreetings = [
+        'Happy Thanksgiving!',
+        'Hope you have a wonderful Thanksgiving!',
+      ];
 
       expect(christmasGreetings.length).toBeGreaterThan(1);
       expect(thanksgivingGreetings.length).toBeGreaterThan(1);
@@ -416,11 +428,11 @@ describe('CulturalAwareness', () => {
 
     it('should have appropriate greetings for each holiday', () => {
       const holidayGreetings: Record<string, string[]> = {
-        'Christmas': ['Merry Christmas!', 'Happy holidays!'],
-        'Thanksgiving': ['Happy Thanksgiving!'],
+        Christmas: ['Merry Christmas!', 'Happy holidays!'],
+        Thanksgiving: ['Happy Thanksgiving!'],
         'Independence Day': ['Happy Fourth of July!'],
         "New Year's Day": ['Happy New Year!', 'New year, fresh start!'],
-        'Halloween': ['Happy Halloween!'],
+        Halloween: ['Happy Halloween!'],
       };
 
       Object.entries(holidayGreetings).forEach(([holiday, greetings]) => {

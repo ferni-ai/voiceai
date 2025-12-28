@@ -386,24 +386,24 @@ Respond warmly: "I have a friend who'd be perfect for that, but we need to get t
   // -----------------------------------------------
   const userId = input.services?.userId || 'anonymous';
   const currentCanonicalId = legacyToCanonical(currentAgent);
-  
+
   // Try semantic detection first (catches conceptual intent)
   const semanticHandoff = detectHandoffEnhanced(
     userId,
     userText,
     currentCanonicalId as import('../../../services/coaching/handoff-intelligence.js').PersonaId
   );
-  
+
   if (semanticHandoff.shouldHandoff && semanticHandoff.candidate) {
     const candidateId = semanticHandoff.candidate.personaId;
     const canonicalId = legacyToCanonical(candidateId);
     const targetAgentInfo = getAgentInfo(canonicalId);
     const targetUnlocked = isTeamMemberUnlocked(canonicalId, userProfile, tier);
-    
+
     if (targetAgentInfo && targetUnlocked && candidateId !== currentAgent) {
       const confidence = semanticHandoff.candidate.confidence;
       const warmIntro = semanticHandoff.candidate.warmIntro;
-      
+
       // High confidence = stronger suggestion
       if (confidence >= 0.7) {
         injections.push(

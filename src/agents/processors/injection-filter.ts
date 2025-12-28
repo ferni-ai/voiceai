@@ -256,7 +256,8 @@ export function filterInjections(
   // LATENCY OPTIMIZATION: Use aggressive limits for casual/simple exchanges
   // Casual conversations don't need heavy context - just respond naturally
   const isFastMode = mode === 'casual';
-  const maxInjections = options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
+  const maxInjections =
+    options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
   const maxChars = options.maxChars ?? (isFastMode ? FAST_MODE_MAX_CHARS : MAX_TOTAL_CHARS);
 
   const priorityCategories = getPriorityCategories(mode);

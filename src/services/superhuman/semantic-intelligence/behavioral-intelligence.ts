@@ -23,42 +23,42 @@ const log = createLogger({ module: 'behavioral-intelligence' });
 export interface SelfSabotagePattern {
   id: string;
   userId: string;
-  
+
   // Pattern description
-  trigger: string;           // What triggers the behavior
-  behavior: string;          // The self-sabotaging behavior
-  consequence: string;       // What typically happens
-  
+  trigger: string; // What triggers the behavior
+  behavior: string; // The self-sabotaging behavior
+  consequence: string; // What typically happens
+
   // Evidence
   instances: Array<{
     timestamp: Date;
     context: string;
   }>;
-  
+
   // Metrics
   confidence: number;
-  frequency: number;         // Occurrences per month
-  
+  frequency: number; // Occurrences per month
+
   // Status
-  surfaced: boolean;         // Have we mentioned this?
+  surfaced: boolean; // Have we mentioned this?
   surfacedAt?: Date;
   userAcknowledged: boolean;
-  
+
   // Embedding
   embedding?: number[];
 }
 
 export interface EmotionalBaseline {
   userId: string;
-  
+
   // Overall baseline
-  averageValence: number;    // -1 to 1
-  averageEnergy: number;     // 0-1
-  emotionVariance: number;   // How much they fluctuate
-  
+  averageValence: number; // -1 to 1
+  averageEnergy: number; // 0-1
+  emotionVariance: number; // How much they fluctuate
+
   // Emotion frequencies
   emotionDistribution: Map<string, number>;
-  
+
   // What's "normal" for them
   typicalRange: {
     lowValence: number;
@@ -66,7 +66,7 @@ export interface EmotionalBaseline {
     lowEnergy: number;
     highEnergy: number;
   };
-  
+
   // Last updated
   computedAt: Date;
   sampleSize: number;
@@ -75,39 +75,39 @@ export interface EmotionalBaseline {
 export interface Trigger {
   id: string;
   userId: string;
-  
+
   // What it triggers
   triggerType: 'emotional' | 'behavioral';
-  triggerPattern: string;    // "criticism", "rejection", etc.
-  
+  triggerPattern: string; // "criticism", "rejection", etc.
+
   // What happens
-  response: string;          // The typical response
-  emotion?: string;          // Emotion triggered
-  
+  response: string; // The typical response
+  emotion?: string; // Emotion triggered
+
   // Evidence
   instances: Array<{
     timestamp: Date;
     context: string;
     intensity: number;
   }>;
-  
+
   // Metrics
   confidence: number;
-  sensitivity: number;       // How reactive (0-1)
+  sensitivity: number; // How reactive (0-1)
 }
 
 export interface BehavioralCycle {
   id: string;
   userId: string;
-  
+
   // Cycle description
-  name: string;              // "Procrastination-guilt cycle"
-  stages: string[];          // Ordered stages
-  
+  name: string; // "Procrastination-guilt cycle"
+  stages: string[]; // Ordered stages
+
   // Pattern
-  averageDuration: number;   // Days per cycle
+  averageDuration: number; // Days per cycle
   currentStage?: string;
-  
+
   // Evidence
   occurrences: number;
   lastOccurrence?: Date;
@@ -151,13 +151,19 @@ const SABOTAGE_TEMPLATES = [
     name: 'conflict_avoidance',
     trigger: 'potential conflict or confrontation',
     behavior: 'avoid or withdraw',
-    indicators: [/should (have )?said|wanted to say|couldn't say/i, /avoided|didn't bring up|let it go/i],
+    indicators: [
+      /should (have )?said|wanted to say|couldn't say/i,
+      /avoided|didn't bring up|let it go/i,
+    ],
   },
   {
     name: 'perfectionism_paralysis',
     trigger: 'important task or decision',
     behavior: 'procrastinate or avoid starting',
-    indicators: [/not good enough|not ready|need to be perfect/i, /haven't started|keep putting off/i],
+    indicators: [
+      /not good enough|not ready|need to be perfect/i,
+      /haven't started|keep putting off/i,
+    ],
   },
   {
     name: 'relationship_sabotage',
@@ -187,16 +193,16 @@ export async function recordPotentialSabotage(
 ): Promise<SelfSabotagePattern | null> {
   const patterns = await loadPatterns(userId);
   const now = new Date();
-  
+
   // Check against templates
   for (const template of SABOTAGE_TEMPLATES) {
     const matchesTrigger = template.indicators[0]?.test(instance.context);
     const matchesBehavior = template.indicators[1]?.test(instance.context);
-    
+
     if (matchesTrigger || matchesBehavior) {
       // Find or create pattern
-      let pattern = patterns.find(p => p.trigger.includes(template.trigger));
-      
+      let pattern = patterns.find((p) => p.trigger.includes(template.trigger));
+
       if (pattern) {
         // Update existing
         pattern.instances.push({ timestamp: now, context: instance.context });
@@ -216,41 +222,44 @@ export async function recordPotentialSabotage(
           surfaced: false,
           userAcknowledged: false,
         };
-        
+
         // Generate embedding
         try {
-          pattern.embedding = await embed(`${pattern.trigger} ${pattern.behavior} ${pattern.consequence}`);
+          pattern.embedding = await embed(
+            `${pattern.trigger} ${pattern.behavior} ${pattern.consequence}`
+          );
         } catch (e) {
           log.debug({ error: String(e) }, 'Failed to embed pattern');
         }
-        
+
         patterns.push(pattern);
       }
-      
+
       await savePattern(userId, pattern);
       patternCache.set(userId, patterns);
-      
+
       // Only log if pattern is emerging
       if (pattern.instances.length >= CONFIG.MIN_INSTANCES_FOR_PATTERN) {
-        log.info({ userId, pattern: template.name, instances: pattern.instances.length }, '🔄 Self-sabotage pattern detected');
+        log.info(
+          { userId, pattern: template.name, instances: pattern.instances.length },
+          '🔄 Self-sabotage pattern detected'
+        );
       }
-      
+
       return pattern;
     }
   }
-  
+
   return null;
 }
 
 /**
  * Get significant self-sabotage patterns.
  */
-export async function getSabotagePatterns(
-  userId: string
-): Promise<SelfSabotagePattern[]> {
+export async function getSabotagePatterns(userId: string): Promise<SelfSabotagePattern[]> {
   const patterns = await loadPatterns(userId);
   return patterns
-    .filter(p => p.instances.length >= CONFIG.MIN_INSTANCES_FOR_PATTERN && p.confidence >= 0.5)
+    .filter((p) => p.instances.length >= CONFIG.MIN_INSTANCES_FOR_PATTERN && p.confidence >= 0.5)
     .sort((a, b) => b.confidence - a.confidence);
 }
 
@@ -259,18 +268,15 @@ export async function getSabotagePatterns(
  */
 export async function getUnsurfacedPatterns(userId: string): Promise<SelfSabotagePattern[]> {
   const patterns = await getSabotagePatterns(userId);
-  return patterns.filter(p => !p.surfaced && p.confidence >= 0.7);
+  return patterns.filter((p) => !p.surfaced && p.confidence >= 0.7);
 }
 
 /**
  * Mark a pattern as surfaced.
  */
-export async function markPatternSurfaced(
-  userId: string,
-  patternId: string
-): Promise<void> {
+export async function markPatternSurfaced(userId: string, patternId: string): Promise<void> {
   const patterns = await loadPatterns(userId);
-  const pattern = patterns.find(p => p.id === patternId);
+  const pattern = patterns.find((p) => p.id === patternId);
   if (pattern) {
     pattern.surfaced = true;
     pattern.surfacedAt = new Date();
@@ -293,8 +299,8 @@ export async function updateBaseline(
     valence: number;
   }
 ): Promise<void> {
-  let baseline = baselineCache.get(userId) ?? await loadBaseline(userId);
-  
+  let baseline = baselineCache.get(userId) ?? (await loadBaseline(userId));
+
   if (!baseline) {
     baseline = {
       userId,
@@ -307,20 +313,20 @@ export async function updateBaseline(
       sampleSize: 0,
     };
   }
-  
+
   // Update running averages
   const alpha = Math.min(0.1, 1 / (baseline.sampleSize + 1));
   baseline.averageValence = baseline.averageValence * (1 - alpha) + data.valence * alpha;
   baseline.averageEnergy = baseline.averageEnergy * (1 - alpha) + data.intensity * alpha;
-  
+
   // Update emotion distribution
   const currentCount = baseline.emotionDistribution.get(data.emotion) ?? 0;
   baseline.emotionDistribution.set(data.emotion, currentCount + 1);
-  
+
   // Update sample size
   baseline.sampleSize++;
   baseline.computedAt = new Date();
-  
+
   // Recalculate typical range if enough samples
   if (baseline.sampleSize >= CONFIG.BASELINE_SAMPLE_SIZE) {
     const variance = baseline.emotionVariance;
@@ -331,7 +337,7 @@ export async function updateBaseline(
       highEnergy: Math.min(1, baseline.averageEnergy + variance),
     };
   }
-  
+
   // Save
   await saveBaseline(userId, baseline);
   baselineCache.set(userId, baseline);
@@ -357,37 +363,37 @@ export async function checkBaselineDeviation(
   if (!baseline || baseline.sampleSize < CONFIG.BASELINE_SAMPLE_SIZE) {
     return { isDeviation: false };
   }
-  
+
   const { typicalRange } = baseline;
-  
+
   if (current.valence < typicalRange.lowValence) {
     return {
       isDeviation: true,
       description: "They're feeling lower than their usual baseline.",
     };
   }
-  
+
   if (current.valence > typicalRange.highValence) {
     return {
       isDeviation: true,
       description: "They're feeling more positive than usual.",
     };
   }
-  
+
   if (current.energy < typicalRange.lowEnergy) {
     return {
       isDeviation: true,
-      description: "Their energy is lower than typical.",
+      description: 'Their energy is lower than typical.',
     };
   }
-  
+
   if (current.energy > typicalRange.highEnergy) {
     return {
       isDeviation: true,
       description: "They're more energetic than usual.",
     };
   }
-  
+
   return { isDeviation: false };
 }
 
@@ -410,12 +416,12 @@ export async function recordTrigger(
 ): Promise<Trigger> {
   const triggers = await loadTriggers(userId);
   const now = new Date();
-  
+
   // Find existing trigger
-  let existing = triggers.find(t =>
-    t.triggerPattern.toLowerCase() === trigger.pattern.toLowerCase()
+  let existing = triggers.find(
+    (t) => t.triggerPattern.toLowerCase() === trigger.pattern.toLowerCase()
   );
-  
+
   if (existing) {
     existing.instances.push({
       timestamp: now,
@@ -432,20 +438,22 @@ export async function recordTrigger(
       triggerPattern: trigger.pattern,
       response: trigger.response,
       emotion: trigger.emotion,
-      instances: [{
-        timestamp: now,
-        context: trigger.context,
-        intensity: trigger.intensity,
-      }],
+      instances: [
+        {
+          timestamp: now,
+          context: trigger.context,
+          intensity: trigger.intensity,
+        },
+      ],
       confidence: 0.4,
       sensitivity: trigger.intensity,
     };
     triggers.push(existing);
   }
-  
+
   await saveTrigger(userId, existing);
   triggerCache.set(userId, triggers);
-  
+
   return existing;
 }
 
@@ -454,18 +462,15 @@ export async function recordTrigger(
  */
 export async function getTriggers(userId: string): Promise<Trigger[]> {
   const triggers = await loadTriggers(userId);
-  return triggers.filter(t => t.instances.length >= CONFIG.MIN_INSTANCES_FOR_PATTERN);
+  return triggers.filter((t) => t.instances.length >= CONFIG.MIN_INSTANCES_FOR_PATTERN);
 }
 
 /**
  * Check if text contains a known trigger.
  */
-export async function checkForTriggers(
-  userId: string,
-  text: string
-): Promise<Trigger[]> {
+export async function checkForTriggers(userId: string, text: string): Promise<Trigger[]> {
   const triggers = await getTriggers(userId);
-  return triggers.filter(t => {
+  return triggers.filter((t) => {
     const pattern = new RegExp(t.triggerPattern, 'i');
     return pattern.test(text);
   });
@@ -487,41 +492,47 @@ export async function formatBehavioralContext(
     getBaseline(userId),
     getTriggers(userId),
   ]);
-  
+
   if (patterns.length === 0 && !baseline && triggers.length === 0) {
     return '';
   }
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     'BEHAVIORAL INTELLIGENCE - Patterns they might not see',
     '═══════════════════════════════════════════════════════════',
     '',
   ];
-  
+
   // Self-sabotage patterns (only high confidence, unsurfaced)
-  const relevantPatterns = patterns.filter(p => !p.surfaced && p.confidence >= 0.7);
+  const relevantPatterns = patterns.filter((p) => !p.surfaced && p.confidence >= 0.7);
   if (relevantPatterns.length > 0) {
     lines.push('⚠️ POTENTIAL PATTERNS (surface gently if relevant):');
     for (const p of relevantPatterns.slice(0, 2)) {
       lines.push(`  When ${p.trigger}:`);
       lines.push(`    They tend to ${p.behavior}`);
-      lines.push(`    (${p.instances.length} instances, ${Math.round(p.confidence * 100)}% confidence)`);
+      lines.push(
+        `    (${p.instances.length} instances, ${Math.round(p.confidence * 100)}% confidence)`
+      );
     }
     lines.push('');
   }
-  
+
   // Baseline deviation
   if (baseline && baseline.sampleSize >= CONFIG.BASELINE_SAMPLE_SIZE) {
     lines.push('EMOTIONAL BASELINE:');
-    lines.push(`  Typical mood: ${baseline.averageValence > 0.2 ? 'Generally positive' : baseline.averageValence < -0.2 ? 'Often challenged' : 'Balanced'}`);
-    lines.push(`  Energy: ${baseline.averageEnergy > 0.6 ? 'High' : baseline.averageEnergy < 0.4 ? 'Lower' : 'Moderate'}`);
+    lines.push(
+      `  Typical mood: ${baseline.averageValence > 0.2 ? 'Generally positive' : baseline.averageValence < -0.2 ? 'Often challenged' : 'Balanced'}`
+    );
+    lines.push(
+      `  Energy: ${baseline.averageEnergy > 0.6 ? 'High' : baseline.averageEnergy < 0.4 ? 'Lower' : 'Moderate'}`
+    );
     lines.push('');
   }
-  
+
   // Known triggers
   if (triggers.length > 0) {
-    const sensitiveTriggers = triggers.filter(t => t.sensitivity > 0.7);
+    const sensitiveTriggers = triggers.filter((t) => t.sensitivity > 0.7);
     if (sensitiveTriggers.length > 0) {
       lines.push('KNOWN SENSITIVITIES:');
       for (const t of sensitiveTriggers.slice(0, 3)) {
@@ -530,9 +541,9 @@ export async function formatBehavioralContext(
       lines.push('');
     }
   }
-  
+
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -542,12 +553,12 @@ export async function formatBehavioralContext(
 
 function calculateFrequency(instances: Array<{ timestamp: Date }>): number {
   if (instances.length < 2) return 0;
-  
+
   const sorted = instances.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   const firstDate = sorted[0].timestamp;
   const lastDate = sorted[sorted.length - 1].timestamp;
   const months = (lastDate.getTime() - firstDate.getTime()) / (30 * 24 * 60 * 60 * 1000);
-  
+
   return months > 0 ? instances.length / months : instances.length;
 }
 
@@ -564,10 +575,10 @@ function calculateSensitivity(instances: Array<{ intensity: number }>): number {
 async function loadPatterns(userId: string): Promise<SelfSabotagePattern[]> {
   const cached = patternCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -575,23 +586,27 @@ async function loadPatterns(userId: string): Promise<SelfSabotagePattern[]> {
       .collection('sabotage_patterns')
       .limit(CONFIG.MAX_PATTERNS)
       .get();
-    
-    const patterns = snapshot.docs.map(doc => {
+
+    const patterns = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         instances: (data.instances ?? []).map((i: { timestamp: unknown; context: string }) => ({
-          timestamp: typeof i.timestamp === 'object' && i.timestamp && 'toDate' in i.timestamp 
-            ? (i.timestamp as { toDate: () => Date }).toDate() 
-            : new Date(i.timestamp as string | number),
+          timestamp:
+            typeof i.timestamp === 'object' && i.timestamp && 'toDate' in i.timestamp
+              ? (i.timestamp as { toDate: () => Date }).toDate()
+              : new Date(i.timestamp as string | number),
           context: i.context,
         })),
-        surfacedAt: data.surfacedAt && typeof data.surfacedAt === 'object' && 'toDate' in data.surfacedAt 
-          ? data.surfacedAt.toDate() 
-          : (data.surfacedAt ? new Date(data.surfacedAt) : undefined),
+        surfacedAt:
+          data.surfacedAt && typeof data.surfacedAt === 'object' && 'toDate' in data.surfacedAt
+            ? data.surfacedAt.toDate()
+            : data.surfacedAt
+              ? new Date(data.surfacedAt)
+              : undefined,
       } as SelfSabotagePattern;
     });
-    
+
     patternCache.set(userId, patterns);
     return patterns;
   } catch (error) {
@@ -603,7 +618,7 @@ async function loadPatterns(userId: string): Promise<SelfSabotagePattern[]> {
 async function savePattern(userId: string, pattern: SelfSabotagePattern): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -619,7 +634,7 @@ async function savePattern(userId: string, pattern: SelfSabotagePattern): Promis
 async function loadBaseline(userId: string): Promise<EmotionalBaseline | null> {
   const db = getFirestoreDb();
   if (!db) return null;
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -627,9 +642,9 @@ async function loadBaseline(userId: string): Promise<EmotionalBaseline | null> {
       .collection('behavioral_intelligence')
       .doc('baseline')
       .get();
-    
+
     if (!doc.exists) return null;
-    
+
     const data = doc.data()!;
     return {
       ...data,
@@ -645,7 +660,7 @@ async function loadBaseline(userId: string): Promise<EmotionalBaseline | null> {
 async function saveBaseline(userId: string, baseline: EmotionalBaseline): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     const data = {
       ...baseline,
@@ -665,10 +680,10 @@ async function saveBaseline(userId: string, baseline: EmotionalBaseline): Promis
 async function loadTriggers(userId: string): Promise<Trigger[]> {
   const cached = triggerCache.get(userId);
   if (cached) return cached;
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -676,21 +691,24 @@ async function loadTriggers(userId: string): Promise<Trigger[]> {
       .collection('behavioral_triggers')
       .limit(CONFIG.MAX_TRIGGERS)
       .get();
-    
-    const triggers = snapshot.docs.map(doc => {
+
+    const triggers = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
-        instances: (data.instances ?? []).map((i: { timestamp: unknown; context: string; intensity: number }) => ({
-          timestamp: typeof i.timestamp === 'object' && i.timestamp && 'toDate' in i.timestamp 
-            ? (i.timestamp as { toDate: () => Date }).toDate() 
-            : new Date(i.timestamp as string | number),
-          context: i.context,
-          intensity: i.intensity,
-        })),
+        instances: (data.instances ?? []).map(
+          (i: { timestamp: unknown; context: string; intensity: number }) => ({
+            timestamp:
+              typeof i.timestamp === 'object' && i.timestamp && 'toDate' in i.timestamp
+                ? (i.timestamp as { toDate: () => Date }).toDate()
+                : new Date(i.timestamp as string | number),
+            context: i.context,
+            intensity: i.intensity,
+          })
+        ),
       } as Trigger;
     });
-    
+
     triggerCache.set(userId, triggers);
     return triggers;
   } catch (error) {
@@ -702,7 +720,7 @@ async function loadTriggers(userId: string): Promise<Trigger[]> {
 async function saveTrigger(userId: string, trigger: Trigger): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -741,23 +759,22 @@ export const behavioralIntelligence = {
   getPatterns: getSabotagePatterns,
   getUnsurfaced: getUnsurfacedPatterns,
   markSurfaced: markPatternSurfaced,
-  
+
   // Baseline
   updateBaseline,
   getBaseline,
   checkDeviation: checkBaselineDeviation,
-  
+
   // Triggers
   recordTrigger,
   getTriggers,
   checkTriggers: checkForTriggers,
-  
+
   // Context
   format: formatBehavioralContext,
-  
+
   // Cache
   clearCache: clearBehavioralCache,
 };
 
 export default behavioralIntelligence;
-

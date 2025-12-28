@@ -299,7 +299,7 @@ describe('Personality Pipeline E2E', () => {
         expect(result.expression.theme).toBeDefined();
         expect(result.expression.intimacyLevel).toBeGreaterThanOrEqual(0);
         expect(result.expression.intimacyLevel).toBeLessThanOrEqual(1);
-        expect(['immediate', 'mid_response', 'after_response', 'gentle_delay']).toContain(
+        expect(['immediate', 'after_pause', 'mid_response', 'at_end']).toContain(
           result.expression.timing
         );
         expect(result.expression.compositionReason).toBeDefined();

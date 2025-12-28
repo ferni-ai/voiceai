@@ -177,10 +177,7 @@ export function getAdaptiveTimeouts(sessionId: string): AdaptiveTimeouts {
   );
 
   // Hard timeout based on P95 with headroom
-  const hardTimeoutMs = Math.max(
-    LATENCY_TARGETS.HARD_LIMIT,
-    stats.p95Latency * 1.5
-  );
+  const hardTimeoutMs = Math.max(LATENCY_TARGETS.HARD_LIMIT, stats.p95Latency * 1.5);
 
   // Determine performance tier
   const isPerformingWell = stats.avgLatency < LATENCY_TARGETS.ACCEPTABLE;

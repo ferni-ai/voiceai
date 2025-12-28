@@ -436,9 +436,9 @@ describe('Handoff Intelligence', () => {
 
   it('should detect handoff opportunities', () => {
     const patterns = [
-      { text: 'I need help writing an email to my boss', expectedPersona: 'alex' },
-      { text: "I can't seem to stick to my morning routine", expectedPersona: 'maya' },
-      { text: 'I have a party to plan for next weekend', expectedPersona: 'jordan' },
+      { text: 'I need help writing an email to my boss', expectedPersona: 'alex-chen' },
+      { text: "I can't seem to stick to my morning routine", expectedPersona: 'maya-santos' },
+      { text: 'I have a party to plan for next weekend', expectedPersona: 'jordan-taylor' },
     ];
 
     for (const { text, expectedPersona } of patterns) {

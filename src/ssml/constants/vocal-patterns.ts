@@ -10,20 +10,21 @@
  * Note: Cartesia only supports [laughter] as a nonverbal sound
  */
 export const LAUGHTER_PATTERNS: RegExp[] = [
-  /\b(ha){2,}\b/gi,                     // haha, hahaha
-  /\b(he){2,}\b/gi,                     // hehe, hehehe
-  /\b(ho){2,}\b/gi,                     // hoho, hohoho
-  /\blol\b/gi,                          // lol
-  /\blmao\b/gi,                         // lmao
-  /\brofl\b/gi,                         // rofl
-  /😂|🤣|😆|😄|😁/g,                   // Laughing emoji
-  /\*laughs?\*/gi,                      // *laugh* or *laughs*
-  /\*chuckles?\*/gi,                    // *chuckle* or *chuckles*
-  /\*giggles?\*/gi,                     // *giggle* or *giggles*
-  /\(laughs?\)/gi,                      // (laugh) or (laughs)
-  /\(chuckles?\)/gi,                    // (chuckle)
-  /\[laughs?\]/gi,                      // [laugh]
-  /\[chuckles?\]/gi,                    // [chuckle]
+  /\b(ha){2,}\b/gi, // haha, hahaha
+  /\bha\s+ha(\s+ha)*\b/gi, // ha ha, ha ha ha (with spaces)
+  /\b(he){2,}\b/gi, // hehe, hehehe
+  /\b(ho){2,}\b/gi, // hoho, hohoho
+  /\blol\b/gi, // lol
+  /\blmao\b/gi, // lmao
+  /\brofl\b/gi, // rofl
+  /😂|🤣|😆|😄|😁/g, // Laughing emoji
+  /\*laughs?\*/gi, // *laugh* or *laughs*
+  /\*chuckles?\*/gi, // *chuckle* or *chuckles*
+  /\*giggles?\*/gi, // *giggle* or *giggles*
+  /\(laughs?\)/gi, // (laugh) or (laughs)
+  /\(chuckles?\)/gi, // (chuckle)
+  /\[laughs?\]/gi, // [laugh]
+  /\[chuckles?\]/gi, // [chuckle]
 ];
 
 /**
@@ -43,24 +44,24 @@ export const SIGH_PATTERNS: RegExp[] = [
  * Natural hesitations and filled pauses
  */
 export const DISFLUENCY_PATTERNS: RegExp[] = [
-  /\b(um+)\b/gi,                        // um, umm, ummm
-  /\b(uh+)\b/gi,                        // uh, uhh, uhhh
-  /\b(er+)\b/gi,                        // er, err, errr
-  /\b(ah+)\b/gi,                        // ah, ahh, ahhh
-  /\b(hmm+)\b/gi,                       // hmm, hmmm
-  /\b(well+)\.\.\./gi,                  // well...
-  /\b(so+)\.\.\./gi,                    // so...
-  /\.\.\./g,                            // ellipsis (thinking pause)
+  /\b(um+)\b/gi, // um, umm, ummm
+  /\b(uh+)\b/gi, // uh, uhh, uhhh
+  /\b(er+)\b/gi, // er, err, errr
+  /\b(ah+)\b/gi, // ah, ahh, ahhh
+  /\b(hmm+)\b/gi, // hmm, hmmm
+  /\b(well+)\.\.\./gi, // well...
+  /\b(so+)\.\.\./gi, // so...
+  /\.\.\./g, // ellipsis (thinking pause)
 ];
 
 /**
  * Patterns for detecting repetition (emphasis or hesitation)
  */
 export const REPETITION_PATTERNS: RegExp[] = [
-  /\b(\w+)\s+\1\b/gi,                   // word word
-  /\b(very)\s+(very)\b/gi,              // very very
-  /\b(really)\s+(really)\b/gi,          // really really
-  /\b(so)\s+(so)\b/gi,                  // so so
+  /\b(\w+)\s+\1\b/gi, // word word
+  /\b(very)\s+(very)\b/gi, // very very
+  /\b(really)\s+(really)\b/gi, // really really
+  /\b(so)\s+(so)\b/gi, // so so
 ];
 
 /**
@@ -68,14 +69,14 @@ export const REPETITION_PATTERNS: RegExp[] = [
  * Used to potentially invert emotional tone
  */
 export const SARCASTIC_PATTERNS: RegExp[] = [
-  /\b(oh\s+)?sure\b/gi,                 // sure, oh sure
-  /\byeah,?\s+right\b/gi,               // yeah right
-  /\bof\s+course\b/gi,                  // of course (context dependent)
-  /\breally\?+/gi,                      // really? really??
-  /\bwow\b/gi,                          // wow (context dependent)
-  /🙄/g,                                // eye roll emoji
-  /\*eye\s*roll\*/gi,                   // *eye roll*
-  /\*rolls?\s+eyes?\*/gi,               // *rolls eyes*
+  /\b(oh\s+)?sure\b/gi, // sure, oh sure
+  /\byeah,?\s+right\b/gi, // yeah right
+  /\bof\s+course\b/gi, // of course (context dependent)
+  /\breally\?+/gi, // really? really??
+  /\bwow\b/gi, // wow (context dependent)
+  /🙄/g, // eye roll emoji
+  /\*eye\s*roll\*/gi, // *eye roll*
+  /\*rolls?\s+eyes?\*/gi, // *rolls eyes*
 ];
 
 /**
@@ -144,11 +145,11 @@ export const TRANSITION_PATTERNS: RegExp[] = [
  * Points where a pause sounds natural
  */
 export const BREATH_POINT_PATTERNS: RegExp[] = [
-  /[.!?;:]/g,                           // End punctuation
-  /,/g,                                 // Commas
-  /\s+—\s+/g,                           // Em dashes
-  /\s+-\s+/g,                           // En dashes with spaces
-  /\band\b/gi,                          // Conjunctions
+  /[.!?;:]/g, // End punctuation
+  /,/g, // Commas
+  /\s+—\s+/g, // Em dashes
+  /\s+-\s+/g, // En dashes with spaces
+  /\band\b/gi, // Conjunctions
   /\bbut\b/gi,
   /\bor\b/gi,
   /\bso\b/gi,
@@ -162,12 +163,12 @@ export const BREATH_POINT_PATTERNS: RegExp[] = [
  * Words that should get emphasis in context
  */
 export const CONTRASTIVE_PATTERNS: RegExp[] = [
-  /\bnot\s+(\w+),?\s+but\s+(\w+)\b/gi,  // not X but Y
-  /\brather\s+than\b/gi,                // rather than
-  /\binstead\s+of\b/gi,                 // instead of
-  /\bversus\b/gi,                       // versus
-  /\bcompared\s+to\b/gi,                // compared to
-  /\bunlike\b/gi,                       // unlike
+  /\bnot\s+(\w+),?\s+but\s+(\w+)\b/gi, // not X but Y
+  /\brather\s+than\b/gi, // rather than
+  /\binstead\s+of\b/gi, // instead of
+  /\bversus\b/gi, // versus
+  /\bcompared\s+to\b/gi, // compared to
+  /\bunlike\b/gi, // unlike
 ];
 
 /**
@@ -175,9 +176,9 @@ export const CONTRASTIVE_PATTERNS: RegExp[] = [
  * Phrases that should be de-emphasized
  */
 export const PARENTHETICAL_PATTERNS: RegExp[] = [
-  /\(([^)]+)\)/g,                       // (parenthetical)
-  /\[([^\]]+)\]/g,                      // [bracketed]
-  /\s+—\s*([^—]+)\s*—\s+/g,             // — aside —
+  /\(([^)]+)\)/g, // (parenthetical)
+  /\[([^\]]+)\]/g, // [bracketed]
+  /\s+—\s*([^—]+)\s*—\s+/g, // — aside —
   /,\s*(by the way|incidentally|as an aside),?\s*/gi,
 ];
 
@@ -185,10 +186,10 @@ export const PARENTHETICAL_PATTERNS: RegExp[] = [
  * List patterns (for rhythm/pacing)
  */
 export const LIST_PATTERNS: RegExp[] = [
-  /(\w+),\s+(\w+),\s+and\s+(\w+)/gi,    // a, b, and c
-  /(\w+),\s+(\w+),\s+or\s+(\w+)/gi,     // a, b, or c
-  /(\d+)\.\s+/g,                         // 1. numbered items
-  /[•·-]\s+/g,                           // bullet points
+  /(\w+),\s+(\w+),\s+and\s+(\w+)/gi, // a, b, and c
+  /(\w+),\s+(\w+),\s+or\s+(\w+)/gi, // a, b, or c
+  /(\d+)\.\s+/g, // 1. numbered items
+  /[•·-]\s+/g, // bullet points
 ];
 
 /**
@@ -196,7 +197,7 @@ export const LIST_PATTERNS: RegExp[] = [
  * Should be spelled out letter by letter
  */
 export const ACRONYM_PATTERNS: RegExp[] = [
-  /\b[A-Z]{2,5}\b/g,                    // 2-5 letter acronyms
+  /\b[A-Z]{2,5}\b/g, // 2-5 letter acronyms
 ];
 
 /**
@@ -204,10 +205,9 @@ export const ACRONYM_PATTERNS: RegExp[] = [
  * May need special pronunciation handling
  */
 export const NUMBER_PATTERNS: RegExp[] = [
-  /\b\d{1,3}(,\d{3})+\b/g,              // Large numbers with commas
-  /\b\d+\.\d+%?\b/g,                    // Decimals/percentages
-  /\b\d{4}\b/g,                         // Years
-  /\b\d+(st|nd|rd|th)\b/gi,             // Ordinals
-  /\$\d+/g,                             // Currency
+  /\b\d{1,3}(,\d{3})+\b/g, // Large numbers with commas
+  /\b\d+\.\d+%?\b/g, // Decimals/percentages
+  /\b\d{4}\b/g, // Years
+  /\b\d+(st|nd|rd|th)\b/gi, // Ordinals
+  /\$\d+/g, // Currency
 ];
-

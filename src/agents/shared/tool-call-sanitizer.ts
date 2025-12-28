@@ -55,7 +55,7 @@ const log = createLogger({ module: 'tool-call-sanitizer' });
 /**
  * Cache of recently executed tools per session.
  * Key: sessionId, Value: Map<toolId, timestamp>
- * 
+ *
  * When semantic router executes a tool with bypassLLM=true, it should call
  * `markToolExecutedBySemanticRouter()` to prevent the JSON workaround from
  * executing the same tool again.
@@ -71,33 +71,33 @@ const DEDUP_WINDOW_MS = 5000; // 5 seconds
  */
 export function markToolExecutedBySemanticRouter(sessionId: string, toolId: string): void {
   if (!sessionId) return;
-  
+
   let sessionTools = recentlyExecutedTools.get(sessionId);
   if (!sessionTools) {
     sessionTools = new Map();
     recentlyExecutedTools.set(sessionId, sessionTools);
   }
   sessionTools.set(toolId.toLowerCase(), Date.now());
-  
-  log.debug(
-    { sessionId, toolId },
-    '🎯 Tool marked as executed by semantic router (dedup cache)'
-  );
+
+  log.debug({ sessionId, toolId }, '🎯 Tool marked as executed by semantic router (dedup cache)');
 }
 
 /**
  * Check if a tool was recently executed by the semantic router.
  * Returns true if we should SKIP execution (dedup).
  */
-function wasRecentlyExecutedBySemanticRouter(sessionId: string | undefined, toolId: string): boolean {
+function wasRecentlyExecutedBySemanticRouter(
+  sessionId: string | undefined,
+  toolId: string
+): boolean {
   if (!sessionId) return false;
-  
+
   const sessionTools = recentlyExecutedTools.get(sessionId);
   if (!sessionTools) return false;
-  
+
   const executedAt = sessionTools.get(toolId.toLowerCase());
   if (!executedAt) return false;
-  
+
   const elapsed = Date.now() - executedAt;
   if (elapsed < DEDUP_WINDOW_MS) {
     log.info(
@@ -106,7 +106,7 @@ function wasRecentlyExecutedBySemanticRouter(sessionId: string | undefined, tool
     );
     return true;
   }
-  
+
   // Clean up expired entry
   sessionTools.delete(toolId.toLowerCase());
   return false;
@@ -515,7 +515,7 @@ const TOOL_NAME_PATTERNS = [
   'Reach out',
   'reaching out',
   'Reaching out',
-  
+
   // Telephony tools (phone calls)
   'makePhoneCall',
   'make phone call',
@@ -1254,7 +1254,7 @@ const HIGH_RISK_TOOLS = new Set([
 const QUESTION_PATTERNS = [
   // "Did you X?" questions
   /^(?:did|have|has|had)\s+(?:you|ferni)\s+(?:already\s+)?(?:call|text|email|message|send|pay)/i,
-  // "Was it X?" questions  
+  // "Was it X?" questions
   /^(?:was|were|is)\s+(?:that|it|the)\s+(?:call|text|email|message|payment)/i,
   // Questions about what happened
   /(?:what|who|when|where|how)\s+did\s+(?:you|ferni)\s+(?:call|text|email|message|send)/i,
@@ -1270,28 +1270,30 @@ const QUESTION_PATTERNS = [
  */
 function isQuestionAboutPastAction(text: string): boolean {
   if (!text) return false;
-  
+
   const normalized = text.trim().toLowerCase();
-  
+
   // Ends with question mark - strong signal
   const hasQuestionMark = normalized.endsWith('?');
-  
+
   // Check against question patterns
   for (const pattern of QUESTION_PATTERNS) {
     if (pattern.test(normalized)) {
       return true;
     }
   }
-  
+
   // Additional heuristic: starts with question words + "you" near "call/text/etc"
   if (hasQuestionMark) {
-    const hasQuestionWord = /^(?:did|have|has|was|were|what|who|when|where|how|why)\b/.test(normalized);
+    const hasQuestionWord = /^(?:did|have|has|was|were|what|who|when|where|how|why)\b/.test(
+      normalized
+    );
     const hasActionWord = /\b(?:call|text|email|message|send|pay|contact)\b/.test(normalized);
     if (hasQuestionWord && hasActionWord) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -1331,7 +1333,7 @@ async function executeJsonFunctionCall(
           blockedDueToQuestion: true,
         };
       }
-      
+
       // Also check the args for question patterns (LLM sometimes puts transcript there)
       const argsText = JSON.stringify(call.args);
       if (isQuestionAboutPastAction(argsText)) {
@@ -2565,8 +2567,15 @@ export function createSanitizerWithMusicFallback(
           const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
           if (isSlowTool) {
             // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
-            const ack = getSlowToolAcknowledgment(jsonCall.fn, toolContext?.personaId, toolContext?.userId);
-            log.info({ fn: jsonCall.fn, ack, personaId: toolContext?.personaId }, '⏳ Injecting persona-aware acknowledgment for slow tool');
+            const ack = getSlowToolAcknowledgment(
+              jsonCall.fn,
+              toolContext?.personaId,
+              toolContext?.userId
+            );
+            log.info(
+              { fn: jsonCall.fn, ack, personaId: toolContext?.personaId },
+              '⏳ Injecting persona-aware acknowledgment for slow tool'
+            );
             controller.enqueue(`${ack} `);
           }
 
@@ -2582,8 +2591,12 @@ export function createSanitizerWithMusicFallback(
               // The greeting is spoken by the handoff handler, not here.
               // ========================================
               const isHandoffTool = jsonCall.fn.toLowerCase().startsWith('handoffto');
-              const handoffResult = execResult as { handoffComplete?: boolean; action?: string; error?: string } | null;
-              
+              const handoffResult = execResult as {
+                handoffComplete?: boolean;
+                action?: string;
+                error?: string;
+              } | null;
+
               if (isHandoffTool) {
                 if (handoffResult?.handoffComplete) {
                   log.info(
@@ -2592,7 +2605,7 @@ export function createSanitizerWithMusicFallback(
                   );
                   return; // Don't speak - handoff handler already spoke the greeting
                 }
-                
+
                 // Handoff failed - speak error message if available
                 if (!execResult?.success && handoffResult?.error) {
                   log.warn(
@@ -2608,12 +2621,15 @@ export function createSanitizerWithMusicFallback(
                   }
                   return;
                 }
-                
+
                 // Handoff in progress or unknown state - don't interfere
-                log.debug({ fn: jsonCall.fn, execResult }, '🔄 Handoff result (no additional action needed)');
+                log.debug(
+                  { fn: jsonCall.fn, execResult },
+                  '🔄 Handoff result (no additional action needed)'
+                );
                 return;
               }
-              
+
               if (execResult?.success && execResult.result) {
                 const resultText =
                   typeof execResult.result === 'string'
@@ -2882,8 +2898,15 @@ export function createSanitizerWithMusicFallback(
         const isSlowTool = slowTools.includes(jsonCall.fn.toLowerCase());
         if (isSlowTool) {
           // Use persona-aware acknowledgments (passes through to generateAcknowledgment)
-          const ack = getSlowToolAcknowledgment(jsonCall.fn, toolContext?.personaId, toolContext?.userId);
-          log.info({ fn: jsonCall.fn, ack, personaId: toolContext?.personaId }, '⏳ Injecting persona-aware acknowledgment for slow tool');
+          const ack = getSlowToolAcknowledgment(
+            jsonCall.fn,
+            toolContext?.personaId,
+            toolContext?.userId
+          );
+          log.info(
+            { fn: jsonCall.fn, ack, personaId: toolContext?.personaId },
+            '⏳ Injecting persona-aware acknowledgment for slow tool'
+          );
           controller.enqueue(`${ack} `);
         }
 
@@ -3000,8 +3023,11 @@ export function createSanitizerWithMusicFallback(
         trimmed.includes('}}');
 
       // Catch JSON/markdown continuation chunks - but not normal speech with contractions
-      const hasContraction = /\b(I'm|I've|I'll|I'd|you're|you've|you'll|we're|we've|they're|it's|that's|what's|there's|here's|let's|won't|can't|don't|doesn't|didn't|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't)\b/i.test(trimmed);
-      
+      const hasContraction =
+        /\b(I'm|I've|I'll|I'd|you're|you've|you'll|we're|we've|they're|it's|that's|what's|there's|here's|let's|won't|can't|don't|doesn't|didn't|isn't|aren't|wasn't|weren't|hasn't|haven't|hadn't)\b/i.test(
+          trimmed
+        );
+
       if (looksLikeJsonContinuation && buffer.length < 80 && !hasContraction) {
         log.debug(
           { preview: buffer.slice(0, 40) },
@@ -3112,15 +3138,20 @@ export function createSanitizerWithMusicFallback(
 
             // 🔒 Mark this tool+args as executed
             executedToolsThisStream.add(toolKey);
-            
+
             // 🔒 RACE CONDITION FIX: Set tool execution flag BEFORE async execution
             toolExecutionInProgress = true;
             activeToolId = lastChanceJson.fn;
-            
+
             // Execute the tool
             // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
             jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
-            executeJsonFunctionCall(lastChanceJson, sessionId, toolContext?.userId, toolContext?.personaId)
+            executeJsonFunctionCall(
+              lastChanceJson,
+              sessionId,
+              toolContext?.userId,
+              toolContext?.personaId
+            )
               .then(async (result) => {
                 log.info(
                   { fn: lastChanceJson.fn, success: result?.success },
@@ -3234,18 +3265,22 @@ export function createSanitizerWithMusicFallback(
       // 🎯 POST-LLM SEMANTIC ROUTING FALLBACK (Dec 2024)
       // If no JSON tool was executed during this stream, run semantic routing
       // on the accumulated text as a safety net for when Gemini forgets JSON format.
-      // 
+      //
       // ⚠️ DISABLED (Dec 25, 2024): This was routing LLM OUTPUT text (not user input),
       // causing false tool executions when LLM says things like "the call is in progress".
       // The fallback was triggering telephony_call, learning_explain etc on conversational text.
-      // 
+      //
       // To re-enable, we need to:
       // 1. Only route on actual user INTENT, not LLM response text
       // 2. Add anti-patterns for conversational phrases like "call is", "is in progress"
       // 3. Or use the accumulatedText from USER input, not LLM output
       const ENABLE_POST_LLM_FALLBACK = false;
-      
-      if (ENABLE_POST_LLM_FALLBACK && !jsonToolExecuted && accumulatedTextForSemanticFallback.trim().length > 10) {
+
+      if (
+        ENABLE_POST_LLM_FALLBACK &&
+        !jsonToolExecuted &&
+        accumulatedTextForSemanticFallback.trim().length > 10
+      ) {
         const textToRoute = accumulatedTextForSemanticFallback.trim();
         log.info(
           { textLength: textToRoute.length, preview: textToRoute.slice(0, 100) },
@@ -3281,18 +3316,21 @@ export function createSanitizerWithMusicFallback(
               );
 
               // Execute via domain bridge
-              const { hasDomainMapping, executeDomainTool } = await import(
-                '../../tools/semantic-router/domain-bridge.js'
-              );
+              const { hasDomainMapping, executeDomainTool } =
+                await import('../../tools/semantic-router/domain-bridge.js');
 
               if (hasDomainMapping(topMatch.toolId)) {
-                const execResult = await executeDomainTool(topMatch.toolId, routingResult.extractedArgs || {}, {
-                  userId: toolContext?.userId || 'unknown',
-                  sessionId: sessionId || 'unknown',
-                  personaId: toolContext?.personaId || 'ferni',
-                  conversationHistory: toolContext?.conversationHistory || [],
-                  services: toolContext?.services || undefined,
-                });
+                const execResult = await executeDomainTool(
+                  topMatch.toolId,
+                  routingResult.extractedArgs || {},
+                  {
+                    userId: toolContext?.userId || 'unknown',
+                    sessionId: sessionId || 'unknown',
+                    personaId: toolContext?.personaId || 'ferni',
+                    conversationHistory: toolContext?.conversationHistory || [],
+                    services: toolContext?.services || undefined,
+                  }
+                );
 
                 if (execResult.success) {
                   const resultData = execResult.naturalResponse || execResult.data;
@@ -3303,10 +3341,9 @@ export function createSanitizerWithMusicFallback(
 
                   // Speak the result if we have a session
                   if (session?.generateReply && resultData) {
-                    const resultText = typeof resultData === 'string'
-                      ? resultData
-                      : JSON.stringify(resultData);
-                    
+                    const resultText =
+                      typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
+
                     session.generateReply({
                       instructions: `I just executed ${topMatch.toolId} for the user. Briefly acknowledge: "${resultText.slice(0, 200)}"`,
                       allowInterruptions: true,

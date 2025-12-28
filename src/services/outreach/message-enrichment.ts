@@ -101,12 +101,18 @@ function inferRelationshipStage(relationship: string): RelationshipStage {
   const lowerRel = relationship.toLowerCase();
 
   // Deep relationships
-  if (['mother', 'mom', 'father', 'dad', 'spouse', 'wife', 'husband', 'partner'].includes(lowerRel)) {
+  if (
+    ['mother', 'mom', 'father', 'dad', 'spouse', 'wife', 'husband', 'partner'].includes(lowerRel)
+  ) {
     return 'deep';
   }
 
   // Established relationships
-  if (['brother', 'sister', 'sibling', 'grandparent', 'grandma', 'grandpa', 'best friend'].includes(lowerRel)) {
+  if (
+    ['brother', 'sister', 'sibling', 'grandparent', 'grandma', 'grandpa', 'best friend'].includes(
+      lowerRel
+    )
+  ) {
     return 'established';
   }
 
@@ -240,9 +246,7 @@ OUTPUT as JSON:
  *
  * This gives us the best of both worlds: human warmth at scale.
  */
-export async function enrichMessage(
-  context: EnrichmentContext
-): Promise<EnrichedMessage> {
+export async function enrichMessage(context: EnrichmentContext): Promise<EnrichedMessage> {
   const startTime = Date.now();
 
   log.info(
@@ -294,10 +298,13 @@ function generateFromSemantic(
   intent: MessageIntent,
   startTime: number
 ): EnrichedMessage {
-  const stage = context.relationship.stage || inferRelationshipStageFromSemantic(context.relationship.relationship);
+  const stage =
+    context.relationship.stage ||
+    inferRelationshipStageFromSemantic(context.relationship.relationship);
 
   // Map 'short' to 'brief' for semantic system compatibility
-  const targetLength = context.settings?.maxLength === 'short' ? 'brief' : context.settings?.maxLength;
+  const targetLength =
+    context.settings?.maxLength === 'short' ? 'brief' : context.settings?.maxLength;
 
   // Build semantic context
   const semanticContext: SemanticMessageContext = {
@@ -314,13 +321,15 @@ function generateFromSemantic(
       stage,
     },
     time: getTimeContext(),
-    memory: context.context ? {
-      recentTopics: context.context.recentTopics,
-      recentWins: context.context.recentWins,
-      currentStruggles: context.context.currentStruggles,
-      upcomingEvents: context.context.upcomingEvents,
-      lastConversationSummary: context.context.lastConversationSummary,
-    } : undefined,
+    memory: context.context
+      ? {
+          recentTopics: context.context.recentTopics,
+          recentWins: context.context.recentWins,
+          currentStruggles: context.context.currentStruggles,
+          upcomingEvents: context.context.upcomingEvents,
+          lastConversationSummary: context.context.lastConversationSummary,
+        }
+      : undefined,
     isVoicemail: context.settings?.isVoicemail ?? false,
     targetLength,
   };
@@ -395,9 +404,7 @@ async function generateFromLLM(
 /**
  * Enrich specifically for voicemail with component structure
  */
-export async function enrichVoicemailMessage(
-  context: EnrichmentContext
-): Promise<EnrichedMessage> {
+export async function enrichVoicemailMessage(context: EnrichmentContext): Promise<EnrichedMessage> {
   const startTime = Date.now();
 
   log.info(
@@ -441,10 +448,7 @@ export async function enrichVoicemailMessage(
       }
     }
 
-    log.info(
-      { durationMs: Date.now() - startTime },
-      'Voicemail enrichment complete'
-    );
+    log.info({ durationMs: Date.now() - startTime }, 'Voicemail enrichment complete');
 
     return basicEnrichment;
   } catch (error) {
@@ -523,7 +527,10 @@ function fallbackEnrichment(context: EnrichmentContext): EnrichedMessage {
   // Morning greeting special handling
   if (originalMessage.toLowerCase().includes('good morning')) {
     mainMessage = `Just wanted to wish you a good ${timeOfDay === 'morning' ? 'morning' : 'day'}... I was thinking of you.`;
-  } else if (originalMessage.toLowerCase().includes('hi') || originalMessage.toLowerCase().includes('hello')) {
+  } else if (
+    originalMessage.toLowerCase().includes('hi') ||
+    originalMessage.toLowerCase().includes('hello')
+  ) {
     mainMessage = `Just wanted to say hi... You've been on my mind.`;
   } else if (originalMessage.toLowerCase().includes('thinking')) {
     mainMessage = `I've been thinking about you... wanted you to know.`;

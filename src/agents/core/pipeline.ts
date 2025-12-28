@@ -272,7 +272,9 @@ export abstract class SideEffectStep<TContext> extends BaseStep<TContext, TConte
 // ============================================================================
 
 function sleep(ms: number): Promise<void> {
-  return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 /**

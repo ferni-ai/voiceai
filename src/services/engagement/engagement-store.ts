@@ -205,7 +205,10 @@ export class EngagementStore {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION).doc(profile.userId).set(cleanForFirestore(profile), { merge: true });
+        await this.db
+          .collection(this.COLLECTION)
+          .doc(profile.userId)
+          .set(cleanForFirestore(profile), { merge: true });
       } catch (error) {
         getLogger().warn({ error, userId: profile.userId }, 'Failed to save engagement profile');
       }
@@ -619,7 +622,9 @@ export class EngagementStore {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionRef = docRef.collection('conversation_sessions').doc(latestSession.id as string);
       const existingHighlights = (latestSession.highlights as string[]) || [];
-      await sessionRef.update(cleanForFirestore({ highlights: [...existingHighlights, highlight] }));
+      await sessionRef.update(
+        cleanForFirestore({ highlights: [...existingHighlights, highlight] })
+      );
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to add highlight to session');
     }

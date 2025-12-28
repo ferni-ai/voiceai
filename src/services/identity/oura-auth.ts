@@ -282,10 +282,12 @@ async function storeTokens(userId: string, tokens: OuraTokens): Promise<void> {
     await db
       .collection(FIRESTORE_COLLECTION)
       .doc(userId)
-      .set(cleanForFirestore({
-        ...tokens,
-        updatedAt: new Date().toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...tokens,
+          updatedAt: new Date().toISOString(),
+        })
+      );
 
     // Update cache
     tokenCache.set(userId, tokens);

@@ -60,23 +60,13 @@ describe('CelebrationEngine', () => {
 
   describe('CelebrationIntensity', () => {
     it('should have all intensity levels', () => {
-      const intensities: CelebrationIntensity[] = [
-        'subtle',
-        'warm',
-        'enthusiastic',
-        'ecstatic',
-      ];
+      const intensities: CelebrationIntensity[] = ['subtle', 'warm', 'enthusiastic', 'ecstatic'];
 
       expect(intensities).toHaveLength(4);
     });
 
     it('should represent escalating energy levels', () => {
-      const intensityOrder: CelebrationIntensity[] = [
-        'subtle',
-        'warm',
-        'enthusiastic',
-        'ecstatic',
-      ];
+      const intensityOrder: CelebrationIntensity[] = ['subtle', 'warm', 'enthusiastic', 'ecstatic'];
 
       // Order matters - from calm to excited
       expect(intensityOrder[0]).toBe('subtle');
@@ -202,12 +192,7 @@ describe('CelebrationEngine', () => {
     });
 
     it('should have all energy levels', () => {
-      const energyLevels: CelebrationResponse['energy'][] = [
-        'calm',
-        'warm',
-        'bright',
-        'exuberant',
-      ];
+      const energyLevels: CelebrationResponse['energy'][] = ['calm', 'warm', 'bright', 'exuberant'];
 
       expect(energyLevels).toHaveLength(4);
     });
@@ -255,11 +240,7 @@ describe('CelebrationEngine', () => {
     });
 
     it('should track user reactions', () => {
-      const reactions: CelebrationRecord['userReaction'][] = [
-        'positive',
-        'neutral',
-        'dismissed',
-      ];
+      const reactions: CelebrationRecord['userReaction'][] = ['positive', 'neutral', 'dismissed'];
 
       reactions.forEach((reaction) => {
         const record: CelebrationRecord = {
@@ -304,7 +285,7 @@ describe('CelebrationEngine', () => {
       });
 
       it('should detect streak achievement', () => {
-        const result = engine.detectCelebration('I\'ve been running 7 days in a row now!', 5);
+        const result = engine.detectCelebration("I've been running 7 days in a row now!", 5);
 
         if (result) {
           expect(result.type).toBe('streak_achieved');
@@ -324,7 +305,7 @@ describe('CelebrationEngine', () => {
 
       it('should detect effort recognition', () => {
         const result = engine.detectCelebration(
-          'I tried my best even though it didn\'t work out',
+          "I tried my best even though it didn't work out",
           5
         );
 
@@ -335,7 +316,7 @@ describe('CelebrationEngine', () => {
 
       it('should detect breakthrough moments', () => {
         const result = engine.detectCelebration(
-          'I just realized why I\'ve been feeling this way!',
+          "I just realized why I've been feeling this way!",
           5
         );
 
@@ -345,10 +326,7 @@ describe('CelebrationEngine', () => {
       });
 
       it('should detect first-time achievements', () => {
-        const result = engine.detectCelebration(
-          'This is my first time ever running a 5K!',
-          5
-        );
+        const result = engine.detectCelebration('This is my first time ever running a 5K!', 5);
 
         if (result) {
           expect(result.type).toBe('first_time');
@@ -408,7 +386,7 @@ describe('CelebrationEngine', () => {
         '7 days in a row',
         '30 days straight',
         '2 weeks consecutive',
-        'I haven\'t missed a day',
+        "I haven't missed a day",
         'Every single morning',
         'Kept it up for 3 months',
         'Streak of 100 days',
@@ -431,12 +409,12 @@ describe('CelebrationEngine', () => {
     describe('Growth patterns', () => {
       const growthPhrases = [
         'I used to be scared of flying',
-        'I couldn\'t run a mile before',
+        "I couldn't run a mile before",
         'I never could do that',
         'Now I can do it easily',
-        'Compared to before, I\'m so much better',
-        'I\'ve grown so much',
-        'It\'s not as hard anymore',
+        "Compared to before, I'm so much better",
+        "I've grown so much",
+        "It's not as hard anymore",
         'So much easier now',
       ];
 
@@ -460,7 +438,7 @@ describe('CelebrationEngine', () => {
         'I tried my best',
         'I showed up anyway',
         'I did my best',
-        'Even though it didn\'t work',
+        "Even though it didn't work",
         'At least I attempted it',
         'I made myself do it',
         'Pushed through the pain',
@@ -491,7 +469,7 @@ describe('CelebrationEngine', () => {
         'I finally get it now',
         'Everything makes sense now',
         'I never thought of it that way',
-        'Oh my god, you\'re right',
+        "Oh my god, you're right",
       ];
 
       it.each(breakthroughPhrases)('should match breakthrough phrase: "%s"', (phrase) => {
@@ -511,7 +489,7 @@ describe('CelebrationEngine', () => {
 
     describe('First-time patterns', () => {
       const firstTimePhrases = [
-        'First time I\'ve done this',
+        "First time I've done this",
         'First time ever',
         'I never did that before',
         'Never done this before',
@@ -575,7 +553,7 @@ describe('CelebrationEngine', () => {
         personaId: 'ferni',
         achievement: 'Graduated with honors',
         significance: 'Years of hard work',
-        evidence: ['4.0 GPA', 'Dean\'s list', 'Honors thesis'],
+        evidence: ['4.0 GPA', "Dean's list", 'Honors thesis'],
         intensity: 'ecstatic',
         detectedAt: new Date(),
       };

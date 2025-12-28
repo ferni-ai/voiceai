@@ -77,7 +77,12 @@ import {
   updateHealthPreferences,
   getRecentHealthSummaries,
 } from './health-data-store.js';
-import type { HealthSyncRequest, HealthContext, HealthPreferences, HealthSummary } from './types.js';
+import type {
+  HealthSyncRequest,
+  HealthContext,
+  HealthPreferences,
+  HealthSummary,
+} from './types.js';
 
 /**
  * Unified Health Service API
@@ -200,4 +205,3 @@ export async function buildHealthAwarenessInjection(
 }
 
 export default healthService;
-

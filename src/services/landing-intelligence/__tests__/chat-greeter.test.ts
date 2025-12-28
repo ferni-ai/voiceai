@@ -49,33 +49,25 @@ describe('ChatGreeter', () => {
   describe('generateChatGreeting', () => {
     describe('Section-specific Greetings', () => {
       it('should return hero section greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ currentSection: 'hero' })
-        );
+        const greeting = await generateChatGreeting(createContext({ currentSection: 'hero' }));
 
         expect(greeting.length).toBeGreaterThan(0);
       });
 
       it('should return pricing section greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ currentSection: 'pricing' })
-        );
+        const greeting = await generateChatGreeting(createContext({ currentSection: 'pricing' }));
 
         expect(greeting.length).toBeGreaterThan(0);
       });
 
       it('should return FAQ section greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ currentSection: 'faq' })
-        );
+        const greeting = await generateChatGreeting(createContext({ currentSection: 'faq' }));
 
         expect(greeting.length).toBeGreaterThan(0);
       });
 
       it('should return team section greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ currentSection: 'team' })
-        );
+        const greeting = await generateChatGreeting(createContext({ currentSection: 'team' }));
 
         expect(greeting.length).toBeGreaterThan(0);
       });
@@ -83,9 +75,7 @@ describe('ChatGreeter', () => {
 
     describe('Time-based Greetings', () => {
       it('should return late-night greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ timeMode: 'late-night' })
-        );
+        const greeting = await generateChatGreeting(createContext({ timeMode: 'late-night' }));
 
         expect(greeting.length).toBeGreaterThan(0);
       });
@@ -109,9 +99,7 @@ describe('ChatGreeter', () => {
 
     describe('Behavioral Greetings', () => {
       it('should prioritize CTA hesitation greeting', async () => {
-        const greeting = await generateChatGreeting(
-          createContext({ ctaHesitation: true })
-        );
+        const greeting = await generateChatGreeting(createContext({ ctaHesitation: true }));
 
         expect(greeting).toMatch(/hesitat|pressure|time|decid/i);
       });
@@ -131,7 +119,15 @@ describe('ChatGreeter', () => {
 
         const greeting = await generateChatGreeting(
           createContext({
-            intent: { primaryConcern: 'career', confidence: 0.9, buyingStage: 'consideration', emotionalState: 'hopeful', recommendedContent: [], suggestedAction: 'engage', reasoning: 'test' },
+            intent: {
+              primaryConcern: 'career',
+              confidence: 0.9,
+              buyingStage: 'consideration',
+              emotionalState: 'hopeful',
+              recommendedContent: [],
+              suggestedAction: 'engage',
+              reasoning: 'test',
+            },
             timeOnPage: 60,
           })
         );
@@ -142,7 +138,15 @@ describe('ChatGreeter', () => {
       it('should use prebuilt for low confidence', async () => {
         const greeting = await generateChatGreeting(
           createContext({
-            intent: { primaryConcern: 'curiosity', confidence: 0.3, buyingStage: 'awareness', emotionalState: 'calm', recommendedContent: [], suggestedAction: 'engage', reasoning: 'test' },
+            intent: {
+              primaryConcern: 'curiosity',
+              confidence: 0.3,
+              buyingStage: 'awareness',
+              emotionalState: 'calm',
+              recommendedContent: [],
+              suggestedAction: 'engage',
+              reasoning: 'test',
+            },
             timeOnPage: 60,
           })
         );
@@ -157,7 +161,15 @@ describe('ChatGreeter', () => {
         await expect(
           generateChatGreeting(
             createContext({
-              intent: { primaryConcern: 'career', confidence: 0.9, buyingStage: 'decision', emotionalState: 'urgent', recommendedContent: [], suggestedAction: 'engage', reasoning: 'test' },
+              intent: {
+                primaryConcern: 'career',
+                confidence: 0.9,
+                buyingStage: 'decision',
+                emotionalState: 'urgent',
+                recommendedContent: [],
+                suggestedAction: 'engage',
+                reasoning: 'test',
+              },
               timeOnPage: 60,
             })
           )
@@ -198,9 +210,7 @@ describe('ChatGreeter', () => {
 
     describe('Priority Triggers', () => {
       it('should show quickly on CTA hesitation', () => {
-        const timing = getGreetingTiming(
-          createContext({ ctaHesitation: true, timeOnPage: 10 })
-        );
+        const timing = getGreetingTiming(createContext({ ctaHesitation: true, timeOnPage: 10 }));
 
         expect(timing.shouldShow).toBe(true);
         expect(timing.delay).toBe(500);
@@ -236,26 +246,20 @@ describe('ChatGreeter', () => {
       });
 
       it('should show on pricing section', () => {
-        const timing = getGreetingTiming(
-          createContext({ currentSection: 'pricing' })
-        );
+        const timing = getGreetingTiming(createContext({ currentSection: 'pricing' }));
 
         expect(timing.shouldShow).toBe(true);
         expect(timing.reason).toContain('decision');
       });
 
       it('should show on FAQ section', () => {
-        const timing = getGreetingTiming(
-          createContext({ currentSection: 'faq' })
-        );
+        const timing = getGreetingTiming(createContext({ currentSection: 'faq' }));
 
         expect(timing.shouldShow).toBe(true);
       });
 
       it('should show on proof section', () => {
-        const timing = getGreetingTiming(
-          createContext({ currentSection: 'proof' })
-        );
+        const timing = getGreetingTiming(createContext({ currentSection: 'proof' }));
 
         expect(timing.shouldShow).toBe(true);
       });
@@ -263,9 +267,7 @@ describe('ChatGreeter', () => {
 
     describe('Time-based Triggers', () => {
       it('should show after 20 seconds on page', () => {
-        const timing = getGreetingTiming(
-          createContext({ timeOnPage: 25, scrollDepth: 10 })
-        );
+        const timing = getGreetingTiming(createContext({ timeOnPage: 25, scrollDepth: 10 }));
 
         expect(timing.shouldShow).toBe(true);
         expect(timing.reason).toContain('Time-based');
@@ -282,17 +284,13 @@ describe('ChatGreeter', () => {
 
     describe('Delay Values', () => {
       it('should have shortest delay for CTA hesitation', () => {
-        const timing = getGreetingTiming(
-          createContext({ ctaHesitation: true, timeOnPage: 10 })
-        );
+        const timing = getGreetingTiming(createContext({ ctaHesitation: true, timeOnPage: 10 }));
 
         expect(timing.delay).toBe(500);
       });
 
       it('should have longer delay for time-based trigger', () => {
-        const timing = getGreetingTiming(
-          createContext({ timeOnPage: 25, scrollDepth: 10 })
-        );
+        const timing = getGreetingTiming(createContext({ timeOnPage: 25, scrollDepth: 10 }));
 
         expect(timing.delay).toBe(5000);
       });
@@ -304,9 +302,7 @@ describe('ChatGreeter', () => {
       const sections = ['hero', 'pricing', 'team', 'faq'];
 
       for (const section of sections) {
-        const greeting = await generateChatGreeting(
-          createContext({ currentSection: section })
-        );
+        const greeting = await generateChatGreeting(createContext({ currentSection: section }));
 
         // All greetings should be under 60 characters
         expect(greeting.length).toBeLessThan(60);

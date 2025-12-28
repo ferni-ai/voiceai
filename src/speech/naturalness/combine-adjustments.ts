@@ -107,9 +107,10 @@ export function combineAdjustments(sources: SourceAdjustments[]): CombinedTtsAdj
       speedWeightSum += source.priority;
     }
   }
-  const speedMultiplier = speedWeightSum > 0
-    ? clamp(speedSum / speedWeightSum, COMBINE_CONFIG.SPEED.MIN, COMBINE_CONFIG.SPEED.MAX)
-    : COMBINE_CONFIG.SPEED.DEFAULT;
+  const speedMultiplier =
+    speedWeightSum > 0
+      ? clamp(speedSum / speedWeightSum, COMBINE_CONFIG.SPEED.MIN, COMBINE_CONFIG.SPEED.MAX)
+      : COMBINE_CONFIG.SPEED.DEFAULT;
 
   // Max for volume
   const volumeBoost = clamp(
@@ -142,9 +143,7 @@ export function combineAdjustments(sources: SourceAdjustments[]): CombinedTtsAdj
   }
 
   // Collect reasons
-  const reasons = sources
-    .filter((s) => s.reason)
-    .map((s) => `[${s.source}] ${s.reason}`);
+  const reasons = sources.filter((s) => s.reason).map((s) => `[${s.source}] ${s.reason}`);
 
   return {
     speedMultiplier,

@@ -158,10 +158,7 @@ export function getPromptForCapability(
 /**
  * Check if a capability requires permission at current trust level
  */
-export function requiresPermission(
-  capability: CapabilityCategory,
-  trustLevel = 0
-): boolean {
+export function requiresPermission(capability: CapabilityCategory, trustLevel = 0): boolean {
   // Memory callbacks at low trust don't need permission
   if (capability === 'memory' && trustLevel < 0.2) {
     return false;

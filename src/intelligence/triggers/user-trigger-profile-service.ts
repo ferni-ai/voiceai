@@ -22,7 +22,8 @@ import type {
   ProfileExtractionResult,
   ProfileContextBoost,
   PhrasePattern,
-  TemporalPattern} from './user-trigger-profile.types.js';
+  TemporalPattern,
+} from './user-trigger-profile.types.js';
 import {
   TriggerEffectiveness,
   DEFAULT_USER_TRIGGER_PROFILE,

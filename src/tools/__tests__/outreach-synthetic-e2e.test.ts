@@ -78,7 +78,7 @@ const SEED_SCENARIOS: OutreachScenario[] = [
   {
     id: 'personal-6',
     category: 'personal',
-    userUtterance: "Can you call my dad and just check in on him? He lives alone and I worry",
+    userUtterance: 'Can you call my dad and just check in on him? He lives alone and I worry',
     expectedDomain: 'communication',
     expectedTool: 'reachOut',
     expectedParams: { contactName: 'dad', purpose: 'check_in' },
@@ -125,7 +125,7 @@ const SEED_SCENARIOS: OutreachScenario[] = [
   {
     id: 'proactive-5',
     category: 'proactive',
-    userUtterance: "Check in with me next week about how the diet is going",
+    userUtterance: 'Check in with me next week about how the diet is going',
     expectedDomain: 'proactive',
     expectedTool: 'scheduleProactiveReminder',
     expectedParams: { type: 'check_in' },
@@ -237,36 +237,34 @@ ONLY return valid JSON, no other text.`;
     // Try to use our LLM service (Gemini)
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const apiKey = process.env.GOOGLE_API_KEY;
-    
+
     if (!apiKey) {
       throw new Error('GOOGLE_API_KEY not set');
     }
-    
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-    
+
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-    
+
     // Extract JSON from response (might be wrapped in markdown)
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as GeneratedScenario[];
-      return parsed.map(s => ({ ...s, expectedCategory: category }));
+      return parsed.map((s) => ({ ...s, expectedCategory: category }));
     }
   } catch (error) {
     console.warn('LLM generation failed, using seed scenarios:', error);
   }
 
   // Fallback to seed scenarios
-  return SEED_SCENARIOS
-    .filter(s => s.category === category)
-    .map(s => ({
-      utterance: s.userUtterance,
-      expectedCategory: category,
-      complexity: s.difficulty,
-      variations: [],
-    }));
+  return SEED_SCENARIOS.filter((s) => s.category === category).map((s) => ({
+    utterance: s.userUtterance,
+    expectedCategory: category,
+    complexity: s.difficulty,
+    variations: [],
+  }));
 }
 
 // ============================================================================
@@ -289,7 +287,7 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
   try {
     const { semanticRouter } = await import('../semantic-router/index.js');
     const matches = await semanticRouter.findRelevantToolsAsync(utterance);
-    
+
     if (matches.length > 0) {
       const topMatch = matches[0];
       const domain = inferDomainFromTool(topMatch.toolId);
@@ -307,14 +305,14 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
 
   // Rule-based fallback classification
   const lowerUtterance = utterance.toLowerCase();
-  
+
   // =========== CONCIERGE - Check first (most specific patterns) ===========
   // These are BUSINESS interactions, not personal contacts
   const conciergeIndicators = [
     // Restaurant bookings
     /\b(reservation|book a table|make a reservation)\b.*\b(restaurant|at \w+)/i,
     /\breservation at/i,
-    // Hotel bookings  
+    // Hotel bookings
     /\b(book|reserve|find)\s+(a |me )?(hotel|room|stay)/i,
     // Appointments with businesses (not personal contacts)
     /\b(schedule|book)\s+(a |an |my )?(dentist|doctor|appointment|haircut|massage)/i,
@@ -371,9 +369,9 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
   ];
 
   // Score each category with weighted matches
-  const conciergeScore = conciergeIndicators.filter(r => r.test(lowerUtterance)).length * 2; // Higher weight
-  const proactiveScore = proactiveIndicators.filter(r => r.test(lowerUtterance)).length;
-  const personalScore = personalIndicators.filter(r => r.test(lowerUtterance)).length;
+  const conciergeScore = conciergeIndicators.filter((r) => r.test(lowerUtterance)).length * 2; // Higher weight
+  const proactiveScore = proactiveIndicators.filter((r) => r.test(lowerUtterance)).length;
+  const personalScore = personalIndicators.filter((r) => r.test(lowerUtterance)).length;
 
   // Special disambiguation rules
   let finalConciergeScore = conciergeScore;
@@ -391,7 +389,9 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
   }
 
   // If business/service word present, likely concierge
-  if (/\b(restaurant|hotel|dentist|doctor|plumber|electrician|salon|clinic)\b/i.test(lowerUtterance)) {
+  if (
+    /\b(restaurant|hotel|dentist|doctor|plumber|electrician|salon|clinic)\b/i.test(lowerUtterance)
+  ) {
     // But only if not "my doctor" style personal contact
     if (!/\bmy\s+(doctor|dentist)\b/i.test(lowerUtterance)) {
       finalConciergeScore += 1;
@@ -399,7 +399,7 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
   }
 
   const maxScore = Math.max(finalPersonalScore, finalProactiveScore, finalConciergeScore);
-  
+
   if (maxScore === 0) {
     return {
       domain: 'unknown',
@@ -434,21 +434,31 @@ async function classifyOutreachIntent(utterance: string): Promise<Classification
   };
 }
 
-function inferDomainFromTool(toolId: string): 'communication' | 'proactive' | 'concierge' | 'unknown' {
+function inferDomainFromTool(
+  toolId: string
+): 'communication' | 'proactive' | 'concierge' | 'unknown' {
   if (['reachOut', 'sendMessage', 'makeCall', 'sendEmail'].includes(toolId)) {
     return 'communication';
   }
   if (['scheduleReminder', 'scheduleProactiveReminder', 'textUser', 'callUser'].includes(toolId)) {
     return 'proactive';
   }
-  if (['makeRestaurantReservation', 'getServiceQuotes', 'scheduleAppointment', 'requestHotelQuotes'].includes(toolId)) {
+  if (
+    [
+      'makeRestaurantReservation',
+      'getServiceQuotes',
+      'scheduleAppointment',
+      'requestHotelQuotes',
+    ].includes(toolId)
+  ) {
     return 'concierge';
   }
   return 'unknown';
 }
 
 function inferConciergeTool(utterance: string): string {
-  if (/restaurant|table|dinner|lunch|reservation/i.test(utterance)) return 'makeRestaurantReservation';
+  if (/restaurant|table|dinner|lunch|reservation/i.test(utterance))
+    return 'makeRestaurantReservation';
   if (/quote|estimate|plumber|electrician|contractor/i.test(utterance)) return 'getServiceQuotes';
   if (/hotel|room|stay/i.test(utterance)) return 'requestHotelQuotes';
   if (/appointment|doctor|dentist|clinic/i.test(utterance)) return 'scheduleAppointment';
@@ -457,36 +467,112 @@ function inferConciergeTool(utterance: string): string {
 
 function extractParams(utterance: string, _domain: string): Record<string, unknown> {
   const params: Record<string, unknown> = {};
-  
+
   // Extract contact name - more sophisticated patterns
-  const relationshipWords = ['mom', 'dad', 'mother', 'father', 'wife', 'husband', 'spouse', 
-    'brother', 'sister', 'friend', 'boss', 'colleague', 'grandma', 'grandmother', 
-    'grandpa', 'grandfather', 'aunt', 'uncle', 'cousin', 'son', 'daughter'];
-  
+  const relationshipWords = [
+    'mom',
+    'dad',
+    'mother',
+    'father',
+    'wife',
+    'husband',
+    'spouse',
+    'brother',
+    'sister',
+    'friend',
+    'boss',
+    'colleague',
+    'grandma',
+    'grandmother',
+    'grandpa',
+    'grandfather',
+    'aunt',
+    'uncle',
+    'cousin',
+    'son',
+    'daughter',
+  ];
+
   // Words that look like names but aren't contacts (lowercase for comparison)
-  const excludeWords = new Set(['text', 'call', 'email', 'message', 'send', 'reach', 'check', 'remind', 
-    'book', 'make', 'schedule', 'get', 'find', 'leave', 'the', 'about', 'for', 'on', 'in', 'to', 
-    'out', 'can', 'you', 'me', 'my', 'i', 'and', 'or', 'a', 'an', 'if', 'haven\'t', 'been']);
-  
+  const excludeWords = new Set([
+    'text',
+    'call',
+    'email',
+    'message',
+    'send',
+    'reach',
+    'check',
+    'remind',
+    'book',
+    'make',
+    'schedule',
+    'get',
+    'find',
+    'leave',
+    'the',
+    'about',
+    'for',
+    'on',
+    'in',
+    'to',
+    'out',
+    'can',
+    'you',
+    'me',
+    'my',
+    'i',
+    'and',
+    'or',
+    'a',
+    'an',
+    'if',
+    "haven't",
+    'been',
+  ]);
+
   // Common words that might be capitalized at sentence start
-  const commonWords = new Set(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-    'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
-    'september', 'october', 'november', 'december', 'garden', 'square', 'times', 'olive']);
-  
+  const commonWords = new Set([
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
+    'garden',
+    'square',
+    'times',
+    'olive',
+  ]);
+
   // Pattern 1: "my [relationship]"
-  const myRelationMatch = utterance.match(new RegExp(`\\bmy\\s+(${relationshipWords.join('|')})\\b`, 'i'));
+  const myRelationMatch = utterance.match(
+    new RegExp(`\\bmy\\s+(${relationshipWords.join('|')})\\b`, 'i')
+  );
   if (myRelationMatch) {
     params.contactName = myRelationMatch[1];
   }
-  
-  // Pattern 2: "Dr. Name" or "Dr Name" 
+
+  // Pattern 2: "Dr. Name" or "Dr Name"
   if (!params.contactName) {
     const drMatch = utterance.match(/\bDr\.?\s+([A-Z][a-z]+)/);
     if (drMatch) {
       params.contactName = `Dr. ${drMatch[1]}`;
     }
   }
-  
+
   // Pattern 3: Named person after action verb (call Sarah, text Mike)
   // Match action verb followed by a word - but exclude relationship words
   if (!params.contactName) {
@@ -498,33 +584,39 @@ function extractParams(utterance: string, _domain: string): Record<string, unkno
       /\bcontact\s+([A-Za-z]+)\b/i,
       /\breach out to\s+([A-Za-z]+)\b/i,
     ];
-    
+
     for (const pattern of actionPatterns) {
       const match = utterance.match(pattern);
       if (match) {
         const candidate = match[1];
         const lower = candidate.toLowerCase();
         // Must not be an excluded word or relationship word
-        if (!excludeWords.has(lower) && 
-            !relationshipWords.includes(lower) &&
-            !commonWords.has(lower)) {
+        if (
+          !excludeWords.has(lower) &&
+          !relationshipWords.includes(lower) &&
+          !commonWords.has(lower)
+        ) {
           params.contactName = candidate;
           break;
         }
       }
     }
   }
-  
+
   // Pattern 4: Just relationship word (if nothing else found)
   if (!params.contactName) {
-    const relationMatch = utterance.match(new RegExp(`\\b(${relationshipWords.join('|')})\\b`, 'i'));
+    const relationMatch = utterance.match(
+      new RegExp(`\\b(${relationshipWords.join('|')})\\b`, 'i')
+    );
     if (relationMatch) {
       params.contactName = relationMatch[1];
     }
   }
 
   // Extract time
-  const timeMatch = utterance.match(/\b(tomorrow|today|tonight|next\s+\w+|in\s+\d+\s+(hour|minute|day)s?|at\s+\d{1,2}(:\d{2})?\s*(am|pm)?)/i);
+  const timeMatch = utterance.match(
+    /\b(tomorrow|today|tonight|next\s+\w+|in\s+\d+\s+(hour|minute|day)s?|at\s+\d{1,2}(:\d{2})?\s*(am|pm)?)/i
+  );
   if (timeMatch) {
     params.when = timeMatch[0];
   }
@@ -553,8 +645,9 @@ async function runScenarioTest(
   scenario: OutreachScenario | GeneratedScenario
 ): Promise<TestResult> {
   const utterance = 'utterance' in scenario ? scenario.utterance : scenario.userUtterance;
-  const expectedCategory = 'expectedCategory' in scenario ? scenario.expectedCategory : scenario.category;
-  
+  const expectedCategory =
+    'expectedCategory' in scenario ? scenario.expectedCategory : scenario.category;
+
   const classification = await classifyOutreachIntent(utterance);
   const errors: string[] = [];
 
@@ -585,23 +678,26 @@ describe('Outreach Synthetic E2E Tests', () => {
   describe('Seed Scenario Classification', () => {
     it.each(SEED_SCENARIOS)('should classify: $userUtterance', async (scenario) => {
       const result = await runScenarioTest(scenario);
-      
+
       if (!result.passed) {
         console.log('Classification:', result.classification);
         console.log('Errors:', result.errors);
       }
-      
+
       expect(result.passed).toBe(true);
     });
   });
 
   describe('Personal Outreach Scenarios', () => {
-    const personalScenarios = SEED_SCENARIOS.filter(s => s.category === 'personal');
-    
-    it.each(personalScenarios)('should route to communication domain: $userUtterance', async (scenario) => {
-      const classification = await classifyOutreachIntent(scenario.userUtterance);
-      expect(classification.domain).toBe('communication');
-    });
+    const personalScenarios = SEED_SCENARIOS.filter((s) => s.category === 'personal');
+
+    it.each(personalScenarios)(
+      'should route to communication domain: $userUtterance',
+      async (scenario) => {
+        const classification = await classifyOutreachIntent(scenario.userUtterance);
+        expect(classification.domain).toBe('communication');
+      }
+    );
 
     it.each([
       { utterance: 'Call my mom', expected: 'mom' },
@@ -617,12 +713,15 @@ describe('Outreach Synthetic E2E Tests', () => {
   });
 
   describe('Proactive Outreach Scenarios', () => {
-    const proactiveScenarios = SEED_SCENARIOS.filter(s => s.category === 'proactive');
-    
-    it.each(proactiveScenarios)('should route to proactive domain: $userUtterance', async (scenario) => {
-      const classification = await classifyOutreachIntent(scenario.userUtterance);
-      expect(classification.domain).toBe('proactive');
-    });
+    const proactiveScenarios = SEED_SCENARIOS.filter((s) => s.category === 'proactive');
+
+    it.each(proactiveScenarios)(
+      'should route to proactive domain: $userUtterance',
+      async (scenario) => {
+        const classification = await classifyOutreachIntent(scenario.userUtterance);
+        expect(classification.domain).toBe('proactive');
+      }
+    );
 
     it('should extract timing correctly', async () => {
       const testCases = [
@@ -633,26 +732,31 @@ describe('Outreach Synthetic E2E Tests', () => {
 
       for (const { utterance, expected } of testCases) {
         const result = await classifyOutreachIntent(utterance);
-        expect(result.extractedParams.when?.toString().toLowerCase()).toContain(expected.toLowerCase());
+        expect(result.extractedParams.when?.toString().toLowerCase()).toContain(
+          expected.toLowerCase()
+        );
       }
     });
   });
 
   describe('Concierge Scenarios', () => {
-    const conciergeScenarios = SEED_SCENARIOS.filter(s => s.category === 'concierge');
-    
-    it.each(conciergeScenarios)('should route to concierge domain: $userUtterance', async (scenario) => {
-      const classification = await classifyOutreachIntent(scenario.userUtterance);
-      expect(classification.domain).toBe('concierge');
-    });
+    const conciergeScenarios = SEED_SCENARIOS.filter((s) => s.category === 'concierge');
+
+    it.each(conciergeScenarios)(
+      'should route to concierge domain: $userUtterance',
+      async (scenario) => {
+        const classification = await classifyOutreachIntent(scenario.userUtterance);
+        expect(classification.domain).toBe('concierge');
+      }
+    );
   });
 
   describe('Edge Cases', () => {
     it('should handle ambiguous requests', async () => {
       const ambiguous = [
-        "I need to talk to someone about my account",
-        "Can you help me with a call?",
-        "Send a message",
+        'I need to talk to someone about my account',
+        'Can you help me with a call?',
+        'Send a message',
       ];
 
       for (const utterance of ambiguous) {
@@ -664,8 +768,8 @@ describe('Outreach Synthetic E2E Tests', () => {
 
     it('should handle emotional context', async () => {
       const emotional = [
-        "I really need to apologize to my sister, I said some things I regret",
-        "My friend just lost her mom, I should reach out",
+        'I really need to apologize to my sister, I said some things I regret',
+        'My friend just lost her mom, I should reach out',
         "I'm so proud of my son, I want to call and tell him",
       ];
 
@@ -678,7 +782,7 @@ describe('Outreach Synthetic E2E Tests', () => {
     it('should handle indirect requests', async () => {
       const indirect = [
         "I've been meaning to call my dad",
-        "I should probably check on my grandma",
+        'I should probably check on my grandma',
         "It's been a while since I talked to Mike",
       ];
 
@@ -753,13 +857,13 @@ export async function generateOutreachTestReport(): Promise<string> {
   }
 
   // Generate report
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
   const byDomain = {
-    communication: results.filter(r => r.classification.domain === 'communication'),
-    proactive: results.filter(r => r.classification.domain === 'proactive'),
-    concierge: results.filter(r => r.classification.domain === 'concierge'),
-    unknown: results.filter(r => r.classification.domain === 'unknown'),
+    communication: results.filter((r) => r.classification.domain === 'communication'),
+    proactive: results.filter((r) => r.classification.domain === 'proactive'),
+    concierge: results.filter((r) => r.classification.domain === 'concierge'),
+    unknown: results.filter((r) => r.classification.domain === 'unknown'),
   };
 
   const report = `
@@ -777,20 +881,25 @@ export async function generateOutreachTestReport(): Promise<string> {
 - Unknown: ${byDomain.unknown.length} scenarios
 
 ## Failed Scenarios
-${results.filter(r => !r.passed).map(r => {
-  const utterance = 'utterance' in r.scenario ? r.scenario.utterance : r.scenario.userUtterance;
-  return `- "${utterance}"
+${results
+  .filter((r) => !r.passed)
+  .map((r) => {
+    const utterance = 'utterance' in r.scenario ? r.scenario.utterance : r.scenario.userUtterance;
+    return `- "${utterance}"
   - Errors: ${r.errors.join(', ')}
   - Got: ${r.classification.domain} (${r.classification.suggestedTool})`;
-}).join('\n')}
+  })
+  .join('\n')}
 
 ## Confidence Distribution
-${results.map(r => {
-  const utterance = 'utterance' in r.scenario ? r.scenario.utterance : r.scenario.userUtterance;
-  return `- ${r.classification.confidence.toFixed(2)}: "${utterance.substring(0, 50)}..."`;
-}).sort().join('\n')}
+${results
+  .map((r) => {
+    const utterance = 'utterance' in r.scenario ? r.scenario.utterance : r.scenario.userUtterance;
+    return `- ${r.classification.confidence.toFixed(2)}: "${utterance.substring(0, 50)}..."`;
+  })
+  .sort()
+  .join('\n')}
 `;
 
   return report;
 }
-

@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  IntentClassifier,
-  initializeIntentClassifier,
-} from '../intent-classifier.js';
+import { IntentClassifier, initializeIntentClassifier } from '../intent-classifier.js';
 import {
   BanditOptimizer,
   initializeBanditOptimizer,

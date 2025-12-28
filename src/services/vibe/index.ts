@@ -15,4 +15,3 @@ export {
   type VibeState,
   type VibeActivationResult,
 } from './vibe-service.js';
-

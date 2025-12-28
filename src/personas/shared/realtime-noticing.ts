@@ -334,14 +334,20 @@ function detectSignificantPause(input: NoticingInput): NoticingResult | null {
     acknowledgment = "I noticed you paused. <break time='200ms'/>Take your time.";
     timing = 'gentle_delay';
     subtlety = 'gentle';
-    confidence = 0.5 + (pauseMs - thresholds.longPauseMs) / (thresholds.veryLongPauseMs - thresholds.longPauseMs) * 0.3;
+    confidence =
+      0.5 +
+      ((pauseMs - thresholds.longPauseMs) / (thresholds.veryLongPauseMs - thresholds.longPauseMs)) *
+        0.3;
     observation = 'User took a moment before responding';
   } else {
     // Short pause - very subtle acknowledgment
     acknowledgment = "Hmm. <break time='150ms'/>";
     timing = 'wait_for_opening';
     subtlety = 'whisper';
-    confidence = 0.3 + (pauseMs - thresholds.shortPauseMs) / (thresholds.longPauseMs - thresholds.shortPauseMs) * 0.2;
+    confidence =
+      0.3 +
+      ((pauseMs - thresholds.shortPauseMs) / (thresholds.longPauseMs - thresholds.shortPauseMs)) *
+        0.2;
     observation = 'User paused briefly before speaking';
   }
 
@@ -401,7 +407,10 @@ function detectEnergyShift(input: NoticingInput): NoticingResult | null {
   const arousalShift = currentArousal - avgPreviousArousal;
 
   // Significant energy drop
-  if (currentArousal < thresholds.energyDropArousal && currentValence < thresholds.energyDropValence) {
+  if (
+    currentArousal < thresholds.energyDropArousal &&
+    currentValence < thresholds.energyDropValence
+  ) {
     const shiftMagnitude = Math.abs(arousalShift);
     return {
       type: 'energy_drop',
@@ -430,7 +439,10 @@ function detectEnergyShift(input: NoticingInput): NoticingResult | null {
   }
 
   // Significant energy rise
-  if (currentArousal > thresholds.energyRiseArousal && currentValence > thresholds.energyRiseValence) {
+  if (
+    currentArousal > thresholds.energyRiseArousal &&
+    currentValence > thresholds.energyRiseValence
+  ) {
     return {
       type: 'energy_rise',
       observation: 'Voice energy lifted',
@@ -774,7 +786,10 @@ export function shouldThrottleNoticing(
 
   // Don't over-acknowledge (max N per session, per persona setting)
   // Breakthrough moments are always allowed
-  if (state.acknowledgedCount >= thresholds.maxNoticingsPerSession && result.type !== 'breakthrough_moment') {
+  if (
+    state.acknowledgedCount >= thresholds.maxNoticingsPerSession &&
+    result.type !== 'breakthrough_moment'
+  ) {
     return true;
   }
 

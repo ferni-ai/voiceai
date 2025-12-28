@@ -189,7 +189,8 @@ describe('RapportScorer', () => {
       const scorer = getRapportScorer(testSessionId);
 
       const initialScore = scorer.getCurrentScore();
-      const initialEngagement = initialScore.signals.find((s) => s.name === 'engagement')?.value ?? 0;
+      const initialEngagement =
+        initialScore.signals.find((s) => s.name === 'engagement')?.value ?? 0;
 
       // High engagement turn
       for (let i = 0; i < 5; i++) {

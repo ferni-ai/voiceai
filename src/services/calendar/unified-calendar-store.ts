@@ -730,7 +730,10 @@ async function persistEvent(userId: string, event: CalendarEvent): Promise<void>
 
   try {
     const stored = eventToStored(event);
-    await firestore.collection(getUserEventsCollection(userId)).doc(event.id).set(cleanForFirestore(stored));
+    await firestore
+      .collection(getUserEventsCollection(userId))
+      .doc(event.id)
+      .set(cleanForFirestore(stored));
   } catch (error) {
     log.error({ error: String(error), eventId: event.id }, 'Failed to persist event');
   }

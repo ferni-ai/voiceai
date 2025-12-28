@@ -30,10 +30,7 @@ import {
 
 // "Our Songs" - shared musical memories ("Better Than Human" feature)
 import { getMusicPlayer } from '../../audio/music-player.js';
-import {
-  detectSignificantMoment,
-  recordOurSong,
-} from '../../services/trust-systems/our-songs.js';
+import { detectSignificantMoment, recordOurSong } from '../../services/trust-systems/our-songs.js';
 
 // ============================================================================
 // TYPES

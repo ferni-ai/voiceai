@@ -253,11 +253,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
   /**
    * Delete event from Google Calendar
    */
-  async deleteEvent(
-    userId: string,
-    eventId: string,
-    calendarId = 'primary'
-  ): Promise<boolean> {
+  async deleteEvent(userId: string, eventId: string, calendarId = 'primary'): Promise<boolean> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
       log.warn({ userId }, 'No valid Google access token for delete');

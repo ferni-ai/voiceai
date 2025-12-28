@@ -379,7 +379,7 @@ describe('Behavioral Fingerprinting', () => {
           wasCorrect: i % 5 !== 0, // 80% correct
           confidence: 0.7 + (i % 3) * 0.1,
           latencyMs: 30 + (i % 10) * 20,
-          messageLength: 5 + i % 20,
+          messageLength: 5 + (i % 20),
           isQuestion: i % 4 === 0,
           isFollowup: i % 6 === 0,
         })

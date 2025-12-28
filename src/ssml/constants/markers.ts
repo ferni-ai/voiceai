@@ -6,4 +6,3 @@
 
 export const FINANCIAL_START = '\uE001';
 export const FINANCIAL_END = '\uE002';
-

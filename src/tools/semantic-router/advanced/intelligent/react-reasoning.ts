@@ -170,10 +170,7 @@ export class ReActReasoningEngine {
         }
 
         // Check for conversation decision
-        if (
-          parsed.type === 'action' &&
-          parsed.content.toLowerCase().includes('conversation')
-        ) {
+        if (parsed.type === 'action' && parsed.content.toLowerCase().includes('conversation')) {
           return this.buildResult(steps, startTime, availableTools);
         }
 
@@ -633,4 +630,3 @@ export function suggestsMultiStep(result: ReActResult): boolean {
     content.includes('multiple')
   );
 }
-

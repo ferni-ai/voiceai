@@ -48,7 +48,11 @@ import {
   resetAliveOrchestrator,
   type AliveOrchestratorConfig,
 } from '../alive-orchestrator.js';
-import type { VoiceEmotionResult, VoiceEmotion, ProsodyFeatures } from '../../speech/audio-prosody/types.js';
+import type {
+  VoiceEmotionResult,
+  VoiceEmotion,
+  ProsodyFeatures,
+} from '../../speech/audio-prosody/types.js';
 
 // Helper to create valid VoiceEmotionResult mock with all required properties
 function createMockVoiceEmotion(
@@ -93,7 +97,9 @@ describe('AliveOrchestrator', () => {
   const mockPlayMusic = vi.fn();
   const mockSendDataMessage = vi.fn().mockResolvedValue(undefined);
 
-  const createConfig = (overrides: Partial<AliveOrchestratorConfig> = {}): AliveOrchestratorConfig => ({
+  const createConfig = (
+    overrides: Partial<AliveOrchestratorConfig> = {}
+  ): AliveOrchestratorConfig => ({
     personaId: 'ferni',
     userId: 'test-user-123',
     sessionId: 'test-session-123',
@@ -157,7 +163,11 @@ describe('AliveOrchestrator', () => {
       await orchestrator.onUserTurn({
         userMessage: 'I feel great',
         turnCount: 1,
-        voiceEmotion: createMockVoiceEmotion('happy', { confidence: 0.9, arousal: 0.7, valence: 0.8 }),
+        voiceEmotion: createMockVoiceEmotion('happy', {
+          confidence: 0.9,
+          arousal: 0.7,
+          valence: 0.8,
+        }),
       });
 
       expect(orchestrator.getState().currentUserEmotion).toBe('happy');
@@ -205,7 +215,11 @@ describe('AliveOrchestrator', () => {
       const event = await orchestrator.onUserTurn({
         userMessage: 'I feel tired',
         turnCount: 5,
-        voiceEmotion: createMockVoiceEmotion('bored', { confidence: 0.9, arousal: 0.3, valence: 0.4 }),
+        voiceEmotion: createMockVoiceEmotion('bored', {
+          confidence: 0.9,
+          arousal: 0.3,
+          valence: 0.4,
+        }),
       });
 
       expect(event).not.toBeNull();
@@ -412,7 +426,11 @@ describe('AliveOrchestrator', () => {
       await orchestrator.onUserTurn({
         userMessage: 'Hello',
         turnCount: 5,
-        voiceEmotion: createMockVoiceEmotion('happy', { confidence: 0.9, arousal: 0.7, valence: 0.8 }),
+        voiceEmotion: createMockVoiceEmotion('happy', {
+          confidence: 0.9,
+          arousal: 0.7,
+          valence: 0.8,
+        }),
       });
 
       expect(orchestrator.getState().eventsFired.length).toBe(1);
@@ -434,7 +452,11 @@ describe('AliveOrchestrator', () => {
       await orchestrator.onUserTurn({
         userMessage: 'Hi',
         turnCount: 5,
-        voiceEmotion: createMockVoiceEmotion('neutral', { confidence: 0.8, arousal: 0.3, valence: 0.6 }),
+        voiceEmotion: createMockVoiceEmotion('neutral', {
+          confidence: 0.8,
+          arousal: 0.3,
+          valence: 0.6,
+        }),
       });
 
       expect(orchestrator.getState().lastAliveEventTime).toBeGreaterThan(beforeTime);
@@ -457,7 +479,11 @@ describe('AliveOrchestrator', () => {
       await orchestrator.onUserTurn({
         userMessage: 'Hello',
         turnCount: 5,
-        voiceEmotion: createMockVoiceEmotion('happy', { confidence: 0.9, arousal: 0.7, valence: 0.8 }),
+        voiceEmotion: createMockVoiceEmotion('happy', {
+          confidence: 0.9,
+          arousal: 0.7,
+          valence: 0.8,
+        }),
       });
 
       expect(mockSendDataMessage).toHaveBeenCalledWith(

@@ -690,7 +690,10 @@ export class UnifiedToolOrchestrator {
       }
     }
 
-    log.info({ totalTools: Object.keys(tools).length, toolNames: Object.keys(tools) }, '📦 Total always-available tools');
+    log.info(
+      { totalTools: Object.keys(tools).length, toolNames: Object.keys(tools) },
+      '📦 Total always-available tools'
+    );
     return tools;
   }
 

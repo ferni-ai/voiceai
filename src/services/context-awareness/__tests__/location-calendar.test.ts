@@ -514,9 +514,33 @@ describe('LocationCalendar', () => {
 
     it('should identify high-stress events', () => {
       const events: CalendarEvent[] = [
-        { id: '1', title: 'Standup', startTime: new Date(), endTime: new Date(), isRecurring: false, eventType: 'meeting', stressWeight: 0.2 },
-        { id: '2', title: 'Review', startTime: new Date(), endTime: new Date(), isRecurring: false, eventType: 'meeting', stressWeight: 0.8 },
-        { id: '3', title: 'Lunch', startTime: new Date(), endTime: new Date(), isRecurring: false, eventType: 'personal', stressWeight: 0.1 },
+        {
+          id: '1',
+          title: 'Standup',
+          startTime: new Date(),
+          endTime: new Date(),
+          isRecurring: false,
+          eventType: 'meeting',
+          stressWeight: 0.2,
+        },
+        {
+          id: '2',
+          title: 'Review',
+          startTime: new Date(),
+          endTime: new Date(),
+          isRecurring: false,
+          eventType: 'meeting',
+          stressWeight: 0.8,
+        },
+        {
+          id: '3',
+          title: 'Lunch',
+          startTime: new Date(),
+          endTime: new Date(),
+          isRecurring: false,
+          eventType: 'personal',
+          stressWeight: 0.1,
+        },
       ];
 
       const highStress = events.filter((e) => (e.stressWeight ?? 0) > 0.6);

@@ -88,7 +88,7 @@ const PRESENCE_PATTERNS: Record<
 > = {
   anxious: {
     initial: ['Take a breath...', 'I got this...', 'Give me just a sec...'],
-    stillHere: ["I'm here...", "Still on it...", "Almost..."],
+    stillHere: ["I'm here...", 'Still on it...', 'Almost...'],
     completion: ['Okay...', 'Here we go...', 'Got it...'],
   },
   stressed: {
@@ -108,7 +108,7 @@ const PRESENCE_PATTERNS: Record<
   },
   sad: {
     initial: ['...', 'Give me a moment...', 'Let me...'],
-    stillHere: ["I'm here...", '...', "Just a moment..."],
+    stillHere: ["I'm here...", '...', 'Just a moment...'],
     completion: ['...', 'Okay...', 'Here...'],
   },
   tired: {
@@ -413,10 +413,7 @@ export function stopToolPresence(sessionId: string, toolName: string): ToolTimin
 
   activeExecutions.delete(key);
 
-  log.debug(
-    { tool: toolName, session: sessionId, durationMs },
-    'Stopped tool presence tracking'
-  );
+  log.debug({ tool: toolName, session: sessionId, durationMs }, 'Stopped tool presence tracking');
 
   return timingContext;
 }
@@ -467,8 +464,4 @@ export function generateToolContextInjection(timingContexts: ToolTimingContext[]
 // EXPORTS
 // ============================================================================
 
-export {
-  PRESENCE_PATTERNS,
-  TIME_MODIFIERS,
-  TOOL_SEMANTICS,
-};
+export { PRESENCE_PATTERNS, TIME_MODIFIERS, TOOL_SEMANTICS };

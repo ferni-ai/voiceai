@@ -435,4 +435,3 @@ export interface VisualMemoryPreferences {
   /** Last updated */
   updatedAt: string;
 }
-

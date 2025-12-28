@@ -329,7 +329,10 @@ class CreativeYouPersistence {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION_WATCH_HISTORY).doc(record.id).set(cleanForFirestore(record));
+        await this.db
+          .collection(this.COLLECTION_WATCH_HISTORY)
+          .doc(record.id)
+          .set(cleanForFirestore(record));
         log.debug({ recordId: record.id }, '💾 Watch record saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save watch record');
@@ -436,7 +439,10 @@ class CreativeYouPersistence {
           })),
           lastUpdated: now.toISOString(),
         });
-        await this.db.collection(this.COLLECTION_TOPIC_HISTORY).doc(userId).set(cleanForFirestore(data));
+        await this.db
+          .collection(this.COLLECTION_TOPIC_HISTORY)
+          .doc(userId)
+          .set(cleanForFirestore(data));
         log.debug({ userId, topicCount: topics.length }, '📚 Topic history saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save topic history');

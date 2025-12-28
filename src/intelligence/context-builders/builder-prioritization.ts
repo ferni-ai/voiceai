@@ -175,10 +175,7 @@ const INTENT_TO_BUILDERS: Record<string, string[]> = {
   ],
 
   // Financial topics
-  financial: [
-    'peter-research-insights',
-    'financial-prediction',
-  ],
+  financial: ['peter-research-insights', 'financial-prediction'],
 
   // Goal/planning discussion
   goal_planning: [
@@ -279,31 +276,16 @@ const PERSONA_BUILDERS: Record<string, string[]> = {
     'cameo-opportunities',
     'cameo-unlock',
   ],
-  peter: [
-    'peter-research-insights',
-    'financial-prediction',
-  ],
-  maya: [
-    'maya-habit-insights',
-    'maya-coaching-insights',
-    'daily-rituals',
-  ],
-  jordan: [
-    'jordan-milestone-insights',
-    'anticipation',
-    'personal-journey',
-  ],
+  peter: ['peter-research-insights', 'financial-prediction'],
+  maya: ['maya-habit-insights', 'maya-coaching-insights', 'daily-rituals'],
+  jordan: ['jordan-milestone-insights', 'anticipation', 'personal-journey'],
   alex: [
     'alex-communication-insights',
     'calendar-awareness',
     'message-review-awareness',
     'contact-awareness',
   ],
-  nayan: [
-    'nayan-wisdom-insights',
-    'wisdom-synthesis',
-    'life-context-synthesis',
-  ],
+  nayan: ['nayan-wisdom-insights', 'wisdom-synthesis', 'life-context-synthesis'],
 };
 
 // ============================================================================

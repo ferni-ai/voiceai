@@ -116,10 +116,7 @@ export function recordAction(
     history.shift();
   }
 
-  log.debug(
-    { sessionId, toolId, success, totalActions: history.length },
-    '📝 Action recorded'
-  );
+  log.debug({ sessionId, toolId, success, totalActions: history.length }, '📝 Action recorded');
 }
 
 /**
@@ -204,7 +201,8 @@ export function wasHighImpactActionExecuted(
   if (!history || history.length === 0) {
     return {
       executed: false,
-      explanation: "I haven't made any calls, sent any messages, or taken any high-impact actions in our conversation yet.",
+      explanation:
+        "I haven't made any calls, sent any messages, or taken any high-impact actions in our conversation yet.",
     };
   }
 
@@ -343,10 +341,7 @@ export function getHumanReadableSummary(sessionId: string): string {
 /**
  * Generate a human-readable description of an action.
  */
-function generateActionDescription(
-  toolId: string,
-  args: Record<string, unknown>
-): string {
+function generateActionDescription(toolId: string, args: Record<string, unknown>): string {
   const toolLower = toolId.toLowerCase();
 
   // Call actions
@@ -379,4 +374,3 @@ function generateActionDescription(
   // Default
   return `Executed ${toolId}`;
 }
-

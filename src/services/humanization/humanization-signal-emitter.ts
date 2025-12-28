@@ -579,10 +579,7 @@ export async function signalEmotionalBondDeepen(
 /**
  * Signal protective instinct activation
  */
-export async function signalProtectiveInstinct(
-  trigger: string,
-  intensity = 0.8
-): Promise<void> {
+export async function signalProtectiveInstinct(trigger: string, intensity = 0.8): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'protective_instinct',
     protectionTrigger: trigger,
@@ -651,10 +648,7 @@ export async function signalVisibleVulnerability(
 /**
  * Signal temporal emotional insight
  */
-export async function signalTemporalInsight(
-  insight: string,
-  intensity = 0.75
-): Promise<void> {
+export async function signalTemporalInsight(insight: string, intensity = 0.75): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'temporal_insight',
     temporalInsight: insight,
@@ -665,10 +659,7 @@ export async function signalTemporalInsight(
 /**
  * Signal meta-relationship moment
  */
-export async function signalMetaRelationshipMoment(
-  type: string,
-  intensity = 0.8
-): Promise<void> {
+export async function signalMetaRelationshipMoment(type: string, intensity = 0.8): Promise<void> {
   await emitHumanizationSignal({
     signalType: 'meta_relationship_moment',
     metaRelationshipType: type,

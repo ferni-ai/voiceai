@@ -80,7 +80,11 @@ export {
 
 // Emotion profiles - from standalone file to avoid circular deps
 // PersonaEmotionProfile type is canonical here (cartesia-expressiveness re-exports it)
-export { getEmotionProfile, PERSONA_EMOTION_PROFILES, type PersonaEmotionProfile } from '../emotion-profiles.js';
+export {
+  getEmotionProfile,
+  PERSONA_EMOTION_PROFILES,
+  type PersonaEmotionProfile,
+} from '../emotion-profiles.js';
 
 // ============================================================================
 // DEFAULT EXPORT (For backwards compatibility)

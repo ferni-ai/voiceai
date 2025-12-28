@@ -149,7 +149,7 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
     // Weather priming - POLITE REQUEST (another Gemini problem pattern)
     turns.push({
       role: 'user',
-      content: "[user: could you check the weather]",
+      content: '[user: could you check the weather]',
       isVisible: false,
       description: 'Weather polite request - Gemini problem pattern (hidden)',
     });
@@ -183,7 +183,7 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
       // CRITICAL: Handoff priming - POLITE REQUEST (Gemini problem pattern!)
       turns.push({
         role: 'user',
-        content: "[user: can I speak with Peter about my investments]",
+        content: '[user: can I speak with Peter about my investments]',
         isVisible: false,
         description: 'Handoff polite request - Gemini problem pattern (hidden)',
       });

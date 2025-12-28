@@ -104,7 +104,7 @@ export const STRESS_ADAPTATION_CONFIG = {
 
   /** Maximum adaptation change per turn (prevents jarring shifts) */
   MAX_RAMP_UP_PER_TURN: 0.15,
-  MAX_RAMP_DOWN_PER_TURN: 0.10,
+  MAX_RAMP_DOWN_PER_TURN: 0.1,
 
   /** Minimum stress change to trigger adaptation change (hysteresis) */
   HYSTERESIS_THRESHOLD: 0.1,
@@ -120,10 +120,10 @@ export const STRESS_ADAPTATION_CONFIG = {
   /** Weights for different stress signals */
   WEIGHTS: {
     stressLevel: 0.35,
-    anxietyMarkers: 0.20,
-    breathPattern: 0.20,
+    anxietyMarkers: 0.2,
+    breathPattern: 0.2,
     voiceTremor: 0.15,
-    concernLevel: 0.10,
+    concernLevel: 0.1,
   },
 
   /** Speed adjustments by adaptation level */
@@ -131,7 +131,7 @@ export const STRESS_ADAPTATION_CONFIG = {
     NONE: 1.0,
     MILD: 0.95,
     MODERATE: 0.88,
-    HIGH: 0.80,
+    HIGH: 0.8,
   },
 
   /** Pause adjustments by adaptation level */
@@ -487,7 +487,10 @@ export function applyStressAdaptationSsml(text: string, adaptation: StressAdapta
     });
 
     // Also extend sentence-ending pauses
-    result = result.replace(/\. /g, `.<break time="${Math.round(300 * adaptation.pauseMultiplier)}ms"/> `);
+    result = result.replace(
+      /\. /g,
+      `.<break time="${Math.round(300 * adaptation.pauseMultiplier)}ms"/> `
+    );
   }
 
   log.debug(
@@ -510,9 +513,7 @@ export function applyStressAdaptationSsml(text: string, adaptation: StressAdapta
 /**
  * Get current stress adaptation state for monitoring
  */
-export function getStressAdaptationState(
-  sessionId: string
-): {
+export function getStressAdaptationState(sessionId: string): {
   isActive: boolean;
   adaptationLevel: number;
   historyLength: number;

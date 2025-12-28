@@ -13,10 +13,7 @@
  * @module tools/semantic-router/context-enrichment
  */
 
-import {
-  analyzeHolisticContext,
-  type HolisticContext,
-} from './shared-vocabulary.js';
+import { analyzeHolisticContext, type HolisticContext } from './shared-vocabulary.js';
 
 // ============================================================================
 // TYPES
@@ -125,9 +122,7 @@ export class ConversationContextTracker {
    * Compute emotional trajectory from turn history.
    */
   private computeEmotionalTrajectory(): EmotionalTrajectory {
-    const recentSentiments = this.turnHistory
-      .slice(-5)
-      .map((t) => t.sentiment);
+    const recentSentiments = this.turnHistory.slice(-5).map((t) => t.sentiment);
 
     if (recentSentiments.length === 0) {
       return {
@@ -151,8 +146,7 @@ export class ConversationContextTracker {
 
     // Calculate volatility (standard deviation)
     const variance =
-      valences.reduce((sum, v) => sum + Math.pow(v - averageValence, 2), 0) /
-      valences.length;
+      valences.reduce((sum, v) => sum + Math.pow(v - averageValence, 2), 0) / valences.length;
     const volatility = Math.sqrt(variance);
 
     // Determine trend
@@ -162,7 +156,9 @@ export class ConversationContextTracker {
       trend = 'crisis';
     } else if (valences.length >= 2) {
       const recentAvg = valences.slice(-2).reduce((a, b) => a + b, 0) / 2;
-      const earlierAvg = valences.slice(0, -2).reduce((a, b) => a + b, valences[0]) / Math.max(1, valences.length - 2);
+      const earlierAvg =
+        valences.slice(0, -2).reduce((a, b) => a + b, valences[0]) /
+        Math.max(1, valences.length - 2);
 
       if (recentAvg > earlierAvg + 0.2) {
         trend = 'improving';
@@ -183,13 +179,15 @@ export class ConversationContextTracker {
    * Compute domain transition from turn history.
    */
   private computeDomainTransition(): DomainTransition {
-    const currentDomains = this.turnHistory.length > 0
-      ? this.turnHistory[this.turnHistory.length - 1].detectedDomains
-      : [];
+    const currentDomains =
+      this.turnHistory.length > 0
+        ? this.turnHistory[this.turnHistory.length - 1].detectedDomains
+        : [];
 
-    const previousDomains = this.turnHistory.length > 1
-      ? this.turnHistory[this.turnHistory.length - 2].detectedDomains
-      : [];
+    const previousDomains =
+      this.turnHistory.length > 1
+        ? this.turnHistory[this.turnHistory.length - 2].detectedDomains
+        : [];
 
     // Determine transition type
     let transitionType: 'none' | 'deepening' | 'broadening' | 'switching' = 'none';
@@ -253,7 +251,9 @@ export class ConversationContextTracker {
       overall = 'urgent';
     } else if (negativeCount >= 2) {
       overall = 'emotional';
-    } else if (recentTurns.some((t) => t.holisticContext.relationship?.sentiment === 'transactional')) {
+    } else if (
+      recentTurns.some((t) => t.holisticContext.relationship?.sentiment === 'transactional')
+    ) {
       overall = 'transactional';
     } else if (recentTurns.some((t) => t.sentiment === 'negative')) {
       overall = 'serious';
@@ -263,7 +263,8 @@ export class ConversationContextTracker {
     const frustrationLevel = Math.min(1, negativeCount / 3 + urgentCount / 3);
 
     // Calculate engagement level (based on turn frequency and detail)
-    const avgTextLength = recentTurns.reduce((sum, t) => sum + t.text.length, 0) / recentTurns.length;
+    const avgTextLength =
+      recentTurns.reduce((sum, t) => sum + t.text.length, 0) / recentTurns.length;
     const engagementLevel = Math.min(1, avgTextLength / 100);
 
     // Determine formality
@@ -300,21 +301,13 @@ export class ConversationContextTracker {
       previous.detectedDomains.includes(d)
     ).length;
 
-    const maxDomains = Math.max(
-      current.detectedDomains.length,
-      previous.detectedDomains.length,
-      1
-    );
+    const maxDomains = Math.max(current.detectedDomains.length, previous.detectedDomains.length, 1);
 
     // Check relationship continuity
     let relationshipContinuity = 0;
-    if (
-      current.holisticContext.relationship &&
-      previous.holisticContext.relationship
-    ) {
+    if (current.holisticContext.relationship && previous.holisticContext.relationship) {
       if (
-        current.holisticContext.relationship.type ===
-        previous.holisticContext.relationship.type
+        current.holisticContext.relationship.type === previous.holisticContext.relationship.type
       ) {
         relationshipContinuity = 0.3;
       } else if (

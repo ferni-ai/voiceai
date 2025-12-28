@@ -92,7 +92,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "Oh my god, I never thought of it that way!",
+          userMessage: 'Oh my god, I never thought of it that way!',
           topic: 'relationships',
         }),
         artifacts
@@ -106,7 +106,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "That makes sense now, I finally get it",
+          userMessage: 'That makes sense now, I finally get it',
         }),
         artifacts
       );
@@ -118,7 +118,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "Wait, I just realized something important",
+          userMessage: 'Wait, I just realized something important',
         }),
         artifacts
       );
@@ -130,7 +130,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "This is such a relief",
+          userMessage: 'This is such a relief',
           emotionalIntensity: 0.8,
           emotion: 'relief',
         }),
@@ -144,8 +144,9 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "I never thought of it that way!",
-          ferniResponse: "I remember struggling with the same thing. It took me years to figure out.",
+          userMessage: 'I never thought of it that way!',
+          ferniResponse:
+            'I remember struggling with the same thing. It took me years to figure out.',
         }),
         artifacts
       );
@@ -170,7 +171,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "I feel overwhelmed and anxious",
+          userMessage: 'I feel overwhelmed and anxious',
         }),
         artifacts
       );
@@ -185,7 +186,7 @@ describe('RelationshipArtifacts', () => {
 
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "This is a longer message with many words that should affect the average",
+          userMessage: 'This is a longer message with many words that should affect the average',
         }),
         artifacts
       );
@@ -197,7 +198,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "Hey there, how are you?",
+          userMessage: 'Hey there, how are you?',
           turn: 1,
         }),
         artifacts
@@ -210,7 +211,7 @@ describe('RelationshipArtifacts', () => {
       const artifacts = getOrCreateArtifacts(userId, personaId);
       const result = analyzeTurnForArtifacts(
         createContext({
-          userMessage: "This is really hard for me",
+          userMessage: 'This is really hard for me',
           emotionalIntensity: 0.7,
           topic: 'family',
         }),
@@ -226,10 +227,10 @@ describe('RelationshipArtifacts', () => {
       const bt = recordBreakthrough(userId, personaId, {
         turn: 10,
         timestamp: Date.now(),
-        whatHappened: "Realized pattern",
+        whatHappened: 'Realized pattern',
         userReaction: 'aha',
         topic: 'growth',
-        callbackPhrase: "Remember when you realized...",
+        callbackPhrase: 'Remember when you realized...',
         timesReferenced: 0,
       });
 
@@ -241,10 +242,10 @@ describe('RelationshipArtifacts', () => {
       recordBreakthrough(userId, personaId, {
         turn: 10,
         timestamp: Date.now(),
-        whatHappened: "Insight",
+        whatHappened: 'Insight',
         userReaction: 'emotional',
         topic: 'relationships',
-        callbackPhrase: "Remember...",
+        callbackPhrase: 'Remember...',
         timesReferenced: 0,
       });
 
@@ -260,7 +261,7 @@ describe('RelationshipArtifacts', () => {
           whatHappened: `Insight ${i}`,
           userReaction: 'quiet',
           topic: 'test',
-          callbackPhrase: "Remember...",
+          callbackPhrase: 'Remember...',
           timesReferenced: 0,
         });
       }
@@ -273,9 +274,9 @@ describe('RelationshipArtifacts', () => {
   describe('recordInsideReference', () => {
     it('should record an inside reference', () => {
       const ref = recordInsideReference(userId, personaId, {
-        origin: "Turn 5: the thing",
-        phrase: "the thing",
-        fullContext: "You know, the thing we talked about",
+        origin: 'Turn 5: the thing',
+        phrase: 'the thing',
+        fullContext: 'You know, the thing we talked about',
         turnCreated: 5,
         timestamp: Date.now(),
         type: 'shorthand',
@@ -292,7 +293,7 @@ describe('RelationshipArtifacts', () => {
         recordInsideReference(userId, personaId, {
           origin: `Turn ${i}`,
           phrase: `phrase-${i}`,
-          fullContext: "Context",
+          fullContext: 'Context',
           turnCreated: i,
           timestamp: Date.now(),
           type: 'joke',
@@ -311,7 +312,7 @@ describe('RelationshipArtifacts', () => {
       updateVocabulary(userId, personaId, 'overwhelmed', 'emotional', 'feeling context');
 
       const artifacts = getOrCreateArtifacts(userId, personaId);
-      const vocab = artifacts.userVocabulary.find(v => v.word === 'overwhelmed');
+      const vocab = artifacts.userVocabulary.find((v) => v.word === 'overwhelmed');
 
       expect(vocab).toBeDefined();
       expect(vocab?.category).toBe('emotional');
@@ -323,7 +324,7 @@ describe('RelationshipArtifacts', () => {
       updateVocabulary(userId, personaId, 'basically', 'filler');
 
       const artifacts = getOrCreateArtifacts(userId, personaId);
-      const vocab = artifacts.userVocabulary.find(v => v.word === 'basically');
+      const vocab = artifacts.userVocabulary.find((v) => v.word === 'basically');
 
       expect(vocab?.frequency).toBe(3);
     });
@@ -332,7 +333,7 @@ describe('RelationshipArtifacts', () => {
       updateVocabulary(userId, personaId, 'synergy', 'technical', 'work discussion');
 
       const artifacts = getOrCreateArtifacts(userId, personaId);
-      const vocab = artifacts.userVocabulary.find(v => v.word === 'synergy');
+      const vocab = artifacts.userVocabulary.find((v) => v.word === 'synergy');
 
       expect(vocab?.contexts).toContain('work discussion');
     });
@@ -359,10 +360,10 @@ describe('RelationshipArtifacts', () => {
       recordBreakthrough(userId, personaId, {
         turn: 5,
         timestamp: Date.now(),
-        whatHappened: "Big realization",
+        whatHappened: 'Big realization',
         userReaction: 'emotional',
         topic: 'family',
-        callbackPhrase: "Remember when you realized about family...",
+        callbackPhrase: 'Remember when you realized about family...',
         timesReferenced: 0,
       });
 
@@ -379,10 +380,10 @@ describe('RelationshipArtifacts', () => {
       const bt = recordBreakthrough(userId, personaId, {
         turn: 5,
         timestamp: Date.now(),
-        whatHappened: "Insight",
+        whatHappened: 'Insight',
         userReaction: 'aha',
         topic: 'work',
-        callbackPhrase: "Remember work insight...",
+        callbackPhrase: 'Remember work insight...',
         timesReferenced: 0,
       });
 
@@ -400,20 +401,20 @@ describe('RelationshipArtifacts', () => {
       recordBreakthrough(userId, personaId, {
         turn: 5,
         timestamp: Date.now(),
-        whatHappened: "Work insight",
+        whatHappened: 'Work insight',
         userReaction: 'aha',
         topic: 'work',
-        callbackPhrase: "Remember work...",
+        callbackPhrase: 'Remember work...',
         timesReferenced: 0,
       });
 
       recordBreakthrough(userId, personaId, {
         turn: 6,
         timestamp: Date.now(),
-        whatHappened: "Family insight",
+        whatHappened: 'Family insight',
         userReaction: 'aha',
         topic: 'family',
-        callbackPhrase: "Remember family...",
+        callbackPhrase: 'Remember family...',
         timesReferenced: 0,
       });
 
@@ -435,7 +436,7 @@ describe('RelationshipArtifacts', () => {
       const toMirror = getVocabularyToMirror(artifacts, 2);
 
       expect(toMirror.length).toBeLessThanOrEqual(2);
-      expect(toMirror.some(w => ['recalibrate', 'synergy'].includes(w))).toBe(true);
+      expect(toMirror.some((w) => ['recalibrate', 'synergy'].includes(w))).toBe(true);
     });
 
     it('should prioritize emotional vocabulary', () => {
@@ -466,10 +467,10 @@ describe('RelationshipArtifacts', () => {
       const bt = recordBreakthrough(userId, personaId, {
         turn: 5,
         timestamp: Date.now(),
-        whatHappened: "Insight",
+        whatHappened: 'Insight',
         userReaction: 'aha',
         topic: 'growth',
-        callbackPhrase: "Remember...",
+        callbackPhrase: 'Remember...',
         timesReferenced: 0,
       });
 
@@ -482,9 +483,9 @@ describe('RelationshipArtifacts', () => {
 
     it('should increment reference use count', () => {
       const ref = recordInsideReference(userId, personaId, {
-        origin: "Origin",
-        phrase: "the thing",
-        fullContext: "Full context",
+        origin: 'Origin',
+        phrase: 'the thing',
+        fullContext: 'Full context',
         turnCreated: 5,
         timestamp: Date.now(),
         type: 'shorthand',
@@ -502,9 +503,9 @@ describe('RelationshipArtifacts', () => {
   describe('markUserUsedReferenceBack', () => {
     it('should mark reference as confirmed', () => {
       const ref = recordInsideReference(userId, personaId, {
-        origin: "Origin",
-        phrase: "our thing",
-        fullContext: "Context",
+        origin: 'Origin',
+        phrase: 'our thing',
+        fullContext: 'Context',
         turnCreated: 5,
         timestamp: Date.now(),
         type: 'shorthand',
@@ -543,17 +544,17 @@ describe('RelationshipArtifacts', () => {
       recordBreakthrough(userId, personaId, {
         turn: 5,
         timestamp: Date.now(),
-        whatHappened: "Insight",
+        whatHappened: 'Insight',
         userReaction: 'aha',
         topic: 'work',
-        callbackPhrase: "Remember...",
+        callbackPhrase: 'Remember...',
         timesReferenced: 0,
       });
 
       recordInsideReference(userId, personaId, {
-        origin: "Turn 10",
-        phrase: "the thing",
-        fullContext: "Context",
+        origin: 'Turn 10',
+        phrase: 'the thing',
+        fullContext: 'Context',
         turnCreated: 10,
         timestamp: Date.now(),
         type: 'joke',

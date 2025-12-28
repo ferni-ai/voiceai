@@ -408,7 +408,12 @@ describe('WellbeingTracking', () => {
       });
 
       it('should support all status values', () => {
-        const statuses: WellbeingAlert['status'][] = ['active', 'acknowledged', 'resolved', 'dismissed'];
+        const statuses: WellbeingAlert['status'][] = [
+          'active',
+          'acknowledged',
+          'resolved',
+          'dismissed',
+        ];
 
         statuses.forEach((status) => {
           const alert: WellbeingAlert = {
@@ -508,8 +513,7 @@ describe('WellbeingTracking', () => {
 
     it('should identify stable trend', () => {
       const scores = [0.5, 0.52, 0.48, 0.51, 0.49];
-      const variance =
-        scores.reduce((sum, s) => sum + Math.abs(s - 0.5), 0) / scores.length;
+      const variance = scores.reduce((sum, s) => sum + Math.abs(s - 0.5), 0) / scores.length;
 
       expect(variance).toBeLessThan(0.05);
     });
@@ -603,8 +607,7 @@ describe('WellbeingTracking', () => {
       ];
 
       const totalWeight = values.reduce((sum, v) => sum + v.confidence, 0);
-      const weightedAvg =
-        values.reduce((sum, v) => sum + v.value * v.confidence, 0) / totalWeight;
+      const weightedAvg = values.reduce((sum, v) => sum + v.value * v.confidence, 0) / totalWeight;
 
       // 0.8 * 0.9 + 0.4 * 0.3 = 0.72 + 0.12 = 0.84
       // 0.84 / 1.2 = 0.7

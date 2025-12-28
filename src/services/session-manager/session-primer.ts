@@ -23,11 +23,9 @@ import type { MemoryItem } from '../../memory/advanced-retrieval.js';
 import type {
   getConversationPatternAnalyzer,
   getProactiveInsightEngine,
-  getResponseQualityTracker} from '../../intelligence/index.js';
-import {
-  buildSuperhumanContext,
-  type SuperhumanContext,
+  getResponseQualityTracker,
 } from '../../intelligence/index.js';
+import { buildSuperhumanContext, type SuperhumanContext } from '../../intelligence/index.js';
 
 /**
  * Session priming data for returning users

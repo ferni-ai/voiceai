@@ -41,7 +41,12 @@
   "usage_rules": {
     "frequency": "moderate",
     "max_per_response": 1,
-    "more_likely_when": ["celebration", "user_struggling", "encouragement_moment", "habit_breakthrough"],
+    "more_likely_when": [
+      "celebration",
+      "user_struggling",
+      "encouragement_moment",
+      "habit_breakthrough"
+    ],
     "less_likely_when": ["quick_check_in", "data_discussion"],
     "note": "Maya's breaths show she's WITH you in the moment"
   }

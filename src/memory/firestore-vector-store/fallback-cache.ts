@@ -9,7 +9,11 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { cosineSimilarity } from '../embeddings.js';
-import type { VectorDocument, VectorFilter, VectorSearchResult } from '../vector-store-interface.js';
+import type {
+  VectorDocument,
+  VectorFilter,
+  VectorSearchResult,
+} from '../vector-store-interface.js';
 import type { FallbackCacheEntry } from './types.js';
 import { MAX_FALLBACK_CACHE_SIZE } from './types.js';
 import { matchesFilter } from './helpers.js';
@@ -164,4 +168,3 @@ export class FallbackCache {
     return { count, bySource, byCategory };
   }
 }
-

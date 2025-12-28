@@ -37,25 +37,97 @@ export interface OneWordCheckinResult extends TextGameResult {
 // ============================================================================
 
 const CONTEXT_PROMPTS: Record<OneWordCheckinState['context'], string> = {
-  now: "One word. Right now. What is it?",
-  today: "If today were one word, what would it be?",
-  week: "Capture this week in a single word.",
+  now: 'One word. Right now. What is it?',
+  today: 'If today were one word, what would it be?',
+  week: 'Capture this week in a single word.',
   feeling: "One word for how you're feeling. Don't overthink it.",
-  body: "One word to describe how your body feels right now.",
+  body: 'One word to describe how your body feels right now.',
   custom: '',
 };
 
 const WORD_CATEGORIES: Record<string, string[]> = {
-  positive: ['happy', 'grateful', 'peaceful', 'excited', 'hopeful', 'content', 'alive', 'free', 'strong', 'loved', 'centered', 'clear', 'light', 'calm', 'whole', 'present', 'open', 'growing', 'blessed', 'amazing'],
-  challenging: ['tired', 'stressed', 'anxious', 'overwhelmed', 'frustrated', 'confused', 'sad', 'stuck', 'heavy', 'lost', 'scattered', 'drained', 'empty', 'numb', 'disconnected', 'uncertain', 'worried', 'afraid', 'angry', 'broken'],
-  neutral: ['okay', 'fine', 'normal', 'busy', 'waiting', 'thinking', 'processing', 'quiet', 'steady', 'here', 'present', 'existing', 'breathing', 'managing', 'getting by', 'surviving'],
-  growth: ['growing', 'learning', 'changing', 'becoming', 'healing', 'emerging', 'building', 'creating', 'exploring', 'stretching', 'evolving', 'transforming'],
+  positive: [
+    'happy',
+    'grateful',
+    'peaceful',
+    'excited',
+    'hopeful',
+    'content',
+    'alive',
+    'free',
+    'strong',
+    'loved',
+    'centered',
+    'clear',
+    'light',
+    'calm',
+    'whole',
+    'present',
+    'open',
+    'growing',
+    'blessed',
+    'amazing',
+  ],
+  challenging: [
+    'tired',
+    'stressed',
+    'anxious',
+    'overwhelmed',
+    'frustrated',
+    'confused',
+    'sad',
+    'stuck',
+    'heavy',
+    'lost',
+    'scattered',
+    'drained',
+    'empty',
+    'numb',
+    'disconnected',
+    'uncertain',
+    'worried',
+    'afraid',
+    'angry',
+    'broken',
+  ],
+  neutral: [
+    'okay',
+    'fine',
+    'normal',
+    'busy',
+    'waiting',
+    'thinking',
+    'processing',
+    'quiet',
+    'steady',
+    'here',
+    'present',
+    'existing',
+    'breathing',
+    'managing',
+    'getting by',
+    'surviving',
+  ],
+  growth: [
+    'growing',
+    'learning',
+    'changing',
+    'becoming',
+    'healing',
+    'emerging',
+    'building',
+    'creating',
+    'exploring',
+    'stretching',
+    'evolving',
+    'transforming',
+  ],
 };
 
 const EXPLORATION_QUESTIONS: Record<string, string[]> = {
   positive: [
     "That's a good word to hold. What brought this on?",
-    "I like that energy. Where is it coming from?",
+    'I like that energy. Where is it coming from?',
     "Beautiful. Tell me more about what's feeding that feeling.",
     "That's worth savoring. What's creating that for you?",
   ],
@@ -66,24 +138,24 @@ const EXPLORATION_QUESTIONS: Record<string, string[]> = {
     "That takes courage to say. What's going on?",
   ],
   neutral: [
-    "Simple. Anything underneath that surface?",
+    'Simple. Anything underneath that surface?',
     "Sometimes that's exactly where we are. What's keeping you there?",
-    "A steady word. Is that good, or is there something more?",
+    'A steady word. Is that good, or is there something more?',
     "That's real. Anything you want to add?",
   ],
   growth: [
     "That sounds like movement. What's shifting for you?",
     "I sense something unfolding. What's the story?",
-    "Growth energy. What are you growing toward?",
+    'Growth energy. What are you growing toward?',
     "Something's happening. Tell me about the journey.",
   ],
 };
 
 const CLOSING_RESPONSES = [
-  "Thank you for checking in. That one word holds a lot.",
-  "One word can say so much. Take care of yourself.",
+  'Thank you for checking in. That one word holds a lot.',
+  'One word can say so much. Take care of yourself.',
   "I'll remember this word. It says something about where you are.",
-  "Thank you for that honesty. Come back whenever you need to check in.",
+  'Thank you for that honesty. Come back whenever you need to check in.',
 ];
 
 // ============================================================================
@@ -110,7 +182,7 @@ function categorizeWord(word: string): 'positive' | 'challenging' | 'neutral' | 
   const lower = word.toLowerCase();
 
   for (const [category, words] of Object.entries(WORD_CATEGORIES)) {
-    if (words.some(w => lower.includes(w) || w.includes(lower))) {
+    if (words.some((w) => lower.includes(w) || w.includes(lower))) {
       return category as 'positive' | 'challenging' | 'neutral' | 'growth';
     }
   }
@@ -125,7 +197,11 @@ function getExplorationQuestion(category: string): string {
 }
 
 function extractSingleWord(input: string): string | null {
-  const words = input.trim().toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const words = input
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
 
   // Accept 1-2 words (in case they add emphasis like "really tired")
   if (words.length === 1) {
@@ -133,7 +209,17 @@ function extractSingleWord(input: string): string | null {
   }
   if (words.length === 2) {
     // Return the second word (the main one) if first is an intensifier
-    const intensifiers = ['really', 'very', 'so', 'super', 'pretty', 'kind of', 'a bit', 'totally', 'completely'];
+    const intensifiers = [
+      'really',
+      'very',
+      'so',
+      'super',
+      'pretty',
+      'kind of',
+      'a bit',
+      'totally',
+      'completely',
+    ];
     if (intensifiers.includes(words[0])) {
       return words[1];
     }
@@ -183,9 +269,10 @@ export function processInput(state: OneWordCheckinState, input: string): OneWord
     }
 
     // Show prompt
-    const prompt = state.context === 'custom' && state.customContext
-      ? state.customContext
-      : CONTEXT_PROMPTS[state.context];
+    const prompt =
+      state.context === 'custom' && state.customContext
+        ? state.customContext
+        : CONTEXT_PROMPTS[state.context];
 
     return {
       message: `📍 **One Word Check-in**\n\n${prompt}`,
@@ -239,9 +326,10 @@ export function describeStateForVoice(state: OneWordCheckinState): string {
  * Get the game start result
  */
 export function getStartResult(state: OneWordCheckinState): OneWordCheckinResult {
-  const prompt = state.context === 'custom' && state.customContext
-    ? state.customContext
-    : CONTEXT_PROMPTS[state.context];
+  const prompt =
+    state.context === 'custom' && state.customContext
+      ? state.customContext
+      : CONTEXT_PROMPTS[state.context];
 
   return {
     message: `📍 **One Word Check-in**\n\n${prompt}`,
@@ -253,7 +341,10 @@ export function getStartResult(state: OneWordCheckinState): OneWordCheckinResult
 /**
  * Get the check-in result (for saving)
  */
-export function getCheckinResult(state: OneWordCheckinState): { word?: string; exploration?: string } {
+export function getCheckinResult(state: OneWordCheckinState): {
+  word?: string;
+  exploration?: string;
+} {
   return {
     word: state.word,
     exploration: state.exploration,

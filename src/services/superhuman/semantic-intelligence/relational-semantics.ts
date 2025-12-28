@@ -71,7 +71,7 @@ export async function recordPersonMention(
   const timestamp = Date.now();
 
   // Load existing nodes
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
 
   // Find or create node for this person
   let node = findNodeByName(nodes, name);
@@ -115,8 +115,7 @@ function findNodeByName(nodes: RelationalNode[], name: string): RelationalNode |
   const nameLower = name.toLowerCase();
   return nodes.find(
     (n) =>
-      n.name.toLowerCase() === nameLower ||
-      n.aliases.some((a) => a.toLowerCase() === nameLower)
+      n.name.toLowerCase() === nameLower || n.aliases.some((a) => a.toLowerCase() === nameLower)
   );
 }
 
@@ -256,13 +255,10 @@ function updateTopicAssociations(
   sentiment: number
 ): void {
   for (const topic of topics) {
-    const existing = associations.find(
-      (a) => a.topic.toLowerCase() === topic.toLowerCase()
-    );
+    const existing = associations.find((a) => a.topic.toLowerCase() === topic.toLowerCase());
     if (existing) {
       existing.frequency++;
-      existing.sentiment =
-        existing.sentiment * 0.8 + sentiment * 0.2; // Moving average
+      existing.sentiment = existing.sentiment * 0.8 + sentiment * 0.2; // Moving average
     } else if (associations.length < CONFIG.MAX_TOPIC_ASSOCIATIONS) {
       associations.push({ topic, frequency: 1, sentiment });
     }
@@ -321,17 +317,13 @@ function updateInsights(node: RelationalNode): void {
   // Emotional pattern insights
   const topEmotion = node.emotionalSignature.primaryEmotions[0];
   if (topEmotion && topEmotion.frequency >= 3) {
-    insights.push(
-      `When you talk about ${node.name}, you often feel ${topEmotion.emotion}`
-    );
+    insights.push(`When you talk about ${node.name}, you often feel ${topEmotion.emotion}`);
   }
 
   // Topic insights
   const topTopic = node.topicAssociations[0];
   if (topTopic && topTopic.frequency >= 3) {
-    insights.push(
-      `${node.name} is often connected to ${topTopic.topic} in your conversations`
-    );
+    insights.push(`${node.name} is often connected to ${topTopic.topic} in your conversations`);
   }
 
   // Valence insight
@@ -355,8 +347,8 @@ export async function getRelationalGraph(userId: string): Promise<{
   nodes: RelationalNode[];
   edges: RelationalEdge[];
 }> {
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
-  const edges = edgeCache.get(userId) || await loadEdges(userId);
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
+  const edges = edgeCache.get(userId) || (await loadEdges(userId));
 
   return { nodes, edges };
 }
@@ -368,7 +360,7 @@ export async function getPersonInsights(
   userId: string,
   personName: string
 ): Promise<RelationalNode | null> {
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
   return findNodeByName(nodes, personName) || null;
 }
 
@@ -382,7 +374,7 @@ export async function getPeopleByContext(
     topic?: string;
   }
 ): Promise<RelationalNode[]> {
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
   const { emotion, topic } = context;
 
   return nodes.filter((node) => {
@@ -394,8 +386,8 @@ export async function getPeopleByContext(
     }
 
     if (topic) {
-      const hasTopic = node.topicAssociations.some(
-        (t) => t.topic.toLowerCase().includes(topic.toLowerCase())
+      const hasTopic = node.topicAssociations.some((t) =>
+        t.topic.toLowerCase().includes(topic.toLowerCase())
       );
       if (hasTopic) return true;
     }
@@ -410,12 +402,10 @@ export async function getPeopleByContext(
 export async function getImpactfulRelationships(
   userId: string
 ): Promise<{ energizing: RelationalNode[]; draining: RelationalNode[] }> {
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
 
   // Only include nodes with enough data
-  const significant = nodes.filter(
-    (n) => n.mentionCount >= CONFIG.MIN_MENTIONS_FOR_PROFILE
-  );
+  const significant = nodes.filter((n) => n.mentionCount >= CONFIG.MIN_MENTIONS_FOR_PROFILE);
 
   const energizing = significant
     .filter((n) => n.supportLevel === 'energizing' || n.supportLevel === 'supportive')
@@ -441,10 +431,8 @@ export async function buildRelationalContext(
     currentTopic?: string;
   }
 ): Promise<string> {
-  const nodes = nodeCache.get(userId) || await loadNodes(userId);
-  const significantNodes = nodes.filter(
-    (n) => n.mentionCount >= CONFIG.MIN_MENTIONS_FOR_PROFILE
-  );
+  const nodes = nodeCache.get(userId) || (await loadNodes(userId));
+  const significantNodes = nodes.filter((n) => n.mentionCount >= CONFIG.MIN_MENTIONS_FOR_PROFILE);
 
   if (significantNodes.length === 0) {
     return '';
@@ -462,7 +450,9 @@ export async function buildRelationalContext(
     if (person && person.insights.length > 0) {
       sections.push(`**Currently discussing: ${person.name}** (${person.relationship})`);
       sections.push(`  Support level: ${person.supportLevel}`);
-      sections.push(`  Average sentiment: ${person.averageValence > 0 ? '😊' : person.averageValence < 0 ? '😟' : '😐'}`);
+      sections.push(
+        `  Average sentiment: ${person.averageValence > 0 ? '😊' : person.averageValence < 0 ? '😟' : '😐'}`
+      );
       for (const insight of person.insights.slice(0, 2)) {
         sections.push(`  • ${insight}`);
       }
@@ -513,7 +503,7 @@ export async function recordConnection(
 ): Promise<void> {
   const { person1, person2, connectionType = 'unknown', sentiment = 0 } = connection;
 
-  const edges = edgeCache.get(userId) || await loadEdges(userId);
+  const edges = edgeCache.get(userId) || (await loadEdges(userId));
 
   // Find or create edge
   let edge = edges.find(
@@ -652,4 +642,3 @@ export const relationalSemantics = {
   buildContext: buildRelationalContext,
   clearCache: clearRelationalCache,
 };
-

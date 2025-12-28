@@ -88,8 +88,8 @@ async function loadLocationReminders(userId: string): Promise<LocationReminder[]
       .where('active', '==', true)
       .get();
 
-    const reminders = snapshot.docs.map((doc) =>
-      ({ id: doc.id, ...doc.data() }) as LocationReminder
+    const reminders = snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as LocationReminder
     );
     locationReminders.set(userId, reminders);
     return reminders;
@@ -145,8 +145,8 @@ async function loadRecurringReminders(userId: string): Promise<RecurringReminder
       .where('active', '==', true)
       .get();
 
-    const reminders = snapshot.docs.map((doc) =>
-      ({ id: doc.id, ...doc.data() }) as RecurringReminder
+    const reminders = snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() }) as RecurringReminder
     );
     recurringReminders.set(userId, reminders);
     return reminders;
@@ -203,7 +203,9 @@ const locationReminderDef: ToolDefinition = {
         'Set a location-based reminder. Say "remind me to buy milk when I get to the grocery store" or "remind me to take the trash out when I leave home".',
       parameters: z.object({
         message: z.string().describe('What to be reminded of'),
-        locationName: z.string().describe('Name of the place (e.g., "grocery store", "home", "work", "gym")'),
+        locationName: z
+          .string()
+          .describe('Name of the place (e.g., "grocery store", "home", "work", "gym")'),
         address: z.string().optional().describe('Specific address if known'),
         triggerOn: z
           .enum(['arrive', 'leave'])
@@ -251,7 +253,8 @@ const listLocationRemindersDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('listLocationReminders') || 'Show all location-based reminders.',
+      description:
+        getToolDescription('listLocationReminders') || 'Show all location-based reminders.',
       parameters: z.object({}),
       execute: async () => {
         log.info({ userId: ctx.userId }, 'Listing location reminders');
@@ -304,12 +307,7 @@ const recurringReminderDef: ToolDefinition = {
           .max(6)
           .optional()
           .describe('Day of week for weekly/biweekly (0=Sunday, 6=Saturday)'),
-        dayOfMonth: z
-          .number()
-          .min(1)
-          .max(31)
-          .optional()
-          .describe('Day of month for monthly'),
+        dayOfMonth: z.number().min(1).max(31).optional().describe('Day of month for monthly'),
         time: z.string().describe('Time for the reminder (e.g., "9am", "14:30")'),
       }),
       execute: async ({ message, pattern, dayOfWeek, dayOfMonth, time }) => {
@@ -432,7 +430,8 @@ const cancelReminderDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: getToolDescription('cancelRecurringReminder') || 'Cancel a recurring or location reminder.',
+      description:
+        getToolDescription('cancelRecurringReminder') || 'Cancel a recurring or location reminder.',
       parameters: z.object({
         type: z.enum(['location', 'recurring']).describe('Type of reminder to cancel'),
         searchTerm: z.string().describe('Part of the reminder message to find it'),
@@ -484,10 +483,7 @@ function parseTime(time: string): string | null {
   const cleaned = time.toLowerCase().trim();
 
   // Match patterns like "9am", "9:30 am", "14:30", "2 PM"
-  const patterns = [
-    /^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i,
-    /^(\d{1,2})\s*(am|pm)$/i,
-  ];
+  const patterns = [/^(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i, /^(\d{1,2})\s*(am|pm)$/i];
 
   for (const pattern of patterns) {
     const match = cleaned.match(pattern);
@@ -516,7 +512,9 @@ function formatTime(time: string): string {
   const [hours, minutes] = time.split(':').map(Number);
   const meridiem = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours % 12 || 12;
-  return minutes === 0 ? `${displayHours} ${meridiem}` : `${displayHours}:${minutes.toString().padStart(2, '0')} ${meridiem}`;
+  return minutes === 0
+    ? `${displayHours} ${meridiem}`
+    : `${displayHours}:${minutes.toString().padStart(2, '0')} ${meridiem}`;
 }
 
 function describePattern(pattern: RecurrencePattern): string {
@@ -645,4 +643,3 @@ export {
   listRecurringRemindersDef,
   cancelReminderDef,
 };
-

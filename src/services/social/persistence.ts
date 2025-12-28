@@ -228,10 +228,7 @@ class SocialPersistence {
   /**
    * Get top users for leaderboard
    */
-  async getTopUsers(
-    limit = 100,
-    orderByField = 'totalScore'
-  ): Promise<UserStats[]> {
+  async getTopUsers(limit = 100, orderByField = 'totalScore'): Promise<UserStats[]> {
     await this.ensureInitialized();
 
     if (this.db) {
@@ -453,7 +450,10 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        await this.db.collection(this.COLLECTION_TASTE_MATCH).doc(session.id).set(cleanForFirestore(firestoreSession));
+        await this.db
+          .collection(this.COLLECTION_TASTE_MATCH)
+          .doc(session.id)
+          .set(cleanForFirestore(firestoreSession));
         log.debug({ sessionId: session.id }, '💾 Taste Match session saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save Taste Match session');

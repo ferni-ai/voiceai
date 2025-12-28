@@ -91,7 +91,12 @@
   ],
 
   "usage_notes": {
-    "when_to_use": ["teaching_moments", "building_perspective", "connecting_experiences", "deep_conversations"],
+    "when_to_use": [
+      "teaching_moments",
+      "building_perspective",
+      "connecting_experiences",
+      "deep_conversations"
+    ],
     "frequency": "occasional",
     "gate": "acquaintance",
     "japanese_poetry_gate": "established",

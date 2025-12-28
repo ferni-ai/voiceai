@@ -78,7 +78,7 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const emotionalWords = profile.items.filter(i => i.category === 'emotional');
+      const emotionalWords = profile.items.filter((i) => i.category === 'emotional');
 
       expect(emotionalWords.length).toBeGreaterThan(0);
     });
@@ -90,9 +90,11 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const intensifiers = profile.items.filter(i => i.category === 'intensifier');
+      const intensifiers = profile.items.filter((i) => i.category === 'intensifier');
 
-      expect(intensifiers.some(i => i.word === 'literally' || i.word === 'super' || i.word === 'so')).toBe(true);
+      expect(
+        intensifiers.some((i) => i.word === 'literally' || i.word === 'super' || i.word === 'so')
+      ).toBe(true);
     });
 
     it('should extract fillers', () => {
@@ -102,7 +104,7 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const fillers = profile.items.filter(i => i.category === 'filler');
+      const fillers = profile.items.filter((i) => i.category === 'filler');
 
       expect(fillers.length).toBeGreaterThan(0);
     });
@@ -114,9 +116,11 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const uniqueWords = profile.items.filter(i => i.category === 'unique');
+      const uniqueWords = profile.items.filter((i) => i.category === 'unique');
 
-      expect(uniqueWords.some(i => i.word.includes('recalibrat') || i.word.includes('reevalu'))).toBe(true);
+      expect(
+        uniqueWords.some((i) => i.word.includes('recalibrat') || i.word.includes('reevalu'))
+      ).toBe(true);
     });
 
     it('should increment frequency for repeated words', () => {
@@ -131,7 +135,7 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const overwhelmed = profile.items.find(i => i.word === 'overwhelmed');
+      const overwhelmed = profile.items.find((i) => i.word === 'overwhelmed');
 
       expect(overwhelmed?.frequency).toBeGreaterThanOrEqual(2);
     });
@@ -150,7 +154,7 @@ describe('VocabularyMirroring', () => {
       });
 
       const profile = getOrCreateProfile(testUserId);
-      const stressed = profile.items.find(i => i.word === 'stressed');
+      const stressed = profile.items.find((i) => i.word === 'stressed');
 
       expect(stressed?.contexts).toContain('work');
       expect(stressed?.contexts).toContain('family');
@@ -179,7 +183,8 @@ describe('VocabularyMirroring', () => {
   describe('style detection', () => {
     it('should detect formal communication style', () => {
       analyzeVocabulary(testUserId, {
-        userMessage: 'Therefore, I believe furthermore that regarding this matter, additionally we should proceed',
+        userMessage:
+          'Therefore, I believe furthermore that regarding this matter, additionally we should proceed',
         turn: 1,
       });
 
@@ -209,7 +214,8 @@ describe('VocabularyMirroring', () => {
 
     it('should detect frequent filler usage', () => {
       analyzeVocabulary(testUserId, {
-        userMessage: 'Basically honestly you know like I mean actually this is you know basically fine',
+        userMessage:
+          'Basically honestly you know like I mean actually this is you know basically fine',
         turn: 1,
       });
 
@@ -277,14 +283,14 @@ describe('VocabularyMirroring', () => {
       const phrases = generateMirrorPhrase('overwhelmed', 'emotional', {});
 
       expect(phrases.length).toBeGreaterThan(0);
-      expect(phrases.some(p => p.includes('overwhelmed'))).toBe(true);
+      expect(phrases.some((p) => p.includes('overwhelmed'))).toBe(true);
     });
 
     it('should generate phrases for unique category', () => {
       const phrases = generateMirrorPhrase('recalibrating', 'unique', {});
 
       expect(phrases.length).toBeGreaterThan(0);
-      expect(phrases.some(p => p.includes('recalibrating'))).toBe(true);
+      expect(phrases.some((p) => p.includes('recalibrating'))).toBe(true);
     });
 
     it('should generate phrases for metaphor category', () => {
@@ -312,7 +318,7 @@ describe('VocabularyMirroring', () => {
       markWordMirrored(testUserId, 'recalibrating');
 
       const profile = getOrCreateProfile(testUserId);
-      const word = profile.items.find(i => i.word === 'recalibrating');
+      const word = profile.items.find((i) => i.word === 'recalibrating');
 
       expect(word?.mirrored).toBe(true);
       expect(word?.mirrorCount).toBe(1);
@@ -323,7 +329,7 @@ describe('VocabularyMirroring', () => {
       markWordMirrored(testUserId, 'recalibrating');
 
       const profile = getOrCreateProfile(testUserId);
-      const word = profile.items.find(i => i.word === 'recalibrating');
+      const word = profile.items.find((i) => i.word === 'recalibrating');
 
       expect(word?.mirrorCount).toBe(2);
     });
@@ -332,7 +338,7 @@ describe('VocabularyMirroring', () => {
       markWordMirrored(testUserId, 'recalibrating', true);
 
       const profile = getOrCreateProfile(testUserId);
-      const word = profile.items.find(i => i.word === 'recalibrating');
+      const word = profile.items.find((i) => i.word === 'recalibrating');
 
       expect(word?.mirrorLanded).toBe(true);
     });
@@ -381,7 +387,7 @@ describe('VocabularyMirroring', () => {
       expect(result.reason).toContain('Already mirrored');
     });
 
-    it('should not mirror if it didn\'t land before', () => {
+    it("should not mirror if it didn't land before", () => {
       markWordMirrored(testUserId, 'recalibrating', false);
 
       const result = shouldMirrorWord(testUserId, 'recalibrating');

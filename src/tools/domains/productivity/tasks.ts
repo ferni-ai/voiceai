@@ -22,7 +22,10 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { syncTaskToCalendar, removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
+import {
+  syncTaskToCalendar,
+  removeCalendarSyncedItem,
+} from '../../../services/calendar/calendar-bridge.js';
 // Bridge function to convert TaskData to Task
 function taskDataToTask(data: TaskData & { userId?: string }, userId: string): Task {
   return {
@@ -414,7 +417,10 @@ export async function createTask(params: {
         30 // Default 30 min duration
       );
     } catch (calendarError) {
-      getLogger().warn({ error: calendarError, taskId: task.id }, 'Failed to sync task to calendar');
+      getLogger().warn(
+        { error: calendarError, taskId: task.id },
+        'Failed to sync task to calendar'
+      );
     }
   }
 

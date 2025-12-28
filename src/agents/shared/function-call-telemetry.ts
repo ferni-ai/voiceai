@@ -445,7 +445,7 @@ export function getGeminiHealthMetrics(): GeminiHealthMetrics {
 
   // Retry success rate: if retries > 0, check how many leakages we had after
   // (This is approximate - would need more tracking for exact success rate)
-  const retrySuccessRate = retryCount > 0 ? Math.max(0, 1 - (leakageCount / (retryCount + 1))) : 1;
+  const retrySuccessRate = retryCount > 0 ? Math.max(0, 1 - leakageCount / (retryCount + 1)) : 1;
 
   // Sort and limit recent leakages
   recentLeakages.sort((a, b) => b.timestamp - a.timestamp);
@@ -467,10 +467,12 @@ export function getGeminiHealthMetrics(): GeminiHealthMetrics {
     recommendation = null;
   } else if (leakageRate < DEGRADED_LEAKAGE) {
     status = 'degraded';
-    recommendation = 'Leakage rate elevated. Consider lowering semantic router auto-execute threshold.';
+    recommendation =
+      'Leakage rate elevated. Consider lowering semantic router auto-execute threshold.';
   } else {
     status = 'unhealthy';
-    recommendation = 'High leakage rate. Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) or investigate Gemini prompt issues.';
+    recommendation =
+      'High leakage rate. Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) or investigate Gemini prompt issues.';
   }
 
   return {

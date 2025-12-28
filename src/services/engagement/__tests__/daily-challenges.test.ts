@@ -113,7 +113,7 @@ describe('DailyChallenges', () => {
 
     it('should return varied challenge types', () => {
       const challenges = getUpcomingChallenges(testUserId, 7);
-      const types = new Set(challenges.map(c => c.type));
+      const types = new Set(challenges.map((c) => c.type));
 
       // Should have multiple different types over a week
       expect(types.size).toBeGreaterThan(1);
@@ -201,7 +201,7 @@ describe('DailyChallenges', () => {
       expect(hasCompletedTodaysChallenge(newUserId)).toBe(false);
     });
 
-    it('should return true after completing today\'s challenge', () => {
+    it("should return true after completing today's challenge", () => {
       const uniqueUserId = `completed-check-${Date.now()}`;
       const challenge = getTodaysChallenge(uniqueUserId);
 
@@ -381,7 +381,7 @@ describe('DailyChallenges', () => {
       const challenges = getUpcomingChallenges(testUserId, 7);
 
       // Verify challenges have types assigned
-      const types = new Set(challenges.map(c => c.type));
+      const types = new Set(challenges.map((c) => c.type));
       // Implementation may vary - just verify types are defined
       for (const challenge of challenges) {
         expect(challenge.type).toBeDefined();

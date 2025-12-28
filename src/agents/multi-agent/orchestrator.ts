@@ -212,8 +212,9 @@ export class AgentOrchestrator {
       const greeting = generateWarmGreeting(agent.personaId, ctx);
 
       // Speak via agent.say wrapper (uses coordinated speech)
+      // FIX: Disable interruptions for initial greeting - iOS background noise was cutting it off
       diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
-      agent.say(greeting, { allowInterruptions: true });
+      agent.say(greeting, { allowInterruptions: false });
     } catch (err) {
       log.warn({ error: String(err), personaId: agent.personaId }, '🎭 Initial greeting failed');
     }
@@ -346,10 +347,7 @@ export class AgentOrchestrator {
       // STEP 4: Switch active agent
       // ================================================================
       const step4Start = Date.now();
-      log.info(
-        { newAgentId: newAgent.id },
-        '🎭 [HANDOFF STEP 4/5] Setting new agent as active...'
-      );
+      log.info({ newAgentId: newAgent.id }, '🎭 [HANDOFF STEP 4/5] Setting new agent as active...');
       this.setActiveAgent(newAgent.id);
       log.info(
         { activeAgentId: this.activeAgentId, durationMs: Date.now() - step4Start },
@@ -504,10 +502,7 @@ export class AgentOrchestrator {
       throw new Error(`Agent created for ${personaId} has no ID`);
     }
 
-    log.debug(
-      { personaId, agentId: agent.id },
-      '🎭 [spawnAgent] Adding agent to map...'
-    );
+    log.debug({ personaId, agentId: agent.id }, '🎭 [spawnAgent] Adding agent to map...');
 
     // Add to map and verify
     this.agents.set(agent.id, agent);
@@ -702,7 +697,9 @@ export class AgentOrchestrator {
    * Wait for speech to complete (simple timeout-based).
    */
   private waitForSpeechComplete(estimatedMs: number): Promise<void> {
-    return new Promise<void>((resolve) => { setTimeout(resolve, estimatedMs); });
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, estimatedMs);
+    });
   }
 
   /**

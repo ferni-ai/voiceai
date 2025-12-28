@@ -31,6 +31,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // Milestones - for journey progress indicator
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
+// Transcript UI - for toggling live transcription
+import { transcriptUI } from './transcript.ui.js';
 // i18n for translations
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 
@@ -160,6 +162,9 @@ const ICONS = {
 
   // Voice & Sound
   mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+  // Transcript/captions icon
+  transcript:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h4"/><path d="M6 12h12"/><path d="M6 16h8"/></svg>',
   thermostat:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><line x1="12" y1="14" x2="12" y2="10"/></svg>',
   bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 8h20"/><path d="M2 16h20"/><path d="M6 8v8"/><path d="M18 8v8"/></svg>',
@@ -621,6 +626,23 @@ class SettingsMenuUI {
     `;
   }
 
+  /**
+   * Render a toggle menu item (for on/off settings)
+   */
+  private renderToggleItem(action: string, icon: string, label: string, isOn: boolean): string {
+    return `
+      <button aria-label="${label}" class="settings-menu__item settings-menu__item--toggle ${isOn ? 'settings-menu__item--toggle-on' : ''}" data-action="${action}" data-toggle="true">
+        <span class="settings-menu__icon">${icon}</span>
+        <span class="settings-menu__label">${label}</span>
+        <span class="settings-menu__toggle-indicator">
+          <span class="settings-menu__toggle-track">
+            <span class="settings-menu__toggle-thumb"></span>
+          </span>
+        </span>
+      </button>
+    `;
+  }
+
   private renderContent(): void {
     if (!this.panel) return;
 
@@ -781,6 +803,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
+            ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript') || 'Show Transcript', transcriptUI.isEnabled())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
@@ -835,6 +858,7 @@ class SettingsMenuUI {
         const action = htmlBtn.dataset.action;
         const isLocked = htmlBtn.dataset.locked === 'true';
         const isRoadmap = htmlBtn.dataset.roadmap === 'true';
+        const isToggle = htmlBtn.dataset.toggle === 'true';
 
         // Roadmap features open the inspiring "What's Growing" panel
         if (isRoadmap && action) {
@@ -847,6 +871,12 @@ class SettingsMenuUI {
           // Show a gentle animation indicating it's locked
           htmlBtn.classList.add('settings-menu__item--shake');
           trackedTimeout(() => htmlBtn.classList.remove('settings-menu__item--shake'), 400);
+          return;
+        }
+
+        // Toggle items don't close menu - just toggle state
+        if (isToggle && action) {
+          this.handleToggle(action, htmlBtn);
           return;
         }
 
@@ -1311,6 +1341,24 @@ class SettingsMenuUI {
         this.callbacks.onAllConnectionsClick?.();
         break;
       // Quick Add actions
+    }
+  }
+
+  /**
+   * Handle toggle items (on/off switches)
+   * Doesn't close the menu - just updates state
+   */
+  private handleToggle(action: string, btnElement: HTMLElement): void {
+    switch (action) {
+      case 'toggle-transcription': {
+        // Toggle transcription visibility
+        const newState = !transcriptUI.isEnabled();
+        transcriptUI.setEnabled(newState);
+        
+        // Update button UI
+        btnElement.classList.toggle('settings-menu__item--toggle-on', newState);
+        break;
+      }
     }
   }
 
@@ -1992,6 +2040,48 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
+         TOGGLE ITEMS (On/Off switches)
+         ======================================================================== */
+      .settings-menu__item--toggle {
+        justify-content: space-between;
+      }
+
+      .settings-menu__toggle-indicator {
+        flex-shrink: 0;
+        margin-left: auto;
+      }
+
+      .settings-menu__toggle-track {
+        display: block;
+        width: 40px;
+        height: 24px;
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.2));
+        border-radius: 12px;
+        position: relative;
+        transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__toggle-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+      }
+
+      .settings-menu__item--toggle-on .settings-menu__toggle-track {
+        background: var(--color-accent-primary, #2d5a3d);
+      }
+
+      .settings-menu__item--toggle-on .settings-menu__toggle-thumb {
+        transform: translateX(16px);
+      }
+
+      /* ========================================================================
          LANGUAGE SELECTOR
          ======================================================================== */
       .settings-menu__language-selector {
@@ -2614,6 +2704,15 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__item--active .settings-menu__label::after {
         color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      /* Toggle items in dark theme */
+      [data-theme="midnight"] .settings-menu__toggle-track {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--toggle-on .settings-menu__toggle-track {
+        background: var(--color-accent-secondary, #7cb36b);
       }
 
       /* Language Selector */

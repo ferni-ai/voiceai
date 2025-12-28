@@ -641,19 +641,22 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
     if (!firestore) return;
 
     try {
-      await firestore.collection(`users/${userId}/calendar_providers`).doc('outlook').set(
-        cleanForFirestore({
-          provider: 'outlook',
-          connected: true,
-          email: tokens.email,
-          displayName: tokens.displayName,
-          syncEnabled: true,
-          syncDirection: 'two-way',
-          tokens,
-          lastSyncedAt: null,
-        }),
-        { merge: true }
-      );
+      await firestore
+        .collection(`users/${userId}/calendar_providers`)
+        .doc('outlook')
+        .set(
+          cleanForFirestore({
+            provider: 'outlook',
+            connected: true,
+            email: tokens.email,
+            displayName: tokens.displayName,
+            syncEnabled: true,
+            syncDirection: 'two-way',
+            tokens,
+            lastSyncedAt: null,
+          }),
+          { merge: true }
+        );
     } catch (error) {
       log.error({ error: String(error) }, 'Error storing Microsoft tokens');
     }

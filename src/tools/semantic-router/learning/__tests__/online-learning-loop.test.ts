@@ -66,7 +66,11 @@ vi.mock('../../advanced/learned-retriever.js', () => ({
 }));
 
 // Import after mocks
-import { OnlineLearningEngine, initializeOnlineLearning, shutdownOnlineLearning } from '../online-learning-loop.js';
+import {
+  OnlineLearningEngine,
+  initializeOnlineLearning,
+  shutdownOnlineLearning,
+} from '../online-learning-loop.js';
 
 describe('OnlineLearningEngine', () => {
   let engine: OnlineLearningEngine;

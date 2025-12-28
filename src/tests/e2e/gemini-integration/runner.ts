@@ -316,7 +316,9 @@ export async function runAllTests(config: RunnerConfig = {}): Promise<RunnerResu
         }
 
         // Rate limit delay
-        await new Promise<void>((resolve) => { setTimeout(resolve, 500); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 500);
+        });
       } catch (error) {
         console.log(`  ⚠️ ${scenario.id} - Error: ${String(error)}`);
         result.warnings.push(`${scenario.id}: ${String(error)}`);
@@ -382,7 +384,9 @@ export async function runAllTests(config: RunnerConfig = {}): Promise<RunnerResu
           }
         }
 
-        await new Promise<void>((resolve) => { setTimeout(resolve, 500); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 500);
+        });
       } catch (error) {
         console.log(`  ⚠️ ${scenario.id} - Error: ${String(error)}`);
         result.warnings.push(`${scenario.id}: ${String(error)}`);
@@ -448,7 +452,9 @@ export async function runAllTests(config: RunnerConfig = {}): Promise<RunnerResu
           }
         }
 
-        await new Promise<void>((resolve) => { setTimeout(resolve, 500); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 500);
+        });
       } catch (error) {
         console.log(`  ⚠️ ${scenario.id} - Error: ${String(error)}`);
         result.warnings.push(`${scenario.id}: ${String(error)}`);

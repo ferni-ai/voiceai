@@ -390,11 +390,13 @@ async function savePollingState(userId: string, state: PollingState): Promise<vo
     await firestore
       .collection(`users/${userId}/apple_polling_state`)
       .doc('state')
-      .set(cleanForFirestore({
-        ...state,
-        lastPoll: state.lastPoll.toISOString(),
-        lastActivity: state.lastActivity.toISOString(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...state,
+          lastPoll: state.lastPoll.toISOString(),
+          lastActivity: state.lastActivity.toISOString(),
+        })
+      );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Error saving polling state');
   }

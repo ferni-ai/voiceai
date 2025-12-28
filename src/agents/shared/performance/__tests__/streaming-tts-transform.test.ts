@@ -86,7 +86,9 @@ describe('StreamingTTSTransform', () => {
 
       // Write short text - should flush quickly due to firstChunkMinSize
       await writer.write('Hello!');
-      await new Promise<void>((r) => { setTimeout(r, 10); }); // Wait for flush
+      await new Promise<void>((r) => {
+        setTimeout(r, 10);
+      }); // Wait for flush
       await writer.close();
 
       await readPromise;

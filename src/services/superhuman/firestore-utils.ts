@@ -9,7 +9,11 @@ import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Re-export cleanForFirestore for convenience
-export { cleanForFirestore, removeUndefined, deepRemoveUndefined } from '../../utils/firestore-utils.js';
+export {
+  cleanForFirestore,
+  removeUndefined,
+  deepRemoveUndefined,
+} from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'superhuman-firestore' });
 

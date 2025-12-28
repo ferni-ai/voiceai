@@ -24,7 +24,10 @@ export { handleAppleNotification } from './apple-notifications.js';
 export { handleVisualMemoryRoutes } from './visual-memory.js';
 export { handleAmbientModeRoutes } from './ambient-mode.js';
 // Intelligent routing (6-strategy cascade)
-export { handleIntelligentRoutingRoutes, registerIntelligentRoutingRoutes } from './intelligent-routing.js';
+export {
+  handleIntelligentRoutingRoutes,
+  registerIntelligentRoutingRoutes,
+} from './intelligent-routing.js';
 // Telephony webhooks (Twilio call status)
 export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.js';
 // Semantic Intelligence API (V3.0-V3.7)

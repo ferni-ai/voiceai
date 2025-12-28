@@ -6,5 +6,7 @@
 	<false/>
 	<key>IDEPackageSupportUseBuiltinSCM</key>
 	<true/>
+	<key>IDEPackageSupportDisableAutomaticPackageResolution</key>
+	<false/>
 </dict>
 </plist>

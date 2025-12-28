@@ -333,10 +333,12 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.INSTALLATIONS)
       .doc(id)
-      .update(cleanForFirestore({
-        ...updates,
-        _updatedAt: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          ...updates,
+          _updatedAt: new Date(),
+        })
+      );
     log.debug({ installationId: id }, 'Installation updated in Firestore');
   }
 

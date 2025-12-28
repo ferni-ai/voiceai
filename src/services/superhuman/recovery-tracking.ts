@@ -57,12 +57,15 @@ export interface RecoveryEvent {
 export interface RecoveryProfile {
   userId: string;
   /** Recovery times by event type */
-  recoveryTimes: Record<RecoveryEventType, {
-    minHours: number;
-    avgHours: number;
-    maxHours: number;
-    sampleSize: number;
-  }>;
+  recoveryTimes: Record<
+    RecoveryEventType,
+    {
+      minHours: number;
+      avgHours: number;
+      maxHours: number;
+      sampleSize: number;
+    }
+  >;
   /** Actions that help recovery */
   helpfulActions: string[];
   /** Times when they recover faster */
@@ -178,11 +181,13 @@ export async function markRecovered(
     const event = doc.data() as RecoveryEvent;
     const recoveryHours = (Date.now() - event.eventTimestamp) / (1000 * 60 * 60);
 
-    await docRef.update(cleanForFirestore({
-      recoveredTimestamp: Date.now(),
-      recoveryHours,
-      helpfulActions,
-    }));
+    await docRef.update(
+      cleanForFirestore({
+        recoveredTimestamp: Date.now(),
+        recoveryHours,
+        helpfulActions,
+      })
+    );
 
     log.debug({ userId, eventId, recoveryHours: recoveryHours.toFixed(1) }, 'Marked recovered');
   } catch (error) {
@@ -241,9 +246,18 @@ export async function buildRecoveryProfile(userId: string): Promise<RecoveryProf
   const recoveryTimes: RecoveryProfile['recoveryTimes'] = {} as RecoveryProfile['recoveryTimes'];
 
   const eventTypes: RecoveryEventType[] = [
-    'conflict', 'bad_news', 'rejection', 'loss', 'intense_work',
-    'social_event', 'emotional_conversation', 'medical_procedure',
-    'high_stress', 'disappointment', 'embarrassment', 'anxiety_peak',
+    'conflict',
+    'bad_news',
+    'rejection',
+    'loss',
+    'intense_work',
+    'social_event',
+    'emotional_conversation',
+    'medical_procedure',
+    'high_stress',
+    'disappointment',
+    'embarrassment',
+    'anxiety_peak',
   ];
 
   for (const type of eventTypes) {
@@ -307,9 +321,8 @@ export async function getCheckInRecommendation(
   const hoursSinceEvent = (Date.now() - eventTimestamp) / (1000 * 60 * 60);
 
   // Use personalized data if available, otherwise default
-  const expectedRecovery = recoveryData.sampleSize > 0
-    ? recoveryData.avgHours
-    : DEFAULT_RECOVERY_TIMES[eventType];
+  const expectedRecovery =
+    recoveryData.sampleSize > 0 ? recoveryData.avgHours : DEFAULT_RECOVERY_TIMES[eventType];
 
   const confidence = recoveryData.sampleSize > 2 ? 0.8 : 0.5;
 
@@ -373,26 +386,31 @@ export async function buildRecoveryContext(userId: string): Promise<string> {
 
   for (const event of activeEvents.slice(0, 3)) {
     const hoursSince = (Date.now() - event.eventTimestamp) / (1000 * 60 * 60);
-    const expectedRecovery = profile.recoveryTimes[event.eventType]?.avgHours || DEFAULT_RECOVERY_TIMES[event.eventType];
-    const recommendation = await getCheckInRecommendation(userId, event.eventType, event.eventTimestamp);
+    const expectedRecovery =
+      profile.recoveryTimes[event.eventType]?.avgHours || DEFAULT_RECOVERY_TIMES[event.eventType];
+    const recommendation = await getCheckInRecommendation(
+      userId,
+      event.eventType,
+      event.eventTimestamp
+    );
 
     if (hoursSince < 2) {
       // Very recent
       sections.push(
         `⏳ Recent ${RECOVERY_DESCRIPTIONS[event.eventType]} (${hoursSince.toFixed(0)}h ago)\n` +
-        `   Give them space. Don't probe unless they bring it up.\n` +
-        `   Estimated recovery: ~${Math.round(expectedRecovery)} hours`
+          `   Give them space. Don't probe unless they bring it up.\n` +
+          `   Estimated recovery: ~${Math.round(expectedRecovery)} hours`
       );
     } else if (!recommendation.isReadyForCheckIn) {
       sections.push(
         `🛑 Still recovering from ${RECOVERY_DESCRIPTIONS[event.eventType]} (${hoursSince.toFixed(0)}h ago)\n` +
-        `   ${recommendation.message}\n` +
-        `   Wait approximately ${recommendation.recommendedWaitHours} more hours.`
+          `   ${recommendation.message}\n` +
+          `   Wait approximately ${recommendation.recommendedWaitHours} more hours.`
       );
     } else {
       sections.push(
         `✅ May be ready to talk about ${RECOVERY_DESCRIPTIONS[event.eventType]} (${hoursSince.toFixed(0)}h ago)\n` +
-        `   ${recommendation.message}`
+          `   ${recommendation.message}`
       );
     }
 
@@ -420,4 +438,3 @@ export const recoveryTracking = {
   getCheckInRecommendation,
   buildContext: buildRecoveryContext,
 };
-

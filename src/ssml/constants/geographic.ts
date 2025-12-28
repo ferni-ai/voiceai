@@ -11,10 +11,22 @@ export const GEOGRAPHIC_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   // Wyoming Place Names (Ferni's home)
   // -------------------------------------------------------------------------
-  { pattern: /\bTetons\b/g, replacement: 'TEE-tonz', description: 'Grand Teton mountains (plural)' },
+  {
+    pattern: /\bTetons\b/g,
+    replacement: 'TEE-tonz',
+    description: 'Grand Teton mountains (plural)',
+  },
   { pattern: /\bTeton\b/g, replacement: 'TEE-ton', description: 'Grand Teton mountain (singular)' },
-  { pattern: /\bGrand\s+Tetons\b/gi, replacement: 'Grand TEE-tonz', description: 'Grand Tetons (plural)' },
-  { pattern: /\bGrand\s+Teton\b/gi, replacement: 'Grand TEE-ton', description: 'Grand Teton (singular)' },
+  {
+    pattern: /\bGrand\s+Tetons\b/gi,
+    replacement: 'Grand TEE-tonz',
+    description: 'Grand Tetons (plural)',
+  },
+  {
+    pattern: /\bGrand\s+Teton\b/gi,
+    replacement: 'Grand TEE-ton',
+    description: 'Grand Teton (singular)',
+  },
   { pattern: /\bCheyenne\b/g, replacement: 'shy-ANN', description: 'Wyoming capital' },
   { pattern: /\bLaramie\b/g, replacement: 'LAIR-uh-mee', description: 'Wyoming city' },
   { pattern: /\bShoshone\b/gi, replacement: 'sho-SHO-nee', description: 'Native nation/places' },
@@ -38,7 +50,11 @@ export const GEOGRAPHIC_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bPuyallup\b/gi, replacement: 'pyoo-AL-up', description: 'Washington city' },
   { pattern: /\bCascade[s]?\b/gi, replacement: 'kass-KADE', description: 'Mountain range' },
   { pattern: /\bWenatchee\b/gi, replacement: 'wuh-NATCH-ee', description: 'Washington city' },
-  { pattern: /\bSnoqualmie\b/gi, replacement: 'sno-KWAL-mee', description: 'Washington falls/pass' },
+  {
+    pattern: /\bSnoqualmie\b/gi,
+    replacement: 'sno-KWAL-mee',
+    description: 'Washington falls/pass',
+  },
   { pattern: /\bSequim\b/gi, replacement: 'SKWIM', description: 'Washington city' },
   { pattern: /\bKootenai\b/gi, replacement: 'KOOT-nee', description: 'Idaho/Montana region' },
 
@@ -49,7 +65,11 @@ export const GEOGRAPHIC_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bOuray\b/gi, replacement: 'yoo-RAY', description: 'Colorado town' },
   { pattern: /\bSalida\b/gi, replacement: 'suh-LYE-duh', description: 'Colorado town' },
   { pattern: /\bGunnison\b/gi, replacement: 'GUN-ih-son', description: 'Colorado town/river' },
-  { pattern: /\bSangre\s+de\s+Cristo\b/gi, replacement: 'SANG-gruh duh KRIS-toh', description: 'Mountain range' },
+  {
+    pattern: /\bSangre\s+de\s+Cristo\b/gi,
+    replacement: 'SANG-gruh duh KRIS-toh',
+    description: 'Mountain range',
+  },
   { pattern: /\bAlamosa\b/gi, replacement: 'AL-uh-MO-suh', description: 'Colorado town' },
   { pattern: /\bPueblo\b/gi, replacement: 'PWEB-lo', description: 'Colorado city' },
   { pattern: /\bSaguache\b/gi, replacement: 'suh-WATCH', description: 'Colorado county' },
@@ -140,19 +160,43 @@ export const NATIVE_AMERICAN_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bUte\b/gi, replacement: 'YOOT', description: 'Colorado/Utah people' },
   { pattern: /\bPaiute\b/gi, replacement: 'PIE-yoot', description: 'Great Basin people' },
   { pattern: /\bArapaho\b/gi, replacement: 'uh-RAP-uh-ho', description: 'Plains people' },
-  { pattern: /\bCheyenne\b(?=.*tribe|.*nation|.*people)/gi, replacement: 'shy-ANN', description: 'Plains nation' },
-  { pattern: /\bCrow\b(?=.*tribe|.*nation|.*people)/gi, replacement: 'Crow', description: 'Montana people' },
+  {
+    pattern: /\bCheyenne\b(?=.*tribe|.*nation|.*people)/gi,
+    replacement: 'shy-ANN',
+    description: 'Plains nation',
+  },
+  {
+    pattern: /\bCrow\b(?=.*tribe|.*nation|.*people)/gi,
+    replacement: 'Crow',
+    description: 'Montana people',
+  },
   { pattern: /\bBlackfeet\b/gi, replacement: 'BLACK-feet', description: 'Montana/Alberta people' },
   { pattern: /\bNez\s+Perc[eé]\b/gi, replacement: 'NEZ perss', description: 'Idaho/Oregon people' },
   { pattern: /\bYakama\b/gi, replacement: 'YAK-uh-muh', description: 'Washington people' },
   { pattern: /\bSalish\b/gi, replacement: 'SAY-lish', description: 'Pacific Northwest peoples' },
   { pattern: /\bLakota\b/gi, replacement: 'luh-KO-tuh', description: 'Sioux people' },
-  { pattern: /\bDakota\b(?=.*tribe|.*sioux|.*people)/gi, replacement: 'duh-KO-tuh', description: 'Sioux people' },
+  {
+    pattern: /\bDakota\b(?=.*tribe|.*sioux|.*people)/gi,
+    replacement: 'duh-KO-tuh',
+    description: 'Sioux people',
+  },
   { pattern: /\bOjibwe\b/gi, replacement: 'oh-JIB-way', description: 'Great Lakes people' },
-  { pattern: /\bAnishinaabe\b/gi, replacement: 'ah-nish-ih-NAH-bay', description: 'Ojibwe self-name' },
-  { pattern: /\bCherokee\b/gi, replacement: 'CHAIR-oh-kee', description: 'Southeast/Oklahoma nation' },
+  {
+    pattern: /\bAnishinaabe\b/gi,
+    replacement: 'ah-nish-ih-NAH-bay',
+    description: 'Ojibwe self-name',
+  },
+  {
+    pattern: /\bCherokee\b/gi,
+    replacement: 'CHAIR-oh-kee',
+    description: 'Southeast/Oklahoma nation',
+  },
   { pattern: /\bZuni\b/gi, replacement: 'ZOO-nee', description: 'New Mexico pueblo' },
-  { pattern: /\bTaos\s+Pueblo\b/gi, replacement: 'TOUSE PWEB-lo', description: 'New Mexico pueblo' },
+  {
+    pattern: /\bTaos\s+Pueblo\b/gi,
+    replacement: 'TOUSE PWEB-lo',
+    description: 'New Mexico pueblo',
+  },
 
   // -------------------------------------------------------------------------
   // Native American Spiritual/Cultural Terms
@@ -168,4 +212,3 @@ export const NATIVE_AMERICAN_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bpetroglyphs\b/gi, replacement: 'PET-ro-glifs', description: 'Rock carvings' },
   { pattern: /\bpictograph\b/gi, replacement: 'PIK-tuh-graf', description: 'Rock painting' },
 ];
-

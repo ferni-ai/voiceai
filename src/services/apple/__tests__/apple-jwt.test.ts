@@ -59,7 +59,8 @@ describe('AppleJWT', () => {
     it('should return true when all credentials configured', async () => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
       vi.resetModules();
 
       const { isAppleConfigured } = await import('../apple-jwt.js');
@@ -71,7 +72,8 @@ describe('AppleJWT', () => {
     beforeEach(() => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
     });
 
     it('should throw error when not configured', async () => {
@@ -135,7 +137,8 @@ describe('AppleJWT', () => {
     it('should call generateAppleJWT with musickit', async () => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
       vi.resetModules();
 
       const { getMusicKitToken, generateAppleJWT } = await import('../apple-jwt.js');
@@ -151,7 +154,8 @@ describe('AppleJWT', () => {
     it('should call generateAppleJWT with weatherkit', async () => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
       vi.resetModules();
 
       const { getWeatherKitToken, generateAppleJWT } = await import('../apple-jwt.js');
@@ -167,7 +171,8 @@ describe('AppleJWT', () => {
     it('should accept inline key content', async () => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
       vi.resetModules();
 
       const { generateAppleJWT } = await import('../apple-jwt.js');
@@ -193,7 +198,8 @@ describe('AppleJWT', () => {
     it('should export all functions via default', async () => {
       process.env.APPLE_TEAM_ID = 'TEAM123456';
       process.env.APPLE_KEY_ID = 'KEY123456';
-      process.env.APPLE_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
+      process.env.APPLE_PRIVATE_KEY =
+        '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----';
       vi.resetModules();
 
       const appleJwt = await import('../apple-jwt.js');

@@ -15,7 +15,49 @@ const logger = createLogger({ module: 'BetterThanHumanAnalytics' });
 // TYPES
 // ============================================================================
 
+/**
+ * All 30+ superhuman capabilities tracked by Ferni.
+ *
+ * ORIGINAL 10 (Core Superhuman Capabilities - Jan 2024):
+ * These are the foundational "better than any human friend" features
+ *
+ * ENHANCED 9 (December 2024):
+ * Context and timing intelligence
+ *
+ * LEGACY 12 (Earlier capabilities):
+ * Original tracking categories
+ */
 export type SuperhumanCapability =
+  // ============================================================================
+  // ORIGINAL 10 - Core "Better Than Human" Capabilities
+  // ============================================================================
+  | 'commitment_keeper' // Tracks promises, intentions, decisions
+  | 'capacity_guardian' // Monitors energy, prevents burnout
+  | 'values_alignment' // Detects when actions contradict values
+  | 'dream_keeper' // Guards long-term aspirations
+  | 'life_narrative' // Builds coherent story of user's journey
+  | 'relationship_network' // Maps all relationships with sentiment
+  | 'seasonal_awareness' // Connects to seasonal patterns
+  | 'relationship_milestones' // Tracks important dates, anniversaries
+  | 'emotional_first_aid' // Immediate crisis support
+  | 'predictive_coaching' // Anticipates struggles before they happen
+
+  // ============================================================================
+  // ENHANCED 9 - Context & Timing Intelligence (Dec 2024)
+  // ============================================================================
+  | 'silence_interpreter' // Classifies silence types
+  | 'contradiction_comfort' // Validates mixed emotions
+  | 'perfect_timing' // Learns optimal timing for topics
+  | 'pattern_mirror' // Tracks energizing/draining topics
+  | 'first_time_vulnerability' // Detects first-time shares
+  | 'ambient_context' // Classifies user's environment
+  | 'protective_memory' // Tracks premature advice, boundary softening
+  | 'voice_biomarkers' // Voice health indicators
+  | 'inside_joke_memory' // Remembers shared humor moments
+
+  // ============================================================================
+  // LEGACY 12 - Original Tracking Categories
+  // ============================================================================
   | 'emotional_memory'
   | 'anticipatory_presence'
   | 'linguistic_mirroring'
@@ -159,23 +201,50 @@ export function trackAction(
 // ============================================================================
 
 /**
+ * All capabilities for iteration
+ */
+export const ALL_CAPABILITIES: SuperhumanCapability[] = [
+  // Original 10
+  'commitment_keeper',
+  'capacity_guardian',
+  'values_alignment',
+  'dream_keeper',
+  'life_narrative',
+  'relationship_network',
+  'seasonal_awareness',
+  'relationship_milestones',
+  'emotional_first_aid',
+  'predictive_coaching',
+  // Enhanced 9
+  'silence_interpreter',
+  'contradiction_comfort',
+  'perfect_timing',
+  'pattern_mirror',
+  'first_time_vulnerability',
+  'ambient_context',
+  'protective_memory',
+  'voice_biomarkers',
+  'inside_joke_memory',
+  // Legacy 12
+  'emotional_memory',
+  'anticipatory_presence',
+  'linguistic_mirroring',
+  'visible_vulnerability',
+  'spontaneous_delight',
+  'protective_instincts',
+  'evolving_jokes',
+  'team_coherence',
+  'temporal_emotional',
+  'meta_relationship',
+  'somatic_presence',
+  'superhuman_observations',
+];
+
+/**
  * Get statistics for all capabilities
  */
 export function getCapabilityStats(): CapabilityStats[] {
-  const capabilities: SuperhumanCapability[] = [
-    'emotional_memory',
-    'anticipatory_presence',
-    'linguistic_mirroring',
-    'visible_vulnerability',
-    'spontaneous_delight',
-    'protective_instincts',
-    'evolving_jokes',
-    'team_coherence',
-    'temporal_emotional',
-    'meta_relationship',
-    'somatic_presence',
-    'superhuman_observations',
-  ];
+  const capabilities = ALL_CAPABILITIES;
 
   return capabilities.map((capability) => {
     const usage = usageEvents.filter((e) => e.capability === capability);
@@ -198,22 +267,7 @@ export function getCapabilityStats(): CapabilityStats[] {
  * Get stats for a specific user
  */
 export function getUserCapabilityStats(userId: string): CapabilityStats[] {
-  const capabilities: SuperhumanCapability[] = [
-    'emotional_memory',
-    'anticipatory_presence',
-    'linguistic_mirroring',
-    'visible_vulnerability',
-    'spontaneous_delight',
-    'protective_instincts',
-    'evolving_jokes',
-    'team_coherence',
-    'temporal_emotional',
-    'meta_relationship',
-    'somatic_presence',
-    'superhuman_observations',
-  ];
-
-  return capabilities.map((capability) => {
+  return ALL_CAPABILITIES.map((capability) => {
     const usage = usageEvents.filter((e) => e.capability === capability && e.userId === userId);
     const effectiveness = effectivenessEvents.filter(
       (e) => e.capability === capability && e.userId === userId

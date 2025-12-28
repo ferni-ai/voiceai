@@ -110,7 +110,7 @@ describe('PersonaFingerprints', () => {
 
     it('should include Wyoming and Japan references in signature phrases', () => {
       expect(ferniFingerprint.signaturePhrases).toContain('Wyoming');
-      expect(ferniFingerprint.signaturePhrases.some(p => p.includes('Japan'))).toBe(true);
+      expect(ferniFingerprint.signaturePhrases.some((p) => p.includes('Japan'))).toBe(true);
     });
 
     it('should avoid data-driven language as anti-patterns', () => {
@@ -176,7 +176,7 @@ describe('PersonaFingerprints', () => {
 
     it('should include step-by-step and template language', () => {
       expect(alexFingerprint.signaturePhrases).toContain('step by step');
-      expect(alexFingerprint.signaturePhrases.some(p => p.includes('template'))).toBe(true);
+      expect(alexFingerprint.signaturePhrases.some((p) => p.includes('template'))).toBe(true);
     });
   });
 
@@ -199,7 +199,7 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should include excitement language', () => {
-      expect(jordanFingerprint.signaturePhrases.some(p => p.includes('exciting'))).toBe(true);
+      expect(jordanFingerprint.signaturePhrases.some((p) => p.includes('exciting'))).toBe(true);
       expect(jordanFingerprint.signaturePhrases).toContain("let's make this happen");
     });
   });
@@ -218,9 +218,7 @@ describe('PersonaFingerprints', () => {
         alexFingerprint.emotionalTone.energy,
         jordanFingerprint.emotionalTone.energy,
       ];
-      expect(nayanFingerprint.emotionalTone.energy).toBeLessThanOrEqual(
-        Math.min(...allEnergies)
-      );
+      expect(nayanFingerprint.emotionalTone.energy).toBeLessThanOrEqual(Math.min(...allEnergies));
     });
 
     it('should have low directness (contemplative)', () => {
@@ -235,7 +233,7 @@ describe('PersonaFingerprints', () => {
 
   describe('analyzeSignaturePhraseUsage', () => {
     it('should detect signature phrases in response', () => {
-      const response = "Let me ask you this - what would it mean if you stay the course?";
+      const response = 'Let me ask you this - what would it mean if you stay the course?';
       const { used, usageRate } = analyzeSignaturePhraseUsage(response, ferniFingerprint);
 
       expect(used).toContain('stay the course');
@@ -245,7 +243,7 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should return empty array when no phrases detected', () => {
-      const response = "The weather is nice today.";
+      const response = 'The weather is nice today.';
       const { used, usageRate } = analyzeSignaturePhraseUsage(response, ferniFingerprint);
 
       expect(used).toEqual([]);
@@ -253,14 +251,14 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should be case insensitive', () => {
-      const response = "THE DATA SHOWS a clear pattern here.";
+      const response = 'THE DATA SHOWS a clear pattern here.';
       const { used } = analyzeSignaturePhraseUsage(response, peterFingerprint);
 
       expect(used).toContain('the data shows');
     });
 
     it('should calculate usage rate correctly', () => {
-      const response = "Research indicates the trend is positive.";
+      const response = 'Research indicates the trend is positive.';
       const { used, usageRate } = analyzeSignaturePhraseUsage(response, peterFingerprint);
 
       expect(used.length).toBe(1);
@@ -271,7 +269,7 @@ describe('PersonaFingerprints', () => {
   describe('detectAntiPatterns', () => {
     it('should detect anti-patterns in response', () => {
       // Ferni using Peter's language
-      const response = "The data shows you should optimize your workflow.";
+      const response = 'The data shows you should optimize your workflow.';
       const { detected, violationCount } = detectAntiPatterns(response, ferniFingerprint);
 
       expect(detected).toContain('the data shows');
@@ -279,7 +277,7 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should return empty array when no anti-patterns detected', () => {
-      const response = "Let me ask you this - what matters most to you?";
+      const response = 'Let me ask you this - what matters most to you?';
       const { detected, violationCount } = detectAntiPatterns(response, ferniFingerprint);
 
       expect(detected).toEqual([]);
@@ -287,7 +285,7 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should be case insensitive', () => {
-      const response = "You SHOULD work harder.";
+      const response = 'You SHOULD work harder.';
       const { detected } = detectAntiPatterns(response, mayaFingerprint);
 
       expect(detected).toContain('you should');
@@ -295,7 +293,7 @@ describe('PersonaFingerprints', () => {
 
     it('should detect multiple anti-patterns', () => {
       // Maya using harsh language
-      const response = "You should not be such a failure. You must do better.";
+      const response = 'You should not be such a failure. You must do better.';
       const { detected, violationCount } = detectAntiPatterns(response, mayaFingerprint);
 
       expect(violationCount).toBeGreaterThanOrEqual(2);
@@ -304,7 +302,8 @@ describe('PersonaFingerprints', () => {
 
   describe('calculateVoiceDrift', () => {
     it('should return low drift for on-voice response', () => {
-      const onVoiceResponse = "Let me ask you this - what would it mean if you stayed the course? I'm curious about your heart's true desire.";
+      const onVoiceResponse =
+        "Let me ask you this - what would it mean if you stayed the course? I'm curious about your heart's true desire.";
       const drift = calculateVoiceDrift(onVoiceResponse, ferniFingerprint);
 
       expect(drift).toBeLessThan(0.3);
@@ -312,7 +311,8 @@ describe('PersonaFingerprints', () => {
 
     it('should return high drift for off-voice response', () => {
       // Ferni speaking like Peter
-      const offVoiceResponse = "The data shows that statistically you should optimize your algorithm for maximum efficiency.";
+      const offVoiceResponse =
+        'The data shows that statistically you should optimize your algorithm for maximum efficiency.';
       const drift = calculateVoiceDrift(offVoiceResponse, ferniFingerprint);
 
       expect(drift).toBeGreaterThan(0.2);
@@ -320,9 +320,9 @@ describe('PersonaFingerprints', () => {
 
     it('should return drift between 0 and 1', () => {
       const responses = [
-        "Hello, how are you?",
-        "The data shows optimization is key.",
-        "Stay the course and believe in yourself.",
+        'Hello, how are you?',
+        'The data shows optimization is key.',
+        'Stay the course and believe in yourself.',
       ];
 
       for (const response of responses) {
@@ -345,21 +345,22 @@ describe('PersonaFingerprints', () => {
 
   describe('getVoiceConsistencyScore', () => {
     it('should return high score for on-voice response', () => {
-      const onVoice = "Stay the course. Let me ask you this - what would it mean to believe in yourself?";
+      const onVoice =
+        'Stay the course. Let me ask you this - what would it mean to believe in yourself?';
       const score = getVoiceConsistencyScore(onVoice, ferniFingerprint);
 
       expect(score).toBeGreaterThan(70);
     });
 
     it('should return lower score for off-voice response', () => {
-      const offVoice = "The data shows you should optimize metrics for efficiency.";
+      const offVoice = 'The data shows you should optimize metrics for efficiency.';
       const score = getVoiceConsistencyScore(offVoice, ferniFingerprint);
 
       expect(score).toBeLessThan(90);
     });
 
     it('should return score between 0 and 100', () => {
-      const response = "Test response.";
+      const response = 'Test response.';
       const score = getVoiceConsistencyScore(response, ferniFingerprint);
 
       expect(score).toBeGreaterThanOrEqual(0);
@@ -367,7 +368,7 @@ describe('PersonaFingerprints', () => {
     });
 
     it('should be inverse of drift', () => {
-      const response = "Stay the course and keep growing.";
+      const response = 'Stay the course and keep growing.';
       const drift = calculateVoiceDrift(response, ferniFingerprint);
       const score = getVoiceConsistencyScore(response, ferniFingerprint);
 
@@ -384,10 +385,10 @@ describe('PersonaFingerprints', () => {
       expect(peterFingerprint.antiPatterns).toContain('stay the course');
 
       // Maya should avoid Alex's signature phrases
-      expect(mayaFingerprint.antiPatterns.some(p => p.includes('template'))).toBe(true);
+      expect(mayaFingerprint.antiPatterns.some((p) => p.includes('template'))).toBe(true);
     });
 
-    it("personas should have distinct reasoning styles", () => {
+    it('personas should have distinct reasoning styles', () => {
       const styles = new Set([
         ferniFingerprint.reasoningIndicators.style,
         peterFingerprint.reasoningIndicators.style,
@@ -401,7 +402,7 @@ describe('PersonaFingerprints', () => {
       expect(styles.size).toBeGreaterThanOrEqual(5);
     });
 
-    it("personas should have varied energy levels", () => {
+    it('personas should have varied energy levels', () => {
       const energies = [
         ferniFingerprint.emotionalTone.energy,
         peterFingerprint.emotionalTone.energy,

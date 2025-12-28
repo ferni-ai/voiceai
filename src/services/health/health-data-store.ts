@@ -131,10 +131,7 @@ export async function getHealthSummary(
 /**
  * Get recent health summaries (last N days)
  */
-export async function getRecentHealthSummaries(
-  userId: string,
-  days = 7
-): Promise<HealthSummary[]> {
+export async function getRecentHealthSummaries(userId: string, days = 7): Promise<HealthSummary[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -267,7 +264,8 @@ export async function handleHealthSync(request: HealthSyncRequest): Promise<Heal
 
     if (!preferences || preferences.shareActivity) {
       if (summary.stepsToday !== undefined) filteredSummary.stepsToday = summary.stepsToday;
-      if (summary.activityTrend !== undefined) filteredSummary.activityTrend = summary.activityTrend;
+      if (summary.activityTrend !== undefined)
+        filteredSummary.activityTrend = summary.activityTrend;
       if (summary.exerciseMinutes !== undefined)
         filteredSummary.exerciseMinutes = summary.exerciseMinutes;
       if (summary.lastWorkoutType !== undefined)
@@ -360,7 +358,8 @@ export async function buildHealthContext(userId: string): Promise<HealthContext>
   // Stress/HRV insights
   if (latest.hrvTrend && (!preferences || preferences.shareStress)) {
     if (latest.hrvTrend === 'declining') {
-      context.stressInsight = "User's stress indicators have been elevated this week (HRV declining).";
+      context.stressInsight =
+        "User's stress indicators have been elevated this week (HRV declining).";
       insights.push(context.stressInsight);
     } else if (latest.hrvAnomalyDetected) {
       context.stressInsight = "User's HRV shows an unusual dip - possible high stress.";
@@ -429,9 +428,9 @@ export async function getHealthContextInjection(userId: string): Promise<string>
   lines.push(context.summary);
   lines.push('');
   lines.push('GUIDANCE:');
-  lines.push('- Use this gently if relevant - don\'t lecture');
-  lines.push('- Acknowledge, don\'t diagnose');
-  lines.push("- If they seem tired, you know why - acknowledge it");
+  lines.push("- Use this gently if relevant - don't lecture");
+  lines.push("- Acknowledge, don't diagnose");
+  lines.push('- If they seem tired, you know why - acknowledge it');
   lines.push('- This is "better than human" - a friend on the phone wouldn\'t know this');
 
   return lines.join('\n');
@@ -463,4 +462,3 @@ export const healthDataStore = {
   buildHealthContext,
   getHealthContextInjection,
 };
-

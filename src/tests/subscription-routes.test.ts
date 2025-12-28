@@ -163,15 +163,17 @@ describe('Subscription Routes', () => {
       expect(mockedGetSubscriptionInfo).toHaveBeenCalledWith('user-123');
     });
 
-    it('should return subscription info for userId from header', async () => {
+    it('should return subscription info for authenticated user', async () => {
       const mockInfo = { tier: 'free', isActive: true };
       mockedGetSubscriptionInfo.mockResolvedValue(mockInfo);
 
+      // SECURITY: Use authUserId (Firebase auth) instead of deprecated x-user-id header
       const response = await handleSubscriptionRequest({
         method: 'GET',
         pathname: '/api/subscription/status',
         query: {},
-        headers: { 'x-user-id': 'user-456' },
+        headers: {},
+        authUserId: 'user-456',
       });
 
       expect(response.status).toBe(200);

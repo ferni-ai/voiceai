@@ -406,10 +406,13 @@ export interface LaughterContagionSchema {
       probability: number;
     };
   };
-  laughter_types: Record<string, {
-    ssml: string;
-    contexts: string[];
-  }>;
+  laughter_types: Record<
+    string,
+    {
+      ssml: string;
+      contexts: string[];
+    }
+  >;
   laugh_with_phrases: string[];
   usage_rules?: {
     trigger_on?: string[];
@@ -496,10 +499,13 @@ export interface AnticipationSchema {
     acknowledging_journey: string[];
   };
   /** Proactive triggers for anticipation */
-  proactive_triggers?: Record<string, {
-    trigger: string;
-    behavior: string;
-  }>;
+  proactive_triggers?: Record<
+    string,
+    {
+      trigger: string;
+      behavior: string;
+    }
+  >;
   /** Usage rules */
   usage_rules?: {
     opening_anticipation_probability?: number;
@@ -544,10 +550,13 @@ export interface CelebrationsSchema {
     [key: string]: unknown;
   };
   /** Proactive triggers for celebrations */
-  proactive_triggers?: Record<string, {
-    trigger: string;
-    behavior: string;
-  }>;
+  proactive_triggers?: Record<
+    string,
+    {
+      trigger: string;
+      behavior: string;
+    }
+  >;
   /** Usage rules for proactive celebrations */
   proactive_usage_rules?: {
     probability?: number;
@@ -689,7 +698,13 @@ export const INJECTION_CONFIGS: Record<string, InjectionConfig> = {
     turnMultiplier: 0.05,
     maxBehaviorsPerResponse: 2,
     minCharsBetweenInjections: 50,
-    preferredCategories: ['excitement_overflow', 'restarts', 'natural_restarts', 'thinking_aloud', 'vocal_vulnerability'],
+    preferredCategories: [
+      'excitement_overflow',
+      'restarts',
+      'natural_restarts',
+      'thinking_aloud',
+      'vocal_vulnerability',
+    ],
     avoidCategories: [],
   },
   // Warm/encouraging personas (Maya, Ferni)
@@ -698,7 +713,15 @@ export const INJECTION_CONFIGS: Record<string, InjectionConfig> = {
     turnMultiplier: 0.04,
     maxBehaviorsPerResponse: 2,
     minCharsBetweenInjections: 60,
-    preferredCategories: ['empathy_sounds', 'genuine_processing', 'celebration_overflow', 'vocal_vulnerability', 'natural_restarts', 'warm_processing', 'celebration_warmth'],
+    preferredCategories: [
+      'empathy_sounds',
+      'genuine_processing',
+      'celebration_overflow',
+      'vocal_vulnerability',
+      'natural_restarts',
+      'warm_processing',
+      'celebration_warmth',
+    ],
     avoidCategories: [],
   },
   // Efficient personas (Alex)
@@ -707,7 +730,12 @@ export const INJECTION_CONFIGS: Record<string, InjectionConfig> = {
     turnMultiplier: 0.03,
     maxBehaviorsPerResponse: 1,
     minCharsBetweenInjections: 80,
-    preferredCategories: ['efficient_processing', 'grounding_sounds', 'natural_restarts', 'vocal_vulnerability'],
+    preferredCategories: [
+      'efficient_processing',
+      'grounding_sounds',
+      'natural_restarts',
+      'vocal_vulnerability',
+    ],
     avoidCategories: ['excitement_overflow', 'celebration_overflow'],
   },
   // Contemplative personas (Nayan)
@@ -716,7 +744,13 @@ export const INJECTION_CONFIGS: Record<string, InjectionConfig> = {
     turnMultiplier: 0.02,
     maxBehaviorsPerResponse: 2,
     minCharsBetweenInjections: 100,
-    preferredCategories: ['contemplative_sounds', 'wisdom_building', 'presence_sounds', 'vocal_vulnerability', 'natural_restarts'],
+    preferredCategories: [
+      'contemplative_sounds',
+      'wisdom_building',
+      'presence_sounds',
+      'vocal_vulnerability',
+      'natural_restarts',
+    ],
     avoidCategories: ['excitement_overflow', 'restarts'],
   },
   // Analytical personas (Peter)
@@ -725,7 +759,15 @@ export const INJECTION_CONFIGS: Record<string, InjectionConfig> = {
     turnMultiplier: 0.03,
     maxBehaviorsPerResponse: 1,
     minCharsBetweenInjections: 70,
-    preferredCategories: ['thinking_aloud', 'self_corrections', 'grandfatherly_processing', 'vocal_vulnerability', 'natural_restarts', 'research_precision', 'elderly_warmth'],
+    preferredCategories: [
+      'thinking_aloud',
+      'self_corrections',
+      'grandfatherly_processing',
+      'vocal_vulnerability',
+      'natural_restarts',
+      'research_precision',
+      'elderly_warmth',
+    ],
     avoidCategories: ['excitement_overflow', 'empathy_sounds'],
   },
 };
@@ -741,4 +783,3 @@ export const PERSONA_INJECTION_STYLE: Record<string, keyof typeof INJECTION_CONF
   'nayan-patel': 'contemplative',
   'peter-john': 'analytical',
 };
-

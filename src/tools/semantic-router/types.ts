@@ -549,8 +549,8 @@ export const DEFAULT_ROUTER_CONFIG: SemanticRouterConfig = {
   thresholds: {
     // Lowered from 0.92 to 0.80 for more aggressive auto-execution
     // Pattern matches (1.0) and regex (0.95) now reliably auto-execute
-    autoExecute: 0.80,
-    confirm: 0.70,
+    autoExecute: 0.8,
+    confirm: 0.7,
     hint: 0.55,
     minimum: 0.35,
   },
@@ -558,7 +558,7 @@ export const DEFAULT_ROUTER_CONFIG: SemanticRouterConfig = {
     // Boosted pattern weight so exact matches dominate scoring
     pattern: 1.2, // Exact patterns are HIGHLY trusted - boost to ensure auto-execute
     keyword: 0.75, // Keywords are good signals
-    embedding: 0.90, // Embeddings are very reliable
+    embedding: 0.9, // Embeddings are very reliable
     context: 0.5, // Context is helpful but not definitive
     history: 0.3, // History is a weak signal
     holistic: 0.85, // Holistic NLU (relationship, emotion, multi-intent) - high trust

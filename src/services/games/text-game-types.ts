@@ -249,7 +249,14 @@ export interface ValuesCardSortState {
 // HEADLINE WRITER
 // ============================================================================
 
-export type HeadlineTimeframe = 'today' | 'this_week' | 'this_month' | 'this_year' | 'past' | 'future' | 'dream';
+export type HeadlineTimeframe =
+  | 'today'
+  | 'this_week'
+  | 'this_month'
+  | 'this_year'
+  | 'past'
+  | 'future'
+  | 'dream';
 export type HeadlineTone = 'triumphant' | 'honest' | 'humorous' | 'hopeful' | 'any';
 
 export interface Headline {

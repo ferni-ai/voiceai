@@ -59,15 +59,7 @@ export interface ConnectionMonitorConfig {
 export function setupConnectionMonitoring(
   config: ConnectionMonitorConfig
 ): Promise<DisconnectInfo> {
-  const {
-    room,
-    sessionId,
-    roomName,
-    cleanupTracker,
-    userId,
-    personaId,
-    sessionStartTime,
-  } = config;
+  const { room, sessionId, roomName, cleanupTracker, userId, personaId, sessionStartTime } = config;
 
   // Connection state handler
   const connectionStateHandler = (state: unknown) => {
@@ -122,10 +114,7 @@ export function setupConnectionMonitoring(
 /**
  * Log disconnect with enhanced diagnostics.
  */
-async function logDisconnectWithDiagnostics(
-  info: DisconnectInfo,
-  room: Room
-): Promise<void> {
+async function logDisconnectWithDiagnostics(info: DisconnectInfo, room: Room): Promise<void> {
   try {
     const [diagnosticsModule, crashModule] = await Promise.all([
       import('../../shared/disconnect-diagnostics.js'),
@@ -167,4 +156,3 @@ async function logDisconnectWithDiagnostics(
     log.warn({ error: String(error) }, 'Failed to capture disconnect diagnostics');
   }
 }
-

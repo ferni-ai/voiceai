@@ -193,12 +193,7 @@ describe('BurnoutPrediction', () => {
   describe('integration', () => {
     it('should handle combined episode and recovery recording', () => {
       // Record an episode with triggers
-      recordBurnoutEpisode(
-        testUserId,
-        'high',
-        ['calendar_density', 'back_to_back_meetings'],
-        7
-      );
+      recordBurnoutEpisode(testUserId, 'high', ['calendar_density', 'back_to_back_meetings'], 7);
 
       // Record recovery strategies that helped
       recordRecoveryStrategy(testUserId, 'Declined 3 meetings');

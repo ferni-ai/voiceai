@@ -49,7 +49,11 @@ export const TECH_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bGNU\b/g, replacement: 'g-new', description: 'GNU project' },
   { pattern: /\bGit\b/g, replacement: 'git', description: 'Version control' },
   { pattern: /\bGitHub\b/g, replacement: 'git-hub', description: 'Code hosting' },
-  { pattern: /\bKubernetes\b/gi, replacement: 'koo-ber-NET-eez', description: 'Container orchestration' },
+  {
+    pattern: /\bKubernetes\b/gi,
+    replacement: 'koo-ber-NET-eez',
+    description: 'Container orchestration',
+  },
   { pattern: /\bk8s\b/gi, replacement: 'K eights', description: 'Kubernetes abbreviation' },
   { pattern: /\bDocker\b/g, replacement: 'dock-er', description: 'Container platform' },
   { pattern: /\bAWS\b/g, replacement: 'A W S', description: 'Amazon Web Services' },
@@ -79,4 +83,3 @@ export const TECH_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bNFT\b/g, replacement: 'N F T', description: 'Non-Fungible Token' },
   { pattern: /\bNFTs\b/g, replacement: 'N F Ts', description: 'Non-Fungible Tokens' },
 ];
-

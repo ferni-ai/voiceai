@@ -19,10 +19,7 @@ import {
   type StrategySelection,
   type StrategyOutcome,
 } from '../learning/dynamic-strategy.js';
-import {
-  getUserSegmentationEngine,
-  type InteractionEvent,
-} from '../learning/user-segmentation.js';
+import { getUserSegmentationEngine, type InteractionEvent } from '../learning/user-segmentation.js';
 import { getOnlineLearningEngine } from '../learning/online-learning-loop.js';
 
 // SOTA Voice Analysis
@@ -109,8 +106,9 @@ export async function applySOTAPreRouting(context: SOTARoutingContext): Promise<
     });
 
     // 2. Apply prosody analysis if audio is available
-    let prosodyAnalysis: ReturnType<typeof getProsodyRoutingEngine.prototype.getFullAnalysis> | null =
-      null;
+    let prosodyAnalysis: ReturnType<
+      typeof getProsodyRoutingEngine.prototype.getFullAnalysis
+    > | null = null;
     let emergencyDetected = false;
     if (audioBuffer) {
       try {
@@ -290,10 +288,7 @@ export function applySOTAConfidenceAdjustments(
  * @param outcome - Outcome of the tool execution
  * @param routeResult - Original routing result for context
  */
-export function recordSOTAOutcome(
-  outcome: SOTAOutcome,
-  routeResult?: SemanticRouterResult
-): void {
+export function recordSOTAOutcome(outcome: SOTAOutcome, routeResult?: SemanticRouterResult): void {
   const {
     userId,
     sessionId,

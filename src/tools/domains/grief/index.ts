@@ -603,7 +603,10 @@ const shareGriefInsightDef: ToolDefinition = {
         significance: z.string().describe('Why this matters'),
       }),
       execute: async ({ targetPersona, insightType, insight, significance }) => {
-        getLogger().info({ agentId: ctx.agentId, targetPersona, insightType }, 'Sharing grief insight');
+        getLogger().info(
+          { agentId: ctx.agentId, targetPersona, insightType },
+          'Sharing grief insight'
+        );
 
         try {
           addCrossPersonaInsight(ctx.userId, {
@@ -616,7 +619,10 @@ const shareGriefInsightDef: ToolDefinition = {
             oneTime: false,
           });
 
-          const targetName = targetPersona === 'all' ? 'the team' : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
+          const targetName =
+            targetPersona === 'all'
+              ? 'the team'
+              : targetPersona.charAt(0).toUpperCase() + targetPersona.slice(1);
 
           let response = `**Insight Shared with ${targetName}**\n\n`;
           response += `I've shared what we've learned about your grief journey.\n\n`;
@@ -664,7 +670,9 @@ const getTeamGriefContextDef: ToolDefinition = {
           response += `Before we continue, here's what the team has noticed:\n\n`;
 
           for (const item of insights.slice(0, 3)) {
-            const sourceName = item.insight.sourcePersona.charAt(0).toUpperCase() + item.insight.sourcePersona.slice(1);
+            const sourceName =
+              item.insight.sourcePersona.charAt(0).toUpperCase() +
+              item.insight.sourcePersona.slice(1);
             response += `• ${sourceName}: ${item.insight.summary}\n`;
           }
 
@@ -696,7 +704,10 @@ const flagTransitionForJordanDef: ToolDefinition = {
         needsPlanning: z.boolean().describe('Does this person need help planning the transition?'),
       }),
       execute: async ({ transition, stage, needsPlanning }) => {
-        getLogger().info({ agentId: ctx.agentId, transition, stage }, 'Flagging transition for Jordan');
+        getLogger().info(
+          { agentId: ctx.agentId, transition, stage },
+          'Flagging transition for Jordan'
+        );
 
         try {
           addCrossPersonaInsight(ctx.userId, {

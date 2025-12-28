@@ -11,28 +11,73 @@
  */
 export const SLOW_PACE_KEYWORDS: string[] = [
   // Emotional weight
-  'important', 'crucial', 'essential', 'vital', 'critical',
-  'significant', 'meaningful', 'profound', 'deep', 'serious',
-  
+  'important',
+  'crucial',
+  'essential',
+  'vital',
+  'critical',
+  'significant',
+  'meaningful',
+  'profound',
+  'deep',
+  'serious',
+
   // Reflection/contemplation
-  'consider', 'reflect', 'think about', 'ponder', 'contemplate',
-  'imagine', 'picture', 'visualize', 'notice', 'observe',
-  
+  'consider',
+  'reflect',
+  'think about',
+  'ponder',
+  'contemplate',
+  'imagine',
+  'picture',
+  'visualize',
+  'notice',
+  'observe',
+
   // Emphasis markers
-  'remember', 'never forget', 'always', 'truly', 'really',
-  'genuinely', 'honestly', 'sincerely', 'fundamentally',
-  
+  'remember',
+  'never forget',
+  'always',
+  'truly',
+  'really',
+  'genuinely',
+  'honestly',
+  'sincerely',
+  'fundamentally',
+
   // Emotional states
-  'sad', 'sorry', 'difficult', 'hard', 'challenging',
-  'painful', 'grief', 'loss', 'mourning', 'heartache',
-  
+  'sad',
+  'sorry',
+  'difficult',
+  'hard',
+  'challenging',
+  'painful',
+  'grief',
+  'loss',
+  'mourning',
+  'heartache',
+
   // Calming content
-  'breathe', 'relax', 'calm', 'peaceful', 'gentle',
-  'slowly', 'softly', 'quietly', 'tenderly', 'carefully',
-  
+  'breathe',
+  'relax',
+  'calm',
+  'peaceful',
+  'gentle',
+  'slowly',
+  'softly',
+  'quietly',
+  'tenderly',
+  'carefully',
+
   // Gravity/weight
-  'grave', 'solemn', 'heavy', 'weighty', 'momentous',
-  'consequential', 'pivotal', 'life-changing'
+  'grave',
+  'solemn',
+  'heavy',
+  'weighty',
+  'momentous',
+  'consequential',
+  'pivotal',
+  'life-changing',
 ];
 
 /**
@@ -41,20 +86,47 @@ export const SLOW_PACE_KEYWORDS: string[] = [
  */
 export const FAST_PACE_KEYWORDS: string[] = [
   // Excitement
-  'excited', 'exciting', 'thrilling', 'amazing', 'awesome',
-  'fantastic', 'incredible', 'wonderful', 'great news',
-  
+  'excited',
+  'exciting',
+  'thrilling',
+  'amazing',
+  'awesome',
+  'fantastic',
+  'incredible',
+  'wonderful',
+  'great news',
+
   // Urgency
-  'quick', 'quickly', 'fast', 'hurry', 'urgent',
-  'immediately', 'right away', 'asap', 'now',
-  
+  'quick',
+  'quickly',
+  'fast',
+  'hurry',
+  'urgent',
+  'immediately',
+  'right away',
+  'asap',
+  'now',
+
   // Energy
-  'energetic', 'dynamic', 'lively', 'vibrant', 'enthusiastic',
-  'eager', 'passionate', 'pumped', 'fired up', 'ready to go',
-  
+  'energetic',
+  'dynamic',
+  'lively',
+  'vibrant',
+  'enthusiastic',
+  'eager',
+  'passionate',
+  'pumped',
+  'fired up',
+  'ready to go',
+
   // Action
-  'let\'s go', 'come on', 'get started', 'dive in',
-  'jump in', 'get moving', 'take action'
+  "let's go",
+  'come on',
+  'get started',
+  'dive in',
+  'jump in',
+  'get moving',
+  'take action',
 ];
 
 /**
@@ -63,24 +135,54 @@ export const FAST_PACE_KEYWORDS: string[] = [
  */
 export const EMPHASIS_KEYWORDS: string[] = [
   // Importance markers
-  'important', 'crucial', 'essential', 'vital', 'key',
-  'critical', 'fundamental', 'necessary', 'imperative',
-  
+  'important',
+  'crucial',
+  'essential',
+  'vital',
+  'key',
+  'critical',
+  'fundamental',
+  'necessary',
+  'imperative',
+
   // Emphasis words
-  'definitely', 'absolutely', 'certainly', 'undoubtedly',
-  'without doubt', 'for sure', 'no question', 'unquestionably',
-  
+  'definitely',
+  'absolutely',
+  'certainly',
+  'undoubtedly',
+  'without doubt',
+  'for sure',
+  'no question',
+  'unquestionably',
+
   // Intensity
-  'very', 'really', 'truly', 'extremely', 'incredibly',
-  'exceptionally', 'remarkably', 'extraordinarily',
-  
+  'very',
+  'really',
+  'truly',
+  'extremely',
+  'incredibly',
+  'exceptionally',
+  'remarkably',
+  'extraordinarily',
+
   // Exclamation triggers
-  'amazing', 'wonderful', 'fantastic', 'excellent',
-  'brilliant', 'outstanding', 'magnificent', 'spectacular',
-  
+  'amazing',
+  'wonderful',
+  'fantastic',
+  'excellent',
+  'brilliant',
+  'outstanding',
+  'magnificent',
+  'spectacular',
+
   // Call to attention
-  'listen', 'hear this', 'pay attention', 'note this',
-  'remember', 'don\'t forget', 'keep in mind'
+  'listen',
+  'hear this',
+  'pay attention',
+  'note this',
+  'remember',
+  "don't forget",
+  'keep in mind',
 ];
 
 /**
@@ -89,24 +191,53 @@ export const EMPHASIS_KEYWORDS: string[] = [
  */
 export const WHISPER_KEYWORDS: string[] = [
   // Intimacy
-  'secret', 'between us', 'just between', 'confidential',
-  'private', 'personal', 'intimate', 'close',
-  
+  'secret',
+  'between us',
+  'just between',
+  'confidential',
+  'private',
+  'personal',
+  'intimate',
+  'close',
+
   // Gentle delivery
-  'whisper', 'softly', 'quietly', 'gently', 'tenderly',
-  'delicately', 'subtly', 'carefully',
-  
+  'whisper',
+  'softly',
+  'quietly',
+  'gently',
+  'tenderly',
+  'delicately',
+  'subtly',
+  'carefully',
+
   // Sensitive topics
-  'sensitive', 'difficult', 'hard to say', 'vulnerable',
-  'fragile', 'tender', 'raw', 'emotional',
-  
+  'sensitive',
+  'difficult',
+  'hard to say',
+  'vulnerable',
+  'fragile',
+  'tender',
+  'raw',
+  'emotional',
+
   // Calming
-  'soothing', 'calming', 'peaceful', 'restful',
-  'tranquil', 'serene', 'hushed', 'muted',
-  
+  'soothing',
+  'calming',
+  'peaceful',
+  'restful',
+  'tranquil',
+  'serene',
+  'hushed',
+  'muted',
+
   // Reverence
-  'sacred', 'holy', 'precious', 'treasured',
-  'cherished', 'beloved', 'dear'
+  'sacred',
+  'holy',
+  'precious',
+  'treasured',
+  'cherished',
+  'beloved',
+  'dear',
 ];
 
 /**
@@ -127,7 +258,7 @@ export const SPEED_ADJUSTMENTS = {
   /** Very slow for emphasis */
   verySlow: 0.75,
   /** Very fast for excitement */
-  veryFast: 1.25
+  veryFast: 1.25,
 };
 
 /**
@@ -148,6 +279,5 @@ export const VOLUME_ADJUSTMENTS = {
   /** Loud volume */
   loud: 1.2,
   /** Emphasis volume */
-  emphasis: 1.3
+  emphasis: 1.3,
 };
-

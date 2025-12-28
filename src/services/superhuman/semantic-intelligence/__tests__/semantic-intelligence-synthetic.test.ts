@@ -135,10 +135,7 @@ interface GeneratedScenario {
   notes?: string;
 }
 
-async function generateScenarios(
-  systemPrompt: string,
-  count = 5
-): Promise<GeneratedScenario[]> {
+async function generateScenarios(systemPrompt: string, count = 5): Promise<GeneratedScenario[]> {
   if (!USE_LLM) {
     return [];
   }
@@ -185,25 +182,25 @@ describe('Advice Detection - Synthetic Testing', () => {
   const SEED_SCENARIOS = [
     // Explicit suggestions
     {
-      utterance: "I think you should consider taking a break when you feel overwhelmed.",
+      utterance: 'I think you should consider taking a break when you feel overwhelmed.',
       expected: { containsAdvice: true, category: 'behavioral' },
     },
     {
-      utterance: "Try keeping a gratitude journal - it might help shift your perspective.",
+      utterance: 'Try keeping a gratitude journal - it might help shift your perspective.',
       expected: { containsAdvice: true, category: 'behavioral' },
     },
     {
-      utterance: "You might want to talk to Sarah about this directly.",
+      utterance: 'You might want to talk to Sarah about this directly.',
       expected: { containsAdvice: true, category: 'practical' },
     },
     // Framework suggestions
     {
-      utterance: "Have you tried the Pomodoro technique for staying focused? It might help.",
+      utterance: 'Have you tried the Pomodoro technique for staying focused? It might help.',
       expected: { containsAdvice: true, category: 'practical' },
     },
     // Non-advice (questions, empathy)
     {
-      utterance: "That sounds really difficult. How are you feeling about it?",
+      utterance: 'That sounds really difficult. How are you feeling about it?',
       expected: { containsAdvice: false },
     },
     {
@@ -257,7 +254,9 @@ For expected, include:
         if (result.containsAdvice === expectedAdvice) {
           correct++;
         } else {
-          console.log(`Mismatch: "${scenario.utterance.slice(0, 50)}..." expected ${expectedAdvice}, got ${result.containsAdvice}`);
+          console.log(
+            `Mismatch: "${scenario.utterance.slice(0, 50)}..." expected ${expectedAdvice}, got ${result.containsAdvice}`
+          );
         }
       }
 
@@ -277,19 +276,19 @@ describe('Person Extraction - Synthetic Testing', () => {
     noPerson?: boolean;
     relationship?: string;
   }
-  
+
   const SEED_SCENARIOS: Array<{ utterance: string; expected: PersonScenarioExpected }> = [
     // Named persons (capitalized proper names)
-    { utterance: "I talked to Sarah about it yesterday", expected: { name: 'Sarah' } },
-    { utterance: "My friend Mike is getting married next month", expected: { name: 'Mike' } },
+    { utterance: 'I talked to Sarah about it yesterday', expected: { name: 'Sarah' } },
+    { utterance: 'My friend Mike is getting married next month', expected: { name: 'Mike' } },
     // Note: Dr. extraction requires specific pattern - simplify for now
-    { utterance: "Johnson said I need more rest", expected: { name: 'Johnson' } },
+    { utterance: 'Johnson said I need more rest', expected: { name: 'Johnson' } },
     // Relationship words - the extractor returns the relationship phrase as name
-    { utterance: "My mom always knows what to say", expected: { nameContains: 'mom' } },
-    { utterance: "I had lunch with my boss today", expected: { nameContains: 'boss' } },
-    { utterance: "My best friend and I had a fight", expected: { nameContains: 'friend' } },
+    { utterance: 'My mom always knows what to say', expected: { nameContains: 'mom' } },
+    { utterance: 'I had lunch with my boss today', expected: { nameContains: 'boss' } },
+    { utterance: 'My best friend and I had a fight', expected: { nameContains: 'friend' } },
     // No person
-    { utterance: "I went to the store and bought groceries", expected: { noPerson: true } },
+    { utterance: 'I went to the store and bought groceries', expected: { noPerson: true } },
   ];
 
   describe('Seed Scenarios', () => {
@@ -302,12 +301,14 @@ describe('Person Extraction - Synthetic Testing', () => {
           expect(mentions.length).toBe(0);
         } else if (expected.name) {
           const expectedName = expected.name;
-          expect(mentions.some(m => m.name.includes(expectedName))).toBe(true);
+          expect(mentions.some((m) => m.name.includes(expectedName))).toBe(true);
         } else if (expected.nameContains) {
           const nameContains = expected.nameContains;
-          expect(mentions.some(m => m.name.toLowerCase().includes(nameContains.toLowerCase()))).toBe(true);
+          expect(
+            mentions.some((m) => m.name.toLowerCase().includes(nameContains.toLowerCase()))
+          ).toBe(true);
         } else if (expected.relationship) {
-          expect(mentions.some(m => m.relationship === expected.relationship)).toBe(true);
+          expect(mentions.some((m) => m.relationship === expected.relationship)).toBe(true);
         }
       }
     );
@@ -355,17 +356,29 @@ describe('Emotional Trajectory Detection - Synthetic Testing', () => {
     // Improving trajectory
     {
       sequence: [
-        { text: "I've been feeling really low lately, nothing seems to matter", emotion: 'sad', day: 0 },
-        { text: "Things are still hard but I had a good day yesterday", emotion: 'neutral', day: 3 },
-        { text: "I actually felt hopeful for the first time in weeks!", emotion: 'hopeful', day: 7 },
+        {
+          text: "I've been feeling really low lately, nothing seems to matter",
+          emotion: 'sad',
+          day: 0,
+        },
+        {
+          text: 'Things are still hard but I had a good day yesterday',
+          emotion: 'neutral',
+          day: 3,
+        },
+        {
+          text: 'I actually felt hopeful for the first time in weeks!',
+          emotion: 'hopeful',
+          day: 7,
+        },
       ],
       expectedArc: 'improving',
     },
     // Declining trajectory
     {
       sequence: [
-        { text: "Everything is going great at work!", emotion: 'joy', day: 0 },
-        { text: "Work stress is picking up", emotion: 'anxious', day: 5 },
+        { text: 'Everything is going great at work!', emotion: 'joy', day: 0 },
+        { text: 'Work stress is picking up', emotion: 'anxious', day: 5 },
         { text: "I'm completely burned out", emotion: 'overwhelmed', day: 10 },
       ],
       expectedArc: 'declining',
@@ -373,9 +386,9 @@ describe('Emotional Trajectory Detection - Synthetic Testing', () => {
     // Stable trajectory
     {
       sequence: [
-        { text: "Just doing my usual routine", emotion: 'neutral', day: 0 },
-        { text: "Another typical day", emotion: 'neutral', day: 3 },
-        { text: "Things are fine, nothing special", emotion: 'neutral', day: 7 },
+        { text: 'Just doing my usual routine', emotion: 'neutral', day: 0 },
+        { text: 'Another typical day', emotion: 'neutral', day: 3 },
+        { text: 'Things are fine, nothing special', emotion: 'neutral', day: 7 },
       ],
       expectedArc: 'stable',
     },
@@ -397,7 +410,7 @@ describe('Emotional Trajectory Detection - Synthetic Testing', () => {
 
         // Build context should reflect the trajectory
         const context = await emotionalTrajectories.buildContext(TEST_USER_ID);
-        
+
         // The context should contain trajectory information
         expect(typeof context).toBe('string');
       }
@@ -485,19 +498,21 @@ describe('Growth Fingerprint - Synthetic Testing', () => {
   const GROWTH_SCENARIOS = [
     // Vocabulary expansion
     {
-      early: "I feel bad. Things are hard.",
-      later: "I'm experiencing some cognitive dissonance about my career trajectory. The uncertainty is generating anxiety.",
+      early: 'I feel bad. Things are hard.',
+      later:
+        "I'm experiencing some cognitive dissonance about my career trajectory. The uncertainty is generating anxiety.",
       expectedGrowth: 'vocabulary_expansion',
     },
     // Emotional range expansion
     {
       early: "I'm fine. Everything is fine.",
-      later: "I'm feeling a mix of excitement about the opportunity and some trepidation about the unknown.",
+      later:
+        "I'm feeling a mix of excitement about the opportunity and some trepidation about the unknown.",
       expectedGrowth: 'emotional_range',
     },
     // Self-awareness increase
     {
-      early: "Everyone is against me!",
+      early: 'Everyone is against me!',
       later: "I notice I tend to catastrophize when I'm stressed. That pattern is worth examining.",
       expectedGrowth: 'self_awareness',
     },
@@ -539,17 +554,25 @@ describe('Cross-Session Threading - Synthetic Testing', () => {
     {
       sessions: [
         { text: "I'm thinking about asking for a promotion", topic: 'career', session: 1 },
-        { text: "Had a great meeting with my boss about growth opportunities", topic: 'career', session: 2 },
-        { text: "I got the promotion!", topic: 'career', session: 3 },
+        {
+          text: 'Had a great meeting with my boss about growth opportunities',
+          topic: 'career',
+          session: 2,
+        },
+        { text: 'I got the promotion!', topic: 'career', session: 3 },
       ],
       expectedThread: 'career_progression',
     },
     // Relationship thread
     {
       sessions: [
-        { text: "Sarah and I had a disagreement", topic: 'relationships', session: 1 },
-        { text: "I've been thinking about what I said to Sarah", topic: 'relationships', session: 2 },
-        { text: "Sarah and I made up, we had a good talk", topic: 'relationships', session: 3 },
+        { text: 'Sarah and I had a disagreement', topic: 'relationships', session: 1 },
+        {
+          text: "I've been thinking about what I said to Sarah",
+          topic: 'relationships',
+          session: 2,
+        },
+        { text: 'Sarah and I made up, we had a good talk', topic: 'relationships', session: 3 },
       ],
       expectedThread: 'relationship_resolution',
     },
@@ -569,7 +592,9 @@ describe('Cross-Session Threading - Synthetic Testing', () => {
         }
 
         // Build context
-        const context = await crossSessionThreading.buildContext(TEST_USER_ID, { topic: 'general' });
+        const context = await crossSessionThreading.buildContext(TEST_USER_ID, {
+          topic: 'general',
+        });
         expect(typeof context).toBe('string');
       }
     );
@@ -610,7 +635,18 @@ describe('Correlation Mining - Synthetic Testing', () => {
         // Record observations using correct API (CorrelationDomain types)
         for (const point of dataPoints) {
           await correlationMining.recordObservation(TEST_USER_ID, {
-            domain: point.domain as 'emotion' | 'topic' | 'person' | 'time' | 'energy' | 'behavior' | 'sleep' | 'work' | 'relationship' | 'health' | 'goal',
+            domain: point.domain as
+              | 'emotion'
+              | 'topic'
+              | 'person'
+              | 'time'
+              | 'energy'
+              | 'behavior'
+              | 'sleep'
+              | 'work'
+              | 'relationship'
+              | 'health'
+              | 'goal',
             pattern: point.value,
             context: point.mood,
           });
@@ -727,9 +763,9 @@ describe('Combined "Better Than Human" Detection', { timeout: LLM_TIMEOUT }, () 
       // Things mentioned months ago
       pastContext: [
         { text: "My grandmother's birthday is March 15th", monthsAgo: 6 },
-        { text: "I always get anxious before presentations", monthsAgo: 4 },
-        { text: "Sarah mentioned she wants to learn piano", monthsAgo: 3 },
-        { text: "I sleep better when I exercise in the morning", monthsAgo: 2 },
+        { text: 'I always get anxious before presentations', monthsAgo: 4 },
+        { text: 'Sarah mentioned she wants to learn piano', monthsAgo: 3 },
+        { text: 'I sleep better when I exercise in the morning', monthsAgo: 2 },
       ],
       // Current conversation
       currentUtterance: "I have a presentation tomorrow and my grandma's birthday is coming up",
@@ -745,7 +781,7 @@ describe('Combined "Better Than Human" Detection', { timeout: LLM_TIMEOUT }, () 
     // surface all of these connections automatically
     expect(memoryTestScenario.expectedRecalls.length).toBeGreaterThan(0);
     console.log('Superhuman memory test demonstrates perfect recall of:');
-    memoryTestScenario.expectedRecalls.forEach(recall => console.log(`  - ${recall}`));
+    memoryTestScenario.expectedRecalls.forEach((recall) => console.log(`  - ${recall}`));
   });
 });
 
@@ -776,7 +812,9 @@ describe('Stress Testing - High Volume', () => {
     await Promise.all(promises);
     const elapsed = Date.now() - startTime;
 
-    console.log(`Processed ${iterations} records in ${elapsed}ms (${(iterations / elapsed * 1000).toFixed(1)}/sec)`);
+    console.log(
+      `Processed ${iterations} records in ${elapsed}ms (${((iterations / elapsed) * 1000).toFixed(1)}/sec)`
+    );
     expect(elapsed).toBeLessThan(5000); // Should complete in <5 seconds
   });
 
@@ -799,4 +837,3 @@ describe('Stress Testing - High Volume', () => {
     expect(elapsed).toBeLessThan(10000); // Should complete in <10 seconds
   });
 });
-

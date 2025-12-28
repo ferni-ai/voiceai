@@ -173,54 +173,39 @@ const ENVIRONMENT_SIGNALS: Record<Environment, AmbientSignalType[]> = {
 const AMBIENT_RESPONSES: Record<AmbientSignalType, string[]> = {
   baby_crying: [
     "Sounds like you've got your hands full! We can keep this short, or chat another time.",
-    "I hear a little one needs attention. Take care of them - we can talk whenever works.",
-    "Baby calls! No worries if you need to go.",
+    'I hear a little one needs attention. Take care of them - we can talk whenever works.',
+    'Baby calls! No worries if you need to go.',
   ],
   child_voice: [
-    "Sounds like the kids are around. Should we keep this light, or would another time be better?",
+    'Sounds like the kids are around. Should we keep this light, or would another time be better?',
     "I'll keep it brief since you've got company!",
   ],
   typing: [
     "I'll let you focus - sounds like you're in the middle of something.",
-    "Multi-tasking? I can keep this quick.",
+    'Multi-tasking? I can keep this quick.',
   ],
   other_voices: [
-    "It sounds like others might be around. Should we talk about this another time, or are you comfortable now?",
+    'It sounds like others might be around. Should we talk about this another time, or are you comfortable now?',
     "I'll keep my voice down in case you're around others.",
   ],
   tv_radio: [],
-  traffic: [
-    "Sounds like you're on the move. Drive safe!",
-    "On the road? I'll keep this brief.",
-  ],
-  nature: [
-    "Sounds peaceful where you are!",
-  ],
+  traffic: ["Sounds like you're on the move. Drive safe!", "On the road? I'll keep this brief."],
+  nature: ['Sounds peaceful where you are!'],
   music: [],
-  phone_ringing: [
-    "Sounds like you might have another call. Do you need to get that?",
-  ],
-  door_knock: [
-    "Was that your door? Take your time.",
-  ],
-  pet: [
-    "Say hi to your furry friend for me!",
-  ],
+  phone_ringing: ['Sounds like you might have another call. Do you need to get that?'],
+  door_knock: ['Was that your door? Take your time.'],
+  pet: ['Say hi to your furry friend for me!'],
 };
 
 const ENVIRONMENT_RESPONSES: Record<Environment, string[]> = {
   quiet: [],
   home: [],
-  office: [
-    "I'll be mindful that you might be at work.",
-  ],
+  office: ["I'll be mindful that you might be at work."],
   public: [
     "Sounds like you're in a public place. Let me know if you need me to keep things general.",
   ],
   outdoor: [],
-  noisy: [
-    "It's a bit noisy there - I'll speak clearly!",
-  ],
+  noisy: ["It's a bit noisy there - I'll speak clearly!"],
 };
 
 // ============================================================================
@@ -232,16 +217,14 @@ const ENVIRONMENT_RESPONSES: Record<Environment, string[]> = {
  * In production, this would use audio feature extraction.
  * Here we provide the interface and basic heuristics.
  */
-export function analyzeAmbientAudio(
-  audioFeatures: {
-    backgroundNoiseLevel: number; // 0-1
-    speechToNoiseRatio: number; // Higher = clearer speech
-    frequencySpread: number; // How spread out the frequencies are
-    rhythmicPatterns?: boolean; // Typing, music
-    multipleVoices?: boolean;
-    outdoorIndicators?: boolean;
-  }
-): AmbientContext {
+export function analyzeAmbientAudio(audioFeatures: {
+  backgroundNoiseLevel: number; // 0-1
+  speechToNoiseRatio: number; // Higher = clearer speech
+  frequencySpread: number; // How spread out the frequencies are
+  rhythmicPatterns?: boolean; // Typing, music
+  multipleVoices?: boolean;
+  outdoorIndicators?: boolean;
+}): AmbientContext {
   const signals: AmbientSignal[] = [];
   let environment: Environment = 'quiet';
   let privacyConcern = false;
@@ -397,7 +380,10 @@ export function getAmbientResponse(context: AmbientContext): AmbientResponse | n
 /**
  * Manually record a detected signal (for use when specific detection available).
  */
-export function recordAmbientSignal(signalType: AmbientSignalType, confidence: number): AmbientSignal {
+export function recordAmbientSignal(
+  signalType: AmbientSignalType,
+  confidence: number
+): AmbientSignal {
   return {
     type: signalType,
     confidence,
@@ -461,4 +447,3 @@ export const ambientContext = {
 };
 
 export default ambientContext;
-

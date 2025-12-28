@@ -135,9 +135,10 @@ function twilioStatusToOutcome(
       return {
         ...baseOutcome,
         status: 'completed',
-        outcome: AnsweredBy === 'machine'
-          ? `Left voicemail for ${pendingCall.contactName}`
-          : `Call with ${pendingCall.contactName} completed (${CallDuration}s)`,
+        outcome:
+          AnsweredBy === 'machine'
+            ? `Left voicemail for ${pendingCall.contactName}`
+            : `Call with ${pendingCall.contactName} completed (${CallDuration}s)`,
         objectiveAchieved: AnsweredBy !== 'machine', // Assume success if human answered
         recordingUrl: RecordingUrl,
       };

@@ -16,11 +16,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
-import type {
-  DecisionPoint,
-  CounterfactualOutcome,
-  CounterfactualPattern,
-} from './types.js';
+import type { DecisionPoint, CounterfactualOutcome, CounterfactualPattern } from './types.js';
 
 const log = createLogger({ module: 'counterfactual-memory' });
 
@@ -86,7 +82,7 @@ export async function recordDecisionPoint(
   };
 
   // Load and update cache
-  const decisions = decisionCache.get(userId) || await loadDecisionPoints(userId);
+  const decisions = decisionCache.get(userId) || (await loadDecisionPoints(userId));
   decisions.push(decisionPoint);
 
   // Trim if too many
@@ -121,7 +117,7 @@ export async function recordFollowUp(
   const { originalAdvice, decisionPointId, pathTaken, reflection } = followUp;
   const timestamp = Date.now();
 
-  const decisions = decisionCache.get(userId) || await loadDecisionPoints(userId);
+  const decisions = decisionCache.get(userId) || (await loadDecisionPoints(userId));
 
   // Find the decision point
   let decisionPoint: DecisionPoint | undefined;
@@ -159,10 +155,7 @@ export async function recordFollowUp(
   decisionCache.set(userId, decisions);
   await saveDecisionPoint(userId, decisionPoint);
 
-  log.debug(
-    { userId, decisionId: decisionPoint.id, pathTaken },
-    '↩️ Decision follow-up recorded'
-  );
+  log.debug({ userId, decisionId: decisionPoint.id, pathTaken }, '↩️ Decision follow-up recorded');
 
   return decisionPoint;
 }
@@ -187,7 +180,7 @@ export async function recordOutcome(
 ): Promise<void> {
   const { decisionPointId, result, description, emotionalImpact = 0, userReflection } = outcome;
 
-  const decisions = decisionCache.get(userId) || await loadDecisionPoints(userId);
+  const decisions = decisionCache.get(userId) || (await loadDecisionPoints(userId));
   const decisionPoint = decisions.find((d) => d.id === decisionPointId);
 
   if (!decisionPoint) {
@@ -213,10 +206,7 @@ export async function recordOutcome(
   decisionCache.set(userId, decisions);
   await saveDecisionPoint(userId, decisionPoint);
 
-  log.debug(
-    { userId, decisionId: decisionPointId, result },
-    '📊 Outcome recorded'
-  );
+  log.debug({ userId, decisionId: decisionPointId, result }, '📊 Outcome recorded');
 }
 
 /**
@@ -227,7 +217,8 @@ function generateLesson(decision: DecisionPoint): string {
 
   if (!outcome) return '';
 
-  const action = pathTaken === 'followed' ? 'followed' : pathTaken === 'ignored' ? 'didn\'t follow' : 'modified';
+  const action =
+    pathTaken === 'followed' ? 'followed' : pathTaken === 'ignored' ? "didn't follow" : 'modified';
   const result = outcome.result;
 
   // Templates based on action + result
@@ -249,11 +240,8 @@ function generateLesson(decision: DecisionPoint): string {
 /**
  * Update or create patterns from decision points.
  */
-async function updatePatterns(
-  userId: string,
-  newDecision: DecisionPoint
-): Promise<void> {
-  const patterns = patternCache.get(userId) || await loadPatterns(userId);
+async function updatePatterns(userId: string, newDecision: DecisionPoint): Promise<void> {
+  const patterns = patternCache.get(userId) || (await loadPatterns(userId));
   const decisions = decisionCache.get(userId) || [];
 
   if (!newDecision.outcome) return;
@@ -266,10 +254,7 @@ async function updatePatterns(
     if (!d.outcome) continue;
 
     if (newDecision.adviceEmbedding && d.adviceEmbedding) {
-      const similarity = cosineSimilarity(
-        newDecision.adviceEmbedding,
-        d.adviceEmbedding
-      );
+      const similarity = cosineSimilarity(newDecision.adviceEmbedding, d.adviceEmbedding);
       if (similarity >= CONFIG.SIMILARITY_THRESHOLD) {
         similarDecisions.push(d);
       }
@@ -281,9 +266,10 @@ async function updatePatterns(
     const allRelated = [newDecision, ...similarDecisions];
 
     // Find or create pattern
-    let pattern = patterns.find((p) =>
-      p.decisionPoints.includes(newDecision.id) ||
-      similarDecisions.some((d) => p.decisionPoints.includes(d.id))
+    let pattern = patterns.find(
+      (p) =>
+        p.decisionPoints.includes(newDecision.id) ||
+        similarDecisions.some((d) => p.decisionPoints.includes(d.id))
     );
 
     if (pattern) {
@@ -311,9 +297,10 @@ async function updatePatterns(
       // Tally outcomes
       for (const d of allRelated) {
         if (!d.outcome) continue;
-        const outcomes = d.pathTaken === 'followed' || d.pathTaken === 'modified'
-          ? pattern.followedOutcomes
-          : pattern.ignoredOutcomes;
+        const outcomes =
+          d.pathTaken === 'followed' || d.pathTaken === 'modified'
+            ? pattern.followedOutcomes
+            : pattern.ignoredOutcomes;
         const result = d.outcome.result === 'mixed' ? 'neutral' : d.outcome.result;
         outcomes[result]++;
       }
@@ -374,13 +361,13 @@ function generatePatternInsight(pattern: CounterfactualPattern): string {
   const ignoredNegativeRate = ignoredTotal > 0 ? ignoredOutcomes.negative / ignoredTotal : 0;
 
   if (followedPositiveRate > 0.6 && ignoredNegativeRate > 0.5) {
-    return 'When you follow through on this, things tend to go better. When you don\'t, it often gets harder.';
+    return "When you follow through on this, things tend to go better. When you don't, it often gets harder.";
   } else if (followedPositiveRate > 0.6) {
     return 'Following through here usually leads to positive outcomes.';
   } else if (ignoredNegativeRate > 0.6) {
     return 'Not acting on this tends to make things more difficult.';
   } else if (followedOutcomes.negative > followedOutcomes.positive && ignoredTotal > 0) {
-    return 'Interestingly, this advice hasn\'t always worked out. Let\'s think about why.';
+    return "Interestingly, this advice hasn't always worked out. Let's think about why.";
   }
 
   return 'The pattern here is still emerging.';
@@ -394,7 +381,7 @@ function generatePatternInsight(pattern: CounterfactualPattern): string {
  * Get pending decisions that need follow-up.
  */
 export async function getPendingFollowUps(userId: string): Promise<DecisionPoint[]> {
-  const decisions = decisionCache.get(userId) || await loadDecisionPoints(userId);
+  const decisions = decisionCache.get(userId) || (await loadDecisionPoints(userId));
   const now = Date.now();
   const windowMs = CONFIG.FOLLOW_UP_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
@@ -416,7 +403,7 @@ export async function getRelevantPatterns(
     currentSituation?: string;
   }
 ): Promise<CounterfactualPattern[]> {
-  const patterns = patternCache.get(userId) || await loadPatterns(userId);
+  const patterns = patternCache.get(userId) || (await loadPatterns(userId));
 
   if (!context.currentTopic && !context.currentSituation) {
     return patterns.filter((p) => p.confidence >= 0.5).slice(0, 3);
@@ -465,7 +452,7 @@ export async function findSimilarPastDecisions(
   userId: string,
   currentSituation: string
 ): Promise<DecisionPoint[]> {
-  const decisions = decisionCache.get(userId) || await loadDecisionPoints(userId);
+  const decisions = decisionCache.get(userId) || (await loadDecisionPoints(userId));
 
   let situationEmbedding: number[] | null = null;
   try {
@@ -664,4 +651,3 @@ export const counterfactualMemory = {
   buildContext: buildCounterfactualContext,
   clearCache: clearCounterfactualCache,
 };
-

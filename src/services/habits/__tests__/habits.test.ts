@@ -129,8 +129,9 @@ describe('HabitCalendarIntegration', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { getDayOverview } = await import('../../calendar/calendar-service.js');
-      (getDayOverview as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
+      // Mock getWeekOverview (which the implementation uses, not getDayOverview)
+      const { getWeekOverview } = await import('../../calendar/calendar-service.js');
+      (getWeekOverview as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
 
       const habit = createTestHabit();
       const insights = await getHabitCalendarInsights(testUserId, habit);

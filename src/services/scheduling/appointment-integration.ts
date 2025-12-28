@@ -137,7 +137,10 @@ class AppointmentIntegrationService extends EventEmitter {
     if (!db) return;
 
     try {
-      await db.collection(PENDING_REQUESTS_COLLECTION).doc(appointmentId).set(cleanForFirestore(request));
+      await db
+        .collection(PENDING_REQUESTS_COLLECTION)
+        .doc(appointmentId)
+        .set(cleanForFirestore(request));
     } catch (error) {
       getLogger().error({ error, appointmentId }, 'Failed to save pending request');
     }

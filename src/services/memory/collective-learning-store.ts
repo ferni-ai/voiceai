@@ -290,7 +290,10 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('questions')
           .set(
-            cleanForFirestore({ questions: exported.effectiveQuestions, updatedAt: new Date().toISOString() }),
+            cleanForFirestore({
+              questions: exported.effectiveQuestions,
+              updatedAt: new Date().toISOString(),
+            }),
             { merge: true }
           );
       }
@@ -301,7 +304,10 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('stories')
           .set(
-            cleanForFirestore({ stories: exported.storyResonance, updatedAt: new Date().toISOString() }),
+            cleanForFirestore({
+              stories: exported.storyResonance,
+              updatedAt: new Date().toISOString(),
+            }),
             { merge: true }
           );
       }
@@ -312,7 +318,10 @@ export class CollectiveLearningStore {
           .collection(this.COMMUNITY_INSIGHTS)
           .doc('journeys')
           .set(
-            cleanForFirestore({ journeys: exported.journeyPatterns, updatedAt: new Date().toISOString() }),
+            cleanForFirestore({
+              journeys: exported.journeyPatterns,
+              updatedAt: new Date().toISOString(),
+            }),
             { merge: true }
           );
       }

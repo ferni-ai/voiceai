@@ -185,10 +185,7 @@ function generateReasonSection(
   return reason;
 }
 
-function generateContextSection(
-  profile: UserProfileData,
-  conversations: ConversationData
-): string {
+function generateContextSection(profile: UserProfileData, conversations: ConversationData): string {
   let context = `**What I Know**\n\n`;
 
   // Current concerns
@@ -272,10 +269,7 @@ function generateAlreadyTriedSection(profile: UserProfileData): string | null {
   return section;
 }
 
-function extractKeyTopics(
-  conversations: ConversationData,
-  profile: UserProfileData
-): string[] {
+function extractKeyTopics(conversations: ConversationData, profile: UserProfileData): string[] {
   const topics = new Set<string>();
 
   // From conversation themes
@@ -354,7 +348,7 @@ export function generateTopicsOnlySummary(
 ): TransferSummary {
   let summary = `**Areas of Focus**\n\n`;
   summary += `This person would like support with:\n`;
-  
+
   for (const topic of topics.slice(0, 5)) {
     summary += `- ${topic}\n`;
   }
@@ -378,4 +372,3 @@ export const contextSummary = {
   generateMinimalSummary,
   generateTopicsOnlySummary,
 };
-

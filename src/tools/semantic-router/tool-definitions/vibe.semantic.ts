@@ -7,10 +7,7 @@
  * @module tools/semantic-router/tool-definitions/vibe
  */
 
-import type {
-  SemanticToolDefinition,
-  ToolExecutionResult,
-} from '../types.js';
+import type { SemanticToolDefinition, ToolExecutionResult } from '../types.js';
 
 // ============================================================================
 // SET VIBE TOOL
@@ -130,7 +127,7 @@ export const setVibeTool: SemanticToolDefinition = {
 
   execute: async (args): Promise<ToolExecutionResult> => {
     const vibe = args.vibe || 'focus';
-    
+
     return {
       success: true,
       data: { vibe, activated: true },
@@ -186,11 +183,7 @@ export const getEnvironmentStatusTool: SemanticToolDefinition = {
     'environment status',
   ],
 
-  counterExamples: [
-    'set the vibe',
-    'change the mood',
-    'adjust the lights',
-  ],
+  counterExamples: ['set the vibe', 'change the mood', 'adjust the lights'],
 
   arguments: [],
 
@@ -253,11 +246,7 @@ export const adjustLightsTool: SemanticToolDefinition = {
     'lights on',
   ],
 
-  counterExamples: [
-    'set the vibe',
-    'adjust temperature',
-    'set the mood',
-  ],
+  counterExamples: ['set the vibe', 'adjust temperature', 'set the mood'],
 
   arguments: [
     {
@@ -277,10 +266,7 @@ export const adjustLightsTool: SemanticToolDefinition = {
       type: 'number',
       description: 'Brightness level 0-100',
       required: false,
-      extractionPatterns: [
-        /(?:to\s+)?(\d+)\s*%?/i,
-        /brightness\s+(?:to\s+)?(\d+)/i,
-      ],
+      extractionPatterns: [/(?:to\s+)?(\d+)\s*%?/i, /brightness\s+(?:to\s+)?(\d+)/i],
     },
   ],
 
@@ -355,17 +341,15 @@ export const listVibesTool: SemanticToolDefinition = {
     'vibe presets',
   ],
 
-  counterExamples: [
-    'set the vibe to focus',
-    'change the mood',
-  ],
+  counterExamples: ['set the vibe to focus', 'change the mood'],
 
   arguments: [],
 
   execute: async (): Promise<ToolExecutionResult> => {
     return {
       success: true,
-      naturalResponse: 'Here are the available vibes: focus, relax, energize, sleep, social, morning, romantic, workout, movie, cooking, reading, creative, meditation, gaming, and dinner.',
+      naturalResponse:
+        'Here are the available vibes: focus, relax, energize, sleep, social, morning, romantic, workout, movie, cooking, reading, creative, meditation, gaming, and dinner.',
       speakImmediately: true,
     };
   },
@@ -384,4 +368,3 @@ export const vibeTools: SemanticToolDefinition[] = [
   adjustLightsTool,
   listVibesTool,
 ];
-

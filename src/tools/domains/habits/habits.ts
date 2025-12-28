@@ -346,7 +346,10 @@ export async function createHabit(params: {
         description: habit.description,
       });
     } catch (calendarError) {
-      getLogger().warn({ error: calendarError, habitId: habit.id }, 'Failed to sync habit to calendar');
+      getLogger().warn(
+        { error: calendarError, habitId: habit.id },
+        'Failed to sync habit to calendar'
+      );
     }
   }
 

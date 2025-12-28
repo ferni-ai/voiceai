@@ -150,7 +150,7 @@ describe('Dating Domain Tools', () => {
       expect(toolDef).toBeDefined();
       const tool = toolDef!.create(mockContext);
       const result = await tool.execute({
-        whatHappened: "They ghosted me after 3 dates",
+        whatHappened: 'They ghosted me after 3 dates',
         feeling: 'hurt and confused',
       });
       expect(result).toContain('rejection');
@@ -221,10 +221,3 @@ describe('Dating Domain Tools', () => {
     });
   });
 });
-
-
-
-
-
-
-

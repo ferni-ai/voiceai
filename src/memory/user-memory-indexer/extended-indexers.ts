@@ -91,7 +91,8 @@ export async function indexCustomAgents(
     const values = agent.personality?.values?.join(', ') || '';
     const passions = agent.personality?.passions?.join(', ') || '';
 
-    const text = `Custom agent "${agent.name}" (${agent.type}): ${agent.description}. ` +
+    const text =
+      `Custom agent "${agent.name}" (${agent.type}): ${agent.description}. ` +
       `Relationship: ${agent.relationship}. ` +
       (personalityTraits ? `Personality: ${personalityTraits}. ` : '') +
       (values ? `Values: ${values}. ` : '') +
@@ -253,7 +254,8 @@ export async function indexContactNotes(
       continue;
     }
 
-    const text = `Contact: ${contact.name} (${contact.relationship}). ` +
+    const text =
+      `Contact: ${contact.name} (${contact.relationship}). ` +
       (hasNotes ? `Notes: ${contact.notes}. ` : '') +
       (hasInterests ? `Interests: ${contact.interests!.join(', ')}. ` : '') +
       (hasSharedMemories ? `Shared memories: ${contact.sharedMemories!.join('; ')}. ` : '') +
@@ -309,7 +311,8 @@ export async function indexHabits(
       ? `Cue: ${habit.habitLoop.cue.description}. Routine: ${habit.habitLoop.routine.behavior}. Reward: ${habit.habitLoop.reward.intrinsic}.`
       : '';
 
-    const text = `Habit: ${habit.name}. ${habit.description || ''} ` +
+    const text =
+      `Habit: ${habit.name}. ${habit.description || ''} ` +
       `Domain: ${habit.domain}${habit.subdomain ? `/${habit.subdomain}` : ''}. ` +
       `Frequency: ${habit.frequency}. ` +
       (habit.isKeystone ? 'This is a keystone habit. ' : '') +

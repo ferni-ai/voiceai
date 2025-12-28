@@ -245,7 +245,10 @@ export async function updateAppointmentStatus(
         scheduledFor: confirmedDateTime,
         description: buildAppointmentDescription(apt),
       });
-      getLogger().info({ appointmentId: id }, '📅 Calendar updated with confirmed appointment time');
+      getLogger().info(
+        { appointmentId: id },
+        '📅 Calendar updated with confirmed appointment time'
+      );
     } else {
       // Update calendar event with new status
       await updateCalendarSyncedItem(apt.userId, id, {

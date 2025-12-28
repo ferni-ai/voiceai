@@ -52,10 +52,7 @@ import {
   buildNarrativeContext,
 } from '../../../services/superhuman/life-narrative.js';
 
-import {
-  detectConflict,
-  loadUserValues,
-} from '../../../services/superhuman/values-alignment.js';
+import { detectConflict, loadUserValues } from '../../../services/superhuman/values-alignment.js';
 
 const log = createLogger({ module: 'proactive-tools' });
 
@@ -76,7 +73,15 @@ const trackCommitmentDef: ToolDefinition = {
       parameters: z.object({
         summary: z.string().describe('What they committed to'),
         type: z
-          .enum(['intention', 'promise', 'goal', 'boundary', 'conversation', 'decision', 'experiment'])
+          .enum([
+            'intention',
+            'promise',
+            'goal',
+            'boundary',
+            'conversation',
+            'decision',
+            'experiment',
+          ])
           .describe('Type of commitment'),
         context: z.string().optional().describe('What prompted this commitment'),
         targetDate: z.string().optional().describe('When they want to accomplish this'),
@@ -101,7 +106,9 @@ const trackCommitmentDef: ToolDefinition = {
             targetDate: targetDate ? new Date(targetDate).getTime() : undefined,
             createdAt: Date.now(),
             lastMentioned: Date.now(),
-            followUpAfter: targetDate ? new Date(targetDate).getTime() : Date.now() + 3 * 24 * 60 * 60 * 1000,
+            followUpAfter: targetDate
+              ? new Date(targetDate).getTime()
+              : Date.now() + 3 * 24 * 60 * 60 * 1000,
             status: 'active',
             followUpCount: 0,
             topic: context,
@@ -166,9 +173,7 @@ const reviewCommitmentsDef: ToolDefinition = {
             filter === 'all'
               ? commitments
               : commitments.filter((c) =>
-                  filter === 'active'
-                    ? c.status === 'active'
-                    : c.status === 'completed'
+                  filter === 'active' ? c.status === 'active' : c.status === 'completed'
                 );
 
           if (filtered.length === 0) {
@@ -181,7 +186,8 @@ const reviewCommitmentsDef: ToolDefinition = {
 
           for (const c of filtered.slice(0, 10)) {
             const daysAgo = Math.floor((Date.now() - c.createdAt) / (24 * 60 * 60 * 1000));
-            const statusEmoji = c.status === 'completed' ? '✅' : c.status === 'deferred' ? '⏸️' : '◯';
+            const statusEmoji =
+              c.status === 'completed' ? '✅' : c.status === 'deferred' ? '⏸️' : '◯';
             response += `${statusEmoji} **${c.summary}**\n`;
             response += `   _${c.type} • ${daysAgo} days ago_\n\n`;
           }
@@ -408,7 +414,10 @@ const reflectOnJourneyDef: ToolDefinition = {
           let response = `**Your Story So Far**\n\n`;
 
           // Extract themes from narrative context
-          if (narrativeContext.currentChapter?.keyThemes && narrativeContext.currentChapter.keyThemes.length > 0) {
+          if (
+            narrativeContext.currentChapter?.keyThemes &&
+            narrativeContext.currentChapter.keyThemes.length > 0
+          ) {
             response += `**Recurring themes:**\n`;
             for (const theme of narrativeContext.currentChapter.keyThemes.slice(0, 5)) {
               response += `• ${theme}\n`;
@@ -536,12 +545,12 @@ const generateProactiveMessageDef: ToolDefinition = {
           'pattern-anticipated': [
             "I noticed today might be one of those days. I'm here if you need me.",
             "Hey—based on what we've talked about, this might be a tough moment. Want to talk?",
-            "I see a pattern here. What would help you get ahead of it?",
+            'I see a pattern here. What would help you get ahead of it?',
           ],
           milestone: [
             "I just wanted to acknowledge something: you've come a long way.",
-            "Hey, I noticed a milestone. Can we pause and celebrate for a second?",
-            "Something shifted in our conversations lately. In a good way. Did you notice?",
+            'Hey, I noticed a milestone. Can we pause and celebrate for a second?',
+            'Something shifted in our conversations lately. In a good way. Did you notice?',
           ],
           silence: [
             "Hey, it's been a while. I'm not checking up on you—I'm checking in on you.",
@@ -549,7 +558,7 @@ const generateProactiveMessageDef: ToolDefinition = {
             "Haven't heard from you in a bit. Everything okay?",
           ],
           'thinking-of-you': [
-            "No agenda here. Just thinking of you.",
+            'No agenda here. Just thinking of you.',
             "Hey, you crossed my mind. Hope you're doing okay.",
             "Just wanted to say hi. That's it. Hi. 💚",
           ],

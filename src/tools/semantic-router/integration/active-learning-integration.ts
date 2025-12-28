@@ -35,7 +35,11 @@ import {
   initializeCorrectionStore,
 } from '../learning/index.js';
 import type { SemanticRouterResult, ToolMatch } from '../types.js';
-import type { TurnRouterResult, RoutingContext, RoutingPath } from './turn-processor-integration.js';
+import type {
+  TurnRouterResult,
+  RoutingContext,
+  RoutingPath,
+} from './turn-processor-integration.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'semantic-router:active-learning' });
@@ -157,10 +161,7 @@ export async function getPreRoutingEnhancements(
 
     // Check for user vocabulary matches
     // This is handled in enhanceWithLearning, but we return early signals here
-    log.debug(
-      { userId, boostCount: toolBoosts.size },
-      'Applied pre-routing enhancements'
-    );
+    log.debug({ userId, boostCount: toolBoosts.size }, 'Applied pre-routing enhancements');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to get pre-routing enhancements');
   }
@@ -251,11 +252,7 @@ export function recordSemanticRoutingResult(
  *
  * Call this when LLM executes a tool (via JSON function calling)
  */
-export function recordLLMToolExecution(
-  turnId: string,
-  sessionId: string,
-  toolId: string
-): void {
+export function recordLLMToolExecution(turnId: string, sessionId: string, toolId: string): void {
   const session = sessionStates.get(sessionId);
   if (!session) return;
 
@@ -271,10 +268,7 @@ export function recordLLMToolExecution(
 /**
  * Record assistant response for conversation history
  */
-export function recordAssistantResponse(
-  sessionId: string,
-  responseText: string
-): void {
+export function recordAssistantResponse(sessionId: string, responseText: string): void {
   const session = sessionStates.get(sessionId);
   if (!session) return;
 
@@ -509,7 +503,14 @@ export async function predictNextTools(
         },
         metadata: {
           totalTimeMs: 0,
-          layerTimesMs: { pattern: 0, keyword: 0, embedding: 0, context: 0, history: 0, holistic: 0 },
+          layerTimesMs: {
+            pattern: 0,
+            keyword: 0,
+            embedding: 0,
+            context: 0,
+            history: 0,
+            holistic: 0,
+          },
           toolsConsidered: 0,
           inputText: '',
           normalizedText: '',
@@ -624,4 +625,3 @@ export {
   type LearningOutcome,
   type EnhancedRouting,
 };
-

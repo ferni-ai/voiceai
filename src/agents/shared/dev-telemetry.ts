@@ -314,9 +314,7 @@ export function createTurnTrace(sessionId: string): Trace {
           breakdown.push(`Context:${formatDuration(trace.metrics.contextBuilderMs)}`);
 
         if (breakdown.length > 0) {
-          process.stderr.write(
-            `[trace:${traceId.slice(0, 8)}] ║ ${breakdown.join(' | ')}\n`
-          );
+          process.stderr.write(`[trace:${traceId.slice(0, 8)}] ║ ${breakdown.join(' | ')}\n`);
         }
 
         process.stderr.write(
@@ -473,7 +471,7 @@ export function logPipelineStageWithSession(
     'turn.complete': '✅',
     'handoff.start': '🤝',
     'handoff.complete': '🤝✅',
-    'error': '❌',
+    error: '❌',
   };
 
   const emoji = stageEmojis[stage] || '📍';

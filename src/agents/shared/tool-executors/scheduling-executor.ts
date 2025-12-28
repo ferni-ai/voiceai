@@ -273,7 +273,8 @@ async function execute(
   // MAKE PHONE CALL (Immediate)
   // ========================================
   if (fnLower === 'makephonecall' || fnLower === 'callcontact') {
-    const phoneNumber = (args.phoneNumber as string) || (args.phone as string) || (args.contact as string);
+    const phoneNumber =
+      (args.phoneNumber as string) || (args.phone as string) || (args.contact as string);
     const message = (args.message as string) || (args.purpose as string);
 
     log.info({ phoneNumber: phoneNumber ? '***' : undefined, userId }, '📞 Making phone call');
@@ -495,12 +496,16 @@ async function execute(
     fnLower === 'havefernicall' ||
     fnLower === 'callforconversation'
   ) {
-    const contactName = (args.contact as string) || (args.name as string) || (args.recipient as string);
+    const contactName =
+      (args.contact as string) || (args.name as string) || (args.recipient as string);
     const phoneNumber = (args.phoneNumber as string) || (args.phone as string);
     const purpose = (args.purpose as string) || (args.reason as string) || (args.message as string);
     const tone = (args.tone as string) || 'casual';
 
-    log.info({ contactName, hasPurpose: !!purpose, userId, personaId }, '🗣️ Initiating conversational call');
+    log.info(
+      { contactName, hasPurpose: !!purpose, userId, personaId },
+      '🗣️ Initiating conversational call'
+    );
 
     if (!phoneNumber && !contactName) {
       return 'Who would you like me to call and have a conversation with? I need a name or phone number.';
@@ -514,9 +519,8 @@ async function execute(
 
     try {
       // Check if conversational calls are configured
-      const { isConversationalCallsConfigured, makeConversationalCall } = await import(
-        '../../../services/outreach/conversational-calls.js'
-      );
+      const { isConversationalCallsConfigured, makeConversationalCall } =
+        await import('../../../services/outreach/conversational-calls.js');
 
       if (!isConversationalCallsConfigured()) {
         // Fallback: SIP not configured, offer alternative
@@ -531,7 +535,8 @@ async function execute(
       let resolvedPhone = phoneNumber;
       if (!resolvedPhone && contactName) {
         // Try to look up contact
-        const { getContact } = await import('../../../services/contacts/contact-relationship-service.js');
+        const { getContact } =
+          await import('../../../services/contacts/contact-relationship-service.js');
         const contact = await getContact(userId, contactName);
         if (contact?.phone) {
           resolvedPhone = contact.phone;
@@ -550,10 +555,14 @@ async function execute(
       const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
 
       // Determine tone/approach
-      const approachTone = tone === 'supportive' ? 'supportive'
-        : tone === 'celebratory' ? 'celebratory'
-        : tone === 'accountability' ? 'accountability'
-        : 'casual';
+      const approachTone =
+        tone === 'supportive'
+          ? 'supportive'
+          : tone === 'celebratory'
+            ? 'celebratory'
+            : tone === 'accountability'
+              ? 'accountability'
+              : 'casual';
 
       // Initiate the conversational call
       const call = await makeConversationalCall({
@@ -576,7 +585,13 @@ async function execute(
           tone: approachTone,
           primaryGoal: purpose,
         },
-        persona: personaId as 'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan',
+        persona: personaId as
+          | 'ferni'
+          | 'maya-santos'
+          | 'peter-john'
+          | 'alex-chen'
+          | 'jordan-taylor'
+          | 'nayan',
       });
 
       log.info({ callId: call.id, status: call.status }, '🗣️ Conversational call initiated');
@@ -584,7 +599,6 @@ async function execute(
       // Return immediate response - the call is happening async
       // The conversation summary will be stored and injected later
       return `Okay! I'm calling ${contactName || 'them'} right now. I'll introduce myself and ${purpose}. Give me a few minutes - I'll let you know how the conversation went when I'm done!`;
-
     } catch (err) {
       log.error({ error: String(err) }, '🗣️ Failed to initiate conversational call');
       return `I ran into a problem setting up that call. Would you like me to send a text to ${contactName || 'them'} instead?`;

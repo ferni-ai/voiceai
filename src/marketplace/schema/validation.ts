@@ -221,9 +221,7 @@ export const PermissionsSchema = z.object({
 });
 
 export const EnvConfigSchema = z.object({
-  name: z
-    .string()
-    .regex(/^[A-Z][A-Z0-9_]*$/, 'Must be uppercase with underscores'),
+  name: z.string().regex(/^[A-Z][A-Z0-9_]*$/, 'Must be uppercase with underscores'),
   description: SafeStringSchema(500),
   required: z.boolean(),
   secret: z.boolean(),

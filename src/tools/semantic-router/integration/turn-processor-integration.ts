@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { SemanticRouter} from '../router.js';
+import type { SemanticRouter } from '../router.js';
 import { createSemanticRouter, routeUserInput } from '../router.js';
 import type {
   SemanticRouterConfig,
@@ -572,9 +572,8 @@ async function executeMatchedTool(
     // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
     if (result.success && context.sessionId) {
       try {
-        const { markToolExecutedBySemanticRouter } = await import(
-          '../../../agents/shared/tool-call-sanitizer.js'
-        );
+        const { markToolExecutedBySemanticRouter } =
+          await import('../../../agents/shared/tool-call-sanitizer.js');
         markToolExecutedBySemanticRouter(context.sessionId, toolId);
       } catch {
         // Non-critical - deduplication is defensive
@@ -641,9 +640,8 @@ async function executeMatchedTool(
     // 🚫 DEDUPLICATION: Mark tool as executed to prevent JSON workaround from re-executing
     if (context.sessionId) {
       try {
-        const { markToolExecutedBySemanticRouter } = await import(
-          '../../../agents/shared/tool-call-sanitizer.js'
-        );
+        const { markToolExecutedBySemanticRouter } =
+          await import('../../../agents/shared/tool-call-sanitizer.js');
         markToolExecutedBySemanticRouter(context.sessionId, toolId);
       } catch {
         // Non-critical - deduplication is defensive
@@ -653,10 +651,7 @@ async function executeMatchedTool(
     // Handle both ToolExecutionResult and SemanticRoutingResult
     if (isToolExecutionResult(result)) {
       if (result.success) {
-        log.info(
-          { toolId, naturalResponse: result.naturalResponse },
-          'Tool executed successfully'
-        );
+        log.info({ toolId, naturalResponse: result.naturalResponse }, 'Tool executed successfully');
         return {
           success: true,
           naturalResponse: result.naturalResponse ?? '',

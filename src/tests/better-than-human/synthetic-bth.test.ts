@@ -43,10 +43,7 @@ interface GeneratedScenario {
   notes?: string;
 }
 
-async function generateScenarios(
-  systemPrompt: string,
-  count = 5
-): Promise<GeneratedScenario[]> {
+async function generateScenarios(systemPrompt: string, count = 5): Promise<GeneratedScenario[]> {
   if (!USE_LLM) {
     return [];
   }
@@ -104,7 +101,7 @@ describe('Data Capture - Better Than Human', () => {
       expected: { relationship: 'wife', phone: '212-555-0199' },
     },
     {
-      utterance: "My boss can be reached at 310-555-8888",
+      utterance: 'My boss can be reached at 310-555-8888',
       expected: { relationship: 'boss', phone: '310-555-8888' },
     },
   ];
@@ -125,10 +122,14 @@ describe('Data Capture - Better Than Human', () => {
           expect(captured.entity.phone).toContain(expected.phone.replace(/-/g, '').slice(-4));
         }
         if (expected.email) {
-          expect(captured.entity.email?.toLowerCase()).toContain(expected.email.split('@')[0].toLowerCase());
+          expect(captured.entity.email?.toLowerCase()).toContain(
+            expected.email.split('@')[0].toLowerCase()
+          );
         }
         if (expected.relationship) {
-          expect(captured.entity.relationship?.toLowerCase()).toContain(expected.relationship.toLowerCase());
+          expect(captured.entity.relationship?.toLowerCase()).toContain(
+            expected.relationship.toLowerCase()
+          );
         }
       }
     );
@@ -193,12 +194,12 @@ describe('Reading Between the Lines - Better Than Human', () => {
     },
     // Deflection - must use exact patterns
     {
-      utterance: "But enough about me, how are you doing?",
+      utterance: 'But enough about me, how are you doing?',
       expectedType: 'deflection',
       context: {},
     },
     {
-      utterance: "Never mind, forget I said anything.",
+      utterance: 'Never mind, forget I said anything.',
       expectedType: 'deflection',
       context: {},
     },
@@ -233,7 +234,7 @@ describe('Reading Between the Lines - Better Than Human', () => {
         const signals = detectUnsaidSignals('test-user', utterance, context);
 
         expect(signals.length).toBeGreaterThan(0);
-        expect(signals.some(s => s.type === expectedType)).toBe(true);
+        expect(signals.some((s) => s.type === expectedType)).toBe(true);
       }
     );
   });
@@ -261,7 +262,7 @@ Example: "Yeah I'm fine, just found out my mom has cancer but I'm dealing with i
           recentTopics: (scenario.expected as { topics?: string[] })?.topics,
         });
 
-        if (signals.some(s => s.type === 'emotional_mismatch' || s.type === 'minimizing_pain')) {
+        if (signals.some((s) => s.type === 'emotional_mismatch' || s.type === 'minimizing_pain')) {
           detected++;
         }
       }
@@ -290,7 +291,7 @@ Example: "My relationship? Oh that's... anyway, did you see the game last night?
       for (const scenario of scenarios) {
         const signals = detectUnsaidSignals('test-user', scenario.utterance, {});
 
-        if (signals.some(s => s.type === 'deflection' || s.type === 'topic_avoidance')) {
+        if (signals.some((s) => s.type === 'deflection' || s.type === 'topic_avoidance')) {
           detected++;
         }
       }
@@ -322,7 +323,7 @@ describe('Emotion Detection - Better Than Human', () => {
     { utterance: "I'm so frustrated and annoyed right now!", expected: 'frustrated' },
     { utterance: "I'm FURIOUS and so angry about this!", expected: 'angry' },
     // Overwhelm - using known overwhelmed keywords
-    { utterance: "I feel so stressed and overwhelmed with everything", expected: 'overwhelmed' },
+    { utterance: 'I feel so stressed and overwhelmed with everything', expected: 'overwhelmed' },
     { utterance: "I'm completely burned out and exhausted", expected: 'overwhelmed' },
   ];
 
@@ -340,16 +341,25 @@ describe('Emotion Detection - Better Than Human', () => {
           anxious: ['anxious', 'worried', 'nervous', 'scared', 'stressed'],
           frustrated: ['frustrated', 'angry', 'annoyed', 'overwhelmed', 'stressed', 'neutral'],
           angry: ['angry', 'frustrated', 'annoyed', 'hurt'],
-          overwhelmed: ['overwhelmed', 'stressed', 'anxious', 'distressed', 'frustrated', 'sad', 'neutral'],
+          overwhelmed: [
+            'overwhelmed',
+            'stressed',
+            'anxious',
+            'distressed',
+            'frustrated',
+            'sad',
+            'neutral',
+          ],
           grateful: ['grateful', 'joy', 'happy', 'hopeful'],
         };
 
         const acceptableEmotions = emotionFamilies[expected] || [expected, 'neutral'];
-        
+
         // Either we got an acceptable emotion OR we detected something with reasonable confidence
-        const detected = acceptableEmotions.includes(result.primary) || 
+        const detected =
+          acceptableEmotions.includes(result.primary) ||
           (result.primary !== 'neutral' && result.confidence > 0.3);
-        
+
         expect(
           detected,
           `Expected one of [${acceptableEmotions.join(', ')}], got ${result.primary} (${result.confidence.toFixed(2)})`
@@ -404,12 +414,21 @@ Include:
 describe('Small Details Extraction - Better Than Human', () => {
   // Use actual types from extractSmallDetails: user_name, pet_name, person_name, place, company, amount
   const SEED_SCENARIOS = [
-    { utterance: "I talked to Sarah about it", expected: { type: 'person_name', value: 'Sarah' } },
-    { utterance: "We're meeting at the Starbucks downtown", expected: { type: 'place', value: 'Starbucks' } },
-    { utterance: "My name is Michael by the way", expected: { type: 'user_name', value: 'Michael' } },
-    { utterance: "My dog Buddy loves to play fetch", expected: { type: 'pet_name', value: 'Buddy' } },
-    { utterance: "I work at Google now", expected: { type: 'company', value: 'Google' } },
-    { utterance: "It cost about $500 total", expected: { type: 'amount', value: '500' } },
+    { utterance: 'I talked to Sarah about it', expected: { type: 'person_name', value: 'Sarah' } },
+    {
+      utterance: "We're meeting at the Starbucks downtown",
+      expected: { type: 'place', value: 'Starbucks' },
+    },
+    {
+      utterance: 'My name is Michael by the way',
+      expected: { type: 'user_name', value: 'Michael' },
+    },
+    {
+      utterance: 'My dog Buddy loves to play fetch',
+      expected: { type: 'pet_name', value: 'Buddy' },
+    },
+    { utterance: 'I work at Google now', expected: { type: 'company', value: 'Google' } },
+    { utterance: 'It cost about $500 total', expected: { type: 'amount', value: '500' } },
   ];
 
   describe('Seed Scenarios', () => {
@@ -422,7 +441,7 @@ describe('Small Details Extraction - Better Than Human', () => {
         // We're mainly validating the extraction logic works
         if (details.length > 0) {
           // Check if we got the expected type OR any extraction
-          const hasExpected = details.some(d => d.type === expected.type);
+          const hasExpected = details.some((d) => d.type === expected.type);
           expect(hasExpected || details.length > 0).toBe(true);
         }
       }
@@ -440,17 +459,49 @@ describe('Wellbeing Signals - Better Than Human', () => {
   // This is semantically correct but inverted from other dimensions
   const SEED_SCENARIOS = [
     // Sleep - using sleepQuality dimension patterns
-    { utterance: "I didn't sleep at all last night, insomnia is killing me", dimension: 'sleepQuality', expectLowValue: true },
-    { utterance: "I slept great last night, got 8 hours", dimension: 'sleepQuality', expectLowValue: false },
+    {
+      utterance: "I didn't sleep at all last night, insomnia is killing me",
+      dimension: 'sleepQuality',
+      expectLowValue: true,
+    },
+    {
+      utterance: 'I slept great last night, got 8 hours',
+      dimension: 'sleepQuality',
+      expectLowValue: false,
+    },
     // Energy - using energyLevel dimension patterns
-    { utterance: "I'm completely exhausted and drained", dimension: 'energyLevel', expectLowValue: true },
-    { utterance: "Feeling so energized and refreshed today!", dimension: 'energyLevel', expectLowValue: false },
+    {
+      utterance: "I'm completely exhausted and drained",
+      dimension: 'energyLevel',
+      expectLowValue: true,
+    },
+    {
+      utterance: 'Feeling so energized and refreshed today!',
+      dimension: 'energyLevel',
+      expectLowValue: false,
+    },
     // Anxiety/Stress - using anxietyLevel dimension patterns (high = anxious = bad)
-    { utterance: "I can't stop worrying, my heart is racing", dimension: 'anxietyLevel', expectLowValue: false }, // High anxiety = high value
-    { utterance: "I'm feeling totally calm and at peace", dimension: 'anxietyLevel', expectLowValue: true }, // Low anxiety = low value
+    {
+      utterance: "I can't stop worrying, my heart is racing",
+      dimension: 'anxietyLevel',
+      expectLowValue: false,
+    }, // High anxiety = high value
+    {
+      utterance: "I'm feeling totally calm and at peace",
+      dimension: 'anxietyLevel',
+      expectLowValue: true,
+    }, // Low anxiety = low value
     // Loneliness - HIGH value = lonely/bad, LOW value = connected/good
-    { utterance: "I feel so isolated and completely alone", dimension: 'loneliness', expectLowValue: false }, // Lonely = high value
-    { utterance: "I feel so connected and surrounded by good friends", dimension: 'loneliness', expectLowValue: true }, // Connected = low value
+    {
+      utterance: 'I feel so isolated and completely alone',
+      dimension: 'loneliness',
+      expectLowValue: false,
+    }, // Lonely = high value
+    {
+      utterance: 'I feel so connected and surrounded by good friends',
+      dimension: 'loneliness',
+      expectLowValue: true,
+    }, // Connected = low value
   ];
 
   describe('Seed Scenarios', () => {
@@ -461,10 +512,10 @@ describe('Wellbeing Signals - Better Than Human', () => {
 
         // Should detect SOMETHING
         expect(signals.length, `No signals detected for: "${utterance}"`).toBeGreaterThan(0);
-        
+
         // Check if the relevant dimension was detected
-        const relevantSignal = signals.find(s => s.dimension === dimension);
-        
+        const relevantSignal = signals.find((s) => s.dimension === dimension);
+
         // Just verify we detected the right dimension - the tracker's value semantics
         // vary by dimension (e.g., high loneliness = bad, high energy = good)
         if (relevantSignal) {
@@ -489,20 +540,23 @@ describe('Combined Better Than Human Detection', { timeout: LLM_TIMEOUT }, () =>
     const complexScenarios = [
       {
         name: 'Masked breakup pain',
-        utterance: "I'm fine, just haven't been sleeping well since the breakup. It's not a big deal, I'll get over it.",
+        utterance:
+          "I'm fine, just haven't been sleeping well since the breakup. It's not a big deal, I'll get over it.",
         // At least one of these signal types should be detected
         expectedSignalTypes: ['emotional_mismatch', 'minimizing_pain'],
         expectedEmotionFamily: ['sad', 'hurt', 'neutral'], // Allow neutral since "I'm fine"
       },
       {
         name: 'Deflection with data',
-        utterance: "Anyway, let's not talk about that anymore. My sister Sarah's number is 555-1234 if you need it.",
+        utterance:
+          "Anyway, let's not talk about that anymore. My sister Sarah's number is 555-1234 if you need it.",
         // Deflection detection requires specific context - focus on data capture
         shouldCaptureData: true,
       },
       {
         name: 'Permission seeking with minimizing',
-        utterance: "Can I tell you something? I know I shouldn't complain, but work has been overwhelming.",
+        utterance:
+          "Can I tell you something? I know I shouldn't complain, but work has been overwhelming.",
         expectedSignalTypes: ['permission_seeking', 'minimizing_pain'],
         expectedEmotionFamily: ['overwhelmed', 'stressed', 'anxious', 'neutral'],
       },
@@ -510,16 +564,16 @@ describe('Combined Better Than Human Detection', { timeout: LLM_TIMEOUT }, () =>
 
     for (const scenario of complexScenarios) {
       const context = (scenario as { context?: Record<string, unknown> }).context || {};
-      
+
       // Test signal detection if expected
       if (scenario.expectedSignalTypes) {
         const signals = detectUnsaidSignals('test-user', scenario.utterance, context);
-        const detectedAny = scenario.expectedSignalTypes.some(
-          expectedType => signals.some(s => s.type === expectedType)
+        const detectedAny = scenario.expectedSignalTypes.some((expectedType) =>
+          signals.some((s) => s.type === expectedType)
         );
         expect(
           detectedAny || signals.length > 0,
-          `${scenario.name}: Expected one of [${scenario.expectedSignalTypes.join(', ')}], got [${signals.map(s => s.type).join(', ')}]`
+          `${scenario.name}: Expected one of [${scenario.expectedSignalTypes.join(', ')}], got [${signals.map((s) => s.type).join(', ')}]`
         ).toBe(true);
       }
 
@@ -546,4 +600,3 @@ describe('Combined Better Than Human Detection', { timeout: LLM_TIMEOUT }, () =>
     }
   });
 });
-

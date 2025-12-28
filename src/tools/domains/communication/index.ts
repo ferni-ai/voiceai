@@ -343,6 +343,10 @@ export {
 export { createCommunicationCoachingTools } from './communication-coaching.js';
 
 // Re-export from communication-tools.ts for legacy consumers
-export { createCommunicationTools as createCommunicationSpecialistTools, parseScheduleTime, createCommunicationTools } from './communication-tools.js';
+export {
+  createCommunicationTools as createCommunicationSpecialistTools,
+  parseScheduleTime,
+  createCommunicationTools,
+} from './communication-tools.js';
 
 export default getToolDefinitions;

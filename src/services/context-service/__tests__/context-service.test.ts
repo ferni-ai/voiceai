@@ -54,7 +54,7 @@ describe('ContextService Types', () => {
     it('should support voice emotion context', () => {
       const request: ContextRequest = {
         userId: 'user-123',
-        userMessage: 'I\'m feeling overwhelmed',
+        userMessage: "I'm feeling overwhelmed",
         personaId: 'ferni',
         sessionId: 'session-456',
         voiceEmotion: {
@@ -75,7 +75,10 @@ describe('ContextService Types', () => {
         sessionId: 'session-456',
         conversationHistory: [
           { role: 'user', content: 'I want to start exercising' },
-          { role: 'assistant', content: 'That\'s a great goal! What type of exercise interests you?' },
+          {
+            role: 'assistant',
+            content: "That's a great goal! What type of exercise interests you?",
+          },
           { role: 'user', content: 'Maybe running' },
         ],
       };
@@ -163,12 +166,7 @@ describe('ContextService Types', () => {
     });
 
     it('should support all memory types', () => {
-      const types: RelevantMemory['type'][] = [
-        'conversation',
-        'key_moment',
-        'goal',
-        'preference',
-      ];
+      const types: RelevantMemory['type'][] = ['conversation', 'key_moment', 'goal', 'preference'];
 
       types.forEach((type) => {
         const memory: RelevantMemory = {
@@ -467,7 +465,7 @@ describe('ContextService Types', () => {
     it('should build context for returning user', () => {
       const request: ContextRequest = {
         userId: 'user-returning',
-        userMessage: 'Hey, how\'s it going?',
+        userMessage: "Hey, how's it going?",
         personaId: 'ferni',
         sessionId: 'session-new',
         conversationHistory: [],
@@ -515,7 +513,7 @@ describe('ContextService Types', () => {
     it('should handle distressed user context', () => {
       const request: ContextRequest = {
         userId: 'user-distressed',
-        userMessage: 'I don\'t know what to do anymore',
+        userMessage: "I don't know what to do anymore",
         personaId: 'ferni',
         sessionId: 'session-support',
         voiceEmotion: {

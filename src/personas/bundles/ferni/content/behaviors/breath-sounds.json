@@ -47,9 +47,14 @@
   "usage_rules": {
     "frequency": "low",
     "max_per_response": 1,
-    "more_likely_when": ["user_vulnerable", "heavy_topic", "late_night", "after_hard_share", "before_hard_truth"],
+    "more_likely_when": [
+      "user_vulnerable",
+      "heavy_topic",
+      "late_night",
+      "after_hard_share",
+      "before_hard_truth"
+    ],
     "less_likely_when": ["celebratory", "quick_task", "high_energy"],
     "note": "Ferni's breaths are grounding, not anxious. Wyoming calm."
   }
 }
-

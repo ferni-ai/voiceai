@@ -136,7 +136,7 @@ describe('MemoryManagement', () => {
     });
 
     it('should return uncertain greeting for 75-85% similarity', () => {
-      const greeting = generateVoiceRecognitionGreeting(0.80);
+      const greeting = generateVoiceRecognitionGreeting(0.8);
 
       expect(greeting).toContain('familiar');
     });

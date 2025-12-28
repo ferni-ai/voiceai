@@ -62,10 +62,7 @@ export function recordToolTiming(
 
   sessionToolTimings.set(sessionId, timings);
 
-  log.debug(
-    { sessionId, toolName, durationMs },
-    'Recorded tool timing for context injection'
-  );
+  log.debug({ sessionId, toolName, durationMs }, 'Recorded tool timing for context injection');
 }
 
 /**
@@ -115,9 +112,7 @@ function generateFramingHint(timing: ToolTiming): string {
 
   // Determine emotional adjustment
   const emotionNote =
-    userEmotion === 'anxious' || userEmotion === 'stressed'
-      ? ' Be warm and reassuring.'
-      : '';
+    userEmotion === 'anxious' || userEmotion === 'stressed' ? ' Be warm and reassuring.' : '';
 
   if (durationMs > TIMING_THRESHOLDS.EXTREMELY_SLOW) {
     return `${toolName} took ${Math.round(durationMs / 1000)}s - acknowledge the wait naturally, then share what you found.${emotionNote}`;
@@ -180,10 +175,7 @@ export const toolTimingContextBuilder: ContextBuilder = {
       return [];
     }
 
-    log.debug(
-      { sessionId, toolCount: timings.length },
-      'Injecting tool timing context'
-    );
+    log.debug({ sessionId, toolCount: timings.length }, 'Injecting tool timing context');
 
     return [
       createStandardInjection('tool_timing_context', context, {

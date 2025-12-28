@@ -21,16 +21,27 @@
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SemanticRouterResult } from '../../types.js';
 
-import type { IntentClassifier} from './intent-classifier.js';
+import type { IntentClassifier } from './intent-classifier.js';
 import { getIntentClassifier, type ClassificationResult } from './intent-classifier.js';
-import type { LLMFallbackRouter} from './llm-fallback.js';
+import type { LLMFallbackRouter } from './llm-fallback.js';
 import { getLLMFallbackRouter, type LLMSelectionResult, type LLMProvider } from './llm-fallback.js';
-import type { ReActReasoningEngine} from './react-reasoning.js';
+import type { ReActReasoningEngine } from './react-reasoning.js';
 import { getReActEngine, type ReActResult, type ReActLLMProvider } from './react-reasoning.js';
-import type { GoalPlanner} from './goal-planner.js';
-import { getGoalPlanner, type ExecutionPlan, type PlanExecutionState, type GoalPlannerLLMProvider, type ToolExecutor } from './goal-planner.js';
-import type { BanditOptimizer} from './bandit-optimizer.js';
-import { getBanditOptimizer, type SelectionResult as BanditSelection, type RoutingContext as BanditContext, type ToolArm } from './bandit-optimizer.js';
+import type { GoalPlanner } from './goal-planner.js';
+import {
+  getGoalPlanner,
+  type ExecutionPlan,
+  type PlanExecutionState,
+  type GoalPlannerLLMProvider,
+  type ToolExecutor,
+} from './goal-planner.js';
+import type { BanditOptimizer } from './bandit-optimizer.js';
+import {
+  getBanditOptimizer,
+  type SelectionResult as BanditSelection,
+  type RoutingContext as BanditContext,
+  type ToolArm,
+} from './bandit-optimizer.js';
 
 const log = createLogger({ module: 'intelligent-orchestrator' });
 
@@ -167,7 +178,10 @@ export class IntelligentRouterOrchestrator {
   private toolDefinitions = new Map<string, ToolDefinition>();
 
   // Callbacks for semantic routing (the existing system)
-  private semanticRouterCallback?: (input: string, context?: RoutingContext) => Promise<SemanticRouterResult>;
+  private semanticRouterCallback?: (
+    input: string,
+    context?: RoutingContext
+  ) => Promise<SemanticRouterResult>;
 
   constructor(config: Partial<OrchestratorConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -264,7 +278,11 @@ export class IntelligentRouterOrchestrator {
           };
 
           log.debug(
-            { input: input.slice(0, 50), intent: icResult.intent.id, confidence: icResult.confidence },
+            {
+              input: input.slice(0, 50),
+              intent: icResult.intent.id,
+              confidence: icResult.confidence,
+            },
             'Intent classifier made confident decision'
           );
         }
@@ -307,7 +325,11 @@ export class IntelligentRouterOrchestrator {
             };
 
             log.debug(
-              { input: input.slice(0, 50), stepCount: plan.steps.length, confidence: plan.confidence },
+              {
+                input: input.slice(0, 50),
+                stepCount: plan.steps.length,
+                confidence: plan.confidence,
+              },
               'Goal planner created execution plan'
             );
           }
@@ -364,8 +386,13 @@ export class IntelligentRouterOrchestrator {
           strategiesUsed.push('bandit-optimizer');
 
           // If bandit selected a different tool with good confidence
-          if (banditResult.toolId !== semanticResult.matches[0]?.toolId && banditResult.expectedValue > 0.6) {
-            const banditMatch = semanticResult.matches.find((m) => m.toolId === banditResult.toolId);
+          if (
+            banditResult.toolId !== semanticResult.matches[0]?.toolId &&
+            banditResult.expectedValue > 0.6
+          ) {
+            const banditMatch = semanticResult.matches.find(
+              (m) => m.toolId === banditResult.toolId
+            );
             if (banditMatch) {
               decision = {
                 toolId: banditResult.toolId,
@@ -378,7 +405,11 @@ export class IntelligentRouterOrchestrator {
               };
 
               log.debug(
-                { toolId: banditResult.toolId, expected: banditResult.expectedValue, wasExploration: banditResult.wasExploration },
+                {
+                  toolId: banditResult.toolId,
+                  expected: banditResult.expectedValue,
+                  wasExploration: banditResult.wasExploration,
+                },
                 'Bandit optimizer re-ranked selection'
               );
             }
@@ -390,7 +421,10 @@ export class IntelligentRouterOrchestrator {
       // LAYER 5: LLM Fallback (for uncertainty)
       // ========================================
       if (this.config.enableLLMFallback && semanticResult && !decision) {
-        const shouldFallback = this.llmFallback.shouldTriggerFallback(semanticResult, context?.uncertainty);
+        const shouldFallback = this.llmFallback.shouldTriggerFallback(
+          semanticResult,
+          context?.uncertainty
+        );
 
         if (shouldFallback.trigger) {
           const lfStart = performance.now();
@@ -418,20 +452,28 @@ export class IntelligentRouterOrchestrator {
           strategiesUsed.push('llm-fallback');
 
           if (llmResult.wasTriggered) {
-            const selectedMatch = semanticResult.matches.find((m) => m.toolId === llmResult.selectedToolId);
+            const selectedMatch = semanticResult.matches.find(
+              (m) => m.toolId === llmResult.selectedToolId
+            );
 
             decision = {
               toolId: llmResult.selectedToolId,
               args: selectedMatch?.extractedArgs || {},
               confidence: llmResult.confidence,
-              action: llmResult.needsClarification ? 'clarify' : this.determineAction(llmResult.confidence),
+              action: llmResult.needsClarification
+                ? 'clarify'
+                : this.determineAction(llmResult.confidence),
               decidedBy: 'llm-fallback',
               reasoning: llmResult.reasoning,
               shouldExplain: true,
             };
 
             log.debug(
-              { toolId: llmResult.selectedToolId, confidence: llmResult.confidence, reason: shouldFallback.reason },
+              {
+                toolId: llmResult.selectedToolId,
+                confidence: llmResult.confidence,
+                reason: shouldFallback.reason,
+              },
               'LLM fallback made decision'
             );
           }
@@ -594,7 +636,9 @@ export class IntelligentRouterOrchestrator {
   /**
    * Determine action from semantic router result
    */
-  private determineActionFromSemanticResult(result: SemanticRouterResult): RoutingDecision['action'] {
+  private determineActionFromSemanticResult(
+    result: SemanticRouterResult
+  ): RoutingDecision['action'] {
     switch (result.action.type) {
       case 'execute':
         return 'execute';
@@ -698,4 +742,3 @@ export async function intelligentRoute(
   const orchestrator = getIntelligentOrchestrator();
   return orchestrator.route(input, context);
 }
-

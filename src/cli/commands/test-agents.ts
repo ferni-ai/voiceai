@@ -43,7 +43,9 @@ async function rateLimit(): Promise<void> {
   const elapsed = now - lastCallTime;
   if (elapsed < MIN_DELAY_MS) {
     const waitTime = MIN_DELAY_MS - elapsed;
-    await new Promise<void>((resolve) => { setTimeout(resolve, waitTime); });
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, waitTime);
+    });
   }
   lastCallTime = Date.now();
 }

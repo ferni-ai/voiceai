@@ -366,11 +366,13 @@ export async function recordVerification(userId: string, success: boolean): Prom
   try {
     const profileRef = db.doc(getProfilePath(userId));
 
-    await profileRef.update(cleanForFirestore({
-      verificationCount: FieldValue.increment(1),
-      lastVerifiedAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    }));
+    await profileRef.update(
+      cleanForFirestore({
+        verificationCount: FieldValue.increment(1),
+        lastVerifiedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      })
+    );
 
     log.debug({ userId, success }, 'Recorded verification');
   } catch (error) {

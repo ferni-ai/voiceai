@@ -24,12 +24,16 @@ vi.mock('../../../../memory/embeddings.js', () => ({
   generateEmbedding: vi.fn(async (text: string) => {
     // Return a simple hash-based embedding for testing
     const hash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return Array(768).fill(0).map((_, i) => Math.sin(hash * i * 0.001));
+    return Array(768)
+      .fill(0)
+      .map((_, i) => Math.sin(hash * i * 0.001));
   }),
   embed: vi.fn(async (text: string) => {
     // Alias for generateEmbedding - some modules use this name
     const hash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return Array(768).fill(0).map((_, i) => Math.sin(hash * i * 0.001));
+    return Array(768)
+      .fill(0)
+      .map((_, i) => Math.sin(hash * i * 0.001));
   }),
   cosineSimilarity: vi.fn((a: number[], b: number[]) => {
     // Simple mock similarity
@@ -41,34 +45,13 @@ vi.mock('../../../../memory/embeddings.js', () => ({
 }));
 
 // Import after mocks
-import {
-  correlationMining,
-  recordObservation,
-} from '../correlation-mining.js';
-import {
-  emotionalTrajectories,
-  recordEmotionalWaypoint,
-} from '../emotional-trajectories.js';
-import {
-  relationalSemantics,
-  recordPersonMention,
-} from '../relational-semantics.js';
-import {
-  counterfactualMemory,
-  recordDecisionPoint,
-} from '../counterfactual-memory.js';
-import {
-  growthFingerprint,
-  recordConversationData,
-} from '../growth-fingerprint.js';
-import {
-  crossSessionThreading,
-  recordMoment,
-} from '../cross-session-threading.js';
-import {
-  detectAdvice,
-  trackAdviceInResponse,
-} from '../advice-detector.js';
+import { correlationMining, recordObservation } from '../correlation-mining.js';
+import { emotionalTrajectories, recordEmotionalWaypoint } from '../emotional-trajectories.js';
+import { relationalSemantics, recordPersonMention } from '../relational-semantics.js';
+import { counterfactualMemory, recordDecisionPoint } from '../counterfactual-memory.js';
+import { growthFingerprint, recordConversationData } from '../growth-fingerprint.js';
+import { crossSessionThreading, recordMoment } from '../cross-session-threading.js';
+import { detectAdvice, trackAdviceInResponse } from '../advice-detector.js';
 import {
   processSemanticIntelligence,
   warmupSemanticIntelligence,
@@ -390,7 +373,7 @@ describe('Advice Detector', () => {
 
   it('should categorize advice correctly', () => {
     const categorizedAdvice = [
-      { text: 'It\'s okay to take a break', expectedCategory: 'emotional' },
+      { text: "It's okay to take a break", expectedCategory: 'emotional' },
       { text: 'Set boundaries with that person', expectedCategory: 'relational' }, // Uses "set boundaries" pattern
       { text: 'Try to get some rest', expectedCategory: 'behavioral' },
       { text: 'Remember that growth takes time', expectedCategory: 'philosophical' },
@@ -443,7 +426,7 @@ describe('Semantic Intelligence Integration', () => {
       sessionId: 'test-session',
       personaId: 'ferni',
       turnNumber: 1,
-      userText: 'I had a long day at work and I\'m feeling tired',
+      userText: "I had a long day at work and I'm feeling tired",
       topic: 'work',
       textEmotion: 'tired',
       textEmotionIntensity: 0.6,
@@ -506,7 +489,7 @@ describe('Semantic Intelligence Integration', () => {
       sessionId: 'test-session',
       personaId: 'ferni',
       turnNumber: 3,
-      userText: 'I just got promoted! I can\'t believe it!',
+      userText: "I just got promoted! I can't believe it!",
       topic: 'career',
       textEmotion: 'excited',
       textEmotionIntensity: 0.95,
@@ -776,7 +759,7 @@ describe('Advice Matcher (V3.1)', () => {
   it('should match on explicit advice reference', async () => {
     // Pre-compute embeddings first for semantic matching
     await precomputeAdviceEmbeddings(sampleAdvice);
-    
+
     // Test with user text that explicitly references advice AND mentions topic keywords
     // "I tried" triggers follow-through pattern, "sleep" matches advice keyword
     const match = await findMatchingAdvice(
@@ -794,7 +777,7 @@ describe('Advice Matcher (V3.1)', () => {
   it('should match on implicit follow-through', async () => {
     // Pre-compute embeddings first
     await precomputeAdviceEmbeddings(sampleAdvice);
-    
+
     // Test with text that triggers follow-through pattern and has strong keyword overlap
     const match = await findMatchingAdvice(
       'I finally did set boundaries at work like you said and it made a difference',
@@ -823,7 +806,10 @@ describe('Advice Matcher (V3.1)', () => {
   });
 
   it('should include match metadata', async () => {
-    const match = await findMatchingAdvice('I did what you said about boundaries at work', sampleAdvice);
+    const match = await findMatchingAdvice(
+      'I did what you said about boundaries at work',
+      sampleAdvice
+    );
 
     if (match) {
       expect(match.advice).toBeDefined();
@@ -857,4 +843,3 @@ describe('Advice Matcher (V3.1)', () => {
     }
   });
 });
-

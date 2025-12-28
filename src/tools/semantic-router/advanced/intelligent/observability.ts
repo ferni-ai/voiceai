@@ -126,18 +126,16 @@ class MetricsStore {
       strategy,
       totalCalls: strategyEvents.length,
       successfulRoutes,
-      avgLatencyMs: latencies.length > 0
-        ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-        : 0,
+      avgLatencyMs:
+        latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
       p50LatencyMs: this.percentile(sortedLatencies, 50),
       p95LatencyMs: this.percentile(sortedLatencies, 95),
       p99LatencyMs: this.percentile(sortedLatencies, 99),
-      avgConfidence: strategyEvents.length > 0
-        ? strategyEvents.reduce((sum, e) => sum + e.confidence, 0) / strategyEvents.length
-        : 0,
-      errorRate: strategyEvents.length > 0
-        ? errorEvents.length / strategyEvents.length
-        : 0,
+      avgConfidence:
+        strategyEvents.length > 0
+          ? strategyEvents.reduce((sum, e) => sum + e.confidence, 0) / strategyEvents.length
+          : 0,
+      errorRate: strategyEvents.length > 0 ? errorEvents.length / strategyEvents.length : 0,
       fallbackRate: 0, // Calculated separately
     };
   }
@@ -160,9 +158,8 @@ class MetricsStore {
       .slice(0, limit)
       .map(([toolId, count]) => {
         const confidences = this.toolConfidences.get(toolId) || [];
-        const avgConfidence = confidences.length > 0
-          ? confidences.reduce((a, b) => a + b, 0) / confidences.length
-          : 0;
+        const avgConfidence =
+          confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
         return { toolId, count, avgConfidence };
       });
     return tools;
@@ -196,9 +193,10 @@ class MetricsStore {
     const trends: Array<{ hour: number; routes: number; avgLatencyMs: number }> = [];
     for (let h = 0; h < 24; h++) {
       const hourEvents = byHour.get(h) || [];
-      const avgLatency = hourEvents.length > 0
-        ? hourEvents.reduce((sum, e) => sum + e.latencyMs, 0) / hourEvents.length
-        : 0;
+      const avgLatency =
+        hourEvents.length > 0
+          ? hourEvents.reduce((sum, e) => sum + e.latencyMs, 0) / hourEvents.length
+          : 0;
       trends.push({ hour: h, routes: hourEvents.length, avgLatencyMs: avgLatency });
     }
     return trends;
@@ -210,15 +208,12 @@ class MetricsStore {
     const allLatencies = routeEvents.map((e) => e.latencyMs);
     const successfulRoutes = routeEvents.filter((e) => e.toolId !== null);
 
-    const activeStrategies = Array.from(
-      new Set(routeEvents.slice(-100).map((e) => e.strategy))
-    );
+    const activeStrategies = Array.from(new Set(routeEvents.slice(-100).map((e) => e.strategy)));
 
     return {
       totalRoutes,
-      avgLatencyMs: allLatencies.length > 0
-        ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length
-        : 0,
+      avgLatencyMs:
+        allLatencies.length > 0 ? allLatencies.reduce((a, b) => a + b, 0) / allLatencies.length : 0,
       overallAccuracy: totalRoutes > 0 ? successfulRoutes.length / totalRoutes : 0,
       activeStrategies,
     };
@@ -480,4 +475,3 @@ export function checkAlerts(): Alert[] {
 // ============================================================================
 
 export { MetricsStore };
-

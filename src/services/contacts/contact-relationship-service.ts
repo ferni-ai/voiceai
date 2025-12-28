@@ -644,15 +644,42 @@ export async function getContactsNeedingAttention(
  */
 const RELATIONSHIP_ALIASES: Record<string, string[]> = {
   family: [
-    'mom', 'mother', 'mama', 'ma', 'mommy',
-    'dad', 'father', 'papa', 'pa', 'daddy',
-    'brother', 'bro', 'sis', 'sister',
-    'grandma', 'grandmother', 'granny', 'nana',
-    'grandpa', 'grandfather', 'grandad', 'gramps',
-    'aunt', 'auntie', 'uncle',
-    'cousin', 'niece', 'nephew',
-    'son', 'daughter', 'kid', 'child',
-    'wife', 'husband', 'spouse', 'partner',
+    'mom',
+    'mother',
+    'mama',
+    'ma',
+    'mommy',
+    'dad',
+    'father',
+    'papa',
+    'pa',
+    'daddy',
+    'brother',
+    'bro',
+    'sis',
+    'sister',
+    'grandma',
+    'grandmother',
+    'granny',
+    'nana',
+    'grandpa',
+    'grandfather',
+    'grandad',
+    'gramps',
+    'aunt',
+    'auntie',
+    'uncle',
+    'cousin',
+    'niece',
+    'nephew',
+    'son',
+    'daughter',
+    'kid',
+    'child',
+    'wife',
+    'husband',
+    'spouse',
+    'partner',
   ],
   friend: ['friend', 'buddy', 'pal', 'bestie', 'bff'],
   colleague: ['colleague', 'coworker', 'boss', 'manager', 'teammate'],
@@ -684,7 +711,11 @@ export async function searchContacts(
       // For family, also check if the specific alias matches the role
       // e.g., "mom" should match someone whose notes say "mom" or relationship is family
       const notesLower = contact.notes?.toLowerCase() || '';
-      if (notesLower.includes(queryLower) || notesLower.includes('mom') || notesLower.includes('mother')) {
+      if (
+        notesLower.includes(queryLower) ||
+        notesLower.includes('mom') ||
+        notesLower.includes('mother')
+      ) {
         return true;
       }
       // If no specific match in notes, still return family members for "mom"
@@ -1030,7 +1061,7 @@ async function persistContact(contact: ContactRelationship): Promise<void> {
     const cleanContact = Object.fromEntries(
       Object.entries(contact).filter(([_, v]) => v !== undefined)
     );
-    
+
     await firestore
       .collection(CONTACTS_COLLECTION)
       .doc(contact.id)
@@ -1045,7 +1076,10 @@ async function persistInteraction(interaction: InteractionRecord): Promise<void>
   if (!firestore) return;
 
   try {
-    await firestore.collection(INTERACTIONS_COLLECTION).doc(interaction.id).set(cleanForFirestore(interaction));
+    await firestore
+      .collection(INTERACTIONS_COLLECTION)
+      .doc(interaction.id)
+      .set(cleanForFirestore(interaction));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist interaction');
   }

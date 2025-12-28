@@ -265,7 +265,9 @@ export abstract class ScheduledJob<
 
       // Delay between batches to avoid overwhelming resources
       if (i + batchSize < items.length && delayBetweenBatches > 0) {
-        await new Promise<void>((resolve) => { setTimeout(resolve, delayBetweenBatches); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delayBetweenBatches);
+        });
       }
     }
   }

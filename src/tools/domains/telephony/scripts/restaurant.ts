@@ -18,37 +18,31 @@ export const restaurantScript: CallScriptTemplate = {
   greeting: "Hi! I'm {agentName}, calling on behalf of {userName}.",
 
   identityDisclosure:
-    "I'm an AI assistant helping {userName} with a reservation. " +
-    'I hope that\'s okay!',
+    "I'm an AI assistant helping {userName} with a reservation. " + "I hope that's okay!",
 
-  recordingConsentScript:
-    'Just to let you know, this call may be recorded. Is that alright?',
+  recordingConsentScript: 'Just to let you know, this call may be recorded. Is that alright?',
 
   // -------------------------------------------------------------------------
   // Objectives
   // -------------------------------------------------------------------------
   objectives: {
     reservation:
-      "I'd like to make a reservation for {userName}. {details}. " +
-      'Do you have availability?',
+      "I'd like to make a reservation for {userName}. {details}. " + 'Do you have availability?',
 
     reschedule:
-      "I need to change an existing reservation for {userName}. {details}. " +
+      'I need to change an existing reservation for {userName}. {details}. ' +
       'Could you help me with that?',
 
     cancel:
-      "I need to cancel a reservation for {userName}. {details}. " +
+      'I need to cancel a reservation for {userName}. {details}. ' +
       'Could you confirm that for me?',
 
     inquiry:
-      "I'm calling with a question for {userName}. {details}. " +
-      'Could you help me with that?',
+      "I'm calling with a question for {userName}. {details}. " + 'Could you help me with that?',
 
-    new_appointment:
-      "I'd like to book a table for {userName}. {details}.",
+    new_appointment: "I'd like to book a table for {userName}. {details}.",
 
-    general:
-      "I'm calling on behalf of {userName}. {details}.",
+    general: "I'm calling on behalf of {userName}. {details}.",
   },
 
   // -------------------------------------------------------------------------

@@ -23,7 +23,10 @@ import {
 import { getLogger, generateId } from '../../utils/tool-helpers.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { syncBillToCalendar, removeCalendarSyncedItem } from '../../../services/calendar/calendar-bridge.js';
+import {
+  syncBillToCalendar,
+  removeCalendarSyncedItem,
+} from '../../../services/calendar/calendar-bridge.js';
 // Bridge functions for persistence
 function billDataToBill(data: BillData, userId: string): Bill {
   return {
@@ -389,18 +392,11 @@ export async function addBill(params: {
 
   // Sync to calendar - bill due date appears on calendar
   try {
-    await syncBillToCalendar(
-      params.userId,
-      bill.id,
-      bill.name,
-      bill.amount,
-      bill.nextDueDate,
-      {
-        payee: bill.payee,
-        isAutoPay: bill.isAutoPay,
-        reminderDaysBefore: bill.reminderDaysBefore,
-      }
-    );
+    await syncBillToCalendar(params.userId, bill.id, bill.name, bill.amount, bill.nextDueDate, {
+      payee: bill.payee,
+      isAutoPay: bill.isAutoPay,
+      reminderDaysBefore: bill.reminderDaysBefore,
+    });
   } catch (calendarError) {
     getLogger().warn(
       { error: String(calendarError), billId: bill.id },
@@ -453,17 +449,10 @@ export async function recordPayment(params: {
   try {
     // Remove old calendar event and create new one for next due date
     await removeCalendarSyncedItem(params.userId, bill.id);
-    await syncBillToCalendar(
-      params.userId,
-      bill.id,
-      bill.name,
-      bill.amount,
-      bill.nextDueDate,
-      {
-        payee: bill.payee,
-        isAutoPay: bill.isAutoPay,
-      }
-    );
+    await syncBillToCalendar(params.userId, bill.id, bill.name, bill.amount, bill.nextDueDate, {
+      payee: bill.payee,
+      isAutoPay: bill.isAutoPay,
+    });
   } catch (calendarError) {
     getLogger().warn(
       { error: String(calendarError), billId: bill.id },

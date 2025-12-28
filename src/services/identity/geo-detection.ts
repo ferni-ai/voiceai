@@ -199,7 +199,10 @@ export function extractCloudGeoHeaders(req: IncomingMessage): {
 // =============================================================================
 
 // Simple in-memory cache for IP lookups (avoids rate limiting)
-const ipGeoCache = new Map<string, { data: { countryCode?: string; regionCode?: string; city?: string } | null; timestamp: number }>();
+const ipGeoCache = new Map<
+  string,
+  { data: { countryCode?: string; regionCode?: string; city?: string } | null; timestamp: number }
+>();
 const IP_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -261,14 +264,20 @@ export async function lookupIPCountry(
 
     // Using ip-api.com (free, no API key needed, 45 req/min limit)
     // Fields: countryCode, region, city, status, message
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,countryCode,region,city`, {
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      `http://ip-api.com/json/${ip}?fields=status,message,countryCode,region,city`,
+      {
+        signal: controller.signal,
+      }
+    );
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      log.info({ ip: ip.substring(0, 6) + '...', status: response.status }, '🌍 Geo: IP lookup HTTP error');
+      log.info(
+        { ip: ip.substring(0, 6) + '...', status: response.status },
+        '🌍 Geo: IP lookup HTTP error'
+      );
       ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
       return null;
     }
@@ -283,7 +292,10 @@ export async function lookupIPCountry(
 
     // Check for API-level errors (rate limiting, invalid IP, etc.)
     if (data.status === 'fail') {
-      log.info({ ip: ip.substring(0, 6) + '...', message: data.message }, '🌍 Geo: IP lookup API error');
+      log.info(
+        { ip: ip.substring(0, 6) + '...', message: data.message },
+        '🌍 Geo: IP lookup API error'
+      );
       ipGeoCache.set(ip, { data: null, timestamp: Date.now() }); // Cache failure
       return null;
     }

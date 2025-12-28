@@ -68,24 +68,37 @@ function isThirdPartyPhoneReference(text: string): boolean {
   const lower = text.toLowerCase();
 
   // Patterns that indicate a THIRD-PARTY phone number (not the user's own)
+  // All relationship words that indicate someone else's phone number
+  const relationshipWords =
+    'mom|mother|dad|father|parent|brother|sister|friend|wife|husband|spouse|boss|doctor|dentist|therapist|coworker|colleague|partner|girlfriend|boyfriend|aunt|uncle|grandma|grandpa|grandmother|grandfather';
+
   const thirdPartyPatterns = [
-    // "call my [person]" patterns
-    /call\s+(my\s+)?(mom|mother|dad|father|parent|brother|sister|friend|wife|husband|spouse|boss|doctor|dentist|therapist|coworker|colleague|partner|girlfriend|boyfriend|aunt|uncle|grandma|grandpa|grandmother|grandfather)/i,
-    // "call [name]" patterns (proper nouns before "at" + number)
-    /call\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s+(at|on)/i,
-    // "her/his number/phone"
+    // "call/phone/ring/text/reach my [person]" patterns
+    new RegExp(`(call|phone|ring|text|reach|contact)\\s+(my\\s+)?(${relationshipWords})`, 'i'),
+    // "call/phone/ring/text [name]" patterns (proper nouns before "at" + number)
+    // Exclude self-references: "text me at" is NOT third-party
+    /(call|phone|ring|text)\s+(?!me\s|myself\s)[A-Z][a-z]{2,}(\s+[A-Z][a-z]+)?\s+(at|on)/i,
+    // "call/phone/ring Dr./Mr./Mrs. [name]" patterns (titles)
+    /(call|phone|ring|text)\s+(Dr|Mr|Mrs|Ms|Prof)\.?\s+[A-Z][a-z]+\s+(at|on)/i,
+    // "her/his/their number/phone"
     /\b(her|his|their)\s+(number|phone|cell|mobile)/i,
-    // "[person]'s number"
-    /(mom|mother|dad|father|friend|wife|husband|boss|doctor)'?s?\s+(number|phone|cell)/i,
-    // "reach [person]" or "contact [person]"
-    /(reach|contact|get\s+a\s+hold\s+of|get\s+in\s+touch\s+with)\s+(my\s+)?(mom|mother|dad|father|friend|wife|husband)/i,
-    // "phone my [person]"
-    /phone\s+(my\s+)?(mom|mother|dad|father|friend)/i,
+    // "[person]'s number" - expanded list
+    new RegExp(`(${relationshipWords})'?s?\\s+(number|phone|cell)`, 'i'),
+    // "get a hold of/get in touch with my [person]"
+    new RegExp(
+      `(get\\s+a\\s+hold\\s+of|get\\s+in\\s+touch\\s+with)\\s+(my\\s+)?(${relationshipWords})`,
+      'i'
+    ),
+    // "my friend's/mom's number is"
+    new RegExp(`my\\s+(${relationshipWords.replace(/\|/g, "'s|")})'s?\\s+number`, 'i'),
   ];
 
   for (const pattern of thirdPartyPatterns) {
     if (pattern.test(lower)) {
-      getLogger().debug({ text: lower.substring(0, 50) }, '📱 Third-party phone reference detected, skipping contact onboarding');
+      getLogger().debug(
+        { text: lower.substring(0, 50) },
+        '📱 Third-party phone reference detected, skipping contact onboarding'
+      );
       return true;
     }
   }

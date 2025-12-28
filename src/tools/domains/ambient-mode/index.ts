@@ -81,12 +81,11 @@ const getAmbientContextDef: ToolDefinition = {
             parts.push(`Conversation starter: ${context.conversationStarters[0]}`);
           }
 
-          log.info(
-            { userId: ctx.userId },
-            'Ambient context retrieved'
-          );
+          log.info({ userId: ctx.userId }, 'Ambient context retrieved');
 
-          return parts.length > 0 ? parts.join('. ') + '.' : "I have your ambient context but nothing notable to share right now.";
+          return parts.length > 0
+            ? parts.join('. ') + '.'
+            : 'I have your ambient context but nothing notable to share right now.';
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Get ambient context failed');
           return "I couldn't retrieve your ambient context right now.";
@@ -103,8 +102,7 @@ const getAmbientContextDef: ToolDefinition = {
 const suggestNudgeDef: ToolDefinition = {
   id: 'suggestNudge',
   name: 'Suggest Nudge',
-  description:
-    'Evaluate if a gentle nudge should be sent to the user based on ambient context.',
+  description: 'Evaluate if a gentle nudge should be sent to the user based on ambient context.',
   domain: 'awareness',
   tags: ['awareness', 'ambient', 'nudge', 'proactive', 'better-than-human'],
 
@@ -179,12 +177,8 @@ const setQuietHoursDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('setQuietHours'),
       parameters: z.object({
-        startTime: z
-          .string()
-          .describe('Start time in HH:MM format (24-hour), e.g., "22:00"'),
-        endTime: z
-          .string()
-          .describe('End time in HH:MM format (24-hour), e.g., "08:00"'),
+        startTime: z.string().describe('Start time in HH:MM format (24-hour), e.g., "22:00"'),
+        endTime: z.string().describe('End time in HH:MM format (24-hour), e.g., "08:00"'),
       }),
       execute: async ({ startTime, endTime }) => {
         try {
@@ -193,7 +187,7 @@ const setQuietHoursDef: ToolDefinition = {
           // Validate time format
           const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
           if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-            return "Please use 24-hour time format like 22:00 for 10 PM or 08:00 for 8 AM.";
+            return 'Please use 24-hour time format like 22:00 for 10 PM or 08:00 for 8 AM.';
           }
 
           await ambientMode.setQuietHours(ctx.userId, startTime, endTime);
@@ -283,9 +277,7 @@ const toggleAmbientModeDef: ToolDefinition = {
     return llm.tool({
       description: getToolDescription('toggleAmbientMode'),
       parameters: z.object({
-        enabled: z
-          .boolean()
-          .describe('Whether to enable (true) or disable (false) ambient mode'),
+        enabled: z.boolean().describe('Whether to enable (true) or disable (false) ambient mode'),
       }),
       execute: async ({ enabled }) => {
         try {
@@ -301,7 +293,10 @@ const toggleAmbientModeDef: ToolDefinition = {
             return "Ambient mode is now disabled. I won't track location or send proactive nudges.";
           }
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId, enabled }, 'Toggle ambient mode failed');
+          log.error(
+            { error: String(error), userId: ctx.userId, enabled },
+            'Toggle ambient mode failed'
+          );
           return `I couldn't ${enabled ? 'enable' : 'disable'} ambient mode right now. Try again?`;
         }
       },
@@ -316,7 +311,8 @@ const toggleAmbientModeDef: ToolDefinition = {
 const getSeasonalAwarenessDef: ToolDefinition = {
   id: 'getSeasonalAwareness',
   name: 'Get Seasonal Awareness',
-  description: 'Get superhuman awareness of seasonal patterns, anniversaries, and cyclical life events',
+  description:
+    'Get superhuman awareness of seasonal patterns, anniversaries, and cyclical life events',
   domain: 'awareness',
   tags: ['awareness', 'seasonal', 'better-than-human', 'cycles'],
 
@@ -367,7 +363,10 @@ const getEnergyWaveAwarenessDef: ToolDefinition = {
 
           return `**Energy Awareness**\n\n${energyContext}\n\nA human friend might not notice when you're depleted. I do.`;
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId }, 'Get energy wave awareness failed');
+          log.error(
+            { error: String(error), userId: ctx.userId },
+            'Get energy wave awareness failed'
+          );
           return "I couldn't access energy patterns right now.";
         }
       },
@@ -422,7 +421,10 @@ const getFullAmbientIntelligenceDef: ToolDefinition = {
 
           return `**Full Ambient Intelligence**\n\n${sections.join('\n')}\n\n---\n\nThis is superhuman awareness. No human friend could hold all this context at once.`;
         } catch (error) {
-          log.error({ error: String(error), userId: ctx.userId }, 'Get full ambient intelligence failed');
+          log.error(
+            { error: String(error), userId: ctx.userId },
+            'Get full ambient intelligence failed'
+          );
           return "I couldn't gather full ambient intelligence right now.";
         }
       },
@@ -460,4 +462,3 @@ export {
 };
 
 export default getToolDefinitions;
-

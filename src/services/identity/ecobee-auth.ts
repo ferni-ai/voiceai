@@ -246,7 +246,10 @@ export async function requestPin(
     // Also persist to Firestore for resumption
     const firestore = await getFirestore();
     if (firestore) {
-      await firestore.collection(ECOBEE_PENDING_AUTH_COLLECTION).doc(userId).set(cleanForFirestore(pending));
+      await firestore
+        .collection(ECOBEE_PENDING_AUTH_COLLECTION)
+        .doc(userId)
+        .set(cleanForFirestore(pending));
     }
 
     log.info({ userId, expiresIn: data.expires_in }, 'Ecobee PIN generated');

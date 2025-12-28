@@ -23,10 +23,7 @@ vi.mock('../../../memory/firestore/firestore-utils.js', () => ({
 }));
 
 // Import after mocks
-import {
-  healthService,
-  buildHealthAwarenessInjection,
-} from '../index.js';
+import { healthService, buildHealthAwarenessInjection } from '../index.js';
 import type { HealthSummary, HealthPreferences } from '../types.js';
 
 describe('Health Service', () => {
@@ -119,4 +116,3 @@ describe('Health Service', () => {
     });
   });
 });
-

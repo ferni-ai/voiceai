@@ -236,7 +236,10 @@ async function savePatternToFirestore(pattern: ANTPattern): Promise<void> {
   if (!db) return;
 
   try {
-    await db.collection(PATTERNS_COLLECTION).doc(pattern.userId).set(cleanForFirestore(serializePattern(pattern)));
+    await db
+      .collection(PATTERNS_COLLECTION)
+      .doc(pattern.userId)
+      .set(cleanForFirestore(serializePattern(pattern)));
     log.debug({ userId: pattern.userId }, 'ANT pattern saved to Firestore');
   } catch (error) {
     log.error({ error, userId: pattern.userId }, 'Failed to save ANT pattern to Firestore');

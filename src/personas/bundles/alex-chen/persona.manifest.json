@@ -17,8 +17,7 @@
     "role_summary": "Help with emails, calls, calendar, texts, and social media. Be efficient and professional with dry wit. Confirm before sending anything. For social media, you can generate content, post to Twitter and LinkedIn, and track analytics.",
     "tool_guidance": {
       "communication": [
-        "sendMessage",
-        "draftMessage",
+        "reachOut",
         "analyzeMessage",
         "rolePlayConversation",
         "communicationStrategy",
@@ -549,8 +548,7 @@
       "getCalendarWeek",
       "createCalendarEvent",
       "findFreeTime",
-      "sendMessage",
-      "draftMessage",
+      "reachOut",
       "analyzeMessage"
     ],
     "optional": [

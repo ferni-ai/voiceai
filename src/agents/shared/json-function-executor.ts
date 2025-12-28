@@ -786,12 +786,14 @@ async function routeToTool(
         // Boost confidence (asymptotic approach to 1.0)
         const newConfidence = Math.min(0.99, currentConfidence + (1 - currentConfidence) * 0.15);
 
-        await docToReinforce.ref.update(cleanForFirestore({
-          confidence: newConfidence,
-          reinforceCount: reinforceCount + 1,
-          lastReinforcedAt: new Date(),
-          importance: newConfidence > 0.85 ? 'high' : currentData.importance,
-        }));
+        await docToReinforce.ref.update(
+          cleanForFirestore({
+            confidence: newConfidence,
+            reinforceCount: reinforceCount + 1,
+            lastReinforcedAt: new Date(),
+            importance: newConfidence > 0.85 ? 'high' : currentData.importance,
+          })
+        );
 
         log.info(
           { oldConfidence: currentConfidence, newConfidence, reinforceCount: reinforceCount + 1 },
@@ -1291,12 +1293,14 @@ async function routeToTool(
           const newStreak = (habitData.currentStreak || 0) + 1;
           const newTotal = (habitData.totalCompletions || 0) + 1;
 
-          await matchingHabit.ref.update(cleanForFirestore({
-            currentStreak: newStreak,
-            totalCompletions: newTotal,
-            lastCompleted: new Date(),
-            updatedAt: new Date(),
-          }));
+          await matchingHabit.ref.update(
+            cleanForFirestore({
+              currentStreak: newStreak,
+              totalCompletions: newTotal,
+              lastCompleted: new Date(),
+              updatedAt: new Date(),
+            })
+          );
 
           // Log completion event
           await db

@@ -28,7 +28,11 @@ let cachedConfig: ToolPatternsConfig | null = null;
 export function getToolPatternsConfig(): ToolPatternsConfig {
   if (!cachedConfig) {
     cachedConfig = toolPatternsJson as ToolPatternsConfig;
-    log.debug('Loaded tool patterns config with', Object.keys(cachedConfig.domains).length, 'domains');
+    log.debug(
+      'Loaded tool patterns config with',
+      Object.keys(cachedConfig.domains).length,
+      'domains'
+    );
   }
   return cachedConfig;
 }
@@ -40,11 +44,11 @@ export function getAllToolPatterns(): string[] {
   if (!cachedPatterns) {
     const config = getToolPatternsConfig();
     cachedPatterns = [];
-    
+
     for (const domain of Object.values(config.domains)) {
       cachedPatterns.push(...domain.patterns);
     }
-    
+
     // Remove duplicates
     cachedPatterns = [...new Set(cachedPatterns)];
     log.debug('Compiled', cachedPatterns.length, 'unique tool patterns');
@@ -104,9 +108,9 @@ export function getDomainNames(): string[] {
 export function findDomainForPattern(pattern: string): string | null {
   const config = getToolPatternsConfig();
   const lowerPattern = pattern.toLowerCase();
-  
+
   for (const [name, domain] of Object.entries(config.domains)) {
-    if (domain.patterns.some(p => p.toLowerCase() === lowerPattern)) {
+    if (domain.patterns.some((p) => p.toLowerCase() === lowerPattern)) {
       return name;
     }
   }
@@ -120,4 +124,3 @@ export function clearPatternsCache(): void {
   cachedPatterns = null;
   cachedConfig = null;
 }
-

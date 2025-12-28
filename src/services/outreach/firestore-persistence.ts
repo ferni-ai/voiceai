@@ -278,7 +278,10 @@ export async function saveTrigger(trigger: OutreachTrigger, scheduledFor?: Date)
       createdAt: new Date(),
     };
 
-    await firestoreClient!.collection(TRIGGERS_COLLECTION).doc(trigger.id).set(cleanForFirestore(doc));
+    await firestoreClient!
+      .collection(TRIGGERS_COLLECTION)
+      .doc(trigger.id)
+      .set(cleanForFirestore(doc));
     log.debug({ triggerId: trigger.id }, 'Saved trigger');
   } catch (error) {
     log.error({ error, triggerId: trigger.id }, 'Failed to save trigger');
@@ -307,7 +310,10 @@ export async function updateTriggerStatus(
       updateData.scheduledFor = scheduledFor;
     }
 
-    await firestoreClient!.collection(TRIGGERS_COLLECTION).doc(triggerId).update(cleanForFirestore(updateData));
+    await firestoreClient!
+      .collection(TRIGGERS_COLLECTION)
+      .doc(triggerId)
+      .update(cleanForFirestore(updateData));
   } catch (error) {
     log.error({ error, triggerId }, 'Failed to update trigger status');
   }
@@ -402,11 +408,13 @@ export async function storeScheduledDelivery(delivery: {
     await firestoreClient!
       .collection('scheduled_deliveries')
       .doc(delivery.triggerId)
-      .set(cleanForFirestore({
-        ...delivery,
-        status: 'pending',
-        createdAt: new Date(),
-      }));
+      .set(
+        cleanForFirestore({
+          ...delivery,
+          status: 'pending',
+          createdAt: new Date(),
+        })
+      );
   } catch (error) {
     log.error({ error, triggerId: delivery.triggerId }, 'Failed to store scheduled delivery');
     throw error;
@@ -786,10 +794,12 @@ export async function updateDeliveryStatus(
       .collection('deliveries')
       .doc(deliveryId);
 
-    await ref.update(cleanForFirestore({
-      status,
-      ...details,
-    }));
+    await ref.update(
+      cleanForFirestore({
+        status,
+        ...details,
+      })
+    );
   } catch (error) {
     log.error({ error, deliveryId }, 'Failed to update delivery status');
   }
@@ -958,10 +968,12 @@ export async function recordTestConversion(testId: string, userId: string): Prom
       .collection('assignments')
       .doc(userId);
 
-    await ref.update(cleanForFirestore({
-      converted: true,
-      conversionAt: new Date(),
-    }));
+    await ref.update(
+      cleanForFirestore({
+        converted: true,
+        conversionAt: new Date(),
+      })
+    );
   } catch (error) {
     log.error({ error, testId, userId }, 'Failed to record conversion');
   }
@@ -1018,7 +1030,10 @@ export async function savePendingInAppMessage(
       createdAt: now,
     };
 
-    await firestoreClient!.collection(COLLECTIONS.PENDING_MESSAGES).doc(id).set(cleanForFirestore(doc));
+    await firestoreClient!
+      .collection(COLLECTIONS.PENDING_MESSAGES)
+      .doc(id)
+      .set(cleanForFirestore(doc));
 
     log.debug({ userId, messageId: id, type }, 'Saved pending in-app message');
     return id;

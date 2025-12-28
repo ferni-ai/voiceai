@@ -365,7 +365,11 @@ export async function executeMarketplaceTool(
   // Check and atomically increment quota before execution (skip for platform tools)
   // Using atomic operation prevents race conditions where concurrent requests could exceed quota
   if (manifest.verification.trustLevel !== 'platform' && !options.skipPermissionCheck) {
-    const quotaCheck = await checkAndIncrementQuota(context.userId, toolId, context.subscriptionTier || 'free');
+    const quotaCheck = await checkAndIncrementQuota(
+      context.userId,
+      toolId,
+      context.subscriptionTier || 'free'
+    );
 
     if (!quotaCheck.allowed) {
       log.warn({ toolId, userId: context.userId, reason: quotaCheck.reason }, 'Quota exceeded');

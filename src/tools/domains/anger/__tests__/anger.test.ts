@@ -233,10 +233,3 @@ describe('Anger Domain Tools', () => {
     });
   });
 });
-
-
-
-
-
-
-

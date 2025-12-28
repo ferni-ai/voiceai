@@ -609,14 +609,17 @@ export async function recordFollowUp(
     const doc = await docRef.get();
     if (doc.exists) {
       const data = doc.data();
-      await docRef.update(cleanForFirestore({
-        followUpCount: (data?.followUpCount || 0) + 1,
-        followUpReception: reception,
-        followUpDate: nextFollowUp.toISOString(),
-        lastMentioned: new Date().toISOString(),
-        // If avoidant 3+ times, stop following up
-        shouldFollowUp: reception === 'avoidant' && (data?.followUpCount || 0) >= 2 ? false : true,
-      }));
+      await docRef.update(
+        cleanForFirestore({
+          followUpCount: (data?.followUpCount || 0) + 1,
+          followUpReception: reception,
+          followUpDate: nextFollowUp.toISOString(),
+          lastMentioned: new Date().toISOString(),
+          // If avoidant 3+ times, stop following up
+          shouldFollowUp:
+            reception === 'avoidant' && (data?.followUpCount || 0) >= 2 ? false : true,
+        })
+      );
     }
   } catch (err) {
     log.error({ error: String(err), userId, commitmentId }, 'Failed to record follow-up');

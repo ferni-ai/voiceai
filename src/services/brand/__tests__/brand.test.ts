@@ -73,7 +73,9 @@ describe('PersonaVoices', () => {
 
       for (const persona of Object.values(PERSONA_VOICES)) {
         for (const context of requiredContexts) {
-          expect(persona.responsePatterns[context as keyof typeof persona.responsePatterns]).toBeDefined();
+          expect(
+            persona.responsePatterns[context as keyof typeof persona.responsePatterns]
+          ).toBeDefined();
         }
       }
     });
@@ -292,7 +294,10 @@ describe('PersonaVoices', () => {
 
     it('should detect persona-specific anti-patterns', () => {
       // Maya anti-pattern - exact match
-      const mayaResult = containsAntiPattern('You need to be more organized. Fix your habits.', 'maya');
+      const mayaResult = containsAntiPattern(
+        'You need to be more organized. Fix your habits.',
+        'maya'
+      );
       expect(mayaResult).toBe('You need to be more organized.');
 
       // Eli anti-pattern
@@ -305,10 +310,7 @@ describe('PersonaVoices', () => {
     });
 
     it('should work with content containing the full anti-pattern', () => {
-      const result = containsAntiPattern(
-        "I'm designed to... help you with many tasks",
-        'ferni'
-      );
+      const result = containsAntiPattern("I'm designed to... help you with many tasks", 'ferni');
 
       expect(result).toBe("I'm designed to...");
     });
@@ -331,11 +333,23 @@ describe('PersonaVoices', () => {
 
     it('should have relationship-focused archetypes', () => {
       // All archetypes should emphasize human relationships (Friend, Companion, etc.)
-      const relationshipPatterns = ['friend', 'companion', 'partner', 'ally', 'guide', 'catalyst', 'architect', 'advisor', 'grandfather'];
+      const relationshipPatterns = [
+        'friend',
+        'companion',
+        'partner',
+        'ally',
+        'guide',
+        'catalyst',
+        'architect',
+        'advisor',
+        'grandfather',
+      ];
 
       for (const persona of Object.values(PERSONA_VOICES)) {
         const archetype = persona.archetype.toLowerCase();
-        const hasRelationshipFocus = relationshipPatterns.some(pattern => archetype.includes(pattern));
+        const hasRelationshipFocus = relationshipPatterns.some((pattern) =>
+          archetype.includes(pattern)
+        );
         expect(hasRelationshipFocus).toBe(true);
       }
     });

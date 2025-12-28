@@ -593,10 +593,7 @@ export function getVideoById(videoId: string): YouTubeVideo | null {
 /**
  * Get videos by category
  */
-export function getVideosByCategory(
-  category: VideoCategory,
-  maxResults = 5
-): YouTubeVideo[] {
+export function getVideosByCategory(category: VideoCategory, maxResults = 5): YouTubeVideo[] {
   const videos = CURATED_VIDEOS.filter((v) => v.category === category).slice(0, maxResults);
   return videos.map(curatedToYouTubeVideo);
 }

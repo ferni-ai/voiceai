@@ -53,10 +53,7 @@ import type { PersonaProfile } from '../../personas/types.js';
 // TEST UTILITIES
 // ============================================================================
 
-function createMockPersona(
-  id = 'ferni',
-  overrides: Partial<PersonaProfile> = {}
-): PersonaProfile {
+function createMockPersona(id = 'ferni', overrides: Partial<PersonaProfile> = {}): PersonaProfile {
   return {
     id,
     name: id.charAt(0).toUpperCase() + id.slice(1),

@@ -250,13 +250,15 @@ function buildNaturalnessInput(ctx: {
   const agentWordCount = ctx.agentWordCount ?? 0;
 
   // Build audio signals from prosody (if available)
-  const audio = ctx.voiceEmotion?.prosody ? {
-    stressLevel: calculateStressFromProsody(ctx.voiceEmotion.prosody),
-    anxietyMarkers: detectAnxietyMarkers(ctx.voiceEmotion.prosody),
-    breathPattern: detectBreathPattern(ctx.voiceEmotion.prosody),
-    voiceTremor: ctx.voiceEmotion.prosody.shimmer ?? 0,
-    concernLevel: ctx.emotionalResult?.distressLevel ?? 0,
-  } : undefined;
+  const audio = ctx.voiceEmotion?.prosody
+    ? {
+        stressLevel: calculateStressFromProsody(ctx.voiceEmotion.prosody),
+        anxietyMarkers: detectAnxietyMarkers(ctx.voiceEmotion.prosody),
+        breathPattern: detectBreathPattern(ctx.voiceEmotion.prosody),
+        voiceTremor: ctx.voiceEmotion.prosody.shimmer ?? 0,
+        concernLevel: ctx.emotionalResult?.distressLevel ?? 0,
+      }
+    : undefined;
 
   return {
     audio,
@@ -286,7 +288,10 @@ function calculateStressFromProsody(prosody: ProsodyFeatures): number {
   const breathContrib = (prosody.breathiness || 0) * 0.5;
 
   // Weighted average
-  return Math.min(1, jitterContrib * 0.3 + shimmerContrib * 0.25 + pitchVarContrib * 0.25 + breathContrib * 0.2);
+  return Math.min(
+    1,
+    jitterContrib * 0.3 + shimmerContrib * 0.25 + pitchVarContrib * 0.25 + breathContrib * 0.2
+  );
 }
 
 /**
@@ -741,13 +746,18 @@ You are their lifeline right now. Be fully present.`,
         userId: services.userId || 'anonymous',
         turnNumber,
         userText,
-        voiceEmotion: voiceEmotion as { primary?: string; confidence?: number; prosody?: ProsodyFeatures },
+        voiceEmotion: voiceEmotion as {
+          primary?: string;
+          confidence?: number;
+          prosody?: ProsodyFeatures;
+        },
         emotionalResult: result.emotional,
         userData: {
           speechRateWPM: userData.speechRateWPM,
           pauseBeforeMs: userData.pauseBeforeMs,
         },
-        userAskedQuestion: result.analysis?.analysis?.intent?.primary === 'asking_question' ||
+        userAskedQuestion:
+          result.analysis?.analysis?.intent?.primary === 'asking_question' ||
           result.analysis?.analysis?.intent?.primary === 'seeking_clarification',
       });
 
@@ -1098,7 +1108,9 @@ Do NOT say hello again or repeat your greeting.`,
           content: `[CALENDAR AWARENESS - DO NOT ANNOUNCE THIS]\n${userData.calendarAwareness}\n\nUse this naturally - mention upcoming meetings or just-ended meetings if relevant to the conversation.`,
         });
       } else if ((userData.turnCount ?? 0) === 0) {
-        logger.debug('📅 No calendar awareness available for turn 0 (calendar not connected or still loading)');
+        logger.debug(
+          '📅 No calendar awareness available for turn 0 (calendar not connected or still loading)'
+        );
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
@@ -1187,7 +1199,7 @@ IMPORTANT:
       const voiceEmotionResult = ctx.voiceEmotion;
       // V3.1: Use enhanced person extraction for better NER-like detection
       const mentionedPerson = getPrimaryPersonName(userText);
-      
+
       const semanticData: TurnSemanticData = {
         userId: services.userId,
         sessionId: services.sessionId,
@@ -1212,10 +1224,7 @@ IMPORTANT:
       };
 
       // Fire-and-forget to not block turn completion
-      fireAndForget(
-        () => processSemanticIntelligence(semanticData),
-        'semantic-intelligence'
-      );
+      fireAndForget(() => processSemanticIntelligence(semanticData), 'semantic-intelligence');
     }
 
     // ================================================================

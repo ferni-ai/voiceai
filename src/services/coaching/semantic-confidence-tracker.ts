@@ -230,7 +230,10 @@ export function identifyPatternGaps(): PatternGap[] {
 
     for (const record of [...lowConfidence, ...missed]) {
       // Normalize phrase for grouping
-      const normalized = record.userMessage.toLowerCase().replace(/[^\w\s]/g, '').slice(0, 80);
+      const normalized = record.userMessage
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .slice(0, 80);
 
       if (!phraseGroups.has(normalized)) {
         phraseGroups.set(normalized, { count: 0, types: [] });

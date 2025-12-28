@@ -24,16 +24,16 @@ const log = createLogger({ module: 'insight-broker' });
 // ============================================================================
 
 export type InsightSource =
-  | 'correlation'      // Cross-domain pattern
-  | 'trajectory'       // Emotional arc
-  | 'relational'       // Person-related
-  | 'counterfactual'   // Advice outcome
-  | 'growth'           // Personal evolution
-  | 'threading'        // Hidden connection
-  | 'open_loop'        // Unresolved follow-up
-  | 'commitment'       // Ferni's promise
-  | 'temporal'         // Time-based pattern
-  | 'behavioral';      // Behavior pattern
+  | 'correlation' // Cross-domain pattern
+  | 'trajectory' // Emotional arc
+  | 'relational' // Person-related
+  | 'counterfactual' // Advice outcome
+  | 'growth' // Personal evolution
+  | 'threading' // Hidden connection
+  | 'open_loop' // Unresolved follow-up
+  | 'commitment' // Ferni's promise
+  | 'temporal' // Time-based pattern
+  | 'behavioral'; // Behavior pattern
 
 export type InsightPriority = 'critical' | 'high' | 'medium' | 'low';
 
@@ -48,25 +48,25 @@ export interface ProactiveInsight {
   userId: string;
   source: InsightSource;
   priority: InsightPriority;
-  
+
   // The insight content
   insight: string;
   context: string;
-  
+
   // When to surface
   surfaceWhen: InsightTrigger[];
-  surfaceAfter?: Date;     // Don't surface before this time
-  expiresAt?: Date;        // Insight becomes stale
-  
+  surfaceAfter?: Date; // Don't surface before this time
+  expiresAt?: Date; // Insight becomes stale
+
   // Tracking
   created: Date;
   surfaced: boolean;
   surfacedAt?: Date;
   dismissed: boolean;
-  
+
   // Metadata
-  relatedEntities?: string[];  // Person names, topics, etc.
-  confidence: number;          // 0-1
+  relatedEntities?: string[]; // Person names, topics, etc.
+  confidence: number; // 0-1
 }
 
 export interface InsightBatch {
@@ -81,10 +81,10 @@ export interface InsightBatch {
 
 const CONFIG = {
   MAX_INSIGHTS_PER_USER: 50,
-  MAX_INSIGHTS_TO_SURFACE: 3,  // Per session
+  MAX_INSIGHTS_TO_SURFACE: 3, // Per session
   MIN_CONFIDENCE: 0.5,
   INSIGHT_TTL_DAYS: 30,
-  
+
   // Priority weights for sorting
   PRIORITY_WEIGHTS: {
     critical: 100,
@@ -92,7 +92,7 @@ const CONFIG = {
     medium: 20,
     low: 5,
   },
-  
+
   // Time-based adjustments
   LATE_NIGHT_HOURS: [22, 23, 0, 1, 2, 3, 4, 5],
   MORNING_HOURS: [6, 7, 8, 9],
@@ -130,7 +130,7 @@ export async function createInsight(
 ): Promise<ProactiveInsight> {
   const now = new Date();
   const id = `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  
+
   const proactiveInsight: ProactiveInsight = {
     id,
     userId,
@@ -140,17 +140,18 @@ export async function createInsight(
     context: insight.context,
     surfaceWhen: insight.surfaceWhen,
     surfaceAfter: insight.surfaceAfter,
-    expiresAt: insight.expiresAt ?? new Date(now.getTime() + CONFIG.INSIGHT_TTL_DAYS * 24 * 60 * 60 * 1000),
+    expiresAt:
+      insight.expiresAt ?? new Date(now.getTime() + CONFIG.INSIGHT_TTL_DAYS * 24 * 60 * 60 * 1000),
     created: now,
     surfaced: false,
     dismissed: false,
     relatedEntities: insight.relatedEntities,
     confidence: insight.confidence ?? 0.7,
   };
-  
+
   // Save to Firestore
   await saveInsight(userId, proactiveInsight);
-  
+
   // Update cache
   const cached = insightCache.get(userId);
   if (cached) {
@@ -158,13 +159,13 @@ export async function createInsight(
     // Trim if too many
     if (cached.insights.length > CONFIG.MAX_INSIGHTS_PER_USER) {
       cached.insights = cached.insights
-        .filter(i => !i.surfaced && !i.dismissed)
+        .filter((i) => !i.surfaced && !i.dismissed)
         .slice(-CONFIG.MAX_INSIGHTS_PER_USER);
     }
   }
-  
+
   log.debug({ userId, source: insight.source, priority: insight.priority }, '💡 Insight created');
-  
+
   return proactiveInsight;
 }
 
@@ -186,67 +187,64 @@ export async function getInsightsToSurface(
   const insights = await loadInsights(userId);
   const now = new Date();
   const hour = context.hourOfDay ?? now.getHours();
-  
+
   // Get already surfaced this session
   const surfaced = surfacedThisSession.get(userId) ?? new Set();
-  
+
   // Filter and score insights
   const candidates = insights
-    .filter(insight => {
+    .filter((insight) => {
       // Not already surfaced
       if (insight.surfaced || insight.dismissed) return false;
       if (surfaced.has(insight.id)) return false;
-      
+
       // Not expired
       if (insight.expiresAt && now > insight.expiresAt) return false;
-      
+
       // Not too early
       if (insight.surfaceAfter && now < insight.surfaceAfter) return false;
-      
+
       // Minimum confidence
       if (insight.confidence < CONFIG.MIN_CONFIDENCE) return false;
-      
+
       // Check triggers
       return matchesTriggers(insight, context);
     })
-    .map(insight => ({
+    .map((insight) => ({
       insight,
       score: scoreInsight(insight, context, hour),
     }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score);
-  
+
   // Take top N
   const toSurface = candidates
     .slice(0, CONFIG.MAX_INSIGHTS_TO_SURFACE)
     .map(({ insight }) => insight);
-  
+
   // Mark as surfaced this session
   for (const insight of toSurface) {
     surfaced.add(insight.id);
   }
   surfacedThisSession.set(userId, surfaced);
-  
+
   log.debug({ userId, count: toSurface.length, total: insights.length }, '🎯 Insights to surface');
-  
+
   return toSurface;
 }
 
 /**
  * Mark an insight as surfaced.
  */
-export async function markInsightSurfaced(
-  userId: string,
-  insightId: string
-): Promise<void> {
+export async function markInsightSurfaced(userId: string, insightId: string): Promise<void> {
   const insights = await loadInsights(userId);
-  const insight = insights.find(i => i.id === insightId);
-  
+  const insight = insights.find((i) => i.id === insightId);
+
   if (insight) {
     insight.surfaced = true;
     insight.surfacedAt = new Date();
     await saveInsight(userId, insight);
-    
+
     log.debug({ userId, insightId }, '✅ Insight marked as surfaced');
   }
 }
@@ -254,17 +252,14 @@ export async function markInsightSurfaced(
 /**
  * Dismiss an insight (user indicated not interested).
  */
-export async function dismissInsight(
-  userId: string,
-  insightId: string
-): Promise<void> {
+export async function dismissInsight(userId: string, insightId: string): Promise<void> {
   const insights = await loadInsights(userId);
-  const insight = insights.find(i => i.id === insightId);
-  
+  const insight = insights.find((i) => i.id === insightId);
+
   if (insight) {
     insight.dismissed = true;
     await saveInsight(userId, insight);
-    
+
     log.debug({ userId, insightId }, '🚫 Insight dismissed');
   }
 }
@@ -274,7 +269,7 @@ export async function dismissInsight(
  */
 export async function getPendingInsightCount(userId: string): Promise<number> {
   const insights = await loadInsights(userId);
-  return insights.filter(i => !i.surfaced && !i.dismissed).length;
+  return insights.filter((i) => !i.surfaced && !i.dismissed).length;
 }
 
 // ============================================================================
@@ -294,31 +289,31 @@ function matchesTriggers(
   if (!insight.surfaceWhen || insight.surfaceWhen.length === 0) {
     return true;
   }
-  
+
   // ANY trigger match is sufficient
-  return insight.surfaceWhen.some(trigger => {
+  return insight.surfaceWhen.some((trigger) => {
     switch (trigger.type) {
       case 'session_start':
         return context.isSessionStart === true;
-        
+
       case 'topic':
         if (!context.currentTopic || !trigger.value) return false;
         return trigger.condition === 'contains'
           ? context.currentTopic.toLowerCase().includes(trigger.value.toLowerCase())
           : context.currentTopic.toLowerCase() === trigger.value.toLowerCase();
-        
+
       case 'person':
         if (!context.currentPerson || !trigger.value) return false;
         return context.currentPerson.toLowerCase().includes(trigger.value.toLowerCase());
-        
+
       case 'emotion':
         if (!context.currentEmotion || !trigger.value) return false;
         return context.currentEmotion.toLowerCase().includes(trigger.value.toLowerCase());
-        
+
       case 'keyword':
         // Would need full text to check
         return false;
-        
+
       default:
         return false;
     }
@@ -339,27 +334,30 @@ function scoreInsight(
   hourOfDay: number
 ): number {
   let score = CONFIG.PRIORITY_WEIGHTS[insight.priority];
-  
+
   // Confidence multiplier
   score *= insight.confidence;
-  
+
   // Recency boost (newer insights score higher)
   const ageHours = (Date.now() - insight.created.getTime()) / (1000 * 60 * 60);
   if (ageHours < 24) score *= 1.5;
   else if (ageHours < 72) score *= 1.2;
-  
+
   // Context relevance boost
   if (insight.relatedEntities) {
     if (context.currentTopic && insight.relatedEntities.includes(context.currentTopic)) {
       score *= 1.5;
     }
-    if (context.currentPerson && insight.relatedEntities.some(e => 
-      e.toLowerCase().includes(context.currentPerson!.toLowerCase())
-    )) {
+    if (
+      context.currentPerson &&
+      insight.relatedEntities.some((e) =>
+        e.toLowerCase().includes(context.currentPerson!.toLowerCase())
+      )
+    ) {
       score *= 1.8;
     }
   }
-  
+
   // Time-based adjustments
   if (CONFIG.LATE_NIGHT_HOURS.includes(hourOfDay)) {
     // Reduce heavy insights late at night
@@ -367,7 +365,7 @@ function scoreInsight(
       score *= 0.3;
     }
   }
-  
+
   return score;
 }
 
@@ -388,7 +386,7 @@ export async function generateCorrelationInsight(
   }
 ): Promise<ProactiveInsight | null> {
   if (correlation.strength < 0.6) return null;
-  
+
   return createInsight(userId, {
     source: 'correlation',
     priority: correlation.strength > 0.8 ? 'high' : 'medium',
@@ -415,14 +413,15 @@ export async function generateTrajectoryInsight(
     trigger?: string;
   }
 ): Promise<ProactiveInsight | null> {
-  const insight = trajectory.trend === 'rising'
-    ? `Your ${trajectory.emotion} has been building over ${trajectory.duration}${trajectory.trigger ? ` around ${trajectory.trigger}` : ''}.`
-    : trajectory.trend === 'falling'
-    ? `I've noticed your ${trajectory.emotion} easing over ${trajectory.duration}. That's real progress.`
-    : null;
-  
+  const insight =
+    trajectory.trend === 'rising'
+      ? `Your ${trajectory.emotion} has been building over ${trajectory.duration}${trajectory.trigger ? ` around ${trajectory.trigger}` : ''}.`
+      : trajectory.trend === 'falling'
+        ? `I've noticed your ${trajectory.emotion} easing over ${trajectory.duration}. That's real progress.`
+        : null;
+
   if (!insight) return null;
-  
+
   return createInsight(userId, {
     source: 'trajectory',
     priority: trajectory.trend === 'rising' ? 'high' : 'medium',
@@ -430,7 +429,9 @@ export async function generateTrajectoryInsight(
     context: `${trajectory.emotion} ${trajectory.trend} over ${trajectory.duration}`,
     surfaceWhen: [
       { type: 'emotion', value: trajectory.emotion, condition: 'contains' },
-      ...(trajectory.trigger ? [{ type: 'topic' as const, value: trajectory.trigger, condition: 'contains' as const }] : []),
+      ...(trajectory.trigger
+        ? [{ type: 'topic' as const, value: trajectory.trigger, condition: 'contains' as const }]
+        : []),
     ],
     relatedEntities: trajectory.trigger ? [trajectory.trigger] : undefined,
     confidence: 0.75,
@@ -450,17 +451,17 @@ export async function generateCounterfactualInsight(
   }
 ): Promise<ProactiveInsight | null> {
   if (outcome.result === 'neutral') return null;
-  
+
   const insight = outcome.followed
     ? outcome.result === 'positive'
       ? `Remember when you tried ${outcome.advice}? That really worked for you.`
       : `Last time you tried ${outcome.advice}, it didn't go as hoped. Let's think of another approach.`
     : outcome.result === 'negative'
-    ? `I remember suggesting ${outcome.advice}. I wonder if trying that might help now.`
-    : null;
-  
+      ? `I remember suggesting ${outcome.advice}. I wonder if trying that might help now.`
+      : null;
+
   if (!insight) return null;
-  
+
   return createInsight(userId, {
     source: 'counterfactual',
     priority: outcome.result === 'negative' ? 'high' : 'medium',
@@ -487,9 +488,7 @@ export async function generateGrowthInsight(
     priority: 'medium',
     insight: `I've noticed something: ${growth.change} in how you approach ${growth.area} over the past ${growth.timeframe}.`,
     context: `Growth in ${growth.area}`,
-    surfaceWhen: [
-      { type: 'topic', value: growth.area, condition: 'contains' },
-    ],
+    surfaceWhen: [{ type: 'topic', value: growth.area, condition: 'contains' }],
     relatedEntities: [growth.area],
     confidence: 0.7,
   });
@@ -508,7 +507,7 @@ export async function generateThreadingInsight(
   }
 ): Promise<ProactiveInsight | null> {
   if (thread.sessionGap < 3) return null; // Only surface non-obvious connections
-  
+
   return createInsight(userId, {
     source: 'threading',
     priority: 'high',
@@ -532,23 +531,23 @@ export async function generateThreadingInsight(
  */
 export function formatInsightsForPrompt(insights: ProactiveInsight[]): string {
   if (insights.length === 0) return '';
-  
+
   const lines = [
     '═══════════════════════════════════════════════════════════',
     'PROACTIVE INSIGHTS - Things to potentially surface naturally',
     '═══════════════════════════════════════════════════════════',
     '',
   ];
-  
+
   for (const insight of insights) {
     lines.push(`[${insight.priority.toUpperCase()}] ${insight.insight}`);
     lines.push(`  Context: ${insight.context}`);
     lines.push('');
   }
-  
-  lines.push('NOTE: Weave these naturally into conversation. Don\'t force them.');
+
+  lines.push("NOTE: Weave these naturally into conversation. Don't force them.");
   lines.push('═══════════════════════════════════════════════════════════');
-  
+
   return lines.join('\n');
 }
 
@@ -562,10 +561,10 @@ async function loadInsights(userId: string): Promise<ProactiveInsight[]> {
   if (cached && Date.now() - cached.fetchedAt.getTime() < 5 * 60 * 1000) {
     return cached.insights;
   }
-  
+
   const db = getFirestoreDb();
   if (!db) return [];
-  
+
   try {
     const snapshot = await db
       .collection('bogle_users')
@@ -575,25 +574,29 @@ async function loadInsights(userId: string): Promise<ProactiveInsight[]> {
       .orderBy('created', 'desc')
       .limit(CONFIG.MAX_INSIGHTS_PER_USER)
       .get();
-    
-    const insights = snapshot.docs.map(doc => {
+
+    const insights = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
         created: data.created?.toDate?.() ?? new Date(data.created),
-        expiresAt: data.expiresAt?.toDate?.() ?? (data.expiresAt ? new Date(data.expiresAt) : undefined),
-        surfaceAfter: data.surfaceAfter?.toDate?.() ?? (data.surfaceAfter ? new Date(data.surfaceAfter) : undefined),
-        surfacedAt: data.surfacedAt?.toDate?.() ?? (data.surfacedAt ? new Date(data.surfacedAt) : undefined),
+        expiresAt:
+          data.expiresAt?.toDate?.() ?? (data.expiresAt ? new Date(data.expiresAt) : undefined),
+        surfaceAfter:
+          data.surfaceAfter?.toDate?.() ??
+          (data.surfaceAfter ? new Date(data.surfaceAfter) : undefined),
+        surfacedAt:
+          data.surfacedAt?.toDate?.() ?? (data.surfacedAt ? new Date(data.surfacedAt) : undefined),
       } as ProactiveInsight;
     });
-    
+
     // Update cache
     insightCache.set(cleanForFirestore(userId), {
       userId,
       insights,
       fetchedAt: new Date(),
     });
-    
+
     return insights;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load insights');
@@ -604,7 +607,7 @@ async function loadInsights(userId: string): Promise<ProactiveInsight[]> {
 async function saveInsight(userId: string, insight: ProactiveInsight): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-  
+
   try {
     await db
       .collection('bogle_users')
@@ -654,7 +657,7 @@ export const insightBroker = {
   format: formatInsightsForPrompt,
   clearSession: clearSessionInsights,
   clearCache: clearInsightCache,
-  
+
   // Generators
   fromCorrelation: generateCorrelationInsight,
   fromTrajectory: generateTrajectoryInsight,
@@ -664,4 +667,3 @@ export const insightBroker = {
 };
 
 export default insightBroker;
-

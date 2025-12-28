@@ -39,7 +39,10 @@ import type {
 } from './types.js';
 
 // Import all engines
-import { type AnticipatoryPresenceEngine, getAnticipatoryPresence } from './anticipatory-presence.js';
+import {
+  type AnticipatoryPresenceEngine,
+  getAnticipatoryPresence,
+} from './anticipatory-presence.js';
 import { type EmotionalMemoryEngine, getEmotionalMemory } from './emotional-memory.js';
 import { type EvolvingJokesEngine, getEvolvingJokes } from './evolving-jokes.js';
 import { type LinguisticMirroringEngine, getLinguisticMirroring } from './linguistic-mirroring.js';
@@ -57,7 +60,10 @@ import {
   getSpontaneousDelight,
   getVisibleVulnerability,
 } from './spontaneous-delight.js';
-import { type SuperhumanObservationsEngine, getSuperhumanObservations } from './superhuman-observations.js';
+import {
+  type SuperhumanObservationsEngine,
+  getSuperhumanObservations,
+} from './superhuman-observations.js';
 import { type TeamCoherenceEngine, getTeamCoherence } from './team-coherence.js';
 import { type TemporalEmotionalEngine, getTemporalEmotional } from './temporal-emotional.js';
 

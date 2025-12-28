@@ -365,7 +365,8 @@ async function loadPersonaBundleAcknowledgments(
 
     // Build PersonaAcknowledgments from bundle behaviors
     const thinkingSounds = behaviors.thinking_sounds;
-    const hasThinkingSounds = thinkingSounds && (Array.isArray(thinkingSounds) || typeof thinkingSounds === 'object');
+    const hasThinkingSounds =
+      thinkingSounds && (Array.isArray(thinkingSounds) || typeof thinkingSounds === 'object');
 
     if (!hasThinkingSounds) {
       bundleAcknowledgmentsCache.set(personaId, null);
@@ -375,10 +376,10 @@ async function loadPersonaBundleAcknowledgments(
     // Extract phrases from thinking_sounds
     const soundsArray = Array.isArray(thinkingSounds)
       ? thinkingSounds
-      : (thinkingSounds as { thinking?: string[]; processing?: string[] }).thinking ?? [];
+      : ((thinkingSounds as { thinking?: string[]; processing?: string[] }).thinking ?? []);
 
     const processingArray = !Array.isArray(thinkingSounds)
-      ? (thinkingSounds as { processing?: string[] }).processing ?? []
+      ? ((thinkingSounds as { processing?: string[] }).processing ?? [])
       : [];
 
     // Build acknowledgments structure
@@ -386,8 +387,10 @@ async function loadPersonaBundleAcknowledgments(
       personaId,
       phrases: {
         thinking: soundsArray.length > 0 ? soundsArray : ['Hmm...', 'One sec', 'Just a moment'],
-        searching: processingArray.length > 0 ? processingArray : ['Checking on that', 'One moment'],
-        calculating: processingArray.length > 0 ? processingArray : ['Running the numbers', 'One sec'],
+        searching:
+          processingArray.length > 0 ? processingArray : ['Checking on that', 'One moment'],
+        calculating:
+          processingArray.length > 0 ? processingArray : ['Running the numbers', 'One sec'],
         creating: ['Working on that', 'One moment', 'Almost there'],
         connecting: ['Connecting...', 'One sec', 'Almost there'],
         remembering: ['Oh yeah...', 'I remember...', 'Right...'],

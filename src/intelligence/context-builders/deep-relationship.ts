@@ -446,10 +446,12 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
     await db
       .collection('bogle_users')
       .doc(userId)
-      .update(cleanForFirestore({
-        milestonesCelebrated: FieldValue.arrayUnion(milestoneKey),
-        lastMilestoneCelebrated: new Date(),
-      }));
+      .update(
+        cleanForFirestore({
+          milestonesCelebrated: FieldValue.arrayUnion(milestoneKey),
+          lastMilestoneCelebrated: new Date(),
+        })
+      );
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not mark milestone celebrated');
   }
@@ -484,20 +486,22 @@ async function recordSharedMomentInternal(
       .doc(userId)
       .collection('shared_moments')
       .doc(momentId)
-      .set(cleanForFirestore({
-        id: momentId,
-        type: moment.type,
-        content: moment.content,
-        origin: {
-          whatTheySaid: moment.whatTheySaid,
-          timestamp: new Date(),
-        },
-        triggers: moment.triggers || [],
-        significance: moment.significance || 'warm',
-        callbackCount: 0,
-        callbackReception: 'unknown',
-        createdAt: new Date(),
-      }));
+      .set(
+        cleanForFirestore({
+          id: momentId,
+          type: moment.type,
+          content: moment.content,
+          origin: {
+            whatTheySaid: moment.whatTheySaid,
+            timestamp: new Date(),
+          },
+          triggers: moment.triggers || [],
+          significance: moment.significance || 'warm',
+          callbackCount: 0,
+          callbackReception: 'unknown',
+          createdAt: new Date(),
+        })
+      );
 
     log.info(
       { userId, type: moment.type, content: moment.content.slice(0, 50) },

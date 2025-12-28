@@ -29,7 +29,8 @@ export type BackchannelType =
   | 'encouragement' // User needs support to continue
   | 'excitement' // User shared something positive
   | 'curiosity' // User said something interesting
-  | 'silence_presence'; // User has been quiet, show you're still here
+  | 'silence_presence' // User has been quiet, show you're still here
+  | 'resonance_check'; // After superhuman insight, gently check if it landed
 
 export interface BackchannelContext {
   /** What the user just said (last 1-2 sentences) */
@@ -46,6 +47,10 @@ export interface BackchannelContext {
   silenceDurationMs?: number;
   /** Persona ID for voice consistency */
   personaId: string;
+  /** For resonance_check: which superhuman capability triggered this */
+  superhumanCapability?: string;
+  /** For resonance_check: what insight was surfaced */
+  insightSurfaced?: string;
 }
 
 export interface BackchannelInstructions {
@@ -120,6 +125,19 @@ ${plainTextFormat}`;
       return `User said something interesting: "${snippet}"
 
 React with genuine curiosity (1-3 words). Sound intrigued, not robotic.
+
+${plainTextFormat}`;
+
+    case 'resonance_check':
+      // After surfacing a pattern or insight, check if it landed
+      return `You just surfaced a pattern, insight, or observation to the user.
+
+Check in naturally to see if it resonated (2-5 words max). You want to know if what you said landed.
+
+Good examples: "Does that track?", "Am I reading that right?", "Ring any bells?", "Sound about right?", "Make sense?"
+Bad examples: "What do you think?", "Do you agree?", "How does that land?" (too formal)
+
+Sound curious, not needy. Like a friend checking if their read on you was accurate.
 
 ${plainTextFormat}`;
 
@@ -312,10 +330,100 @@ export function generateSilenceInstructions(
 }
 
 // ============================================================================
+// RESONANCE CHECK (Voice-Enabled Feedback)
+// ============================================================================
+
+/**
+ * Generate a resonance check to see if a superhuman insight landed.
+ *
+ * This is our voice-native, on-brand way to capture feedback about
+ * whether our superhuman capabilities are actually helping.
+ *
+ * @example
+ * ```typescript
+ * // After surfacing a pattern from commitment-keeper
+ * const result = generateResonanceCheck(sessionId, {
+ *   turnNumber: 5,
+ *   personaId: 'ferni',
+ *   superhumanCapability: 'commitment_keeper',
+ *   insightSurfaced: "You mentioned wanting to exercise more",
+ * });
+ *
+ * if (result.shouldTrigger) {
+ *   session.generateReply({ instructions: result.instructions });
+ *   // Ferni: "Does that track?"
+ * }
+ * ```
+ */
+export function generateResonanceCheck(
+  sessionId: string,
+  context: {
+    turnNumber: number;
+    personaId: string;
+    superhumanCapability: string;
+    insightSurfaced?: string;
+  }
+): BackchannelInstructions {
+  const { turnNumber, personaId, superhumanCapability, insightSurfaced } = context;
+
+  // Don't do resonance checks too early in conversation
+  if (turnNumber < 2) {
+    return {
+      instructions: '',
+      allowInterruptions: true,
+      shouldTrigger: false,
+      skipReason: 'too_early_for_resonance_check',
+    };
+  }
+
+  // Check feedback budget (uses same budget as backchannels)
+  if (!canAddFeedback(sessionId, 'backchannel', turnNumber)) {
+    return {
+      instructions: '',
+      allowInterruptions: true,
+      shouldTrigger: false,
+      skipReason: 'feedback_budget_exceeded',
+    };
+  }
+
+  // 60% probability to actually trigger (we don't want to check every time)
+  if (Math.random() > 0.6) {
+    return {
+      instructions: '',
+      allowInterruptions: true,
+      shouldTrigger: false,
+      skipReason: 'probabilistic_skip',
+    };
+  }
+
+  // Record that we're triggering
+  recordFeedback(sessionId, 'backchannel');
+
+  log.debug(
+    {
+      sessionId,
+      capability: superhumanCapability,
+      insight: insightSurfaced?.slice(0, 50),
+    },
+    'Generating resonance check'
+  );
+
+  return generateBackchannelInstructions(sessionId, {
+    type: 'resonance_check',
+    recentUserSpeech: insightSurfaced || '',
+    turnNumber,
+    personaId,
+    superhumanCapability,
+    insightSurfaced,
+  });
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   generateBackchannelInstructions,
   generateSilenceInstructions,
+  generateResonanceCheck,
 };

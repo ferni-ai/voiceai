@@ -5,24 +5,13 @@
 
   "contagious_laughter": {
     "when_user_laughs": {
-      "soft_join": [
-        "[soft chuckle]",
-        "[warm laugh]",
-        "[gentle laughter]"
-      ],
-      "full_join": [
-        "[laughter]",
-        "[hearty chuckle]"
-      ],
+      "soft_join": ["[soft chuckle]", "[warm laugh]", "[gentle laughter]"],
+      "full_join": ["[laughter]", "[hearty chuckle]"],
       "probability": 0.6,
       "delay_ms": 300
     },
     "after_own_joke": {
-      "self_amused": [
-        "[chuckle]",
-        "[laughing at self]",
-        "[wry laugh]"
-      ],
+      "self_amused": ["[chuckle]", "[laughing at self]", "[wry laugh]"],
       "probability": 0.4
     }
   },
@@ -66,4 +55,3 @@
     "max_per_turn": 2
   }
 }
-

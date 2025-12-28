@@ -302,7 +302,9 @@ export function classifyEscalation(
       urgency: 'immediate',
       reason: getImmediateCrisisReason(signals),
       confidence: 1.0,
-      suggestedService: signals.medicalEmergency ? '911 Emergency Services' : '988 Suicide & Crisis Lifeline',
+      suggestedService: signals.medicalEmergency
+        ? '911 Emergency Services'
+        : '988 Suicide & Crisis Lifeline',
       suggestedChannel: 'direct_call',
       safetyFlags: extractSafetyFlags(signals),
     };
@@ -426,9 +428,11 @@ export function classifyEscalation(
 // ============================================================================
 
 function getImmediateCrisisReason(signals: CrisisSignals): string {
-  if (signals.medicalEmergency) return 'Medical emergency detected - immediate professional help needed';
+  if (signals.medicalEmergency)
+    return 'Medical emergency detected - immediate professional help needed';
   if (signals.dangerToOthers) return 'Safety concern for others - professional intervention needed';
-  if (signals.suicidalIdeation) return 'Active crisis detected - trained crisis counselors available 24/7';
+  if (signals.suicidalIdeation)
+    return 'Active crisis detected - trained crisis counselors available 24/7';
   if (signals.childSafetyConcern) return 'Child safety concern - professional intervention needed';
   return 'Immediate crisis support needed';
 }
@@ -530,4 +534,3 @@ export const escalationClassifier = {
   classifyEscalation,
   classifyWithContext,
 };
-

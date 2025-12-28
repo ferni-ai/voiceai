@@ -80,9 +80,7 @@ describe('DBTSkills', () => {
 
     it('should have voice guidance for skills', () => {
       // Most skills should have voice guidance
-      const skillsWithGuidance = Object.values(ALL_DBT_SKILLS).filter(
-        (s) => s.voiceGuidance
-      );
+      const skillsWithGuidance = Object.values(ALL_DBT_SKILLS).filter((s) => s.voiceGuidance);
       expect(skillsWithGuidance.length).toBeGreaterThan(5);
     });
   });
