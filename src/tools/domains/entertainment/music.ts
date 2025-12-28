@@ -824,19 +824,47 @@ export function createMusicTools() {
       }),
       execute: async ({ query }) => {
         const log = getLogger();
-        log.debug('playMusic TOOL INVOKED BY LLM', { query });
-        log.info({ query }, '🎵 TOOL: playMusic CALLED');
+
+        // 🔍 DIAGNOSTIC: Log at INFO level at the VERY START to confirm LLM is calling this
+        log.info(
+          {
+            timestamp: new Date().toISOString(),
+            query,
+            toolName: 'playMusic',
+          },
+          '🎵 [DIAG] ========== playMusic TOOL INVOKED BY LLM =========='
+        );
+
+        // 🔍 DIAGNOSTIC: Check and log music availability BEFORE attempting playback
+        const musicAvailability = isMusicAvailable();
+        log.info(
+          {
+            query,
+            available: musicAvailability.available,
+            reason: musicAvailability.reason,
+            spotifyLinked: musicConfig.spotifyLinked,
+            musicEnabled: isMusicEnabled(),
+          },
+          '🎵 [DIAG] Music availability check at tool entry'
+        );
+
         try {
           const result = await playMusicUnified(query);
-          log.debug('playMusic SUCCESS', { resultPreview: result.slice(0, 150) });
-          log.info({ query, resultPreview: result.slice(0, 100) }, '🎵 TOOL: playMusic SUCCESS');
+          log.info(
+            {
+              query,
+              resultPreview: result.slice(0, 150),
+              success: !result.includes("isn't available") && !result.includes("couldn't"),
+            },
+            '🎵 [DIAG] playMusic completed - check if music actually played'
+          );
           return result;
         } catch (error) {
-          log.error({ query, error }, '🎵 TOOL: playMusic ERROR');
+          log.error({ query, error: String(error), stack: (error as Error).stack?.slice(0, 300) }, '🎵 [DIAG] playMusic EXCEPTION');
           // 🚨 IMPROVED: Clear error that helps LLM understand the issue
           // Check if music system is working at all
-          const musicAvailability = isMusicAvailable();
-          if (!musicAvailability.available) {
+          const postErrorAvailability = isMusicAvailable();
+          if (!postErrorAvailability.available) {
             return `I tried to play "${query}" but the music system isn't working this session. The audio didn't initialize properly - reconnecting might help. For now, let's keep talking!`;
           }
           // Music system is working, just this track/request failed

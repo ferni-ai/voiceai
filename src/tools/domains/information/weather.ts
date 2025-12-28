@@ -49,9 +49,22 @@ async function tryGoogleWeather(location: string): Promise<string | null> {
     // First geocode the location
     const geo = await geocodeWithGoogle(location);
     if (!geo) {
-      log.debug({ location }, '🌤️ Google geocoding failed');
+      log.info({ location }, '🌤️ [DIAG] Google geocoding FAILED for location');
       return null;
     }
+
+    // 🔍 DIAGNOSTIC: Log geocoded coordinates to verify location
+    log.info(
+      {
+        location,
+        geocodedName: geo.name,
+        geocodedState: geo.admin1,
+        geocodedCountry: geo.country,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+      },
+      '🌤️ [DIAG] Geocoded location - verify these coordinates are correct!'
+    );
 
     // Call Google Weather API
     const url = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}`;
@@ -70,14 +83,25 @@ async function tryGoogleWeather(location: string): Promise<string | null> {
 
     if (!response.ok) {
       // Google Weather API might not be enabled - fall back silently
-      log.debug({ location, status: response.status }, '🌤️ Google Weather API error');
+      log.info({ location, status: response.status }, '🌤️ [DIAG] Google Weather API HTTP error');
       return null;
     }
 
     const data = (await response.json()) as GoogleWeatherResponse;
 
+    // 🔍 DIAGNOSTIC: Log the RAW API response to see what we actually got
+    log.info(
+      {
+        location,
+        rawApiResponse: JSON.stringify(data).slice(0, 500),
+        hasCurrentConditions: !!data.currentConditions,
+        hasError: !!data.error,
+      },
+      '🌤️ [DIAG] RAW Google Weather API response'
+    );
+
     if (data.error || !data.currentConditions) {
-      log.debug({ location, error: data.error?.message }, '🌤️ Google Weather no data');
+      log.info({ location, error: data.error?.message }, '🌤️ [DIAG] Google Weather returned no data');
       return null;
     }
 
@@ -89,18 +113,33 @@ async function tryGoogleWeather(location: string): Promise<string | null> {
     const condition = current.description || current.weatherCondition || 'varied conditions';
 
     const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
-    const feelsLikeStr = feelsLike && Math.abs(feelsLike - (temp || 0)) > 3
-      ? `, feels like ${Math.round(feelsLike)}°F`
-      : '';
+    const feelsLikeStr =
+      feelsLike && Math.abs(feelsLike - (temp || 0)) > 3
+        ? `, feels like ${Math.round(feelsLike)}°F`
+        : '';
 
-    log.info({ location, locationName, source: 'GoogleWeather' }, '🌤️ Weather from Google');
+    // 🔍 DIAGNOSTIC: Log EXACTLY what we're returning to user
+    log.info(
+      {
+        location,
+        locationName,
+        source: 'GoogleWeather',
+        temperature: temp,
+        feelsLike,
+        humidity,
+        windSpeed,
+        condition,
+        timestamp: new Date().toISOString(),
+      },
+      '🌤️ [DIAG] Google Weather SUCCESS - returning this data to user'
+    );
 
     return (
       `Right now in ${locationName}: ${Math.round(temp || 0)}°F with ${condition.toLowerCase()}${feelsLikeStr}. ` +
       `Humidity is ${humidity || 0}% and winds are ${Math.round(windSpeed || 0)} mph.`
     );
   } catch (error) {
-    log.debug({ location, error: String(error) }, '🌤️ Google Weather exception');
+    log.info({ location, error: String(error) }, '🌤️ [DIAG] Google Weather EXCEPTION');
     return null;
   }
 }
@@ -229,7 +268,10 @@ async function geocodeWithGoogle(location: string): Promise<GeocodingResult | nu
     };
 
     if (data.status !== 'OK' || !data.results?.length) {
-      log.warn({ location, status: data.status, error: data.error_message }, '📍 Google geocoding returned no results');
+      log.warn(
+        { location, status: data.status, error: data.error_message },
+        '📍 Google geocoding returned no results'
+      );
       return null;
     }
 
@@ -263,29 +305,32 @@ async function geocodeWithGoogle(location: string): Promise<GeocodingResult | nu
  */
 async function geocodeWithOpenMeteo(location: string): Promise<GeocodingResult | null> {
   const log = getLogger();
-  
+
   // Open-Meteo doesn't like "City, State" format - extract just the city name
   // "San Francisco, California" → "San Francisco"
   // "New York, New York" → "New York"
   const cityOnly = location.split(',')[0].trim();
-  
+
   try {
     const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1`;
     log.debug({ location, cityOnly, url }, '📍 Open-Meteo geocoding request');
-    
+
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
 
     if (!response.ok) {
-      log.warn({ location, cityOnly, status: response.status }, '📍 Open-Meteo geocoding HTTP error');
+      log.warn(
+        { location, cityOnly, status: response.status },
+        '📍 Open-Meteo geocoding HTTP error'
+      );
       return null;
     }
 
     const data = (await response.json()) as { results?: GeocodingResult[] };
-    
+
     if (!data.results?.length) {
       log.warn({ location, cityOnly }, '📍 Open-Meteo returned no results');
     }
-    
+
     return data.results?.[0] || null;
   } catch (error) {
     log.warn({ location, cityOnly, error: String(error) }, '📍 Open-Meteo geocoding exception');
@@ -325,16 +370,30 @@ export async function getCurrentWeather(location: string): Promise<string> {
   }
 
   // Fallback to Open-Meteo (free, no API key needed)
-  log.debug({ location }, '🌤️ Falling back to Open-Meteo');
+  log.info({ location }, '🌤️ [DIAG] Falling back to Open-Meteo (Google Weather unavailable)');
   const geo = await geocodeLocation(location);
 
   if (!geo) {
     log.warn(
       { location, elapsed: Date.now() - startTime },
-      '🌤️ [DIAG] getCurrentWeather: Geocoding failed'
+      '🌤️ [DIAG] getCurrentWeather: Geocoding FAILED for Open-Meteo'
     );
     return `I couldn't find weather data for "${location}". Try a major city name?`;
   }
+
+  // 🔍 DIAGNOSTIC: Log geocoded coordinates for Open-Meteo path
+  log.info(
+    {
+      location,
+      geocodedName: geo.name,
+      geocodedState: geo.admin1,
+      geocodedCountry: geo.country,
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      source: 'OpenMeteo',
+    },
+    '🌤️ [DIAG] Open-Meteo geocoded location - verify coordinates!'
+  );
 
   try {
     const url =
@@ -343,13 +402,13 @@ export async function getCurrentWeather(location: string): Promise<string> {
       `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
       `&temperature_unit=fahrenheit&wind_speed_unit=mph`;
 
-    log.debug({ location, geo: geo.name }, '🌤️ [DIAG] Fetching weather data...');
+    log.info({ location, geo: geo.name, url: url.slice(0, 150) }, '🌤️ [DIAG] Fetching Open-Meteo data...');
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
       log.warn(
         { location, status: response.status, elapsed: Date.now() - startTime },
-        '🌤️ [DIAG] Weather API returned non-OK'
+        '🌤️ [DIAG] Open-Meteo API returned non-OK'
       );
       return `Couldn't get current weather for ${geo.name}.`;
     }
@@ -357,10 +416,20 @@ export async function getCurrentWeather(location: string): Promise<string> {
     const data = (await response.json()) as { current?: CurrentWeather };
     const { current } = data;
 
+    // 🔍 DIAGNOSTIC: Log the RAW Open-Meteo response
+    log.info(
+      {
+        location,
+        rawApiResponse: JSON.stringify(data).slice(0, 500),
+        hasCurrent: !!current,
+      },
+      '🌤️ [DIAG] RAW Open-Meteo API response'
+    );
+
     if (!current) {
       log.warn(
         { location, elapsed: Date.now() - startTime },
-        '🌤️ [DIAG] Weather API returned no current data'
+        '🌤️ [DIAG] Open-Meteo returned no current data'
       );
       return `No weather data available for ${geo.name}.`;
     }
@@ -372,7 +441,24 @@ export async function getCurrentWeather(location: string): Promise<string> {
 
     const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
 
-    log.info({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] getCurrentWeather SUCCESS');
+    // 🔍 DIAGNOSTIC: Log EXACTLY what we're returning from Open-Meteo
+    log.info(
+      {
+        location,
+        locationName,
+        source: 'OpenMeteo',
+        temperature: current.temperature_2m,
+        feelsLike: current.apparent_temperature,
+        humidity: current.relative_humidity_2m,
+        windSpeed: current.wind_speed_10m,
+        weatherCode: current.weather_code,
+        condition,
+        timestamp: new Date().toISOString(),
+        elapsed: Date.now() - startTime,
+      },
+      '🌤️ [DIAG] Open-Meteo SUCCESS - returning this data to user'
+    );
+
     return (
       `Right now in ${locationName}: ${Math.round(current.temperature_2m)}°F with ${condition}${feelsLike}. ` +
       `Humidity is ${current.relative_humidity_2m}% and winds are ${Math.round(current.wind_speed_10m)} mph.`
@@ -418,10 +504,10 @@ export async function getSunriseSunset(location: string): Promise<string> {
       return `Couldn't get sunrise/sunset for ${geo.name}.`;
     }
 
-    const data = (await response.json()) as { 
-      daily?: { 
-        sunrise?: string[]; 
-        sunset?: string[]; 
+    const data = (await response.json()) as {
+      daily?: {
+        sunrise?: string[];
+        sunset?: string[];
       };
       timezone?: string;
     };
@@ -432,7 +518,7 @@ export async function getSunriseSunset(location: string): Promise<string> {
 
     const sunriseDate = new Date(data.daily.sunrise[0]);
     const sunsetDate = new Date(data.daily.sunset[0]);
-    
+
     const formatTime = (date: Date) => {
       const hours = date.getHours();
       const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -443,15 +529,18 @@ export async function getSunriseSunset(location: string): Promise<string> {
 
     const sunriseTime = formatTime(sunriseDate);
     const sunsetTime = formatTime(sunsetDate);
-    
+
     // Calculate daylight hours
     const daylightMs = sunsetDate.getTime() - sunriseDate.getTime();
     const daylightHours = Math.floor(daylightMs / (1000 * 60 * 60));
     const daylightMinutes = Math.floor((daylightMs % (1000 * 60 * 60)) / (1000 * 60));
 
     const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
-    
-    log.info({ location, locationName, sunrise: sunriseTime, sunset: sunsetTime }, '🌅 Sunrise/sunset');
+
+    log.info(
+      { location, locationName, sunrise: sunriseTime, sunset: sunsetTime },
+      '🌅 Sunrise/sunset'
+    );
 
     return `In ${locationName} today: Sunrise at ${sunriseTime}, sunset at ${sunsetTime}. That's ${daylightHours} hours and ${daylightMinutes} minutes of daylight.`;
   } catch (error) {
@@ -577,7 +666,8 @@ export function createWeatherTools() {
     }),
 
     getSunriseSunset: llm.tool({
-      description: 'Get sunrise and sunset times for a location. Use when user asks about sunrise, sunset, daylight hours, golden hour, or when the sun rises/sets.',
+      description:
+        'Get sunrise and sunset times for a location. Use when user asks about sunrise, sunset, daylight hours, golden hour, or when the sun rises/sets.',
       parameters: z.object({
         location: z.string().describe('City name'),
       }),
