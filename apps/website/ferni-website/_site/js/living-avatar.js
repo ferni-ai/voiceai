@@ -79,12 +79,22 @@
     // Micro-expressions - subliminal (under 150ms)
     enableMicroExpressions: true,
     expressions: {
+      // Core expressions
       curious: { duration: 120, intensity: 0.6 },
       delighted: { duration: 80, intensity: 0.8 },
       thinking: { duration: 200, intensity: 0.4 },
       recognition: { duration: 100, intensity: 1.0 },
       concern: { duration: 150, intensity: 0.5 },
-      warmth: { duration: 180, intensity: 0.7 }
+      warmth: { duration: 180, intensity: 0.7 },
+
+      // Life coaching expressions (from web app EQ system)
+      // These are slightly longer for sustained emotional presence
+      hope_holding: { duration: 250, intensity: 0.6, pupilDilation: 1.08 },
+      steady_presence: { duration: 300, intensity: 0.4, pupilDilation: 1.0 },
+      courage_support: { duration: 180, intensity: 0.7, pupilDilation: 1.12 },
+      rest_permission: { duration: 280, intensity: 0.5, pupilDilation: 0.95 },
+      transition_witness: { duration: 220, intensity: 0.65, pupilDilation: 1.05 },
+      comeback_recognition: { duration: 150, intensity: 0.9, pupilDilation: 1.15 }
     }
   };
 
@@ -704,21 +714,38 @@
   function triggerExpression(expressionName) {
     if (!CONFIG.enableMicroExpressions || state.prefersReducedMotion) return;
     if (!avatarEl) return;
-    
+
     const expression = CONFIG.expressions[expressionName];
     if (!expression) return;
-    
+
     // Remove previous expression
     avatarEl.classList.remove(`hero-ferni--${state.currentExpression}`);
-    
+
     // Add new expression
     state.currentExpression = expressionName;
     avatarEl.classList.add(`hero-ferni--${expressionName}`);
-    
+
+    // Apply pupil dilation for life coaching expressions
+    if (expression.pupilDilation) {
+      const originalPupilScale = state.targetPupilScale;
+      state.targetPupilScale = expression.pupilDilation;
+
+      // Restore after expression completes
+      setTimeout(() => {
+        state.targetPupilScale = originalPupilScale;
+      }, expression.duration * 0.8); // Start returning slightly before expression ends
+    }
+
+    // Update glow mood for life coaching expressions
+    if (expressionName.includes('_')) {
+      updateGlowMood(expressionName);
+    }
+
     // Auto-remove after duration
     setTimeout(() => {
       avatarEl.classList.remove(`hero-ferni--${expressionName}`);
       state.currentExpression = 'neutral';
+      updateGlowMood('neutral');
     }, expression.duration);
   }
 
@@ -767,12 +794,25 @@
   // ============================================================================
   
   const SECTION_REACTIONS = {
+    // Core sections
     'features': { expression: 'curious', delay: 500 },
     'team': { expression: 'delighted', delay: 300 },
     'about': { expression: 'warmth', delay: 400 },
-    'pricing': { expression: 'thinking', delay: 600 },
+    'pricing': { expression: 'courage_support', delay: 600 },  // Support during commitment decision
     'faq': { expression: 'curious', delay: 400 },
-    'demo': { expression: 'delighted', delay: 200 }
+    'demo': { expression: 'delighted', delay: 200 },
+
+    // Life coaching enhanced sections
+    'testimonials': { expression: 'hope_holding', delay: 400 },      // Empathy for shared stories
+    'stories': { expression: 'hope_holding', delay: 400 },           // Empathy for shared stories
+    'privacy': { expression: 'steady_presence', delay: 350 },        // Reassurance on sensitive topics
+    'security': { expression: 'steady_presence', delay: 350 },       // Reassurance on sensitive topics
+    'wellness': { expression: 'rest_permission', delay: 500 },       // Permission to prioritize self
+    'benefits': { expression: 'rest_permission', delay: 500 },       // Permission to prioritize self
+    'journey': { expression: 'transition_witness', delay: 300 },     // Honoring new beginnings
+    'getting-started': { expression: 'transition_witness', delay: 300 }, // Honoring new beginnings
+    'success': { expression: 'comeback_recognition', delay: 250 },   // Celebrating wins
+    'results': { expression: 'comeback_recognition', delay: 250 }    // Celebrating wins
   };
   
   let currentSection = null;
@@ -885,17 +925,29 @@
   
   function updateGlowMood(mood) {
     if (!glowEl) return;
-    
+
     const moodColors = {
+      // Core moods
       neutral: 'rgba(74, 103, 65, 0.4)',
       curious: 'rgba(58, 107, 115, 0.5)',
       delighted: 'rgba(106, 138, 90, 0.5)',
       warmth: 'rgba(166, 122, 106, 0.4)',
       concerned: 'rgba(122, 106, 90, 0.4)',
-      thinking: 'rgba(90, 107, 138, 0.4)'
+      thinking: 'rgba(90, 107, 138, 0.4)',
+
+      // Life coaching moods - subtle, supportive colors
+      hope_holding: 'rgba(138, 154, 122, 0.45)',       // Gentle sage - empathetic presence
+      steady_presence: 'rgba(90, 106, 90, 0.35)',     // Deep calm green - unwavering
+      courage_support: 'rgba(122, 138, 90, 0.5)',     // Warm encouraging green
+      rest_permission: 'rgba(106, 122, 138, 0.35)',   // Cool restful blue-gray
+      transition_witness: 'rgba(138, 122, 154, 0.4)', // Gentle lavender - honoring change
+      comeback_recognition: 'rgba(154, 138, 90, 0.5)' // Warm gold - pride and celebration
     };
-    
+
     const color = moodColors[mood] || moodColors.neutral;
+
+    // Smooth transition for glow color
+    glowEl.style.transition = 'background 0.3s ease-out';
     glowEl.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
   }
 
