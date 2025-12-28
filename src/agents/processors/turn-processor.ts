@@ -89,6 +89,9 @@ import {
   type ConversationDynamicsResult as InjectionDynamicsResult,
 } from './injection-builders.js';
 
+// 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" capabilities per-turn
+import { buildLiveSuperhumanInjections } from './live-superhuman-injections.js';
+
 // Honesty guardrail - prevents Ferni from implying she did something she didn't
 import { getHonestyInjection } from '../../intelligence/context-builders/honesty-guardrail.js';
 
@@ -377,7 +380,7 @@ async function buildContextInjections(
   // ============================================================================
   const IMPORTANT_TIMEOUT_MS = 80;
 
-  const [scientificResult, coachingInjections, trustSystemsResult, boundaryInjections] =
+  const [scientificResult, coachingInjections, trustSystemsResult, boundaryInjections, liveSuperhumanResult] =
     await Promise.all([
       withTimeout(
         buildScientificCoachingInjections(builderInput),
@@ -405,6 +408,41 @@ async function buildContextInjections(
         IMPORTANT_TIMEOUT_MS,
         [],
         'boundary-check'
+      ),
+      // 🌟 LIVE SUPERHUMAN - Real-time "Better Than Human" capabilities per-turn
+      // This is the CRITICAL missing piece: superhuman insights flowing into
+      // each turn, not just at session start.
+      withTimeout(
+        buildLiveSuperhumanInjections({
+          userId: services.userId || 'unknown',
+          sessionId: services.sessionId || 'unknown',
+          userText,
+          currentTopic,
+          emotionalState,
+          voiceEmotion: userData.voiceEmotion
+            ? {
+                primary: userData.voiceEmotion.primary,
+                confidence: userData.voiceEmotion.confidence,
+                stressLevel: userData.voiceEmotion.stressLevel,
+                valence: userData.voiceEmotion.valence,
+                anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
+                prosody: userData.voiceEmotion.prosody,
+              }
+            : undefined,
+          analysis,
+          turnCount: userData.turnCount || 0,
+          totalConversations: services.userProfile?.totalConversations,
+        }),
+        IMPORTANT_TIMEOUT_MS,
+        { injections: [], signals: {
+          commitmentDetected: false,
+          valuesConflict: false,
+          capacityWarning: false,
+          insideJokeOpportunity: false,
+          voiceDistressDetected: false,
+          predictiveInsight: false,
+        }, processingTimeMs: 0 },
+        'live-superhuman'
       ),
     ]);
 
@@ -500,7 +538,21 @@ async function buildContextInjections(
   injections.push(...healthInjections);
 
   // ========================================================================
-  // "BETTER THAN HUMAN" INJECTIONS
+  // 🌟 LIVE SUPERHUMAN INJECTIONS - Real-time "Better Than Human" per turn
+  // These are the CRITICAL capabilities that were missing - superhuman
+  // insights that flow into EVERY turn, not just session start.
+  // ========================================================================
+  if (liveSuperhumanResult.injections.length > 0) {
+    injections.push(...liveSuperhumanResult.injections);
+    diag.info('🌟 Live superhuman injections added', {
+      count: liveSuperhumanResult.injections.length,
+      signals: liveSuperhumanResult.signals,
+      processingTimeMs: liveSuperhumanResult.processingTimeMs,
+    });
+  }
+
+  // ========================================================================
+  // "BETTER THAN HUMAN" INJECTIONS (Legacy - session-level capabilities)
   // These 4 capabilities make Ferni genuinely better than a human friend
   // ========================================================================
   if (userHealthInjection) {
@@ -633,12 +685,14 @@ ${guidance}`,
     // Use the analyze method
     const insight = bthOrchestrator.analyze(bthContext);
 
-    // Inject top prioritized actions (limit to avoid overwhelming)
+    // Inject top prioritized actions
+    // INCREASED: From max 2 → max 4, and threshold 0.5 → 0.35
+    // This ensures more superhuman insights actually reach the LLM
     if (insight && insight.prioritizedActions && insight.prioritizedActions.length > 0) {
-      const topActions = insight.prioritizedActions.slice(0, 2); // Max 2 per turn
+      const topActions = insight.prioritizedActions.slice(0, 4); // Max 4 per turn (was 2)
 
       for (const action of topActions) {
-        if (action.content && action.priority > 0.5) {
+        if (action.content && action.priority > 0.35) { // Threshold lowered from 0.5 to 0.35
           injections.push({
             category: 'superhuman_insight',
             content: `[🌟 BETTER THAN HUMAN - ${action.type}]
@@ -1784,7 +1838,9 @@ If they're just conversing, respond naturally without the tool call.`,
   // Log total turn processing time (before return)
   if (debugTiming) {
     const totalMs = Date.now() - turnStartMs;
-    diag.info(`⏱️ [TIMING] TOTAL processTurn: ${totalMs}ms (analysis: ${analysisMs}ms, parallel_core: ${parallelCoreMs}ms, parallel_dependent: ${parallelDependentMs}ms, context: ${contextInjectionsMs}ms)`);
+    diag.info(
+      `⏱️ [TIMING] TOTAL processTurn: ${totalMs}ms (analysis: ${analysisMs}ms, parallel_core: ${parallelCoreMs}ms, parallel_dependent: ${parallelDependentMs}ms, context: ${contextInjectionsMs}ms)`
+    );
   }
 
   return {

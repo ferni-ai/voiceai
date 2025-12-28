@@ -111,20 +111,100 @@ const MASKING_PHRASES = [
   "it'll pass",
 ];
 
+// Text signals that boost voice emotion confidence
+const DISTRESS_TEXT_SIGNALS = [
+  /\b(hard|difficult|tough|struggling|rough)\b/i,
+  /\b(overwhelmed|exhausted|drained|burnt out)\b/i,
+  /\b(scared|nervous|anxious|worried|afraid)\b/i,
+  /\b(hurt|pain|suffer|ache)\b/i,
+  /\b(alone|lonely|isolated)\b/i,
+  /\b(can't|cannot|unable|impossible)\b/i,
+  /\b(hate|despise|loathe)\b/i,
+  /\b(never|always)\s+(going to|will|works|happens)/i,
+];
+
+// ============================================================================
+// HYBRID CONFIDENCE SCORING
+// ============================================================================
+
+/**
+ * Calculate hybrid confidence by combining voice + text signals.
+ * This enables mismatch detection even with lower voice confidence
+ * when text signals corroborate the emotional state.
+ */
+function calculateHybridConfidence(
+  voiceEmotion: VoiceEmotionResult,
+  userText: string,
+  textEmotion: MinimalEmotionResult
+): { confidence: number; boosted: boolean; textSignals: string[] } {
+  const baseConfidence = voiceEmotion.confidence;
+  const textSignals: string[] = [];
+  let boost = 0;
+
+  // Check for text distress signals that corroborate voice emotion
+  if (isNegativeEmotion(voiceEmotion.primary)) {
+    for (const pattern of DISTRESS_TEXT_SIGNALS) {
+      if (pattern.test(userText)) {
+        textSignals.push(pattern.source);
+        boost += 0.1;
+      }
+    }
+  }
+
+  // Masking phrases with ANY negative voice signal = high confidence
+  const textLower = userText.toLowerCase();
+  const hasMaskingPhrase = MASKING_PHRASES.some((p) => textLower.includes(p));
+  if (hasMaskingPhrase && (voiceEmotion.stressLevel > 0.3 || isNegativeEmotion(voiceEmotion.primary))) {
+    boost += 0.2;
+    textSignals.push('masking_phrase_detected');
+  }
+
+  // High stress level boosts confidence
+  if (voiceEmotion.stressLevel > 0.4) {
+    boost += voiceEmotion.stressLevel * 0.15;
+    textSignals.push(`stress_level_${Math.round(voiceEmotion.stressLevel * 100)}%`);
+  }
+
+  // Anxiety markers boost confidence
+  if (voiceEmotion.anxietyMarkers) {
+    boost += 0.15;
+    textSignals.push('anxiety_markers');
+  }
+
+  // Cap the boost and calculate final confidence
+  const finalConfidence = Math.min(1, baseConfidence + Math.min(boost, 0.35));
+
+  return {
+    confidence: finalConfidence,
+    boosted: boost > 0,
+    textSignals,
+  };
+}
+
 // ============================================================================
 // CORE DETECTION
 // ============================================================================
 
 /**
- * Detect mismatch between text sentiment and voice emotion
+ * Detect mismatch between text sentiment and voice emotion.
+ *
+ * Uses HYBRID scoring to detect mismatches even with lower voice confidence
+ * when text signals corroborate the emotional state. This is "Better Than Human"
+ * because we catch what text-only analysis would miss.
+ *
+ * THRESHOLDS LOWERED (Dec 2024):
+ * - Base voice confidence: 0.25 (was 0.4)
+ * - Hybrid confidence can boost up to 0.35
+ * - This catches more "I'm fine" moments
  */
 export function detectMismatch(
   userText: string,
   voiceEmotion: VoiceEmotionResult | null,
   textEmotion?: MinimalEmotionResult
 ): MismatchResult {
-  // If no voice emotion, can't detect mismatch
-  if (!voiceEmotion || voiceEmotion.confidence < 0.4) {
+  // LOWERED from 0.4 → 0.25 to catch more subtle signals
+  // Hybrid scoring will boost this when text corroborates
+  if (!voiceEmotion || voiceEmotion.confidence < 0.25) {
     return noMismatch('Insufficient voice confidence');
   }
 
@@ -133,6 +213,22 @@ export function detectMismatch(
   const textPrimary = textResult.primary.toLowerCase();
   const voicePrimary = voiceEmotion.primary.toLowerCase();
 
+  // Calculate HYBRID confidence using voice + text signals
+  const hybrid = calculateHybridConfidence(voiceEmotion, userText, textResult);
+  const effectiveConfidence = hybrid.confidence;
+
+  // Log hybrid scoring if boosted
+  if (hybrid.boosted) {
+    log.debug(
+      {
+        baseConfidence: voiceEmotion.confidence,
+        hybridConfidence: effectiveConfidence,
+        textSignals: hybrid.textSignals,
+      },
+      '🎭 Hybrid confidence boosted mismatch detection'
+    );
+  }
+
   // Check for masking phrases
   const textLower = userText.toLowerCase();
   const isMaskingPhrase = MASKING_PHRASES.some((phrase) => textLower.includes(phrase));
@@ -140,31 +236,33 @@ export function detectMismatch(
   // Detect different types of mismatch
 
   // Type 1: Masking negative emotions with "I'm fine"
+  // LOWERED thresholds: shouldSurface now 0.5 (was 0.6)
   if (isMaskingPhrase && isNegativeEmotion(voicePrimary)) {
     return {
       hasMismatch: true,
-      confidence: voiceEmotion.confidence * 0.9,
+      confidence: effectiveConfidence * 0.9,
       textEmotion: textPrimary,
       voiceEmotion: voicePrimary,
       type: 'masking_negative',
       interpretation: `User says they're okay but voice reveals ${voicePrimary} emotion`,
       suggestedApproach: 'Acknowledge without pushing. Let them know you notice and care.',
-      shouldSurface: voiceEmotion.confidence > 0.6 && voiceEmotion.stressLevel > 0.3,
+      shouldSurface: effectiveConfidence > 0.5 && (voiceEmotion.stressLevel > 0.25 || hybrid.boosted),
       surfacePhrase: generateSurfacePhrase('masking_negative', voicePrimary),
     };
   }
 
   // Type 2: Contradicting emotions (positive text, negative voice or vice versa)
+  // LOWERED threshold: 0.55 (was 0.65)
   if (isPositiveEmotion(textPrimary) && isNegativeEmotion(voicePrimary)) {
     return {
       hasMismatch: true,
-      confidence: Math.min(textResult.confidence, voiceEmotion.confidence) * 0.85,
+      confidence: Math.min(textResult.confidence, effectiveConfidence) * 0.85,
       textEmotion: textPrimary,
       voiceEmotion: voicePrimary,
       type: 'contradicting',
       interpretation: `Text sounds ${textPrimary} but voice sounds ${voicePrimary}`,
       suggestedApproach: 'Gently explore what might be behind the surface',
-      shouldSurface: voiceEmotion.confidence > 0.65,
+      shouldSurface: effectiveConfidence > 0.55,
       surfacePhrase: generateSurfacePhrase('contradicting', voicePrimary),
     };
   }
@@ -177,44 +275,62 @@ export function detectMismatch(
   ) {
     return {
       hasMismatch: true,
-      confidence: voiceEmotion.confidence * 0.7,
+      confidence: effectiveConfidence * 0.7,
       textEmotion: textPrimary,
       voiceEmotion: voicePrimary,
       type: 'understating_positive',
       interpretation: 'User is more excited than their words suggest',
       suggestedApproach: 'Match their underlying energy, celebrate with them',
-      shouldSurface: voiceEmotion.arousal > 0.6,
+      shouldSurface: voiceEmotion.arousal > 0.55,
       surfacePhrase: generateSurfacePhrase('understating_positive', voicePrimary),
     };
   }
 
   // Type 4: High stress with neutral text
-  if (isNeutralEmotion(textPrimary) && voiceEmotion.stressLevel > 0.6) {
+  // LOWERED threshold: 0.5 (was 0.6)
+  if (isNeutralEmotion(textPrimary) && voiceEmotion.stressLevel > 0.5) {
     return {
       hasMismatch: true,
-      confidence: voiceEmotion.stressLevel * 0.8,
+      confidence: voiceEmotion.stressLevel * 0.85,
       textEmotion: textPrimary,
       voiceEmotion: voicePrimary,
       type: 'suppressing',
       interpretation: 'Voice reveals stress despite neutral words',
       suggestedApproach: 'Create space for them to share more if they want',
-      shouldSurface: voiceEmotion.stressLevel > 0.7,
+      shouldSurface: voiceEmotion.stressLevel > 0.6 || hybrid.boosted,
       surfacePhrase: generateSurfacePhrase('suppressing', 'stressed'),
     };
   }
 
   // Type 5: Anxiety markers with "everything's fine"
+  // LOWERED threshold: 0.5 (was 0.6)
   if (voiceEmotion.anxietyMarkers && (isMaskingPhrase || isNeutralEmotion(textPrimary))) {
     return {
       hasMismatch: true,
-      confidence: voiceEmotion.confidence * 0.75,
+      confidence: effectiveConfidence * 0.8,
       textEmotion: textPrimary,
       voiceEmotion: 'anxious',
       type: 'masking_negative',
       interpretation: 'Voice shows anxiety markers despite calm words',
       suggestedApproach: "Offer calm presence, don't call out the anxiety directly",
-      shouldSurface: voiceEmotion.confidence > 0.6,
+      shouldSurface: effectiveConfidence > 0.5,
       surfacePhrase: generateSurfacePhrase('masking_negative', 'anxious'),
+    };
+  }
+
+  // Type 6: NEW - Text signals + low voice confidence
+  // When text has distress signals but voice confidence is low, still flag it
+  if (hybrid.textSignals.length >= 2 && isNegativeEmotion(voicePrimary)) {
+    return {
+      hasMismatch: true,
+      confidence: effectiveConfidence * 0.7,
+      textEmotion: textPrimary,
+      voiceEmotion: voicePrimary,
+      type: 'incongruent',
+      interpretation: `Multiple distress signals detected (${hybrid.textSignals.join(', ')})`,
+      suggestedApproach: 'Be attentive - there may be more going on than they\'re sharing',
+      shouldSurface: effectiveConfidence > 0.45,
+      surfacePhrase: generateSurfacePhrase('incongruent', voicePrimary),
     };
   }
 

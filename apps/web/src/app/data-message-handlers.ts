@@ -340,6 +340,18 @@ export function handleDataMessage(message: DataMessage): void {
       handleHumanizationSignal(message as HumanizationSignalEvent);
       break;
 
+    case 'speech_state':
+      // 🎭 BETTER THAN HUMAN: Real-time speech state events for active listening
+      // This enables the avatar to show moment-to-moment engagement (micro-nods, breath sync)
+      handleSpeechState(message as SpeechStateEvent);
+      break;
+
+    case 'anticipation_signal':
+      // 🚀 BETTER THAN HUMAN: Anticipation signals BEFORE turn completes
+      // This enables the avatar to respond emotionally while user is still speaking
+      handleAnticipationSignal(message as AnticipationSignalEvent);
+      break;
+
     case 'laughter_detected':
       // 😄 BETTER THAN HUMAN: User laughed → Avatar smiles/laughs along!
       // This makes Ferni feel like a friend who shares in your joy
@@ -884,6 +896,216 @@ function handleHumanizationSignal(event: HumanizationSignalEvent): void {
         playMicroExpression('recognition');
       }, 100);
       ferniExpressions.setExpression('pleased', 500, 2000);
+      break;
+  }
+}
+
+// ============================================================================
+// ANTICIPATION SIGNAL HANDLER - "Better Than Human" Reading the Future
+// ============================================================================
+
+/**
+ * Anticipation signal event from backend - sent BEFORE turn completes
+ */
+interface AnticipationSignalEvent extends DataMessage {
+  type: 'anticipation_signal';
+  /** Predicted intent (question, emotional_share, celebration, etc.) */
+  intent: string;
+  intentConfidence: number;
+  /** Emotional trajectory (rising, falling, volatile) */
+  emotionTrajectory: 'rising' | 'falling' | 'stable' | 'volatile';
+  /** Predicted primary emotion */
+  predictedEmotion: string;
+  emotionConfidence: number;
+  /** Response urgency */
+  urgency: 'high' | 'normal' | 'low';
+  timestamp: number;
+}
+
+/**
+ * Handle anticipation signals from the backend
+ *
+ * BETTER THAN HUMAN: We respond emotionally BEFORE the user finishes speaking.
+ * This creates the feeling that Ferni truly understands, even predicts,
+ * what you're going to say. No human friend can do this consistently.
+ *
+ * When we detect high confidence anticipation of emotion:
+ * - Show micro-expression matching the anticipated emotion
+ * - Adjust avatar posture/presence
+ * - Prepare for the predicted emotional need
+ */
+function handleAnticipationSignal(event: AnticipationSignalEvent): void {
+  const { intent, emotionTrajectory, predictedEmotion, emotionConfidence, urgency } = event;
+
+  // Only act on high-confidence anticipations
+  if (emotionConfidence < 0.6) {
+    log.debug('🔮 Anticipation below threshold:', { emotionConfidence });
+    return;
+  }
+
+  log.info('🔮 BETTER THAN HUMAN: Anticipation signal received', {
+    intent,
+    emotionTrajectory,
+    predictedEmotion,
+    urgency,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  // Trigger anticipation through the Ferni EQ system
+  ferni.anticipateEmotion({
+    transcript: '', // No transcript needed - we have direct emotion prediction
+    tone: predictedEmotion as 'positive' | 'negative' | 'neutral' | 'excited' | 'sad',
+    energy: urgency === 'high' ? 0.9 : urgency === 'low' ? 0.3 : 0.6,
+  });
+
+  // Respond based on predicted emotion
+  switch (predictedEmotion) {
+    case 'sad':
+    case 'distressed':
+    case 'anxious':
+      // Emotional pain detected early - show care BEFORE they finish
+      playMicroExpression('warmth_pulse');
+      if (emotionConfidence > 0.7) {
+        ferniExpressions.setExpression('attentive', 400, 2000);
+      }
+      break;
+
+    case 'excited':
+    case 'happy':
+    case 'hopeful':
+      // Positive emotion rising - match their energy early
+      playMicroExpression('delight_flash');
+      if (emotionTrajectory === 'rising') {
+        ferniExpressions.setExpression('excited', 300, 1500);
+      }
+      break;
+
+    case 'angry':
+    case 'frustrated':
+      // Frustration detected - show steady presence
+      playMicroExpression('noticing');
+      ferniExpressions.setExpression('attentive', 500, 3000);
+      break;
+
+    case 'contemplative':
+    case 'thoughtful':
+      // Deep thought - mirror the contemplation
+      playMicroExpression('contemplation');
+      ferniExpressions.setExpression('contemplative', 400, 2500);
+      break;
+
+    default:
+      // General anticipation - subtle acknowledgment
+      playMicroExpression('recognition');
+  }
+
+  // Handle trajectory-based responses
+  if (emotionTrajectory === 'volatile') {
+    // Emotions fluctuating - provide steady anchor
+    ferniExpressions.setExpression('holdingSpace', 500, 4000);
+  } else if (emotionTrajectory === 'falling') {
+    // Mood declining - increase warmth
+    playMicroExpression('warmth_pulse');
+  }
+
+  // Handle urgency
+  if (urgency === 'high') {
+    // High urgency - show full presence immediately
+    ferni.analyzeConcern({ transcript: predictedEmotion });
+  }
+}
+
+// ============================================================================
+// SPEECH STATE HANDLER - "Better Than Human" Active Listening
+// ============================================================================
+
+/**
+ * Speech state event from backend for active listening
+ */
+interface SpeechStateEvent extends DataMessage {
+  type: 'speech_state';
+  /** Inner event type */
+  innerType: 'speech_start' | 'speech_pause' | 'speech_end' | 'breath_detected';
+  /** Duration in ms (for pauses, speech segments) */
+  durationMs?: number;
+  /** Pause type */
+  pauseType?: 'breath' | 'thinking' | 'emphasis' | 'hesitation';
+  /** Nod type */
+  nodType?: 'micro' | 'subtle' | 'visible';
+  /** Estimated breath rate (breaths per minute) */
+  breathRate?: number;
+  /** Speech rate (words per minute) */
+  speechRateWPM?: number;
+  /** Current emotion */
+  emotion?: string;
+  timestamp: number;
+}
+
+/**
+ * Handle speech state events for active listening
+ *
+ * BETTER THAN HUMAN: Real-time active listening feedback during user speech.
+ * When the user pauses (breath, thinking), the avatar shows micro-nods to
+ * demonstrate moment-to-moment presence - something human listeners often fail to do.
+ */
+function handleSpeechState(event: SpeechStateEvent): void {
+  // The event might come with type as the inner type directly
+  const eventType = (event as unknown as { type: string }).type;
+  const innerType = eventType === 'speech_state'
+    ? event.innerType
+    : eventType as SpeechStateEvent['innerType'];
+
+  log.debug('🎭 Speech state event received', {
+    innerType,
+    pauseType: event.pauseType,
+    nodType: event.nodType,
+    durationMs: event.durationMs,
+  });
+
+  switch (innerType) {
+    case 'speech_start':
+      // User started speaking - start active listening
+      ferni.startActiveListening();
+      log.debug('🎭 Active listening started');
+      break;
+
+    case 'speech_pause':
+      // User paused - show acknowledgment nod based on pause type
+      if (event.nodType === 'visible') {
+        // Longer pause - clear nod
+        ferni.playMicroExpression('understanding');
+      } else if (event.nodType === 'subtle') {
+        // Medium pause - subtle acknowledgment
+        ferni.playMicroExpression('noticing');
+      } else {
+        // Micro pause - barely perceptible nod
+        ferni.playMicroExpression('recognition');
+      }
+
+      // If this was a thinking pause, also show contemplation
+      if (event.pauseType === 'thinking' || event.pauseType === 'emphasis') {
+        ferni.playMicroExpression('contemplation');
+      }
+      break;
+
+    case 'speech_end':
+      // User finished speaking - transition to attentive waiting
+      // The breath rate can be used for avatar breath sync
+      if (event.breathRate) {
+        ferni.setBreathSyncEnabled(true);
+        // Store breath rate for sync (the EQ system will use this)
+        (window as unknown as { __ferniBreathRate?: number }).__ferniBreathRate = event.breathRate;
+      }
+      break;
+
+    case 'breath_detected':
+      // Breath pattern detected - sync avatar breathing
+      if (event.breathRate) {
+        ferni.setBreathSyncEnabled(true);
+        (window as unknown as { __ferniBreathRate?: number }).__ferniBreathRate = event.breathRate;
+        log.debug('🫁 Breath sync updated', { breathRate: event.breathRate });
+      }
       break;
   }
 }

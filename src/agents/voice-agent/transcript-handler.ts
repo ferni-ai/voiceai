@@ -236,6 +236,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     silenceContext,
     dynamicToolLoader,
     autoOptimizer,
+    sendDataMessage,
   } = ctx;
 
   const handler = (event: TranscriptEvent): void => {
@@ -388,8 +389,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           // If actionable, store for use in response preparation
           if (anticipation?.isActionable) {
             // Store on userData for turn handler to use
-            (userData as UserData & { anticipatedProsody?: typeof anticipation.prosody }).anticipatedProsody =
-              anticipation.prosody;
+            (
+              userData as UserData & { anticipatedProsody?: typeof anticipation.prosody }
+            ).anticipatedProsody = anticipation.prosody;
 
             diag.state('🎭 Anticipation pipeline result', {
               intent: anticipation.intent.intent,
@@ -399,6 +401,37 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
               speedMultiplier: anticipation.prosody.speedMultiplier.toFixed(2),
               microReaction: !!anticipation.prosody.microReactionSsml,
             });
+
+            // ===============================================
+            // 🚀 BETTER THAN HUMAN: Send anticipation to frontend BEFORE turn completes
+            // This enables the avatar to show emotional response while user is still speaking
+            // ===============================================
+            if (sendDataMessage && anticipation.emotion.confidence > 0.5) {
+              // Determine urgency from trajectory
+              const urgency = anticipation.emotion.trajectory.includes('distress') ||
+                anticipation.emotion.trajectory.includes('crisis')
+                ? 'high'
+                : anticipation.emotion.trajectory.includes('stable')
+                  ? 'low'
+                  : 'normal';
+
+              void sendDataMessage('anticipation_signal', {
+                intent: anticipation.intent.intent,
+                intentConfidence: anticipation.intent.confidence,
+                emotionTrajectory: anticipation.emotion.trajectory,
+                predictedEmotion: anticipation.emotion.anticipatedEmotion || anticipation.emotion.trajectory,
+                emotionConfidence: anticipation.emotion.confidence,
+                urgency,
+                timestamp: Date.now(),
+              }).catch(() => {
+                // Non-critical
+              });
+
+              diag.state('🚀 Anticipation signal sent to frontend', {
+                intent: anticipation.intent.intent,
+                trajectory: anticipation.emotion.trajectory,
+              });
+            }
           }
         } catch {
           // Anticipation pipeline processing is non-critical
@@ -1002,7 +1035,8 @@ async function processFinalTranscript(
     if (!userId) {
       diag.debug('Skipping data capture - no userId');
     } else {
-      const { captureDataBetterThanHuman } = await import('../../intelligence/data-capture/index.js');
+      const { captureDataBetterThanHuman } =
+        await import('../../intelligence/data-capture/index.js');
       const captureResult = await captureDataBetterThanHuman({
         userId,
         sessionId,
@@ -1146,12 +1180,7 @@ async function processFinalTranscript(
 
   // 🌟 Better Than Human transcript processing
   // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
-  processBetterThanHumanTranscript(
-    event.transcript,
-    userData,
-    sessionId,
-    sessionPersona.id
-  );
+  processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
 
   // Extract memorable moments
   const newMoments = extractMemorableMoments(event.transcript);

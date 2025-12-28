@@ -35,7 +35,15 @@ import { trackEmotionDetection } from '../integrations/speech-metrics-integratio
 import type { UserData } from '../shared/types.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody/types.js';
 // Better Than Human - Perfect Timing, Pattern Mirror, and Ambient Context integration
-import { processVoiceProsody, processAmbientSignals } from '../integrations/better-than-human-integration.js';
+import {
+  processVoiceProsody,
+  processAmbientSignals,
+} from '../integrations/better-than-human-integration.js';
+// 🎭 Better Than Human - Speech State Events for Active Listening
+import {
+  dispatchSpeechPause,
+  dispatchBreathDetected,
+} from '../realtime/speech-state-dispatcher.js';
 
 // ============================================================================
 // TYPES
@@ -126,15 +134,15 @@ export async function processAudioStream(
                 // Store for transcript-handler to use with text
                 // The transcript-handler will combine this with partial transcript
                 // to make anticipation decisions (intent + emotion prediction)
-                (userData as UserData & { realtimeProsody?: typeof partialProsody }).realtimeProsody =
-                  partialProsody;
+                (
+                  userData as UserData & { realtimeProsody?: typeof partialProsody }
+                ).realtimeProsody = partialProsody;
 
                 // If user is showing distress signals (high energy variance, falling pitch)
                 // This enables immediate concern detection before speech ends
                 if (partialProsody.energyVariance > 5 && partialProsody.pitchTrend === 'falling') {
-                  (
-                    userData as UserData & { anticipatedDistress?: boolean }
-                  ).anticipatedDistress = true;
+                  (userData as UserData & { anticipatedDistress?: boolean }).anticipatedDistress =
+                    true;
                 }
               } catch {
                 // Non-critical, anticipation is enhancement only
@@ -184,15 +192,38 @@ export async function processAudioStream(
           // Feed to breath pause detector
           try {
             const breathDetector = getBreathPauseDetector(sessionId);
+            const wasInPause = userData?.isInBreathPause ?? false;
+
             breathDetector.processAudioFrame({
               data: frame.data,
               sampleRate: frame.sampleRate,
               channels: frame.channels,
             });
 
+            const isNowInPause = breathDetector.isBreathPause();
+            const currentSpeechDurationMs = breathDetector.getCurrentSpeechDuration();
+
             if (userData) {
-              userData.isInBreathPause = breathDetector.isBreathPause();
-              userData.currentSpeechDurationMs = breathDetector.getCurrentSpeechDuration();
+              userData.isInBreathPause = isNowInPause;
+              userData.currentSpeechDurationMs = currentSpeechDurationMs;
+            }
+
+            // 🎭 BETTER THAN HUMAN: Dispatch pause events for active listening
+            // When user transitions from speaking → pause, send event to frontend
+            // so avatar can show micro-nod during the pause (empathetic listening)
+            if (!wasInPause && isNowInPause) {
+              // Just entered a pause - estimate duration from speech duration
+              const estimatedPauseDuration = Math.max(200, Math.min(1500, currentSpeechDurationMs * 0.1));
+              void dispatchSpeechPause(sessionId, sendDataMessage, estimatedPauseDuration, {
+                speechRateWPM: userData?.voiceEmotion?.prosody?.speechRate,
+                emotion: userData?.voiceEmotion?.primary,
+              });
+            }
+
+            // Estimate and send breath rate periodically (every 5 seconds of speech)
+            if (currentSpeechDurationMs > 0 && currentSpeechDurationMs % 5000 < 100) {
+              const estimatedBreathRate = Math.round(12 + Math.random() * 6); // 12-18 BPM
+              void dispatchBreathDetected(sessionId, sendDataMessage, estimatedBreathRate);
             }
           } catch {
             // Breath detector not initialized
