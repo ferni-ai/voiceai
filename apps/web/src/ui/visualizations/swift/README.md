@@ -24,14 +24,26 @@ Every component embodies our core belief that AI should feel more human than sta
 
 ```
 swift/
-├── FerniVisualizationModels.swift  # Data models (Codable)
-├── FerniColors.swift               # Design system colors
-├── FerniAvatarView.swift           # Living, breathing avatar ⭐ NEW
-├── FerniSplashScreen.swift         # Avatar "waking up" splash ⭐ NEW
-├── EnergyRingsView.swift           # Apple Watch-style rings
-├── MoodCalendarView.swift          # Calendar grid with moods
-├── GrowthRadarView.swift           # Spider/radar chart
-└── YourStoryDashboard.swift        # Main dashboard (all visualizations)
+├── Core
+│   ├── FerniVisualizationModels.swift  # Data models (Codable)
+│   ├── FerniColors.swift               # Design system colors
+│   └── FerniAdaptiveTheme.swift        # Mood-adaptive colors ✨
+│
+├── Avatar System
+│   ├── FerniAvatarView.swift           # Living, breathing avatar
+│   └── FerniSplashScreen.swift         # Avatar "waking up" splash
+│
+├── Magical Features ✨
+│   ├── FerniHaptics.swift              # Emotional haptic feedback
+│   ├── FerniCelebrations.swift         # Milestone animations
+│   ├── FerniAmbientMode.swift          # Calming presence screen
+│   └── FerniWidgets.swift              # Home & lock screen widgets
+│
+└── Visualizations
+    ├── EnergyRingsView.swift           # Apple Watch-style rings
+    ├── MoodCalendarView.swift          # Calendar grid with moods
+    ├── GrowthRadarView.swift           # Spider/radar chart
+    └── YourStoryDashboard.swift        # Main dashboard
 ```
 
 ## Quick Start
@@ -128,6 +140,154 @@ FerniCompactAvatarView(size: 44, mood: .neutral, showGlow: true)
 | `caring` | 1.1x | Soft | Medium | Emotional support |
 | `excited` | 1.25x | Wide | High | Exciting news |
 | `calm` | 0.9x | Relaxed | Medium | Grounding moments |
+
+### Haptic Feedback (Physical Connection)
+
+CoreHaptics patterns that create emotional resonance through touch:
+
+```swift
+// Get the haptic manager
+let haptics = FerniHapticManager.shared
+
+// Emotional haptics
+haptics.playListeningStart()    // "I'm here" - when call connects
+haptics.playListeningEnd()      // Acknowledgment - user finished speaking
+haptics.playRecognition()       // "I understand" - insight moment
+haptics.playComfort()           // Slow, embracing - during difficult moments
+haptics.playEncouragement()     // Uplifting pattern - positive support
+
+// Celebration haptics
+haptics.playSmallWin()          // Quick satisfying tap
+haptics.playAchievement()       // Triumphant sequence
+haptics.playMilestone()         // Extended celebration with drumroll
+
+// Breathing sync (physical neural mirroring)
+haptics.startBreathing(breathDuration: 4.0)  // Syncs with avatar
+haptics.stopBreathing()
+
+// Mood-based feedback
+haptics.playMoodFeedback(.joyful)
+```
+
+### Celebration Moments (Milestone Magic)
+
+Beautiful animations that make achievements feel meaningful:
+
+```swift
+// Full-screen celebration for major milestones
+FerniCelebrationView(
+    milestone: .oneYear,
+    onDismiss: { /* Return to app */ }
+)
+
+// Available milestones
+MilestoneType.firstConversation   // "First Steps"
+MilestoneType.oneWeek             // "One Week Together"
+MilestoneType.oneMonth            // "One Month Together"
+MilestoneType.oneYear             // "One Year Together"
+MilestoneType.conversations100    // "100 Conversations"
+MilestoneType.streak30            // "30 Day Journey"
+MilestoneType.emotionalBreakthrough // "Breakthrough Moment"
+
+// Inline quick celebration
+QuickCelebrationView(
+    isShowing: $showCelebration,
+    message: "Streak maintained!",
+    intensity: .gentle
+)
+
+// Streak flame (for headers/badges)
+StreakFlameView(streakCount: 45, size: 32)
+```
+
+**Celebration Intensities:**
+| Intensity | Animation | Particles | Duration |
+|-----------|-----------|-----------|----------|
+| `gentle` | Subtle glow | 8 | 2.0s |
+| `warm` | Growing glow | 20 | 2.5s |
+| `joyful` | Confetti burst | 40 | 3.0s |
+| `grand` | Full fireworks | 80 | 4.0s |
+| `epic` | Everything | 150 | 5.0s |
+
+### Ambient Mode (Presence Screen)
+
+A calming "Ferni is here" screen - perfect for meditation or companionship:
+
+```swift
+// Full-screen ambient mode
+FerniAmbientModeSheet(isPresented: $showAmbient)
+
+// Embedded ambient view
+FerniAmbientView(
+    enableHapticBreathing: true,  // Phone breathes with you
+    showTime: true,
+    onTap: { /* Handle tap */ }
+)
+
+// Mini ambient for widgets/cards
+FerniMiniAmbientView(size: 160)
+```
+
+**Ambient Features:**
+- Time-of-day aware gradients (morning warmth, night stars)
+- Avatar with slow, meditative breathing
+- Optional haptic breathing sync
+- Personalized presence messages that evolve over time
+- Tap to exit or start conversation
+
+### iOS Widgets
+
+Home screen and lock screen widgets:
+
+```swift
+// Widget sizes available
+FerniSmallWidget()       // Avatar + daily insight
+FerniMediumWidget()      // Avatar + energy levels + streak
+FerniLargeWidget()       // Full story preview with mood calendar
+
+// Lock screen widgets
+FerniLockScreenWidget()  // Circular, rectangular, or inline
+```
+
+**Widget Features:**
+- Time-aware greetings (Good morning, Good evening, etc.)
+- Daily rotating insights
+- Live energy level preview
+- Streak flame display
+- Mini mood calendar (large widget)
+
+### Mood-Adaptive Theme
+
+Colors that subtly shift based on emotional state:
+
+```swift
+// Apply adaptive theme to your app
+ContentView()
+    .adaptiveTheme()
+
+// Access theme colors
+@Environment(\.adaptiveTheme) var theme
+
+// Update emotional state
+FerniAdaptiveTheme.shared.updateEmotionalState(.anxious)
+FerniAdaptiveTheme.shared.updateEnergy(65)
+FerniAdaptiveTheme.shared.updateMood(.caring)
+```
+
+**Emotional States:**
+| State | Effect | Use Case |
+|-------|--------|----------|
+| `anxious` | Cool, muted, calming | User expressing worry |
+| `stressed` | Warm, soft, soothing | Overwhelm signals |
+| `balanced` | Natural warmth | Default state |
+| `content` | Warm, slightly richer | Positive conversation |
+| `joyful` | Very warm, vibrant | Celebration moments |
+| `tired` | Gentle, very soft | Low energy detected |
+| `reflective` | Neutral-cool, thoughtful | Deep conversation |
+
+**Also adapts to:**
+- Energy level (affects vibrancy/saturation)
+- Time of day (morning warmth, night calm)
 
 ### Ferni Splash Screen (Avatar Awakening)
 
