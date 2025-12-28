@@ -47,6 +47,7 @@ import { roadmapService } from './services/roadmap.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
+import { expressiveEyes, initExpressiveEyes } from './ui/expressive-eyes.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
 import { initMessageUI, messageUI } from './ui/message.ui.js';
 import {
@@ -381,6 +382,7 @@ import {
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
+  showYourStoryDashboard,
 } from './app/panel-methods.js';
 
 // Data message handlers (extracted for file size)
@@ -880,6 +882,7 @@ class VoiceAIApp {
 
     // Reset audio state
     setAudioState('idle');
+    expressiveEyes.setVoiceState('idle'); // 👀 Eyes return to idle breathing
 
     // Reset wrap-up state (conversation is over)
     setWrappingUp(false);
@@ -1082,14 +1085,33 @@ class VoiceAIApp {
 
   /**
    * Safe UI initialization wrapper - catches errors so one module doesn't break the app.
+   * Supports both sync and async init functions.
    */
-  private safeInit(name: string, initFn: () => void): void {
+  private safeInit(name: string, initFn: () => void | Promise<void>): void {
     try {
-      initFn();
+      const result = initFn();
+      // Handle async functions - fire and forget but log errors
+      if (result instanceof Promise) {
+        result.catch((error) => {
+          log.error(`Failed to initialize ${name} (async):`, error);
+        });
+      }
     } catch (error) {
       log.error(`Failed to initialize ${name}:`, error);
       // Continue loading other modules
     }
+  }
+
+  /**
+   * Deferred initialization - loads module after a delay to not block first render.
+   * Use for non-critical features that can load after the UI is visible.
+   */
+  private deferredInit(name: string, delayMs: number, initFn: () => Promise<void>): void {
+    setTimeout(() => {
+      initFn().catch((error) => {
+        log.error(`Failed to initialize ${name} (deferred):`, error);
+      });
+    }, delayMs);
   }
 
   /**
@@ -1115,6 +1137,7 @@ class VoiceAIApp {
     this.safeInit('MessageUI', () => initMessageUI());
     this.safeInit('WaveformUI', () => initWaveformUI());
     this.safeInit('CoachUI', () => initCoachUI());
+    this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
@@ -1129,119 +1152,165 @@ class VoiceAIApp {
       })
     );
 
-    // Premium Features - Initialize all the delightful extras (non-critical)
-    this.safeInit('SoundUI', () => initSoundUI());
-    this.safeInit('AmbientSounds', () => initAmbientSounds()); // Personalization sound packs
-    this.safeInit('BrandService', () => initBrandService()); // Brand validation preload
-    this.safeInit('CelebrationsUI', () => initCelebrationsUI());
-    this.safeInit('StatsUI', () => initStatsUI());
-    this.safeInit('PresenceUI', () => initPresenceUI());
-    this.safeInit('RippleUI', () => initRippleUI());
-    this.safeInit('MicroInteractionsUI', () => initMicroInteractions()); // ✨ Premium button effects
-    this.safeInit('TranscriptUI', () => initTranscriptUI());
-    this.safeInit('ThinkingUI', () => initThinkingUI());
-    this.safeInit('ConnectionQualityUI', () => initConnectionQualityUI());
-    this.safeInit('EasterEggsUI', () => initEasterEggsUI());
-    this.safeInit('MoodUI', () => initMoodUI());
-    this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
-    // Relationship Management - Better than human relationship support
-    this.safeInit('YourPeopleUI', () => initYourPeopleUI());
-    // 📱 Mobile Delights - Tilt parallax, tap-to-look, haptics, pull-to-connect, immersive mode
-    this.safeInit('MobileDelights', () =>
-      initMobileDelights({
-        onConnectRequest: () => {
-          // Trigger connection when user pulls down on avatar
-          if (appState.get('connection') === 'disconnected') {
-            void this.connect();
-          }
-        },
+    // =========================================================================
+    // DEFERRED LOADING - Premium features loaded after first paint
+    // This significantly speeds up initial page load time
+    // =========================================================================
+    
+    // Essential extras - load after 100ms (needed early but not for first paint)
+    this.deferredInit('SoundUI', 100, async () => {
+      initSoundUI();
+    });
+    this.deferredInit('TranscriptUI', 100, async () => {
+      initTranscriptUI();
+    });
+    this.deferredInit('ThinkingUI', 100, async () => {
+      initThinkingUI();
+    });
+    this.deferredInit('ConnectionQualityUI', 100, async () => {
+      initConnectionQualityUI();
+    });
+    this.deferredInit('MoodUI', 100, async () => {
+      initMoodUI();
+    });
+    this.deferredInit('AvatarFeedback', 100, async () => {
+      initAvatarFeedback();
+    });
 
-        onPersonaSwipe: (direction) => {
-          // Integrated with gestures - persona switching handled there
-          const persona =
-            direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
-          this.selectPersona(persona);
-          soundUI.play('switch');
-        },
-      })
-    );
-    // 📱 Mobile Bottom Sheet - Zen mode settings access (swipe up for menu)
-    this.safeInit('MobileBottomSheet', () => initMobileBottomSheet());
+    // Premium features - load after 300ms (nice to have)
+    this.deferredInit('AmbientSounds', 300, async () => {
+      const { initAmbientSounds } = await import('./services/ambient-sounds.service.js');
+      initAmbientSounds();
+    });
+    this.deferredInit('BrandService', 300, async () => {
+      const { initBrandService } = await import('./services/brand-service.js');
+      initBrandService();
+    });
+    this.deferredInit('CelebrationsUI', 300, async () => {
+      const { initCelebrationsUI } = await import('./ui/celebrations.ui.js');
+      initCelebrationsUI();
+    });
+    this.deferredInit('StatsUI', 300, async () => {
+      const { initStatsUI } = await import('./ui/stats.ui.js');
+      initStatsUI();
+    });
+    this.deferredInit('PresenceUI', 300, async () => {
+      const { initPresenceUI } = await import('./ui/presence.ui.js');
+      initPresenceUI();
+    });
+    this.deferredInit('RippleUI', 300, async () => {
+      const { initRippleUI } = await import('./ui/ripple.ui.js');
+      initRippleUI();
+    });
+    this.deferredInit('MicroInteractionsUI', 300, async () => {
+      const { initMicroInteractions } = await import('./ui/micro-interactions.ui.js');
+      initMicroInteractions();
+    });
+    this.deferredInit('EasterEggsUI', 500, async () => {
+      const { initEasterEggsUI } = await import('./ui/easter-eggs.ui.js');
+      initEasterEggsUI();
+    });
+    
+    // Relationship features - load after 400ms
+    this.deferredInit('YourPeopleUI', 400, async () => {
+      const { initYourPeopleUI } = await import('./ui/your-people.ui.js');
+      initYourPeopleUI();
+    });
+    
+    // 📱 Mobile features - load after 200ms on mobile only
+    if (window.innerWidth <= 768) {
+      this.deferredInit('MobileDelights', 200, async () => {
+        const { initMobileDelights } = await import('./ui/mobile-delights.ui.js');
+        const { gesturesUI } = await import('./ui/gestures.ui.js');
+        initMobileDelights({
+          onConnectRequest: () => {
+            if (appState.get('connection') === 'disconnected') {
+              void this.connect();
+            }
+          },
+          onPersonaSwipe: (direction) => {
+            const persona =
+              direction === 'left' ? gesturesUI.getNextPersona() : gesturesUI.getPreviousPersona();
+            this.selectPersona(persona);
+            soundUI.play('switch');
+          },
+        });
+      });
+      this.deferredInit('MobileBottomSheet', 200, async () => {
+        const { initMobileBottomSheet } = await import('./ui/mobile-bottom-sheet.ui.js');
+        initMobileBottomSheet();
+      });
+    }
 
-    // Disabled: Eye peek-throughs removed - keeping just the zen blink
-    // this.safeInit('FerniEye', () => initFerniEye());
-    // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
-    // Available via dev panel - not auto-started to keep things subtle
-    this.safeInit('WeatherEffects', () => {
+    // 🌨️ Weather Effects - load after 1 second (purely decorative)
+    this.deferredInit('WeatherEffects', 1000, async () => {
+      const { initWeatherEffects } = await import('./ui/weather-effects.ui.js');
       initWeatherEffects();
-      // Weather can be triggered from dev panel or contextually - not always on
     });
-    // 🎭 Ferni Moments - Character expressions with time-of-day awareness
-    this.safeInit('FerniMoments', () => {
+    
+    // 🎭 Ferni Moments - load after 500ms
+    this.deferredInit('FerniMoments', 500, async () => {
+      const { initFerniMoments } = await import('./ui/ferni-moments.ui.js');
       initFerniMoments();
-      // Auto-aware of time-of-day, moments triggered contextually
     });
 
-    // 🎉 Ferni Milestones - Warm relationship celebrations
-    this.safeInit('FerniMilestones', () => {
+    // 🎉 Ferni Milestones - load after 600ms
+    this.deferredInit('FerniMilestones', 600, async () => {
+      const { initFerniMilestones } = await import('./ui/ferni-milestones.ui.js');
       initFerniMilestones();
-      // Tracks conversation streaks, team connections, sweet moments
     });
 
-    // 💚 Connection Heart - Status + relationship indicator near avatar
-    this.safeInit('ConnectionHeart', () => {
+    // 💚 Connection Heart - load after 200ms (visible UI element)
+    this.deferredInit('ConnectionHeart', 200, async () => {
+      const { initConnectionHeart } = await import('./ui/connection-heart.ui.js');
       initConnectionHeart();
     });
-    // 🎬 Ferni Expressions - Character-level eye expressions & reactions
-    this.safeInit('FerniExpressions', () => {
+    
+    // 🎬 Ferni Expressions - load after 300ms
+    this.deferredInit('FerniExpressions', 300, async () => {
+      const { initFerniExpressions } = await import('./ui/ferni-expressions.ui.js');
       initFerniExpressions();
-      // Creates lid overlay for eye expressions, sparkles, dramatic morphs
     });
 
-    // 🔗 Emotion ↔ Expression Bridge - Auto-triggers expressions on emotion changes
-    this.safeInit('EmotionExpressionBridge', () => {
+    // 🔗 Emotion ↔ Expression Bridge - load after 400ms
+    this.deferredInit('EmotionExpressionBridge', 400, async () => {
+      const { enableEmotionExpressionBridge } = await import('./emotion/emotion-expression-bridge.js');
       enableEmotionExpressionBridge();
-      // Automatically maps emotion state changes to ferni expressions
     });
 
-    // 🎨 Logo Expressions - Animated logo that reacts to emotions
-    this.safeInit('LogoExpressions', () => {
+    // 🎨 Logo Expressions - load after 400ms
+    this.deferredInit('LogoExpressions', 400, async () => {
+      const { initLogoExpressions, hookIntoAvatarFeedback } = await import('./ui/logo-expressions.ui.js');
       initLogoExpressions();
-      hookLogoFeedback();
-      // Logo will react to avatar emotion events
+      hookIntoAvatarFeedback();
     });
 
-    // 🎉 Celebration Service - Triggers milestone celebrations
-    this.safeInit('CelebrationService', () => {
+    // 🎉 Celebration Service - load after 600ms
+    this.deferredInit('CelebrationService', 600, async () => {
+      const { initCelebrationService } = await import('./services/celebration.service.js');
       initCelebrationService();
-      // Now you can call: celebrationService.smallWin(), .bigWin(), etc.
     });
 
-    // 🎤 Speech Event Dispatcher - Foundation for Ferni EQ (MUST be before FerniEQ)
-    this.safeInit('SpeechEventDispatcher', () => {
+    // 🎤 Speech Event Dispatcher - load after 300ms (needed before FerniEQ)
+    this.deferredInit('SpeechEventDispatcher', 300, async () => {
+      const { initSpeechEventDispatcher } = await import('./services/speech-event-dispatcher.js');
       initSpeechEventDispatcher();
-      // Dispatches: ferni:user-speech-start/end/pause, ferni:agent-speech-start/end
     });
 
-    // 🚀 Ferni EQ - Superhuman emotional intelligence ("Better than Human")
-    this.safeInit('FerniEQ', () => {
+    // 🚀 Ferni EQ - load after 500ms (depends on SpeechEventDispatcher)
+    this.deferredInit('FerniEQ', 500, async () => {
+      const { initFerniEQ } = await import('./ui/better-than-human.ui.js');
+      const { initHumanizationBridge } = await import('./services/humanization-bridge.service.js');
+      const { initProactiveOutreachUI } = await import('./ui/proactive-outreach.ui.js');
+      const { initTeamInsightsUI } = await import('./ui/team-insights.ui.js');
+      const { initCrossTeamNotifications } = await import('./services/cross-team-notifications.service.js');
+      
       initFerniEQ();
-      // Micro-expressions, breath sync, active listening, concern detection
-
-      // 🌉 Humanization Bridge - Connect backend signals to frontend EQ
       initHumanizationBridge();
-      // Handles: breakthrough, vulnerability, memory_callback, mood_drift, etc.
-
-      // 💭 Proactive Outreach UI - "Thinking of You" notifications
       initProactiveOutreachUI();
-      // Shows outreach notifications when backend sends thinking_of_you moments
-
-      // 💡 Team Insights UI - Cross-persona intelligence panel
       initTeamInsightsUI();
-      // Shows insights from the whole team (Peter, Maya, Jordan, etc.)
 
-      // 🔔 Cross-Team Notifications - Real-time alerts from team insights
-      // Initialize with userId (deviceId) if available (will connect to WebSocket)
+      // Initialize cross-team notifications with userId if available
       const userId = appState.get('deviceId');
       if (userId) {
         initCrossTeamNotifications(userId);
@@ -1263,99 +1332,93 @@ class VoiceAIApp {
       }) as EventListener);
     });
 
-    // ✨ Avatar Soul - Pixar-quality "Better Than Human" visual animations
-    this.safeInit('AvatarSoul', () => {
+    // ✨ Avatar Soul - load after 600ms
+    this.deferredInit('AvatarSoul', 600, async () => {
+      const { initAvatarSoul, avatarSoul } = await import('./ui/avatar-soul.ui.js');
       initAvatarSoul();
-      // Glow bleeding, anticipation shimmer, memory spark, comfort pulse
-      // Energy matching, relationship warmth, growth celebration, protective mode
-
-      // Wire up to track conversation interactions for relationship warmth
       this.addTrackedListener(document, 'ferni:conversation-turn', () => {
         avatarSoul.recordInteraction(0.5);
       });
     });
 
-    // 🎬 Avatar Lamp - Luxo Jr. level body language (bounce, tilt, nod, etc.)
-    this.safeInit('AvatarLamp', () => {
+    // 🎬 Avatar Lamp - load after 700ms
+    this.deferredInit('AvatarLamp', 700, async () => {
+      const { initAvatarLamp, avatarLamp } = await import('./ui/avatar-lamp.ui.js');
       initAvatarLamp();
-      // Breathing idle animation, bouncing, tilting, nodding
-      // Perk up, shrink, shake - pure body language expression
-
-      // Expose to window for dev panel testing
       if (typeof window !== 'undefined') {
         (window as unknown as Record<string, unknown>).__avatarLamp = avatarLamp;
       }
     });
 
-    // 🌿 Ambient Life - Makes Ferni feel alive when idle
-    this.safeInit('AmbientLife', () => {
+    // 🌿 Ambient Life - load after 800ms
+    this.deferredInit('AmbientLife', 800, async () => {
+      const { initAmbientLife } = await import('./ui/ambient-life.ui.js');
       initAmbientLife();
-      // Random blinks, glances, stretches, warmth pulses
-      // Creates presence even when not in conversation
     });
 
-    // 🌅 Mood Context - Time-based persona mood
-    this.safeInit('MoodContext', () => {
+    // 🌅 Mood Context - load after 400ms
+    this.deferredInit('MoodContext', 400, async () => {
+      const { initMoodContext } = await import('./services/mood-context.service.js');
       initMoodContext();
-      // Applies CSS classes: mood-early-morning, mood-morning, etc.
-      // Sets energy modifier for animations
-      // Handles special dates like tsunami anniversary
     });
 
-    // 🎬 Animation Orchestrator - Character-quality coordinated animations
-    this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
+    // 🎬 Animation Orchestrator - load after 500ms
+    this.deferredInit('AnimationOrchestrator', 500, async () => {
+      const { initAnimationOrchestrator } = await import('./ui/animation-orchestrator.ui.js');
+      initAnimationOrchestrator();
+    });
 
-    // 🌟 Soul System - Living presence with logo expressions, persona magic
-    this.safeInit('Soul', () => {
+    // 🌟 Soul System - load after 600ms
+    this.deferredInit('Soul', 600, async () => {
+      const { initSoul } = await import('./ui/soul.ui.js');
       void initSoul({
-        showFirstLaunch: false, // Already handled in initialize()
+        showFirstLaunch: false,
         enablePersonaMagic: true,
       });
     });
 
-    // 🎭 Ritual Engine - Multi-sensory brand moments (audio + glow + haptic)
-    this.safeInit('RitualEngine', () => {
-      // Wire ritual engine to app lifecycle events (ferni:connected, ferni:handoff, etc.)
+    // 🎭 Ritual Engine - load after 700ms
+    this.deferredInit('RitualEngine', 700, async () => {
+      const { wireRitualEngineToApp, getRitualEngine } = await import('./services/ritual-engine.service.js');
       wireRitualEngineToApp();
-      // Initialize the ritual engine (will wait for user interaction for audio context)
       void getRitualEngine().initialize();
     });
 
-    // 🌟 Living Favicon - Ferni's presence in the browser tab
-    // DISABLED: Animated favicon causing performance issues
-    // this.safeInit('FaviconManager', () => initFaviconManager());
-
-    // 🛠️ Dev Panel - Developer testing tools (lazy loaded for 17KB gzipped savings)
-    this.safeInit('DevPanel', async () => {
+    // 🛠️ Dev Panel - load after 1 second
+    this.deferredInit('DevPanel', 1000, async () => {
       const { initDevPanel } = await import('./ui/dev-panel.ui.js');
       initDevPanel();
     });
 
-    // 🔍 Insights Debug Panel - Cross-persona insights debugging (Cmd/Ctrl+Shift+I)
-    this.safeInit('InsightsDebugPanel', async () => {
-      const { initInsightsDebugPanel } = await import('./ui/insights-debug-panel.ui.js');
+    // 🔍 Debug Panels - load after 1.5 seconds
+    this.deferredInit('DebugPanels', 1500, async () => {
+      const [{ initInsightsDebugPanel }, { initTriggerDebugPanel }] = await Promise.all([
+        import('./ui/insights-debug-panel.ui.js'),
+        import('./ui/trigger-debug-panel.ui.js'),
+      ]);
       initInsightsDebugPanel();
-    });
-
-    // 🎯 Trigger Debug Panel - Dynamic trigger debugging (Cmd/Ctrl+Shift+T)
-    this.safeInit('TriggerDebugPanel', async () => {
-      const { initTriggerDebugPanel } = await import('./ui/trigger-debug-panel.ui.js');
       initTriggerDebugPanel();
     });
 
-    // 📔 Journaling Shortcut - Cmd/Ctrl+J to open journal
-    this.safeInit('JournalingShortcut', async () => {
-      const { initJournalingShortcut } = await import('./ui/digital-twin.ui.js');
+    // 📔 Journaling - load after 800ms
+    this.deferredInit('Journaling', 800, async () => {
+      const [{ initJournalingShortcut }, { initJournalCapture }] = await Promise.all([
+        import('./ui/digital-twin.ui.js'),
+        import('./services/journal-capture.service.js'),
+      ]);
       initJournalingShortcut();
+      initJournalCapture();
     });
 
-    // 📔 Journal Capture - Auto-capture meaningful moments from conversations
-    this.safeInit('JournalCapture', () => initJournalCapture());
-
-    // 📊 Engagement UI - Daily practice, streaks, predictions
-    this.safeInit('EngagementUI', () => initializeEngagementUI());
-    this.safeInit('InsightsView', () => initializeInsightsView());
-    this.safeInit('PredictionsUI', () => {
+    // 📊 Engagement UI - load after 500ms
+    this.deferredInit('EngagementUI', 500, async () => {
+      const [{ initializeEngagementUI }, { initializeInsightsView }, { initializePredictionsUI }] = await Promise.all([
+        import('./ui/engagement.ui.js'),
+        import('./ui/insights-view.ui.js'),
+        import('./ui/predictions.ui.js'),
+      ]);
+      initializeEngagementUI();
+      initializeInsightsView();
       initializePredictionsUI();
       // Wire up prediction resolution callback
       getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
@@ -1639,18 +1702,22 @@ class VoiceAIApp {
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
-        onYourJourneyClick: () => {
-          // Open enhanced insights hub with all journey views
-          void import('./ui/insights-hub.ui.js').then(({ showInsightsHub }) => {
-            void showInsightsHub();
-          });
-        },
+        onYourStoryClick: () => void showYourStoryDashboard(),
         onYourYearClick: () => {
           // Open "Your Year with Ferni" visualization
-          import('./ui/your-year-with-ferni.ui.js').then(({ openYourYearWithFerni }) => {
-            const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-            openYourYearWithFerni(userId);
-          });
+          console.log('[YourYear] Callback triggered, starting import...');
+          import('./ui/your-year-with-ferni.ui.js')
+            .then(({ openYourYearWithFerni }) => {
+              console.log('[YourYear] Module loaded successfully, opening...');
+              const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+              return openYourYearWithFerni(userId);
+            })
+            .then(() => {
+              console.log('[YourYear] Opened successfully');
+            })
+            .catch((err) => {
+              console.error('[YourYear] Error:', err?.message || err, err?.stack);
+            });
         },
         onFutureInsightsClick: () => futureInsightsUI.open(),
         onShareFerniClick: () => referralUI.open(),
@@ -2486,6 +2553,7 @@ class VoiceAIApp {
         // Set speaking state directly - don't rely only on volume detection
         waveformUI.setSpeaking(true);
         presenceUI.setSpeaking(true);
+        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
 
@@ -2500,6 +2568,7 @@ class VoiceAIApp {
         // Agent stopped speaking
         waveformUI.setSpeaking(false);
         presenceUI.setSpeaking(false);
+        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
         setAudioState('listening');
         // Now we're listening for user input
         waveformUI.setListening(true);
@@ -2542,6 +2611,7 @@ class VoiceAIApp {
 
               // Start avatar dancing
               avatarFeedback.musicPresence();
+              expressiveEyes.startDancing(); // 👀 Eyes groove to the beat!
             } catch (err) {
               log.warn('Failed to show Now Playing UI', err);
             }
@@ -2593,6 +2663,7 @@ class VoiceAIApp {
 
             // Stop avatar dancing
             avatarFeedback.stopDancing();
+            expressiveEyes.stopDancing(); // 👀 Eyes stop grooving
           } catch (err) {
             log.warn('Failed to hide Now Playing UI on track end', err);
           }

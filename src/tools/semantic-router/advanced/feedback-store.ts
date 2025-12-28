@@ -133,9 +133,9 @@ export interface CalibrationData {
 // IN-MEMORY STORE (for development/testing)
 // ============================================================================
 
-const feedbackStore: Map<string, RoutingFeedback> = new Map();
-const correctionsStore: Map<string, UserCorrection[]> = new Map();
-const vocabularyStore: Map<string, UserVocabulary> = new Map();
+const feedbackStore = new Map<string, RoutingFeedback>();
+const correctionsStore = new Map<string, UserCorrection[]>();
+const vocabularyStore = new Map<string, UserVocabulary>();
 let calibrationData: CalibrationData | null = null;
 
 // ============================================================================

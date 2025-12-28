@@ -143,7 +143,7 @@ describe('ReturningVisitor', () => {
       recordVisitorSession(session);
 
       // Give async operation time to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
 
       expect(mockDb.runTransaction).toHaveBeenCalled();
     });

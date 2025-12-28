@@ -13,7 +13,7 @@
  */
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Core Services
 export {

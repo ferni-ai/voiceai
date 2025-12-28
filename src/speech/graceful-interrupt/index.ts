@@ -245,7 +245,7 @@ export function addCushioning(text: string): CushionedResponse {
   }
 
   let result = text;
-  let offset = 0;
+  const offset = 0;
 
   // Add micro-pause after periods (sentence boundaries)
   result = result.replace(/\.(\s+)(?=[A-Z])/g, (match, space) => {

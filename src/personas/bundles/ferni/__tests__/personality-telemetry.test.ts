@@ -27,7 +27,7 @@ describe('personality-telemetry', () => {
 
     it('measures elapsed time', async () => {
       const timer = startTiming();
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
       const elapsed = timer.elapsed();
       expect(elapsed).toBeGreaterThanOrEqual(8); // Allow some variance
       expect(elapsed).toBeLessThan(50);

@@ -546,7 +546,7 @@ export function getGoalStats(userId: string): GoalProfile['stats'] | null {
 export function getRecentProgress(
   userId: string,
   goalId: string,
-  days: number = 30
+  days = 30
 ): GoalProgress[] {
   const profile = goalProfiles.get(userId);
   if (!profile) return [];

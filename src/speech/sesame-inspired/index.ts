@@ -20,4 +20,4 @@ export * from './micro-reactions.js';
 export * from './conversation-prosody.js';
 export * from './rich-disfluencies.js';
 export * from './pipeline-integration.js';
-export * from './types.js';
+export type * from './types.js';

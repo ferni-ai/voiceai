@@ -521,7 +521,7 @@ export class QuantFirestoreService {
   /**
    * Load FIRE progress history
    */
-  async loadFIREHistory(userId: string, limit: number = 12): Promise<FIRESnapshot[]> {
+  async loadFIREHistory(userId: string, limit = 12): Promise<FIRESnapshot[]> {
     await this.initialize();
     if (!this.db) return [];
 
@@ -575,7 +575,7 @@ export class QuantFirestoreService {
   /**
    * Load recent insights
    */
-  async loadRecentInsights(userId: string, limit: number = 10): Promise<QuantInsight[]> {
+  async loadRecentInsights(userId: string, limit = 10): Promise<QuantInsight[]> {
     await this.initialize();
     if (!this.db) return [];
 

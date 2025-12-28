@@ -6,6 +6,6 @@
  * @module tools/domains/research/user-data
  */
 
-export * from './types.js';
+export type * from './types.js';
 export * from './user-data-service.js';
 export { UserDataService } from './user-data-service.js';

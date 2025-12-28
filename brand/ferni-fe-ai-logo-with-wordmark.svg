@@ -1,28 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FE AI logo with wordmark -->
 <svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">
-  <!-- FE AI logo with wordmark -->
   <defs>
-    <linearGradient id="feAiWordOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="feAiWordShine" x1="0%" y1="0%" x2="60%" y2="60%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Icon -->
   <g transform="translate(8, 8)">
+    <!-- Outer ring -->
     <circle cx="32" cy="32" r="30" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.35"/>
-    <circle cx="32" cy="32" r="26" fill="url(#feAiWordOrb)"/>
-    <circle cx="32" cy="32" r="26" fill="url(#feAiWordShine)"/>
-    <text x="32" y="32" text-anchor="middle" dominant-baseline="central"
-      font-family="'Plus Jakarta Sans', system-ui, sans-serif"
-      font-size="20" font-weight="800" fill="white" letter-spacing="-0.5">
-      <tspan dy="1">FE</tspan>
-    </text>
+
+    <!-- Circular background -->
+    <circle cx="32" cy="32" r="26" fill="url(#orbGradient)"/>
+
+    <!-- Left eye -->
+    <ellipse cx="24" cy="30" rx="5" ry="6.5" fill="url(#eyeFill)"/>
+    <circle cx="22.5" cy="28" r="1.3" fill="white"/>
+
+    <!-- Right eye -->
+    <ellipse cx="40" cy="30" rx="5" ry="6.5" fill="url(#eyeFill)"/>
+    <circle cx="38.5" cy="28" r="1.3" fill="white"/>
   </g>
-  
+
   <!-- Wordmark -->
   <text x="88" y="48" font-family="'Plus Jakarta Sans', system-ui, sans-serif"
     font-size="36" font-weight="700" fill="#2c2520" letter-spacing="-1">Ferni</text>

@@ -137,8 +137,8 @@ const PERSONA_NAMES: Record<string, string> = {
 export class TeamRoundtable extends EventEmitter {
   private readonly config: TeamRoundtableConfig;
   private readonly manager: GroupConversationManager;
-  private readonly agents: Map<string, RoundtableAgent> = new Map();
-  private readonly agentParticipants: Map<string, GroupParticipant> = new Map();
+  private readonly agents = new Map<string, RoundtableAgent>();
+  private readonly agentParticipants = new Map<string, GroupParticipant>();
 
   private isActive = false;
   private responseQueue: Array<{ agentId: string; priority: number }> = [];
@@ -517,7 +517,7 @@ export class TeamRoundtable extends EventEmitter {
   /**
    * Wait for turn (with timeout)
    */
-  private async waitForTurn(participantId: string, timeoutMs: number = 5000): Promise<void> {
+  private async waitForTurn(participantId: string, timeoutMs = 5000): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -551,7 +551,7 @@ export class TeamRoundtable extends EventEmitter {
    * Sleep utility
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
   }
 
   /**

@@ -69,9 +69,7 @@ function injectStyles(): void {
     .theme-language-settings__backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .theme-language-settings__panel {
@@ -81,23 +79,12 @@ function injectStyles(): void {
       max-width: 480px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
-      
+      background: var(--color-bg-elevated, #fffdfb);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95) translateY(10px);
       transition: transform var(--duration-normal, 200ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
-    }
-
-    
-    @supports not (backdrop-filter: blur(24px)) {
-      .theme-language-settings__panel {
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-      }
     }
 
     .theme-language-settings--visible .theme-language-settings__panel {

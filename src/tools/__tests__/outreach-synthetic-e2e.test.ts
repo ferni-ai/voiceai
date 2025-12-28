@@ -187,7 +187,7 @@ interface GeneratedScenario {
  */
 async function generateSyntheticScenarios(
   category: 'personal' | 'proactive' | 'concierge',
-  count: number = 5
+  count = 5
 ): Promise<GeneratedScenario[]> {
   const categoryDescriptions = {
     personal: `Generate ${count} realistic user utterances asking to reach out to a PERSONAL CONTACT (family, friends, colleagues).

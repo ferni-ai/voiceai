@@ -152,9 +152,9 @@ export class ReActReasoningEngine {
       try {
         const response = await Promise.race([
           this.llmProvider.generate(currentPrompt),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Step timeout')), this.config.stepTimeoutMs)
-          ),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Step timeout')), this.config.stepTimeoutMs);
+          }),
         ]);
 
         const parsed = this.parseStep(response, stepNum);

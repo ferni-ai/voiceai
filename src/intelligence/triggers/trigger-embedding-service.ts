@@ -208,8 +208,8 @@ export function detectTriggerCategory(triggerText: string): TriggerCategory {
  * Service for generating and managing trigger embeddings
  */
 export class TriggerEmbeddingService {
-  private embeddedTriggers: Map<string, EmbeddedTrigger> = new Map();
-  private pendingEmbeddings: Map<string, Promise<number[]>> = new Map();
+  private embeddedTriggers = new Map<string, EmbeddedTrigger>();
+  private pendingEmbeddings = new Map<string, Promise<number[]>>();
   private initialized = false;
 
   /**

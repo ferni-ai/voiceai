@@ -147,7 +147,7 @@ describe('Pipeline', () => {
 
       const pipeline = new Pipeline<{}>('test').add(
         createStep('slow', async () => {
-          await new Promise((r) => setTimeout(r, 1000));
+          await new Promise<void>((r) => { setTimeout(r, 1000); });
           return ok({});
         }),
         { timeoutMs: 50 }

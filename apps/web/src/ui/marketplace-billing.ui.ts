@@ -534,8 +534,7 @@ function injectStyles(): void {
     .billing-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.7));
-      backdrop-filter: blur(var(--glass-blur-modal, 20px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .billing-panel {

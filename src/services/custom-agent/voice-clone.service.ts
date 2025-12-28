@@ -220,7 +220,7 @@ const audioBuffers = new Map<string, ArrayBuffer>();
 export async function processVoiceUpload(
   agentId: string,
   files: Array<{ filename: string; buffer: ArrayBuffer; mimeType: string }>,
-  userId: string = 'anonymous'
+  userId = 'anonymous'
 ): Promise<VoiceUploadResponse> {
   log.info(
     { agentId, fileCount: files.length, gcsConfigured: isGcsConfigured() },

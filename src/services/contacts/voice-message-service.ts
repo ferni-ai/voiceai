@@ -236,7 +236,7 @@ export async function generateVoiceMessageScript(
   contact: ContactRelationship,
   occasion: string,
   tone: 'warm' | 'professional' | 'casual' | 'heartfelt' = 'warm',
-  maxDurationSeconds: number = 30
+  maxDurationSeconds = 30
 ): Promise<string> {
   const wordsPerSecond = 2.5; // Average speaking rate
   const maxWords = Math.floor(maxDurationSeconds * wordsPerSecond);

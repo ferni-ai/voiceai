@@ -72,6 +72,98 @@ export interface ConversationMemoryCallbacks {
 }
 
 // ============================================================================
+// DEMO MODE - Mock data when no real data exists
+// ============================================================================
+
+const DEMO_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'demo_001',
+    startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    summary: 'We talked about your morning routine and waking up earlier',
+    topics: ['morning routine', 'sleep', 'habits'],
+    turnCount: 12,
+    voiceVerified: true,
+  },
+  {
+    id: 'demo_002',
+    startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    summary: 'You mentioned wanting to build a consistent exercise habit',
+    topics: ['exercise', 'fitness', 'motivation'],
+    turnCount: 8,
+    voiceVerified: true,
+  },
+  {
+    id: 'demo_003',
+    startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    summary: 'We explored your goals for the new year',
+    topics: ['goals', 'career', 'growth'],
+    turnCount: 15,
+    voiceVerified: false,
+  },
+  {
+    id: 'demo_004',
+    startedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    summary: 'You shared about a difficult conversation with a friend',
+    topics: ['relationships', 'communication'],
+    turnCount: 18,
+    voiceVerified: true,
+  },
+  {
+    id: 'demo_005',
+    startedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    summary: 'Talked about feeling overwhelmed and finding balance',
+    topics: ['stress', 'work-life balance', 'self-care'],
+    turnCount: 20,
+    voiceVerified: true,
+  },
+];
+
+const DEMO_MEMORY: ConversationMemory = {
+  hasMemory: true,
+  totalConversations: 5,
+  totalDuration: 73, // minutes
+  firstConversation: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  topics: ['morning routine', 'exercise', 'goals', 'relationships', 'stress'],
+  rememberedDetails: [
+    'You want to wake up at 6:30am',
+    'Exercise is important to you but hard to maintain',
+    "You're working toward a promotion at work",
+    'Your friend Sarah is someone you value deeply',
+    'Weekends are your recharge time',
+  ],
+};
+
+const DEMO_CONTEXT: ConversationContext = {
+  recentTopics: ['morning routine', 'exercise', 'goals'],
+  unfinishedThreads: ['Your morning routine experiment'],
+  rememberedDetails: DEMO_MEMORY.rememberedDetails || [],
+  suggestedFollowUps: ['How is the early wake-up going?', 'Did you try the exercise habit?'],
+};
+
+/**
+ * Check if demo mode should be active
+ * Demo mode shows when:
+ * 1. ?demo URL param is present
+ * 2. Dev mode is enabled
+ * 3. No real data exists (fallback)
+ */
+function shouldShowDemoMode(): boolean {
+  // Check URL param
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('demo')) return true;
+  }
+  // Check dev mode
+  if (localStorage.getItem('ferni_dev_mode') === 'true') {
+    // In dev mode, show demo if no real data
+    return !memory?.hasMemory && conversations.length === 0;
+  }
+  return false;
+}
+
+let isDemoMode = false;
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -114,9 +206,7 @@ const styles = `
   .memory-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-thick, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    background: rgba(44, 37, 32, 0.5);
   }
 
   .memory-modal {
@@ -124,24 +214,16 @@ const styles = `
     width: 95%;
     max-width: clamp(448px, 90vw, 640px);
     max-height: 90vh;
-    /* Glass modal styling */
-    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-    backdrop-filter: blur(var(--glass-blur-thick, 24px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-    border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+    /* Solid modal styling */
+    background: var(--color-background-elevated, #fffdfb);
+    border: 1px solid var(--color-border-subtle, rgba(112, 96, 90, 0.1));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+    box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: scale(0.95);
     transition: transform var(--duration-slow, 300ms) var(--ease-spring);
-  }
-
-  @supports not (backdrop-filter: blur(1px)) {
-    .memory-modal {
-      background: var(--color-background-elevated, #fffdfb);
-    }
   }
   
   .memory-modal-overlay.visible .memory-modal {
@@ -589,6 +671,39 @@ const styles = `
     100% { background-position: -200% 0; }
   }
   
+  /* Demo Mode Banner */
+  .memory-demo-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2, 8px);
+    width: 100%;
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+    margin-bottom: var(--space-3, 12px);
+    background: linear-gradient(90deg, 
+      rgba(58, 107, 115, 0.1) 0%,
+      rgba(74, 103, 65, 0.1) 100%
+    );
+    border-radius: var(--radius-full, 9999px);
+    font-size: 12px;
+    color: var(--color-peter, #3a6b73);
+  }
+  
+  .memory-demo-banner__icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+  }
+  
+  .memory-demo-banner__icon svg {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .memory-demo-banner__text {
+    font-weight: 500;
+  }
+  
   /* Error State */
   .memory-error {
     text-align: center;
@@ -929,6 +1044,7 @@ async function loadData(): Promise<void> {
   isLoading = true;
   hasError = false;
   errorMessage = '';
+  isDemoMode = false;
   renderContent(activeTab);
 
   try {
@@ -954,14 +1070,35 @@ async function loadData(): Promise<void> {
       }
     }
 
+    // If no real data, check if we should show demo mode
+    if (!hasError && shouldShowDemoMode()) {
+      isDemoMode = true;
+      memory = DEMO_MEMORY;
+      conversations = DEMO_CONVERSATIONS;
+      context = DEMO_CONTEXT;
+      log.debug('Using demo mode - showing mock data');
+    }
+
     renderStats();
     renderContent(activeTab);
     renderFooter();
   } catch (error) {
     log.error('Failed to load memory data:', error);
     isLoading = false;
-    hasError = true;
-    errorMessage = 'generic';
+    
+    // On error, try demo mode instead of showing error
+    if (shouldShowDemoMode()) {
+      isDemoMode = true;
+      memory = DEMO_MEMORY;
+      conversations = DEMO_CONVERSATIONS;
+      context = DEMO_CONTEXT;
+      hasError = false;
+      log.debug('Using demo mode after fetch error');
+    } else {
+      hasError = true;
+      errorMessage = 'generic';
+    }
+    
     renderStats();
     renderContent(activeTab);
   }
@@ -1046,7 +1183,16 @@ function renderStats(): void {
       })
     : '—';
 
+  // Demo mode banner
+  const demoBanner = isDemoMode ? `
+    <div class="memory-demo-banner" role="status">
+      <span class="memory-demo-banner__icon">${ICONS.brain}</span>
+      <span class="memory-demo-banner__text">Demo mode - showing example data</span>
+    </div>
+  ` : '';
+
   statsEl.innerHTML = `
+    ${demoBanner}
     <div class="memory-stat">
       <div class="memory-stat__value">${memory.totalConversations}</div>
       <div class="memory-stat__label">${t('memoryBrowser.stats.conversations')}</div>

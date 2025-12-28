@@ -87,7 +87,7 @@ export function createMockLLMStream(
     }
 
     for (let i = 0; i < words.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, tokenDelay));
+      await new Promise<void>((resolve) => { setTimeout(resolve, tokenDelay); });
 
       const isLast = i === words.length - 1;
       yield {
@@ -200,7 +200,7 @@ export class MockLLMClient {
     this.callHistory.push({ messages: [...messages], response });
 
     // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
     return response;
   }
@@ -293,7 +293,7 @@ export const mockResponses = {
 /**
  * Get an appropriate mock response based on detected emotion
  */
-export function getMockResponseForEmotion(emotion: string, intensity: number = 0.5): string {
+export function getMockResponseForEmotion(emotion: string, intensity = 0.5): string {
   const responses: Record<string, string[]> = {
     happy: [
       mockResponses.celebratory,

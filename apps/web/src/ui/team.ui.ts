@@ -84,6 +84,83 @@ function clearAllTrackedTimeouts(): void {
   activeTimeouts.clear();
 }
 
+// ============================================================================
+// AVATAR EYES - SVG Creation Helper
+// ============================================================================
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Create eyes SVG element for team roster avatars.
+ * Uses safe DOM methods instead of innerHTML for security.
+ */
+function createAvatarEyesSVG(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'team-avatar-eyes');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('aria-hidden', 'true');
+
+  // Defs with gradient
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const gradient = document.createElementNS(SVG_NS, 'linearGradient');
+  gradient.setAttribute('id', 'rosterEyeFill');
+  gradient.setAttribute('x1', '0%');
+  gradient.setAttribute('y1', '0%');
+  gradient.setAttribute('x2', '0%');
+  gradient.setAttribute('y2', '100%');
+
+  const stop1 = document.createElementNS(SVG_NS, 'stop');
+  stop1.setAttribute('offset', '0%');
+  stop1.setAttribute('stop-color', '#ffffff');
+  const stop2 = document.createElementNS(SVG_NS, 'stop');
+  stop2.setAttribute('offset', '100%');
+  stop2.setAttribute('stop-color', '#f0f0f0');
+
+  gradient.appendChild(stop1);
+  gradient.appendChild(stop2);
+  defs.appendChild(gradient);
+  svg.appendChild(defs);
+
+  // Left eye
+  const leftEye = document.createElementNS(SVG_NS, 'ellipse');
+  leftEye.setAttribute('class', 'eye-main eye-left');
+  leftEye.setAttribute('cx', '36');
+  leftEye.setAttribute('cy', '47');
+  leftEye.setAttribute('rx', '8');
+  leftEye.setAttribute('ry', '10');
+  leftEye.setAttribute('fill', 'url(#rosterEyeFill)');
+
+  const leftSparkle = document.createElementNS(SVG_NS, 'circle');
+  leftSparkle.setAttribute('class', 'sparkle sparkle-left');
+  leftSparkle.setAttribute('cx', '34');
+  leftSparkle.setAttribute('cy', '43');
+  leftSparkle.setAttribute('r', '2');
+  leftSparkle.setAttribute('fill', 'white');
+
+  // Right eye
+  const rightEye = document.createElementNS(SVG_NS, 'ellipse');
+  rightEye.setAttribute('class', 'eye-main eye-right');
+  rightEye.setAttribute('cx', '64');
+  rightEye.setAttribute('cy', '47');
+  rightEye.setAttribute('rx', '8');
+  rightEye.setAttribute('ry', '10');
+  rightEye.setAttribute('fill', 'url(#rosterEyeFill)');
+
+  const rightSparkle = document.createElementNS(SVG_NS, 'circle');
+  rightSparkle.setAttribute('class', 'sparkle sparkle-right');
+  rightSparkle.setAttribute('cx', '62');
+  rightSparkle.setAttribute('cy', '43');
+  rightSparkle.setAttribute('r', '2');
+  rightSparkle.setAttribute('fill', 'white');
+
+  svg.appendChild(leftEye);
+  svg.appendChild(leftSparkle);
+  svg.appendChild(rightEye);
+  svg.appendChild(rightSparkle);
+
+  return svg;
+}
+
 /** FIX BUG #57: ARIA live region for announcing handoff status to screen readers */
 let ariaLiveRegion: HTMLElement | null = null;
 
@@ -1084,15 +1161,48 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   `
       : '';
 
-  element.innerHTML = `
-    <div class="team-avatar-container">
-      <div class="team-avatar-ring"></div>
-      ${progressRing}
-      <div class="team-avatar${isLocked ? ' team-avatar--locked' : ''}" style="--persona-gradient: ${gradient};">${agent.initials}</div>
-      ${lockIcon}
-    </div>
-    <span class="team-name">${displayName}</span>
-  `;
+  // Build element structure using safe DOM methods
+  const avatarContainer = document.createElement('div');
+  avatarContainer.className = 'team-avatar-container';
+
+  const avatarRing = document.createElement('div');
+  avatarRing.className = 'team-avatar-ring';
+  avatarContainer.appendChild(avatarRing);
+
+  // Add progress ring if locked and has progress
+  if (progressRing) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = progressRing;
+    const progressSvg = tempDiv.firstElementChild;
+    if (progressSvg) avatarContainer.appendChild(progressSvg);
+  }
+
+  // Create avatar with eyes
+  const avatar = document.createElement('div');
+  avatar.className = `team-avatar${isLocked ? ' team-avatar--locked' : ''}`;
+  avatar.style.setProperty('--persona-gradient', gradient);
+
+  // Add eyes SVG to all avatars
+  const eyesSvg = createAvatarEyesSVG();
+  avatar.appendChild(eyesSvg);
+
+  avatarContainer.appendChild(avatar);
+
+  // Add lock icon if locked
+  if (lockIcon) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = lockIcon;
+    const lockEl = tempDiv.firstElementChild;
+    if (lockEl) avatarContainer.appendChild(lockEl);
+  }
+
+  element.appendChild(avatarContainer);
+
+  // Add name
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'team-name';
+  nameSpan.textContent = displayName;
+  element.appendChild(nameSpan);
 
   return element;
 }

@@ -142,7 +142,7 @@ function aggregateModes(signals: BehavioralSignals[]): SpecialModes {
  */
 function aggregateCallbacks(
   signals: BehavioralSignals[],
-  maxCallbacks: number = 3
+  maxCallbacks = 3
 ): CallbackSignal[] {
   const all: CallbackSignal[] = [];
 

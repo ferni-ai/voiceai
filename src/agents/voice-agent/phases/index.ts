@@ -7,7 +7,7 @@
  * @module voice-agent/phases
  */
 
-export * from './types.js';
+export type * from './types.js';
 export { loadVoiceDeps, getCachedVoiceDeps, areVoiceDepsLoaded } from './load-deps.js';
 export { loadPersonaPhase, getPrewarmedResources, loadPersonaLocally } from './load-persona.js';
 // buildTools removed - agents now build their own tools via direct domain imports

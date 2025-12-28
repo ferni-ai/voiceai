@@ -129,7 +129,7 @@ const DEFAULT_AGENT_BEHAVIOR: GroupAgentConfig = {
 export class ConferenceCallManager extends EventEmitter {
   private readonly config: ConferenceCallConfig;
   private readonly manager: GroupConversationManager;
-  private readonly externalParticipants: Map<string, ExternalParticipantInfo> = new Map();
+  private readonly externalParticipants = new Map<string, ExternalParticipantInfo>();
   private readonly agentBehavior: GroupAgentConfig;
 
   private state: ConferenceCallState = {

@@ -177,7 +177,7 @@ export class ToolChainPredictor {
   /**
    * Get likely next tools based on current execution
    */
-  getLikelyNext(toolId: string, k: number = 3): Array<{ toolId: string; probability: number }> {
+  getLikelyNext(toolId: string, k = 3): Array<{ toolId: string; probability: number }> {
     return this.predictNextFromCoOccurrence(toolId).slice(0, k);
   }
 

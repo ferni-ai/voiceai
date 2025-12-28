@@ -13,14 +13,16 @@ import { EventEmitter } from 'events';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import type {
+  ParticipantRegistry} from './participant-registry.js';
 import {
-  ParticipantRegistry,
   createParticipantRegistry,
   createUserParticipant,
   createAgentParticipant,
 } from './participant-registry.js';
+import type {
+  TurnTakingEngine} from './turn-taking.js';
 import {
-  TurnTakingEngine,
   createTurnTakingEngine,
   DEFAULT_TURN_TAKING_CONFIG,
 } from './turn-taking.js';
@@ -216,7 +218,7 @@ export class GroupConversationManager extends EventEmitter {
   addUtterance(
     speakerId: string,
     text: string,
-    durationMs: number = 0,
+    durationMs = 0,
     analysis?: Partial<Pick<AttributedUtterance, 'sentiment' | 'topics' | 'actionItems'>>
   ): AttributedUtterance {
     const participant = this.registry.get(speakerId);
@@ -311,7 +313,7 @@ export class GroupConversationManager extends EventEmitter {
   /**
    * Get recent transcript for context
    */
-  getRecentTranscript(lastN: number = 10): string {
+  getRecentTranscript(lastN = 10): string {
     return this.conversation.transcript
       .slice(-lastN)
       .map((u) => `[${u.speakerName}]: ${u.text}`)

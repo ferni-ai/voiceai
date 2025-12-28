@@ -14,16 +14,17 @@
 import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import {
+import type {
   UserTriggerProfile,
   SignificantDate,
   Relationship,
   CommunicationPatterns,
-  TriggerEffectiveness,
   ProfileExtractionResult,
   ProfileContextBoost,
   PhrasePattern,
-  TemporalPattern,
+  TemporalPattern} from './user-trigger-profile.types.js';
+import {
+  TriggerEffectiveness,
   DEFAULT_USER_TRIGGER_PROFILE,
 } from './user-trigger-profile.types.js';
 

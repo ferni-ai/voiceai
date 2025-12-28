@@ -332,6 +332,9 @@ let registryCache: MarketplaceRegistry | null = null;
 let registryCacheTime = 0;
 let installedAgentsCache: Map<string, InstalledAgent> | null = null;
 
+/** Request deduplication - prevent parallel fetches */
+let fetchInProgress: Promise<MarketplaceRegistry> | null = null;
+
 // ============================================================================
 // REGISTRY FUNCTIONS
 // ============================================================================
@@ -406,7 +409,7 @@ function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
 }
 
 /**
- * Fetch the marketplace registry
+ * Fetch the marketplace registry (with caching and request deduplication)
  */
 export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRegistry> {
   const now = Date.now();
@@ -416,41 +419,59 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
     return registryCache;
   }
 
-  try {
-    const response = await fetch(REGISTRY_URL, {
-      headers: {
-        Accept: 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-    });
+  // Dedupe concurrent requests
+  if (fetchInProgress) {
+    return fetchInProgress;
+  }
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch registry: ${response.status}`);
+  fetchInProgress = (async () => {
+    try {
+      const response = await fetch(REGISTRY_URL, {
+        headers: {
+          Accept: 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch registry: ${response.status}`);
+      }
+
+      const rawRegistry = (await response.json()) as RawRegistry;
+
+      // Normalize the registry format for our UI
+      registryCache = {
+        version: rawRegistry.version,
+        updated_at: rawRegistry.updated_at,
+        agents: rawRegistry.agents.map(normalizeAgent),
+        categories: rawRegistry.categories ?? [],
+      };
+      registryCacheTime = now;
+
+      log.info(`Loaded ${registryCache.agents.length} agents from registry`);
+      return registryCache;
+    } catch (err) {
+      log.error('Failed to fetch registry:', err);
+
+      // Return stale cache if available, otherwise empty registry
+      if (registryCache) {
+        log.debug('Using stale registry cache after error');
+        return registryCache;
+      }
+
+      return {
+        version: '0.0.0',
+        updated_at: new Date().toISOString(),
+        agents: [],
+        categories: [],
+      };
     }
+  })();
 
-    const rawRegistry = (await response.json()) as RawRegistry;
-
-    // Normalize the registry format for our UI
-    registryCache = {
-      version: rawRegistry.version,
-      updated_at: rawRegistry.updated_at,
-      agents: rawRegistry.agents.map(normalizeAgent),
-      categories: rawRegistry.categories ?? [],
-    };
-    registryCacheTime = now;
-
-    log.info(`Loaded ${registryCache.agents.length} agents from registry`);
-    return registryCache;
-  } catch (err) {
-    log.error('Failed to fetch registry:', err);
-
-    // Return empty registry on error
-    return {
-      version: '0.0.0',
-      updated_at: new Date().toISOString(),
-      agents: [],
-      categories: [],
-    };
+  try {
+    return await fetchInProgress;
+  } finally {
+    fetchInProgress = null;
   }
 }
 

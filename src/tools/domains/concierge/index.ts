@@ -37,6 +37,7 @@ import {
   createConciergeRouter,
   getTaskTracker,
   PhoneCaller,
+  registerNotifier,
   type ConciergeRequirements,
 } from '../../../services/concierge/index.js';
 
@@ -44,6 +45,12 @@ import {
 import { buildCalendarPrepContext } from '../../../services/superhuman/calendar-prep-coaching.js';
 
 const log = getLogger();
+
+// Register the concierge notification system when this module loads
+// This ensures users get email/push notifications when concierge requests complete
+registerNotifier().catch((err) => {
+  log.warn({ error: String(err) }, 'Failed to register concierge notifier');
+});
 
 // ============================================================================
 // TOOL: Request Hotel Quotes

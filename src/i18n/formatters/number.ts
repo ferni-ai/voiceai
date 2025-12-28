@@ -119,7 +119,7 @@ export function formatDecimal(
 export function formatPercent(
   value: number,
   locale: SupportedLocale = DEFAULT_LOCALE,
-  decimals: number = 0
+  decimals = 0
 ): string {
   return new Intl.NumberFormat(locale, {
     style: 'percent',
@@ -151,7 +151,7 @@ export function formatCompact(value: number, locale: SupportedLocale = DEFAULT_L
  */
 export function formatCurrency(
   value: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
   const config = CURRENCIES[currency] || CURRENCIES.USD;
@@ -175,7 +175,7 @@ export function formatCurrency(
  */
 export function formatPrice(
   cents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   period: 'monthly' | 'annual' = 'monthly',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
@@ -232,7 +232,7 @@ export function getTierPrice(
 export function formatPriceRange(
   minCents: number,
   maxCents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
   const minFormatted = formatCurrency(minCents, currency, locale);
@@ -245,7 +245,7 @@ export function formatPriceRange(
  */
 export function formatSavings(
   cents: number,
-  currency: string = 'USD',
+  currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
   const formatted = formatCurrency(cents, currency, locale);

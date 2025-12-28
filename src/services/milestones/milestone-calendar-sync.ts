@@ -478,7 +478,7 @@ const FOCUS_KEYWORDS = ['focus', 'work on', 'deep work'];
 export async function detectMilestoneRelatedEvents(
   userId: string,
   milestones: Milestone[],
-  daysAhead: number = 14
+  daysAhead = 14
 ): Promise<Map<string, CalendarMilestoneLink[]>> {
   const linkMap = new Map<string, CalendarMilestoneLink[]>();
 

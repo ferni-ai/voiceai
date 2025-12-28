@@ -160,7 +160,7 @@ describe('Monetization E2E', () => {
       expect(journey.celebratedMilestones).toEqual([]);
 
       // 2. Record conversations
-      let progress = await persistence.recordJourneyConversation(userId);
+      const progress = await persistence.recordJourneyConversation(userId);
       expect(progress.conversationCount).toBe(1);
 
       // First milestone should be available after 1 conversation

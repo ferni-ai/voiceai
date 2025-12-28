@@ -280,7 +280,7 @@ export function addNaturalSpeech(
 /**
  * Generate a "thinking out loud" moment
  */
-export function generateThinkingMoment(style: string = 'warm'): string {
+export function generateThinkingMoment(style = 'warm'): string {
   const patterns = THINKING_ALOUD[style] || THINKING_ALOUD['warm'];
   return seededPick(`${Date.now()}:285`, patterns) ?? patterns[0];
 }
@@ -288,7 +288,7 @@ export function generateThinkingMoment(style: string = 'warm'): string {
 /**
  * Generate a self-correction
  */
-export function generateSelfCorrection(style: string = 'warm'): string {
+export function generateSelfCorrection(style = 'warm'): string {
   const patterns = SELF_CORRECTIONS[style] || SELF_CORRECTIONS['warm'];
   return seededPick(`${Date.now()}:293`, patterns) ?? patterns[0];
 }
@@ -296,7 +296,7 @@ export function generateSelfCorrection(style: string = 'warm'): string {
 /**
  * Format natural speech guidance for prompt
  */
-export function formatNaturalSpeechGuidance(style: string = 'warm'): string {
+export function formatNaturalSpeechGuidance(style = 'warm'): string {
   return [
     '[🗣️ NATURAL SPEECH REMINDER]',
     '',

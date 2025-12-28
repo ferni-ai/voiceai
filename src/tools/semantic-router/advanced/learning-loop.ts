@@ -314,7 +314,7 @@ interface ToolChainPrediction {
 }
 
 // Co-occurrence matrix for tool chains (learned from data)
-const toolCoOccurrence: Map<string, Map<string, number>> = new Map();
+const toolCoOccurrence = new Map<string, Map<string, number>>();
 
 /**
  * Predict next likely tools based on current context

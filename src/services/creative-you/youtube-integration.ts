@@ -595,7 +595,7 @@ export function getVideoById(videoId: string): YouTubeVideo | null {
  */
 export function getVideosByCategory(
   category: VideoCategory,
-  maxResults: number = 5
+  maxResults = 5
 ): YouTubeVideo[] {
   const videos = CURATED_VIDEOS.filter((v) => v.category === category).slice(0, maxResults);
   return videos.map(curatedToYouTubeVideo);
@@ -753,7 +753,7 @@ export function addDiscussionInsight(userId: string, sessionId: string, insight:
 /**
  * Get user's watch history
  */
-export function getWatchHistory(userId: string, limit: number = 20): WatchSession[] {
+export function getWatchHistory(userId: string, limit = 20): WatchSession[] {
   const userSessions = watchSessionStore.get(userId) || [];
   return userSessions
     .filter((s) => s.completedAt)

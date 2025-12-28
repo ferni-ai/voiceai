@@ -1,36 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
-  <!-- Ferni Avatar - Windows Tile 150x150 -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Windows Tile 150x150 - Eyes -->
+<svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="avatarGrad150" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="shineGrad150" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.18"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Background -->
-  <rect width="150" height="150" fill="#4a6741"/>
-  
-  <!-- Main avatar (centered, no ring for this size) -->
-  <circle cx="75" cy="75" r="52" fill="url(#avatarGrad150)"/>
-  
-  <!-- Shine -->
-  <circle cx="75" cy="75" r="52" fill="url(#shineGrad150)"/>
-  
-  <!-- FE Text -->
-  <text 
-    x="75" 
-    y="75" 
-    text-anchor="middle" 
-    dominant-baseline="central"
-    font-family="'Segoe UI', 'Plus Jakarta Sans', system-ui, sans-serif"
-    font-size="38"
-    font-weight="700"
-    fill="white"
-    letter-spacing="-1">
-    <tspan dy="2">FE</tspan>
-  </text>
+  <rect width="150" height="150" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="54" cy="70" rx="15" ry="19" fill="url(#eyeFill)"/>
+  <circle cx="51" cy="62" r="4" fill="white"/>
+  <circle cx="54" cy="65" r="1.5" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="96" cy="70" rx="15" ry="19" fill="url(#eyeFill)"/>
+  <circle cx="93" cy="62" r="4" fill="white"/>
+  <circle cx="96" cy="65" r="1.5" fill="white" opacity="0.7"/>
 </svg>

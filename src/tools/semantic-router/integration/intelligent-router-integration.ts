@@ -13,8 +13,9 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import type {
+  IntelligentRouterOrchestrator} from '../advanced/intelligent/index.js';
 import {
-  IntelligentRouterOrchestrator,
   getIntelligentOrchestrator,
   initializeIntelligentOrchestrator,
   type RoutingDecision,

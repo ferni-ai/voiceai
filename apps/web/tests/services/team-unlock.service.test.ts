@@ -32,8 +32,8 @@ Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock relationship stage service
-const mockStageService = {
+// Mock relationship stage service - vi.hoisted to ensure it's available before vi.mock
+const mockStageService = vi.hoisted(() => ({
   getStage: vi.fn(() => 'first-meeting' as const),
   getMetrics: vi.fn(() => ({
     totalConversations: 0,
@@ -42,7 +42,7 @@ const mockStageService = {
     longestStreak: 0,
   })),
   onStageChange: vi.fn(() => () => {}),
-};
+}));
 
 vi.mock('../../src/services/relationship-stage.service.js', () => ({
   relationshipStageService: mockStageService,

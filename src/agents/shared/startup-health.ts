@@ -105,7 +105,7 @@ let _prewarmStartTime: number | null = null;
 let _prewarmEndTime: number | null = null;
 let _prewarmPhase: string | null = null;
 let _prewarmState: 'pending' | 'running' | 'complete' | 'failed' | 'timeout' = 'pending';
-let _issues: string[] = [];
+const _issues: string[] = [];
 
 // Critical dependencies that MUST be loaded for the agent to work
 const CRITICAL_DEPS = ['voice', 'google', 'silero', 'voiceAgentSession'] as const;
@@ -289,7 +289,7 @@ export async function waitUntilHealthy(
       throw new Error(`Agent startup failed: ${health.issues.join(', ')}`);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    await new Promise<void>((resolve) => { setTimeout(resolve, pollInterval); });
   }
 
   const finalHealth = getStartupHealth();

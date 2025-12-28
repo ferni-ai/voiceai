@@ -30,17 +30,13 @@ export type AcknowledgmentCategory =
   | 'remembering'; // Memory recall
 
 /** Tool-to-category mapping */
-export interface ToolCategoryMap {
-  [toolId: string]: AcknowledgmentCategory;
-}
+export type ToolCategoryMap = Record<string, AcknowledgmentCategory>;
 
 /** Persona acknowledgment set */
 export interface PersonaAcknowledgments {
   personaId: string;
   /** Phrases by category */
-  phrases: {
-    [K in AcknowledgmentCategory]: string[];
-  };
+  phrases: Record<AcknowledgmentCategory, string[]>;
   /** Filler sounds (uh, hmm, let me think) */
   fillers: string[];
   /** Natural pauses ("..." becomes natural pause in TTS) */

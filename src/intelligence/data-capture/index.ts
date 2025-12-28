@@ -581,5 +581,5 @@ export async function captureDataBetterThanHuman(
 }
 
 // Re-export types
-export * from './types.js';
+export type * from './types.js';
 

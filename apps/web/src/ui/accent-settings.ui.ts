@@ -182,9 +182,7 @@ function injectStyles(): void {
     .accent-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .accent-settings-modal {
@@ -193,21 +191,12 @@ function injectStyles(): void {
       max-width: clamp(294px, 90vw, 420px);
       max-height: 90vh;
       overflow-y: auto;
-      /* Glass modal styling */
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95) translateY(10px);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
-    }
-
-    @supports not (backdrop-filter: blur(1px)) {
-      .accent-settings-modal {
-        background: var(--color-background-elevated, #FFFDFB);
-      }
     }
 
     .accent-settings-overlay.open .accent-settings-modal {

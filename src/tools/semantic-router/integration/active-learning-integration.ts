@@ -180,7 +180,7 @@ export async function getPreRoutingEnhancements(
 export function startTurnTracking(
   context: RoutingContext,
   inputText: string,
-  locale: string = 'en'
+  locale = 'en'
 ): string {
   const turnId = `turn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 

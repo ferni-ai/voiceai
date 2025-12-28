@@ -31,7 +31,7 @@ function generateSineWave(
   frequency: number,
   duration: number,
   sampleRate: number,
-  amplitude: number = 0.5
+  amplitude = 0.5
 ): Float32Array {
   const samples = Math.floor(duration * sampleRate);
   const buffer = new Float32Array(samples);
@@ -49,7 +49,7 @@ function generateSineWave(
 function generateNoise(
   duration: number,
   sampleRate: number,
-  amplitude: number = 0.3
+  amplitude = 0.3
 ): Float32Array {
   const samples = Math.floor(duration * sampleRate);
   const buffer = new Float32Array(samples);

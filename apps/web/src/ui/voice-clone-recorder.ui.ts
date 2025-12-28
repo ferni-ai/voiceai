@@ -181,9 +181,7 @@ const STYLES = `
   .voice-clone-recorder-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(44, 37, 32, 0.75);
   }
 
   .voice-clone-recorder-modal {

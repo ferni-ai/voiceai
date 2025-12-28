@@ -7,4 +7,4 @@
  * @module services/personal-journey/types
  */
 
-export * from '../../types/personal-journey.js';
+export type * from '../../types/personal-journey.js';

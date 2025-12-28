@@ -504,7 +504,7 @@ export async function setAlarm(
  */
 export async function getRecentBiometrics(
   userId: string,
-  days: number = 7
+  days = 7
 ): Promise<
   EightSleepResult<{
     averageHrv: number;

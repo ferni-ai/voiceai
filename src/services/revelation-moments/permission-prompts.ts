@@ -131,7 +131,7 @@ export function getPermissionPrompt(category: PermissionCategory): string {
  */
 export function getPromptForCapability(
   capability: CapabilityCategory,
-  trustLevel: number = 0
+  trustLevel = 0
 ): string | null {
   // Find matching prompts
   const matching = PERMISSION_PROMPTS.filter((p) => {
@@ -160,7 +160,7 @@ export function getPromptForCapability(
  */
 export function requiresPermission(
   capability: CapabilityCategory,
-  trustLevel: number = 0
+  trustLevel = 0
 ): boolean {
   // Memory callbacks at low trust don't need permission
   if (capability === 'memory' && trustLevel < 0.2) {

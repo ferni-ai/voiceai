@@ -1152,20 +1152,31 @@ Reference past context when relevant, but don't force it. Let the conversation f
         `[voice-agent-entry] 🔮 Creating OpenAI Realtime model (text-only → Cartesia TTS)...\n`
       );
 
+      // Import VAD config for tunable noise sensitivity
+      const { VAD_CONFIG } = await import('./shared/constants.js');
+
       llm = new openai.realtime.RealtimeModel({
         modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
         temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
         turnDetection: {
           type: 'server_vad', // Using server_vad per docs (more stable)
-          threshold: 0.5,
-          prefix_padding_ms: 300,
-          silence_duration_ms: 500,
-          create_response: true,
-          interrupt_response: true,
+          // VAD sensitivity is configurable via environment variables:
+          // - VAD_THRESHOLD (default: 0.65) - Higher = less sensitive to background noise
+          // - VAD_PREFIX_PADDING_MS (default: 300) - Audio buffer before speech
+          // - VAD_SILENCE_DURATION_MS (default: 600) - Silence before turn ends
+          threshold: VAD_CONFIG.threshold,
+          prefix_padding_ms: VAD_CONFIG.prefixPaddingMs,
+          silence_duration_ms: VAD_CONFIG.silenceDurationMs,
+          create_response: VAD_CONFIG.createResponse,
+          interrupt_response: VAD_CONFIG.interruptResponse,
         },
         // NOTE: OpenAI Realtime handles function calling natively at the protocol level
         // No JSON workarounds needed - tools are passed directly to the model
       });
+
+      process.stderr.write(
+        `[voice-agent-entry] 🎤 VAD config: threshold=${VAD_CONFIG.threshold}, silence=${VAD_CONFIG.silenceDurationMs}ms\n`
+      );
 
       process.stderr.write(
         `[voice-agent-entry] 🔮 OpenAI Realtime model created (text → Cartesia TTS)\n`
@@ -2254,7 +2265,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     // Use the full greeting handler for best experience
     try {
-      await generateAndSpeakGreeting({
+      const greetingResult = await generateAndSpeakGreeting({
         sessionPersona: sessionPersona,
         services,
         userData,
@@ -2267,6 +2278,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
         session,
         tagGreeting: (text) => text, // Simple passthrough - full SSML tagging not needed for lightweight
       });
+
+      // Store greeting text so LLM knows what it said (prevents confusion/duplicate greetings)
+      if (greetingResult.greeting) {
+        userData.greetingText = greetingResult.greeting;
+        userData.greetingInjected = false; // Will be injected on first turn
+      }
     } catch (greetingErr) {
       // Fallback to simple greeting via coordinated speech
       process.stderr.write(
@@ -2274,6 +2291,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
       const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
       coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: true });
+      // Store fallback greeting too
+      userData.greetingText = fallbackGreeting;
+      userData.greetingInjected = false;
       // OPTIMIZATION: Removed 2s blocking delay - greeting plays asynchronously
       // The session continues initializing while greeting plays (non-blocking)
     }

@@ -109,7 +109,7 @@ export interface WeekOverview {
 /**
  * Convert unified store event to calendar-service event type
  */
-function unifiedToCalendarEvent(unified: UnifiedCalendarEvent, calendarId: string = 'ferni'): CalendarEvent {
+function unifiedToCalendarEvent(unified: UnifiedCalendarEvent, calendarId = 'ferni'): CalendarEvent {
   return {
     id: unified.id,
     title: unified.title,

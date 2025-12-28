@@ -1228,7 +1228,7 @@ export function selectCatchphrase(
   personaId: string,
   userText: string,
   conversationCount: number,
-  usedThisSession: Set<string> = new Set()
+  usedThisSession = new Set<string>()
 ): { phrase: string; delivery: string; id: string } | null {
   const profile = getSpeechProfileSync(personaId);
 

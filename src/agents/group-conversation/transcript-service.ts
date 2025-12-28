@@ -154,7 +154,7 @@ export class AttributedTranscriptService {
     speakerName: string,
     speakerType: ParticipantType,
     text: string,
-    durationMs: number = 0
+    durationMs = 0
   ): AttributedUtterance {
     const utterance: AttributedUtterance = {
       id: `utt_${++this.utteranceCounter}`,
@@ -184,7 +184,7 @@ export class AttributedTranscriptService {
   /**
    * Get recent utterances
    */
-  getRecentUtterances(count: number = 10): AttributedUtterance[] {
+  getRecentUtterances(count = 10): AttributedUtterance[] {
     return this.utterances.slice(-count);
   }
 

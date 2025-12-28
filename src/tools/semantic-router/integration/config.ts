@@ -299,7 +299,7 @@ interface ABTestConfig {
   }[];
 }
 
-const activeABTests: Map<string, ABTestConfig> = new Map();
+const activeABTests = new Map<string, ABTestConfig>();
 
 /**
  * Register an A/B test

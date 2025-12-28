@@ -156,7 +156,7 @@ export function recordConversationTopics(
  * Get user's top topics for content recommendations
  * Uses cache first, then Firestore
  */
-export async function getUserTopTopics(userId: string, count: number = 10): Promise<string[]> {
+export async function getUserTopTopics(userId: string, count = 10): Promise<string[]> {
   // Check cache first
   const cached = userTopicCache.get(userId);
   if (cached && cached.topics.length > 0) {
@@ -176,7 +176,7 @@ export async function getUserTopTopics(userId: string, count: number = 10): Prom
 /**
  * Get user's top topics synchronously (cache only - for fast access)
  */
-export function getUserTopTopicsSync(userId: string, count: number = 10): string[] {
+export function getUserTopTopicsSync(userId: string, count = 10): string[] {
   const cached = userTopicCache.get(userId);
   if (!cached) return [];
   return cached.topics.slice(0, count).map((t) => t.topic);

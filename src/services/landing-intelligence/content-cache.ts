@@ -438,7 +438,7 @@ export async function generateAndCacheHeroes(): Promise<number> {
         }
 
         // Rate limit: wait 1 second between generations
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 1000); });
       } catch (error) {
         log.error({ error: String(error), timeBlock, visitorType }, 'Error generating hero');
       }

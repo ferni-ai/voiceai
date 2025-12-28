@@ -20,7 +20,8 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getKeywordWord, getKeywordWeight } from '../types.js';
 import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
-import { TrainingExample, loadCombinedTrainingData } from './datasets.js';
+import type { TrainingExample} from './datasets.js';
+import { loadCombinedTrainingData } from './datasets.js';
 
 const log = createLogger({ module: 'semantic-router:learned-retriever' });
 
@@ -121,7 +122,7 @@ export class LearnedRetriever {
   /**
    * Retrieve top-k tools for a query
    */
-  async retrieve(query: string, k: number = 5): Promise<RetrievalResult[]> {
+  async retrieve(query: string, k = 5): Promise<RetrievalResult[]> {
     if (!this.isInitialized) {
       throw new Error('Retriever not initialized. Call initialize() first.');
     }

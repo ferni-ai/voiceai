@@ -281,7 +281,7 @@ export class ThreadPool {
   async shutdown(): Promise<void> {
     // Wait for pending tasks
     while (this.taskQueue.length > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
     }
 
     // Clear workers

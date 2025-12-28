@@ -129,6 +129,12 @@ export interface UserData {
   /** Data capture acknowledgment to inject (e.g., "I saved Mom's number") */
   dataCaptureAcknowledgment?: string;
 
+  // Greeting context (so LLM knows what it said)
+  /** The greeting text that was spoken at session start */
+  greetingText?: string;
+  /** Whether the greeting has been injected into LLM context */
+  greetingInjected?: boolean;
+
   // Conversation context for humanization
   lastUserMessage?: string;
   lastAgentResponse?: string; // For response quality tracking + echo detection

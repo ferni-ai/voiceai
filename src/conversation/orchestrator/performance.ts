@@ -31,7 +31,7 @@ export class LRUCache<K, V> {
   private readonly maxSize: number;
   private readonly ttlMs: number;
 
-  constructor(maxSize: number = 100, ttlMs: number = 60000) {
+  constructor(maxSize = 100, ttlMs = 60000) {
     this.maxSize = maxSize;
     this.ttlMs = ttlMs;
   }
@@ -290,7 +290,7 @@ export class LazyLoader<T> {
   private readonly loader: () => Promise<T>;
   private readonly name: string;
 
-  constructor(loader: () => Promise<T>, name: string = 'unknown') {
+  constructor(loader: () => Promise<T>, name = 'unknown') {
     this.loader = loader;
     this.name = name;
   }

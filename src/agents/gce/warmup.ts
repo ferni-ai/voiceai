@@ -83,6 +83,25 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       })()
     );
 
+    // 1b. ⚡ PRE-CACHE CONVERSATIONAL AUDIO - Biggest latency win!
+    // Generate TTS audio for greetings, handoffs, banter, and backchannels.
+    // Target: ALL conversational phrases under 800ms (most under 200ms when cached).
+    tasks.push(
+      (async () => {
+        try {
+          const audioPrewarmStart = Date.now();
+          const { prewarmConversationalAudio } = await import('../shared/conversational-audio-cache.js');
+          const cachedCount = await prewarmConversationalAudio();
+          log('✅ Conversational audio pre-cached (greetings, handoffs, banter)', {
+            durationMs: Date.now() - audioPrewarmStart,
+            phrasesCached: cachedCount,
+          });
+        } catch (e) {
+          log('⚠️ Conversational audio pre-cache failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
     // 2. Pre-load persona cache
     tasks.push(
       (async () => {
@@ -215,6 +234,46 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           });
         } catch (e) {
           log('⚠️ Performance modules pre-load failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    // 10. ⚡ LLM WARMUP - Pre-establish connections for faster first response
+    // Import LLM providers to trigger connection establishment
+    // This saves ~200-400ms on first session by having connections ready
+    tasks.push(
+      (async () => {
+        try {
+          const llmWarmupStart = Date.now();
+          // Import providers to trigger any lazy initialization
+          await Promise.all([
+            import('@livekit/agents-plugin-google').then((mod) => {
+              // Just importing establishes the SDK connection pool
+              log('✅ Gemini SDK loaded', { durationMs: Date.now() - llmWarmupStart });
+            }),
+            // Also pre-warm OpenAI if enabled (for USE_OPENAI_REALTIME mode)
+            process.env.OPENAI_API_KEY
+              ? import('@livekit/agents-plugin-openai').then(() => {
+                  log('✅ OpenAI SDK loaded', { durationMs: Date.now() - llmWarmupStart });
+                })
+              : Promise.resolve(),
+          ]);
+        } catch (e) {
+          log('⚠️ LLM warmup failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    // 11. Pre-warm warm greeting generator (ensures greeting text is ready instantly)
+    tasks.push(
+      (async () => {
+        try {
+          const warmGreetingStart = Date.now();
+          const { prewarmGreetingsForAllPersonas } = await import('../shared/warm-greeting.js');
+          await prewarmGreetingsForAllPersonas();
+          log('✅ Warm greetings pre-generated', { durationMs: Date.now() - warmGreetingStart });
+        } catch (e) {
+          log('⚠️ Warm greeting prewarm failed (non-fatal)', { error: String(e) });
         }
       })()
     );

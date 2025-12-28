@@ -111,7 +111,7 @@ function formatDate(date: ImportantDate): string {
  */
 function getUpcomingDates(
   humanMemory: Partial<HumanMemory>,
-  lookAheadDays: number = 7
+  lookAheadDays = 7
 ): { today: ImportantDate[]; upcoming: ImportantDate[] } {
   const dates = humanMemory.importantDates || [];
 

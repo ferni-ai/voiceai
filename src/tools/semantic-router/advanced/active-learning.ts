@@ -15,7 +15,8 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 // Note: Uses simplified ToolMatch from local modules
-import { TrainingExample, logRoutingDecision } from './datasets.js';
+import type { TrainingExample} from './datasets.js';
+import { logRoutingDecision } from './datasets.js';
 import { getCalibrator, CalibratedResult } from './uncertainty.js';
 import { getPersonalizationEngine } from './personalization.js';
 import { getLearnedRetriever } from './learned-retriever.js';
@@ -234,7 +235,7 @@ export class ActiveLearningEngine {
   /**
    * Get queries that would be most valuable to label
    */
-  selectQueriesForLabeling(k: number = 10): string[] {
+  selectQueriesForLabeling(k = 10): string[] {
     // Find queries with highest uncertainty
     const uncertainQueries = this.corrections
       .filter((c) => c.informationGain > 0.3)

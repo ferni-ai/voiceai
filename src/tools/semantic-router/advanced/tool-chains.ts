@@ -335,7 +335,7 @@ export function predictNextStep(
 // CHAIN EXECUTION TRACKING
 // ============================================================================
 
-const activeChains: Map<string, ChainExecutionContext> = new Map();
+const activeChains = new Map<string, ChainExecutionContext>();
 
 /**
  * Start tracking a chain execution
@@ -418,7 +418,7 @@ export function cancelChain(sessionId: string): void {
 // ============================================================================
 
 // Learned chains from user behavior
-const learnedChains: Map<string, Map<string, number>> = new Map();
+const learnedChains = new Map<string, Map<string, number>>();
 
 /**
  * Learn tool co-occurrence for chain discovery

@@ -55,7 +55,7 @@ const JOKE_SEED_PATTERNS = [
 // ============================================================================
 
 export class EvolvingJokesEngine {
-  private jokes: Map<string, EvolvingJoke> = new Map();
+  private jokes = new Map<string, EvolvingJoke>();
   private userId: string;
   private lastCallbackTurn = 0;
 

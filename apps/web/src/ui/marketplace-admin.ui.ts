@@ -616,8 +616,7 @@ function injectStyles(): void {
     .admin-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.8);
-      backdrop-filter: blur(20px);
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .admin-panel {

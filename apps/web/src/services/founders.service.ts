@@ -152,15 +152,33 @@ export function getSeasonalTheme(): SeasonalTheme {
 }
 
 // ============================================================================
-// STATE
+// STATE & CACHE
 // ============================================================================
 
+/** Cache TTL - 5 minutes for most data, refreshed on demand */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 let cachedStats: FounderStats | null = null;
+let cachedStatsTime = 0;
+
 let cachedFounders: Founder[] | null = null;
+let cachedFoundersTime = 0;
+
 let cachedStories: FounderStory[] | null = null;
+let cachedStoriesTime = 0;
+
 let cachedMilestones: CommunityMilestone[] | null = null;
+let cachedMilestonesTime = 0;
+
 let cachedPersonalImpact: PersonalImpact | null = null;
+let cachedPersonalImpactTime = 0;
+
 let lastMilestoneCheck: number = 0;
+
+/** Check if cache is still valid */
+function isCacheValid(cacheTime: number): boolean {
+  return Date.now() - cacheTime < CACHE_TTL_MS;
+}
 
 // ============================================================================
 // DEFAULT DATA (Used when API unavailable)
@@ -233,73 +251,90 @@ const DEFAULT_MILESTONES: CommunityMilestone[] = [
 // FETCH FUNCTIONS
 // ============================================================================
 
-export async function fetchFounderStats(): Promise<FounderStats> {
-  if (cachedStats) return cachedStats;
+export async function fetchFounderStats(forceRefresh = false): Promise<FounderStats> {
+  // Return cached if valid
+  if (!forceRefresh && cachedStats && isCacheValid(cachedStatsTime)) {
+    return cachedStats;
+  }
 
   try {
     const response = await apiFetch('/api/garden/founder-stats');
     if (!response.ok) throw new Error('Failed to fetch founder stats');
     cachedStats = await response.json();
+    cachedStatsTime = Date.now();
     return cachedStats!;
   } catch (error) {
     log.warn('Using default founder stats', error);
-    return DEFAULT_STATS;
+    // Return stale cache if available, else default
+    return cachedStats || DEFAULT_STATS;
   }
 }
 
-export async function fetchFoundersWall(): Promise<Founder[]> {
-  if (cachedFounders) return cachedFounders;
+export async function fetchFoundersWall(forceRefresh = false): Promise<Founder[]> {
+  if (!forceRefresh && cachedFounders && isCacheValid(cachedFoundersTime)) {
+    return cachedFounders;
+  }
 
   try {
     const response = await apiFetch('/api/garden/founders-wall');
     if (!response.ok) throw new Error('Failed to fetch founders wall');
     cachedFounders = await response.json();
+    cachedFoundersTime = Date.now();
     return cachedFounders!;
   } catch (error) {
     log.warn('Using default founders wall', error);
-    return DEFAULT_FOUNDERS;
+    return cachedFounders || DEFAULT_FOUNDERS;
   }
 }
 
-export async function fetchFounderStories(): Promise<FounderStory[]> {
-  if (cachedStories) return cachedStories;
+export async function fetchFounderStories(forceRefresh = false): Promise<FounderStory[]> {
+  if (!forceRefresh && cachedStories && isCacheValid(cachedStoriesTime)) {
+    return cachedStories;
+  }
 
   try {
     const response = await apiFetch('/api/garden/founder-stories');
     if (!response.ok) throw new Error('Failed to fetch founder stories');
     cachedStories = await response.json();
+    cachedStoriesTime = Date.now();
     return cachedStories!;
   } catch (error) {
     log.warn('Using default founder stories', error);
-    return DEFAULT_STORIES;
+    return cachedStories || DEFAULT_STORIES;
   }
 }
 
-export async function fetchCommunityMilestones(): Promise<CommunityMilestone[]> {
-  if (cachedMilestones) return cachedMilestones;
+export async function fetchCommunityMilestones(forceRefresh = false): Promise<CommunityMilestone[]> {
+  if (!forceRefresh && cachedMilestones && isCacheValid(cachedMilestonesTime)) {
+    return cachedMilestones;
+  }
 
   try {
     const response = await apiFetch('/api/garden/milestones');
     if (!response.ok) throw new Error('Failed to fetch milestones');
     cachedMilestones = await response.json();
+    cachedMilestonesTime = Date.now();
     return cachedMilestones!;
   } catch (error) {
     log.warn('Using default milestones', error);
-    return DEFAULT_MILESTONES;
+    return cachedMilestones || DEFAULT_MILESTONES;
   }
 }
 
-export async function fetchPersonalImpact(userId: string): Promise<PersonalImpact | null> {
-  if (cachedPersonalImpact?.userId === userId) return cachedPersonalImpact;
+export async function fetchPersonalImpact(userId: string, forceRefresh = false): Promise<PersonalImpact | null> {
+  if (!forceRefresh && cachedPersonalImpact?.userId === userId && isCacheValid(cachedPersonalImpactTime)) {
+    return cachedPersonalImpact;
+  }
 
   try {
     const response = await apiFetch(`/api/garden/personal-impact/${userId}`);
-    if (!response.ok) return null;
+    if (!response.ok) return cachedPersonalImpact;
     cachedPersonalImpact = await response.json();
+    cachedPersonalImpactTime = Date.now();
     return cachedPersonalImpact;
   } catch (error) {
     log.warn('Could not fetch personal impact', error);
-    return null;
+    return cachedPersonalImpact;
   }
 }
 
@@ -458,14 +493,18 @@ export const BADGE_INFO: Record<NonNullable<Founder['badge']>, { label: string; 
 
 export function clearFoundersCache(): void {
   cachedStats = null;
+  cachedStatsTime = 0;
   cachedFounders = null;
+  cachedFoundersTime = 0;
   cachedStories = null;
+  cachedStoriesTime = 0;
   cachedMilestones = null;
+  cachedMilestonesTime = 0;
   cachedPersonalImpact = null;
+  cachedPersonalImpactTime = 0;
 }
 
-// Auto-refresh cache every 10 minutes
-setInterval(clearFoundersCache, 10 * 60 * 1000);
+// Note: Auto-refresh removed - TTL-based caching handles this now
 
 // ============================================================================
 // EXPORTS

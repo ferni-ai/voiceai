@@ -191,7 +191,7 @@ interface ParticipantTokenMetadata {
 export async function generateParticipantToken(
   session: GroupSession,
   participant: GroupParticipant,
-  ttl: string = '2h'
+  ttl = '2h'
 ): Promise<string> {
   const roomName = getRoomName(session.id);
 
@@ -244,7 +244,7 @@ export async function generateParticipantToken(
  */
 export async function generateAgentToken(
   session: GroupSession,
-  ttl: string = '4h'
+  ttl = '4h'
 ): Promise<string> {
   const roomName = getRoomName(session.id);
 

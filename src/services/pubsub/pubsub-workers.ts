@@ -123,9 +123,9 @@ abstract class BasePubSubWorker {
         // Process with timeout
         await Promise.race([
           this.process(message),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Processing timeout')), this.config.timeoutMs)
-          ),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Processing timeout')), this.config.timeoutMs);
+          }),
         ]);
 
         if (this.config.autoAck) {
@@ -294,7 +294,7 @@ export class AudioAnalysisPubSubWorker extends BasePubSubWorker {
 // ============================================================================
 
 class PubSubWorkerManager {
-  private workers: Map<string, BasePubSubWorker> = new Map();
+  private workers = new Map<string, BasePubSubWorker>();
 
   /**
    * Register a worker

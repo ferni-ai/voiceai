@@ -892,7 +892,7 @@ async function collectWithCache<T>(
  */
 export async function collectAllDomainData(
   userId: string,
-  windowDays: number = 7,
+  windowDays = 7,
   options: { bypassCache?: boolean } = {}
 ): Promise<{
   sleep: SleepDomainData | null;

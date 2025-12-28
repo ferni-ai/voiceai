@@ -438,7 +438,7 @@ export async function runDailyEvolution(): Promise<{
 /**
  * Get recent rule changes
  */
-export async function getRecentRuleChanges(days: number = 30): Promise<BrandRuleChange[]> {
+export async function getRecentRuleChanges(days = 30): Promise<BrandRuleChange[]> {
   const db = getFirestore();
 
   try {

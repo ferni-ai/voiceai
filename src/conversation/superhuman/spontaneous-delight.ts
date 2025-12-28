@@ -182,7 +182,7 @@ export class SpontaneousDelightEngine {
   private delightHistory: Array<{ type: DelightType; turn: number; date: Date }> = [];
   private lastDelightTurn = 0;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }
@@ -343,7 +343,7 @@ export class VisibleVulnerabilityEngine {
   private personaId: string;
   private lastVulnerabilityTurn = 0;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }
@@ -465,7 +465,7 @@ export class ProtectiveInstinctsEngine {
   private userId: string;
   private personaId: string;
 
-  constructor(userId: string, personaId: string = 'ferni') {
+  constructor(userId: string, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
   }

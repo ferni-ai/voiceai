@@ -107,6 +107,13 @@ export {
   type FirestoreFetcherOptions,
 } from './api/firestore-fetcher.js';
 
+// Demo data - aspirational story data for new users
+export {
+  createDemoStoryData,
+  hasAnyVisualizationData,
+  type YourStoryData,
+} from './api/demo-data.js';
+
 // Native SDK exports - for iOS/Android interop
 export {
   visualizationSchemas,

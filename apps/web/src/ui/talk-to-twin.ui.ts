@@ -665,8 +665,7 @@ function getTwinStyles(): string {
     .twin-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(8px);
+      background: rgba(44, 37, 32, 0.75);
     }
     
     /* Container */

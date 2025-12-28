@@ -52,14 +52,16 @@ import {
   type ValidationOptions,
 } from './pre-validation.js';
 import { resolveVoiceId, type VoiceIdInput } from './voice-id-resolver.js';
-import { HandoffTransaction, createTransaction } from './handoff-transaction.js';
+import type { HandoffTransaction} from './handoff-transaction.js';
+import { createTransaction } from './handoff-transaction.js';
 import {
   EventSequencer,
   sequenceGenerator,
   type SequencedEvent,
   type HandoffEventType,
 } from './event-sequencer.js';
-import { HandoffStateManager, getHandoffManager } from './handoff-state-manager.js';
+import type { HandoffStateManager} from './handoff-state-manager.js';
+import { getHandoffManager } from './handoff-state-manager.js';
 import { recordHandoffMetrics, type HandoffMetricsData } from '../../services/handoff-metrics.js';
 
 const log = getLogger();
@@ -279,7 +281,7 @@ export class HandoffCoordinator {
   private readonly skipBanter: boolean;
 
   private currentTransaction: HandoffTransaction | null = null;
-  private lastTraceId: string = '';
+  private lastTraceId = '';
 
   constructor(config: CoordinatorConfig) {
     this.sessionId = config.sessionId;
@@ -701,7 +703,7 @@ export class HandoffCoordinator {
   /**
    * Cancel current handoff.
    */
-  async cancel(reason: string = 'user cancelled'): Promise<void> {
+  async cancel(reason = 'user cancelled'): Promise<void> {
     const traceId = this.lastTraceId;
 
     log.info({ traceId, sessionId: this.sessionId, reason }, '⏹️ Cancelling handoff');

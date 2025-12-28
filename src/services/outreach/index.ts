@@ -855,7 +855,7 @@ export async function triggerThinkingOfYou(
 // Decision Engine
 export {
   getOutreachDecisionEngine,
-  OutreachDecisionEngine,
+  type OutreachDecisionEngine,
   startOutreachDecisionEngine,
   stopOutreachDecisionEngine,
 };
@@ -896,7 +896,7 @@ export type { ThinkingOfYouOutreach, ThinkingOfYouTrigger };
 
 // Conversational Calls
 export {
-  ConversationalCallService,
+  type ConversationalCallService,
   getConversationalCallService,
   isConversationalCallsConfigured,
   makeConversationalCall,

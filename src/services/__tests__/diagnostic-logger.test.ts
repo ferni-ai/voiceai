@@ -273,14 +273,14 @@ describe('DiagnosticLogger', () => {
       it('should log elapsed time when done called', async () => {
         const done = diag.time('test', 'Operation');
         // Simulate some work
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
         done();
         expect(consoleSpy).toHaveBeenCalled();
       });
 
       it('should include elapsed time in log', async () => {
         const done = diag.time('api', 'API call');
-        await new Promise((resolve) => setTimeout(resolve, 5));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
         done();
 
         // Find the perf log call

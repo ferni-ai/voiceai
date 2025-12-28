@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { getUserId } from '../utils/api.js';
+import { getUserId, getApiHeadersAsync } from '../utils/api.js';
 
 const log = createLogger('CustomAgentService');
 
@@ -169,23 +169,23 @@ const API_BASE = '/api/custom-agents';
 
 /**
  * Makes an authenticated API request
+ * Uses Firebase Bearer token authentication (primary) with X-User-Id fallback
  */
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  
+  // Get authenticated headers (includes Firebase Bearer token + X-User-Id fallback)
+  const authHeaders = await getApiHeadersAsync(true);
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...authHeaders,
     ...options.headers,
   };
 
-  // Add user ID for authentication (required by backend)
-  // Using shared getUserId which handles Firebase auth properly
   const userId = getUserId();
-  if (userId) {
-    (headers as Record<string, string>)['X-User-Id'] = userId;
-  } else {
+  if (!userId) {
     log.warn('No user ID available for custom agent API request');
   }
 
@@ -286,12 +286,13 @@ export async function uploadVoiceSample(
   const formData = new FormData();
   formData.append('audio', audioBlob, 'voice-sample.webm');
 
+  // Get authenticated headers (without Content-Type - let browser set for FormData)
+  const authHeaders = await getApiHeadersAsync(false);
+  
   const response = await fetch(`${API_BASE}/${agentId}/voice/upload`, {
     method: 'POST',
     body: formData,
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('ferni_auth_token') || ''}`,
-    },
+    headers: authHeaders,
   });
 
   if (!response.ok) {

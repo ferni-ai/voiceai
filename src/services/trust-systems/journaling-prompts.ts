@@ -712,7 +712,7 @@ function categoryToQuestionType(category: PromptCategory): QuestionType {
  */
 function promptContextToQuestionContext(
   context: PromptContext,
-  personaId: string = 'ferni'
+  personaId = 'ferni'
 ): QuestionContext {
   return {
     personaId,
@@ -759,7 +759,7 @@ function promptContextToQuestionContext(
 export async function generateDynamicPrompt(
   context: PromptContext,
   category?: PromptCategory,
-  personaId: string = 'ferni'
+  personaId = 'ferni'
 ): Promise<JournalingPrompt> {
   // Determine category if not specified
   const selectedCategory = category || selectCategories(context)[0] || 'reflection';
@@ -804,8 +804,8 @@ export async function generateDynamicPrompt(
  */
 export async function generateDynamicPrompts(
   context: PromptContext,
-  count: number = 3,
-  personaId: string = 'ferni'
+  count = 3,
+  personaId = 'ferni'
 ): Promise<JournalingPrompt[]> {
   const categories = selectCategories(context).slice(0, count);
   const prompts: JournalingPrompt[] = [];

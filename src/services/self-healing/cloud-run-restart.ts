@@ -238,7 +238,7 @@ async function waitForRevisionReady(
   revisionName: string,
   region: string,
   projectId: string,
-  timeoutMs: number = 120000
+  timeoutMs = 120000
 ): Promise<boolean> {
   const token = await getAccessToken();
   const startTime = Date.now();
@@ -272,7 +272,7 @@ async function waitForRevisionReady(
     }
 
     // Wait before polling again
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 5000); });
   }
 
   return false;

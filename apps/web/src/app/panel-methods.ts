@@ -15,6 +15,13 @@ import { getPredictionTrackerUI } from '../ui/prediction-tracker.ui.js';
 import { getDataExportUI } from '../ui/data-export.ui.js';
 import { showTeamHuddle as showTeamHuddleUI } from '../ui/team-huddle.ui.js';
 import { getDemoTeamHuddle } from '../services/engagement-demo-data.js';
+import { getYourStoryUI } from '../ui/your-story-dashboard.ui.js';
+import {
+  fetchVisualizationData,
+  createDemoStoryData,
+  hasAnyVisualizationData,
+  type YourStoryData,
+} from '../ui/visualizations/index.js';
 
 const log = createLogger('PanelMethods');
 
@@ -481,4 +488,154 @@ export async function showTeamHuddle(topic?: string): Promise<void> {
   const demoHuddle = getDemoTeamHuddle('weekly');
   showTeamHuddleUI(demoHuddle);
   log.debug('Team huddle shown (fallback demo)');
+}
+
+// ============================================================================
+// YOUR STORY DASHBOARD
+// ============================================================================
+
+/**
+ * Show the "Your Story" dashboard.
+ *
+ * This is the unified narrative dashboard that consolidates:
+ * - 9 cross-platform visualizations (mood calendar, burnout gauge, etc.)
+ * - Analytics stats (days together, conversations, streak)
+ * - Relationship stage and milestones
+ *
+ * For new users, shows aspirational demo data with a warm banner.
+ */
+export async function showYourStoryDashboard(): Promise<void> {
+  const dashboard = getYourStoryUI();
+  dashboard.showLoading();
+
+  const userId = localStorage.getItem('ferni_user_id');
+
+  // Try to fetch real data from Firestore
+  try {
+    if (userId) {
+      const visualizationData = await fetchVisualizationData(userId);
+
+      if (hasAnyVisualizationData(visualizationData)) {
+        // Aggregate with analytics and milestone data
+        const storyData = await aggregateStoryData(userId, visualizationData);
+        dashboard.show(storyData);
+        log.info({ userId }, 'Your Story shown with real data');
+        return;
+      }
+    }
+  } catch (err) {
+    log.debug({ err }, 'Visualization fetch failed, checking for demo mode');
+  }
+
+  // Fall back to demo data - always show for new users
+  // This is intentional: we want to show the aspirational story
+  const demoData = createDemoStoryData(userId || 'demo-user');
+  dashboard.show(demoData, { showDemoBanner: true });
+  log.info('Your Story shown with demo data (new user or demo mode)');
+}
+
+/**
+ * Aggregate story data from multiple sources.
+ *
+ * Combines:
+ * - Visualization data (from Firestore)
+ * - Analytics (from API)
+ * - Relationship stage (from API)
+ * - Recent milestones (from API)
+ */
+async function aggregateStoryData(
+  userId: string,
+  visualizationData: Awaited<ReturnType<typeof fetchVisualizationData>>
+): Promise<YourStoryData> {
+  // Fetch additional data in parallel
+  const [analyticsData, stageData, milestonesData] = await Promise.all([
+    fetchAnalyticsStats(userId),
+    fetchRelationshipStage(userId),
+    fetchRecentMilestones(userId),
+  ]);
+
+  return {
+    ...visualizationData,
+    userId,
+    timestamp: new Date().toISOString(),
+    analytics: analyticsData,
+    stage: stageData,
+    milestones: milestonesData,
+  };
+}
+
+/**
+ * Fetch analytics stats for the story header.
+ */
+async function fetchAnalyticsStats(userId: string): Promise<YourStoryData['analytics']> {
+  try {
+    const response = await fetch(`/api/analytics/user?userId=${encodeURIComponent(userId)}`);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        daysTogether: data.totalDays || 0,
+        conversations: data.totalSessions || 0,
+        streak: data.currentLongestStreak || 0,
+      };
+    }
+  } catch (err) {
+    log.debug({ err }, 'Failed to fetch analytics stats');
+  }
+
+  // Return zeros if API fails
+  return { daysTogether: 0, conversations: 0, streak: 0 };
+}
+
+/**
+ * Fetch relationship stage for the story header.
+ */
+async function fetchRelationshipStage(userId: string): Promise<YourStoryData['stage']> {
+  try {
+    const response = await fetch(`/api/journey/stage?userId=${encodeURIComponent(userId)}`);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        name: data.stageName || 'Getting Started',
+        progress: data.progress || 0,
+        tagline: data.tagline || 'Just beginning our journey',
+      };
+    }
+  } catch (err) {
+    log.debug({ err }, 'Failed to fetch relationship stage');
+  }
+
+  // Return defaults if API fails
+  return {
+    name: 'Getting Started',
+    progress: 0,
+    tagline: 'Just beginning our journey',
+  };
+}
+
+/**
+ * Fetch recent milestones for the story.
+ */
+async function fetchRecentMilestones(userId: string): Promise<YourStoryData['milestones']> {
+  try {
+    const response = await fetch(`/api/journey/milestones?userId=${encodeURIComponent(userId)}&limit=5`);
+    if (response.ok) {
+      const data = await response.json();
+      return (data.milestones || []).map((m: {
+        id: string;
+        name: string;
+        celebratedAt: string | number;
+        category?: string;
+      }) => ({
+        id: m.id,
+        name: m.name,
+        celebratedAt: typeof m.celebratedAt === 'string' ? new Date(m.celebratedAt).getTime() : m.celebratedAt,
+        category: (m.category || 'discovery') as 'relationship' | 'team' | 'conversation' | 'discovery' | 'sweet',
+      }));
+    }
+  } catch (err) {
+    log.debug({ err }, 'Failed to fetch milestones');
+  }
+
+  // Return empty array if API fails
+  return [];
 }

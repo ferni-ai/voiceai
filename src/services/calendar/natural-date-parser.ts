@@ -188,7 +188,7 @@ function parseExactDateTime(
   }
 
   // Build date (use current year, or next year if date has passed)
-  let year = reference.getFullYear();
+  const year = reference.getFullYear();
   const result = new Date(year, monthIndex, day, hour24, minute, 0, 0);
 
   // If prefer future and date is in past, bump to next year
@@ -291,8 +291,8 @@ function parseNextWeekday(
 ): ParsedDateTime | null {
   // Find day name
   let targetDay = -1;
-  let isNext = input.includes('next');
-  let isThis = input.includes('this');
+  const isNext = input.includes('next');
+  const isThis = input.includes('this');
 
   for (let i = 0; i < DAY_NAMES.length; i++) {
     if (input.includes(DAY_NAMES[i]) || input.includes(DAY_NAMES_SHORT[i])) {

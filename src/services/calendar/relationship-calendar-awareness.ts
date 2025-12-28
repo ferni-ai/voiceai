@@ -198,7 +198,7 @@ export async function getRelationshipMeetingContext(
  */
 export async function findNeglectedRelationships(
   userId: string,
-  daysToLookBack: number = 30
+  daysToLookBack = 30
 ): Promise<RelationshipCalendarGap[]> {
   try {
     // Load relationship network

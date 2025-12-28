@@ -18,7 +18,7 @@
  */
 
 import { tts } from '@livekit/agents';
-import * as cartesia from '@livekit/agents-plugin-cartesia';
+import type * as cartesia from '@livekit/agents-plugin-cartesia';
 import {
   CARTESIA_MODEL,
   createCartesiaTTS,

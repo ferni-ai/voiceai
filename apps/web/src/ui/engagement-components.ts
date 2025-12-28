@@ -348,13 +348,11 @@ export const SHARED_STYLES = `
     visibility: visible;
   }
 
-  /* Modal Backdrop - Blurred overlay */
+  /* Modal Backdrop */
   .ferni-modal__backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy);
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+    background: rgba(44, 37, 32, 0.75);
   }
 
   /* Modal Card - The floating content container */

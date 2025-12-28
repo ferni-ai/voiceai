@@ -123,7 +123,7 @@ describe('TurnTakingEngine', () => {
       engine.onSpeakingEnd('user_1');
 
       // Wait for silence threshold
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 900); });
 
       // Now agent should be able to speak
       expect(engine.shouldAgentSpeak('agent_ferni')).toBe(true);
@@ -250,7 +250,7 @@ describe('TurnTakingEngine', () => {
       engine.onSpeakingEnd('user_1');
 
       // Wait for silence to accumulate
-      await new Promise((resolve) => setTimeout(resolve, 1100));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 1100); });
 
       expect(handler).toHaveBeenCalled();
     });

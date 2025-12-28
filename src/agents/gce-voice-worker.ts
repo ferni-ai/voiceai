@@ -151,7 +151,9 @@ const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
 // Initialize LiveKit SDK logger
-initializeLogger({ pretty: true, level: 'info' });
+// Set to 'debug' for verbose turn monitoring and startup logging
+const logLevel = process.env.LOG_LEVEL || 'info';
+initializeLogger({ pretty: true, level: logLevel as 'debug' | 'info' | 'warn' | 'error' });
 
 // Initialize LiveKit connection module
 initLiveKitConnection(

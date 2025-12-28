@@ -66,7 +66,7 @@ export class OutreachOrchestrator extends EventEmitter {
     avgResponseTimeMs: 0,
   };
 
-  private scheduledOutreach: Map<string, NodeJS.Timeout> = new Map();
+  private scheduledOutreach = new Map<string, NodeJS.Timeout>();
 
   constructor() {
     super();

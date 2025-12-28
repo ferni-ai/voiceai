@@ -25,7 +25,7 @@ const log = createLogger({ module: 'ValueCapture' });
 // IN-MEMORY CACHE (backed by Firestore)
 // ============================================================================
 
-const valueEventsCache: Map<string, ValueEvent> = new Map();
+const valueEventsCache = new Map<string, ValueEvent>();
 let totalValueCapturedCents = 0;
 let contributionCount = 0;
 

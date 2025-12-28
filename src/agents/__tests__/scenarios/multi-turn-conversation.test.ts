@@ -259,7 +259,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
     const scenario = coachingSession;
 
     it('should complete goal-focused coaching flow', async () => {
-      let previousTopic = '';
+      const previousTopic = '';
 
       for (let i = 0; i < scenario.turns.length; i++) {
         const turn = scenario.turns[i];

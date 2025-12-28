@@ -54,7 +54,7 @@ import type { PersonaProfile } from '../../personas/types.js';
 // ============================================================================
 
 function createMockPersona(
-  id: string = 'ferni',
+  id = 'ferni',
   overrides: Partial<PersonaProfile> = {}
 ): PersonaProfile {
   return {

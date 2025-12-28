@@ -62,7 +62,7 @@ async function loadVADModel(): Promise<void> {
 
     // Keep worker alive briefly to ensure caching completes
     // The OS will cache the model files in memory
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
 
     // Signal completion
     parentPort?.postMessage({ type: 'complete' });

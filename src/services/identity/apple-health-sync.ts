@@ -592,7 +592,7 @@ export async function isAppleHealthConfigured(userId: string): Promise<boolean> 
  */
 export async function getRecentSummaries(
   userId: string,
-  days: number = 7
+  days = 7
 ): Promise<AppleHealthResult<AppleHealthDailySummary[]>> {
   try {
     const db = getFirestoreDb();

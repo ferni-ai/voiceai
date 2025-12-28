@@ -352,7 +352,7 @@ export function createSessionMetricsTracker(): EngagementMetrics {
 export function incrementMetric(
   metrics: EngagementMetrics,
   key: keyof EngagementMetrics,
-  amount: number = 1
+  amount = 1
 ): void {
   (metrics[key] as number) += amount;
 }

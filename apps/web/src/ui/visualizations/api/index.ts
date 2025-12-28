@@ -17,3 +17,9 @@ export {
   fetchVisualizationData,
   type FirestoreFetcherOptions,
 } from './firestore-fetcher.js';
+
+export {
+  createDemoStoryData,
+  hasAnyVisualizationData,
+  type YourStoryData,
+} from './demo-data.js';

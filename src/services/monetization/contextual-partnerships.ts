@@ -28,8 +28,8 @@ const log = createLogger({ module: 'ContextualPartnerships' });
 // IN-MEMORY STORAGE (Replace with DB in production)
 // ============================================================================
 
-const partners: Map<string, Partner> = new Map();
-const referrals: Map<string, PartnerReferral> = new Map();
+const partners = new Map<string, Partner>();
+const referrals = new Map<string, PartnerReferral>();
 
 // Initialize with example partners
 function initializePartners(): void {

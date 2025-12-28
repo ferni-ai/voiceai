@@ -69,13 +69,11 @@ function injectStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.95);
       opacity: 0;
-      background: var(--color-bg-elevated, rgba(42, 42, 62, 0.95));
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--color-bg-elevated, #FFFDFB);
       border-radius: var(--radius-xl, 16px);
       padding: var(--space-md, 16px) var(--space-lg, 24px);
-      box-shadow: var(--shadow-xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
-      border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       z-index: var(--z-notification, 3000);
       max-width: min(320px, 100%);
       text-align: center;

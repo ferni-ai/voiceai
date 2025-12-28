@@ -41,7 +41,7 @@ const DEFAULT_CONFIG: TriggerEmbeddingCacheConfig = {
  * Cache for trigger embeddings with Firestore persistence
  */
 export class TriggerEmbeddingCache {
-  private memoryCache: Map<string, CachedTriggerEmbedding> = new Map();
+  private memoryCache = new Map<string, CachedTriggerEmbedding>();
   private config: TriggerEmbeddingCacheConfig;
   private firestoreDb: FirebaseFirestore.Firestore | null = null;
   private initialized = false;

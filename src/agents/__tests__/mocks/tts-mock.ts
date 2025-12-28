@@ -59,8 +59,8 @@ export interface MockTTSEvent {
  * Create a mock audio frame
  */
 export function createMockAudioFrame(
-  durationMs: number = 100,
-  sampleRate: number = 24000
+  durationMs = 100,
+  sampleRate = 24000
 ): MockAudioFrame {
   const samplesPerChannel = Math.floor((sampleRate * durationMs) / 1000);
   const channels = 1;
@@ -136,7 +136,7 @@ export class MockTTSClient {
 
     // Simulate synthesis time
     const duration = (text.length * this.options.msPerCharacter!) / 1000;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
 
     const frames = createMockAudioFrames(text, {
       msPerCharacter: this.options.msPerCharacter,
@@ -176,7 +176,7 @@ export class MockTTSClient {
     });
 
     for (const frame of frames) {
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 5); });
       this.eventHistory.push({ type: 'audio', timestamp: Date.now(), audio: frame });
       yield frame;
     }
@@ -252,7 +252,7 @@ export class MockCartesiaTTS {
   private client: MockTTSClient;
   private voiceId: string;
 
-  constructor(voiceId: string = 'mock-cartesia-voice') {
+  constructor(voiceId = 'mock-cartesia-voice') {
     this.voiceId = voiceId;
     this.client = new MockTTSClient({ voiceId });
   }

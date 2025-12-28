@@ -20,11 +20,12 @@ import {
 import type { MemoryItem } from '../../memory/advanced-retrieval.js';
 
 // Intelligence imports
-import {
-  buildSuperhumanContext,
+import type {
   getConversationPatternAnalyzer,
   getProactiveInsightEngine,
-  getResponseQualityTracker,
+  getResponseQualityTracker} from '../../intelligence/index.js';
+import {
+  buildSuperhumanContext,
   type SuperhumanContext,
 } from '../../intelligence/index.js';
 

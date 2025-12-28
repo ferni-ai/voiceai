@@ -198,18 +198,17 @@ function addHintStyles(): void {
       position: fixed;
       bottom: 1.5rem;
       right: 1.5rem;
-      background: var(--color-bg-secondary, rgba(26, 26, 46, 0.95));
-      backdrop-filter: blur(var(--glass-blur-medium));
-      border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: 12px;
       padding: 1rem;
       font-size: 0.875rem;
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      color: var(--color-text-secondary, #5C544A);
       opacity: 0;
       transform: translateY(10px);
       transition: opacity 0.3s ease, transform 0.3s ease;
       z-index: var(--z-dropdown);
-      box-shadow: var(--shadow-xl);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
     .keyboard-hint.visible {

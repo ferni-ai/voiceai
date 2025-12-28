@@ -35,7 +35,7 @@ const usageAnalytics = new Map<string, Map<string, CapabilityUsage>>();
 export function trackCapabilityUsage(
   userId: string,
   toolId: string,
-  success: boolean = true
+  success = true
 ): void {
   if (!usageAnalytics.has(userId)) {
     usageAnalytics.set(userId, new Map());
@@ -57,7 +57,7 @@ export function trackCapabilityUsage(
   log.debug({ userId, toolId, usage: existing }, 'Tracked capability usage');
 }
 
-export function getTopCapabilities(userId: string, limit: number = 5): CapabilityUsage[] {
+export function getTopCapabilities(userId: string, limit = 5): CapabilityUsage[] {
   const userUsage = usageAnalytics.get(userId);
   if (!userUsage) return [];
 
@@ -66,7 +66,7 @@ export function getTopCapabilities(userId: string, limit: number = 5): Capabilit
     .slice(0, limit);
 }
 
-export function getRecentCapabilities(userId: string, limit: number = 5): CapabilityUsage[] {
+export function getRecentCapabilities(userId: string, limit = 5): CapabilityUsage[] {
   const userUsage = usageAnalytics.get(userId);
   if (!userUsage) return [];
 
@@ -336,7 +336,7 @@ const quickCalendarDef: ToolDefinition = {
           const { getToolDefinitions } = await import('../calendar/index.js');
           const calendarTools = await getToolDefinitions();
 
-          let toolId = action === 'add' ? 'createCalendarEvent' : 'getCalendarEvents';
+          const toolId = action === 'add' ? 'createCalendarEvent' : 'getCalendarEvents';
           const tool = calendarTools.find(t => t.id === toolId || t.id === 'listCalendar');
 
           if (!tool) {

@@ -133,7 +133,7 @@ export async function getHealthSummary(
  */
 export async function getRecentHealthSummaries(
   userId: string,
-  days: number = 7
+  days = 7
 ): Promise<HealthSummary[]> {
   const db = getFirestoreDb();
   if (!db) return [];

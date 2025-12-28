@@ -23,6 +23,8 @@ import type {
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getTTSWithSpeculation } from './speculative-tts.js';
+// ⚡ Import conversational audio cache for instant handoff/banter phrases
+import { getCachedAudio as getConversationalCachedAudio } from '../conversational-audio-cache.js';
 
 const log = createLogger({ module: 'CacheAwareTTS' });
 
@@ -210,9 +212,46 @@ export async function processTTSWithCache(
     return defaultTTSFn(text);
   }
 
-  // Check speculative cache
+  // Check caches (fastest first)
   if (enableCache) {
     try {
+      // 1. ⚡ CONVERSATIONAL CACHE (instant - greetings, handoffs, banter)
+      // This is pre-warmed at startup for <800ms latency on common phrases.
+      const conversationalAudio = getConversationalCachedAudio(text, voiceId);
+      if (conversationalAudio && conversationalAudio.byteLength > 0) {
+        const hitLatency = Date.now() - startTime;
+        metrics.cacheHits++;
+        hitLatencies.push(hitLatency);
+        if (hitLatencies.length > 100) hitLatencies.shift();
+        metrics.avgCacheHitLatencyMs =
+          hitLatencies.reduce((a, b) => a + b, 0) / hitLatencies.length;
+
+        // Conversational cache saves ~300ms (direct TTS bypass)
+        metrics.totalSavedLatencyMs += 300;
+
+        log.info(
+          {
+            text: text.slice(0, 30),
+            sessionId,
+            hitLatencyMs: hitLatency,
+            audioBytes: conversationalAudio.byteLength,
+            cache: 'conversational',
+          },
+          '⚡ CONVERSATIONAL CACHE HIT - instant handoff/banter!'
+        );
+
+        const frames = [...splitIntoFrames(conversationalAudio, sampleRate)];
+        return new ReadableStream<AudioFrame>({
+          start(controller) {
+            for (const frame of frames) {
+              controller.enqueue(frame);
+            }
+            controller.close();
+          },
+        }) as NodeReadableStream<AudioFrame>;
+      }
+
+      // 2. SPECULATIVE CACHE (may have been prefetched during conversation)
       const cacheResult = await getTTSWithSpeculation(text, voiceId, emotion);
 
       if (cacheResult.cached && cacheResult.audio.byteLength > 0) {
@@ -235,8 +274,9 @@ export async function processTTSWithCache(
             sessionId,
             hitLatencyMs: hitLatency,
             audioBytes: cacheResult.audio.byteLength,
+            cache: 'speculative',
           },
-          '🎯 TTS CACHE HIT - serving pre-generated audio!'
+          '🎯 SPECULATIVE CACHE HIT - serving pre-generated audio!'
         );
 
         // Create a readable stream from the cached audio frames

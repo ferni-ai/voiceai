@@ -484,9 +484,7 @@ function getStyles(): string {
     .outreach-settings-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .outreach-settings-card {
@@ -494,23 +492,14 @@ function getStyles(): string {
       width: 90%;
       max-width: clamp(350px, 90vw, 500px);
       max-height: 85vh;
-      /* Glass modal styling */
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
       transition: transform var(--duration-moderate) var(--ease-spring);
-    }
-
-    @supports not (backdrop-filter: blur(1px)) {
-      .outreach-settings-card {
-        background: var(--color-background-elevated);
-      }
     }
 
     .outreach-settings-overlay.open .outreach-settings-card {

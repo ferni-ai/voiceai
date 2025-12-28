@@ -5,5 +5,5 @@
  * when you're struggling. Works across ALL life domains.
  */
 
-export * from './types.js';
+export type * from './types.js';
 export * from './thesis-service.js';

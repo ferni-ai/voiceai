@@ -546,7 +546,7 @@ export function analyzeAppleMusicTaste(
  * Note: Apple Music doesn't provide preview URLs, so we need to
  * cross-reference with iTunes Search API for playable tracks
  */
-export function getAppleMusicTracksForGames(userId: string, count: number = 10): AppleMusicTrack[] {
+export function getAppleMusicTracksForGames(userId: string, count = 10): AppleMusicTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 
@@ -559,7 +559,7 @@ export function getAppleMusicTracksForGames(userId: string, count: number = 10):
  * Get tracks from heavy rotation (most familiar to user)
  * Great for easier game rounds
  */
-export function getHeavyRotationTracks(userId: string, count: number = 5): AppleMusicTrack[] {
+export function getHeavyRotationTracks(userId: string, count = 5): AppleMusicTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 
@@ -570,7 +570,7 @@ export function getHeavyRotationTracks(userId: string, count: number = 5): Apple
  * Get recently played tracks
  * Good for "what were you just listening to" features
  */
-export function getRecentlyPlayedTracks(userId: string, count: number = 10): AppleMusicTrack[] {
+export function getRecentlyPlayedTracks(userId: string, count = 10): AppleMusicTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 

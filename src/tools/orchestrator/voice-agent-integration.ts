@@ -335,7 +335,7 @@ async function getLegacyTools(options: GetToolsForAgentOptions): Promise<GetTool
     buildEssentialTools({ userId: options.userId }),
   ]);
 
-  let allTools = { ...essentialTools, ...personaTools };
+  const allTools = { ...essentialTools, ...personaTools };
 
   // Filter forbidden
   const forbiddenTools = options.persona.tools?.forbidden || [];

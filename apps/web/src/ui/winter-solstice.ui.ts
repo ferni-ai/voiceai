@@ -1005,8 +1005,7 @@ class WinterSolsticeMomentUI {
         width: 48px;
         height: 48px;
         border: none;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px);
+        background: rgba(255, 255, 255, 0.2);
         border-radius: var(--radius-full);
         color: var(--solstice-star);
         cursor: pointer;

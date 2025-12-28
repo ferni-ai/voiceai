@@ -536,7 +536,7 @@ export function checkDecadeGuess(
  * Get random trivia questions
  */
 export function getRandomTriviaQuestions(
-  count: number = 5,
+  count = 5,
   category?: 'artist' | 'song' | 'album' | 'history' | 'awards',
   difficulty?: 'easy' | 'medium' | 'hard',
   excludeIds?: string[]
@@ -622,7 +622,7 @@ export interface TriviaGameSession {
 /**
  * Create a new Finish the Lyric game session
  */
-export function createLyricGameSession(roundCount: number = 5): LyricGameSession {
+export function createLyricGameSession(roundCount = 5): LyricGameSession {
   const rounds: FinishTheLyricRound[] = [];
   const usedIds: string[] = [];
 
@@ -646,7 +646,7 @@ export function createLyricGameSession(roundCount: number = 5): LyricGameSession
 /**
  * Create a new Decade Challenge session
  */
-export function createDecadeGameSession(roundCount: number = 5): DecadeGameSession {
+export function createDecadeGameSession(roundCount = 5): DecadeGameSession {
   const rounds: DecadeChallengeRound[] = [];
   const usedIds: string[] = [];
 
@@ -671,7 +671,7 @@ export function createDecadeGameSession(roundCount: number = 5): DecadeGameSessi
  * Create a new Music Trivia session
  */
 export function createTriviaGameSession(
-  questionCount: number = 10,
+  questionCount = 10,
   category?: 'artist' | 'song' | 'album' | 'history' | 'awards'
 ): TriviaGameSession {
   const questions = getRandomTriviaQuestions(questionCount, category);

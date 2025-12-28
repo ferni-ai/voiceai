@@ -154,7 +154,7 @@ class MetricsStore {
     return strategies.map((s) => this.getStrategyMetrics(s));
   }
 
-  getTopTools(limit: number = 10): Array<{ toolId: string; count: number; avgConfidence: number }> {
+  getTopTools(limit = 10): Array<{ toolId: string; count: number; avgConfidence: number }> {
     const tools = Array.from(this.toolCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
@@ -168,7 +168,7 @@ class MetricsStore {
     return tools;
   }
 
-  getRecentErrors(limit: number = 10): Array<{ timestamp: Date; error: string; input: string }> {
+  getRecentErrors(limit = 10): Array<{ timestamp: Date; error: string; input: string }> {
     return this.events
       .filter((e) => e.eventType === 'error')
       .slice(-limit)

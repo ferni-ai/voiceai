@@ -5,6 +5,15 @@
  * These games don't require music playback - just conversation.
  */
 
+// Import state types from individual game files for use in TextGameState union
+import type { EmojiStoryState } from './emoji-story.js';
+import type { OneWordCheckinState } from './one-word-checkin.js';
+import type { TinyWinTrackerState } from './tiny-win-tracker.js';
+import type { FortuneCookieState } from './fortune-cookie.js';
+
+// Re-export for convenience
+export type { EmojiStoryState, OneWordCheckinState, TinyWinTrackerState, FortuneCookieState };
+
 // ============================================================================
 // TEXT GAME TYPES
 // ============================================================================
@@ -14,7 +23,14 @@ export type TextGameType =
   | '20-questions' // Guess what I'm thinking of
   | 'word-association' // Say a word related to the last
   | 'would-you-rather' // Choose between two scenarios
-  | 'story-builder'; // Collaborative story one sentence at a time
+  | 'story-builder' // Collaborative story one sentence at a time
+  | 'three-word-day' // Describe your day/mood in 3 words
+  | 'values-card-sort' // Discover your core values
+  | 'headline-writer' // Write headlines about your life
+  | 'emoji-story' // Express feelings through emoji sequences
+  | 'one-word-checkin' // Single word check-in with follow-up
+  | 'tiny-win-tracker' // Celebrate small daily victories
+  | 'fortune-cookie'; // Receive and reflect on wisdom
 
 export type TextGameStatus = 'idle' | 'active' | 'completed' | 'draw';
 
@@ -178,6 +194,90 @@ export interface StoryBuilderState {
 // UNIFIED TEXT GAME STATE
 // ============================================================================
 
+// ============================================================================
+// THREE WORD DAY
+// ============================================================================
+
+export interface ThreeWordDayState {
+  /** The prompt type for this session */
+  promptType: 'day' | 'mood' | 'week' | 'moment' | 'year' | 'custom';
+  /** Custom prompt if provided */
+  customPrompt?: string;
+  /** The three words provided by user */
+  words: string[];
+  /** Which word we're currently exploring (0, 1, 2, or 'complete') */
+  explorationPhase: number | 'complete';
+  /** Insights gathered during exploration */
+  insights: string[];
+  /** Whether the game has concluded */
+  concluded: boolean;
+}
+
+// ============================================================================
+// VALUES CARD SORT
+// ============================================================================
+
+export interface ValueCard {
+  id: string;
+  name: string;
+  description: string;
+  category: 'relationships' | 'achievement' | 'growth' | 'wellbeing' | 'meaning' | 'pleasure';
+}
+
+export interface ValuesCardSortState {
+  /** Current phase of the game */
+  phase: 'intro' | 'sorting' | 'narrowing' | 'ranking' | 'reflection' | 'complete';
+  /** All cards in the deck */
+  deck: ValueCard[];
+  /** Cards sorted as "important" */
+  importantPile: ValueCard[];
+  /** Cards sorted as "not as important" */
+  notAsPile: ValueCard[];
+  /** Final top 5 values */
+  topFive: ValueCard[];
+  /** Current card being considered */
+  currentCard: ValueCard | null;
+  /** Index in the deck */
+  deckIndex: number;
+  /** Comparison pairs for ranking */
+  comparisonPair?: [ValueCard, ValueCard];
+  /** Notes/reflections captured */
+  reflections: string[];
+}
+
+// ============================================================================
+// HEADLINE WRITER
+// ============================================================================
+
+export type HeadlineTimeframe = 'today' | 'this_week' | 'this_month' | 'this_year' | 'past' | 'future' | 'dream';
+export type HeadlineTone = 'triumphant' | 'honest' | 'humorous' | 'hopeful' | 'any';
+
+export interface Headline {
+  text: string;
+  timeframe: HeadlineTimeframe;
+  tone?: HeadlineTone;
+  subheadline?: string;
+}
+
+export interface HeadlineWriterState {
+  /** Current phase of the game */
+  phase: 'prompt' | 'writing' | 'subheadline' | 'reflection' | 'another' | 'complete';
+  /** Current prompt/timeframe */
+  currentTimeframe: HeadlineTimeframe;
+  /** Current tone suggestion */
+  suggestedTone: HeadlineTone;
+  /** Headlines written this session */
+  headlines: Headline[];
+  /** Current headline being crafted */
+  currentHeadline?: Partial<Headline>;
+  /** Round number */
+  round: number;
+}
+
+// ============================================================================
+// UNIFIED TEXT GAME STATE
+// ============================================================================
+
 export interface TextGameState {
   gameType: TextGameType | null;
   status: TextGameStatus;
@@ -189,6 +289,13 @@ export interface TextGameState {
     | WordAssociationState
     | WouldYouRatherState
     | StoryBuilderState
+    | ThreeWordDayState
+    | ValuesCardSortState
+    | HeadlineWriterState
+    | EmojiStoryState
+    | OneWordCheckinState
+    | TinyWinTrackerState
+    | FortuneCookieState
     | Record<string, unknown>;
 }
 

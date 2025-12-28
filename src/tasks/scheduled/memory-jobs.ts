@@ -47,7 +47,7 @@ const log = getLogger();
 /**
  * Get list of user IDs from Firestore that have memory data
  */
-async function getActiveUserIds(limit: number = 500): Promise<string[]> {
+async function getActiveUserIds(limit = 500): Promise<string[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();

@@ -151,7 +151,7 @@ export function generateGameVictoryCard(
   trackName?: string,
   artistName?: string,
   guessTimeMs?: number,
-  isPersonalBest: boolean = false
+  isPersonalBest = false
 ): ShareableCard {
   const cardId = `victory-${userId}-${Date.now()}`;
 

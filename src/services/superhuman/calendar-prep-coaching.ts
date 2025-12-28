@@ -373,7 +373,7 @@ export async function getPrepRecommendations(
   const baseSuggestions = PREP_SUGGESTIONS[type] || PREP_SUGGESTIONS.other;
 
   // Customize based on history
-  let suggestions = [...baseSuggestions];
+  const suggestions = [...baseSuggestions];
   let historicalContext: string | undefined;
 
   if (relevantHistory) {

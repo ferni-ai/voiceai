@@ -13,16 +13,16 @@
 
 import { llm, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
-import { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { z } from 'zod';
 
-import { createLogger } from '../../utils/safe-logger.js';
-import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
-  wrappedTtsNode,
-  extractTtsSessionContext,
   clearInterruptFlags,
+  extractTtsSessionContext,
+  wrappedTtsNode,
 } from '../shared/tts-wrapper.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -71,13 +71,13 @@ export interface PersonaVoiceAgentOptions {
 
 // Memory tools - persistence and recall
 import {
-  rememberAboutUserDef,
+  forgetMemoryDef,
+  getRelationshipSummaryDef,
   recallFromMemoryDef,
   recallPreviousConversationDef,
+  rememberAboutUserDef,
   rememberImportantFactDef,
-  getRelationshipSummaryDef,
   updateMemoryDef,
-  forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
 // Entertainment tools - music playback (from domains)
@@ -503,7 +503,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     }
 
     // Generate a contextual greeting using session data
-    const userData = this.session.userData;
+    const { userData } = this.session;
     const isReturning = userData?.isReturningUser ?? false;
     const userName = userData?.userName;
 
@@ -523,8 +523,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
 Generate a warm, brief greeting (1-2 sentences max).
 
-OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your greeting here"}}`,
+Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak naturally.`,
     });
   }
 
@@ -611,7 +610,7 @@ export const createFerniAgent = createPersonaVoiceAgent;
  * This is called by voice-agent-entry when orchestrator is disabled but tool
  * filtering is still needed.
  */
-export function buildAllFerniTools(agentId: string = 'ferni'): ToolSet {
+export function buildAllFerniTools(agentId = 'ferni'): ToolSet {
   const memoryTools = buildMemoryTools(agentId);
   const entertainmentTools = buildEntertainmentTools();
   const informationTools = buildInformationTools(agentId);

@@ -123,11 +123,11 @@ const DEFAULT_CONFIG: StreamingConfig = {
 // ============================================================================
 
 export class StreamingRouter {
-  private states: Map<string, StreamingState> = new Map();
+  private states = new Map<string, StreamingState>();
   private config: StreamingConfig;
-  private callbacks: Map<string, SignalCallback[]> = new Map();
+  private callbacks = new Map<string, SignalCallback[]>();
   private tools: SemanticToolDefinition[] = [];
-  private debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(config: Partial<StreamingConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };

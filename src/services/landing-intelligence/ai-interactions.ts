@@ -222,7 +222,7 @@ const PERSONA_PROMPTS: Record<
 export async function sendDemoChatMessage(
   visitorId: string,
   message: string,
-  persona: string = 'ferni'
+  persona = 'ferni'
 ): Promise<{
   response: string;
   messagesRemaining: number;
@@ -698,7 +698,7 @@ const SOCIAL_PROOF_TEMPLATES = [
 /**
  * Generate dynamic social proof snippets
  */
-export async function generateSocialProof(count: number = 3): Promise<SocialProofSnippet[]> {
+export async function generateSocialProof(count = 3): Promise<SocialProofSnippet[]> {
   const genAI = await getGenAI();
   if (!genAI) {
     // Return template-based snippets

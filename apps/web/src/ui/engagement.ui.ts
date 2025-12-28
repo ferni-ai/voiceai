@@ -520,8 +520,7 @@ export class EngagementUI {
       .engagement-panel__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--backdrop-heavy);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       /* Card */

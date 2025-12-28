@@ -115,12 +115,6 @@ function ensureStylesExist(): void {
       overflow: hidden;
     }
 
-    @supports not (backdrop-filter: blur(1px)) {
-      .confirm-modal-container {
-        background: var(--color-bg-elevated, #1e1e2e);
-        border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
-      }
-    }
     
     .confirm-modal-overlay.open .confirm-modal-container {
       transform: scale(1) translateY(0);

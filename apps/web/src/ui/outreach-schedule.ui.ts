@@ -113,9 +113,7 @@ const STYLES = `
 .outreach-schedule-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-  backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .outreach-schedule-modal {
@@ -123,12 +121,10 @@ const STYLES = `
   width: 90%;
   max-width: clamp(392px, 90vw, 560px);
   max-height: 80vh;
-  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-  backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
   border-radius: var(--radius-xl, 20px);
-  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   transform: scale(0.95);
@@ -137,12 +133,6 @@ const STYLES = `
 
 .outreach-schedule-overlay.open .outreach-schedule-modal {
   transform: scale(1);
-}
-
-@supports not (backdrop-filter: blur(24px)) {
-  .outreach-schedule-modal {
-    background: var(--color-background-elevated, #faf6f0);
-  }
 }
 
 .outreach-schedule-header {
@@ -906,29 +896,20 @@ function addPreviewStyles(): void {
     .outreach-preview-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
     .outreach-preview-modal {
       position: relative;
       width: 90%;
       max-width: clamp(294px, 90vw, 420px);
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       transform: scale(0.95);
       transition: transform 200ms ease;
     }
     .outreach-preview-overlay.open .outreach-preview-modal { transform: scale(1); }
-    @supports not (backdrop-filter: blur(24px)) {
-      .outreach-preview-modal {
-        background: var(--color-background-elevated, #faf6f0);
-      }
-    }
     .outreach-preview-header {
       display: flex;
       align-items: center;

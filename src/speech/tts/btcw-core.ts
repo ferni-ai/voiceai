@@ -881,7 +881,7 @@ export function createBTCWTTSFromEnv(voiceId?: string): BTCWTTS {
 /**
  * Prewarm a BTCW TTS instance
  */
-export async function prewarmBTCWTTS(voiceId: string = 'ferni'): Promise<void> {
+export async function prewarmBTCWTTS(voiceId = 'ferni'): Promise<void> {
   if (_isPrewarming || _prewarmState) {
     _log('BTCW TTS prewarm already in progress or complete');
     return _prewarmPromise || Promise.resolve();

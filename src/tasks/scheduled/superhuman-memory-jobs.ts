@@ -30,7 +30,7 @@ const log = getLogger();
 /**
  * Get active user profiles from Firestore
  */
-async function getActiveUserProfiles(limit: number = 100): Promise<UserProfile[]> {
+async function getActiveUserProfiles(limit = 100): Promise<UserProfile[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -60,7 +60,7 @@ async function getActiveUserProfiles(limit: number = 100): Promise<UserProfile[]
 /**
  * Get users who need memory re-indexing (profile updated since last index)
  */
-async function getUsersNeedingReindex(limit: number = 50): Promise<UserProfile[]> {
+async function getUsersNeedingReindex(limit = 50): Promise<UserProfile[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();

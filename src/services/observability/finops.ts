@@ -314,7 +314,7 @@ export interface UnitEconomics {
 // ============================================================================
 
 const costEvents: CostEvent[] = [];
-const sessionCosts: Map<string, SessionCost> = new Map();
+const sessionCosts = new Map<string, SessionCost>();
 const MAX_EVENTS = 50000;
 const MAX_SESSIONS = 10000;
 
@@ -339,7 +339,7 @@ let avgCustomerLifetimeMonths = 12; // Default 12 months
 let churnRateMonthly = 0.05; // 5% monthly churn
 
 // User cost tracking for power user detection
-const userMonthlyCosts: Map<string, { cost: number; sessions: number; tier: string }> = new Map();
+const userMonthlyCosts = new Map<string, { cost: number; sessions: number; tier: string }>();
 
 // ============================================================================
 // COST RECORDING
@@ -671,7 +671,7 @@ export function getSnapshot(): FinOpsSnapshot {
   };
 
   // Track per-user costs for power user detection
-  const userCosts: Map<string, { cost: number; sessions: number; tier: string }> = new Map();
+  const userCosts = new Map<string, { cost: number; sessions: number; tier: string }>();
 
   for (const event of eventsThisMonth) {
     const tierData = costByTier[event.tier];

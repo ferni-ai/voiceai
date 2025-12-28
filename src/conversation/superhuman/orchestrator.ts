@@ -39,30 +39,27 @@ import type {
 } from './types.js';
 
 // Import all engines
-import { AnticipatoryPresenceEngine, getAnticipatoryPresence } from './anticipatory-presence.js';
-import { EmotionalMemoryEngine, getEmotionalMemory } from './emotional-memory.js';
-import { EvolvingJokesEngine, getEvolvingJokes } from './evolving-jokes.js';
-import { getLinguisticMirroring, LinguisticMirroringEngine } from './linguistic-mirroring.js';
+import { type AnticipatoryPresenceEngine, getAnticipatoryPresence } from './anticipatory-presence.js';
+import { type EmotionalMemoryEngine, getEmotionalMemory } from './emotional-memory.js';
+import { type EvolvingJokesEngine, getEvolvingJokes } from './evolving-jokes.js';
+import { type LinguisticMirroringEngine, getLinguisticMirroring } from './linguistic-mirroring.js';
 import {
+  type MetaRelationshipEngine,
+  type SomaticPresenceEngine,
   getMetaRelationship,
   getSomaticPresence,
-  MetaRelationshipEngine,
-  SomaticPresenceEngine,
 } from './meta-relationship.js';
 import {
+  type ProtectiveInstinctsEngine,
+  type SpontaneousDelightEngine,
+  type VisibleVulnerabilityEngine,
   getProtectiveInstincts,
   getSpontaneousDelight,
   getVisibleVulnerability,
-  ProtectiveInstinctsEngine,
-  SpontaneousDelightEngine,
-  VisibleVulnerabilityEngine,
 } from './spontaneous-delight.js';
-import {
-  getSuperhumanObservations,
-  SuperhumanObservationsEngine,
-} from './superhuman-observations.js';
-import { getTeamCoherence, TeamCoherenceEngine } from './team-coherence.js';
-import { getTemporalEmotional, TemporalEmotionalEngine } from './temporal-emotional.js';
+import { type SuperhumanObservationsEngine, getSuperhumanObservations } from './superhuman-observations.js';
+import { type TeamCoherenceEngine, getTeamCoherence } from './team-coherence.js';
+import { type TemporalEmotionalEngine, getTemporalEmotional } from './temporal-emotional.js';
 
 const logger = createLogger({ module: 'BetterThanHuman' });
 
@@ -98,7 +95,7 @@ export class BetterThanHumanOrchestrator {
   private sessionEnergyCount = 0;
   private sessionConcernsDetected = false;
 
-  constructor(userId: string, sessionId: string, personaId: string, sessionCount: number = 0) {
+  constructor(userId: string, sessionId: string, personaId: string, sessionCount = 0) {
     this.userId = userId;
     this.sessionId = sessionId;
     this.personaId = personaId;
@@ -416,7 +413,7 @@ export class BetterThanHumanOrchestrator {
   /**
    * Apply insights to a response
    */
-  applyInsights(response: string, insight: BetterThanHumanInsight, maxActions: number = 2): string {
+  applyInsights(response: string, insight: BetterThanHumanInsight, maxActions = 2): string {
     let result = response;
     const applied: string[] = [];
 
@@ -881,7 +878,7 @@ export function getBetterThanHuman(
   userId: string,
   sessionId: string,
   personaId: string,
-  sessionCount: number = 0
+  sessionCount = 0
 ): BetterThanHumanOrchestrator {
   const key = `${userId}:${sessionId}`;
   if (!orchestratorRegistry.has(key)) {

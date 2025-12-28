@@ -482,7 +482,7 @@ permalink: /preview/live-chat/
 
       <div class="chat-widget">
         <div class="chat-widget__header">
-          <div class="chat-widget__avatar">FE</div>
+          <div class="chat-widget__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <div class="chat-widget__info">
             <h3>Chat with Ferni</h3>
             <p>AI Life Coach</p>
@@ -642,7 +642,7 @@ permalink: /preview/live-chat/
     const message = document.createElement('div');
     message.className = `chat-message chat-message--${sender}`;
     message.innerHTML = `
-      <div class="chat-message__avatar">${sender === 'ferni' ? 'FE' : 'You'}</div>
+      <div class="chat-message__avatar">${sender === 'ferni' ? '<svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>' : 'You'}</div>
       <div class="chat-message__bubble">${text}</div>
     `;
     messagesContainer.appendChild(message);
@@ -654,7 +654,7 @@ permalink: /preview/live-chat/
     typing.className = 'chat-message chat-message--ferni';
     typing.id = 'typingIndicator';
     typing.innerHTML = `
-      <div class="chat-message__avatar">FE</div>
+      <div class="chat-message__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
       <div class="chat-message__bubble">
         <div class="typing-indicator">
           <div class="typing-dot"></div>

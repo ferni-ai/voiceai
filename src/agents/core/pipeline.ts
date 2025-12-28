@@ -272,7 +272,7 @@ export abstract class SideEffectStep<TContext> extends BaseStep<TContext, TConte
 // ============================================================================
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 }
 
 /**
@@ -311,7 +311,7 @@ export function withTimeout<TContext>(
 export function withRetry<TContext>(
   step: PipelineStep<TContext>,
   maxAttempts: number,
-  delayMs: number = 1000
+  delayMs = 1000
 ): { step: PipelineStep<TContext>; options: StepOptions } {
   return { step, options: { retry: { maxAttempts, delayMs } } };
 }

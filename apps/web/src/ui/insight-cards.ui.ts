@@ -90,13 +90,13 @@ const COMPARISON_CONFIG: Record<ComparisonType, { label: string; icon: string }>
 
 const INSIGHT_STYLES = `
   .ferni-insight-card {
-    background: var(--glass-regular-background, rgba(255, 255, 255, 0.05));
-    backdrop-filter: blur(var(--glass-regular-blur, 20px));
-    border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    background: var(--color-bg-elevated, #FFFDFB);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition: transform 0.3s ${springToCubicBezier('gentle')},
                 box-shadow 0.3s ${springToCubicBezier('gentle')};
   }

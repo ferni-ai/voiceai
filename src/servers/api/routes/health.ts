@@ -99,12 +99,12 @@ export async function handleHealthRoutes(
         });
         // Quick check with timeout - list collections limit 1
         const firestoreCheck = db.listCollections().then((cols) => cols.slice(0, 1));
-        const timeoutPromise = new Promise<never>((_, reject) =>
+        const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(
             () => reject(new Error('Firestore health check timeout')),
             FIRESTORE_HEALTH_TIMEOUT_MS
-          )
-        );
+          );
+        });
         await Promise.race([firestoreCheck, timeoutPromise]);
         firestoreConnected = true;
       } catch (err) {

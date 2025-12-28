@@ -102,7 +102,7 @@ export function storePendingConfirmation(
   toolId: string,
   params: Record<string, unknown>,
   description: string,
-  ttlMs: number = 60000
+  ttlMs = 60000
 ): void {
   const key = getConfirmationKey(userId, sessionId, toolId);
   pendingConfirmations.set(key, {
@@ -411,9 +411,9 @@ export function wrapToolExecution(
       if (opts.timeoutMs && opts.timeoutMs > 0) {
         result = await Promise.race([
           originalExecute(params, context),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Tool execution timeout')), opts.timeoutMs)
-          ),
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Tool execution timeout')), opts.timeoutMs);
+          }),
         ]);
       } else {
         result = await originalExecute(params, context);

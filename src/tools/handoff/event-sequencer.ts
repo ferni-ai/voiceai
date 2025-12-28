@@ -126,13 +126,13 @@ export function isTerminalEvent(eventType: HandoffEventType): boolean {
  */
 export class EventSequencer {
   private sessionId: string;
-  private lastProcessedSeq: number = -1;
-  private buffer: Map<number, SequencedEvent> = new Map();
+  private lastProcessedSeq = -1;
+  private buffer = new Map<number, SequencedEvent>();
   private currentHandoffId: string | null = null;
-  private handlers: Map<HandoffEventType, EventHandler[]> = new Map();
-  private maxBufferSize: number = 20;
-  private bufferTimeoutMs: number = 5000;
-  private bufferTimeouts: Map<number, ReturnType<typeof setTimeout>> = new Map();
+  private handlers = new Map<HandoffEventType, EventHandler[]>();
+  private maxBufferSize = 20;
+  private bufferTimeoutMs = 5000;
+  private bufferTimeouts = new Map<number, ReturnType<typeof setTimeout>>();
 
   constructor(sessionId: string, options?: { maxBufferSize?: number; bufferTimeoutMs?: number }) {
     this.sessionId = sessionId;
@@ -424,7 +424,7 @@ export function createEventSequencer(
  * Generate monotonically increasing sequence numbers per session.
  */
 export class SequenceGenerator {
-  private sequences: Map<string, number> = new Map();
+  private sequences = new Map<string, number>();
 
   /**
    * Get next sequence number for a session.

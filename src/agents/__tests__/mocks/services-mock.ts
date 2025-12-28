@@ -96,9 +96,9 @@ export function createMockAnalysis(
  * Create mock emotion analysis
  */
 export function createMockEmotionAnalysis(
-  emotion: string = 'neutral',
-  intensity: number = 0.5,
-  distressLevel: number = 0
+  emotion = 'neutral',
+  intensity = 0.5,
+  distressLevel = 0
 ): MockEmotionAnalysis {
   return {
     primary: emotion,
@@ -178,7 +178,7 @@ export function createMockHistoryTracker(): Record<string, Mock> {
     addTurn: vi.fn((role: string, content: string) => {
       turns.push({ role, content, timestamp: Date.now() });
     }),
-    getRecentTurns: vi.fn((count: number = 10) => turns.slice(-count)),
+    getRecentTurns: vi.fn((count = 10) => turns.slice(-count)),
     getSimpleTurns: vi.fn(() => turns.map((t) => ({ role: t.role, content: t.content }))),
     getTurnCount: vi.fn(() => turns.length),
     getLastUserMessage: vi.fn(() => {
@@ -437,7 +437,7 @@ export function createMockUserData(
  * Create mock persona configuration
  */
 export function createMockPersona(
-  personaId: string = 'ferni',
+  personaId = 'ferni',
   overrides: Record<string, unknown> = {}
 ): Record<string, unknown> {
   const personas: Record<string, Record<string, unknown>> = {

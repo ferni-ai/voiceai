@@ -21,6 +21,8 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from '../../servers/api/routes/twilio-call-status.js';
+import { enrichMessage, enrichVoicemailMessage } from './message-enrichment.js';
+import type { EnrichedMessage, EnrichmentContext } from './message-enrichment.js';
 
 const log = getLogger().child({ service: 'on-behalf-call-orchestrator' });
 
@@ -49,6 +51,7 @@ export interface OnBehalfCall {
   // Call metadata
   script: string;
   complianceScript: string;
+  enrichedMessage?: EnrichedMessage;
 
   // Twilio data
   twilioCallSid?: string;
@@ -149,15 +152,53 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       throw new Error('No phone number available for contact');
     }
 
-    // Build script
     const contact = request.resolvedContact;
-    const { script: scriptTemplate, type: scriptType } = selectScript(contact, request.purpose);
+
+    // ==========================================================================
+    // MESSAGE ENRICHMENT - "Better Than Human"
+    // Transform short requests like "say good morning" into warm, natural messages
+    // ==========================================================================
+    let enrichedMessage: EnrichedMessage | undefined;
+
+    // Only enrich for personal calls with brief purposes
+    if (request.callType === 'personal' && this.shouldEnrichMessage(request.purpose)) {
+      log.info({ purpose: request.purpose }, 'Enriching message for better-than-human delivery');
+
+      const enrichmentContext: EnrichmentContext = {
+        originalMessage: request.purpose,
+        relationship: {
+          contactName: contact.name,
+          relationship: contact.relationship || 'friend',
+        },
+        sender: {
+          userName: request.userName,
+        },
+        settings: {
+          isVoicemail: false,
+          maxLength: 'medium',
+        },
+      };
+
+      enrichedMessage = await enrichMessage(enrichmentContext);
+      log.info(
+        {
+          original: request.purpose,
+          enriched: enrichedMessage.message.slice(0, 100) + '...',
+          type: enrichedMessage.metadata.enrichmentType,
+        },
+        'Message enriched successfully'
+      );
+    }
+
+    // Build script with enriched or original purpose
+    const effectivePurpose = enrichedMessage?.message || request.purpose;
+    const { script: scriptTemplate, type: scriptType } = selectScript(contact, effectivePurpose);
 
     const script = buildCallScript(scriptTemplate, {
       agentName: 'Ferni',
       userName: request.userName,
       contactName: contact.name,
-      purpose: request.purpose,
+      purpose: effectivePurpose,
       objective: request.objective,
       additionalContext: request.userPreferences?.additionalContext,
       preferredTimes: request.userPreferences?.preferredTimes,
@@ -174,6 +215,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       status: 'pending',
       script,
       complianceScript,
+      enrichedMessage,
       createdAt: new Date(),
     };
 
@@ -467,8 +509,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       call.status = 'voicemail';
       activeCallsStore.set(callId, call);
 
-      // Generate voicemail message
-      const voicemailMessage = this.generateVoicemailMessage(call);
+      // Generate enriched voicemail message (async for LLM enrichment)
+      const voicemailMessage = await this.generateVoicemailMessageAsync(call);
 
       this.emit('voicemail-detected', call);
 
@@ -481,14 +523,84 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     return null;
   }
 
-  private generateVoicemailMessage(call: OnBehalfCall): string {
+  /**
+   * Generate voicemail message with "Better Than Human" enrichment
+   *
+   * Instead of a robotic template, we generate a warm, natural message
+   * that sounds like it came from someone who truly cares.
+   */
+  private async generateVoicemailMessageAsync(call: OnBehalfCall): Promise<string> {
+    const contact = call.request.resolvedContact!;
+
+    // If we already have an enriched message with components, use those
+    if (call.enrichedMessage?.components) {
+      const { opening, personalContext, mainMessage, close } = call.enrichedMessage.components;
+      const parts = [opening];
+      if (personalContext) parts.push(personalContext);
+      parts.push(mainMessage);
+      parts.push(close);
+      return parts.join(' ');
+    }
+
+    // Otherwise, enrich specifically for voicemail
+    try {
+      const enrichmentContext: EnrichmentContext = {
+        originalMessage: call.request.purpose,
+        relationship: {
+          contactName: contact.name,
+          relationship: contact.relationship || 'friend',
+        },
+        sender: {
+          userName: call.request.userName,
+        },
+        settings: {
+          isVoicemail: true,
+          maxLength: 'medium',
+        },
+      };
+
+      const enrichedVoicemail = await enrichVoicemailMessage(enrichmentContext);
+      return enrichedVoicemail.message;
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Voicemail enrichment failed, using fallback');
+      return this.generateVoicemailMessageFallback(call);
+    }
+  }
+
+  /**
+   * Fallback voicemail for when enrichment fails
+   * Still warmer than the old template, but doesn't require LLM
+   */
+  private generateVoicemailMessageFallback(call: OnBehalfCall): string {
     const contact = call.request.resolvedContact!;
     const purpose = call.request.purpose;
+    const userName = call.request.userName;
 
-    return `Hi ${contact.name}, this is Ferni, calling on behalf of ${call.request.userName}. ` +
-      `I was calling to ${purpose}. ` +
-      `Please give ${call.request.userName} a call back when you get a chance. ` +
-      `Thanks, and have a great day!`;
+    // Determine relationship depth for tone
+    const relationship = (contact.relationship || '').toLowerCase();
+    const isClose = ['mother', 'mom', 'father', 'dad', 'spouse', 'wife', 'husband', 'partner']
+      .includes(relationship);
+
+    if (isClose) {
+      return `Hey ${contact.name}, it's Ferni calling for ${userName}. ` +
+        `${userName} wanted me to ${purpose}... ` +
+        `Just know they're thinking of you. ` +
+        `Love you. Bye.`;
+    }
+
+    return `Hi ${contact.name}, this is Ferni, calling on behalf of ${userName}. ` +
+      `${userName} wanted me to ${purpose}. ` +
+      `They wanted to make sure you got this message. ` +
+      `Take care, and talk soon.`;
+  }
+
+  /**
+   * Sync wrapper for compatibility - fires async enrichment
+   */
+  private generateVoicemailMessage(call: OnBehalfCall): string {
+    // For now, use fallback synchronously
+    // The async version will be used when we refactor the voicemail detection flow
+    return this.generateVoicemailMessageFallback(call);
   }
 
   // =========================================================================
@@ -588,6 +700,65 @@ class OnBehalfCallOrchestrator extends EventEmitter {
   // =========================================================================
   // HELPERS
   // =========================================================================
+
+  /**
+   * Determine if a message purpose should be enriched via LLM
+   *
+   * We enrich brief, simple messages that would benefit from expansion.
+   * We skip enrichment for:
+   * - Already detailed messages (50+ words)
+   * - Specific business requests (reschedule, cancel, etc.)
+   * - Messages with technical/appointment details
+   */
+  private shouldEnrichMessage(purpose: string): boolean {
+    const wordCount = purpose.split(/\s+/).length;
+
+    // Already detailed enough
+    if (wordCount > 25) return false;
+
+    // Check for brief personal messages that need enrichment
+    const enrichmentTriggers = [
+      /^say\s+(good\s*)?(morning|night|hi|hello|goodbye|bye)/i,
+      /^(wish|tell|let)\s+(them|her|him)\s/i,
+      /thinking\s*of\s*(you|them|her|him)/i,
+      /^check\s*in/i,
+      /^just\s+say\s+/i,
+      /^(say|tell)\s+(that\s+)?i\s+(love|miss|care)/i,
+      /good\s*(morning|night|evening|afternoon)/i,
+      /miss\s*(you|them|her|him)/i,
+      /love\s*(you|them|her|him)/i,
+    ];
+
+    const needsEnrichment = enrichmentTriggers.some((pattern) => pattern.test(purpose));
+
+    // Also enrich very short messages (less than 8 words)
+    if (wordCount < 8 && !this.isBusinessPurpose(purpose)) {
+      return true;
+    }
+
+    return needsEnrichment;
+  }
+
+  /**
+   * Check if purpose sounds like a business/transactional request
+   * (these should NOT be enriched)
+   */
+  private isBusinessPurpose(purpose: string): boolean {
+    const businessPatterns = [
+      /reschedule/i,
+      /cancel/i,
+      /appointment/i,
+      /confirm/i,
+      /reservation/i,
+      /schedule/i,
+      /book\s+a/i,
+      /order/i,
+      /delivery/i,
+      /prescription/i,
+      /refill/i,
+    ];
+    return businessPatterns.some((pattern) => pattern.test(purpose));
+  }
 
   private maskPhone(phone: string): string {
     return phone.replace(/.(?=.{4})/g, '*');

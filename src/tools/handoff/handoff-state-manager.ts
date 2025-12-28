@@ -225,10 +225,10 @@ export class HandoffStateManager {
   // Core state
   private currentAgent: AgentId = 'ferni';
   private previousAgent: AgentId | null = null;
-  private isInProgress: boolean = false;
+  private isInProgress = false;
   private targetAgent: AgentId | null = null;
   private handoffStartTime: number | null = null;
-  private lastHandoffTime: number = 0;
+  private lastHandoffTime = 0;
   private metPersonas = new Set<string>(['ferni']);
   private handoffHistory: HandoffRecord[] = [];
 

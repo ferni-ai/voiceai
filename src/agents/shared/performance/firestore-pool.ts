@@ -344,9 +344,9 @@ class FirestorePool {
         try {
           const result = await Promise.race([
             operation(db),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Operation timeout')), this.config.timeout)
-            ),
+            new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Operation timeout')), this.config.timeout);
+            }),
           ]);
 
           this.metrics.successfulRequests++;
@@ -365,7 +365,7 @@ class FirestorePool {
 
           if (attempt < maxRetries) {
             const delay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
-            await new Promise((resolve) => setTimeout(resolve, delay));
+            await new Promise<void>((resolve) => { setTimeout(resolve, delay); });
           }
         }
       }

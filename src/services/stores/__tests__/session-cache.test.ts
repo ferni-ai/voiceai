@@ -124,7 +124,7 @@ describe('SessionCache', () => {
       await cache.set('key', 'value');
       expect(await cache.get('key')).toBe('value');
 
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise<void>((r) => { setTimeout(r, 100); });
 
       expect(await cache.get('key')).toBeNull();
       await cache.shutdown();
@@ -140,7 +140,7 @@ describe('SessionCache', () => {
       await cache.set('short', 'value', 50);
       await cache.set('long', 'value', 500);
 
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise<void>((r) => { setTimeout(r, 100); });
 
       expect(await cache.get('short')).toBeNull();
       expect(await cache.get('long')).toBe('value');

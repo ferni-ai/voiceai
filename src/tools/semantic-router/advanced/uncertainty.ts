@@ -81,7 +81,7 @@ export class UncertaintyCalibrator {
   private validationExamples: ValidationExample[] = [];
 
   // Ensemble of different routing strategies
-  private ensembleScores: Map<string, number[]> = new Map();
+  private ensembleScores = new Map<string, number[]>();
 
   constructor() {
     this.initializeDefaultBiases();

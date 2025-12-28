@@ -150,7 +150,7 @@ function createMusicControlTool(legacyTools: ReturnType<typeof createMusicTools>
             musicPlayer.skip(); // skip() returns void, triggers onTrackEnded
 
             // Wait a moment for the next track to start
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
 
             const nextTrack = musicPlayer.getCurrentTrack();
             log.info({ action, nextTrack: nextTrack?.name }, '🎵 TOOL: musicControl - skipped');

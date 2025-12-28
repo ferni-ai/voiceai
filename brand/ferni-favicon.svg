@@ -1,21 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Favicon - Eyes design optimized for small sizes -->
 <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Favicon optimized for small sizes -->
   <defs>
-    <linearGradient id="favOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="favShine" x1="0%" y1="0%" x2="60%" y2="60%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  
-  <circle cx="16" cy="16" r="16" fill="url(#favOrb)"/>
-  <circle cx="16" cy="16" r="16" fill="url(#favShine)"/>
-  <text x="16" y="16" text-anchor="middle" dominant-baseline="central"
-    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
-    font-size="12" font-weight="900" fill="white" letter-spacing="0">
-    <tspan dy="1">FE</tspan>
-  </text>
+
+  <!-- Circular background -->
+  <circle cx="16" cy="16" r="14" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="11" cy="15" rx="2.5" ry="3.2" fill="url(#eyeFill)"/>
+  <circle cx="10" cy="13.5" r="0.6" fill="white"/>
+
+  <!-- Right eye -->
+  <ellipse cx="21" cy="15" rx="2.5" ry="3.2" fill="url(#eyeFill)"/>
+  <circle cx="20" cy="13.5" r="0.6" fill="white"/>
 </svg>

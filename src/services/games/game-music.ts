@@ -350,7 +350,7 @@ export async function getRandomGameSongs(
 
     // Small delay between batches to avoid rate limiting
     if (tracks.length < count && i + BATCH_SIZE < selectedQueries.length) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
     }
   }
 

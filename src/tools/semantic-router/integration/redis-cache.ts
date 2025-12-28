@@ -15,7 +15,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getRedisCacheAsync, RedisCache } from '../../../memory/redis-cache.js';
+import type { RedisCache } from '../../../memory/redis-cache.js';
+import { getRedisCacheAsync } from '../../../memory/redis-cache.js';
 import type { EmbeddingVector } from '../types.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 

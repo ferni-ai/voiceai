@@ -97,9 +97,9 @@ export async function prewarmUserEmbeddings(
       const uniqueTexts = [...new Set(textsToWarm)].slice(0, maxPhrases!);
 
       const warmPromise = embedBatchCached(uniqueTexts);
-      const timeoutPromise = new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), timeoutMs)
-      );
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), timeoutMs);
+      });
 
       const result = await Promise.race([warmPromise, timeoutPromise]);
 

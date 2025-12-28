@@ -134,7 +134,7 @@ export async function uploadAudioToGcs(
   agentId: string,
   filename: string,
   pathType: AudioPathType = 'voiceClone',
-  makePublic: boolean = true
+  makePublic = true
 ): Promise<UploadResult | null> {
   const storage = await getStorageClient();
 

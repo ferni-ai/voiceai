@@ -45,7 +45,7 @@ interface JobMetrics {
 
 class TestDiagnosticTracker {
   private events: DiagnosticEvent[] = [];
-  private jobs: Map<string, JobMetrics> = new Map();
+  private jobs = new Map<string, JobMetrics>();
   private metrics = {
     totalJobsReceived: 0,
     totalJobsCompleted: 0,

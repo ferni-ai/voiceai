@@ -44,9 +44,7 @@ export function getCreativeYouStyles(): string {
     .creative-dashboard-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--color-background-overlay);
-      backdrop-filter: blur(var(--glass-blur-medium));
-      -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .creative-dashboard-content {

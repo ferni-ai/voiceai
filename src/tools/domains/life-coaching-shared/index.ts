@@ -18,7 +18,7 @@
  */
 
 // Core types - main Framework definition
-export * from './types.js';
+export type * from './types.js';
 
 // User profile management
 export * from './user-profile.js';

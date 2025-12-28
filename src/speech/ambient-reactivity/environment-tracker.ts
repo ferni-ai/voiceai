@@ -153,7 +153,7 @@ export class EnvironmentTracker {
   private baselineSamples: AudioSnapshot[] = [];
   private recentSnapshots: AudioSnapshot[] = [];
   private recentEvents: EnvironmentEvent[] = [];
-  private lastEventByType: Map<EnvironmentEventType, number> = new Map();
+  private lastEventByType = new Map<EnvironmentEventType, number>();
   private pendingAcknowledgment: EnvironmentAcknowledgment | null = null;
   private lastMajorEventAt: number | null = null;
 

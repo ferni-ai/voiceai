@@ -107,6 +107,31 @@ const ICON_CONFIGS = [
       { path: 'brand/icons/png/orb-android-36.png', size: 36 },
     ]
   },
+  // Brand logos (brand/logos/)
+  {
+    source: 'brand/logos/ferni-logo.svg',
+    outputs: [
+      { path: 'brand/logos/ferni-logo-1024.png', size: 1024 },
+      { path: 'brand/logos/ferni-logo-512.png', size: 512 },
+      { path: 'brand/logos/ferni-logo-300.png', size: 300 },
+    ]
+  },
+  {
+    source: 'brand/logos/ferni-logo-dark.svg',
+    outputs: [
+      { path: 'brand/logos/ferni-logo-dark-1024.png', size: 1024 },
+      { path: 'brand/logos/ferni-logo-dark-512.png', size: 512 },
+      { path: 'brand/logos/ferni-logo-dark-300.png', size: 300 },
+    ]
+  },
+  {
+    source: 'brand/logos/ferni-logo-simple.svg',
+    outputs: [
+      { path: 'brand/logos/ferni-logo-simple-1024.png', size: 1024 },
+      { path: 'brand/logos/ferni-logo-simple-512.png', size: 512 },
+      { path: 'brand/logos/ferni-logo-simple-300.png', size: 300 },
+    ]
+  },
 ];
 
 async function convertSvgToPng(svgPath: string, pngPath: string, size: number): Promise<void> {

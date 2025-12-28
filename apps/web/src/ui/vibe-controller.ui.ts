@@ -447,7 +447,7 @@ function injectStyles(): void {
     .vibe-overlay {
       position: fixed;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
+      background: rgba(44, 37, 32, 0.75);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1179,8 +1179,7 @@ function injectStyles(): void {
       align-items: center;
       justify-content: center;
       z-index: var(--z-modal, 2100);
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(8px);
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .ecobee-pin-card {

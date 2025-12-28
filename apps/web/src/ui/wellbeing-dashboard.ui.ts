@@ -104,8 +104,7 @@ const styles = `
   .wellbeing-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-    backdrop-filter: blur(var(--glass-blur-thick, 24px));
+    background: rgba(44, 37, 32, 0.75);
   }
   
   .wellbeing-modal {
@@ -113,27 +112,16 @@ const styles = `
     width: 95%;
     max-width: clamp(504px, 90vw, 720px);
     max-height: 90vh;
-    background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
-      
+    background: var(--color-bg-elevated, #FFFDFB);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     transform: scale(0.95);
     transition: transform var(--duration-slow, 300ms) var(--ease-spring);
   }
-  
-  
-    @supports not (backdrop-filter: blur(24px)) {
-      .wellbeing-modal {
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-      }
-    }
   
   .wellbeing-modal-overlay.visible .wellbeing-modal {
     transform: scale(1);
@@ -697,10 +685,9 @@ const styles = `
     align-items: center;
     gap: var(--space-2, 8px);
     padding: var(--space-4, 16px) var(--space-2, 8px);
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
+    background: var(--color-bg-elevated, #FFFDFB);
     border-radius: var(--radius-xl, 16px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     box-shadow: 
       0 2px 8px rgba(0, 0, 0, 0.04),
       0 0 0 1px rgba(255, 255, 255, 0.4) inset;
@@ -1066,8 +1053,7 @@ const styles = `
   }
   
   [data-theme="midnight"] .wellbeing-empty__dimension {
-    background: rgba(30, 30, 35, 0.6);
-    backdrop-filter: blur(12px);
+    background: rgba(30, 30, 35, 0.95);
     border-color: rgba(255, 255, 255, 0.08);
     box-shadow: 
       0 4px 24px rgba(0, 0, 0, 0.3),
@@ -1229,7 +1215,14 @@ const ICONS = {
 
 let modal: HTMLElement | null = null;
 let data: DashboardData | null = null;
+let dataCacheTime = 0;
+const DATA_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minute cache
 let isLoading = false;
+
+/** Check if cached data is still valid */
+function isCacheValid(): boolean {
+  return data !== null && Date.now() - dataCacheTime < DATA_CACHE_TTL_MS;
+}
 
 // ============================================================================
 // API
@@ -1572,10 +1565,10 @@ export function hideWellbeingDashboard(): void {
   document.body.style.overflow = '';
   
   // Remove modal after animation completes to free memory
+  // Note: We keep data cached for quick re-open (TTL-based expiry)
   setTimeout(() => {
     modal?.remove();
     modal = null;
-    data = null;
   }, 300); // Match --duration-slow
 }
 
@@ -1701,10 +1694,18 @@ function renderEmptyState(): string {
 }
 
 async function loadData(): Promise<void> {
+  // If we have valid cached data, render immediately without loading state
+  if (isCacheValid()) {
+    renderContent();
+    renderFooter();
+    return;
+  }
+
   isLoading = true;
   renderContent();
 
   data = await fetchDashboardData();
+  dataCacheTime = Date.now();
 
   isLoading = false;
   renderContent();

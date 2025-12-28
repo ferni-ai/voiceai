@@ -84,7 +84,7 @@ export class ScoringWorker {
   async scoreAll(
     query: string,
     queryEmbedding: EmbeddingVector | null,
-    topK: number = 5
+    topK = 5
   ): Promise<ScoringResult[]> {
     const normalizedQuery = query.toLowerCase().trim();
     const queryTokens = this.tokenize(normalizedQuery);

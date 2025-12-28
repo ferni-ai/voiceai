@@ -118,22 +118,21 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--glass-surface-2, rgba(255, 255, 255, 0.8));
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.1));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
       color: var(--color-text-secondary, #5C544A);
       opacity: 0;
       transform: translateY(-10px);
-      transition: 
+      transition:
         opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
         transform ${DURATION.NORMAL}ms ${EASING.STANDARD},
         background ${DURATION.FAST}ms ${EASING.STANDARD};
       pointer-events: none;
       user-select: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
     .connection-quality--visible {

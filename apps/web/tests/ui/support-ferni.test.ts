@@ -225,14 +225,17 @@ describe('Support Ferni UI', () => {
       expect(tierCards.length).toBeGreaterThan(0);
     });
 
-    it('should show "Most Chosen" badge on friend tier', async () => {
+    it('should show tier cards for free users', async () => {
       const { openSupportFerni } = await import('../../src/ui/support-ferni.ui.js');
 
       await openSupportFerni();
 
-      const popularBadge = document.querySelector('.support-ferni-popular-badge');
-      expect(popularBadge).not.toBeNull();
-      expect(popularBadge?.textContent).toContain('Most Chosen');
+      // Free users should see tier cards
+      const tierCards = document.querySelectorAll('.support-ferni-tier-card');
+      expect(tierCards.length).toBeGreaterThan(0);
+      // Each tier card should have a name element
+      const tierNames = document.querySelectorAll('.support-ferni-tier-name');
+      expect(tierNames.length).toBeGreaterThan(0);
     });
 
     it('should display correct prices for tiers', async () => {

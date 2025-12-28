@@ -39,33 +39,23 @@ export function getJournalStyles(): string {
     .journal-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
-    
+
     .journal-container {
       position: relative;
       width: 90vw;
       max-width: clamp(476px, 90vw, 680px);
       max-height: 90vh;
-      background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-      backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-      border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+      background: var(--color-bg-elevated, #FFFDFB);
+      border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-2xl, 24px);
-      box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       transform: scale(0.95);
       transition: transform ${DURATION.NORMAL}ms ${EASING.SPRING};
-    }
-
-    @supports not (backdrop-filter: blur(24px)) {
-      .journal-container {
-        background: var(--color-bg-elevated, #1a1a2e);
-      }
     }
     
     .voice-journal-overlay.open .journal-container {

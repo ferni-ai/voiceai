@@ -231,9 +231,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, just the JSON ob
     const timeoutMs = options.timeout || 5000;
     const result = await Promise.race([
       model.generateContent(fullPrompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs)
-      ),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs);
+      }),
     ]);
 
     const { response } = result;
@@ -281,9 +281,9 @@ export async function generateText(
 
     const result = await Promise.race([
       model.generateContent(prompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs)
-      ),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Gemini timeout')), timeoutMs);
+      }),
     ]);
 
     const { response } = result;

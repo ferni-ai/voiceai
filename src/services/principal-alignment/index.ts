@@ -27,7 +27,7 @@ const log = createLogger({ module: 'PrincipalAlignment' });
 // ============================================================================
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Truth Obligation
 export {

@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { createSessionCleanupTracker } from '../../session/event-cleanup-registry.js';
+import type { createSessionCleanupTracker } from '../../session/event-cleanup-registry.js';
 
 /** Type for the cleanup tracker returned by createSessionCleanupTracker */
 type SessionCleanupTracker = ReturnType<typeof createSessionCleanupTracker>;

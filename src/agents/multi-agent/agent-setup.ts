@@ -515,18 +515,31 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // OpenAI Realtime with text-only mode → Cartesia TTS for persona voice
     // Docs: https://docs.livekit.io/agents/models/realtime/plugins/openai/#separate-tts
     // Upgraded SDK to 1.0.30 which has modalities fix
+
+    // Import VAD config for tunable noise sensitivity
+    const { VAD_CONFIG } = await import('../shared/constants.js');
+
     llmModel = new openai.realtime.RealtimeModel({
       modalities: ['text'], // Text-only mode - Cartesia TTS handles persona voice
       temperature: Math.max(0.6, geminiConfig.temperature), // OpenAI min is 0.6
       turnDetection: {
         type: 'server_vad', // Using server_vad per docs (more stable)
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 500,
-        create_response: true,
-        interrupt_response: true,
+        // VAD sensitivity is configurable via environment variables:
+        // - VAD_THRESHOLD (default: 0.65) - Higher = less sensitive to background noise
+        // - VAD_PREFIX_PADDING_MS (default: 300) - Audio buffer before speech
+        // - VAD_SILENCE_DURATION_MS (default: 600) - Silence before turn ends
+        threshold: VAD_CONFIG.threshold,
+        prefix_padding_ms: VAD_CONFIG.prefixPaddingMs,
+        silence_duration_ms: VAD_CONFIG.silenceDurationMs,
+        create_response: VAD_CONFIG.createResponse,
+        interrupt_response: VAD_CONFIG.interruptResponse,
       },
     });
+
+    log.info(
+      { personaId: persona.id, vadThreshold: VAD_CONFIG.threshold, silenceDuration: VAD_CONFIG.silenceDurationMs },
+      '🎤 VAD config applied'
+    );
 
     log.info(
       { personaId: persona.id, modalities: ['text'], tts: 'cartesia' },
@@ -867,9 +880,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
       const closeStart = Date.now();
       try {
-        const closeTimeout = new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('session.close() timeout')), 3000)
-        );
+        const closeTimeout = new Promise<void>((_, reject) => {
+          setTimeout(() => reject(new Error('session.close() timeout')), 3000);
+        });
         await Promise.race([session.close(), closeTimeout]);
         log.info(
           { sessionId, personaId: persona.id, closeDurationMs: Date.now() - closeStart },

@@ -314,7 +314,7 @@ export class ActiveListeningEngine {
       return null;
     }
 
-    let silenceBackchannels = [...SILENCE_BACKCHANNELS];
+    const silenceBackchannels = [...SILENCE_BACKCHANNELS];
 
     if (context.lastUserEmotion === 'sad' || context.lastUserEmotion === 'overwhelmed') {
       silenceBackchannels.push(...SAD_SILENCE_BACKCHANNELS);

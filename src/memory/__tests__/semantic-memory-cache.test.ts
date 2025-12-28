@@ -284,7 +284,7 @@ describe('Semantic Memory Cache', () => {
       expect(before.hit).toBe(true);
 
       // Wait for TTL to expire
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 150); });
 
       // Should be expired now
       const after = await findSimilarCached(testUserId, testQuery);

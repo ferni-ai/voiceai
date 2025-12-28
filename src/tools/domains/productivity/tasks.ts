@@ -397,7 +397,7 @@ export async function createTask(params: {
   if (dueDate) {
     try {
       // If there's a specific time, use it; otherwise use end of day
-      let scheduledFor = new Date(dueDate);
+      const scheduledFor = new Date(dueDate);
       if (params.dueTime) {
         const [hours, minutes] = params.dueTime.split(':').map(Number);
         scheduledFor.setHours(hours, minutes, 0, 0);

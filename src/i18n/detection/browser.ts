@@ -395,7 +395,7 @@ export function stripLocaleFromURL(url: string): { path: string; locale: Support
  */
 export function generateHreflangLinks(
   currentPath: string,
-  baseUrl: string = ''
+  baseUrl = ''
 ): Array<{ locale: SupportedLocale; href: string }> {
   const { path } = stripLocaleFromURL(currentPath);
 

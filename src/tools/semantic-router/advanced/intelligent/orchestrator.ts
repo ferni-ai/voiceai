@@ -21,11 +21,16 @@
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SemanticRouterResult } from '../../types.js';
 
-import { IntentClassifier, getIntentClassifier, type ClassificationResult } from './intent-classifier.js';
-import { LLMFallbackRouter, getLLMFallbackRouter, type LLMSelectionResult, type LLMProvider } from './llm-fallback.js';
-import { ReActReasoningEngine, getReActEngine, type ReActResult, type ReActLLMProvider } from './react-reasoning.js';
-import { GoalPlanner, getGoalPlanner, type ExecutionPlan, type PlanExecutionState, type GoalPlannerLLMProvider, type ToolExecutor } from './goal-planner.js';
-import { BanditOptimizer, getBanditOptimizer, type SelectionResult as BanditSelection, type RoutingContext as BanditContext, type ToolArm } from './bandit-optimizer.js';
+import type { IntentClassifier} from './intent-classifier.js';
+import { getIntentClassifier, type ClassificationResult } from './intent-classifier.js';
+import type { LLMFallbackRouter} from './llm-fallback.js';
+import { getLLMFallbackRouter, type LLMSelectionResult, type LLMProvider } from './llm-fallback.js';
+import type { ReActReasoningEngine} from './react-reasoning.js';
+import { getReActEngine, type ReActResult, type ReActLLMProvider } from './react-reasoning.js';
+import type { GoalPlanner} from './goal-planner.js';
+import { getGoalPlanner, type ExecutionPlan, type PlanExecutionState, type GoalPlannerLLMProvider, type ToolExecutor } from './goal-planner.js';
+import type { BanditOptimizer} from './bandit-optimizer.js';
+import { getBanditOptimizer, type SelectionResult as BanditSelection, type RoutingContext as BanditContext, type ToolArm } from './bandit-optimizer.js';
 
 const log = createLogger({ module: 'intelligent-orchestrator' });
 

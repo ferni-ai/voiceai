@@ -122,4 +122,4 @@ export {
 } from './identity-card-generator.js';
 
 // Types (from types.ts)
-export * from './types.js';
+export type * from './types.js';

@@ -201,7 +201,7 @@ export function injectSpontaneousAppreciation(
  * Get a random appreciation phrase without injection logic
  * (useful for manual insertion)
  */
-export function getAppreciationPhrase(totalConversations: number = 0): string {
+export function getAppreciationPhrase(totalConversations = 0): string {
   const context: AppreciationContext = {
     turnCount: Math.floor(Math.random() * 10),
     totalConversations,

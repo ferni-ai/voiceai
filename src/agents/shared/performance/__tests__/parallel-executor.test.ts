@@ -44,7 +44,7 @@ describe('ParallelExecutor', () => {
         id: 'op1',
         execute: async () => {
           executionOrder.push('op1-start');
-          await new Promise((r) => setTimeout(r, 100));
+          await new Promise<void>((r) => { setTimeout(r, 100); });
           executionOrder.push('op1-end');
           return 1;
         },
@@ -54,7 +54,7 @@ describe('ParallelExecutor', () => {
         id: 'op2',
         execute: async () => {
           executionOrder.push('op2-start');
-          await new Promise((r) => setTimeout(r, 50));
+          await new Promise<void>((r) => { setTimeout(r, 50); });
           executionOrder.push('op2-end');
           return 2;
         },
@@ -249,7 +249,7 @@ describe('ParallelExecutor', () => {
       executor.add({
         id: 'slow',
         execute: async () => {
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise<void>((r) => { setTimeout(r, 200); });
           return 'never-reached';
         },
       });
@@ -269,7 +269,7 @@ describe('ParallelExecutor', () => {
         id: 'quick-timeout',
         timeout: 50,
         execute: async () => {
-          await new Promise((r) => setTimeout(r, 100));
+          await new Promise<void>((r) => { setTimeout(r, 100); });
           return 'never-reached';
         },
       });
@@ -287,7 +287,7 @@ describe('ParallelExecutor', () => {
       executor.add({
         id: 'fast',
         execute: async () => {
-          await new Promise((r) => setTimeout(r, 10));
+          await new Promise<void>((r) => { setTimeout(r, 10); });
           return 'done';
         },
       });
@@ -393,7 +393,7 @@ describe('ParallelExecutor', () => {
       executor.add({
         id: 'op1',
         execute: async () => {
-          await new Promise((r) => setTimeout(r, 50));
+          await new Promise<void>((r) => { setTimeout(r, 50); });
           return 'done';
         },
       });
@@ -520,7 +520,7 @@ describe('parallelMap', () => {
       async (item) => {
         concurrent++;
         maxConcurrent = Math.max(maxConcurrent, concurrent);
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise<void>((r) => { setTimeout(r, 10); });
         concurrent--;
         return item * 2;
       },
@@ -564,7 +564,7 @@ describe('parallelMap', () => {
       items,
       async (item) => {
         if (item === 2) {
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise<void>((r) => { setTimeout(r, 200); });
         }
         return item * 2;
       },
@@ -652,7 +652,7 @@ describe('parallelCollect', () => {
     const fns = [
       async () => 1,
       async () => {
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise<void>((r) => { setTimeout(r, 200); });
         return 2;
       },
     ];

@@ -16,7 +16,7 @@ import { OutlookCalendarProvider } from './outlook-provider.js';
 // PROVIDER INSTANCES
 // ============================================================================
 
-const providers: Map<CalendarProvider, CalendarProviderAdapter> = new Map();
+const providers = new Map<CalendarProvider, CalendarProviderAdapter>();
 
 // Initialize providers lazily
 function ensureProviders(): void {

@@ -217,6 +217,153 @@ export const AUDIO = {
   FADE_DURATION: 500,
 } as const;
 
+// ============================================================================
+// VOICE ACTIVITY DETECTION (VAD) SETTINGS
+// Controls sensitivity to background noise
+// ============================================================================
+
+/**
+ * VAD Configuration for OpenAI Realtime API
+ *
+ * The threshold controls how sensitive the agent is to sounds:
+ * - Lower values (0.3-0.5): More sensitive, triggers on quieter sounds
+ * - Higher values (0.6-0.8): Less sensitive, requires clearer speech
+ *
+ * Configurable via environment variables for different environments:
+ * - VAD_THRESHOLD: Speech detection threshold (default: 0.65)
+ * - VAD_PREFIX_PADDING_MS: Audio to include before detected speech (default: 300)
+ * - VAD_SILENCE_DURATION_MS: How long to wait after silence (default: 600)
+ */
+export const VAD_CONFIG = {
+  /**
+   * Speech detection threshold (0.0-1.0)
+   * Higher = less sensitive to background noise
+   * Default increased from 0.5 to 0.65 to reduce false triggers
+   *
+   * Recommended values:
+   * - 0.5: Very sensitive (quiet environments only)
+   * - 0.65: Balanced (default, works in most environments)
+   * - 0.75: Low sensitivity (noisy environments)
+   * - 0.85: Very low sensitivity (very noisy environments)
+   */
+  get threshold(): number {
+    const envValue = process.env.VAD_THRESHOLD;
+    if (envValue) {
+      const parsed = parseFloat(envValue);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed;
+      }
+    }
+    return 0.65; // Default: balanced sensitivity
+  },
+
+  /**
+   * Audio to include before detected speech starts (ms)
+   * Captures the beginning of words that might be cut off
+   */
+  get prefixPaddingMs(): number {
+    const envValue = process.env.VAD_PREFIX_PADDING_MS;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+    return 300; // Default: 300ms padding
+  },
+
+  /**
+   * Duration of silence required to end speech detection (ms)
+   * Higher values allow for natural pauses without triggering response
+   * Increased from 500ms to 600ms for more natural conversation
+   */
+  get silenceDurationMs(): number {
+    const envValue = process.env.VAD_SILENCE_DURATION_MS;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+    return 600; // Default: 600ms silence before turn end
+  },
+
+  /** Whether to create a response after speech ends */
+  createResponse: true,
+
+  /** Whether the user can interrupt the agent */
+  interruptResponse: true,
+} as const;
+
+// ============================================================================
+// GREETING CONFIGURATION
+// Human-like opening with space for the user to settle in
+// ============================================================================
+
+/**
+ * Greeting Phase Configuration
+ *
+ * The greeting is the most important moment - it sets the tone for everything.
+ * We want it to feel like a friend opening the door, not a robot starting a script.
+ *
+ * Key principles:
+ * 1. CLARITY - The greeting must be fully audible before we start listening
+ * 2. BREATHING ROOM - Natural pause after greeting for user to settle
+ * 3. WARMTH - No aggressive listening that makes user feel rushed
+ */
+export const GREETING_CONFIG = {
+  /**
+   * Grace period AFTER greeting finishes before full VAD sensitivity (ms)
+   * This gives the user a moment to:
+   * - Process what was said
+   * - Settle into the conversation
+   * - Prepare their response
+   *
+   * Think of it like a friend saying "Hey, how are you?" and then
+   * giving you a moment rather than staring expectantly.
+   */
+  get graceperiodMs(): number {
+    const envValue = process.env.GREETING_GRACE_PERIOD_MS;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+    return 1200; // Default: 1.2 seconds of breathing room after greeting
+  },
+
+  /**
+   * Higher silence duration during greeting phase (ms)
+   * More tolerant of pauses while user is settling in
+   */
+  get silenceDurationMs(): number {
+    const envValue = process.env.GREETING_SILENCE_DURATION_MS;
+    if (envValue) {
+      const parsed = parseInt(envValue, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+    return 900; // Default: 900ms - more patient during opening
+  },
+
+  /**
+   * Slightly higher threshold during greeting phase
+   * Less likely to trigger on settling-in sounds (adjusting mic, etc.)
+   */
+  get threshold(): number {
+    const envValue = process.env.GREETING_VAD_THRESHOLD;
+    if (envValue) {
+      const parsed = parseFloat(envValue);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+        return parsed;
+      }
+    }
+    return 0.7; // Default: slightly less sensitive during opening
+  },
+} as const;
+
 export default {
   SILENCE_THRESHOLDS,
   PROCESSING_TIMEOUTS,
@@ -225,4 +372,6 @@ export default {
   RATE_LIMITS,
   CONVERSATION,
   AUDIO,
+  VAD_CONFIG,
+  GREETING_CONFIG,
 };

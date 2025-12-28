@@ -1134,7 +1134,7 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
   if (fnMatch) {
     // Find the opening brace before "fn"
     const fnIndex = fnMatch.index!;
-    let braceIndex = cleanText.lastIndexOf('{', fnIndex);
+    const braceIndex = cleanText.lastIndexOf('{', fnIndex);
 
     if (braceIndex !== -1) {
       const jsonStr = extractBalancedJson(cleanText, braceIndex);

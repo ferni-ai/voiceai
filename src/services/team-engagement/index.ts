@@ -7,7 +7,7 @@
  */
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Static Data (fallback banter)
 export {

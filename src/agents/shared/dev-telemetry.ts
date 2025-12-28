@@ -96,7 +96,7 @@ export interface Trace {
 // ============================================================================
 
 const activeTraces = new Map<string, TurnTrace>();
-let turnCounter = new Map<string, number>();
+const turnCounter = new Map<string, number>();
 
 // ============================================================================
 // LOGGING HELPERS

@@ -78,7 +78,7 @@ export interface ParallelExecutionResult<T> {
  * ```
  */
 export class ParallelExecutor<T> {
-  private operations: Map<string, ParallelOperation<T>> = new Map();
+  private operations = new Map<string, ParallelOperation<T>>();
   private defaultTimeout: number;
 
   constructor(options: { defaultTimeout?: number } = {}) {

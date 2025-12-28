@@ -165,7 +165,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
     userId: string,
     startDate: Date,
     endDate: Date,
-    calendarId: string = 'primary'
+    calendarId = 'primary'
   ): Promise<CalendarEvent[]> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {
@@ -256,7 +256,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
   async deleteEvent(
     userId: string,
     eventId: string,
-    calendarId: string = 'primary'
+    calendarId = 'primary'
   ): Promise<boolean> {
     const accessToken = await getValidAccessToken(userId);
     if (!accessToken) {

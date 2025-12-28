@@ -1,52 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Ferni Avatar - 200x200 - Official Brand Icon -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Avatar 200x200 - Eyes Design -->
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="avatarGrad200" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="badgeGrad200" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#5a8060"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
-    <filter id="shadow200" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#2c2520" flood-opacity="0.2"/>
-    </filter>
   </defs>
 
-  <!-- Outer presence ring -->
-  <circle cx="100" cy="100" r="92" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35"/>
-  
-  <!-- Main avatar circle -->
-  <circle cx="100" cy="100" r="80" fill="url(#avatarGrad200)"/>
-  
-  <!-- FE Text -->
-  <text 
-    x="100" 
-    y="100" 
-    text-anchor="middle" 
-    dominant-baseline="central"
-    font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
-    font-size="58"
-    font-weight="800"
-    fill="white"
-    letter-spacing="-2">
-    <tspan dy="4">FE</tspan>
-  </text>
-  
-  <!-- Shine overlay - ABOVE text -->
-  <ellipse cx="78" cy="68" rx="40" ry="20" fill="white" opacity="0.15"/>
-  
-  <!-- Heart badge -->
-  <circle cx="160" cy="160" r="22" fill="url(#badgeGrad200)" stroke="#FFFDFB" stroke-width="4" filter="url(#shadow200)"/>
-  
-  <!-- Heart icon - centered -->
-  <path 
-    d="M160 153c0-2.8-2.3-5-5-5s-5 2.2-5 5c0 5 9 12 9 12s9-7 9-12c0-2.8-2.3-5-5-5s-5 2.2-5 5z"
-    fill="none"
-    stroke="white"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
+  <!-- Rounded square background -->
+  <rect width="200" height="200" rx="36" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="72" cy="94" rx="20" ry="26" fill="url(#eyeFill)"/>
+  <circle cx="68" cy="83" r="5" fill="white"/>
+  <circle cx="72" cy="87" r="2" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="128" cy="94" rx="20" ry="26" fill="url(#eyeFill)"/>
+  <circle cx="124" cy="83" r="5" fill="white"/>
+  <circle cx="128" cy="87" r="2" fill="white" opacity="0.7"/>
 </svg>

@@ -12,7 +12,7 @@ import { healthcareScripts } from './healthcare.js';
 import { localServiceScripts } from './local-service.js';
 
 // Script registry
-const scriptRegistry: Map<string, OutreachScript> = new Map();
+const scriptRegistry = new Map<string, OutreachScript>();
 
 // Register all scripts
 function registerScripts(): void {

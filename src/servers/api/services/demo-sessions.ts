@@ -224,7 +224,7 @@ export async function claimDemoSession(
   firebaseUid: string
 ): Promise<ClaimResult> {
   // First try to get from index
-  let roomName = claimTokenIndex.get(claimToken);
+  const roomName = claimTokenIndex.get(claimToken);
   let session: DemoSession | null = null;
 
   if (roomName) {

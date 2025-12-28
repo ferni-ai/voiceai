@@ -163,7 +163,7 @@ function calculateSleepingHours(start: number, end: number): number {
   const endDate = new Date(end);
 
   // Simple estimate: assume sleep from 11pm to 7am
-  let current = new Date(startDate);
+  const current = new Date(startDate);
   while (current < endDate) {
     const hour = current.getHours();
     if (hour >= 23 || hour < 7) {

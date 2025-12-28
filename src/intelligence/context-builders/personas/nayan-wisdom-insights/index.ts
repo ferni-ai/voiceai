@@ -76,7 +76,7 @@ import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
 // Re-export types
-export * from './types.js';
+export type * from './types.js';
 export { clearNayanWisdomSession, clearAllNayanWisdomSessions };
 
 // ============================================================================

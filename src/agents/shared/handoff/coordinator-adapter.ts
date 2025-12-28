@@ -23,8 +23,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 
 // New coordinator system
+import type {
+  HandoffCoordinator} from '../../../tools/handoff/handoff-coordinator.js';
 import {
-  HandoffCoordinator,
   createHandoffCoordinator,
   type BanterContext,
   type CoordinatorConfig,
@@ -52,6 +53,9 @@ import { getVoiceManagerCached, getPersonaAsyncCached } from './cached-modules.j
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../../speech/coordination/index.js';
 import { getNextMessageSeqSync } from './session-state.js';
+
+// ⚡ Conversational cache for instant handoff banter
+import { getCachedAudioForPersona } from '../conversational-audio-cache.js';
 
 const log = getLogger();
 
@@ -250,7 +254,7 @@ export class CoordinatorAdapter {
   /**
    * Cancel current handoff.
    */
-  async cancel(reason: string = 'User cancelled'): Promise<void> {
+  async cancel(reason = 'User cancelled'): Promise<void> {
     await this.coordinator.cancel(reason);
   }
 
@@ -298,7 +302,7 @@ export class CoordinatorAdapter {
     }
 
     // OPTIMIZATION: Reduced from 150ms to 50ms - race condition prevention still works
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
     // Step 1: Update VoiceManager internal state
     voiceManager.switchVoice(personaId);
@@ -417,11 +421,11 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGoodbye, { allowInterruptions: false });
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 600); });
         diag.entry('🎭 Soft open complete (coordinatedSay)');
       } catch {
         this.session.say(finalGoodbye, { allowInterruptions: false });
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 600); });
         diag.entry('🎭 Soft open complete (session.say)');
       }
     } catch (err) {
@@ -485,7 +489,7 @@ export class CoordinatorAdapter {
 
       try {
         coordinatedSay(this.sessionId, finalGreeting, { allowInterruptions: false });
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 800); });
         diag.entry('🎭 Arriving welcome complete (coordinatedSay)');
         return;
       } catch (coordErr) {
@@ -495,7 +499,7 @@ export class CoordinatorAdapter {
       // Fallback 2: Direct session.say (last resort - always works if session is valid)
       try {
         this.session.say(finalGreeting, { allowInterruptions: false });
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 800); });
         diag.entry('🎭 Arriving welcome complete (session.say)');
       } catch (sayErr) {
         log.error({ error: String(sayErr), toPersonaId }, '🎭 ALL greeting methods failed!');

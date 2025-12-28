@@ -360,9 +360,7 @@ function injectStyles(): void {
     .unlock-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(var(--glass-blur-strong));
-      -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+      background: rgba(44, 37, 32, 0.75);
     }
     
     .unlock-card {

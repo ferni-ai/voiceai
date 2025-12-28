@@ -1480,8 +1480,7 @@ function getWizardStyles(): string {
     .wizard-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
-      backdrop-filter: blur(8px);
+      background: rgba(44, 37, 32, 0.75);
     }
     
     /* Wizard Container */

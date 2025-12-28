@@ -154,7 +154,7 @@ export async function getCompanyFundamentals(symbol: string): Promise<CompanyFun
  */
 export async function getEarningsHistory(
   symbol: string,
-  limit: number = 4
+  limit = 4
 ): Promise<EarningsData[]> {
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
   if (!apiKey) {

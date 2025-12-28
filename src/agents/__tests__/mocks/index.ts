@@ -134,9 +134,11 @@ export {
 
 import { vi } from 'vitest';
 import { setupLiveKitMocks } from './livekit-mock.js';
-import { MockLLMClient, setupGoogleGenAIMocks, setupLiveKitGoogleMocks } from './llm-mock.js';
+import type { MockLLMClient} from './llm-mock.js';
+import { setupGoogleGenAIMocks, setupLiveKitGoogleMocks } from './llm-mock.js';
 import { createMockSessionServices, setupServicesMocks } from './services-mock.js';
-import { MockTTSClient, setupSileroMocks, setupTTSMocks } from './tts-mock.js';
+import type { MockTTSClient} from './tts-mock.js';
+import { setupSileroMocks, setupTTSMocks } from './tts-mock.js';
 
 export interface SetupAllMocksOptions {
   /** Custom LLM client to use */

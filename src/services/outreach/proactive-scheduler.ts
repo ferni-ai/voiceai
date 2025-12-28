@@ -468,7 +468,7 @@ export async function scheduleFollowUp(
   userId: string,
   originalMessage: string,
   followUpMessage: string,
-  delayHours: number = 24
+  delayHours = 24
 ): Promise<ScheduledOutreach> {
   const scheduledFor = new Date(Date.now() + delayHours * 60 * 60 * 1000);
 

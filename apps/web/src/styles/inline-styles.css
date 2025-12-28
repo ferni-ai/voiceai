@@ -2901,6 +2901,9 @@ body {
      This margin reserves space so the halo isn't cut off or overlapping other elements.
      The negative margin is compensated by the parent's layout. */
   margin: 30px;
+  /* Smooth transition for grow-on-connect effect */
+  transition: width 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+              height 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 /* Reaction animations applied via JS classes */
@@ -3084,6 +3087,13 @@ body {
   opacity: 0.35;
   border-color: var(--persona-primary);
   /* Removed harsh glow per brand guidelines - use border opacity instead */
+}
+
+/* Connected: Avatar grows for presence - feels like Ferni "waking up"
+   This applies globally; mobile breakpoints may override with larger sizes */
+#coach.is-connected .avatar-container {
+  width: min(150px, 100%);
+  height: 150px;
 }
 
 /* Human-like breathing - natural rhythm, not mechanical pulse
@@ -4166,33 +4176,12 @@ body {
    Eyes react to voice agent states with squash/stretch (NO opacity)
    ======================================================================== */
 
-/* SPEAKING - Pixar-style "talking" squash with rhythm */
-@keyframes speaking-squash {
-  0%, 100% {
-    transform: scaleY(0.78) scaleX(1.06);
-  }
-  25% {
-    transform: scaleY(0.88) scaleX(1.02);
-  }
-  50% {
-    transform: scaleY(0.72) scaleX(1.08);
-  }
-  75% {
-    transform: scaleY(0.85) scaleX(1.04);
-  }
-}
-
-@keyframes speaking-sparkle-bounce {
-  0%, 100% { transform: translateY(2px) scale(1.1); }
-  50% { transform: translateY(1px) scale(1.15); }
-}
-
+/* SPEAKING - Engaged squint (like a warm smile)
+   Eyes settle into expression, not constant bouncing.
+   Human eyes don't wiggle when talking - they hold expression. */
 #coach.is-speaking .avatar-eyes .eye-main {
-  animation: speaking-squash 0.4s ease-in-out infinite;
-}
-
-#coach.is-speaking .avatar-eyes .sparkle {
-  animation: speaking-sparkle-bounce 0.4s ease-in-out infinite;
+  transform: scaleY(0.82) scaleX(1.04);
+  transition: transform 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 /* ========================================================================
@@ -4229,87 +4218,45 @@ body {
   transform: translateX(1px) translateY(-1px);
 }
 
-/* Nayan: Connected idle - very slow, subtle breathing only */
-[data-persona='nayan-patel'] #coach.is-connected:not(.is-speaking):not(.is-listening):not(.is-thinking) .avatar-eyes .eye-main {
-  animation: nayan-serene-breathe 6s ease-in-out infinite; /* Slower, calmer */
-}
+/* Nayan: Connected idle - serene stillness, same as other personas
+   Nayan's calm nature is expressed through stillness, not animation */
 
-@keyframes nayan-serene-breathe {
-  0%, 100% { transform: scaleY(1) scaleX(1); }
-  50% { transform: scaleY(1.02) scaleX(1.01); } /* Very subtle */
-}
-
-/* LISTENING - Attentive wide eyes with subtle "leaning in" */
-@keyframes listening-attentive {
-  0%, 100% {
-    transform: scaleY(1.12) scaleX(1.02) translateY(-0.5px);
-  }
-  50% {
-    transform: scaleY(1.15) scaleX(1.04) translateY(-1px);
-  }
-}
-
+/* LISTENING - Attentive wide eyes (static, present)
+   Eyes open wider to show attention, not wiggling.
+   Human eyes settle into attentive position, they don't constantly drift. */
 #coach.is-listening .avatar-eyes .eye-main {
-  animation: listening-attentive 2s ease-in-out infinite;
+  transform: scaleY(1.12) scaleX(1.02) translateY(-0.5px);
+  transition: transform 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-#coach.is-listening .avatar-eyes .sparkle {
-  transform: translateY(-1px) scale(1.12);
-}
-
-/* THINKING - Eyes look up-right with gentle drift (cognitive processing) */
-@keyframes thinking-drift {
-  0%, 100% {
-    transform: translateX(0) translateY(0);
-  }
-  30% {
-    transform: translateX(2px) translateY(-2px);
-  }
-  60% {
-    transform: translateX(1.5px) translateY(-1.5px);
-  }
-}
-
-@keyframes thinking-sparkle-drift {
-  0%, 100% { transform: translateX(0) translateY(0); }
-  30% { transform: translateX(2.5px) translateY(-3px); }
-  60% { transform: translateX(2px) translateY(-2px); }
-}
-
+/* THINKING - Eyes look up-right (cognitive processing)
+   Static thoughtful position - eyes settle, not drift.
+   Human eyes focus when thinking, they don't constantly wander. */
 #coach.is-thinking .avatar-eyes .eye-main {
-  animation: thinking-drift 3s ease-in-out infinite;
+  transform: translateX(1.5px) translateY(-1.5px);
+  transition: transform 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-#coach.is-thinking .avatar-eyes .sparkle {
-  animation: thinking-sparkle-drift 3s ease-in-out infinite;
-}
-
-/* IDLE/CONNECTED - Gentle breathing + natural blink */
-@keyframes idle-breathe {
-  0%, 100% {
-    transform: scaleY(1) scaleX(1);
-  }
-  50% {
-    transform: scaleY(1.02) scaleX(0.99);
-  }
-}
-
+/* IDLE/CONNECTED - Natural blink only (no constant wiggling)
+   Human eyes don't constantly wiggle - they're mostly still with occasional blinks.
+   Expressions come from emotions and voice states, not constant animation. */
 @keyframes natural-blink {
-  0%, 94%, 100% {
+  0%, 92%, 100% {
     transform: scaleY(1);
   }
-  96% {
-    transform: scaleY(0.15); /* Squash for blink */
+  95% {
+    transform: scaleY(0.1); /* Quick blink */
   }
-  98% {
-    transform: scaleY(0.1);
+  97% {
+    transform: scaleY(0.15);
   }
 }
 
-/* Breathing when connected but not actively speaking/listening */
+/* Connected idle: Still eyes with occasional natural blink
+   No constant breathing/wiggling - eyes are calm and present */
 #coach.is-connected:not(.is-speaking):not(.is-listening):not(.is-thinking) .avatar-eyes .eye-main {
-  animation: idle-breathe 4s ease-in-out infinite, natural-blink 5s ease-in-out infinite;
-  animation-delay: 0s, 2s; /* Stagger blink so not immediate */
+  animation: natural-blink 6s ease-in-out infinite;
+  animation-delay: 3s; /* Don't blink immediately on connect */
 }
 
 /* ========================================================================

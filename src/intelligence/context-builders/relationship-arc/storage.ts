@@ -317,7 +317,7 @@ export async function forceStageTransition(
  */
 export async function getUnreferencedMomentsAsync(
   userId: string,
-  limit: number = 5
+  limit = 5
 ): Promise<KeyMoment[]> {
   const data = await loadRelationshipArcData(userId);
   if (!data) return [];
@@ -336,7 +336,7 @@ export async function getUnreferencedMomentsAsync(
 export function getUnreferencedMoments(
   arcData: RelationshipArcData,
   type?: KeyMoment['type'],
-  limit: number = 5
+  limit = 5
 ): KeyMoment[] {
   return arcData.keyMoments
     .filter((m) => m.referencedCount === 0 && (!type || m.type === type))

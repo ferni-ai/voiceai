@@ -285,9 +285,7 @@ function injectStyles(): void {
     .command-palette__backdrop {
       position: absolute;
       inset: 0;
-      background: var(--backdrop-light, rgba(44, 37, 32, 0.3));
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(44, 37, 32, 0.75);
     }
 
     .command-palette__container {

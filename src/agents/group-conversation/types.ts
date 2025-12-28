@@ -7,4 +7,4 @@
  * @module agents/group-conversation/types
  */
 
-export * from '../../types/group-conversation.js';
+export type * from '../../types/group-conversation.js';

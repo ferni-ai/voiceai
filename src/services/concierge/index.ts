@@ -7,7 +7,7 @@
  * This is "Better Than Human" - doing what no friend has time to do consistently.
  */
 
-export * from './types.js';
+export type * from './types.js';
 
 // Core services
 export { ConciergeRouter, createConciergeRouter } from './router.js';

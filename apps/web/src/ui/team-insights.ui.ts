@@ -755,8 +755,7 @@ function injectStyles(): void {
     .team-insights-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-      backdrop-filter: blur(20px);
+      background: rgba(44, 37, 32, 0.75);
     }
     
     .team-insights-content {

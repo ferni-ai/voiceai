@@ -855,8 +855,7 @@ function injectStyles(): void {
     .evalops-backdrop {
       position: absolute;
       inset: 0;
-      background: var(--color-utility-backdrop);
-      backdrop-filter: blur(var(--glass-blur-medium, 16px));
+      background: rgba(44, 37, 32, 0.75);
     }
     
     .evalops-modal {

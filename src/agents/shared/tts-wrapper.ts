@@ -16,8 +16,9 @@
 
 import { voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
+import type {
+  ReadableStream as NodeReadableStream} from 'node:stream/web';
 import {
-  ReadableStream as NodeReadableStream,
   TransformStream as NodeTransformStream,
 } from 'node:stream/web';
 

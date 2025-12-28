@@ -263,7 +263,7 @@ export async function getVisualMemory(
  */
 export async function getRecentVisualMemories(
   userId: string,
-  limit: number = 10
+  limit = 10
 ): Promise<VisualMemory[]> {
   const db = getFirestoreDb();
   if (!db) return [];

@@ -125,7 +125,7 @@ export class MetaRelationshipEngine {
       stage?: RelationshipStage;
       sessionCount?: number;
     },
-    personaId: string = 'ferni'
+    personaId = 'ferni'
   ) {
     this.userId = userId;
     this.personaId = personaId;
@@ -377,7 +377,7 @@ export class MetaRelationshipEngine {
 export class SomaticPresenceEngine {
   private userId: string;
   private lastSomaticTurn = 0;
-  private usedCuesThisSession: Set<SomaticCueType> = new Set();
+  private usedCuesThisSession = new Set<SomaticCueType>();
 
   constructor(userId: string) {
     this.userId = userId;

@@ -616,5 +616,5 @@ export const naturalnessEngine = {
 };
 
 // Re-export types
-export * from './types.js';
+export type * from './types.js';
 export * from './combine-adjustments.js';

@@ -438,7 +438,7 @@ export function getCombinedTriggerBoost(
  */
 export function getApproachingSignificantDates(
   sessionId: string,
-  withinDays: number = 7
+  withinDays = 7
 ): SignificantDate[] {
   const context = sessionContexts.get(sessionId);
   if (!context) return [];

@@ -30,72 +30,73 @@ import {
 
 // Sub-modules
 import {
-  SelfCorrectionEngine,
+  type SelfCorrectionEngine,
   getSelfCorrectionEngine,
   resetSelfCorrectionEngine,
 } from './self-correction.js';
 
 import {
-  DisfluencyEngine,
+  type DisfluencyEngine,
   getDisfluencyEngine,
   resetDisfluencyEngine,
 } from './disfluency-injection.js';
 
 import {
-  PhoneticMirroringEngine,
+  type PhoneticMirroringEngine,
   getPhoneticMirroringEngine,
   resetPhoneticMirroringEngine,
 } from './phonetic-mirroring.js';
 
 import {
-  CatchingYourselfEngine,
+  type CatchingYourselfEngine,
   getCatchingYourselfEngine,
   resetCatchingYourselfEngine,
 } from './catching-yourself.js';
 
 // Phase 2: Session Dynamics
 import {
-  VocalFatigueEngine,
+  type VocalFatigueEngine,
   getVocalFatigueEngine,
   resetVocalFatigueEngine,
 } from './vocal-fatigue.js';
 
 import {
-  SessionDynamicsEngine,
+  type SessionDynamicsEngine,
   getSessionDynamicsEngine,
   resetSessionDynamicsEngine,
 } from './session-dynamics.js';
 
 import {
-  ComfortProgressionEngine,
+  type ComfortProgressionEngine,
   getComfortProgressionEngine,
   resetComfortProgressionEngine,
 } from './comfort-progression.js';
 
 // Phase 3: Advanced Listening
-import { VoicePrintEngine, getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
+import type { VoicePrintEngine} from './voice-print.js';
+import { getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
 
 import {
-  AmbientAwarenessEngine,
+  type AmbientAwarenessEngine,
   getAmbientAwarenessEngine,
   resetAmbientAwarenessEngine,
 } from './ambient-awareness.js';
 
 // Phase 4: Emotional Leadership
 import {
-  EmotionalLeadingEngine,
+  type EmotionalLeadingEngine,
   getEmotionalLeadingEngine,
   resetEmotionalLeadingEngine,
 } from './emotional-leading.js';
 
 import {
-  BreathingSyncEngine,
+  type BreathingSyncEngine,
   getBreathingSyncEngine,
   resetBreathingSyncEngine,
 } from './breathing-sync.js';
 
 // Phase 5: Cross-Session Intelligence
-import { CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
+import { type CrossSessionVoiceEngine, getCrossSessionVoiceEngine } from './cross-session-voice.js';
 
 // Phase 6: Voice Pattern Learning (cross-session preference learning)
 import {

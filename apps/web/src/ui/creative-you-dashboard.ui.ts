@@ -743,8 +743,7 @@ export class CreativeYouDashboard {
           .episode-detail-backdrop {
             position: absolute;
             inset: 0;
-            background: var(--color-background-overlay);
-            backdrop-filter: blur(var(--glass-blur-medium));
+            background: rgba(44, 37, 32, 0.75);
           }
           .episode-detail-content {
             position: relative;
@@ -995,8 +994,7 @@ export class CreativeYouDashboard {
         .track-detail-backdrop {
           position: absolute;
           inset: 0;
-          background: var(--color-background-overlay);
-          backdrop-filter: blur(var(--glass-blur-medium));
+          background: rgba(44, 37, 32, 0.75);
         }
         .track-detail-content {
           position: relative;
@@ -1212,9 +1210,7 @@ export class CreativeYouDashboard {
       .creative-dashboard-backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-medium));
-        -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       .creative-dashboard-content {

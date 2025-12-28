@@ -109,7 +109,7 @@ const REFRESH_INTERVAL_MS = 60000; // 1 minute
 // ============================================================================
 
 /** In-memory cache of active community patterns */
-let cachedPatterns: Map<string, CommunityPattern> = new Map();
+const cachedPatterns = new Map<string, CommunityPattern>();
 
 /** Last time patterns were refreshed */
 let lastRefreshTime = 0;

@@ -28,24 +28,16 @@ import { getCanonicalPersonaId } from './voice-registry.js';
 // Dynamic question generation - Better than Human approach
 import {
   generateQuestion,
-  type QuestionContext,
   type GeneratedQuestion,
+  type QuestionContext,
 } from '../intelligence/dynamic-questions.js';
 // Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
-import {
-  getCoachingQuestion,
-  detectPatterns,
-  generateMirror,
-  getAnticipatoryQuestion,
-} from '../intelligence/coaching-questions.js';
+import { getCoachingQuestion } from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 // Dynamic persona content loading
 import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
 // Trait-based dynamic responses (usage-tracked, avoids repetition)
-import {
-  getDynamicSilenceResponseByPersonaId,
-  PERSONA_TRAIT_PROFILES,
-} from './dynamic-responses.js';
+import { getDynamicSilenceResponseByPersonaId } from './dynamic-responses.js';
 
 const log = getLogger();
 
@@ -55,6 +47,37 @@ const log = getLogger();
 
 /** Cache for loaded silence responses per persona */
 const silenceContentCache = new Map<string, SilenceResponses | null>();
+
+/** Track recently used phrases to avoid repetition */
+const recentlyUsedPhrases = new Map<string, Set<string>>();
+const MAX_RECENT_PHRASES = 10;
+
+/** Track phrase usage for recency */
+function trackPhraseUsage(sessionId: string, phrase: string): void {
+  if (!sessionId) return;
+  if (!recentlyUsedPhrases.has(sessionId)) {
+    recentlyUsedPhrases.set(sessionId, new Set());
+  }
+  const used = recentlyUsedPhrases.get(sessionId)!;
+  used.add(phrase);
+  // Keep only recent phrases
+  if (used.size > MAX_RECENT_PHRASES) {
+    const arr = Array.from(used);
+    arr.shift();
+    recentlyUsedPhrases.set(sessionId, new Set(arr));
+  }
+}
+
+/** Check if phrase was recently used */
+function wasRecentlyUsed(sessionId: string, phrase: string): boolean {
+  if (!sessionId) return false;
+  return recentlyUsedPhrases.get(sessionId)?.has(phrase) ?? false;
+}
+
+/** Clear recency tracking for session */
+export function clearSilenceRecency(sessionId: string): void {
+  recentlyUsedPhrases.delete(sessionId);
+}
 
 /**
  * Load silence responses for a persona with caching
@@ -85,7 +108,7 @@ async function getSilenceContent(personaId: string): Promise<SilenceResponses | 
 /**
  * Get a random item from an array with fallback
  */
-function randomFromDynamic<T>(arr: T[] | undefined, fallback: T[]): T {
+function _randomFromDynamic<T>(arr: T[] | undefined, fallback: T[]): T {
   const source = arr && arr.length > 0 ? arr : fallback;
   return source[Math.floor(Math.random() * source.length)];
 }
@@ -507,6 +530,221 @@ const TOPIC_SPECIFIC_RESPONSES: Record<string, string[]> = {
     '<break time="400ms"/>Finding a home is finding a future. <break time="300ms"/>Worth thinking about.',
   ],
 };
+
+// ============================================================================
+// SMART FALLBACK SYSTEM
+// Instead of random selection, use context-aware phrase assembly
+// ============================================================================
+
+/**
+ * Template fragments for dynamic assembly
+ * Combine: opener + context_reference + closer
+ */
+const SMART_FALLBACK_FRAGMENTS = {
+  openers: [
+    '<break time="400ms"/>Hmm.',
+    '<break time="500ms"/>You know...',
+    '<emotion value="thoughtful"/><break time="400ms"/>',
+    '<break time="300ms"/>',
+    '<emotion value="affectionate"/><break time="400ms"/>',
+  ],
+  contextReferences: {
+    // These use {topic} interpolation
+    withTopic: [
+      'that thing about {topic}...',
+      'what you said about {topic}...',
+      'I keep thinking about {topic}.',
+      "there's something about {topic} that sticks with me.",
+      '{topic}... that landed.',
+    ],
+    withName: ["{name}, I'm here.", 'still with you, {name}.', '{name}... take your time.'],
+    withTime: {
+      lateNight: ['late night thoughts hit different.', "it's quiet out there."],
+      earlyMorning: ['morning brain is good for this.', 'early hours, huh?'],
+      evening: ['end of day processing.', 'winding down but thinking hard.'],
+    },
+    generic: [
+      "I'm sitting with this.",
+      'something in what you said...',
+      'the pause is part of it.',
+      'not going anywhere.',
+    ],
+  },
+  closers: {
+    inviting: [
+      '<break time="300ms"/>...whenever you\'re ready.',
+      '<break time="200ms"/>...no rush.',
+      '<break time="300ms"/>...I\'m curious.',
+    ],
+    presence: [
+      '', // Sometimes no closer is better
+      '<break time="200ms"/>...just here.',
+      '<break time="300ms"/>',
+    ],
+  },
+};
+
+/**
+ * Topic keywords for semantic matching
+ */
+const TOPIC_KEYWORDS: Record<string, string[]> = {
+  family: [
+    'mom',
+    'dad',
+    'parent',
+    'kid',
+    'son',
+    'daughter',
+    'brother',
+    'sister',
+    'family',
+    'relative',
+  ],
+  work: ['job', 'work', 'career', 'boss', 'colleague', 'office', 'meeting', 'project', 'deadline'],
+  money: ['money', 'invest', 'save', 'retire', 'budget', 'debt', 'income', 'expense', 'financial'],
+  health: ['health', 'doctor', 'medical', 'sick', 'pain', 'exercise', 'sleep', 'stress', 'anxiety'],
+  relationship: [
+    'relationship',
+    'partner',
+    'spouse',
+    'date',
+    'dating',
+    'love',
+    'breakup',
+    'marriage',
+  ],
+  loss: ['loss', 'grief', 'death', 'passed', 'miss', 'gone', 'funeral', 'memorial'],
+  growth: ['grow', 'change', 'improve', 'learn', 'develop', 'progress', 'goal', 'dream'],
+};
+
+/**
+ * Detect topic category from context
+ * Can be used for topic-specific phrase selection in future iterations
+ */
+function _detectTopicCategory(context: SilenceContext): string | null {
+  const textToSearch = [
+    context.lastUserMessage || '',
+    context.wasDiscussingTopic || '',
+    ...(context.topicsDiscussed || []),
+    ...(context.memorableMoments || []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  for (const [category, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+    if (keywords.some((kw) => textToSearch.includes(kw))) {
+      return category;
+    }
+  }
+  return null;
+}
+
+/**
+ * Interpolate template with context variables
+ */
+function interpolateTemplate(template: string, context: SilenceContext): string {
+  let result = template;
+
+  // Replace {topic}
+  const topic =
+    context.wasDiscussingTopic ||
+    (context.topicsDiscussed && context.topicsDiscussed[context.topicsDiscussed.length - 1]) ||
+    'what you shared';
+  result = result.replace(/\{topic\}/g, topic);
+
+  // Replace {name}
+  if (context.userName) {
+    result = result.replace(/\{name\}/g, context.userName);
+  } else {
+    // Remove name-based phrases if no name
+    result = result.replace(/\{name\}[^.]*\./g, '');
+  }
+
+  return result.trim();
+}
+
+/**
+ * Get time-based context reference
+ */
+function getTimeBasedReference(hour: number): string | null {
+  const refs = SMART_FALLBACK_FRAGMENTS.contextReferences.withTime;
+  if (hour >= 22 || hour < 6) {
+    return randomFrom(refs.lateNight);
+  } else if (hour >= 5 && hour < 9) {
+    return randomFrom(refs.earlyMorning);
+  } else if (hour >= 18 && hour < 22) {
+    return randomFrom(refs.evening);
+  }
+  return null;
+}
+
+/**
+ * Smart fallback: Generate contextually-aware response from fragments
+ *
+ * This creates variety by:
+ * 1. Picking fragments based on available context
+ * 2. Interpolating with real values (topic, name, time)
+ * 3. Avoiding recently used phrases
+ * 4. Assembling in different combinations
+ */
+function generateSmartFallback(context: SilenceContext, invitesReply: boolean): string {
+  const sessionId = context.sessionId || 'default';
+  const fragments = SMART_FALLBACK_FRAGMENTS;
+
+  // Pick opener (varies each time)
+  const opener = randomFrom(fragments.openers);
+
+  // Pick context reference based on what we know
+  let contextRef: string;
+  const hasContext =
+    context.wasDiscussingTopic || (context.topicsDiscussed && context.topicsDiscussed.length > 0);
+  const hasName = !!context.userName;
+  const hour = context.currentHour ?? new Date().getHours();
+
+  // Priority: topic > name > time > generic
+  if (hasContext && Math.random() < 0.7) {
+    contextRef = interpolateTemplate(randomFrom(fragments.contextReferences.withTopic), context);
+  } else if (hasName && Math.random() < 0.5) {
+    contextRef = interpolateTemplate(randomFrom(fragments.contextReferences.withName), context);
+  } else {
+    const timeRef = getTimeBasedReference(hour);
+    if (timeRef && Math.random() < 0.4) {
+      contextRef = timeRef;
+    } else {
+      contextRef = randomFrom(fragments.contextReferences.generic);
+    }
+  }
+
+  // Pick closer based on whether we want a reply
+  const closerOptions = invitesReply ? fragments.closers.inviting : fragments.closers.presence;
+  const closer = randomFrom(closerOptions);
+
+  // Assemble
+  const assembled = `${opener}${contextRef}${closer}`.trim();
+
+  // Track usage
+  trackPhraseUsage(sessionId, assembled);
+
+  return assembled;
+}
+
+/**
+ * Get smart fallback with recency check
+ * If the assembled phrase was recently used, try again (up to 3 times)
+ */
+function getSmartFallbackWithRecency(context: SilenceContext, invitesReply: boolean): string {
+  const sessionId = context.sessionId || 'default';
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const phrase = generateSmartFallback(context, invitesReply);
+    if (!wasRecentlyUsed(sessionId, phrase)) {
+      return phrase;
+    }
+  }
+
+  // After 3 attempts, just return whatever we got
+  return generateSmartFallback(context, invitesReply);
+}
 
 // ============================================================================
 // MAIN FUNCTION - Get Meaningful Silence Response
@@ -1954,9 +2192,9 @@ function buildLLMSilenceInstructionsInternal(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      `Just offer presence. Short, warm. Like "I'm here" or "Take your time." 
-Don't ask questions. Don't fill the silence with words. Just BE THERE.
-One short sentence max. Often just a few words is perfect.`;
+      `Just be present. Maybe a soft acknowledgment, maybe nothing at all.
+If something feels right to say, say it. If not, that's okay too.
+Think: what would a close friend do right now? Probably just... be there.`;
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
     // Medium silence WITH something to reference - use memory callback
@@ -1966,10 +2204,9 @@ One short sentence max. Often just a few words is perfect.`;
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      `Gently reference something they shared earlier or what you were discussing.
-Example: "I keep thinking about what you said about [topic]."
-Don't push for a response. Just show you're still engaged with their story.
-Keep it brief - one sentence.`;
+      `Something they said is still with you. Let that show naturally.
+Not a summary, not checking in - more like "hmm, that thing about X still lands."
+You're thinking alongside them, not managing the conversation.`;
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold) {
     // Medium silence but NO topics to reference - fall back to presence
@@ -1979,9 +2216,8 @@ Keep it brief - one sentence.`;
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      `Just offer warm presence. Short and gentle.
-Like "I'm here with you" or "Take all the time you need."
-One short sentence. Don't ask questions yet.`;
+      `Just presence. You're here, they know it, that's enough.
+Could be a few words, could be nothing. Trust the moment.`;
     invitesReply = false;
   } else if (turnCount >= questionMinTurns) {
     // Longer silence, established conversation - thoughtful question
@@ -1991,11 +2227,10 @@ One short sentence. Don't ask questions yet.`;
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      `Ask ONE thoughtful question that shows you've been listening.
-Based on what they've shared, ask something that invites deeper reflection.
-NOT generic ("how's your day?"). Make it SPECIFIC to them.
-Example: "What would [person they mentioned] say about this?"
-Keep it conversational - like a friend genuinely curious.`;
+      `You've been listening. Now you're curious about something specific.
+Not a generic question - something that comes from what they actually shared.
+Ask because you genuinely want to know, not to fill silence.
+Could be about a detail they mentioned, a person in their story, what they're actually feeling.`;
     invitesReply = true;
   } else {
     // Early conversation, long silence - gentle check-in
@@ -2005,9 +2240,9 @@ Keep it conversational - like a friend genuinely curious.`;
         '{duration}',
         String(Math.round(silenceDurationSeconds))
       ) ||
-      `Gentle check-in without pressure.
-Example: "Just checking in - what's on your mind?"
-Keep it open. No pressure. Give them space.`;
+      `Check in naturally - like you'd notice a friend went quiet.
+Not "are you okay?" more like "what's going on in there?" or just curiosity about where their mind went.
+Open, warm, no pressure.`;
     invitesReply = true;
   }
 
@@ -2023,42 +2258,53 @@ Keep it open. No pressure. Give them space.`;
     };
   }
 
-  // BEHAVIORAL INSTRUCTION PATTERN:
-  // We use bracketed instructions that tell the LLM HOW to respond.
-  // These are direct behavioral guidance that the sanitizer catches if echoed.
-  //
-  // Flow: generateReply → Gemini reads instructions → outputs JSON → sanitizer catches → session.say()
+  // Build rich context for the LLM
   const personaName = persona.name || 'Ferni';
 
-  // Build behavioral instructions
-  const instructionParts = [
-    `[SITUATION: User silent for ${Math.round(silenceDurationSeconds)}s]`,
-    `[PERSONA: ${personaName}]`,
-    `[DO: ${responseGuidance}]`,
-    '[STYLE: warm, brief (1-2 sentences max)]',
-  ];
-  if (contextHints.length > 0) {
-    instructionParts.push(`[CONTEXT: ${contextHints.join('; ')}]`);
-  }
-  if (timeHint) {
-    instructionParts.push(`[TONE: ${timeHint}]`);
+  // Include actual conversation content, not just metadata
+  const conversationContext: string[] = [];
+
+  if (lastUserMessage) {
+    // Include more of their actual words for genuine reference
+    conversationContext.push(`They said: "${lastUserMessage.slice(0, 200)}"`);
   }
 
-  const behavioralGuidance = instructionParts.join('\n');
+  if (context.memorableMoments && context.memorableMoments.length > 0) {
+    conversationContext.push(
+      `Key moments shared: ${context.memorableMoments.slice(0, 3).join('; ')}`
+    );
+  }
 
-  // JSON format instruction - we need this outputted
-  const instructions = `${behavioralGuidance}
+  if (wasDiscussingTopic) {
+    conversationContext.push(`Topic: ${wasDiscussingTopic}`);
+  }
 
-OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your message here"}}`;
+  // Build natural instructions - NOT rigid/prescriptive
+  const naturalGuidance = `You're ${personaName}. It's been ${Math.round(silenceDurationSeconds)} seconds of quiet.
 
-  // Generate fallback using static system
-  const staticResponse = getMeaningfulSilenceResponse(persona, context);
+${conversationContext.length > 0 ? `WHAT YOU KNOW:\n${conversationContext.join('\n')}\n` : ''}
+${contextHints.length > 0 ? `Context: ${contextHints.join('. ')}\n` : ''}
+${timeHint ? `Time: ${timeHint}\n` : ''}
+
+HOW TO RESPOND:
+${responseGuidance}
+
+Be genuine - like a real friend who's comfortable with silence but also present.
+Don't be robotic or formulaic. Don't say "I'm here if you need me" type phrases.
+Respond naturally - could be a few words, could be a full thought. Whatever fits the moment.`;
+
+  // Just output plain text - no JSON wrapper needed
+  const instructions = `${naturalGuidance}
+
+Respond with ONLY your message as plain text. No JSON. No quotes. Just speak naturally.`;
+
+  // Generate smart fallback instead of random static selection
+  const smartFallback = getSmartFallbackWithRecency(context, invitesReply);
 
   return {
     instructions,
     allowInterruptions: true,
-    fallback: staticResponse.text,
+    fallback: smartFallback,
     type: responseType,
     invitesReply,
   };
@@ -2124,7 +2370,7 @@ export function clearSilenceContentCache(): void {
 }
 
 // Export types and utilities for other modules
-export type { QuestionContext, GeneratedQuestion };
-export { getDynamicThoughtfulQuestion, silenceContextToQuestionContext, getSilenceContent };
+export { getDynamicThoughtfulQuestion, getSilenceContent, silenceContextToQuestionContext };
+export type { GeneratedQuestion, QuestionContext };
 
 export default getMeaningfulSilenceResponse;

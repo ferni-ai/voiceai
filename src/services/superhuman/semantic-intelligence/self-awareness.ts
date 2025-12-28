@@ -490,7 +490,7 @@ export async function recordValueBehavior(
   behavior: string,
   aligned: boolean
 ): Promise<void> {
-  let alignment = valuesCache.get(userId) ?? await loadValuesAlignment(userId);
+  const alignment = valuesCache.get(userId) ?? await loadValuesAlignment(userId);
   if (!alignment) return;
   
   const valueData = alignment.alignmentScores.get(value.toLowerCase());

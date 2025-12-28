@@ -1,56 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Ferni Avatar - Maskable Icon (with safe area padding) -->
-  <!-- Safe area is 80% of the icon, centered -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Maskable Icon 512x512 - Eyes with safe area padding -->
+<!-- Safe area is 80% of the icon, centered -->
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="avatarGradMask" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradientMask" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="badgeGradMask" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#5a8060"/>
+    <linearGradient id="eyeFillMask" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Background fills entire icon for masking -->
-  <rect width="512" height="512" fill="#F5F1E8"/>
-  
+  <rect width="512" height="512" fill="url(#orbGradientMask)"/>
+
   <!-- Content centered in safe area (80% = 409.6px, offset = 51.2px) -->
   <g transform="translate(51.2, 51.2) scale(0.8)">
-    <!-- Outer presence ring -->
-    <circle cx="256" cy="256" r="200" fill="none" stroke="#4a6741" stroke-width="3" opacity="0.35"/>
-    
-    <!-- Main avatar circle -->
-    <circle cx="256" cy="256" r="175" fill="url(#avatarGradMask)"/>
-    
-    <!-- FE Text -->
-    <text 
-      x="256" 
-      y="256" 
-      text-anchor="middle" 
-      dominant-baseline="central"
-      font-family="'Plus Jakarta Sans', 'SF Pro Display', system-ui, sans-serif"
-      font-size="128"
-      font-weight="800"
-      fill="white"
-      letter-spacing="-4">
-      <tspan dy="8">FE</tspan>
-    </text>
-    
-    <!-- Shine - ABOVE text -->
-    <ellipse cx="200" cy="180" rx="90" ry="45" fill="white" opacity="0.15"/>
-    
-    <!-- Heart badge -->
-    <circle cx="396" cy="396" r="48" fill="url(#badgeGradMask)" stroke="#FFFDFB" stroke-width="8"/>
-    
-    <!-- Heart icon - centered -->
-    <path 
-      d="M396 382c0-6.6-5.4-12-12-12s-12 5.4-12 12c0 12 22 28 22 28s22-16 22-28c0-6.6-5.4-12-12-12s-12 5.4-12 12z"
-      fill="none"
-      stroke="white"
-      stroke-width="4"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
+    <!-- Left eye -->
+    <ellipse cx="185" cy="240" rx="50" ry="66" fill="url(#eyeFillMask)"/>
+    <circle cx="173" cy="213" r="13" fill="white"/>
+    <circle cx="183" cy="223" r="5" fill="white" opacity="0.7"/>
+
+    <!-- Right eye -->
+    <ellipse cx="327" cy="240" rx="50" ry="66" fill="url(#eyeFillMask)"/>
+    <circle cx="315" cy="213" r="13" fill="white"/>
+    <circle cx="325" cy="223" r="5" fill="white" opacity="0.7"/>
   </g>
 </svg>

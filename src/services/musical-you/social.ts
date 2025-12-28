@@ -254,7 +254,7 @@ export function getUserRank(
 export function getTopEntries(
   type: 'weekly' | 'monthly' | 'all-time',
   gameType: string | 'overall',
-  limit: number = 10
+  limit = 10
 ): LeaderboardEntry[] {
   const leaderboard = getLeaderboard(type, gameType);
   return leaderboard.entries.slice(0, limit);

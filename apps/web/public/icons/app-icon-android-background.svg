@@ -1,12 +1,11 @@
-<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni Android Adaptive Icon - Background Layer -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Android Adaptive Icon - Background Layer (Solid Color) -->
+<svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F5F1E8"/>
-      <stop offset="100%" stop-color="#E8E0D5"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
   </defs>
-  
-  <!-- Full background -->
-  <rect width="512" height="512" fill="url(#bgGrad)"/>
+  <rect width="108" height="108" fill="url(#orbGradient)"/>
 </svg>

@@ -13,7 +13,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { SemanticRouter, createSemanticRouter, routeUserInput } from './router.js';
+import type { SemanticRouter} from './router.js';
+import { createSemanticRouter, routeUserInput } from './router.js';
 import { getToolRegistry, type SemanticToolRegistry } from './registry.js';
 import { getAvailableToolDefinitions } from './tool-definitions/index.js';
 import { mergeLocaleIntoTools } from './i18n/index.js';
@@ -41,7 +42,7 @@ export interface SemanticMatch {
 
 let routerInstance: SemanticRouter | null = null;
 let initialized = false;
-let embeddingCache: Map<string, number[]> = new Map();
+const embeddingCache = new Map<string, number[]>();
 
 function getRouter(): SemanticRouter {
   if (!routerInstance) {

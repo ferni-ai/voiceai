@@ -26,7 +26,7 @@ const log = getLogger();
  * Calculate RSI (Relative Strength Index)
  * RSI > 70 = overbought, RSI < 30 = oversold
  */
-function calculateRSI(prices: number[], period: number = 14): number {
+function calculateRSI(prices: number[], period = 14): number {
   if (prices.length < period + 1) return 50; // Not enough data
 
   let gains = 0;
@@ -89,7 +89,7 @@ function calculateEMA(prices: number[], period: number): number {
  */
 function calculateBollingerBands(
   prices: number[],
-  period: number = 20
+  period = 20
 ): { upper: number; middle: number; lower: number; percentB: number } {
   const sma = calculateSMA(prices, period);
   const slice = prices.slice(0, Math.min(period, prices.length));
@@ -110,7 +110,7 @@ function calculateBollingerBands(
 /**
  * Fetch historical prices from Yahoo Finance
  */
-async function fetchHistoricalPrices(symbol: string, days: number = 100): Promise<number[]> {
+async function fetchHistoricalPrices(symbol: string, days = 100): Promise<number[]> {
   return withRateLimit(
     'yahoo-finance',
     async () => {
@@ -313,7 +313,7 @@ function calculateSavingsRate(
 
 function calculateFIRENumber(
   annualExpenses: number,
-  withdrawalRate: number = 4
+  withdrawalRate = 4
 ): {
   fireNumber: number;
   leanFIRE: number;
@@ -346,7 +346,7 @@ function calculateRetirementReadiness(
   currentSavings: number,
   monthlyContribution: number,
   monthlyExpenses: number,
-  expectedReturn: number = 7
+  expectedReturn = 7
 ): {
   score: number;
   projectedAtRetirement: number;

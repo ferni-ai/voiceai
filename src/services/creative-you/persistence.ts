@@ -249,7 +249,7 @@ class CreativeYouPersistence {
 
     if (this.db) {
       try {
-        let query: Query = this.db
+        const query: Query = this.db
           .collection(this.COLLECTION_INSIGHTS)
           .where('userId', '==', userId)
           .orderBy('savedAt', 'desc')
@@ -348,7 +348,7 @@ class CreativeYouPersistence {
   /**
    * Load watch history
    */
-  async loadWatchHistory(userId: string, limit: number = 20): Promise<WatchRecord[]> {
+  async loadWatchHistory(userId: string, limit = 20): Promise<WatchRecord[]> {
     await this.ensureInitialized();
 
     if (this.db) {
@@ -488,7 +488,7 @@ class CreativeYouPersistence {
   /**
    * Get top topics for a user (for recommendations)
    */
-  async getTopTopics(userId: string, count: number = 10): Promise<string[]> {
+  async getTopTopics(userId: string, count = 10): Promise<string[]> {
     const history = await this.loadTopicHistory(userId);
     return history.topics.slice(0, count).map((t) => t.topic);
   }

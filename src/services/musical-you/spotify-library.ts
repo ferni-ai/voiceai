@@ -312,7 +312,7 @@ export async function getSpotifyLibrary(
  */
 export function getRandomPlayableTracks(
   userId: string,
-  count: number = 10,
+  count = 10,
   options?: {
     genre?: string;
     decade?: string;
@@ -369,7 +369,7 @@ export function hasEnoughPlayableContent(userId: string): {
  * Get tracks the user might not recognize well
  * (older tracks, less popular, less frequently played)
  */
-export function getChallengerTracks(userId: string, count: number = 5): SpotifyTrack[] {
+export function getChallengerTracks(userId: string, count = 5): SpotifyTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 

@@ -102,7 +102,7 @@ export class HandoffTransaction {
   private steps: TransactionStep[] = [];
   private executedSteps: TransactionStep[] = [];
   private state: TransactionState = 'pending';
-  private startTime: number = 0;
+  private startTime = 0;
 
   constructor(id: string) {
     this.id = id;
@@ -323,7 +323,7 @@ export class HandoffTransaction {
 /**
  * Create a new handoff transaction with auto-generated ID.
  */
-export function createTransaction(prefix: string = 'handoff'): HandoffTransaction {
+export function createTransaction(prefix = 'handoff'): HandoffTransaction {
   const id = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   return new HandoffTransaction(id);
 }

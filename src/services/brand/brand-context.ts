@@ -343,7 +343,7 @@ const DEFAULT_TOKENS: BrandTokens = {
 
 /** Cached brand context */
 let cachedContext: BrandContext | null = null;
-let cacheTime: number = 0;
+let cacheTime = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**

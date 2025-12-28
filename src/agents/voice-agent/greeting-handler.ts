@@ -693,7 +693,7 @@ async function generateGreetingWithContext(
   });
 
   // Track if greeting referenced last conversation
-  let hasReferencedLastConversation = greeting.toLowerCase().includes('last time');
+  const hasReferencedLastConversation = greeting.toLowerCase().includes('last time');
 
   // If we have a thread starter and didn't use it in greeting, append it
   if (threadStarter && !hasReferencedLastConversation) {

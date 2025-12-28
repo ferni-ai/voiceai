@@ -331,7 +331,7 @@ export function getAggregateMetrics(): {
  * Get recent events (for debugging/dashboards)
  */
 export function getRecentEvents(
-  limit: number = 100,
+  limit = 100,
   filters?: {
     type?: string;
     userId?: string;

@@ -1,22 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Logo optimized for dark backgrounds -->
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <!-- Logo optimized for dark backgrounds -->
   <defs>
-    <linearGradient id="darkBgOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#5a8060"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
     </linearGradient>
-    <linearGradient id="darkBgShine" x1="0%" y1="0%" x2="60%" y2="60%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.2"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  
+
+  <!-- Outer ring -->
   <circle cx="50" cy="50" r="46" fill="none" stroke="#5a8060" stroke-width="1.5" opacity="0.5"/>
-  <circle cx="50" cy="50" r="40" fill="url(#darkBgOrb)"/>
-  <circle cx="50" cy="50" r="40" fill="url(#darkBgShine)"/>
-  <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
-    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
-    font-size="30" font-weight="800" fill="white" letter-spacing="-1">
-    <tspan dy="2">FE</tspan>
-  </text>
+
+  <!-- Circular background -->
+  <circle cx="50" cy="50" r="40" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="34" cy="43" r="2" fill="white"/>
+  <circle cx="36" cy="45" r="0.8" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+  <circle cx="62" cy="43" r="2" fill="white"/>
+  <circle cx="64" cy="45" r="0.8" fill="white" opacity="0.7"/>
 </svg>

@@ -534,9 +534,7 @@ class CommandsPanelUI {
       .ferni-commands__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--color-background-overlay);
-        backdrop-filter: blur(var(--glass-blur-subtle));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+        background: rgba(44, 37, 32, 0.75);
       }
 
       .ferni-commands__wrapper {

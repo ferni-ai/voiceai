@@ -24,7 +24,7 @@ const log = createLogger({ module: 'TipJar' });
 // ============================================================================
 
 // Cache for quick access - populated from Firestore on first access
-const tipCache: Map<string, TipTransaction> = new Map();
+const tipCache = new Map<string, TipTransaction>();
 let totalTipsCents = 0;
 let tipCount = 0;
 let statsLoaded = false;

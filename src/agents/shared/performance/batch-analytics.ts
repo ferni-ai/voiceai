@@ -225,7 +225,7 @@ export class BatchAnalyticsWriter {
         if (attempt < this.config.maxRetries - 1) {
           // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await new Promise<void>((resolve) => { setTimeout(resolve, delay); });
         }
       }
     }

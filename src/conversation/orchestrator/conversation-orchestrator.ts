@@ -101,7 +101,7 @@ export class ConversationOrchestrator {
   private personaId: string | null = null;
   private sessionId: string;
 
-  constructor(sessionId: string = 'default', config: Partial<OrchestratorConfig> = {}) {
+  constructor(sessionId = 'default', config: Partial<OrchestratorConfig> = {}) {
     this.sessionId = sessionId;
     this.configOverrides = config;
     this.sessionStartTime = Date.now();

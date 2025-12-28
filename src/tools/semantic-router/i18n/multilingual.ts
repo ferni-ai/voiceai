@@ -52,7 +52,7 @@ interface ToolEmbedding {
   examples: Array<{ text: string; embedding: EmbeddingVector }>;
 }
 
-const toolEmbeddingsCache: Map<string, ToolEmbedding> = new Map();
+const toolEmbeddingsCache = new Map<string, ToolEmbedding>();
 
 // ============================================================================
 // CORE FUNCTIONS

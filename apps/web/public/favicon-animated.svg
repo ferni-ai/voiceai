@@ -1,61 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Ferni Animated Favicon - FE Avatar with Breathing -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Animated Favicon - Eyes with Breathing & Blinking -->
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       @keyframes breathe {
         0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.03); }
+        50% { transform: scale(1.02); }
       }
-      @keyframes glow {
-        0%, 100% { opacity: 0.25; }
-        50% { opacity: 0.45; }
+      @keyframes blink {
+        0%, 94%, 100% { transform: scaleY(1); }
+        97% { transform: scaleY(0.1); }
       }
-      @keyframes shimmer {
-        0%, 100% { opacity: 0.15; }
-        50% { opacity: 0.25; }
+      .eyes-group {
+        animation: blink 4s ease-in-out infinite;
+        transform-origin: center 15px;
       }
-      .avatar-body {
+      .orb-body {
         animation: breathe 4s ease-in-out infinite;
         transform-origin: center;
       }
-      .glow-ring {
-        animation: glow 4s ease-in-out infinite;
-      }
-      .shine {
-        animation: shimmer 4s ease-in-out infinite;
-      }
-
       @media (prefers-reduced-motion: reduce) {
-        .avatar-body, .glow-ring, .shine { animation: none; }
+        .eyes-group, .orb-body { animation: none; }
       }
     </style>
 
-    <linearGradient id="favAnimGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
 
-  <!-- Background with rounded corners -->
-  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
+  <!-- Rounded square background (solid color base) -->
+  <rect class="orb-body" width="32" height="32" rx="6" fill="url(#orbGrad)"/>
 
-  <!-- Glow ring -->
-  <circle class="glow-ring" cx="16" cy="16" r="13" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.35"/>
+  <!-- Eyes group (for blinking) -->
+  <g class="eyes-group">
+    <!-- Left eye -->
+    <ellipse cx="11.5" cy="15" rx="3.1" ry="4.1" fill="url(#eyeFill)"/>
+    <circle cx="10.8" cy="13.3" r="0.8" fill="white"/>
 
-  <!-- Main avatar circle -->
-  <circle class="avatar-body" cx="16" cy="16" r="11" fill="url(#favAnimGrad)"/>
-
-  <!-- FE text -->
-  <text 
-    x="16" 
-    y="17" 
-    font-family="system-ui, -apple-system, 'SF Pro Display', sans-serif"
-    font-size="8"
-    font-weight="800"
-    fill="white"
-    text-anchor="middle"
-    letter-spacing="-0.3">FE</text>
-
-  <!-- Shine overlay - ABOVE text -->
-  <ellipse class="shine" cx="12.5" cy="11" rx="5.5" ry="2.8" fill="white" opacity="0.15"/>
+    <!-- Right eye -->
+    <ellipse cx="20.5" cy="15" rx="3.1" ry="4.1" fill="url(#eyeFill)"/>
+    <circle cx="19.8" cy="13.3" r="0.8" fill="white"/>
+  </g>
 </svg>

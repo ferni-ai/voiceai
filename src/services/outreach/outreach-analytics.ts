@@ -404,9 +404,9 @@ function calculateReengagementMetrics(userId?: string): OutreachMetrics['reengag
   };
 
   let usersInArc = 0;
-  let successCount = 0;
-  let totalDaysToReturn = 0;
-  let returnCount = 0;
+  const successCount = 0;
+  const totalDaysToReturn = 0;
+  const returnCount = 0;
 
   // If specific user, get their summary
   if (userId) {

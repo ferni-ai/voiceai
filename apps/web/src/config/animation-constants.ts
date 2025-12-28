@@ -28,7 +28,7 @@
 export {
   AVATAR_SQUASH_STRETCH,
   PERSONA_ANIMATION_PROFILES,
-} from './animation-constants.generated.ts';
+} from './animation-constants.generated.js';
 
 // ============================================================================
 // DURATION CONSTANTS

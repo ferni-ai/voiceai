@@ -237,7 +237,7 @@ export function getDailyChallenge(date?: Date): DailyChallenge {
 /**
  * Get the upcoming week's challenges (for preview)
  */
-export function getUpcomingChallenges(startDate?: Date, days: number = 7): DailyChallenge[] {
+export function getUpcomingChallenges(startDate?: Date, days = 7): DailyChallenge[] {
   const challenges: DailyChallenge[] = [];
   const start = startDate || new Date();
 

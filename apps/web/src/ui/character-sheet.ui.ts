@@ -35,9 +35,7 @@ const STYLES = `
   .character-sheet-backdrop {
     position: absolute;
     inset: 0;
-    background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(44, 37, 32, 0.75);
   }
 
   .character-sheet-modal {

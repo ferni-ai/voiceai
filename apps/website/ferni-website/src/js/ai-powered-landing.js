@@ -256,7 +256,7 @@
       widget.id = 'ferni-live-chat';
       widget.innerHTML = `
         <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
-          <div class="ferni-chat-trigger__avatar">FE</div>
+          <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <span class="ferni-chat-trigger__text">Chat with Ferni</span>
           <span class="ferni-chat-trigger__badge">AI</span>
         </button>
@@ -264,7 +264,7 @@
         <div class="ferni-chat-panel" aria-hidden="true">
           <div class="ferni-chat-panel__header">
             <div class="ferni-chat-panel__persona">
-              <div class="ferni-chat-panel__avatar">FE</div>
+              <div class="ferni-chat-panel__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
               <div class="ferni-chat-panel__info">
                 <span class="ferni-chat-panel__name">Ferni</span>
                 <span class="ferni-chat-panel__status">● Online</span>
@@ -702,7 +702,7 @@
             <div class="memory-demo__date">IN 3 MONTHS</div>
             <div class="memory-demo__card memory-demo__card--ferni">
               <div class="memory-demo__speaker">
-                <div class="memory-demo__avatar">FE</div>
+                <div class="memory-demo__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
                 Ferni remembers
               </div>
               <ul class="memory-demo__insights">
@@ -765,7 +765,7 @@
       this.tooltip.className = 'ferni-hover-preview';
       this.tooltip.setAttribute('role', 'tooltip');
       this.tooltip.innerHTML = `
-        <div class="ferni-hover-preview__avatar">FE</div>
+        <div class="ferni-hover-preview__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
         <div class="ferni-hover-preview__content"></div>
       `;
       document.body.appendChild(this.tooltip);
@@ -901,7 +901,7 @@
 
       this.container.innerHTML = `
         <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar">FE</div>
+          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <div class="social-proof-dynamic__content">
             <p class="social-proof-dynamic__text">${this.snippets[0].content}</p>
           </div>
@@ -1035,7 +1035,7 @@
       askBox.className = 'smart-faq';
       askBox.innerHTML = `
         <div class="smart-faq__header">
-          <div class="smart-faq__avatar">FE</div>
+          <div class="smart-faq__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <h4 class="smart-faq__title">Ask me anything</h4>
         </div>
         <div class="smart-faq__input-area">

@@ -174,19 +174,15 @@ const styles = `
 .onboarding-progress-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-  backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .onboarding-progress-card {
   position: relative;
-  background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-  backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-  border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+  background: var(--color-bg-elevated, #FFFDFB);
+  border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
   border-radius: var(--radius-xl, 20px);
-  box-shadow: var(--glass-shadow-thick, 0 8px 12px rgba(0, 0, 0, 0.10), 0 16px 32px rgba(0, 0, 0, 0.08));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
   width: 100%;
   max-width: 380px;
   padding: var(--space-xl, 42px) var(--space-lg, 26px);
@@ -196,12 +192,6 @@ const styles = `
 
 .onboarding-progress-modal.open .onboarding-progress-card {
   transform: scale(1);
-}
-
-@supports not (backdrop-filter: blur(24px)) {
-  .onboarding-progress-card {
-    background: var(--color-background-elevated, #faf6f0);
-  }
 }
 
 .onboarding-progress-header {

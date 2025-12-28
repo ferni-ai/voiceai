@@ -206,9 +206,7 @@ export interface ScriptTemplate {
     firm: string[];
     assertive: string[];
   };
-  adaptations?: {
-    [tendency in FourTendency]?: string;
-  };
+  adaptations?: Partial<Record<FourTendency, string>>;
 }
 
 /**
@@ -221,12 +219,10 @@ export interface Framework {
   source?: string; // Citation
   steps?: string[];
   questions?: string[];
-  adaptations?: {
-    [tendency in FourTendency]?: {
+  adaptations?: Partial<Record<FourTendency, {
       framing: string;
       motivation: string;
-    };
-  };
+    }>>;
 }
 
 /**

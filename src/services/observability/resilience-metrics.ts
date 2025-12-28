@@ -157,7 +157,7 @@ export class ResilienceMetricsService {
   private readonly WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
   // Current state tracking
-  private circuitBreakerStates: Map<string, 'closed' | 'open' | 'half-open'> = new Map();
+  private circuitBreakerStates = new Map<string, 'closed' | 'open' | 'half-open'>();
   private currentInstances = 1;
 
   // ============================================================================

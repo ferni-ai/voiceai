@@ -170,10 +170,10 @@ const RELATIONSHIP_PATTERNS: PatternConfig = {
 
 export class SuperhumanObservationsEngine {
   private userId: string;
-  private observations: Map<string, SuperhumanObservation> = new Map();
-  private patternCounts: Map<string, number> = new Map();
+  private observations = new Map<string, SuperhumanObservation>();
+  private patternCounts = new Map<string, number>();
   private lastSurfaceTurn = 0;
-  private surfacedPatterns: Set<string> = new Set();
+  private surfacedPatterns = new Set<string>();
 
   constructor(userId: string, existing?: SuperhumanObservation[]) {
     this.userId = userId;

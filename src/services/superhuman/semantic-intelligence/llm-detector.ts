@@ -129,9 +129,9 @@ async function callLLM<T>(
             temperature: 0.1, // Low for consistent classification
           },
         }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('LLM timeout')), timeout)
-        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('LLM timeout')), timeout);
+        }),
       ]);
 
       return response?.text?.trim() || '';

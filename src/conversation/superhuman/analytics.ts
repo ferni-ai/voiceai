@@ -258,7 +258,7 @@ export function getMostEffectiveCapabilities(): Array<{
 /**
  * Get recent activity summary
  */
-export function getRecentActivitySummary(minutes: number = 60): {
+export function getRecentActivitySummary(minutes = 60): {
   totalUsage: number;
   appliedCount: number;
   byCapability: Record<SuperhumanCapability, number>;

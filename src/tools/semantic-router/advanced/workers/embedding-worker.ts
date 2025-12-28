@@ -181,7 +181,7 @@ export class EmbeddingWorker {
    */
   findSimilar(
     queryVector: EmbeddingVector,
-    topK: number = 5
+    topK = 5
   ): Array<{ text: string; similarity: number }> {
     const results: Array<{ text: string; similarity: number }> = [];
 
@@ -342,7 +342,7 @@ export class EmbeddingWorker {
         }
 
         // Small delay to avoid overwhelming API
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
       }
     } catch (error) {
       log.error({ error }, 'Pre-warm failed');

@@ -121,10 +121,19 @@ const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   office: ['productivity'],
   email: ['communication', 'productivity', 'scheduling'],
   emails: ['communication', 'productivity', 'scheduling'],
-  call: ['communication', 'telephony', 'scheduling'],
-  calls: ['communication', 'telephony', 'scheduling'],
-  'call me': ['scheduling', 'telephony'],
+  call: ['telephony', 'communication', 'scheduling'],
+  calls: ['telephony', 'communication', 'scheduling'],
+  'call me': ['telephony', 'scheduling'],
+  'call my': ['telephony', 'communication'], // "call my mom", "call my doctor"
+  'call her': ['telephony', 'communication'],
+  'call him': ['telephony', 'communication'],
+  'call them': ['telephony', 'communication'],
+  'make a call': ['telephony'],
+  'place a call': ['telephony'],
+  'phone call': ['telephony'],
   phone: ['telephony', 'communication', 'scheduling'],
+  dial: ['telephony'],
+  ring: ['telephony'],
 
   // =========================================================================
   // WELLNESS & HEALTH TOPICS
@@ -451,7 +460,7 @@ const DOMAIN_PRIORITY: Partial<Record<ToolDomain, number>> = {
   curiosity: 15,
   vulnerability: 15,
   wisdom: 15,
-  telephony: 10,
+  telephony: 85, // Phone calls are high-value actions - must not be cut off
   proactive: 10,
 };
 
@@ -467,9 +476,11 @@ export class DynamicToolLoader {
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
-      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment', 'information'],
+      // Essential domains are pre-loaded at startup (no race conditions)
+      // telephony is essential because "call my mom" should work immediately
+      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment', 'information', 'telephony', 'communication'],
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
-      maxLoadedDomains: 8,
+      maxLoadedDomains: 10, // Increased to accommodate essential domains
       enableAutoUnload: true,
       ...config,
     };
@@ -544,7 +555,7 @@ export class DynamicToolLoader {
     const suggestedDomains = Array.from(domainScores.entries())
       .sort(([, a], [, b]) => b - a)
       .map(([domain]) => domain)
-      .slice(0, 3); // Top 3 domains
+      .slice(0, 5); // Top 5 domains - ensures action domains like telephony aren't cut off
 
     // Calculate confidence based on matches
     const confidence = Math.min(detectedTopics.length / 3, 1);

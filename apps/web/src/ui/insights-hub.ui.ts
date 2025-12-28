@@ -1,11 +1,29 @@
 /**
+ * @deprecated This file is deprecated and will be removed in a future version.
+ *
+ * Use `your-story-dashboard.ui.ts` instead, which provides:
+ * - Unified narrative-focused dashboard (no tabs)
+ * - All 9 cross-platform visualizations
+ * - Consolidated analytics, stage, and milestones in header
+ * - Demo data for new users
+ *
+ * Migration: The "Your Journey" menu item has been replaced with "Your Story"
+ * which uses the new dashboard. This file is kept for reference only.
+ *
+ * @see your-story-dashboard.ui.ts
+ * @see panel-methods.ts#showYourStoryDashboard
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * ORIGINAL DOCSTRING (for reference):
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * Insights Hub
  *
  * Unified dashboard that consolidates all insight views into one tabbed interface.
  * Combines: Analytics, Predictions, Wellbeing, Team Insights, Life Context, What I've Learned
  *
  * Design: Centered floating modal with tabs
- * 
+ *
  * FULLY WIRED UP - Each tab loads real data from backend APIs:
  * - Journey: /api/insights/:userId
  * - Progress: /api/analytics/user
@@ -1274,8 +1292,7 @@ const styles = `
 .insights-hub-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(44, 37, 32, 0.4);
-  backdrop-filter: blur(20px);
+  background: rgba(44, 37, 32, 0.75);
 }
 
 .insights-hub-modal {
@@ -2029,18 +2046,27 @@ if (typeof document !== 'undefined') {
 }
 
 // ============================================================================
-// EXPORTS
+// EXPORTS (DEPRECATED)
 // ============================================================================
 
 const insightsHubUI = new InsightsHubUI();
 
+/**
+ * @deprecated Use `showYourStoryDashboard()` from `panel-methods.ts` instead.
+ */
 export function showInsightsHub(callbacks?: InsightsHubCallbacks): void {
   insightsHubUI.show(callbacks);
 }
 
+/**
+ * @deprecated Use `hideYourStory()` from `your-story-dashboard.ui.ts` instead.
+ */
 export function hideInsightsHub(): void {
   insightsHubUI.hide();
 }
 
+/**
+ * @deprecated Use `getYourStoryUI()` from `your-story-dashboard.ui.ts` instead.
+ */
 export { insightsHubUI };
 

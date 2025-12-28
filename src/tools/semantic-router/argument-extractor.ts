@@ -97,7 +97,7 @@ export function extractEntity(text: string, entityType: string): string | number
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
-      let value = match[1] || match[0];
+      const value = match[1] || match[0];
 
       // Post-process based on type
       if (entityType === 'number') {

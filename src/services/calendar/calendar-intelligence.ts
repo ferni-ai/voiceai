@@ -390,7 +390,7 @@ export async function generateDailyBriefing(
  */
 export async function analyzeCalendarPatterns(
   userId: string,
-  weeksToAnalyze: number = 4
+  weeksToAnalyze = 4
 ): Promise<CalendarPatterns> {
   const dayMeetingCounts: Record<string, number[]> = {
     Monday: [],

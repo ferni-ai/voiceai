@@ -112,7 +112,7 @@ export interface ResolutionResult {
 // CONTEXT STORE
 // ============================================================================
 
-const contextStore: Map<string, DeepContext> = new Map();
+const contextStore = new Map<string, DeepContext>();
 
 /**
  * Get or create deep context for a session

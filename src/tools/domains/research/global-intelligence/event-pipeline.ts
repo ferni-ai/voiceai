@@ -115,7 +115,7 @@ export class EventPipeline {
   /**
    * Start automatic flushing.
    */
-  static startAutoFlush(intervalMs: number = 60000): void {
+  static startAutoFlush(intervalMs = 60000): void {
     if (EventPipeline.flushInterval) {
       return;
     }

@@ -57,9 +57,7 @@ const STYLES = `
 .mobile-bottom-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--backdrop-overlay, rgba(0, 0, 0, 0.4));
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(44, 37, 32, 0.75);
   opacity: 0;
   visibility: hidden;
   transition: opacity var(--duration-slow, 0.3s) ease, visibility var(--duration-slow, 0.3s) ease;

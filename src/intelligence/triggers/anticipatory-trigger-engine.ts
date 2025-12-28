@@ -464,8 +464,8 @@ export function recordAnticipatoryOutcome(
   detection: SignalDetectionResult,
   userReaction: AnticipationEvent['userReaction'],
   responseType: AnticipationEvent['responseType'],
-  voiceProsodyScore: number = 0,
-  predictionCorrect: boolean = true
+  voiceProsodyScore = 0,
+  predictionCorrect = true
 ): UserTriggerProfile {
   if (!detection.signals.length) {
     return profile;

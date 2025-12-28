@@ -600,7 +600,7 @@ export async function syncScheduledCallToCalendar(
   contactName: string,
   purpose: string,
   scheduledFor: Date,
-  durationMinutes: number = 15,
+  durationMinutes = 15,
   createdBy?: string
 ): Promise<CalendarBridgeResult> {
   return createCalendarSyncedItem({
@@ -650,7 +650,7 @@ export async function syncTaskToCalendar(
   taskId: string,
   taskTitle: string,
   scheduledFor: Date,
-  durationMinutes: number = 30,
+  durationMinutes = 30,
   createdBy?: string
 ): Promise<CalendarBridgeResult> {
   return createCalendarSyncedItem({

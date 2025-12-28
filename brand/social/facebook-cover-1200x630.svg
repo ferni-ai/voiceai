@@ -1,6 +1,6 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <!-- Ferni Facebook Cover / OG Image - 1200x630 -->
-  <!-- "Better than Human" Brand Positioning -->
+  <!-- "Better than Human" Brand Positioning - Eyes Design -->
 
   <defs>
     <linearGradient id="bgGradFB" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -14,6 +14,11 @@
       <stop offset="100%" stop-color="#5a8055"/>
     </linearGradient>
 
+    <linearGradient id="eyeFillFB" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+
     <radialGradient id="warmthFB" cx="25%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#4a6741" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#4a6741" stop-opacity="0"/>
@@ -25,6 +30,19 @@
       <feComposite in2="blur" operator="in"/>
       <feMerge>
         <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="eyeShadowFB" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="black" flood-opacity="0.1"/>
+      <feDropShadow dx="0" dy="-1" stdDeviation="2" flood-color="white" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="sparkleGlowFB" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
@@ -45,16 +63,32 @@
   <path d="M0 580 Q300 550 600 580 Q900 610 1200 570 L1200 630 L0 630 Z"
         fill="#4a6741" opacity="0.04"/>
 
-  <!-- Logo on left -->
+  <!-- Logo on left with eyes -->
   <g transform="translate(80, 175)" filter="url(#presenceFB)">
+    <!-- Circular background -->
     <circle cx="140" cy="140" r="125" fill="url(#logoGradFB)"/>
     <circle cx="140" cy="140" r="145" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.15"/>
-    <text x="140" y="177"
-          font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
-          font-size="90"
-          font-weight="800"
-          fill="white"
-          text-anchor="middle">FE</text>
+
+    <!-- Eyes - No pupils, just white with sparkles -->
+    <!-- Left Eye -->
+    <g transform="translate(100, 138)">
+      <ellipse cx="0" cy="0" rx="22" ry="28" fill="url(#eyeFillFB)" opacity="0.3"/>
+      <ellipse cx="0" cy="0" rx="18" ry="24" fill="url(#eyeFillFB)" filter="url(#eyeShadowFB)"/>
+      <g transform="translate(-7, -10)" filter="url(#sparkleGlowFB)">
+        <circle cx="0" cy="0" r="5" fill="white"/>
+        <circle cx="3.5" cy="2.5" r="2" fill="white" opacity="0.7"/>
+      </g>
+    </g>
+
+    <!-- Right Eye -->
+    <g transform="translate(180, 138)">
+      <ellipse cx="0" cy="0" rx="22" ry="28" fill="url(#eyeFillFB)" opacity="0.3"/>
+      <ellipse cx="0" cy="0" rx="18" ry="24" fill="url(#eyeFillFB)" filter="url(#eyeShadowFB)"/>
+      <g transform="translate(-6, -10)" filter="url(#sparkleGlowFB)">
+        <circle cx="0" cy="0" r="5" fill="white"/>
+        <circle cx="3.5" cy="2.5" r="2" fill="white" opacity="0.7"/>
+      </g>
+    </g>
   </g>
 
   <!-- Text content -->
@@ -72,24 +106,24 @@
 
   <!-- Feature highlights -->
   <g transform="translate(400, 360)" font-family="'Inter', -apple-system, sans-serif" font-size="14" font-weight="500" fill="#756A5E">
-    <text x="0" y="0">Perfect memory</text>
-    <circle cx="95" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
-    <text x="110" y="0">Zero judgment</text>
-    <circle cx="200" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
-    <text x="215" y="0">Six specialists</text>
+    <text x="0" y="0">Never forgets</text>
+    <circle cx="85" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
+    <text x="100" y="0">Always safe</text>
+    <circle cx="180" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
+    <text x="195" y="0">Your whole team</text>
     <circle cx="305" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
-    <text x="320" y="0">24/7 presence</text>
+    <text x="320" y="0">Always there</text>
   </g>
 
   <!-- CTA -->
   <g transform="translate(400, 420)">
-    <rect x="0" y="0" width="200" height="54" rx="27" fill="#4a6741"/>
-    <text x="100" y="36"
+    <rect x="0" y="0" width="220" height="54" rx="27" fill="#4a6741"/>
+    <text x="110" y="36"
           font-family="'Inter', -apple-system, sans-serif"
           font-size="17"
           font-weight="600"
           fill="white"
-          text-anchor="middle">Start Free</text>
+          text-anchor="middle">Begin Your Journey</text>
   </g>
 
   <!-- Website -->

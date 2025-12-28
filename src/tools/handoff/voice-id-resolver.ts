@@ -206,7 +206,7 @@ export function resolveVoiceId(
  * @returns Voice ID string
  * @throws Error if voice ID cannot be resolved
  */
-export function resolveVoiceIdOrThrow(input: VoiceIdInput, context: string = 'handoff'): string {
+export function resolveVoiceIdOrThrow(input: VoiceIdInput, context = 'handoff'): string {
   const result = resolveVoiceId(input, { logLevel: 'info' });
 
   if (!result.success) {

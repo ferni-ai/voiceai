@@ -213,9 +213,8 @@ function buildMusicTransitionInstructions(input: MusicTransitionInstructionsInpu
     emotionalGuidance = `\n\nEmotional context: They seemed ${musicContext.emotionalToneBeforeMusic} before the music.`;
   }
 
-  // Use speak pseudo-tool to prevent echoing of instructions
-  // The LLM outputs JSON, which gets caught by tool-call-sanitizer
-  // and spoken via session.say() - no risk of meta-instructions being spoken
+  // Output plain text - no JSON wrapper needed
+  // The generateReply system will speak it directly
   const personaName = personaId === 'ferni' ? 'Ferni' : personaId;
 
   return `You are DJ ${personaName}. ${situationContext}
@@ -224,8 +223,7 @@ ${suggestion}${emotionalGuidance}
 
 Generate a warm, brief response (1-2 sentences max). Be conversational, not formal.
 
-OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your message here"}}`;
+Respond with ONLY your message as plain text. No JSON. No quotes. Just speak naturally.`;
 }
 
 // ============================================================================

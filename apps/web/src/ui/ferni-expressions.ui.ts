@@ -192,16 +192,17 @@ function createLidOverlay(): void {
   lidOverlay.className = 'avatar-lid-overlay';
   
   // SVG lid shape - will be animated via CSS transforms
+  // Includes dimples for warm expressions (delighted, happy, celebrating)
   lidOverlay.innerHTML = `
     <svg viewBox="0 0 100 100" class="lid-svg" preserveAspectRatio="none">
       <!-- Top lid -->
       <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--color-background-primary, #1a1612)"/>
       <!-- Bottom lid (for squinting) -->
       <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--color-background-primary, #1a1612)"/>
-      <!-- Left brow accent (for asymmetric expressions) -->
-      <ellipse class="brow-left" cx="30" cy="15" rx="20" ry="8" fill="var(--color-background-primary, #1a1612)" opacity="0"/>
-      <!-- Right brow accent -->
-      <ellipse class="brow-right" cx="70" cy="15" rx="20" ry="8" fill="var(--color-background-primary, #1a1612)" opacity="0"/>
+      <!-- Dimples - subtle shadows that appear during warm expressions -->
+      <!-- Positioned below eyes (cy=47) in cheek area, styled as soft shadows -->
+      <ellipse class="dimple dimple-left" cx="28" cy="68" rx="4" ry="3" opacity="0"/>
+      <ellipse class="dimple dimple-right" cx="72" cy="68" rx="4" ry="3" opacity="0"/>
     </svg>
     <!-- Warmth sparkle overlay -->
     <div class="warmth-sparkles"></div>
@@ -258,113 +259,94 @@ export function setExpression(
   currentExpression = expression;
   
   // Get the lid elements
+  // Get lid elements and dimples
   const lidTop = lidOverlay.querySelector('.lid-top') as SVGPathElement;
   const lidBottom = lidOverlay.querySelector('.lid-bottom') as SVGPathElement;
-  const browLeft = lidOverlay.querySelector('.brow-left') as SVGEllipseElement;
-  const browRight = lidOverlay.querySelector('.brow-right') as SVGEllipseElement;
+  const dimpleLeft = lidOverlay.querySelector('.dimple-left') as SVGEllipseElement;
+  const dimpleRight = lidOverlay.querySelector('.dimple-right') as SVGEllipseElement;
   const sparkles = lidOverlay.querySelector('.warmth-sparkles') as HTMLElement;
   
   if (!lidTop || !lidBottom) return;
   
   // Expression configurations - Brand-aligned emotional range
+  // dimpleOpacity: 0-1, appears during warm/happy expressions
   const expressions: Record<EmotionalExpression, {
     topPath: string;
     bottomPath: string;
-    browLeftOpacity: number;
-    browRightOpacity: number;
-    browLeftY?: number;
-    browRightY?: number;
+    dimpleOpacity: number;
     sparkle?: boolean;
   }> = {
     neutral: {
       topPath: 'M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     happy: {
-      // Squinted - lids close in from top and bottom (warm, genuine)
+      // Squinted eyes + dimples (warm, genuine smile)
       topPath: 'M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.8,
     },
     delighted: {
-      // Happy + warmth sparkle (genuine joy, not over-the-top)
+      // Happy + full dimples + warmth sparkle (genuine joy)
       topPath: 'M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 1,
       sparkle: true,
     },
     surprised: {
       // Wide open - present and attentive
       topPath: 'M 0,0 Q 50,-18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,118 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     curious: {
       // Tilted - genuinely interested, not performative
       topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.3,
-      browRightOpacity: 0,
-      browLeftY: 12,
+      dimpleOpacity: 0,
     },
     skeptical: {
-      // One eyebrow raised - direct but caring
+      // Asymmetric lid - direct but caring
       topPath: 'M 0,0 Q 30,20 60,5 Q 80,-5 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.4,
-      browRightOpacity: 0,
-      browLeftY: 18,
+      dimpleOpacity: 0,
     },
     worried: {
-      // Angled brows - genuine concern
+      // Angled lids - genuine concern
       topPath: 'M 0,0 Q 25,25 50,15 Q 75,25 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.5,
-      browRightOpacity: 0.5,
-      browLeftY: 20,
-      browRightY: 20,
+      dimpleOpacity: 0,
     },
     sad: {
       // Droopy - empathetic presence
       topPath: 'M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.2,
-      browRightOpacity: 0.2,
-      browLeftY: 25,
-      browRightY: 25,
+      dimpleOpacity: 0,
     },
     sleepy: {
       // Heavy lids - winding down
       topPath: 'M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     thinking: {
       // Slight squint, looking up/away
       topPath: 'M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     empathetic: {
-      // Soft, warm - "I hear you"
+      // Soft, warm - "I hear you" with subtle dimples
       topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.4,
     },
     excited: {
-      // Wide but GROUNDED - not over-the-top (brand-aligned)
+      // Wide but GROUNDED + dimples (brand-aligned)
       topPath: 'M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,112 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.7,
       sparkle: true,
     },
     // NEW: Brand-aligned states
@@ -372,25 +354,19 @@ export function setExpression(
       // Deep thought - wise, measured (like Jack Bogle)
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.15,
-      browRightOpacity: 0.15,
-      browLeftY: 22,
-      browRightY: 22,
+      dimpleOpacity: 0,
     },
     noticing: {
       // Picking up on something subtle - perceptive
       topPath: 'M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.2,
-      browRightOpacity: 0,
-      browLeftY: 10,
+      dimpleOpacity: 0,
     },
     holdingSpace: {
       // Emotional containment - present, grounded
       topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     
     // =====================================================================
@@ -401,68 +377,55 @@ export function setExpression(
       // Active, engaged listening - user is speaking
       topPath: 'M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.1,
-      browRightOpacity: 0.1,
-      browLeftY: 12,
-      browRightY: 12,
+      dimpleOpacity: 0,
     },
     absorbing: {
       // Taking in heavy content - deep, slow breathing
       topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.15,
-      browRightOpacity: 0.15,
-      browLeftY: 18,
-      browRightY: 18,
+      dimpleOpacity: 0,
     },
     receiving: {
       // Open, accepting vulnerability - soft and safe
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     curiousLean: {
-      // Leaning in with interest - one brow raised
+      // Leaning in with interest
       topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,102 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.35,
-      browRightOpacity: 0,
-      browLeftY: 10,
+      dimpleOpacity: 0,
     },
     
     // =====================================================================
-    // PHASE 2: WARMTH GRADIENT - Nuanced positive emotions
+    // PHASE 2: WARMTH GRADIENT - Nuanced positive emotions (DIMPLES!)
     // =====================================================================
     
     warm: {
-      // Baseline positive regard - soft, open
+      // Baseline positive regard - soft, open, subtle dimples
       topPath: 'M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.5,
     },
     pleased: {
-      // Mild satisfaction - subtle smile shape
+      // Mild satisfaction - subtle smile shape with dimples
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.6,
     },
     proud: {
-      // Pride in user - warm, beaming
+      // Pride in user - warm, beaming with proud dimples
       topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.8,
       sparkle: true,
     },
     celebrating: {
-      // Full celebration - joyful, bright
+      // Full celebration - joyful, bright, full dimples!
       topPath: 'M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,84 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 1,
       sparkle: true,
     },
     
@@ -474,29 +437,25 @@ export function setExpression(
       // Fully here, grounded - open and steady
       topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,98 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     holding: {
       // Containing emotion - steady, supportive
       topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     accompanying: {
       // Walking alongside - empathetic presence
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     waiting: {
       // Patient anticipation - soft, open
       topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     
     // =====================================================================
@@ -504,73 +463,59 @@ export function setExpression(
     // =====================================================================
     
     encouraging: {
-      // Gentle support - warm, uplifting
+      // Gentle support - warm, uplifting with hint of dimples
       topPath: 'M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.4,
     },
     challenging: {
-      // Loving push - direct but caring
+      // Loving push - direct but caring (no dimples)
       topPath: 'M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,98 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.2,
-      browRightOpacity: 0.2,
-      browLeftY: 14,
-      browRightY: 14,
+      dimpleOpacity: 0,
     },
     reflecting: {
       // Mirroring back - thoughtful, measured
       topPath: 'M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.1,
-      browRightOpacity: 0.1,
-      browLeftY: 16,
-      browRightY: 16,
+      dimpleOpacity: 0,
     },
     recognizing: {
-      // "I see you" moment - warm, knowing
+      // "I see you" moment - warm, knowing with dimples
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.6,
       sparkle: true,
     },
     
     // =====================================================================
-    // PHASE 5: RELATIONAL MOMENTS - Connection depth
+    // PHASE 5: RELATIONAL MOMENTS - Connection depth (DIMPLES!)
     // =====================================================================
     
     remembering: {
-      // Callback moment - nostalgic, warm
+      // Callback moment - nostalgic, warm smile
       topPath: 'M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,94 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.1,
-      browRightOpacity: 0,
-      browLeftY: 14,
+      dimpleOpacity: 0.5,
     },
     reconnecting: {
-      // "Welcome back" energy - warm, genuine
+      // "Welcome back" energy - warm, genuine dimples
       topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.7,
       sparkle: true,
     },
     insider: {
-      // Shared history moment - playful, knowing
+      // Shared history moment - playful, knowing dimples
       topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,86 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.15,
-      browRightOpacity: 0,
-      browLeftY: 12,
+      dimpleOpacity: 0.6,
     },
     growing: {
-      // Noticing evolution - proud, warm
+      // Noticing evolution - proud, warm with proud dimples
       topPath: 'M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0.8,
       sparkle: true,
     },
     
@@ -582,46 +527,35 @@ export function setExpression(
       // Taking it in - slightly closed, contemplative
       topPath: 'M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,94 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.1,
-      browRightOpacity: 0.1,
-      browLeftY: 16,
-      browRightY: 16,
+      dimpleOpacity: 0,
     },
     realizing: {
       // Connecting dots - widening with understanding
       topPath: 'M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,108 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.2,
-      browRightOpacity: 0.2,
-      browLeftY: 10,
-      browRightY: 10,
+      dimpleOpacity: 0,
     },
     shifting: {
       // Changing gears - neutral transition
       topPath: 'M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,100 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     settling: {
       // Coming to rest - soft, peaceful
       topPath: 'M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,96 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0,
-      browRightOpacity: 0,
+      dimpleOpacity: 0,
     },
     // ========================================
     // FAREWELL STATE - Superhuman goodbye
     // ========================================
     farewell: {
-      // Warm goodbye - gentle smile with slight melancholy
+      // Warm goodbye - gentle smile with slight melancholy + dimples
       // Soft squint (happy but tender), slight sparkle for warmth
       topPath: 'M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z',
       bottomPath: 'M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z',
-      browLeftOpacity: 0.1,
-      browRightOpacity: 0.1,
-      browLeftY: 8,
-      browRightY: 8,
+      dimpleOpacity: 0.6,
       sparkle: true, // Warm farewell sparkle
     },
   };
@@ -657,20 +591,15 @@ export function setExpression(
     ease: 'elastic.out(1, 0.7)',
   }, toSeconds(DURATION.MICRO));
   
-  // Brow animations (for asymmetric expressions)
-  tl.to(browLeft, {
-    opacity: config.browLeftOpacity,
-    y: config.browLeftY ?? 15,
-    duration: toSeconds(duration * 0.8),
-    ease: 'power2.out',
-  }, toSeconds(DURATION.MICRO));
-  
-  tl.to(browRight, {
-    opacity: config.browRightOpacity,
-    y: config.browRightY ?? 15,
-    duration: toSeconds(duration * 0.8),
-    ease: 'power2.out',
-  }, toSeconds(DURATION.MICRO));
+  // Dimple animations - subtle shadows that appear on warm expressions
+  if (dimpleLeft && dimpleRight) {
+    const dimpleOpacity = config.dimpleOpacity ?? 0;
+    tl.to([dimpleLeft, dimpleRight], {
+      opacity: dimpleOpacity,
+      duration: toSeconds(duration * 0.8),
+      ease: dimpleOpacity > 0 ? 'power2.out' : 'power2.in',
+    }, toSeconds(DURATION.MICRO));
+  }
   
   // Warmth sparkle effect for delighted/excited
   if (config.sparkle && sparkles) {
@@ -1348,14 +1277,19 @@ function injectStyles(): void {
       fill: var(--color-bg-primary, #faf6f0);
     }
     
-    .brow-left, .brow-right {
-      transform-origin: center;
-      fill: var(--color-bg-primary, var(--color-background-primary, #1a1612));
+    /* Dimples - subtle shadow indents for warm expressions */
+    .dimple {
+      /* Semi-transparent dark creates shadow/indent effect */
+      /* Works across all themes since it darkens the avatar color */
+      fill: rgba(0, 0, 0, 0.12);
+      transition: opacity 0.3s ease;
+      filter: blur(0.5px);
     }
     
-    [data-theme="light"] .brow-left,
-    [data-theme="light"] .brow-right {
-      fill: var(--color-bg-primary, #faf6f0);
+    /* Slightly softer dimples in light themes */
+    [data-theme="light"] .dimple,
+    [data-theme="zen"] .dimple {
+      fill: rgba(0, 0, 0, 0.08);
     }
     
     /* Warmth sparkles */

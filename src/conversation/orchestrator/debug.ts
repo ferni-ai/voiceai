@@ -104,7 +104,7 @@ export interface ABTestConfig {
 // ============================================================================
 
 class SessionRecorder {
-  private records: Map<string, OrchestrationRecord[]> = new Map();
+  private records = new Map<string, OrchestrationRecord[]>();
   private readonly maxRecordsPerSession = 100;
 
   /**
@@ -258,7 +258,7 @@ function calculateHealth(sessionId: string): HealthIndicators {
 /**
  * Get complete debug snapshot
  */
-export function getDebugSnapshot(sessionId: string, personaId: string = 'unknown'): DebugSnapshot {
+export function getDebugSnapshot(sessionId: string, personaId = 'unknown'): DebugSnapshot {
   const metrics = getMetricsCollector(sessionId, personaId).getMetrics();
   const perfStats = getPerformanceStats();
   const configState = orchestratorConfig.getState();

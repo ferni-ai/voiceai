@@ -83,7 +83,7 @@ ${'='.repeat(result.name.length)}
 // INTENT CLASSIFIER BENCHMARK
 // ============================================================================
 
-async function benchmarkIntentClassifier(iterations: number = 1000): Promise<BenchmarkResult> {
+async function benchmarkIntentClassifier(iterations = 1000): Promise<BenchmarkResult> {
   const classifier = initializeIntentClassifier();
   classifier.registerIntents(FERNI_INTENTS);
 
@@ -133,7 +133,7 @@ async function benchmarkIntentClassifier(iterations: number = 1000): Promise<Ben
 // BANDIT OPTIMIZER BENCHMARK
 // ============================================================================
 
-async function benchmarkBanditOptimizer(iterations: number = 1000): Promise<BenchmarkResult> {
+async function benchmarkBanditOptimizer(iterations = 1000): Promise<BenchmarkResult> {
   const bandit = initializeBanditOptimizer();
 
   // Initialize with realistic tools

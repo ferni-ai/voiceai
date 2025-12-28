@@ -571,7 +571,7 @@ function toISODate(value: unknown): string {
     return value.toDate().toISOString().split('T')[0];
   }
 
-  if (typeof value === 'object' && 'seconds' in (value as object)) {
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
     return new Date((value as { seconds: number }).seconds * 1000).toISOString().split('T')[0];
   }
 
@@ -596,7 +596,7 @@ function toISODateTime(value: unknown): string {
     return value.toDate().toISOString();
   }
 
-  if (typeof value === 'object' && 'seconds' in (value as object)) {
+  if (typeof value === 'object' && value !== null && 'seconds' in value) {
     return new Date((value as { seconds: number }).seconds * 1000).toISOString();
   }
 

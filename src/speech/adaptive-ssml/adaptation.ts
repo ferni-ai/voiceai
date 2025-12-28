@@ -96,7 +96,7 @@ export function tagTextWithSsmlAdaptive(
   // Use persona-aware tagger (now the canonical source)
   // Default to 'ferni' if no personaId provided for consistent behavior
   const effectivePersonaId = personaId || 'ferni';
-  let tagged = tagTextWithSsmlPersonaAware(text, {
+  const tagged = tagTextWithSsmlPersonaAware(text, {
     personaId: effectivePersonaId,
     baseSpeed: context.baseSpeed * context.energyMultiplier,
     baseVolume: 1.0,

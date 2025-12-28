@@ -351,9 +351,9 @@ async function buildContextInjections(
     try {
       const result = await Promise.race([
         promise,
-        new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs)
-        ),
+        new Promise<T>((_, reject) => {
+          setTimeout(() => reject(new Error(`Timeout: ${name}`)), timeoutMs);
+        }),
       ]);
       return result;
     } catch (error) {

@@ -324,7 +324,7 @@ class BatchWriteManager {
       if (this.config.retryOnFailure && attempt < this.config.maxRetries) {
         const delayMs = Math.min(100 * Math.pow(2, attempt), 2000);
         log.debug({ sessionId, attempt, delayMs }, 'Retrying batch commit');
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await new Promise<void>((resolve) => { setTimeout(resolve, delayMs); });
         return this.commitWithRetry(batch, sessionId, attempt + 1);
       }
       throw error;

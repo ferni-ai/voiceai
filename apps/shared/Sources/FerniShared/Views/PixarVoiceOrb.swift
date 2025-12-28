@@ -138,11 +138,10 @@ public struct PixarVoiceOrb: View {
             // Layer 7 & 8: Eye + Initials
             if useMagicalEyes {
                 // NEW: Magical two-eye style (most expressive!)
+                // Just eyes - no initials needed, the eyes are expressive enough!
                 if showEyes {
                     magicalEyes
                 }
-                // Initials below the eyes
-                personaInitialsMagicalStyle
             } else if useLampStyle {
                 // Single lamp eye + initials
                 if showEyes {

@@ -27,7 +27,7 @@ interface GameOption {
   icon: string;
   difficulty: 'easy' | 'medium' | 'hard';
   duration: string;
-  category: 'music' | 'text' | 'library';
+  category: 'music' | 'text' | 'library' | 'reflection';
   requiresSpotify?: boolean;
 }
 
@@ -53,6 +53,15 @@ const ICONS = {
   scale: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>`,
   book: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`,
   spotify: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 11.973c2.5-1.473 5.5-.973 7.5.527"/><path d="M9 15c1.5-1 3.5-.5 4.5.5"/><path d="M7 8.959c3.5-2 7-1.5 9.5 1.041"/></svg>`,
+  // Reflection game icons
+  heart: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  smile: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>`,
+  target: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  newspaper: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>`,
+  compass: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
+  star: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  cookie: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/></svg>`,
+  sparkles: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
 };
 
 // Music Games - Main category
@@ -171,6 +180,73 @@ const TEXT_GAMES: GameOption[] = [
   },
 ];
 
+// Reflection Games - Mindfulness and self-discovery
+const REFLECTION_GAMES: GameOption[] = [
+  {
+    id: 'one-word-checkin',
+    name: 'One Word Check-in',
+    description: "One word. Right now. What is it? A quick, powerful reflection.",
+    icon: ICONS.target,
+    difficulty: 'easy',
+    duration: '1-2 min',
+    category: 'reflection',
+  },
+  {
+    id: 'three-word-day',
+    name: 'Three Word Day',
+    description: "Describe your day in just three words. Let's explore each one.",
+    icon: ICONS.sparkles,
+    difficulty: 'easy',
+    duration: '3-5 min',
+    category: 'reflection',
+  },
+  {
+    id: 'tiny-win-tracker',
+    name: 'Tiny Win Tracker',
+    description: "Celebrate small victories! Every win counts, no matter how small.",
+    icon: ICONS.star,
+    difficulty: 'easy',
+    duration: '2-3 min',
+    category: 'reflection',
+  },
+  {
+    id: 'emoji-story',
+    name: 'Emoji Story',
+    description: "Express your feelings through emojis. I'll help decode them.",
+    icon: ICONS.smile,
+    difficulty: 'easy',
+    duration: '2-3 min',
+    category: 'reflection',
+  },
+  {
+    id: 'fortune-cookie',
+    name: 'Fortune Cookie',
+    description: "Crack open a fortune. Reflect on what it means for you today.",
+    icon: ICONS.cookie,
+    difficulty: 'easy',
+    duration: '2-3 min',
+    category: 'reflection',
+  },
+  {
+    id: 'headline-writer',
+    name: 'Headline Writer',
+    description: "If today had a newspaper headline, what would it say?",
+    icon: ICONS.newspaper,
+    difficulty: 'easy',
+    duration: '3-5 min',
+    category: 'reflection',
+  },
+  {
+    id: 'values-card-sort',
+    name: 'Values Card Sort',
+    description: "Discover your core values by sorting cards. Deep self-discovery.",
+    icon: ICONS.compass,
+    difficulty: 'medium',
+    duration: '10-15 min',
+    category: 'reflection',
+  },
+];
+
 // Library Games - Spotify integration required
 const LIBRARY_GAMES: GameOption[] = [
   {
@@ -196,7 +272,7 @@ const LIBRARY_GAMES: GameOption[] = [
 ];
 
 // All games combined for backward compatibility
-const GAMES: GameOption[] = [...MUSIC_GAMES, ...TEXT_GAMES, ...LIBRARY_GAMES];
+const GAMES: GameOption[] = [...MUSIC_GAMES, ...TEXT_GAMES, ...REFLECTION_GAMES, ...LIBRARY_GAMES];
 
 // ============================================================================
 // GAME PICKER UI CLASS
@@ -286,6 +362,10 @@ class GamePickerUI {
             ${ICONS.gamepad}
             <span>Fun</span>
           </button>
+          <button aria-label="Reflect" class="game-picker__tab" data-category="reflection">
+            ${ICONS.heart}
+            <span>Reflect</span>
+          </button>
           <button aria-label="Your Library" class="game-picker__tab" data-category="library">
             ${ICONS.spotify}
             <span>Your Library</span>
@@ -302,7 +382,15 @@ class GamePickerUI {
           <div class="game-picker__section" data-section="text">
             ${TEXT_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
           </div>
-          
+
+          <!-- Reflection Games Section -->
+          <div class="game-picker__section" data-section="reflection">
+            <div class="game-picker__reflection-notice">
+              <p>Mindful moments with Ferni. Quick reflections to check in with yourself.</p>
+            </div>
+            ${REFLECTION_GAMES.map((game, index) => this.renderGameCard(game, index)).join('')}
+          </div>
+
           <!-- Library Games Section -->
           <div class="game-picker__section" data-section="library">
             <div class="game-picker__library-notice">
@@ -345,7 +433,8 @@ class GamePickerUI {
       ? `<span class="game-card__badge game-card__badge--spotify">Spotify</span>` 
       : '';
     
-    const newBadge = (game.id === 'finish-the-lyric' || game.id === 'decade-challenge')
+    const isNewReflectionGame = game.category === 'reflection';
+    const newBadge = (game.id === 'finish-the-lyric' || game.id === 'decade-challenge' || isNewReflectionGame)
       ? `<span class="game-card__badge game-card__badge--new">New</span>`
       : '';
     
@@ -527,7 +616,44 @@ class GamePickerUI {
             <h3><span class="game-help-section__icon">${ICONS.book}</span> Story Builder</h3>
             <p>Let's create a story together! We take turns adding one sentence at a time.</p>
           </section>
-          
+
+          <h3 class="game-help-category">Reflection Games</h3>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.target}</span> One Word Check-in</h3>
+            <p>Give me just one word that captures where you are right now. I'll explore it with you.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.sparkles}</span> Three Word Day</h3>
+            <p>Describe your day, mood, or week in exactly three words. We'll unpack each one.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.star}</span> Tiny Win Tracker</h3>
+            <p>Celebrate small victories! Tell me wins from your day - even "I got out of bed" counts.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.smile}</span> Emoji Story</h3>
+            <p>Express how you're feeling through emojis. I'll help decode what they mean.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.cookie}</span> Fortune Cookie</h3>
+            <p>Receive a piece of wisdom and reflect on what it means for your life right now.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.newspaper}</span> Headline Writer</h3>
+            <p>Write newspaper headlines about your life - today, this week, or your dreams.</p>
+          </section>
+
+          <section class="game-help-section">
+            <h3><span class="game-help-section__icon">${ICONS.compass}</span> Values Card Sort</h3>
+            <p>A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.</p>
+          </section>
+
           <div class="game-help-tip">
             <span class="game-help-tip__icon">${ICONS.lightbulb}</span>
             <strong>Tip:</strong> Say "stop" or "end game" anytime to finish early. Your progress is always saved!
@@ -630,7 +756,9 @@ class GamePickerUI {
       }
 
       // Determine the correct message type based on category
-      const isTextGame = category === 'text' || game.category === 'text';
+      // Reflection games are text-based, so treat them the same as text games
+      const isTextGame = category === 'text' || game.category === 'text' ||
+                         category === 'reflection' || game.category === 'reflection';
       
       // Map library game IDs to actual game types
       let actualGameType = gameId;
@@ -720,40 +848,23 @@ class GamePickerUI {
       .game-picker__backdrop {
         position: absolute;
         inset: 0;
-        background: var(--glass-backdrop-bg, rgba(44, 37, 32, 0.4));
-        backdrop-filter: blur(var(--glass-blur-thick, 24px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
+        background: rgba(44, 37, 32, 0.75);
       }
 
-      @supports not (backdrop-filter: blur(1px)) {
-        .game-picker__backdrop {
-          background: rgba(44, 37, 32, 0.85);
-        }
-      }
-      
       .game-picker__content {
         position: relative;
         width: 90%;
         max-width: clamp(350px, 90vw, 500px);
         max-height: 85vh;
-        background: var(--glass-thick-bg, rgba(255, 255, 255, 0.12));
-        backdrop-filter: blur(var(--glass-blur-thick, 24px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-thick, 24px));
-        border: 1px solid var(--glass-thick-border, rgba(255, 255, 255, 0.14));
+        background: var(--color-bg-elevated, #FFFDFB);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
         border-radius: var(--radius-xl, 20px);
-        box-shadow: var(--glass-shadow-thick, 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1));
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
         overflow: hidden;
         display: flex;
         flex-direction: column;
         transform: scale(0.95) translateY(10px);
         transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
-      }
-
-      @supports not (backdrop-filter: blur(1px)) {
-        .game-picker__content {
-          background: var(--color-background-elevated, #FFFDFB);
-          border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
-        }
       }
       
       .game-picker--visible .game-picker__content {
@@ -895,6 +1006,21 @@ class GamePickerUI {
         font-size: 12px !important;
         color: var(--color-text-muted, #9A8B7A) !important;
         margin-top: var(--space-2, 8px) !important;
+      }
+
+      .game-picker__reflection-notice {
+        background: linear-gradient(135deg, var(--color-background-subtle, #F5F1E8), rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-4, 16px);
+        margin-bottom: var(--space-3, 12px);
+        text-align: center;
+        border: 1px solid rgba(74, 103, 65, 0.15);
+      }
+
+      .game-picker__reflection-notice p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--color-text-secondary, #6B5D52);
       }
       
       /* Game Card */
@@ -1091,8 +1217,7 @@ class GamePickerUI {
       .game-help-modal__backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.8);
-        backdrop-filter: blur(var(--glass-blur-medium, 16px));
+        background: rgba(44, 37, 32, 0.75);
       }
       
       .game-help-modal__content {
@@ -1148,6 +1273,23 @@ class GamePickerUI {
         height: 28px;
       }
       
+      .game-help-category {
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted, #9A8B7A);
+        margin: var(--space-5, 20px) 0 var(--space-3, 12px);
+        padding-top: var(--space-3, 12px);
+        border-top: 1px solid var(--color-border, #E8E2DA);
+      }
+
+      .game-help-category:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+
       .game-help-section {
         margin-bottom: var(--space-4, 16px);
         padding-bottom: var(--space-4, 16px);

@@ -120,7 +120,7 @@ export class AgentOrchestrator {
   private readonly sessionId: string;
 
   /** All agents currently in the room */
-  private agents: Map<string, PersonaAgent> = new Map();
+  private agents = new Map<string, PersonaAgent>();
 
   /** Currently active agent */
   private activeAgentId: string | null = null;
@@ -702,7 +702,7 @@ export class AgentOrchestrator {
    * Wait for speech to complete (simple timeout-based).
    */
   private waitForSpeechComplete(estimatedMs: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, estimatedMs));
+    return new Promise<void>((resolve) => { setTimeout(resolve, estimatedMs); });
   }
 
   /**

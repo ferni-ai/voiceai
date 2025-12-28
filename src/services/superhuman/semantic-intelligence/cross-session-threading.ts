@@ -39,7 +39,7 @@ const CONFIG = {
 
 const threadCache = new Map<string, SemanticThread[]>();
 const momentBuffer = new Map<string, ThreadMoment[]>();
-let lastSessionId: string | null = null;
+const lastSessionId: string | null = null;
 
 // ============================================================================
 // CORE FUNCTIONS

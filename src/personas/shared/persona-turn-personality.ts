@@ -441,7 +441,7 @@ export async function processPersonaTurn(input: PersonaTurnInput): Promise<Perso
       const theme = pickThemeForContext(config.themes, input);
 
       // Try to get from cache first
-      let expression = getPersonaExpression(personaId, theme, buildExpressionContext(input));
+      const expression = getPersonaExpression(personaId, theme, buildExpressionContext(input));
 
       // If not in cache, generate (non-blocking, for future)
       if (!expression) {

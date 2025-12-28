@@ -208,7 +208,11 @@ const FERNI_FLAVOR = RELATIONSHIP_FLAVORS.friend;
  * KEY INSIGHT: "affectionate" sounds warm and genuine.
  * "happy" sounds forced and performative. We use affectionate as default.
  *
- * Pattern: [settle pause] + [emotion] + opener + [breathing pause] + question
+ * Pattern: [settle pause] + [emotion] + opener + [breathing pause] + question + [settling pause]
+ *
+ * HUMAN-LIKE OPENING: The greeting ends with a natural settling pause -
+ * like a friend who asks "how are you?" and then patiently waits,
+ * rather than staring expectantly.
  */
 function buildDynamicFerniGreeting(ctx?: GreetingContext): string {
   const context = ctx || {};
@@ -260,6 +264,13 @@ function buildDynamicFerniGreeting(ctx?: GreetingContext): string {
 
   // Main question/statement
   greeting += middle.text;
+
+  // 5. HUMAN SETTLING PAUSE - gives user breathing room to respond
+  // This is the "opening the door and stepping back" moment
+  // Like a friend who invites you in and then settles, not hovering
+  // Varies slightly to feel natural (not robotic fixed duration)
+  const settlingMs = 400 + Math.floor(Math.random() * 200); // 400-600ms
+  greeting += `<break time="${settlingMs}ms"/>`;
 
   return greeting;
 }
@@ -335,6 +346,10 @@ function buildDynamicAlexGreeting(ctx?: GreetingContext): string {
   }
   greeting += middle;
 
+  // Human settling pause - gives user breathing room
+  const settlingMs = 350 + Math.floor(Math.random() * 150); // 350-500ms (Alex is direct)
+  greeting += `<break time="${settlingMs}ms"/>`;
+
   return greeting;
 }
 
@@ -406,6 +421,10 @@ function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
   }
   greeting += middle;
 
+  // Human settling pause - Maya is warm but gives space
+  const settlingMs = 400 + Math.floor(Math.random() * 150); // 400-550ms
+  greeting += `<break time="${settlingMs}ms"/>`;
+
   return greeting;
 }
 
@@ -474,6 +493,10 @@ function buildDynamicJordanGreeting(ctx?: GreetingContext): string {
     greeting += `${context.userName}!<break time="50ms"/>`;
   }
   greeting += middle;
+
+  // Human settling pause - Jordan is energetic but still gives space
+  const settlingMs = 350 + Math.floor(Math.random() * 150); // 350-500ms (Jordan is quicker)
+  greeting += `<break time="${settlingMs}ms"/>`;
 
   return greeting;
 }
@@ -544,6 +567,10 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
   }
   greeting += middle;
 
+  // Human settling pause - Peter is thoughtful, gives space for reflection
+  const settlingMs = 450 + Math.floor(Math.random() * 150); // 450-600ms
+  greeting += `<break time="${settlingMs}ms"/>`;
+
   return greeting;
 }
 
@@ -613,6 +640,11 @@ function buildDynamicNayanGreeting(ctx?: GreetingContext): string {
     greeting += `${context.userName}.<break time="150ms"/>`;
   }
   greeting += middle;
+
+  // Human settling pause - Nayan creates the most spacious opening
+  // Like a wise friend who welcomes you and then settles into presence
+  const settlingMs = 600 + Math.floor(Math.random() * 200); // 600-800ms (most patient)
+  greeting += `<break time="${settlingMs}ms"/>`;
 
   return greeting;
 }
@@ -785,6 +817,47 @@ export function hasWarmGreeting(personaId?: string): boolean {
 }
 
 // ============================================================================
+// BATCH PREWARM (for all personas at once)
+// ============================================================================
+
+/** Cache for all persona greetings */
+const allPersonaGreetingsCache = new Map<string, string>();
+
+/**
+ * Pre-warm greetings for all personas during worker startup.
+ * This ensures instant greetings are ready for ANY persona the user might talk to.
+ *
+ * Called from warmup.ts during GCE worker initialization.
+ */
+export function prewarmGreetingsForAllPersonas(): void {
+  const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  
+  for (const personaId of personas) {
+    const greeting = generateWarmGreeting(personaId);
+    allPersonaGreetingsCache.set(personaId, greeting);
+    _log('debug', 'Pre-cached greeting for persona', { personaId, greeting: greeting.slice(0, 30) });
+  }
+  
+  // Also set the single cache for the most common persona (Ferni)
+  prewarmGreeting('ferni');
+  
+  _log('info', 'All persona greetings pre-cached', { count: personas.length });
+}
+
+/**
+ * Get pre-cached greeting for any persona (from batch prewarm).
+ * Falls back to generating if not cached.
+ */
+export function getPrewarmedGreetingForPersona(personaId: string): string {
+  const cached = allPersonaGreetingsCache.get(personaId);
+  if (cached) {
+    return cached;
+  }
+  // Fallback: generate on demand
+  return generateWarmGreeting(personaId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -792,7 +865,9 @@ export default {
   generateWarmGreeting,
   generateContextAwareGreeting,
   prewarmGreeting,
+  prewarmGreetingsForAllPersonas,
   getWarmGreeting,
+  getPrewarmedGreetingForPersona,
   clearWarmGreeting,
   hasWarmGreeting,
 };

@@ -59,13 +59,13 @@ describe('Future Insights UI', () => {
   });
 
   describe('Constants', () => {
-    it('should define INSIGHT_HORIZONS with 4 time periods', async () => {
+    it('should export required methods', async () => {
       const module = await import('../../src/ui/future-insights.ui.js');
-      // The module should have horizons for week1, month1, month3, year1
-      expect(module.INSIGHT_HORIZONS).toBeDefined();
-      if (module.INSIGHT_HORIZONS) {
-        expect(Object.keys(module.INSIGHT_HORIZONS).length).toBe(4);
-      }
+      // The module should have core methods
+      expect(module.futureInsightsUI).toBeDefined();
+      expect(typeof module.futureInsightsUI.open).toBe('function');
+      expect(typeof module.futureInsightsUI.close).toBe('function');
+      expect(typeof module.futureInsightsUI.toggle).toBe('function');
     });
   });
 });

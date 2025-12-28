@@ -851,7 +851,7 @@ permalink: /building/
         <h3>{{ story.data.title }}</h3>
         <p>{{ story.data.excerpt }}</p>
         <div class="story-footer">
-          <div class="story-avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">{{ story.data.authorInitials or 'FE' }}</div>
+          <div class="story-avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">{% if not story.data.authorInitials or story.data.authorInitials == 'FE' %}<svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>{% else %}{{ story.data.authorInitials }}{% endif %}</div>
           <span class="story-author">{{ story.data.author or 'Ferni' }}</span>
           <span class="read-more">
             Read

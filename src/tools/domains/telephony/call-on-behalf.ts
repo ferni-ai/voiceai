@@ -267,6 +267,69 @@ async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<strin
 }
 
 // ============================================================================
+// CONTACT HELPERS
+// ============================================================================
+
+/**
+ * Infer relationship type from the contact query
+ * e.g., "my mom" → "mom", "doctor" → "doctor"
+ */
+function inferRelationshipFromQuery(query: string): string | undefined {
+  const queryLower = query.toLowerCase();
+
+  // Family relationships
+  const familyWords = ['mom', 'mother', 'dad', 'father', 'brother', 'sister', 'grandma', 'grandpa', 'aunt', 'uncle', 'cousin'];
+  for (const word of familyWords) {
+    if (queryLower.includes(word)) return word;
+  }
+
+  // Professional relationships
+  const proWords = ['doctor', 'dentist', 'therapist', 'lawyer', 'accountant'];
+  for (const word of proWords) {
+    if (queryLower.includes(word)) return word;
+  }
+
+  return undefined;
+}
+
+/**
+ * Save a contact for future use
+ * This enables "remembering" phone numbers across sessions
+ */
+async function saveContactForFuture(
+  userId: string,
+  contactQuery: string,
+  phone: string
+): Promise<void> {
+  try {
+    const { upsertContact } = await import(
+      '../../../services/contacts/contact-relationship-service.js'
+    );
+
+    // Extract a clean name from the query
+    const cleanName = contactQuery
+      .replace(/^(my\s+)/i, '') // Remove "my " prefix
+      .replace(/\s+at\s+.*$/i, '') // Remove "at [phone]" suffix
+      .trim();
+
+    const relationship = inferRelationshipFromQuery(contactQuery);
+
+    await upsertContact(userId, {
+      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1), // Capitalize
+      contactId: `phone_${phone}`,
+      phone,
+      relationship: relationship ? 'family' : 'other',
+      notes: relationship ? `User's ${relationship}` : undefined,
+    });
+
+    log.info({ userId, name: cleanName, relationship }, '📇 Contact saved for future calls');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Failed to save contact');
+    // Non-critical - don't throw
+  }
+}
+
+// ============================================================================
 // TOOL DEFINITION
 // ============================================================================
 
@@ -275,6 +338,10 @@ async function initiateOnBehalfCall(request: OnBehalfCallRequest): Promise<strin
  */
 const callOnBehalfSchema = z.object({
   contactQuery: z.string().describe('Who to call (e.g., "my doctor", "mom", "Olive Garden")'),
+  phoneNumber: z
+    .string()
+    .optional()
+    .describe('Phone number if provided by user (e.g., "8018983303", "+1-801-898-3303"). Use this if the user explicitly provides a number.'),
   purpose: z.string().describe('Why you are calling (e.g., "reschedule my appointment to next week")'),
   additionalContext: z
     .string()
@@ -299,25 +366,51 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
     description:
       'Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. ' +
       'Use this when the user asks you to make a call to someone else. ' +
+      'IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. ' +
+      'Example: "call my mom at 801-898-3303" → contactQuery: "my mom", phoneNumber: "8018983303". ' +
       'You will handle the entire conversation autonomously and report back the outcome.',
 
     parameters: callOnBehalfSchema,
 
     execute: async (params) => {
-      const { contactQuery, purpose, additionalContext, preferredTimes, recordingConsent } = params;
+      const { contactQuery, phoneNumber, purpose, additionalContext, preferredTimes, recordingConsent } = params;
 
       log.info(
-        { userId: ctx.userId, contactQuery, purpose },
+        { userId: ctx.userId, contactQuery, phoneNumber: phoneNumber ? '***' : undefined, purpose },
         'Initiating call on behalf of user'
       );
 
       try {
-        // Step 1: Resolve the contact
-        const contact = await resolveContact(contactQuery, ctx.userId);
+        // Step 1: Resolve the contact (or create from provided phone number)
+        let contact = await resolveContact(contactQuery, ctx.userId);
+
+        // If user provided a phone number, use it (and optionally save the contact)
+        if (phoneNumber) {
+          const normalizedPhone = phoneNumber.replace(/\D/g, ''); // Strip non-digits
+
+          if (contact) {
+            // Update existing contact with new phone number
+            contact.phone = normalizedPhone;
+            log.info({ contactName: contact.name }, 'Using provided phone number for existing contact');
+          } else {
+            // Create a temporary contact from the provided info
+            contact = {
+              name: contactQuery,
+              phone: normalizedPhone,
+              relationship: inferRelationshipFromQuery(contactQuery),
+            };
+            log.info({ contactQuery, phone: '***' }, 'Using provided phone number for new contact');
+
+            // Save this contact for future use (async, don't wait)
+            saveContactForFuture(ctx.userId, contactQuery, normalizedPhone).catch((err) => {
+              log.warn({ error: String(err) }, 'Failed to save contact for future');
+            });
+          }
+        }
 
         if (!contact) {
           return `I couldn't find a contact matching "${contactQuery}". ` +
-            `Could you tell me their phone number, or check if they're in your contacts?`;
+            `Could you tell me their phone number? For example, "call my mom at 555-123-4567"`;
         }
 
         if (!contact.phone) {

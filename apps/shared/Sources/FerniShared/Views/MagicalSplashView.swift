@@ -4,15 +4,19 @@ import SwiftUI
 /// A Pixar-inspired splash screen where Ferni's eyes "wake up" and discover the user.
 ///
 /// Animation Sequence (like a character coming to life):
-/// 1. Darkness with subtle ambient glow (0-400ms) - anticipation
-/// 2. Eyes slowly open from sleep (400-1000ms) - awakening
-/// 3. Eyes look around curiously (1000-1800ms) - discovery
-/// 4. Eyes focus on user with sparkle (1800-2200ms) - recognition!
-/// 5. Initials fade in below (2200-2600ms) - identity
-/// 6. Greeting appears (2600-3200ms) - connection
-/// 7. Gentle blink, then complete
+/// 0. INSTANT: Stars twinkle, particles float, glow breathes (frame 1!)
+/// 1. Eyes peek from bottom corner (0-500ms) - curiosity
+/// 2. Eyes retreat briefly (500-700ms) - playful anticipation
+/// 3. Luxo Jr. bounce entrance (700-1700ms) - the grand entrance!
+/// 4. Eyes slowly open from sleep (1700-2100ms) - awakening
+/// 5. Eyes look around curiously (2100-2700ms) - discovery
+/// 6. Eyes focus on user with sparkle (2700-3000ms) - recognition!
+/// 7. Initials fade in below (3000-3300ms) - identity
+/// 8. Greeting appears (3300-3700ms) - connection
+/// 9. Gentle blink, then complete
 ///
 /// Design Philosophy:
+/// - NEVER a black screen - instant visual interest from frame 1
 /// - The eyes ARE the character - no logo needed
 /// - Every animation beat has emotional purpose
 /// - Luxo Jr. quality: personality through motion alone
@@ -54,10 +58,18 @@ public struct MagicalSplashView: View {
     @State private var sparkleIntensity: CGFloat = 0
     @State private var eyeTilt: CGFloat = 0
 
-    // Ambient effects
-    @State private var glowIntensity: CGFloat = 0
+    // Peek eye states (curious eye peeking from corner before entrance)
+    @State private var peekEyeVisible: Bool = false
+    @State private var peekEyeOffset: CGFloat = 100        // How far off-screen
+    @State private var peekEyeOpenness: CGFloat = 0.7
+    @State private var peekEyeLookUp: CGFloat = 0          // Looking up at user
+
+    // Ambient effects - START VISIBLE for instant feedback!
+    @State private var glowIntensity: CGFloat = 0.3        // Start with some glow
     @State private var glowPulse: CGFloat = 0
-    @State private var particleOpacity: CGFloat = 0
+    @State private var glowBreathing: Bool = false
+    @State private var particleOpacity: CGFloat = 0.4      // Start with particles visible
+    @State private var starsVisible: Bool = true           // Twinkling stars from frame 1
 
     // Initials
     @State private var initialsOpacity: CGFloat = 0
@@ -93,15 +105,25 @@ public struct MagicalSplashView: View {
             // Layer 1: Deep background
             backgroundGradient
 
-            // Layer 2: Ambient glow (builds anticipation)
+            // Layer 2: Twinkling stars (instant visual interest!)
+            if starsVisible && !reduceMotion {
+                twinklingStars
+            }
+
+            // Layer 3: Ambient glow (breathing from frame 1)
             ambientGlow
 
-            // Layer 3: Floating particles (magic dust)
+            // Layer 4: Floating particles (magic dust - visible immediately)
             if !reduceMotion {
                 magicParticles
             }
 
-            // Layer 4: Main content with Luxo Jr. bounce entrance
+            // Layer 5: Peeking eye from corner (playful curiosity)
+            if peekEyeVisible && !reduceMotion {
+                peekingEye
+            }
+
+            // Layer 6: Main content with Luxo Jr. bounce entrance
             VStack(spacing: 0) {
                 Spacer()
 
@@ -132,6 +154,9 @@ public struct MagicalSplashView: View {
             }
         }
         .onAppear {
+            // Start ambient effects IMMEDIATELY (no delay!)
+            startInstantAmbience()
+            // Then start the full sequence
             startMagicalSequence()
         }
     }
@@ -207,6 +232,72 @@ public struct MagicalSplashView: View {
         .offset(y: -80)
     }
 
+    // MARK: - Twinkling Stars (Instant Visual Interest!)
+
+    private var twinklingStars: some View {
+        GeometryReader { geometry in
+            ForEach(0..<20, id: \.self) { index in
+                TwinklingStar(
+                    index: index,
+                    screenSize: geometry.size,
+                    personaColor: personaColor
+                )
+            }
+        }
+    }
+
+    // MARK: - Peeking Eye (Playful Curiosity)
+
+    private var peekingEye: some View {
+        GeometryReader { geometry in
+            // Single eye peeking from bottom-right corner
+            ZStack {
+                // Eye glow
+                Ellipse()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(0.4),
+                                Color.white.opacity(0.1),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 30
+                        )
+                    )
+                    .frame(width: 80, height: 50)
+                    .blur(radius: 8)
+
+                // Main eye
+                Ellipse()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white, Color.white.opacity(0.95)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 36, height: 28 * peekEyeOpenness)
+                    .shadow(color: Color.white.opacity(0.5), radius: 4, y: -1)
+
+                // Sparkle
+                if peekEyeOpenness > 0.5 {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 8, height: 8)
+                        .offset(x: -8, y: -6)
+                        .shadow(color: Color.white.opacity(0.8), radius: 2)
+                }
+            }
+            .offset(y: -peekEyeLookUp * 8)  // Looking up animation
+            .position(
+                x: geometry.size.width - 60,
+                y: geometry.size.height - 40 + peekEyeOffset
+            )
+        }
+    }
+
     // MARK: - Magic Particles
 
     private var magicParticles: some View {
@@ -215,7 +306,8 @@ public struct MagicalSplashView: View {
                 MagicParticle(
                     index: index,
                     personaColor: personaColor,
-                    screenSize: geometry.size
+                    screenSize: geometry.size,
+                    startVisible: true  // Start visible immediately!
                 )
                 .opacity(particleOpacity)
             }
@@ -367,6 +459,29 @@ public struct MagicalSplashView: View {
         }
     }
 
+    // MARK: - Instant Ambience (No Black Screen!)
+
+    /// Start ambient effects IMMEDIATELY on appear - no waiting!
+    private func startInstantAmbience() {
+        // Glow breathing starts right away
+        glowBreathing = true
+        withAnimation(
+            .easeInOut(duration: 2.5)
+            .repeatForever(autoreverses: true)
+        ) {
+            glowIntensity = 0.5
+        }
+
+        // Particles are already visible (particleOpacity starts at 0.4)
+        // Just add a gentle pulse
+        withAnimation(
+            .easeInOut(duration: 3.0)
+            .repeatForever(autoreverses: true)
+        ) {
+            particleOpacity = 0.6
+        }
+    }
+
     // MARK: - Animation Sequence
 
     private func startMagicalSequence() {
@@ -384,6 +499,8 @@ public struct MagicalSplashView: View {
             greetingOpacity = 1.0
             greetingOffset = 0
             subtitleOpacity = 1.0
+            starsVisible = false
+            peekEyeVisible = false
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 onComplete?()
@@ -392,37 +509,87 @@ public struct MagicalSplashView: View {
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // PLAYFUL PEEK - Eye peeks from corner before the grand entrance
+        // ═══════════════════════════════════════════════════════════════
+
+        // Phase 0: Eye peeks up from bottom corner (0-300ms)
+        phase = .peek
+        peekEyeVisible = true
+        peekEyeOffset = 60  // Mostly hidden
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            // Eye rises up to peek
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                peekEyeOffset = 15  // Peeking up
+            }
+
+            // Eye looks up at user
+            withAnimation(.easeOut(duration: 0.3).delay(0.2)) {
+                peekEyeLookUp = 1.0
+            }
+        }
+
+        // Phase 0.5: Eye retreats playfully (400-600ms) - "Oh! You saw me!"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Quick blink of surprise
+            withAnimation(.easeIn(duration: 0.08)) {
+                peekEyeOpenness = 0.2
+            }
+
+            // Eye retreats
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                    peekEyeOffset = 80
+                    peekEyeLookUp = 0
+                }
+            }
+
+            // Hide peek eye
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                peekEyeVisible = false
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // LUXO JR. BOUNCE ENTRANCE - The iconic Pixar lamp hop-hop-hop!
         // ═══════════════════════════════════════════════════════════════
 
-        // Phase 0: Setup - Character below screen, anticipation builds
-        phase = .anticipation
-        eyesVisible = true
-        eyeOpenness = 0.05  // Eyes just barely visible (sleeping)
+        // Phase 1: Setup & anticipation (700ms mark)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            phase = .anticipation
+            eyesVisible = true
+            eyeOpenness = 0.05  // Eyes just barely visible (sleeping)
 
-        withAnimation(.easeIn(duration: 0.3)) {
-            glowIntensity = 0.2
-            particleOpacity = 0.2
+            // Intensify glow for entrance
+            withAnimation(.easeIn(duration: 0.2)) {
+                glowIntensity = 0.6
+                particleOpacity = 0.5
+            }
         }
 
-        // Phase 1: FIRST BIG HOP (0-600ms) - Luxo Jr. enters!
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Phase 2: FIRST BIG HOP (800-1300ms) - Luxo Jr. enters!
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             phase = .bounceEntrance
             performLuxoHop(hopNumber: 1, height: -480, duration: 0.55)
         }
 
-        // Phase 2: SECOND MEDIUM HOP (600-1000ms)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+        // Phase 3: SECOND MEDIUM HOP (1300-1700ms)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
             performLuxoHop(hopNumber: 2, height: -120, duration: 0.4)
         }
 
-        // Phase 3: THIRD SMALL HOP (1000-1300ms) - Settling bounce
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.25) {
+        // Phase 4: THIRD SMALL HOP (1700-2000ms) - Settling bounce
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.75) {
             performLuxoHop(hopNumber: 3, height: -40, duration: 0.3)
         }
 
-        // Phase 4: SETTLE & SQUASH (1300-1500ms) - Final landing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.55) {
+        // Phase 5: SETTLE & SQUASH (2000-2200ms) - Final landing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.05) {
+            // Fade out stars as character lands
+            withAnimation(.easeOut(duration: 0.5)) {
+                starsVisible = false
+            }
+
             // Land with a satisfying squash
             withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
                 characterOffset = 0
@@ -443,8 +610,8 @@ public struct MagicalSplashView: View {
         // EYE AWAKENING SEQUENCE - Now the character "wakes up"
         // ═══════════════════════════════════════════════════════════════
 
-        // Phase 5: Eyes open (1700-2100ms) - "Hello, who's there?"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) {
+        // Phase 6: Eyes open (2200-2600ms) - "Hello, who's there?"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
             phase = .awakening
 
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
@@ -459,14 +626,14 @@ public struct MagicalSplashView: View {
             }
         }
 
-        // Phase 6: Look around curiously (2100-2700ms) - "Where am I?"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.1) {
+        // Phase 7: Look around curiously (2600-3200ms) - "Where am I?"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
             phase = .discovery
             startCuriousLooking()
         }
 
-        // Phase 7: Focus on user with recognition (2700-3000ms) - "Oh, it's you!"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.7) {
+        // Phase 8: Focus on user with recognition (3200-3500ms) - "Oh, it's you!"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
             phase = .recognition
 
             // Happy bounce on recognition!
@@ -500,8 +667,8 @@ public struct MagicalSplashView: View {
             startGlowPulse()
         }
 
-        // Phase 8: Initials appear (3000-3300ms)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        // Phase 9: Initials appear (3500-3800ms)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
             phase = .identity
 
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
@@ -510,8 +677,8 @@ public struct MagicalSplashView: View {
             }
         }
 
-        // Phase 9: Greeting appears (3300-3700ms)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.3) {
+        // Phase 10: Greeting appears (3800-4200ms)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.8) {
             phase = .greeting
 
             withAnimation(.easeOut(duration: 0.4)) {
@@ -524,8 +691,8 @@ public struct MagicalSplashView: View {
             }
         }
 
-        // Phase 10: Complete (4000ms+)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+        // Phase 11: Complete (4500ms+)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
             phase = .complete
 
             // Gentle farewell blink
@@ -658,10 +825,12 @@ private struct MagicParticle: View {
     let index: Int
     let personaColor: Color
     let screenSize: CGSize
+    var startVisible: Bool = false  // NEW: Start visible immediately
 
     @State private var position: CGPoint = .zero
     @State private var opacity: Double = 0
     @State private var scale: CGFloat = 0.5
+    @State private var initialized: Bool = false
 
     var body: some View {
         Circle()
@@ -682,6 +851,9 @@ private struct MagicParticle: View {
             .opacity(opacity)
             .position(position)
             .onAppear {
+                guard !initialized else { return }
+                initialized = true
+
                 // Random starting position around center
                 let centerX = screenSize.width / 2
                 let centerY = screenSize.height / 2 - 80
@@ -693,17 +865,30 @@ private struct MagicParticle: View {
                     y: centerY + sin(angle) * radius
                 )
 
-                // Staggered animation start
-                let delay = Double(index) * 0.15
+                if startVisible {
+                    // Start visible immediately with a small delay for stagger effect
+                    opacity = Double.random(in: 0.2...0.5)
+                    scale = CGFloat.random(in: 0.5...0.9)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5) {
-                    startFloating()
+                    // Very short stagger for instant feel
+                    let delay = Double(index) * 0.03
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        startFloating()
+                    }
+                } else {
+                    // Original delayed behavior
+                    let delay = Double(index) * 0.15
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5) {
+                        startFloating()
+                    }
                 }
             }
     }
 
     private func startFloating() {
-        // Fade in
+        // Fade in (or adjust if already visible)
         withAnimation(.easeIn(duration: 0.5)) {
             opacity = Double.random(in: 0.3...0.7)
             scale = CGFloat.random(in: 0.6...1.2)
@@ -725,6 +910,7 @@ private struct MagicParticle: View {
 
 private enum SplashPhase {
     case initial
+    case peek           // Eye peeking from corner (NEW!)
     case anticipation   // Glow building before bounce
     case bounceEntrance // Luxo Jr. hop-hop-hop!
     case awakening      // Eyes slowly open
@@ -733,6 +919,71 @@ private enum SplashPhase {
     case identity       // Initials appear
     case greeting       // Welcome message
     case complete       // Ready to transition
+}
+
+// MARK: - Twinkling Star
+
+private struct TwinklingStar: View {
+    let index: Int
+    let screenSize: CGSize
+    let personaColor: Color
+
+    @State private var opacity: Double = 0
+    @State private var scale: CGFloat = 0.5
+    @State private var position: CGPoint = .zero
+
+    var body: some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [
+                        Color.white,
+                        Color.white.opacity(0.5),
+                        Color.clear
+                    ],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 3
+                )
+            )
+            .frame(width: 6, height: 6)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .position(position)
+            .onAppear {
+                // Distribute stars across the screen
+                let margin: CGFloat = 40
+                position = CGPoint(
+                    x: CGFloat.random(in: margin...(screenSize.width - margin)),
+                    y: CGFloat.random(in: margin...(screenSize.height * 0.6))
+                )
+
+                // Stagger the twinkle animation start
+                let delay = Double.random(in: 0...0.5)
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    startTwinkling()
+                }
+            }
+    }
+
+    private func startTwinkling() {
+        // Initial fade in
+        withAnimation(.easeIn(duration: 0.3)) {
+            opacity = Double.random(in: 0.3...0.8)
+            scale = CGFloat.random(in: 0.6...1.2)
+        }
+
+        // Continuous twinkling
+        let duration = Double.random(in: 1.5...3.0)
+        withAnimation(
+            .easeInOut(duration: duration)
+            .repeatForever(autoreverses: true)
+        ) {
+            opacity = Double.random(in: 0.1...0.6)
+            scale = CGFloat.random(in: 0.4...1.0)
+        }
+    }
 }
 
 // MARK: - Preview

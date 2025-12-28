@@ -35,8 +35,8 @@ const fund: FerniFund = {
   totalContributors: 0,
 };
 
-const contributions: Map<string, FundContribution> = new Map();
-const sponsoredConversations: Map<string, SponsoredConversation> = new Map();
+const contributions = new Map<string, FundContribution>();
+const sponsoredConversations = new Map<string, SponsoredConversation>();
 const contributorUserIds = new Set<string>();
 
 // Cost per sponsored conversation (for tracking purposes)

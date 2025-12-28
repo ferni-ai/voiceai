@@ -308,7 +308,7 @@ const TEMPLATES: Record<ThinkingOfYouTrigger, Array<(ctx: UserOutreachContext) =
 
 export class ThinkingOfYouEngine {
   private config: ThinkingOfYouConfig;
-  private pendingOutreach: Map<string, ThinkingOfYouOutreach> = new Map();
+  private pendingOutreach = new Map<string, ThinkingOfYouOutreach>();
   private outreachHistory: ThinkingOfYouOutreach[] = [];
 
   constructor(config?: Partial<ThinkingOfYouConfig>) {

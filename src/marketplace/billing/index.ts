@@ -223,7 +223,7 @@ async function persistUsageRecord(
         log.error({ error, recordId: record.id }, 'Failed to persist usage record after retries');
       } else {
         log.warn({ error, attempt }, 'Retrying usage persistence');
-        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+        await new Promise<void>((resolve) => { setTimeout(resolve, backoffMs * attempt); });
       }
     }
   }
@@ -520,7 +520,7 @@ async function persistRevenueShare(share: RevenueShare): Promise<void> {
         );
       } else {
         log.warn({ error, attempt }, 'Retrying revenue share persistence');
-        await new Promise((resolve) => setTimeout(resolve, backoffMs * attempt));
+        await new Promise<void>((resolve) => { setTimeout(resolve, backoffMs * attempt); });
       }
     }
   }

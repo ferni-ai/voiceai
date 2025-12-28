@@ -242,7 +242,7 @@ function mapEmotionToCartesia(
 export function generateToolTimingContext(
   toolName: string,
   durationMs: number,
-  userWasPatient: boolean = true
+  userWasPatient = true
 ): ToolTimingContext {
   const wasLong = durationMs > 2000;
   const wasVeryLong = durationMs > 5000;

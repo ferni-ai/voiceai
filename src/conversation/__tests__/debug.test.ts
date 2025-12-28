@@ -287,7 +287,7 @@ describe('Orchestrator Debug', () => {
   describe('Profiling', () => {
     it('should profile async operation', async () => {
       const { result, profile } = await profileOrchestration('test-op', async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
         return 'completed';
       });
 

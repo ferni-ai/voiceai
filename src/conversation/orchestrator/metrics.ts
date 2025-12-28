@@ -396,7 +396,7 @@ const collectors = new Map<string, MetricsCollector>();
  */
 export function getMetricsCollector(
   sessionId: string,
-  personaId: string = 'unknown'
+  personaId = 'unknown'
 ): MetricsCollector {
   if (!collectors.has(sessionId)) {
     collectors.set(sessionId, new MetricsCollector(sessionId, personaId));

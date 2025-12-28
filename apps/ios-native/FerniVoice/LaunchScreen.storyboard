@@ -2,15 +2,16 @@
 <!--
     LaunchScreen.storyboard
 
-    DESIGN INTENT: Seamless transition to MagicalSplashView's Luxo Jr. bounce entrance
+    DESIGN INTENT: Seamless transition to MagicalSplashView's enhanced loading experience
 
-    The MagicalSplashView starts with:
-    - Character off-screen (characterOffset: 400, below visible area)
-    - Pure dark background matching splash gradient (#08080f → #0f0f18)
-    - Subtle center glow hint that builds anticipation
+    The MagicalSplashView now starts INSTANTLY with:
+    - Twinkling stars visible from frame 1
+    - Breathing glow (intensity 0.3)
+    - Floating particles (opacity 0.4)
+    - Eyes peek from corner before Luxo Jr. bounce
 
-    This creates the illusion that Ferni literally "bounces into" darkness,
-    just like Luxo Jr. jumping onto the Pixar logo!
+    This storyboard provides MORE visual interest to bridge the gap,
+    matching the enhanced splash screen's initial state.
 -->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="22505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <device id="retina6_12" orientation="portrait" appearance="dark"/>
@@ -29,16 +30,63 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <!-- Subtle center glow hint - matches MagicalSplashView's initial ambientGlow -->
-                            <!-- This creates anticipation: "something is about to appear here" -->
-                            <!-- Note: Launch screens can't have corner radius via runtime attributes, -->
-                            <!-- so the glow is subtle enough that square edges aren't noticeable -->
+                            <!-- Outer ambient glow - larger, softer, matches MagicalSplashView -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="outer-glow">
+                                <rect key="frame" x="46.5" y="176" width="300" height="300"/>
+                                <color key="backgroundColor" red="0.29019607843" green="0.40392156863" blue="0.25490196078" alpha="0.08" colorSpace="custom" customColorSpace="displayP3"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="300" id="outer-glow-w"/>
+                                    <constraint firstAttribute="height" constant="300" id="outer-glow-h"/>
+                                </constraints>
+                            </view>
+                            <!-- Inner anticipation glow - brighter core -->
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="anticipation-glow">
-                                <rect key="frame" x="96.5" y="286" width="200" height="200"/>
-                                <color key="backgroundColor" red="0.29019607843" green="0.40392156863" blue="0.25490196078" alpha="0.05" colorSpace="custom" customColorSpace="displayP3"/>
+                                <rect key="frame" x="96.5" y="226" width="200" height="200"/>
+                                <color key="backgroundColor" red="0.29019607843" green="0.40392156863" blue="0.25490196078" alpha="0.15" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="200" id="glow-w"/>
                                     <constraint firstAttribute="height" constant="200" id="glow-h"/>
+                                </constraints>
+                            </view>
+                            <!-- Decorative star hints (static, but suggest the twinkling to come) -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="star-hint-1">
+                                <rect key="frame" x="80" y="120" width="4" height="4"/>
+                                <color key="backgroundColor" white="1" alpha="0.3" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="4" id="star1-w"/>
+                                    <constraint firstAttribute="height" constant="4" id="star1-h"/>
+                                </constraints>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="star-hint-2">
+                                <rect key="frame" x="280" y="180" width="3" height="3"/>
+                                <color key="backgroundColor" white="1" alpha="0.25" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="3" id="star2-w"/>
+                                    <constraint firstAttribute="height" constant="3" id="star2-h"/>
+                                </constraints>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="star-hint-3">
+                                <rect key="frame" x="320" y="280" width="5" height="5"/>
+                                <color key="backgroundColor" white="1" alpha="0.2" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="5" id="star3-w"/>
+                                    <constraint firstAttribute="height" constant="5" id="star3-h"/>
+                                </constraints>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="star-hint-4">
+                                <rect key="frame" x="60" y="350" width="4" height="4"/>
+                                <color key="backgroundColor" white="1" alpha="0.35" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="4" id="star4-w"/>
+                                    <constraint firstAttribute="height" constant="4" id="star4-h"/>
+                                </constraints>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="star-hint-5">
+                                <rect key="frame" x="340" y="150" width="3" height="3"/>
+                                <color key="backgroundColor" white="1" alpha="0.2" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="3" id="star5-w"/>
+                                    <constraint firstAttribute="height" constant="3" id="star5-h"/>
                                 </constraints>
                             </view>
                         </subviews>
@@ -46,9 +94,23 @@
                         <!-- Dark background matching MagicalSplashView: #08080f -->
                         <color key="backgroundColor" red="0.03137254902" green="0.03137254902" blue="0.05882352941" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
+                            <!-- Outer glow constraints -->
+                            <constraint firstItem="outer-glow" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="outer-glow-cx"/>
+                            <constraint firstItem="outer-glow" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-80" id="outer-glow-cy"/>
+                            <!-- Inner glow constraints -->
                             <constraint firstItem="anticipation-glow" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="glow-cx"/>
-                            <!-- Positioned slightly above center to match MagicalSplashView's glow offset -->
                             <constraint firstItem="anticipation-glow" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-80" id="glow-cy"/>
+                            <!-- Star hint constraints (scattered positions) -->
+                            <constraint firstItem="star-hint-1" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="80" id="star1-x"/>
+                            <constraint firstItem="star-hint-1" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="60" id="star1-y"/>
+                            <constraint firstItem="star-hint-2" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" constant="-110" id="star2-x"/>
+                            <constraint firstItem="star-hint-2" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="120" id="star2-y"/>
+                            <constraint firstItem="star-hint-3" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" constant="-70" id="star3-x"/>
+                            <constraint firstItem="star-hint-3" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="220" id="star3-y"/>
+                            <constraint firstItem="star-hint-4" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="60" id="star4-x"/>
+                            <constraint firstItem="star-hint-4" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="290" id="star4-y"/>
+                            <constraint firstItem="star-hint-5" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" constant="-50" id="star5-x"/>
+                            <constraint firstItem="star-hint-5" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="90" id="star5-y"/>
                         </constraints>
                     </view>
                 </viewController>

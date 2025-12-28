@@ -177,9 +177,9 @@ export class LLMFallbackRouter {
     try {
       const response = await Promise.race([
         this.llmProvider.generate(prompt),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('LLM timeout')), this.config.timeoutMs)
-        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('LLM timeout')), this.config.timeoutMs);
+        }),
       ]);
 
       const parsed = this.parseSelectionResponse(response, candidates);

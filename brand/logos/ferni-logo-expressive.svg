@@ -1,12 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Expressive animated logo with eyes -->
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="expOrb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="expShine" x1="0%" y1="0%" x2="60%" y2="60%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
     <filter id="expGlow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="3" result="glow"/>
@@ -16,37 +18,47 @@
       </feMerge>
     </filter>
   </defs>
-  
+
   <style>
     @keyframes breathe {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.02); }
     }
-    @keyframes shimmer {
-      0%, 100% { opacity: 0.15; }
-      50% { opacity: 0.3; }
+    @keyframes blink {
+      0%, 94%, 100% { transform: scaleY(1); }
+      97% { transform: scaleY(0.1); }
     }
     @keyframes pulse {
       0%, 100% { opacity: 0.35; }
       50% { opacity: 0.6; }
     }
-    .exp-body { animation: breathe 3s ease-in-out infinite; transform-origin: center; }
-    .exp-shine { animation: shimmer 2s ease-in-out infinite; }
+    .exp-body { animation: breathe 4s ease-in-out infinite; transform-origin: center; }
     .exp-ring { animation: pulse 4s ease-in-out infinite; }
+    .eyes-group { animation: blink 5s ease-in-out infinite; transform-origin: center 47px; }
     @media (prefers-reduced-motion: reduce) {
-      .exp-body, .exp-shine, .exp-ring { animation: none; }
+      .exp-body, .exp-ring, .eyes-group { animation: none; }
     }
   </style>
-  
+
+  <!-- Outer ring with glow -->
   <circle class="exp-ring" cx="50" cy="50" r="46" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35" filter="url(#expGlow)"/>
-  
+
+  <!-- Main body with breathing -->
   <g class="exp-body">
-    <circle cx="50" cy="50" r="40" fill="url(#expOrb)"/>
-    <text x="50" y="50" text-anchor="middle" dominant-baseline="central"
-      font-family="'Plus Jakarta Sans', system-ui, sans-serif"
-      font-size="30" font-weight="800" fill="white" letter-spacing="-1">
-      <tspan dy="2">FE</tspan>
-    </text>
-    <circle class="exp-shine" cx="50" cy="50" r="40" fill="url(#expShine)"/>
+    <!-- Circular background -->
+    <circle cx="50" cy="50" r="40" fill="url(#orbGradient)"/>
+
+    <!-- Eyes group with blinking -->
+    <g class="eyes-group">
+      <!-- Left eye -->
+      <ellipse cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+      <circle cx="34" cy="43" r="2" fill="white"/>
+      <circle cx="36" cy="45" r="0.8" fill="white" opacity="0.7"/>
+
+      <!-- Right eye -->
+      <ellipse cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFill)"/>
+      <circle cx="62" cy="43" r="2" fill="white"/>
+      <circle cx="64" cy="45" r="0.8" fill="white" opacity="0.7"/>
+    </g>
   </g>
 </svg>

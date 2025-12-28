@@ -289,7 +289,7 @@ Reply directly to respond to this request.`;
     subject: string,
     body: string
   ): Promise<EmailResult> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 500); });
 
     log.info({ to: target.email, subject, bodyLength: body.length }, 'Simulated email sent');
 

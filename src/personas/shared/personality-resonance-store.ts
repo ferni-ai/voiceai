@@ -271,7 +271,7 @@ export async function loadResonanceProfile(userId: string): Promise<UserResonanc
  */
 export async function recordResonanceEvent(userId: string, event: ResonanceEvent): Promise<void> {
   try {
-    let profile = resonanceCache.get(userId) || createDefaultProfile(userId);
+    const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
     // Update theme score
     const currentScore = profile.themeScores[event.theme] ?? 0.5;
@@ -341,7 +341,7 @@ export async function recordResonanceEvent(userId: string, event: ResonanceEvent
  */
 export async function recordUserTopicMention(userId: string, topic: string): Promise<void> {
   try {
-    let profile = resonanceCache.get(userId) || createDefaultProfile(userId);
+    const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
     const existing = profile.mentionedTopics.find(
       (t) => t.topic.toLowerCase() === topic.toLowerCase()
@@ -381,7 +381,7 @@ export async function recordVulnerabilityResponse(
   responseType: 'reciprocated' | 'deflected' | 'ignored'
 ): Promise<void> {
   try {
-    let profile = resonanceCache.get(userId) || createDefaultProfile(userId);
+    const profile = resonanceCache.get(userId) || createDefaultProfile(userId);
 
     profile.vulnerabilityComfort.lastVulnerableShare = new Date();
     profile.vulnerabilityComfort.responseType = responseType;

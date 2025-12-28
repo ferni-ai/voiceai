@@ -483,7 +483,7 @@ let pendingSave: Map<string, ToolArm> | null = null;
  */
 export function startAutoSave(
   persistence: BanditPersistence,
-  intervalMs: number = 60000
+  intervalMs = 60000
 ): void {
   if (autoSaveInterval) {
     clearInterval(autoSaveInterval);

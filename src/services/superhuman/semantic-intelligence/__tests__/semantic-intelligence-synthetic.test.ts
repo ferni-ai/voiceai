@@ -137,7 +137,7 @@ interface GeneratedScenario {
 
 async function generateScenarios(
   systemPrompt: string,
-  count: number = 5
+  count = 5
 ): Promise<GeneratedScenario[]> {
   if (!USE_LLM) {
     return [];

@@ -6,7 +6,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { EnrollmentSession } from '../../services/voice/voice-enrollment.js';
-import { ContinuousAuthenticator } from '../../services/voice/voice-enrollment.js';
+import type { ContinuousAuthenticator } from '../../services/voice/voice-enrollment.js';
 import { detectSpoofing } from '../../services/voice/voice-antispoofing.js';
 import { logLivenessFail, logSpoofDetected } from '../../services/voice/voice-audit-log.js';
 import { checkLiveness } from '../../services/voice/voice-liveness.js';

@@ -99,15 +99,15 @@ const SPEECH_DETECTION = {
 export class RealTimeAudioAnalyzer {
   private readonly config: RealTimeAnalyzerConfig;
   private readonly ringBuffer: Float32Array;
-  private writeIndex: number = 0;
-  private samplesInBuffer: number = 0;
+  private writeIndex = 0;
+  private samplesInBuffer = 0;
 
   // State tracking
-  private totalSamplesProcessed: number = 0;
-  private analysisCount: number = 0;
-  private lastSpeechTimestamp: number = 0;
-  private isInSpeech: boolean = false;
-  private speechStartTimestamp: number = 0;
+  private totalSamplesProcessed = 0;
+  private analysisCount = 0;
+  private lastSpeechTimestamp = 0;
+  private isInSpeech = false;
+  private speechStartTimestamp = 0;
 
   // Feature history for trend detection
   private pitchHistory: number[] = [];

@@ -993,8 +993,8 @@ export function buildLLMSoftOpenInstructions(
         ? 'This is a newer relationship - be welcoming but not overly familiar.'
         : '';
 
-  // Use speak pseudo-tool to prevent echoing of meta-instructions
-  // The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say()
+  // Output plain text - no JSON wrapper needed
+  // The generateReply system will speak it directly
   const instructions = `You are ${fromProfile.name}. You're handing off to ${toProfile.name}.
 
 ${contextHints.length > 0 ? contextHints.filter(Boolean).join('. ') + '.' : ''}
@@ -1002,8 +1002,7 @@ ${timeHint} ${relationshipHint}
 
 Generate a brief, natural transition phrase. ${brevity}
 
-OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your handoff phrase here"}}`;
+Respond with ONLY your transition phrase as plain text. No JSON. No quotes. Just speak naturally.`;
 
   // Generate fallback using template system
   const fallback = getHandoffBanter(fromPersonaId, toPersonaId) || `Let me get ${toProfile.name}.`;
@@ -1074,8 +1073,8 @@ export function buildLLMArrivingInstructions(
         ? 'Newer relationship - be welcoming and open.'
         : '';
 
-  // Use speak pseudo-tool to prevent echoing of meta-instructions
-  // The LLM outputs JSON, which gets caught by tool-call-sanitizer and spoken via session.say()
+  // Output plain text - no JSON wrapper needed
+  // The generateReply system will speak it directly
   const instructions = `You are ${toProfile.name}. You just arrived from ${fromProfile.name}'s handoff.
 
 ${nameHint}
@@ -1084,8 +1083,7 @@ ${timeHint} ${relationshipHint}
 
 Generate a brief, natural greeting. ${brevity}
 
-OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your greeting here"}}`;
+Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak naturally.`;
 
   // Generate fallback using template system
   const fallback = getArrivingBanter(toPersonaId, fromPersonaId) || "Hey! What's up?";

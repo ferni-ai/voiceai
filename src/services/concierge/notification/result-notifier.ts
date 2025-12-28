@@ -247,19 +247,42 @@ async function sendPush(
 }
 
 /**
- * Send email notification
+ * Send email notification using the actual email delivery service
  */
-async function sendEmail(
+async function sendEmailNotification(
   email: string,
   subject: string,
-  body: string
+  body: string,
+  userId: string,
+  requestId: string
 ): Promise<NotificationResult> {
   try {
-    // Use our existing email service
-    // In production, this would use SendGrid/Postmark
-    log.info({ email, subject }, 'Email would be sent');
+    const { sendEmail: sendViaDelivery, isEmailDeliveryAvailable } = await import(
+      '../../outreach/delivery/email-delivery.js'
+    );
 
-    return { success: true, channel: 'email', messageId: `email_${Date.now()}` };
+    if (!isEmailDeliveryAvailable()) {
+      log.debug({ email }, 'Email delivery not available, skipping');
+      return { success: false, channel: 'email', error: 'Email delivery not configured' };
+    }
+
+    const result = await sendViaDelivery({
+      to: email,
+      subject,
+      body,
+      personaId: 'ferni',
+      userId,
+      outreachId: requestId,
+      tags: ['concierge', 'result'],
+    });
+
+    if (result.success) {
+      log.info({ email, subject, messageId: result.messageId }, '📧 Concierge result email sent');
+      return { success: true, channel: 'email', messageId: result.messageId };
+    } else {
+      log.warn({ email, error: result.error }, 'Email delivery failed');
+      return { success: false, channel: 'email', error: result.error };
+    }
   } catch (error) {
     log.error({ error: String(error), email }, 'Failed to send email');
     return { success: false, channel: 'email', error: String(error) };
@@ -348,7 +371,7 @@ export async function notifyRequestComplete(
       case 'email':
         if (prefs.email) {
           const { subject, body } = formatEmailResults(request);
-          result = await sendEmail(prefs.email, subject, body);
+          result = await sendEmailNotification(prefs.email, subject, body, request.userId, request.id);
           if (result.success) return result;
         }
         break;

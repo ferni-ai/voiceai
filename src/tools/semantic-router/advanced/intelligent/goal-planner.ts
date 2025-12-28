@@ -243,9 +243,9 @@ export class GoalPlanner {
     try {
       const response = await Promise.race([
         this.llmProvider.generate(prompt),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Planning timeout')), this.config.planningTimeoutMs)
-        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Planning timeout')), this.config.planningTimeoutMs);
+        }),
       ]);
 
       const plan = this.parsePlanResponse(response, userGoal, availableTools);

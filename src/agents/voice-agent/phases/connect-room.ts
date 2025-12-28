@@ -11,7 +11,7 @@ import type { JobContext } from '@livekit/agents';
 /**
  * Connect to LiveKit room with timeout.
  */
-export async function connectToRoom(ctx: JobContext, timeoutMs: number = 30000): Promise<void> {
+export async function connectToRoom(ctx: JobContext, timeoutMs = 30000): Promise<void> {
   process.stderr.write(`[connect-room] Connecting to room...\n`);
   const connectStart = Date.now();
 
@@ -34,7 +34,7 @@ export async function connectToRoom(ctx: JobContext, timeoutMs: number = 30000):
  */
 export async function waitForParticipant(
   ctx: JobContext,
-  timeoutMs: number = 2000
+  timeoutMs = 2000
 ): Promise<{ identity: string; name?: string; metadata?: string } | null> {
   process.stderr.write(`[connect-room] 👤 Waiting for participant...\n`);
 

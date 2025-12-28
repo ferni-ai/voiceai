@@ -148,9 +148,9 @@ export class EmotionalMemoryEngine {
   private userId: string;
   private personaId: string;
   private lastPhraseType: string | null = null;
-  private phrasesUsedThisSession: Set<string> = new Set();
+  private phrasesUsedThisSession = new Set<string>();
 
-  constructor(userId: string, existingBond?: EmotionalBond, personaId: string = 'ferni') {
+  constructor(userId: string, existingBond?: EmotionalBond, personaId = 'ferni') {
     this.userId = userId;
     this.personaId = personaId;
     this.bond = existingBond ? { ...existingBond } : { ...DEFAULT_BOND };

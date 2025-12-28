@@ -120,6 +120,9 @@ export interface TurnHandlerContext {
     macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
     // Better Than Human: Calendar awareness (loaded async at session start)
     calendarAwareness?: string;
+    // Greeting awareness: Tell LLM what greeting was spoken
+    greetingText?: string;
+    greetingInjected?: boolean;
   };
   /** Voice emotion result (optional, from voice agent) */
   voiceEmotion?: {
@@ -1053,6 +1056,32 @@ You are their lifeline right now. Be fully present.`,
           role: 'system',
           content: `[INTERNAL BRIEFING - DO NOT SPEAK THIS]\n${userData.preSessionBriefing}`,
         });
+      }
+
+      // ================================================================
+      // GREETING AWARENESS (Turn 0 only)
+      // Tell the LLM what greeting it spoke so it doesn't repeat or get confused
+      // This fixes the "agent doesn't know what it said" problem
+      // ================================================================
+      if (userData.greetingText && !userData.greetingInjected && (userData.turnCount ?? 0) === 0) {
+        logger.info(
+          { greetingPreview: userData.greetingText.slice(0, 50) },
+          '🎤 Greeting context injected - LLM now knows what it said'
+        );
+        // Strip SSML tags for cleaner context (LLM doesn't need to see <break> tags)
+        const cleanGreeting = userData.greetingText
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[CONVERSATION START - DO NOT REPEAT THIS GREETING]
+You just greeted the user with: "${cleanGreeting}"
+This was your opening. Now respond naturally to what they said.
+Do NOT say hello again or repeat your greeting.`,
+        });
+        // Mark as injected so we don't repeat on subsequent turns
+        userData.greetingInjected = true;
       }
 
       // ================================================================

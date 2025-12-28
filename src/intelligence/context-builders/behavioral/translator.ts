@@ -213,7 +213,7 @@ function extractTopic(text: string): string | null {
  */
 export function translateContextToSignals(
   contextString: string,
-  source: string = 'legacy'
+  source = 'legacy'
 ): BehavioralSignals {
   const signals: BehavioralSignals = {
     source,

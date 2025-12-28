@@ -185,7 +185,7 @@ function extractEchoPhrase(userMessage: string): {
  * Build the echo with appropriate SSML.
  * The echo should be softer, slightly slower, with a reflective pause after.
  */
-function buildEchoSSML(phrase: string, emotion: string = 'affectionate'): string {
+function buildEchoSSML(phrase: string, emotion = 'affectionate'): string {
   return `<emotion value="${emotion}"/><speed ratio="0.9"/><volume ratio="0.85"/>${phrase}${breakTag('300ms')}`;
 }
 

@@ -11,12 +11,12 @@ import type { KnowledgeNode, KnowledgeEdge, EdgeType } from './types.js';
  * Knowledge Graph Service for managing interconnected financial concepts.
  */
 export class KnowledgeGraphService {
-  private nodes: Map<string, KnowledgeNode> = new Map();
-  private edges: Map<string, KnowledgeEdge> = new Map();
+  private nodes = new Map<string, KnowledgeNode>();
+  private edges = new Map<string, KnowledgeEdge>();
 
   // Adjacency lists for fast traversal
-  private outgoingEdges: Map<string, KnowledgeEdge[]> = new Map();
-  private incomingEdges: Map<string, KnowledgeEdge[]> = new Map();
+  private outgoingEdges = new Map<string, KnowledgeEdge[]>();
+  private incomingEdges = new Map<string, KnowledgeEdge[]>();
 
   /**
    * Add a node to the graph.

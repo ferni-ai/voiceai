@@ -27,12 +27,25 @@ export type { PersonaColorConfig, ApiColorData, PersonalityForColors };
 
 /**
  * Maps alternative persona IDs to canonical IDs.
- * Both directions work: peter-john → peter-lynch AND peter-lynch → peter-john
+ * Both directions work: peter-john → peter AND peter → peter-john
+ *
+ * Frontend uses full names (alex-chen, maya-santos, etc.)
+ * Design tokens use short names (alex, maya, etc.)
  */
 const ID_ALIASES: Record<string, string> = {
-  // Frontend uses peter-john, design tokens use peter-lynch
-  'peter-john': 'peter-lynch',
-  'peter-lynch': 'peter-john',
+  // Frontend → Design Tokens
+  'peter-john': 'peter',
+  'peter-lynch': 'peter',
+  'alex-chen': 'alex',
+  'maya-santos': 'maya',
+  'jordan-taylor': 'jordan',
+  'nayan-patel': 'nayan',
+  // Design Tokens → Frontend (for reverse lookup)
+  'peter': 'peter-john',
+  'alex': 'alex-chen',
+  'maya': 'maya-santos',
+  'jordan': 'jordan-taylor',
+  'nayan': 'nayan-patel',
 };
 
 /**

@@ -31,7 +31,7 @@ interface TokenCache {
   expiresAt: number;
 }
 
-const tokenCache: Map<string, TokenCache> = new Map();
+const tokenCache = new Map<string, TokenCache>();
 
 /**
  * Check if Apple credentials are configured

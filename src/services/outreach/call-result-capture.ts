@@ -409,10 +409,16 @@ export async function captureCallResult(
     // This is sent regardless - push notifications work even if they're in-app
     await sendCallResultPushNotification(request, outcome, callId);
 
-    // 6. Create follow-up actions
+    // 6. Send email notification (tangible record of the call)
+    await sendCallResultEmail(request, outcome, callId);
+
+    // 7. Create calendar event for callback if needed
+    await createCallbackCalendarEvent(request, outcome, callId);
+
+    // 8. Create follow-up actions
     await createFollowUpActions(request.userId, callId, outcome, request);
 
-    log.info({ callId, userId: request.userId }, 'Call result captured successfully');
+    log.info({ callId, userId: request.userId }, 'Call result captured successfully (push + email + calendar)');
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
     throw error;
@@ -484,6 +490,289 @@ async function sendCallResultPushNotification(
   }
 }
 
+/**
+ * Send email notification for call result
+ * This ensures the user gets a tangible record of the call
+ */
+async function sendCallResultEmail(
+  request: OnBehalfCallRequest,
+  outcome: CallOutcome,
+  callId: string
+): Promise<void> {
+  try {
+    // Get user's email
+    const email = await getUserEmail(request.userId);
+    if (!email) {
+      log.debug({ callId, userId: request.userId }, 'No email configured, skipping email notification');
+      return;
+    }
+
+    const { sendEmail, isEmailDeliveryAvailable } = await import('./delivery/email-delivery.js');
+
+    if (!isEmailDeliveryAvailable()) {
+      log.debug({ callId }, 'Email delivery not available, skipping');
+      return;
+    }
+
+    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const completedAt = new Date().toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    // Build warm, human email content
+    const { subject, body } = buildCallResultEmailContent(
+      contactName,
+      outcome,
+      request.purpose,
+      completedAt
+    );
+
+    await sendEmail({
+      to: email,
+      subject,
+      body,
+      personaId: 'ferni',
+      userId: request.userId,
+      outreachId: callId,
+      tags: ['on-behalf-call', outcome.status],
+    });
+
+    log.info({ callId, userId: request.userId }, 'Email notification sent for call result');
+  } catch (error) {
+    // Don't fail the whole capture if email fails
+    log.warn({ error: String(error), callId }, 'Failed to send email notification');
+  }
+}
+
+/**
+ * Build warm, human email content for call result
+ */
+function buildCallResultEmailContent(
+  contactName: string,
+  outcome: CallOutcome,
+  purpose: string,
+  completedAt: string
+): { subject: string; body: string } {
+  // Build subject based on outcome
+  let subject: string;
+  if (outcome.objectiveAchieved) {
+    subject = `✓ Talked to ${contactName} for you`;
+  } else if (outcome.status === 'voicemail') {
+    subject = `📞 Left a message for ${contactName}`;
+  } else if (outcome.status === 'no_answer' || outcome.status === 'busy') {
+    subject = `📞 Couldn't reach ${contactName}`;
+  } else {
+    subject = `📞 Call update: ${contactName}`;
+  }
+
+  // Build warm body
+  const lines: string[] = [];
+  lines.push(`Hey! Just wanted to let you know about the call to ${contactName}.`);
+  lines.push('');
+
+  // What happened
+  if (outcome.objectiveAchieved) {
+    lines.push(`Great news - I was able to ${purpose.toLowerCase().replace(/^(say|tell|wish|let them know)/i, 'pass along your message to')}`);
+  } else if (outcome.status === 'voicemail') {
+    lines.push(`I left a voicemail for ${contactName}. I made sure to keep it warm and natural - just like you would.`);
+  } else if (outcome.status === 'no_answer') {
+    lines.push(`I tried calling ${contactName} but couldn't get through. No answer.`);
+  } else if (outcome.status === 'busy') {
+    lines.push(`I tried calling ${contactName} but the line was busy.`);
+  }
+
+  lines.push('');
+  lines.push(`**What happened:** ${outcome.outcome}`);
+  lines.push('');
+
+  // Action items
+  if (outcome.actionItems && outcome.actionItems.length > 0) {
+    lines.push('**Action items:**');
+    for (const item of outcome.actionItems) {
+      lines.push(`• ${item}`);
+    }
+    lines.push('');
+  }
+
+  // Callback needed
+  if (outcome.callbackRequired) {
+    lines.push('**Heads up:** They mentioned wanting a callback.');
+    if (outcome.callbackTime) {
+      lines.push(`Best time to call back: ${outcome.callbackTime}`);
+    }
+    lines.push('');
+  }
+
+  lines.push(`*Completed: ${completedAt}*`);
+
+  return { subject, body: lines.join('\n') };
+}
+
+/**
+ * Create calendar event for callback if needed
+ */
+async function createCallbackCalendarEvent(
+  request: OnBehalfCallRequest,
+  outcome: CallOutcome,
+  callId: string
+): Promise<void> {
+  // Only create calendar event if callback is required
+  if (!outcome.callbackRequired) {
+    return;
+  }
+
+  try {
+    const { createEvent, hasAnyProviderConnected } = await import('../calendar/index.js');
+
+    // Check if user has any calendar connected
+    const hasCalendar = await hasAnyProviderConnected(request.userId);
+    if (!hasCalendar) {
+      log.debug({ callId }, 'No calendar connected, skipping callback event');
+      return;
+    }
+
+    const contactName = request.resolvedContact?.name || request.contactQuery;
+    const contactPhone = request.resolvedContact?.phone;
+
+    // Determine when to schedule the callback
+    let callbackDate = new Date();
+    if (outcome.callbackTime) {
+      // Try to parse the callback time hint
+      const parsed = parseCallbackTimeHint(outcome.callbackTime);
+      if (parsed) {
+        callbackDate = parsed;
+      } else {
+        // Default: tomorrow at 10am
+        callbackDate.setDate(callbackDate.getDate() + 1);
+        callbackDate.setHours(10, 0, 0, 0);
+      }
+    } else {
+      // Default: tomorrow at 10am
+      callbackDate.setDate(callbackDate.getDate() + 1);
+      callbackDate.setHours(10, 0, 0, 0);
+    }
+
+    const description = [
+      `Follow up on your earlier call with ${contactName}.`,
+      '',
+      `📞 Original purpose: ${request.purpose}`,
+      `📝 What happened: ${outcome.outcome}`,
+      '',
+      contactPhone ? `Phone: ${contactPhone}` : '',
+      '',
+      `Created by Ferni`,
+    ].filter(Boolean).join('\n');
+
+    await createEvent(request.userId, {
+      title: `📞 Call ${contactName} back`,
+      description,
+      startTime: callbackDate,
+      endTime: new Date(callbackDate.getTime() + 15 * 60 * 1000), // 15 min
+      reminders: [{ method: 'popup', minutesBefore: 10 }],
+      color: '#FF9800', // Tangerine - stands out
+    });
+
+    log.info(
+      { callId, userId: request.userId, contactName, scheduledFor: callbackDate.toISOString() },
+      'Created calendar event for callback'
+    );
+  } catch (error) {
+    // Don't fail the whole capture if calendar fails
+    log.warn({ error: String(error), callId }, 'Failed to create callback calendar event');
+  }
+}
+
+/**
+ * Parse callback time hint into a Date
+ * Handles things like "tomorrow morning", "this afternoon", "next week"
+ */
+function parseCallbackTimeHint(hint: string): Date | null {
+  const now = new Date();
+  const lowerHint = hint.toLowerCase();
+
+  // Handle common patterns
+  if (lowerHint.includes('tomorrow')) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + 1);
+
+    if (lowerHint.includes('morning')) {
+      date.setHours(9, 0, 0, 0);
+    } else if (lowerHint.includes('afternoon')) {
+      date.setHours(14, 0, 0, 0);
+    } else if (lowerHint.includes('evening')) {
+      date.setHours(18, 0, 0, 0);
+    } else {
+      date.setHours(10, 0, 0, 0);
+    }
+    return date;
+  }
+
+  if (lowerHint.includes('this afternoon') || lowerHint.includes('later today')) {
+    const date = new Date(now);
+    date.setHours(14, 0, 0, 0);
+    if (date <= now) {
+      date.setHours(now.getHours() + 2);
+    }
+    return date;
+  }
+
+  if (lowerHint.includes('next week')) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + 7);
+    date.setHours(10, 0, 0, 0);
+    return date;
+  }
+
+  // Try to extract a time like "3pm" or "3:30pm"
+  const timeMatch = lowerHint.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+  if (timeMatch) {
+    let hours = parseInt(timeMatch[1], 10);
+    const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+    const isPM = timeMatch[3].toLowerCase() === 'pm';
+
+    if (isPM && hours < 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+
+    const date = new Date(now);
+    date.setHours(hours, minutes, 0, 0);
+
+    // If the time is in the past, assume tomorrow
+    if (date <= now) {
+      date.setDate(date.getDate() + 1);
+    }
+    return date;
+  }
+
+  return null;
+}
+
+/**
+ * Get user's email address from Firestore
+ */
+async function getUserEmail(userId: string): Promise<string | null> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
+      getFirestoreDb: null,
+    }));
+
+    const db = getFirestoreDb ? getFirestoreDb() : null;
+    if (!db) return null;
+
+    const doc = await db.collection('bogle_users').doc(userId).get();
+    if (!doc.exists) return null;
+
+    const data = doc.data();
+    return data?.email || data?.contact?.email || null;
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Failed to get user email');
+    return null;
+  }
+}
+
 // ============================================================================
 // QUERY FUNCTIONS
 // ============================================================================
@@ -493,7 +782,7 @@ async function sendCallResultPushNotification(
  */
 export async function getRecentCallResults(
   userId: string,
-  limit: number = 10
+  limit = 10
 ): Promise<StoredCallResult[]> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({

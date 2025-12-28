@@ -407,7 +407,7 @@ export class SuperhumanTTS extends tts.TTS {
       },
       async *[Symbol.asyncIterator]() {
         // Wait for text
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise<void>((r) => { setTimeout(r, 10); });
         const text = streamState._text;
 
         if (!text) {
@@ -469,7 +469,7 @@ export function createSuperhumanTTS(config: SuperhumanTTSConfig = {}): Superhuma
 /**
  * Create a SuperhumanTTS from environment variables
  */
-export function createSuperhumanTTSFromEnv(voice: string = 'ferni'): SuperhumanTTS {
+export function createSuperhumanTTSFromEnv(voice = 'ferni'): SuperhumanTTS {
   return new SuperhumanTTS({
     endpoint: process.env.BTCW_ENDPOINT,
     apiKey: process.env.BTCW_API_KEY,
@@ -487,7 +487,7 @@ export function createSuperhumanTTSFromEnv(voice: string = 'ferni'): SuperhumanT
 export function calculateRelationshipStage(
   daysSinceFirst: number,
   totalInteractions: number,
-  vulnerableMoments: number = 0
+  vulnerableMoments = 0
 ): RelationshipStage {
   // Calculate intimacy score
   const intimacyScore =
@@ -507,7 +507,7 @@ export function calculateRelationshipStage(
 /**
  * Check if it's late night wisdom time
  */
-export function isLateNightWisdomTime(timezoneOffset: number = 0): boolean {
+export function isLateNightWisdomTime(timezoneOffset = 0): boolean {
   const now = new Date();
   const localHour = (now.getUTCHours() + timezoneOffset + 24) % 24;
   return localHour >= 23 || localHour < 4;

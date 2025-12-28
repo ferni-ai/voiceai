@@ -154,7 +154,7 @@ export function clearMetrics(): void {
 // ============================================================================
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Individual services
 export { correlationMining } from './correlation-mining.js';

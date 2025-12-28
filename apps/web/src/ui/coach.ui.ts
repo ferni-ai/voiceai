@@ -314,8 +314,9 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
   }, 600);
 
-  setText(elements.avatarText, persona.initials);
-  
+  // Note: avatarText is hidden by CSS - all personas now show eyes instead of initials
+  // setText(elements.avatarText, persona.initials);
+
   // 🔤 Animate name change with kinetic typography
   if (elements.name && elements.name.textContent !== persona.name) {
     void animateNameHandoff(elements.name, persona.name, { duration: 500 });

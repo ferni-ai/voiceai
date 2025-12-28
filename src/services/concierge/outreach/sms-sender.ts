@@ -235,7 +235,7 @@ export class SmsSender {
    * Simulate SMS for development
    */
   private async simulateSms(target: ConciergeTarget, message: string): Promise<SmsResult> {
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 300); });
 
     log.info({ to: target.phone, messageLength: message.length }, 'Simulated SMS sent');
 

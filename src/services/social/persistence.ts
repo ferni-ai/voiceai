@@ -229,8 +229,8 @@ class SocialPersistence {
    * Get top users for leaderboard
    */
   async getTopUsers(
-    limit: number = 100,
-    orderByField: string = 'totalScore'
+    limit = 100,
+    orderByField = 'totalScore'
   ): Promise<UserStats[]> {
     await this.ensureInitialized();
 
@@ -375,7 +375,7 @@ class SocialPersistence {
   /**
    * Get challenge history for a user
    */
-  async getChallengeHistory(userId: string, limit: number = 20): Promise<Challenge[]> {
+  async getChallengeHistory(userId: string, limit = 20): Promise<Challenge[]> {
     await this.ensureInitialized();
 
     if (this.db) {

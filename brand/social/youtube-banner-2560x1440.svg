@@ -1,7 +1,7 @@
 <svg width="2560" height="1440" viewBox="0 0 2560 1440" xmlns="http://www.w3.org/2000/svg">
   <!-- Ferni YouTube Banner - 2560x1440 -->
   <!-- Safe area: 1546x423 centered at (507, 508) -->
-  <!-- "Better than Human" Brand Positioning -->
+  <!-- "Better than Human" Brand Positioning - Eyes Design -->
 
   <defs>
     <linearGradient id="bgGradYT" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -15,6 +15,11 @@
       <stop offset="100%" stop-color="#5a8055"/>
     </linearGradient>
 
+    <linearGradient id="eyeFillYT" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+
     <radialGradient id="warmthYT" cx="50%" cy="50%" r="45%">
       <stop offset="0%" stop-color="#4a6741" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#4a6741" stop-opacity="0"/>
@@ -26,6 +31,19 @@
       <feComposite in2="blur" operator="in"/>
       <feMerge>
         <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="eyeShadowYT" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="black" flood-opacity="0.1"/>
+      <feDropShadow dx="0" dy="-1" stdDeviation="2" flood-color="white" flood-opacity="0.5"/>
+    </filter>
+
+    <filter id="sparkleGlowYT" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
@@ -49,17 +67,31 @@
 
   <!-- === SAFE AREA CONTENT === -->
 
-  <!-- Logo - centered in safe area -->
+  <!-- Logo - centered in safe area with eyes -->
   <g transform="translate(1115, 520)" filter="url(#presenceYT)">
     <circle cx="165" cy="165" r="145" fill="url(#logoGradYT)"/>
     <circle cx="165" cy="165" r="165" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.15"/>
-    <text x="165" y="205"
-          font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
-          font-size="105"
-          font-weight="800"
-          fill="white"
-          text-anchor="middle"
-          letter-spacing="-0.02em">FE</text>
+
+    <!-- Eyes - No pupils, just white with sparkles -->
+    <!-- Left Eye -->
+    <g transform="translate(115, 163)">
+      <ellipse cx="0" cy="0" rx="22" ry="28" fill="url(#eyeFillYT)" opacity="0.3"/>
+      <ellipse cx="0" cy="0" rx="18" ry="24" fill="url(#eyeFillYT)" filter="url(#eyeShadowYT)"/>
+      <g transform="translate(-7, -10)" filter="url(#sparkleGlowYT)">
+        <circle cx="0" cy="0" r="5" fill="white"/>
+        <circle cx="3.5" cy="2.5" r="2" fill="white" opacity="0.7"/>
+      </g>
+    </g>
+
+    <!-- Right Eye -->
+    <g transform="translate(215, 163)">
+      <ellipse cx="0" cy="0" rx="22" ry="28" fill="url(#eyeFillYT)" opacity="0.3"/>
+      <ellipse cx="0" cy="0" rx="18" ry="24" fill="url(#eyeFillYT)" filter="url(#eyeShadowYT)"/>
+      <g transform="translate(-6, -10)" filter="url(#sparkleGlowYT)">
+        <circle cx="0" cy="0" r="5" fill="white"/>
+        <circle cx="3.5" cy="2.5" r="2" fill="white" opacity="0.7"/>
+      </g>
+    </g>
   </g>
 
   <!-- Headline -->
@@ -76,5 +108,5 @@
         font-size="24"
         font-weight="500"
         fill="#5C544A"
-        text-anchor="middle">Remembers everything. Judges nothing. Always present.</text>
+        text-anchor="middle">Never forgets. Always safe. Always there.</text>
 </svg>

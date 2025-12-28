@@ -156,7 +156,7 @@ export async function recordCollectiveLearning(ctx: LearningContext): Promise<bo
       distressLevel: ctx.emotionalResult.distressLevel || 0,
       confidence: 0.8,
       markers: [] as string[],
-      suggestedTone: 'warm' as 'warm',
+      suggestedTone: 'warm' as const,
     };
 
     // Analyze user engagement based on their message

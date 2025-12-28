@@ -88,15 +88,36 @@ let container: HTMLElement | null = null;
 let currentTab: TabId = 'insights';
 let isLoading = false;
 
-// Cached data
+// Cache TTL - 2 minutes (data doesn't change rapidly)
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
+// Cached data with timestamps
 let cachedInsights: SemanticInsight[] = [];
+let cachedInsightsTime = 0;
+
 let cachedLoops: OpenLoop[] = [];
+let cachedLoopsTime = 0;
+
 let cachedCommitments: Commitment[] = [];
+let cachedCommitmentsTime = 0;
+
 let cachedRelationships: RelationshipSummary | null = null;
+let cachedRelationshipsTime = 0;
+
 let cachedTemporal: TemporalContext | null = null;
 let cachedBehavioral: BehavioralContext | null = null;
+let cachedPatternsTime = 0;
+
 let cachedCoaching: CoachingContext | null = null;
+let cachedCoachingTime = 0;
+
 let cachedSelfAwareness: SelfAwarenessContext | null = null;
+let cachedSelfAwarenessTime = 0;
+
+/** Check if cache is still valid */
+function isCacheValid(cacheTime: number): boolean {
+  return Date.now() - cacheTime < CACHE_TTL_MS;
+}
 
 // ============================================================================
 // STYLES
@@ -114,9 +135,7 @@ function injectStyles(): void {
       left: 0;
       right: 0;
       bottom: 0;
-      background: var(--backdrop-medium);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(44, 37, 32, 0.75);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -806,6 +825,40 @@ function updateTabs(): void {
 // ============================================================================
 
 async function loadTabData(tab: TabId): Promise<void> {
+  const now = Date.now();
+
+  // Check if we have valid cached data - skip fetch if so
+  let needsFetch = false;
+  switch (tab) {
+    case 'insights':
+      needsFetch = cachedInsights.length === 0 || !isCacheValid(cachedInsightsTime);
+      break;
+    case 'loops':
+      needsFetch = cachedLoops.length === 0 || !isCacheValid(cachedLoopsTime);
+      break;
+    case 'commitments':
+      needsFetch = cachedCommitments.length === 0 || !isCacheValid(cachedCommitmentsTime);
+      break;
+    case 'relationships':
+      needsFetch = !cachedRelationships || !isCacheValid(cachedRelationshipsTime);
+      break;
+    case 'patterns':
+      needsFetch = (!cachedTemporal && !cachedBehavioral) || !isCacheValid(cachedPatternsTime);
+      break;
+    case 'coaching':
+      needsFetch = !cachedCoaching || !isCacheValid(cachedCoachingTime);
+      break;
+    case 'awareness':
+      needsFetch = !cachedSelfAwareness || !isCacheValid(cachedSelfAwarenessTime);
+      break;
+  }
+
+  // If cached, render immediately without showing loading state
+  if (!needsFetch) {
+    updateContent();
+    return;
+  }
+
   isLoading = true;
   updateContent();
 
@@ -813,25 +866,32 @@ async function loadTabData(tab: TabId): Promise<void> {
     switch (tab) {
       case 'insights':
         cachedInsights = await fetchInsights();
+        cachedInsightsTime = now;
         break;
       case 'loops':
         cachedLoops = await fetchOpenLoops();
+        cachedLoopsTime = now;
         break;
       case 'commitments':
         const commitmentData = await fetchCommitments();
         cachedCommitments = [...commitmentData.pending, ...commitmentData.remembered];
+        cachedCommitmentsTime = now;
         break;
       case 'relationships':
         cachedRelationships = await fetchRelationships();
+        cachedRelationshipsTime = now;
         break;
       case 'patterns':
         [cachedTemporal, cachedBehavioral] = await Promise.all([fetchTemporal(), fetchBehavioral()]);
+        cachedPatternsTime = now;
         break;
       case 'coaching':
         cachedCoaching = await fetchCoaching();
+        cachedCoachingTime = now;
         break;
       case 'awareness':
         cachedSelfAwareness = await fetchSelfAwareness();
+        cachedSelfAwarenessTime = now;
         break;
     }
   } catch (error) {

@@ -65,7 +65,7 @@ export interface PatternGap {
 // IN-MEMORY STORAGE (Would be Firestore in production)
 // ============================================================================
 
-const detectionHistory: Map<DetectionDomain, DetectionRecord[]> = new Map();
+const detectionHistory = new Map<DetectionDomain, DetectionRecord[]>();
 const MAX_HISTORY_PER_DOMAIN = 1000;
 
 // ============================================================================
@@ -171,7 +171,7 @@ export function getDomainStats(domain: DetectionDomain): DomainStats {
 
   // Calculate statistics
   let totalConfidence = 0;
-  const missedPhrases: Map<string, number> = new Map();
+  const missedPhrases = new Map<string, number>();
 
   for (const record of history) {
     totalConfidence += record.confidence;
@@ -226,7 +226,7 @@ export function identifyPatternGaps(): PatternGap[] {
     const missed = history.filter((r) => r.confidence === 0);
 
     // Group similar phrases
-    const phraseGroups: Map<string, { count: number; types: string[] }> = new Map();
+    const phraseGroups = new Map<string, { count: number; types: string[] }>();
 
     for (const record of [...lowConfidence, ...missed]) {
       // Normalize phrase for grouping

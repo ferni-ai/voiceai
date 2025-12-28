@@ -156,7 +156,7 @@ describe('SpeculativeTTS', () => {
 
       // Speculative generation happens in background
       // Give it a moment to process
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       // Should have made API calls for empathetic responses
       expect(mockFetch).toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe('SpeculativeTTS', () => {
         distressLevel: 7, // High distress
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       // Should have queued empathetic response starters
       expect(mockFetch).toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('SpeculativeTTS', () => {
         intent: 'celebrating',
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       expect(mockFetch).toHaveBeenCalled();
     });
@@ -194,7 +194,7 @@ describe('SpeculativeTTS', () => {
         'supportive'
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       // Should have called API for each branch (up to maxBranches)
       expect(mockFetch.mock.calls.length).toBeGreaterThanOrEqual(1);
@@ -209,7 +209,7 @@ describe('SpeculativeTTS', () => {
         'warm'
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       // Request the same text with matching emotion - should be cache hit
       const result = await getTTSWithSpeculation('Hello, how are you?', 'ferni', 'warm');

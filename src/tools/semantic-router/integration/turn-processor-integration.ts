@@ -16,7 +16,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { SemanticRouter, createSemanticRouter, routeUserInput } from '../router.js';
+import type { SemanticRouter} from '../router.js';
+import { createSemanticRouter, routeUserInput } from '../router.js';
 import type {
   SemanticRouterConfig,
   SemanticRouterResult,

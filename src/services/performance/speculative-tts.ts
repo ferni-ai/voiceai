@@ -195,8 +195,8 @@ class SpeculativeTTSEngine {
     max: 200,
     ttl: 3600000, // 1 hour
   });
-  private speculativeQueue: Map<string, Promise<TTSResult>> = new Map();
-  private currentSpeculations: Map<string, SpeculativeCandidate[]> = new Map();
+  private speculativeQueue = new Map<string, Promise<TTSResult>>();
+  private currentSpeculations = new Map<string, SpeculativeCandidate[]>();
   private metrics = {
     totalRequests: 0,
     cacheHits: 0,

@@ -378,9 +378,7 @@ class CalendarSelectionUI {
         align-items: center;
         justify-content: center;
         padding: var(--ma-rest, 21px);
-        background: var(--backdrop-page, rgba(44, 37, 32, 0.4));
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        background: rgba(44, 37, 32, 0.75);
         opacity: 0;
         visibility: hidden;
         transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;

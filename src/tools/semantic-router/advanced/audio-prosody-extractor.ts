@@ -185,7 +185,7 @@ export class AudioProsodyExtractor {
     const baseline = this.baselineFeatures;
 
     // Calculate stress level from pitch and energy variations
-    let stressLevel = this.calculateStressLevel(features, baseline);
+    const stressLevel = this.calculateStressLevel(features, baseline);
 
     // Calculate arousal from pitch range and speech rate
     const arousal = this.calculateArousal(features, baseline);

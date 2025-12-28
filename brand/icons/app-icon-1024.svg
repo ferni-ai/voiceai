@@ -1,35 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni App Icon - Eyes Logo (iOS App Store style) -->
 <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="icon1024Orb" x1="0%" y1="100%" x2="100%" y2="0%" gradientTransform="rotate(-35)">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#4a6741"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
     </linearGradient>
-    <linearGradient id="icon1024Shine" x1="0%" y1="0%" x2="60%" y2="60%">
-      <stop offset="0%" stop-color="white" stop-opacity="0.15"/>
-      <stop offset="40%" stop-color="white" stop-opacity="0"/>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
-    <linearGradient id="icon1024Badge" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="100%" stop-color="#5a8060"/>
-    </linearGradient>
-    <filter id="icon1024Shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#2c2520" flood-opacity="0.25"/>
-    </filter>
   </defs>
-  
-  <rect width="1024" height="1024" rx="180" fill="#F5F1E8"/>
-  
-  <circle cx="512" cy="512" r="400" fill="none" stroke="#4a6741" stroke-width="8" opacity="0.35"/>
-  <circle cx="512" cy="512" r="350" fill="url(#icon1024Orb)"/>
-  <circle cx="512" cy="512" r="350" fill="url(#icon1024Shine)"/>
-  
-  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
-    font-family="'Plus Jakarta Sans', system-ui, sans-serif"
-    font-size="256" font-weight="800" fill="white" letter-spacing="-8">
-    <tspan dy="16">FE</tspan>
-  </text>
-  
-  <circle cx="792" cy="792" r="96" fill="url(#icon1024Badge)" stroke="#FFFDFB" stroke-width="16" filter="url(#icon1024Shadow)"/>
-  <path d="M792 764c0-13.2-10.8-24-24-24s-24 10.8-24 24c0 24 44 56 44 56s44-32 44-56c0-13.2-10.8-24-24-24s-24 10.8-24 24z"
-    fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Rounded square background (iOS style) -->
+  <rect width="1024" height="1024" rx="180" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="370" cy="480" rx="100" ry="132" fill="url(#eyeFill)"/>
+  <circle cx="346" cy="426" r="26" fill="white"/>
+  <circle cx="366" cy="446" r="10" fill="white" opacity="0.7"/>
+
+  <!-- Right eye -->
+  <ellipse cx="654" cy="480" rx="100" ry="132" fill="url(#eyeFill)"/>
+  <circle cx="630" cy="426" r="26" fill="white"/>
+  <circle cx="650" cy="446" r="10" fill="white" opacity="0.7"/>
 </svg>

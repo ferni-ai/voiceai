@@ -36,7 +36,7 @@ const RETRY_DELAY_MS = 1000; // 1 second between retries
 /**
  * Sleep helper for retry delay
  */
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 
 /**
  * Check if an error/status is retryable

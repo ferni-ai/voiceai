@@ -16,14 +16,16 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import type {
+  AcousticFeatures} from './audio-prosody-extractor.js';
 import {
   AudioProsodyExtractor,
-  AcousticFeatures,
   getAudioProsodyExtractor,
 } from './audio-prosody-extractor.js';
-import {
+import type {
   VoiceProsodySignals,
-  ToolBoostDecision,
+  ToolBoostDecision} from './better-than-human.js';
+import {
   analyzeVoiceProsodyForToolBoost,
   performBetterThanHumanAnalysis,
   recordEmotionalDataPoint,

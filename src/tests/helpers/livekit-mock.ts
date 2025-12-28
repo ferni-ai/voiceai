@@ -52,7 +52,7 @@ export class MockRoom extends EventEmitter {
   public name: string;
   public sid: string;
   public localParticipant: MockLocalParticipant;
-  public remoteParticipants: Map<string, MockRemoteParticipant> = new Map();
+  public remoteParticipants = new Map<string, MockRemoteParticipant>();
   public state: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
 
   constructor(name = 'test-room') {
@@ -64,7 +64,7 @@ export class MockRoom extends EventEmitter {
 
   async connect(url: string, token: string): Promise<void> {
     this.state = 'connecting';
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
     this.state = 'connected';
     this.emit('connected');
   }
@@ -212,7 +212,7 @@ export class MockVoiceAssistant extends EventEmitter {
         };
 
         this.emit('userTranscript', event);
-        await new Promise((resolve) => setTimeout(resolve, durationMs / words.length / 2));
+        await new Promise<void>((resolve) => { setTimeout(resolve, durationMs / words.length / 2); });
       }
     }
 
@@ -255,7 +255,7 @@ export interface MockLLMResponse {
  * Mock LLM for testing agent responses
  */
 export class MockLLM {
-  private responses: Map<string, MockLLMResponse> = new Map();
+  private responses = new Map<string, MockLLMResponse>();
   private defaultResponse: MockLLMResponse = {
     content: 'I understand. Tell me more about that.',
   };
@@ -461,7 +461,7 @@ export async function simulateConversation(
     await assistant.simulateUserSpeech(turn.user);
 
     // Wait a bit for processing
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
     // Verify LLM was called
     if (turn.expectedResponse && llm.lastPrompt) {

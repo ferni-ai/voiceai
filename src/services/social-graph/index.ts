@@ -145,7 +145,7 @@ export function recordMention(
   context: string,
   sentiment: number,
   topics: string[] = [],
-  emotionalWeight: number = 0.5
+  emotionalWeight = 0.5
 ): Person {
   const graph = getOrCreateGraph(userId);
 
@@ -408,7 +408,7 @@ export function detectSentimentPatterns(userId: string): RelationshipPattern[] {
 /**
  * Get upcoming important dates
  */
-export function getUpcomingDates(userId: string, daysAhead: number = 7): ImportantDate[] {
+export function getUpcomingDates(userId: string, daysAhead = 7): ImportantDate[] {
   const graph = userGraphs.get(userId);
   if (!graph) return [];
 

@@ -71,7 +71,7 @@ describe('WorldAwareness', () => {
       });
 
       // Give time for background fetches
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
 
       const snapshot = getWorldSnapshot(testUserId);
       expect(snapshot).toBeDefined();
@@ -130,7 +130,7 @@ describe('WorldAwareness', () => {
   describe('updateUserInterests', () => {
     it('should update interests for existing user', async () => {
       await warmWorldCache(testUserId, { location: 'Chicago' });
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       updateUserInterests(testUserId, {
         favoriteTeams: ['Bulls', 'Bears'],
@@ -163,7 +163,7 @@ describe('WorldAwareness', () => {
 
     it('should return string or null', async () => {
       await warmWorldCache(testUserId, { location: 'Boston' });
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 150); });
 
       const starter = getConversationStarter(testUserId);
 
@@ -208,7 +208,7 @@ describe('WorldAwareness', () => {
   describe('clearUserCache', () => {
     it('should clear cache for user', async () => {
       await warmWorldCache(testUserId, { location: 'Seattle' });
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 50); });
 
       clearUserCache(testUserId);
 
@@ -229,7 +229,7 @@ describe('WorldAwareness', () => {
         location: 'Denver',
         favoriteTeams: ['Broncos'],
       });
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 200); });
 
       const snapshot = getWorldSnapshot(testUserId);
 

@@ -199,7 +199,7 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
  */
 export async function fetchUpcomingEvents(
   userId: string,
-  hoursAhead: number = 24
+  hoursAhead = 24
 ): Promise<CalendarEvent[]> {
   // Check if calendar is connected via shared OAuth service
   if (!(await isCalendarConfigured(userId))) {

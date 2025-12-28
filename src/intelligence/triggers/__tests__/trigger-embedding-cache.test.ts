@@ -159,7 +159,7 @@ describe('TriggerEmbeddingCache', () => {
       await shortTtlCache.set('ferni', 'test', 'text', embedding, 'model');
 
       // Wait for expiration
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 20); });
 
       const pruned = shortTtlCache.pruneExpired();
 

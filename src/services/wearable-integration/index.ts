@@ -39,9 +39,9 @@ const log = createLogger({ module: 'WearableIntegration' });
 export class WearableIntegrationService {
   private userId: string;
   private config: WearableConfig;
-  private latestData: Map<WearableProvider, WearableData> = new Map();
-  private connectionStatus: Map<WearableProvider, 'connected' | 'disconnected' | 'pending'> =
-    new Map();
+  private latestData = new Map<WearableProvider, WearableData>();
+  private connectionStatus =
+    new Map<WearableProvider, 'connected' | 'disconnected' | 'pending'>();
 
   constructor(userId: string, config?: Partial<WearableConfig>) {
     this.userId = userId;
@@ -490,7 +490,7 @@ export function removeWearableIntegration(userId: string): void {
 // EXPORTS
 // ============================================================================
 
-export * from './types.js';
+export type * from './types.js';
 
 export default {
   getWearableIntegration,

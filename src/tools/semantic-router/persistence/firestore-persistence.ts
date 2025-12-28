@@ -709,7 +709,7 @@ export async function cleanupOldData(options: {
   eventCutoff.setDate(eventCutoff.getDate() - (options.eventRetentionDays || 30));
 
   let deletedCorrections = 0;
-  let deletedEvents = 0;
+  const deletedEvents = 0;
 
   try {
     // Delete old corrections

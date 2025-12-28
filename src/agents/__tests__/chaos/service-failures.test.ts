@@ -31,13 +31,13 @@ import {
  * Simulate network latency
  */
 async function simulateLatency(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+  await new Promise<void>((resolve) => { setTimeout(resolve, ms); });
 }
 
 /**
  * Simulate intermittent failure
  */
-function createIntermittentFailure(failureRate: number = 0.5): () => boolean {
+function createIntermittentFailure(failureRate = 0.5): () => boolean {
   return () => Math.random() < failureRate;
 }
 
@@ -47,7 +47,7 @@ function createIntermittentFailure(failureRate: number = 0.5): () => boolean {
 function createFlakyMock<T>(
   successValue: T,
   errorMessage: string,
-  failureRate: number = 0.3
+  failureRate = 0.3
 ): () => Promise<T> {
   const shouldFail = createIntermittentFailure(failureRate);
 

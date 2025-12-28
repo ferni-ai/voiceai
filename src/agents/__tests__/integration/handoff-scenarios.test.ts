@@ -560,7 +560,7 @@ describe('Handoff Flow Integration', () => {
     // Step 4: Execute handoff
     const executeHandoff = async (): Promise<void> => {
       handoffSteps.push('handoff_executed');
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
     };
 
     // Step 5: New persona intro

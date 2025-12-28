@@ -125,9 +125,9 @@ export function getActiveRapportScorerCount(): number {
 export class RapportScorer {
   private sessionId: string;
   private scoreHistory: RapportScore[] = [];
-  private currentSignals: Map<string, RapportSignal> = new Map();
+  private currentSignals = new Map<string, RapportSignal>();
   private repairState: RepairState;
-  private observationCount: number = 0;
+  private observationCount = 0;
   private sessionStartedAt: number;
 
   constructor(sessionId: string) {

@@ -346,8 +346,7 @@ function applyModalStyles(overlay: HTMLElement): void {
     .account-modal-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(44, 37, 32, 0.4);
-      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      background: rgba(44, 37, 32, 0.75);
     }
     .account-modal-card {
       position: relative;

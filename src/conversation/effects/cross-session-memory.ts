@@ -57,7 +57,7 @@ export interface EffectResponse {
 // ============================================================================
 
 class CrossSessionEffectMemory {
-  private profiles: Map<string, UserEffectProfile> = new Map();
+  private profiles = new Map<string, UserEffectProfile>();
 
   /**
    * Get or create user effect profile

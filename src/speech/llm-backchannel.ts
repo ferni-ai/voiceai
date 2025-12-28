@@ -79,9 +79,8 @@ function getBackchannelInstructions(context: BackchannelContext): string {
   // Get relevant snippet (last 100 chars for context)
   const snippet = recentUserSpeech.slice(-100).trim();
 
-  // JSON output format (prevents echoing of instructions)
-  const jsonFormat = `OUTPUT ONLY this JSON format (nothing else):
-{"fn":"speak","args":{"text":"your brief response here"}}`;
+  // Plain text output (no JSON wrapper needed)
+  const plainTextFormat = `Respond with ONLY your brief response as plain text. No JSON. No quotes. Just speak naturally.`;
 
   switch (type) {
     case 'acknowledgment':
@@ -90,7 +89,7 @@ function getBackchannelInstructions(context: BackchannelContext): string {
 React naturally to what they just said. Be brief (1-4 words max). Sound like a friend, not an assistant.
 Don't use generic fillers like "Mm-hmm" - react to the CONTENT.
 
-${jsonFormat}`;
+${plainTextFormat}`;
 
     case 'empathy':
       return `User shared something difficult: "${snippet}"
@@ -99,7 +98,7 @@ Emotional tone: ${emotionalTone || 'heavy'}
 React with genuine empathy to what they shared. Be brief (2-5 words). 
 Sound like a friend who really heard them, not a bot saying "I hear you".
 
-${jsonFormat}`;
+${plainTextFormat}`;
 
     case 'encouragement':
       return `The user seems to need encouragement to continue.
@@ -107,7 +106,7 @@ ${jsonFormat}`;
 Say something warm and brief (2-4 words) that invites them to continue without pressure.
 Sound like a patient friend, not a therapist.
 
-${jsonFormat}`;
+${plainTextFormat}`;
 
     case 'excitement':
       return `User shared something positive: "${snippet}"
@@ -115,14 +114,14 @@ ${jsonFormat}`;
 React with genuine excitement (2-4 words). Match their energy.
 Don't be generic - react to what they actually said.
 
-${jsonFormat}`;
+${plainTextFormat}`;
 
     case 'curiosity':
       return `User said something interesting: "${snippet}"
 
 React with genuine curiosity (1-3 words). Sound intrigued, not robotic.
 
-${jsonFormat}`;
+${plainTextFormat}`;
 
     case 'silence_presence':
       if (!silenceDurationMs || silenceDurationMs < 5000) {
@@ -132,7 +131,7 @@ ${jsonFormat}`;
 Either stay silent (output just "...") or give a brief, warm presence signal.
 Don't interrupt their thinking.
 
-${jsonFormat}`;
+${plainTextFormat}`;
       } else {
         // Longer silence - gentle check-in
         return `User has been quiet for ${Math.round((silenceDurationMs || 0) / 1000)} seconds.
@@ -140,13 +139,13 @@ ${jsonFormat}`;
 Check in gently (3-6 words). Sound like a friend, not an assistant.
 Don't say "I'm here" - be more natural.
 
-${jsonFormat}`;
+${plainTextFormat}`;
       }
 
     default:
       return `React naturally to the conversation (1-3 words). Sound human, not robotic.
 
-${jsonFormat}`;
+${plainTextFormat}`;
   }
 }
 

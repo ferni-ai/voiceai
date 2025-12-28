@@ -35,9 +35,7 @@ const STYLES = `
   .legacy-share-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 37, 32, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(44, 37, 32, 0.75);
   }
 
   .legacy-share-modal {

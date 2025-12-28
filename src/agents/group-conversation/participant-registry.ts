@@ -32,7 +32,7 @@ const log = getLogger();
  * - Events for participant changes
  */
 export class ParticipantRegistry extends EventEmitter {
-  private participants: Map<string, GroupParticipant> = new Map();
+  private participants = new Map<string, GroupParticipant>();
   private readonly sessionId: string;
 
   constructor(sessionId: string) {

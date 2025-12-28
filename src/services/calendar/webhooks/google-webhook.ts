@@ -105,7 +105,7 @@ export function isWebhookEnabled(): boolean {
  */
 export async function createWatchChannel(
   userId: string,
-  calendarId: string = 'primary'
+  calendarId = 'primary'
 ): Promise<WatchChannel | null> {
   if (!isWebhookEnabled()) {
     log.warn('Webhooks not enabled (requires HTTPS public URL)');

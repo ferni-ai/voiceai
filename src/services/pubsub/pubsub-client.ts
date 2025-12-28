@@ -107,9 +107,7 @@ export interface PublishResult {
   timestamp: Date;
 }
 
-export interface SubscriptionHandler<T = unknown> {
-  (message: PubSubMessage<T>, ack: () => void, nack: () => void): Promise<void>;
-}
+export type SubscriptionHandler<T = unknown> = (message: PubSubMessage<T>, ack: () => void, nack: () => void) => Promise<void>;
 
 export interface PubSubMetrics {
   messagesPublished: number;

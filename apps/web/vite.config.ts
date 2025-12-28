@@ -45,6 +45,29 @@ export default defineConfig(({ mode }) => {
     // This avoids duplicate instances and plugin registration issues
     optimizeDeps: {
       exclude: ['gsap'],
+      // Pre-bundle these heavy dependencies on server start (not on first request)
+      // This significantly speeds up the first page load
+      include: [
+        'livekit-client',
+        '@livekit/components-core',
+        'firebase/app',
+        'firebase/auth',
+        'firebase/firestore',
+        '@tsparticles/engine',
+        '@tsparticles/slim',
+        'uuid',
+        'events',
+      ],
+    },
+    // Warm up frequently used files for faster first load
+    warmup: {
+      clientFiles: [
+        './src/app.ts',
+        './src/ui/coach.ui.ts',
+        './src/ui/controls.ui.ts',
+        './src/ui/waveform.ui.ts',
+        './src/services/livekit.service.ts',
+      ],
     },
     server: {
       port: 3004,

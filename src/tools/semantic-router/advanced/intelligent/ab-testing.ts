@@ -498,7 +498,7 @@ export function recordABTestResult(
 /**
  * Enable the main intelligent vs semantic experiment
  */
-export function enableIntelligentRouting(trafficPercent: number = 50): void {
+export function enableIntelligentRouting(trafficPercent = 50): void {
   const service = getABTestingService();
 
   // Update traffic allocation

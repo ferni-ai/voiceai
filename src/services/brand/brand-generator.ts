@@ -403,7 +403,7 @@ function estimateTokens(content: string): number {
  */
 export async function generateVariants(
   request: GenerationRequest,
-  count: number = 3,
+  count = 3,
   llmClient?: LLMClient
 ): Promise<GenerationResult[]> {
   const results: GenerationResult[] = [];

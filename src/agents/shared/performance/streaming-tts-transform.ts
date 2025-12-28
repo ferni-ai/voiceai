@@ -165,7 +165,7 @@ export function createStreamingTTSTransform(
   let firstChunkTime = 0;
   let chunkCount = 0;
   let tokenCount = 0;
-  let chunkLatencies: number[] = [];
+  const chunkLatencies: number[] = [];
   let flushTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Helper to flush buffer as a chunk

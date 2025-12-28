@@ -369,7 +369,7 @@ export function getPendingChallenges(userId: string): Challenge[] {
 /**
  * Get challenge history for a user
  */
-export function getChallengeHistory(userId: string, limit: number = 20): Challenge[] {
+export function getChallengeHistory(userId: string, limit = 20): Challenge[] {
   const challenges: Challenge[] = [];
   for (const challenge of challengeStore.values()) {
     if (challenge.challengerId === userId || challenge.challengeeId === userId) {
@@ -389,7 +389,7 @@ export function getChallengeHistory(userId: string, limit: number = 20): Challen
 export function createTasteMatchSession(
   hostUserId: string,
   hostDisplayName: string,
-  rounds: number = 5
+  rounds = 5
 ): TasteMatchSession {
   const id = `tastematch_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 

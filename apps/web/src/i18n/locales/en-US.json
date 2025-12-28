@@ -95,6 +95,43 @@
     "removeMember": "Remove Member"
   },
 
+  "yourStory": {
+    "title": "Your Story",
+    "subtitle": "Here's your story so far",
+    "loading": "Loading your story...",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "stats": {
+      "daysTogether": "days together",
+      "conversations": "conversations",
+      "dayStreak": "day streak"
+    },
+    "sections": {
+      "rightNow": "Right Now",
+      "yourGrowth": "Your Growth",
+      "yourWorld": "Your World"
+    },
+    "insights": {
+      "moodSummary": "You've been feeling mostly {mood} this week",
+      "chapterFocus": "Current chapter: {chapter} | Focus area: {focus}",
+      "connections": "{active} active connections | {open} open loops"
+    },
+    "demo": {
+      "banner": "Here's a glimpse of the story we could write together. Start a conversation to begin yours."
+    },
+    "fallbacks": {
+      "chapter": "Your Journey",
+      "focus": "growth"
+    },
+    "aria": {
+      "close": "Close",
+      "dashboard": "Your Story Dashboard"
+    }
+  },
+
   "menu": {
     "title": "What's Next?",
     "greeting": {
@@ -139,6 +176,7 @@
     "items": {
       "insights": "Understanding You",
       "yourJourney": "Your Journey",
+      "yourStory": "Your Story",
       "yourYear": "Your Year with Ferni",
       "whatIllKnow": "What I'll Know",
       "trustDetails": "Your Trust Journey",

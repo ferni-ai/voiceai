@@ -298,6 +298,8 @@
     "ops:disk:setup-cron": "npx tsx apps/cli/src/commands/ops/cleanup-gce.ts --setup-cron",
     "ops:diagnose": "npx tsx apps/cli/src/commands/ops/diagnose-disconnects.ts",
     "ops:setup-scheduler": "npx tsx apps/cli/src/commands/ops/setup-health-scheduler.ts",
+    "seed:memory": "npx tsx scripts/seed-memory-data.ts",
+    "seed:memory:clear": "npx tsx scripts/seed-memory-data.ts test-user-dev --clear",
     "setup:llm-scheduler": "npx tsx apps/cli/src/commands/setup/setup-llm-content-scheduler.ts",
     "setup:llm-scheduler:dry-run": "npx tsx apps/cli/src/commands/setup/setup-llm-content-scheduler.ts --dry-run",
     "setup:llm-scheduler:delete": "npx tsx apps/cli/src/commands/setup/setup-llm-content-scheduler.ts --delete",
