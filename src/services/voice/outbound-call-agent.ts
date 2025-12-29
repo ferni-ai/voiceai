@@ -22,7 +22,8 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getVoiceId, getVoiceModelId } from '../../personas/voice-registry.js';
+import { getVoiceId } from '../../personas/voice-registry.js';
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 import type { TwilioStreamBridge } from './twilio-stream-bridge.js';
 
 const log = createLogger({ module: 'outbound-call-agent' });
@@ -234,7 +235,7 @@ async function speakToCaller(
 
   try {
     const voiceId = getVoiceId('ferni');
-    const modelId = getVoiceModelId('ferni') || 'sonic-english';
+    const modelId = CARTESIA_MODEL;
 
     // Generate audio with Cartesia (24kHz PCM)
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
