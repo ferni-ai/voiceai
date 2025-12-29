@@ -143,7 +143,7 @@ async function handleTwimlRequest(
  * Determines if human or machine answered and routes accordingly
  */
 async function handleAMDCallback(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as AMDWebhookPayload;
+  const body = (await parseBody(req)) as unknown as AMDWebhookPayload;
   const detection = parseAMDWebhook(body);
 
   log.info(

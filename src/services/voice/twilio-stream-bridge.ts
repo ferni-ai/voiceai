@@ -755,38 +755,53 @@ export class TwilioStreamBridge extends EventEmitter {
 /**
  * Generate TwiML that streams audio to our WebSocket bridge
  *
- * @param options.greetingAudioUrl - URL to pre-generated Ferni audio (Cartesia TTS)
- * @param options.greeting - Text fallback if no audio URL provided (uses Polly)
+ * IMPORTANT: For two-way conversational calls, the greeting should be spoken
+ * THROUGH the stream by the agent, NOT before the stream connects.
+ * This ensures bidirectional audio works properly.
+ *
+ * @param options.websocketUrl - WebSocket URL for Twilio to connect to
+ * @param options.roomName - LiveKit room name (passed as parameter)
+ * @param options.customParameters - Additional parameters to pass through stream
  */
 export function generateStreamTwiml(options: {
   websocketUrl: string;
   roomName: string;
+  /** @deprecated - Agent should speak greeting through stream instead */
   greeting?: string;
+  /** @deprecated - Agent should speak greeting through stream instead */
   greetingAudioUrl?: string;
   voicemailGreeting?: string;
   voicemailAudioUrl?: string;
+  customParameters?: Record<string, string>;
 }): string {
-  const { websocketUrl, roomName, greeting, greetingAudioUrl, voicemailGreeting, voicemailAudioUrl } = options;
+  const { websocketUrl, roomName, voicemailGreeting, voicemailAudioUrl, customParameters } = options;
 
-  // Use <Play> for Ferni's Cartesia voice, fallback to <Say> with Polly
-  const greetingElement = greetingAudioUrl
-    ? `<Play>${escapeXml(greetingAudioUrl)}</Play><Pause length="0.3"/>`
-    : greeting
-      ? `<Say voice="Polly.Joanna">${escapeXml(greeting)}</Say><Pause length="0.5"/>`
-      : '';
+  // Build custom parameters for the stream
+  const params = [
+    `<Parameter name="roomName" value="${escapeXml(roomName)}"/>`,
+  ];
+  
+  if (customParameters) {
+    for (const [key, value] of Object.entries(customParameters)) {
+      params.push(`<Parameter name="${escapeXml(key)}" value="${escapeXml(value)}"/>`);
+    }
+  }
 
+  // Voicemail handling (if answering machine detected)
   const voicemailElement = voicemailAudioUrl
     ? `<Play>${escapeXml(voicemailAudioUrl)}</Play>`
     : voicemailGreeting
       ? `<Say voice="Polly.Joanna">${escapeXml(voicemailGreeting)}</Say>`
       : '';
 
+  // CRITICAL: No greeting before <Connect>!
+  // For two-way calls, the agent speaks through the stream.
+  // track="both_tracks" ensures we can both send AND receive audio.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  ${greetingElement}
   <Connect>
-    <Stream url="${escapeXml(websocketUrl)}">
-      <Parameter name="roomName" value="${escapeXml(roomName)}"/>
+    <Stream url="${escapeXml(websocketUrl)}" track="both_tracks">
+      ${params.join('\n      ')}
     </Stream>
   </Connect>
   ${voicemailElement}

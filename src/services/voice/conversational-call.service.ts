@@ -228,31 +228,22 @@ export async function makeConversationalCall(
 
     log.debug({ roomName, metadataLength: roomMetadata.length }, 'Created LiveKit room');
 
-    // 3. Generate greeting with Ferni's Cartesia voice
-    const greeting =
-      request.greeting ||
-      `Hey ${request.recipientName}! It's ${personaName}. Just a second while I connect.`;
-
-    // Generate Ferni's greeting audio with Cartesia TTS
-    let greetingAudioUrl: string | null = null;
-    try {
-      const { generatePersonaVoice, uploadAudioToGCS } = await import('./voice-call.js');
-      const audioBuffer = await generatePersonaVoice(greeting, personaId);
-      if (audioBuffer) {
-        const filename = `${personaId}-greeting-${callId}.mp3`;
-        greetingAudioUrl = await uploadAudioToGCS(audioBuffer, filename);
-        log.debug({ audioUrl: greetingAudioUrl, callId }, '🎤 Generated Ferni greeting audio');
-      }
-    } catch (error) {
-      log.warn({ error: String(error), callId }, 'Could not generate Ferni audio, using fallback');
-    }
-
-    // Generate TwiML with Ferni's voice (or Polly fallback)
+    // 3. Generate TwiML to start the stream
+    // IMPORTANT: NO greeting in TwiML! The agent will speak through the stream.
+    // This ensures proper two-way audio (track="both_tracks").
     const twiml = generateStreamTwiml({
       websocketUrl: STREAM_WEBHOOK_URL,
       roomName,
-      greeting,
-      greetingAudioUrl: greetingAudioUrl ?? undefined,
+      customParameters: {
+        callId,
+        userId: request.userId,
+        userName: (request.context?.userName as string) || 'User',
+        recipientName: request.recipientName,
+        purpose: request.purpose,
+        objective: request.objective || 'Have a conversation',
+        callType: request.callType || 'general',
+        personaId,
+      },
     });
 
     // 4. Initiate the Twilio call
