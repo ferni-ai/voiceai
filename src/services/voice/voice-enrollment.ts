@@ -16,6 +16,8 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { extractSpeakerEmbedding } from '../voice-memory-enhanced.js';
+// Centralized cosine similarity - SIMD-ready implementation
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 const log = getLogger().child({ module: 'VoiceEnrollment' });
 
@@ -413,8 +415,8 @@ export async function verifyUser(
       };
     }
 
-    // Compare to centroid
-    const similarity = cosineSimilarity(embedding.vector, new Float32Array(profile.centroid));
+    // Compare to centroid - use centralized SIMD-ready similarity
+    const similarity = cosineSimilarity(Array.from(embedding.vector), profile.centroid);
 
     const verified = similarity >= profile.threshold;
 
@@ -468,7 +470,7 @@ export async function identifySpeaker(
     const candidates: Array<{ userId: string; similarity: number }> = [];
 
     for (const profile of profiles) {
-      const similarity = cosineSimilarity(embedding.vector, new Float32Array(profile.centroid));
+      const similarity = cosineSimilarity(Array.from(embedding.vector), profile.centroid);
 
       if (similarity >= minThreshold) {
         candidates.push({
@@ -544,11 +546,8 @@ export class ContinuousAuthenticator {
         return this.lastStatus;
       }
 
-      // Compare to enrolled profile
-      const similarity = cosineSimilarity(
-        embedding.vector,
-        new Float32Array(this.profile.centroid)
-      );
+      // Compare to enrolled profile - use centralized similarity
+      const similarity = cosineSimilarity(Array.from(embedding.vector), this.profile.centroid);
 
       // Track recent embeddings for consistency
       this.recentEmbeddings.push(embedding.vector);
@@ -743,10 +742,10 @@ function computeAdaptiveThreshold(embeddings: number[][], centroid: number[]): n
     return DEFAULT_THRESHOLD;
   }
 
-  // Calculate similarities to centroid
+  // Calculate similarities to centroid - no Float32Array wrappers needed
   const similarities: number[] = [];
   for (const emb of embeddings) {
-    const sim = cosineSimilarity(new Float32Array(emb), new Float32Array(centroid));
+    const sim = cosineSimilarity(emb, centroid);
     similarities.push(sim);
   }
 
@@ -773,9 +772,9 @@ async function checkSampleConsistency(
     return 1.0;
   }
 
-  // Compare to centroid of existing samples
+  // Compare to centroid of existing samples - no wrappers needed
   const centroid = computeCentroid(existingSamples.map((s) => s.embedding));
-  return cosineSimilarity(new Float32Array(newSample.embedding), new Float32Array(centroid));
+  return cosineSimilarity(newSample.embedding, centroid);
 }
 
 /**
@@ -792,9 +791,7 @@ function calculateEnrollmentQuality(samples: EnrollmentSample[]): number {
 
   // 2. Consistency (embeddings should be similar to each other)
   const centroid = computeCentroid(samples.map((s) => s.embedding));
-  const similarities = samples.map((s) =>
-    cosineSimilarity(new Float32Array(s.embedding), new Float32Array(centroid))
-  );
+  const similarities = samples.map((s) => cosineSimilarity(s.embedding, centroid));
   const avgSimilarity = similarities.reduce((a, b) => a + b, 0) / similarities.length;
   const consistencyScore = avgSimilarity;
 
@@ -818,28 +815,6 @@ function getQualityFeedback(quality: number): string {
   } else {
     return 'Please try again in a quieter environment.';
   }
-}
-
-/**
- * Cosine similarity between two vectors.
- */
-function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  if (a.length !== b.length) {
-    return 0;
-  }
-
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator > 0 ? dot / denominator : 0;
 }
 
 // ============================================================================

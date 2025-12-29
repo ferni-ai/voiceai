@@ -17,6 +17,8 @@ import pino from 'pino';
 import { EventEmitter } from 'events';
 import { extractSpeakerEmbedding, type SpeakerEmbedding } from '../voice-memory-enhanced.js';
 import { identifyHouseholdSpeaker, updateSessionSpeaker } from './voice-household.js';
+// Centralized cosine similarity - uses optimized implementation from rust-accelerator
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 const log = pino({ name: 'speaker-change' });
 
@@ -219,8 +221,8 @@ export class SpeakerChangeDetector extends EventEmitter {
       return;
     }
 
-    // Compare with current speaker
-    const similarity = this.cosineSimilarity(newEmbedding, this.state.currentEmbedding);
+    // Compare with current speaker - uses centralized SIMD-ready implementation
+    const similarity = cosineSimilarity(newEmbedding, this.state.currentEmbedding);
 
     if (similarity >= this.config.sameSpeakerThreshold) {
       // Same speaker - reset debounce counter
@@ -332,23 +334,6 @@ export class SpeakerChangeDetector extends EventEmitter {
     };
 
     this.emit(type, event);
-  }
-
-  /**
-   * Compute cosine similarity between two embeddings.
-   */
-  private cosineSimilarity(emb1: number[], emb2: number[]): number {
-    let dotProduct = 0;
-    let norm1 = 0;
-    let norm2 = 0;
-
-    for (let i = 0; i < emb1.length; i++) {
-      dotProduct += emb1[i] * emb2[i];
-      norm1 += emb1[i] * emb1[i];
-      norm2 += emb2[i] * emb2[i];
-    }
-
-    return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
   }
 
   /**

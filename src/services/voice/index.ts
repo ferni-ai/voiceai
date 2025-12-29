@@ -1,37 +1,146 @@
 /**
- * Voice Services
+ * Voice Services - Outbound Calling System
  *
- * Services related to voice processing, identification, and authentication.
+ * This module provides comprehensive outbound calling capabilities:
+ *
+ * ## One-Way Calls (Pre-recorded Messages)
+ * Use `natural-call.service` for:
+ * - Thinking-of-you messages
+ * - Check-ins
+ * - Reminders
+ * - Appointment confirmations
+ * - Birthday/celebration calls
+ *
+ * ## Two-Way Calls (Interactive Conversations)
+ * Use `conversational-call.service` for:
+ * - Appointment scheduling
+ * - Business inquiries
+ * - Personal follow-ups
+ *
+ * ## Call Detection
+ * Use `call-detection.service` for:
+ * - Human vs Machine detection
+ * - Voicemail detection
+ * - Smart message routing
+ *
+ * @module voice
  */
 
-export * from './cartesia-voice-localization.js';
-// Note: dynamic-voice-parameters and voice-humanization-metrics both export VoiceContext
-// Import directly from specific modules if you need those types
+// ============================================================================
+// ONE-WAY CALLS - Pre-recorded messages with persona voices
+// ============================================================================
+
 export {
-  calculateVoiceParameters,
-  type VoiceParameters,
-  type VoiceContext as DynamicVoiceContext,
-} from './dynamic-voice-parameters.js';
-export * from './voice-adaptation.js';
-export * from './voice-antispoofing.js';
-export * from './voice-audit-log.js';
-export * from './voice-call.js';
-export * from './voice-emotion-correlation.js';
-export * from './voice-enrollment.js';
-export * from './voice-household.js';
+  // Main function
+  makeNaturalCall,
+  // Convenience functions
+  callThinkingOfYou,
+  callCheckIn,
+  callBirthday,
+  callCelebration,
+  callReminder,
+  callEncouragement,
+  callAppointmentConfirmation,
+  callAppointmentReminder,
+  // Preview/testing
+  previewCallMessage,
+  previewAllCallTypes,
+  // Types
+  type NaturalCallRequest,
+  type NaturalCallResult,
+} from './natural-call.service.js';
+
+// ============================================================================
+// TWO-WAY CALLS - Interactive conversations
+// ============================================================================
+
 export {
-  getTurnPredictionMetrics,
-  recordTurnPrediction,
-  resetMetrics,
-  getDashboardData,
-  getMetricsJson,
-  type TurnPredictionMetrics as HumanizationTurnPredictionMetrics,
-  type FeatureMetrics as HumanizationFeatureMetrics,
-  type DashboardData,
-} from './voice-humanization-metrics.js';
-export * from './voice-identification.js';
-export * from './voice-liveness.js';
-export * from './voice-presence-analytics.js';
-export * from './voice-profile-store.js';
-export * from './voice-rate-limit.js';
-export * from './voice-speaker-change.js';
+  // Main function
+  makeConversationalCall,
+  // Call management
+  recordCallOutcome,
+  getCallSession,
+  getActiveCalls,
+  onCallEvent,
+  // Configuration
+  isConversationalCallingConfigured,
+  // Types
+  type ConversationalCallRequest,
+  type ConversationalCallResult,
+  type CallSession,
+} from './conversational-call.service.js';
+
+// ============================================================================
+// CALL DETECTION - Human vs Machine
+// ============================================================================
+
+export {
+  // Main function
+  routeBasedOnDetection,
+  // Voicemail generation
+  generateVoicemailAudio,
+  generateSmartVoicemail,
+  // Webhook handling
+  parseAMDWebhook,
+  // Types
+  type AnsweredBy,
+  type DetectionResult,
+  type CallRouting,
+  type VoicemailContext,
+  type VoicemailTemplate,
+  type AMDWebhookPayload,
+} from './call-detection.service.js';
+
+// ============================================================================
+// LOW-LEVEL UTILITIES
+// ============================================================================
+
+export {
+  // TTS generation
+  generatePersonaVoice,
+  // Direct calling
+  callWithPersonaVoice,
+  // Incoming calls
+  generateIncomingCallTwiml,
+  configureIncomingCallWebhook,
+  // SSML utilities
+  enhanceOutboundMessage,
+  createWarmOpening,
+  createWarmClosing,
+  thoughtfulPause,
+  warmWrap,
+  type PersonaCallOptions,
+  type OutboundSsmlOptions,
+} from './voice-call.js';
+
+// ============================================================================
+// TEMPLATES
+// ============================================================================
+
+export {
+  // Template generator
+  generateCallMessage,
+  // Quick generators
+  generateThinkingOfYouCall,
+  generateCheckInCall,
+  generateAppointmentConfirmationCall,
+  // SSML helpers
+  SSML,
+  // Types
+  type CallContext,
+  type CallTemplateType,
+  type GeneratedCall,
+} from './outbound-call-templates.js';
+
+// ============================================================================
+// TWILIO STREAM BRIDGE (Two-way audio)
+// ============================================================================
+
+export {
+  TwilioStreamBridge,
+  getTwilioStreamBridge,
+  generateStreamTwiml,
+  type TwilioStreamMessage,
+  type BridgeSession,
+  type BridgeConfig,
+} from './twilio-stream-bridge.js';

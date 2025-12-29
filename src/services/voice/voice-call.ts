@@ -59,11 +59,28 @@ interface CartesiaAudioResponse {
 }
 
 /**
+ * Strip any XML/SSML tags from text - Cartesia uses API params, not markup
+ */
+function stripSsmlTags(text: string): string {
+  return text
+    .replace(/<[^>]+>/g, '') // Remove all XML tags
+    .replace(/\s+/g, ' ')    // Collapse whitespace
+    .trim();
+}
+
+/**
  * Generate speech audio using Cartesia TTS with any persona's voice
+ *
+ * Cartesia uses `voice_experimental_controls` for emotion/speed,
+ * NOT XML-style SSML tags. Text should be plain with natural punctuation.
  */
 export async function generatePersonaVoice(
   text: string,
-  personaId = 'ferni'
+  personaId = 'ferni',
+  options?: {
+    emotion?: string;
+    speed?: number;
+  }
 ): Promise<Buffer | null> {
   if (!CARTESIA_API_KEY) {
     getLogger().warn({}, 'Cartesia API key not configured');
@@ -71,6 +88,27 @@ export async function generatePersonaVoice(
   }
 
   const voiceId = getVoiceId(personaId);
+
+  getLogger().debug({ personaId, voiceId }, '🎤 Using voice ID for persona');
+
+  // Strip any SSML tags - Cartesia doesn't support them
+  const cleanText = stripSsmlTags(text);
+
+  if (text !== cleanText) {
+    getLogger().debug(
+      { originalLength: text.length, cleanLength: cleanText.length, personaId },
+      '🎤 Stripped SSML tags for Cartesia'
+    );
+  }
+
+  // Build voice controls (Cartesia's native way to control prosody)
+  const voiceControls: Record<string, unknown> = {};
+  if (options?.speed && options.speed !== 1.0) {
+    voiceControls.speed = options.speed;
+  }
+  if (options?.emotion) {
+    voiceControls.emotion = [options.emotion];
+  }
 
   try {
     const response = await cartesiaCircuitBreaker.execute(async () =>
@@ -82,8 +120,8 @@ export async function generatePersonaVoice(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model_id: 'sonic-english',
-          transcript: text,
+          model_id: 'sonic-english', // Cartesia's English TTS model
+          transcript: cleanText,
           voice: {
             mode: 'id',
             id: voiceId,
@@ -91,8 +129,13 @@ export async function generatePersonaVoice(
           output_format: {
             container: 'mp3',
             encoding: 'mp3',
-            sample_rate: 44100, // Standard CD quality - required for proper playback
+            sample_rate: 44100,
           },
+          language: 'en',
+          // Use Cartesia's native emotion/speed controls
+          ...(Object.keys(voiceControls).length > 0 && {
+            voice_experimental_controls: voiceControls,
+          }),
         }),
         signal: AbortSignal.timeout(30000),
       })
@@ -131,7 +174,7 @@ const audioUrlCache = new Map<string, { url: string; expires: number }>();
  * Upload audio buffer to Google Cloud Storage for Twilio playback
  * Returns a publicly accessible URL or null if upload fails
  */
-async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): Promise<string | null> {
+export async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): Promise<string | null> {
   if (!GCS_BUCKET) {
     getLogger().debug({}, 'GCS bucket not configured for audio hosting');
     return null;
@@ -177,20 +220,20 @@ async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): Promise<
  * Get or create a hosted URL for audio content
  * Uses caching to avoid re-uploading identical messages
  */
-async function getHostedAudioUrl(message: string, audioBuffer: Buffer): Promise<string | null> {
-  // Create a cache key from the message
-  const cacheKey = Buffer.from(message).toString('base64').slice(0, 32);
+async function getHostedAudioUrl(message: string, audioBuffer: Buffer, personaId = 'ferni'): Promise<string | null> {
+  // Create a cache key from the message + persona
+  const cacheKey = Buffer.from(`${personaId}:${message}`).toString('base64').slice(0, 32);
 
   // Check cache
   const cached = audioUrlCache.get(cacheKey);
   if (cached && cached.expires > Date.now()) {
-    getLogger().debug({ cacheKey }, 'Using cached audio URL');
+    getLogger().debug({ cacheKey, personaId }, 'Using cached audio URL');
     return cached.url;
   }
 
-  // Generate unique filename
+  // Generate unique filename with persona prefix
   const timestamp = Date.now();
-  const filename = `alex-${timestamp}-${cacheKey}.mp3`;
+  const filename = `${personaId}-${timestamp}-${cacheKey}.mp3`;
 
   const url = await uploadAudioToGCS(audioBuffer, filename);
 
@@ -250,18 +293,6 @@ export async function callWithPersonaVoice(
 
   logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
 
-  // Enhance message with SSML for natural speech (unless explicitly disabled)
-  let enhancedMessage = message;
-  if (options?.ssml !== false) {
-    const ssmlOptions: OutboundSsmlOptions = typeof options?.ssml === 'object' ? options.ssml : {};
-    ssmlOptions.personaId = personaId;
-    enhancedMessage = enhanceOutboundMessage(message, ssmlOptions);
-    logger.debug(
-      { original: message.length, enhanced: enhancedMessage.length },
-      '🎤 Applied SSML enhancement'
-    );
-  }
-
   // Try to generate persona's voice
   let twiml: string;
   let usedCartesiaVoice = false;
@@ -271,11 +302,16 @@ export async function callWithPersonaVoice(
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    const audioBuffer = await generatePersonaVoice(enhancedMessage, personaId);
+    // Cartesia uses plain text with punctuation for pacing
+    // For outbound calls, use upbeat/positivity emotion to sound warm and engaged
+    const audioBuffer = await generatePersonaVoice(message, personaId, {
+      emotion: 'positivity', // More upbeat for outbound calls
+      speed: 1.05, // Slightly faster, more energetic
+    });
 
     if (audioBuffer) {
-      // Try to host the audio
-      const audioUrl = await getHostedAudioUrl(message, audioBuffer);
+      // Try to host the audio with persona ID in filename
+      const audioUrl = await getHostedAudioUrl(message, audioBuffer, personaId);
 
       if (audioUrl) {
         // Use the hosted persona voice audio
