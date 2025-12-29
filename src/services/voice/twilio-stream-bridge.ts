@@ -334,11 +334,16 @@ export class TwilioStreamBridge extends EventEmitter {
           case 'start':
             if (message.start) {
               session = await this.handleStreamStart(ws, message.start);
+              log.info({ tracks: message.start.tracks, mediaFormat: message.start.mediaFormat }, '🎧 Stream tracks configured');
             }
             break;
 
           case 'media':
-            if (session && message.media) {
+            if (!session) {
+              log.warn({ hasMedia: !!message.media }, '⚠️ Media event but no session');
+            } else if (!message.media) {
+              log.warn('⚠️ Media event but no media payload');
+            } else {
               await this.handleMedia(session, message.media);
             }
             break;
@@ -443,15 +448,21 @@ export class TwilioStreamBridge extends EventEmitter {
     session: BridgeSession,
     media: NonNullable<TwilioStreamMessage['media']>
   ): Promise<void> {
+    // Log first media event regardless of track to debug
+    if (!session.audioPacketCount) {
+      session.audioPacketCount = 0;
+      log.info({ track: media.track, callSid: session.callSid }, '🎧 First media packet received');
+    }
+    session.audioPacketCount++;
+
     if (media.track !== 'inbound') {
+      if (session.audioPacketCount <= 5) {
+        log.debug({ track: media.track }, 'Skipping non-inbound track');
+      }
       return; // Only process inbound (caller's voice)
     }
 
-    // Log first few audio packets to confirm audio is flowing
-    if (!session.audioPacketCount) {
-      session.audioPacketCount = 0;
-    }
-    session.audioPacketCount++;
+    // Log audio packet counts
     if (session.audioPacketCount === 1 || session.audioPacketCount === 10 || session.audioPacketCount % 200 === 0) {
       log.info(
         { callSid: session.callSid, packetNum: session.audioPacketCount, isAgentSpeaking: session.isAgentSpeaking },
@@ -461,6 +472,9 @@ export class TwilioStreamBridge extends EventEmitter {
 
     // Skip if agent is speaking (avoid echo)
     if (session.isAgentSpeaking) {
+      if (session.audioPacketCount <= 5 || session.audioPacketCount % 100 === 0) {
+        log.debug({ packetNum: session.audioPacketCount }, 'Skipping audio - agent speaking');
+      }
       return;
     }
 
@@ -670,7 +684,7 @@ export class TwilioStreamBridge extends EventEmitter {
   sendAudioToCaller(callSid: string, linearPcm16k: Buffer): void {
     const session = this.sessions.get(callSid);
     if (!session || session.status !== 'active') {
-      log.warn({ callSid }, 'No active session for audio send');
+      log.warn({ callSid, hasSession: !!session, status: session?.status }, 'No active session for audio send');
       return;
     }
 
@@ -692,7 +706,11 @@ export class TwilioStreamBridge extends EventEmitter {
       },
     };
 
-    session.twilioWs.send(JSON.stringify(message));
+    try {
+      session.twilioWs.send(JSON.stringify(message));
+    } catch (error) {
+      log.error({ error: String(error), callSid }, '❌ Failed to send audio to Twilio');
+    }
   }
 
   /**
