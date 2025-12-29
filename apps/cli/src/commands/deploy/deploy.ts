@@ -344,6 +344,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
   const secrets = [
     'GOOGLE_API_KEY=google-api-key:latest',
     'CARTESIA_API_KEY=cartesia-api-key:latest',
+    'OPENAI_API_KEY=openai-api-key:latest', // For Whisper transcription
     'LIVEKIT_URL=livekit-url:latest',
     'LIVEKIT_API_KEY=livekit-api-key:latest',
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
