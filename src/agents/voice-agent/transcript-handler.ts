@@ -67,6 +67,14 @@ import {
   handleInterruption,
   type TurnContext,
 } from './human-turn-intelligence.js';
+// 🦀 Rust-accelerated word counting
+import {
+  countWordsRust,
+  isTokenCountingAvailable,
+} from '../../memory/rust-accelerator.js';
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 import { senseInterrupt, getTrailingSsml } from '../../speech/graceful-interrupt/index.js';
 import {
   processDailyCheckIn,
@@ -675,7 +683,10 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       userData.lastUserMessage = cleanedTranscript;
 
       // Update session state for learning user's patterns
-      const wordCount = cleanedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
+      // 🦀 Use Rust for O(1) word counting, JS fallback otherwise
+      const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(cleanedTranscript)
+        : cleanedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       updateSessionState(sessionId, {
         sentenceLength: wordCount,
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,

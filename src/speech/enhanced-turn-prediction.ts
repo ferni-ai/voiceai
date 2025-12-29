@@ -18,8 +18,13 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { ProsodyFeatures } from './audio-prosody.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const log = getLogger().child({ module: 'EnhancedTurnPrediction' });
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -246,7 +251,10 @@ export function estimateSyntacticCompleteness(text: string): {
   }
 
   // Heuristic: longer utterances are more likely complete
-  const wordCount = trimmed.split(/\s+/).length;
+  // 🦀 Use Rust for O(1) word counting when available
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(trimmed)
+    : trimmed.split(/\s+/).length;
   if (wordCount >= 5) {
     // Check for verb presence (crude)
     const hasVerb =

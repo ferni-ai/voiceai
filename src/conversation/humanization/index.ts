@@ -18,6 +18,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 import { seededChance } from '../utils/rng.js';
 
@@ -259,6 +261,9 @@ export {
 
 const logger = createLogger({ module: 'Humanization' });
 
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -355,7 +360,10 @@ export class HumanizationOrchestrator {
    * Record a user message for learning
    */
   recordUserMessage(message: string): void {
-    const wordCount = message.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting when available
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
 
     // Learn phonetic patterns
     this.engines.phoneticMirroring.analyzeMessage(message);
@@ -390,10 +398,11 @@ export class HumanizationOrchestrator {
     }
 
     // Build full context
+    // 🦀 Use Rust for O(1) word counting when available
     const fullContext: HumanizationContext = {
       ...context,
       responseText: response,
-      responseWordCount: response.split(/\s+/).length,
+      responseWordCount: RUST_COUNTING_AVAILABLE ? countWordsRust(response) : response.split(/\s+/).length,
       responseComplexity: this.estimateComplexity(response),
       isGivingAdvice: this.detectAdviceGiving(response),
       isEmotionalContent: context.isEmotionalContent ?? this.detectEmotionalContent(response),
@@ -794,7 +803,10 @@ export class HumanizationOrchestrator {
   private estimateComplexity(text: string): number {
     let complexity = 0.3;
 
-    const wordCount = text.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting when available
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(text)
+      : text.split(/\s+/).length;
     if (wordCount > 50) complexity += 0.1;
     if (wordCount > 80) complexity += 0.15;
     if (wordCount > 120) complexity += 0.15;

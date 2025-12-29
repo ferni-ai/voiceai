@@ -384,7 +384,9 @@ export class TurnPredictionService {
     // Adjust based on user's historical patterns
     if (this.userTurnLengths.length >= 3) {
       const avgTurnLength = this.getAverageValue(this.userTurnLengths);
-      const wordCount = ctx.transcript.split(/\s+/).length;
+      const wordCount = RUST_COUNTING_AVAILABLE
+        ? countWordsRust(ctx.transcript)
+        : ctx.transcript.split(/\s+/).length;
 
       if (wordCount > avgTurnLength * 1.2) {
         // They've said more than usual - more likely done
@@ -515,7 +517,9 @@ export class TurnPredictionService {
    * Estimate remaining words in the turn
    */
   private estimateRemainingWords(ctx: TurnPredictionContext): number {
-    const currentWords = ctx.transcript.split(/\s+/).length;
+    const currentWords = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(ctx.transcript)
+      : ctx.transcript.split(/\s+/).length;
 
     if (this.userTurnLengths.length >= 3) {
       const avgTurn = this.getAverageValue(this.userTurnLengths);

@@ -421,6 +421,20 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const adaptiveTimeouts = getAdaptiveTimeouts(services.sessionId);
 
     // ================================================================
+    // ⚡ PREDICTIVE TOOL PRELOAD: Start preloading likely tools immediately
+    // This runs in background so tools are ready when needed later.
+    // Fire-and-forget - doesn't block turn processing.
+    // ================================================================
+    void (async () => {
+      try {
+        const { predictAndPreload } = await import('../shared/performance/predictive-tool-preload.js');
+        predictAndPreload(userText);
+      } catch {
+        // Non-critical - tools will load normally if preload fails
+      }
+    })();
+
+    // ================================================================
     // EARLY RECEIPT ACKNOWLEDGMENT: "Better than Human" instant presence
     // Fire an immediate brief acknowledgment (100-200ms) to show we heard.
     // This is BEFORE the thinking filler (600ms) - just shows presence.

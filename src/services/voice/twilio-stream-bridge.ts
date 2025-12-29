@@ -452,8 +452,8 @@ export class TwilioStreamBridge extends EventEmitter {
       session.audioPacketCount = 0;
     }
     session.audioPacketCount++;
-    if (session.audioPacketCount <= 5 || session.audioPacketCount % 100 === 0) {
-      log.debug(
+    if (session.audioPacketCount === 1 || session.audioPacketCount === 10 || session.audioPacketCount % 200 === 0) {
+      log.info(
         { callSid: session.callSid, packetNum: session.audioPacketCount, isAgentSpeaking: session.isAgentSpeaking },
         '🎵 Audio packet received'
       );

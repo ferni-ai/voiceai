@@ -21,10 +21,15 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 import { detectHeavyContentKeywords as detectHeavyContent } from './utils/detection.js';
 
 const log = getLogger().child({ module: 'adaptive-endpointing' });
+
+// Check Rust availability at module load
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -285,7 +290,10 @@ export function estimateSentenceCompleteness(text: string): number {
   }
 
   // Basic heuristic: longer = more likely complete
-  const wordCount = trimmed.split(/\s+/).length;
+  // 🦀 Use Rust for O(1) word counting when available
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(trimmed)
+    : trimmed.split(/\s+/).length;
   if (wordCount >= 10) return 0.7;
   if (wordCount >= 5) return 0.6;
   if (wordCount >= 3) return 0.5;

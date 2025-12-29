@@ -111,18 +111,18 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           const { warmCommonCaches } = await import('../shared/performance/edge-cache.js');
           await warmCommonCaches();
 
-          // Also warm the specific persona bundles
+          // Also warm the specific persona bundles (PARALLEL for performance)
           const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor'];
-          let cachedCount = 0;
-          for (const pid of personas) {
-            try {
-              const { loadBundle } = await import('../../personas/bundles/loader.js');
+          const { loadBundle } = await import('../../personas/bundles/loader.js');
+
+          const results = await Promise.allSettled(
+            personas.map(async (pid) => {
               await loadBundle(pid);
-              cachedCount++;
-            } catch {
-              // Some personas may not exist
-            }
-          }
+              return pid;
+            })
+          );
+
+          const cachedCount = results.filter((r) => r.status === 'fulfilled').length;
 
           log('✅ Persona cache warmed', {
             durationMs: Date.now() - personaStart,
@@ -275,6 +275,27 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
           log('✅ Warm greetings pre-generated', { durationMs: Date.now() - warmGreetingStart });
         } catch (e) {
           log('⚠️ Warm greeting prewarm failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    // 11b. ⚡ PRE-RENDER GREETING AUDIO - Eliminates TTS latency on first greeting!
+    // Generates actual audio bytes for most likely greetings so first response is instant.
+    tasks.push(
+      (async () => {
+        try {
+          const audioPrewarmStart = Date.now();
+          const { prewarmGreetingAudio } = await import(
+            '../shared/performance/greeting-audio-prewarm.js'
+          );
+          const result = await prewarmGreetingAudio(false); // false = primary personas only
+          log('✅ Greeting audio pre-rendered (instant first greeting)', {
+            durationMs: Date.now() - audioPrewarmStart,
+            greetingsCached: result.cachedCount,
+            personas: result.personas,
+          });
+        } catch (e) {
+          log('⚠️ Greeting audio prewarm failed (non-fatal)', { error: String(e) });
         }
       })()
     );

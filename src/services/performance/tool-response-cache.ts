@@ -64,48 +64,64 @@ export interface ToolCacheMetrics {
 /**
  * TTL configuration for cacheable tools.
  * Only tools listed here are cached. All others bypass cache.
+ *
+ * PERF OPTIMIZATION Dec 2024: Extended TTLs for read-only tools
+ * - Weather/news data doesn't change second-to-second
+ * - User context is stable within a session
+ * - Extended TTLs save ~200-300ms per repeated call
  */
 export const TTL_BY_TOOL: Record<string, number> = {
   // Time & Weather - relatively stable
-  getweather: 30_000, // 30 seconds
-  getcurrenttime: 1_000, // 1 second (useful for rapid "what time is it" queries)
-  gettimezone: 60_000, // 1 minute
+  getweather: 300_000, // 5 minutes (was 30s - weather updates slowly)
+  weather_current: 300_000, // 5 minutes (semantic router alias)
+  getcurrenttime: 5_000, // 5 seconds (was 1s - still fresh enough)
+  gettimezone: 300_000, // 5 minutes (was 1min - timezones don't change)
 
   // News - changes slowly
-  getnews: 60_000, // 1 minute
-  searchnews: 30_000, // 30 seconds (search results might vary)
+  getnews: 180_000, // 3 minutes (was 1min - news doesn't change per-second)
+  searchnews: 120_000, // 2 minutes (was 30s - search results stable)
 
-  // Market data - needs to be somewhat fresh
-  getmarketsummary: 15_000, // 15 seconds
-  getquote: 10_000, // 10 seconds (individual quotes more time-sensitive)
-  getportfolio: 30_000, // 30 seconds
+  // Market data - needs to be somewhat fresh (but not per-second)
+  getmarketsummary: 60_000, // 1 minute (was 15s - good enough for overview)
+  getquote: 30_000, // 30 seconds (was 10s - single quotes can wait)
+  getportfolio: 120_000, // 2 minutes (was 30s - portfolios don't change fast)
 
   // Calendar - rarely changes intra-session
-  getcalendartoday: 30_000, // 30 seconds
-  getschedule: 30_000, // 30 seconds
-  getupcomingmeetings: 30_000, // 30 seconds
+  getcalendartoday: 120_000, // 2 minutes (was 30s)
+  getschedule: 120_000, // 2 minutes (was 30s)
+  getupcomingmeetings: 120_000, // 2 minutes (was 30s)
 
   // Tasks & Lists - moderate TTL
-  gettasks: 20_000, // 20 seconds
-  getnotes: 20_000, // 20 seconds
-  getbills: 60_000, // 1 minute
+  gettasks: 60_000, // 1 minute (was 20s)
+  getnotes: 60_000, // 1 minute (was 20s)
+  getbills: 180_000, // 3 minutes (was 1min)
 
-  // Home automation - sensor data changes
-  gethomestatus: 10_000, // 10 seconds (sensors update)
-  getdevices: 30_000, // 30 seconds (device list stable)
+  // Home automation - sensor data changes (keep shorter)
+  gethomestatus: 30_000, // 30 seconds (was 10s)
+  getdevices: 120_000, // 2 minutes (was 30s - device list very stable)
 
-  // User context - stable within session
-  getrelationshipsummary: 120_000, // 2 minutes (rarely changes)
-  gethabits: 60_000, // 1 minute
+  // User context - stable within session (extended significantly)
+  getrelationshipsummary: 300_000, // 5 minutes (was 2min)
+  gethabits: 180_000, // 3 minutes (was 1min)
+  get_persona_memories: 120_000, // 2 minutes (memories stable within session)
+  get_user_profile: 300_000, // 5 minutes (profile very stable)
 
   // Packages & Shipping
-  getpackages: 60_000, // 1 minute
+  getpackages: 180_000, // 3 minutes (was 1min)
 
   // Games
-  getgamestatus: 30_000, // 30 seconds
+  getgamestatus: 60_000, // 1 minute (was 30s)
 
   // Medication
-  medicationschedule: 60_000, // 1 minute
+  medicationschedule: 180_000, // 3 minutes (was 1min)
+
+  // Music (new)
+  getmusichistory: 120_000, // 2 minutes
+  getplaybackstatus: 10_000, // 10 seconds (playback changes)
+
+  // Contacts (new)
+  getcontacts: 180_000, // 3 minutes
+  getcontact: 120_000, // 2 minutes
 };
 
 /**

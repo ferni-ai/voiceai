@@ -344,7 +344,6 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
   const secrets = [
     'GOOGLE_API_KEY=google-api-key:latest',
     'CARTESIA_API_KEY=cartesia-api-key:latest',
-    'OPENAI_API_KEY=openai-api-key:latest', // For Whisper transcription
     'LIVEKIT_URL=livekit-url:latest',
     'LIVEKIT_API_KEY=livekit-api-key:latest',
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
@@ -681,7 +680,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--max-instances 10',
     '--vpc-connector ferni-redis-connector',
     '--set-env-vars "^@^NODE_ENV=production@ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app@ALLOW_LEGACY_X_USER_ID_AUTH=true@TWILIO_STREAM_WEBHOOK_URL=wss://john-bogle-ui-bmopaivmsq-uc.a.run.app/stream"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,OPENAI_API_KEY=openai-api-key:latest"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,REDIS_URL=redis-url:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest"',
     '--no-traffic', // Blue-green: deploy without receiving traffic
     '--tag green', // Tag for easy identification
     '--quiet',

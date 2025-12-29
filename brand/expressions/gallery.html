@@ -1,55 +1,79 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="zen">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expression Library - All Personas</title>
+  <title>Expression Library - 100 Luxo-Style Expressions</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
+    /* ============================================
+       DESIGN TOKENS (from design-system)
+       ============================================ */
     :root {
-      /* Zen Garden Theme */
+      /* Zen Garden Theme (Light) */
       --bg-primary: #faf8f5;
       --bg-elevated: #fffdfb;
+      --bg-glass: rgba(139, 119, 91, 0.03);
       --text-primary: #2c2520;
       --text-secondary: #5c544a;
       --text-muted: #756a5e;
       --accent: #3D5A45;
 
-      /* Pixar Animation System */
+      /* Persona Colors (from design tokens) */
+      --color-ferni: #4a6741;
+      --color-maya: #a67a6a;
+      --color-peter: #3a6b73;
+      --color-jordan: #c4856a;
+      --color-alex: #5a6b8a;
+      --color-nayan: #b8956a;
+
+      /* Persona Gradients */
+      --ferni-start: #5a7a51;
+      --ferni-end: #3d5a35;
+      --maya-start: #b88a7a;
+      --maya-end: #946a5a;
+      --peter-start: #4a7b83;
+      --peter-end: #3a6b73;
+      --jordan-start: #d49574;
+      --jordan-end: #c4856a;
+      --alex-start: #6a7b9a;
+      --alex-end: #5a6b8a;
+      --nayan-start: #c8a57a;
+      --nayan-end: #b8956a;
+
+      /* Animation */
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
       --ease-spring-heavy: cubic-bezier(0.68, -0.6, 0.32, 1.6);
       --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
       --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      --duration-fast: 150ms;
+      --duration-normal: 300ms;
+      --duration-slow: 500ms;
 
-      /* Persona Colors (Gradients) */
-      --ferni-start: #5a7a51;
-      --ferni-end: #3d5a35;
-      --maya-start: #b88a7a;
-      --maya-end: #a67a6a;
-      --peter-start: #3d8888;
-      --peter-end: #2d6a6a;
-      --jordan-start: #e5a55c;
-      --jordan-end: #d4944c;
-      --alex-start: #7a8ab8;
-      --alex-end: #5c6b99;
-      --nayan-start: #b08f5f;
-      --nayan-end: #9a7b4f;
-
-      /* Glow Colors by Emotion */
-      --glow-sage: rgba(90, 122, 81, 0.5);
+      /* Expression Glow Colors */
+      --glow-sage: rgba(74, 103, 65, 0.5);
       --glow-golden: rgba(196, 162, 101, 0.5);
-      --glow-teal: rgba(61, 136, 136, 0.5);
+      --glow-teal: rgba(58, 107, 115, 0.5);
       --glow-terracotta: rgba(166, 122, 106, 0.5);
-      --glow-warm: rgba(229, 165, 92, 0.5);
-      --glow-protective: rgba(176, 143, 95, 0.5);
-      --glow-alert: rgba(239, 68, 68, 0.4);
-      --glow-calm: rgba(122, 138, 184, 0.4);
+      --glow-warm: rgba(196, 133, 106, 0.5);
+      --glow-protective: rgba(184, 149, 106, 0.5);
+      --glow-alert: rgba(181, 69, 58, 0.4);
+      --glow-calm: rgba(90, 107, 138, 0.4);
 
-      /* Active persona (changes via JS) */
+      /* Active persona */
       --active-start: var(--ferni-start);
       --active-end: var(--ferni-end);
-      --timing-multiplier: 1.0;
+      --active-color: var(--color-ferni);
+    }
+
+    /* Midnight Theme (Dark) */
+    [data-theme="midnight"] {
+      --bg-primary: #1a1918;
+      --bg-elevated: #252423;
+      --bg-glass: rgba(255, 255, 255, 0.03);
+      --text-primary: #f5f3f0;
+      --text-secondary: #b8b0a5;
+      --text-muted: #8a8278;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -60,17 +84,21 @@
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
+      transition: background var(--duration-normal) var(--ease-gentle),
+                  color var(--duration-normal) var(--ease-gentle);
     }
 
-    /* Fixed Navigation */
+    /* ============================================
+       NAVIGATION
+       ============================================ */
     .brand-nav {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       z-index: 1000;
-      background: rgba(250, 248, 245, 0.95);
-      backdrop-filter: blur(8px);
+      background: var(--bg-primary);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(44, 37, 32, 0.08);
       padding: 12px 24px;
       display: flex;
@@ -82,7 +110,7 @@
       text-decoration: none;
       color: var(--text-secondary);
       font-size: 13px;
-      transition: color 0.2s ease;
+      transition: color var(--duration-fast) ease;
     }
 
     .brand-nav a:hover { color: var(--text-primary); }
@@ -98,13 +126,41 @@
 
     .brand-nav .nav-links {
       display: flex;
+      align-items: center;
       gap: 20px;
     }
 
+    .theme-toggle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(44, 37, 32, 0.15);
+      background: var(--bg-elevated);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--duration-fast) var(--ease-spring);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.05);
+      border-color: var(--accent);
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--text-secondary);
+    }
+
+    /* ============================================
+       LAYOUT
+       ============================================ */
     .container {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 100px 40px 60px 40px;
+      padding: 100px 40px 60px;
     }
 
     header {
@@ -128,7 +184,33 @@
       margin: 0 auto;
     }
 
-    /* Persona Selector */
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 24px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================
+       PERSONA SELECTOR
+       ============================================ */
     .persona-selector {
       display: flex;
       justify-content: center;
@@ -150,7 +232,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.3s var(--ease-spring);
+      transition: all var(--duration-normal) var(--ease-spring);
     }
 
     .persona-btn:hover {
@@ -159,9 +241,9 @@
     }
 
     .persona-btn.active {
-      border-color: var(--active-start);
+      border-color: var(--active-color);
       color: var(--text-primary);
-      background: linear-gradient(135deg, rgba(90, 122, 81, 0.1), rgba(61, 90, 53, 0.05));
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(74, 103, 65, 0.05));
     }
 
     .persona-dot {
@@ -177,7 +259,9 @@
     .persona-dot.alex { background: linear-gradient(135deg, var(--alex-start), var(--alex-end)); }
     .persona-dot.nayan { background: linear-gradient(135deg, var(--nayan-start), var(--nayan-end)); }
 
-    /* Interactive Avatar Stage */
+    /* ============================================
+       INTERACTIVE AVATAR STAGE (LUXO-STYLE)
+       ============================================ */
     .avatar-stage {
       display: flex;
       justify-content: center;
@@ -202,7 +286,7 @@
       background: var(--glow-sage);
       filter: blur(30px);
       opacity: 0.6;
-      transition: all 0.4s var(--ease-gentle);
+      transition: all var(--duration-slow) var(--ease-gentle);
     }
 
     .main-avatar {
@@ -210,21 +294,60 @@
       height: 200px;
     }
 
-    /* Avatar Animations */
+    /* Luxo-style Expression States via CSS transforms */
+    .eye-white {
+      transition: transform var(--duration-normal) var(--ease-spring);
+      transform-origin: center center;
+    }
+
+    /* Expression states via data attribute */
+    .avatar-container[data-expression="happy"] .eye-white {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .avatar-container[data-expression="joyful"] .eye-white {
+      transform: scaleY(0.7) scaleX(1.12);
+    }
+    .avatar-container[data-expression="listening"] .eye-white {
+      transform: scaleY(1.08);
+    }
+    .avatar-container[data-expression="curious"] .eye-white {
+      transform: scaleY(1.15) scaleX(0.95);
+    }
+    .avatar-container[data-expression="thinking"] .eye-white {
+      transform: scaleY(0.95) scaleX(0.98);
+    }
+    .avatar-container[data-expression="concerned"] .eye-white {
+      transform: scaleY(1.1) scaleX(1.02);
+    }
+    .avatar-container[data-expression="sad"] .eye-white {
+      transform: scaleY(0.85) scaleX(0.95);
+    }
+    .avatar-container[data-expression="surprised"] .eye-white {
+      transform: scaleY(1.25) scaleX(1.1);
+    }
+    .avatar-container[data-expression="warm"] .eye-white {
+      transform: scaleY(0.75) scaleX(1.04);
+    }
+    .avatar-container[data-expression="sleepy"] .eye-white {
+      transform: scaleY(0.45) scaleX(1);
+    }
+    .avatar-container[data-expression="recognition"] .eye-white {
+      transform: scaleY(0.75) scaleX(1.08);
+    }
+    .avatar-container[data-expression="concern"] .eye-white {
+      transform: scaleY(1.1) scaleX(1.02);
+    }
+    .avatar-container[data-expression="delight"] .eye-white {
+      transform: scaleY(0.6) scaleX(1.15);
+    }
+    .avatar-container[data-expression="warmth"] .eye-white {
+      transform: scaleY(0.75) scaleX(1.04);
+    }
+
+    /* Avatar Breathing Animation */
     @keyframes breathing {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.02); }
-    }
-
-    @keyframes gazeDrift {
-      0%, 100% { transform: translate(0, 0); }
-      25% { transform: translate(1px, -0.5px); }
-      50% { transform: translate(-0.5px, 0.5px); }
-      75% { transform: translate(0.5px, 0px); }
-    }
-
-    .eyes-group {
-      animation: gazeDrift 8s ease-in-out infinite;
     }
 
     .avatar-body {
@@ -232,15 +355,9 @@
       transform-origin: center center;
     }
 
-    /* Lid Positions (CSS for preview cards) */
-    .avatar-preview.neutral .lid-top { transform: translateY(0); }
-    .avatar-preview.happy .lid-top { transform: translateY(3px); }
-    .avatar-preview.sad .lid-top { transform: translateY(2px); }
-    .avatar-preview.surprised .lid-top { transform: translateY(-3px); }
-    .avatar-preview.thinking .lid-top { transform: translateY(1px); }
-    .avatar-preview.curious .lid-top { transform: translateY(-1px); }
-
-    /* Stage Controls */
+    /* ============================================
+       STAGE CONTROLS
+       ============================================ */
     .stage-controls {
       display: flex;
       flex-direction: column;
@@ -277,11 +394,11 @@
       max-width: 280px;
     }
 
-    /* Micro-Expression Demo */
     .micro-demo {
       display: flex;
       gap: 12px;
       margin-top: 20px;
+      flex-wrap: wrap;
     }
 
     .micro-btn {
@@ -294,7 +411,7 @@
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s var(--ease-spring);
+      transition: all var(--duration-fast) var(--ease-spring);
     }
 
     .micro-btn:hover {
@@ -312,26 +429,28 @@
       margin-right: 6px;
     }
 
-    /* Category Nav */
+    /* ============================================
+       CATEGORY NAVIGATION
+       ============================================ */
     .category-nav {
       display: flex;
       justify-content: center;
-      gap: 12px;
+      gap: 8px;
       margin-bottom: 60px;
       flex-wrap: wrap;
     }
 
     .category-btn {
-      padding: 12px 24px;
+      padding: 10px 18px;
       border: 1.5px solid rgba(44, 37, 32, 0.15);
       background: var(--bg-elevated);
       border-radius: 100px;
       font-family: inherit;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.3s var(--ease-spring);
+      transition: all var(--duration-normal) var(--ease-spring);
     }
 
     .category-btn:hover {
@@ -346,7 +465,9 @@
       color: white;
     }
 
-    /* Expression Grid */
+    /* ============================================
+       EXPRESSION GRID
+       ============================================ */
     .category-section {
       margin-bottom: 80px;
     }
@@ -365,7 +486,7 @@
     }
 
     .category-count {
-      background: rgba(74, 103, 65, 0.1);
+      background: rgba(61, 90, 69, 0.1);
       color: var(--accent);
       padding: 4px 12px;
       border-radius: 100px;
@@ -375,16 +496,16 @@
 
     .expression-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
     }
 
     .expression-card {
       background: var(--bg-elevated);
       border-radius: 20px;
-      padding: 28px;
+      padding: 24px;
       border: 1px solid rgba(44, 37, 32, 0.08);
-      transition: all 0.4s var(--ease-spring);
+      transition: all var(--duration-slow) var(--ease-spring);
       cursor: pointer;
       position: relative;
       overflow: hidden;
@@ -399,7 +520,7 @@
       height: 4px;
       background: var(--card-accent, var(--accent));
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity var(--duration-normal);
     }
 
     .expression-card:hover {
@@ -412,9 +533,9 @@
     }
 
     .card-avatar {
-      width: 70px;
-      height: 70px;
-      margin: 0 auto 20px;
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 16px;
       position: relative;
     }
 
@@ -425,7 +546,7 @@
       background: var(--glow-color, var(--glow-sage));
       filter: blur(15px);
       opacity: 0;
-      transition: opacity 0.4s;
+      transition: opacity var(--duration-slow);
     }
 
     .expression-card:hover .card-avatar-glow {
@@ -433,37 +554,38 @@
     }
 
     .card-avatar svg {
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
     }
 
     .expression-name {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       text-align: center;
     }
 
     .expression-trigger {
-      font-size: 13px;
-      color: var(--text-secondary);
+      font-size: 12px;
+      color: var(--text-muted);
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .expression-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
     }
 
-    .lid-badge {
+    .transform-badge {
       background: rgba(44, 37, 32, 0.05);
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 4px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
     }
 
     .timing-micro {
@@ -471,40 +593,9 @@
       font-weight: 500;
     }
 
-    /* Waveform Preview */
-    .waveform-preview {
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      gap: 3px;
-      height: 28px;
-      margin-bottom: 16px;
-    }
-
-    .waveform-bar {
-      width: 5px;
-      background: linear-gradient(to top, var(--active-start), var(--active-end));
-      border-radius: 2px;
-      transition: height 0.3s var(--ease-spring);
-    }
-
-    .glow-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .glow-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--glow-color, var(--glow-sage));
-    }
-
-    /* Persona Comparison Table */
+    /* ============================================
+       PERSONA COMPARISON TABLE
+       ============================================ */
     .comparison-section {
       margin-top: 80px;
       padding: 40px;
@@ -573,7 +664,9 @@
       color: var(--text-muted);
     }
 
-    /* Responsive */
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
     @media (max-width: 900px) {
       .avatar-stage {
         flex-direction: column;
@@ -597,6 +690,9 @@
       .comparison-table {
         font-size: 12px;
       }
+      .stats-row {
+        gap: 24px;
+      }
     }
   </style>
 </head>
@@ -613,14 +709,33 @@
       <a href="../capabilities/gallery.html">Capabilities</a>
       <a href="../motion/demo.html">Motion</a>
       <a href="../brand-book.html">Guidelines</a>
-      <a href="../characters/ferni/expressions.html">Ferni</a>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+      </button>
     </div>
   </nav>
 
   <div class="container">
     <header>
       <h1>Expression Library</h1>
-      <p class="subtitle">57 emotional expressions across 6 personas. Each expression maps to lid position, glow color, waveform shape, and timing. Click any expression to preview.</p>
+      <p class="subtitle">Luxo-style expressions using CSS transforms on opaque eyes. No pupils - the eye shape IS the expression, just like Luxo Jr.</p>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-value">100</div>
+          <div class="stat-label">Expressions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">18</div>
+          <div class="stat-label">Families</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">6</div>
+          <div class="stat-label">Personas</div>
+        </div>
+      </div>
     </header>
 
     <!-- Persona Selector -->
@@ -651,9 +766,9 @@
       </button>
     </div>
 
-    <!-- Interactive Avatar Stage -->
+    <!-- Interactive Avatar Stage (LUXO-STYLE - NO PUPILS) -->
     <div class="avatar-stage">
-      <div class="avatar-container">
+      <div class="avatar-container" id="avatarContainer" data-expression="neutral">
         <div class="avatar-glow" id="avatarGlow"></div>
         <svg class="main-avatar" viewBox="0 0 200 200" id="mainAvatar">
           <defs>
@@ -661,12 +776,10 @@
               <stop offset="0%" id="gradientStart" stop-color="#5a7a51"/>
               <stop offset="100%" id="gradientEnd" stop-color="#3d5a35"/>
             </linearGradient>
-            <clipPath id="eyeClipLeft">
-              <ellipse cx="70" cy="90" rx="20" ry="18"/>
-            </clipPath>
-            <clipPath id="eyeClipRight">
-              <ellipse cx="130" cy="90" rx="20" ry="18"/>
-            </clipPath>
+            <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#f8f6f3"/>
+            </linearGradient>
           </defs>
 
           <!-- Body -->
@@ -674,29 +787,13 @@
             <circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/>
           </g>
 
-          <!-- Eyes Group (for gaze drift) -->
+          <!-- Eyes Group - LUXO STYLE (opaque white, no pupils) -->
           <g class="eyes-group" id="eyesGroup">
-            <!-- Left Eye -->
-            <g clip-path="url(#eyeClipLeft)">
-              <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
-              <circle cx="70" cy="92" r="10" fill="#2c2520" id="pupilLeft"/>
-              <circle cx="73" cy="88" r="3" fill="white" opacity="0.8"/>
-            </g>
-            <!-- Left Lid -->
-            <path d="M 50,72 Q 70,68 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
-
-            <!-- Right Eye -->
-            <g clip-path="url(#eyeClipRight)">
-              <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
-              <circle cx="130" cy="92" r="10" fill="#2c2520" id="pupilRight"/>
-              <circle cx="133" cy="88" r="3" fill="white" opacity="0.8"/>
-            </g>
-            <!-- Right Lid -->
-            <path d="M 110,72 Q 130,68 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
+            <!-- Left Eye White (expression via CSS transform) -->
+            <ellipse class="eye-white" cx="70" cy="90" rx="18" ry="16" fill="url(#eyeGradient)"/>
+            <!-- Right Eye White -->
+            <ellipse class="eye-white" cx="130" cy="90" rx="18" ry="16" fill="url(#eyeGradient)"/>
           </g>
-
-          <!-- Smile -->
-          <path d="M 75,130 Q 100,150 125,130" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.9" id="smile"/>
         </svg>
       </div>
 
@@ -709,122 +806,42 @@
           <span id="timingText">1.0x - Balanced, grounded</span>
         </div>
         <div class="current-expression" id="currentExpression">Neutral</div>
-        <div class="expression-description" id="expressionDesc">The default resting state. Calm, present, ready to engage.</div>
+        <div class="expression-description" id="expressionDesc">Default resting state. Calm, present, ready to engage.</div>
 
         <div class="micro-demo">
           <button class="micro-btn" data-micro="recognition">Recognition 80ms</button>
           <button class="micro-btn" data-micro="concern">Concern 100ms</button>
           <button class="micro-btn" data-micro="delight">Delight 120ms</button>
+          <button class="micro-btn" data-micro="warmth">Warmth 100ms</button>
         </div>
       </div>
     </div>
 
-    <!-- Category Navigation -->
+    <!-- Category Navigation (18 families) -->
     <nav class="category-nav">
-      <button class="category-btn active" data-category="all">All (57)</button>
-      <button class="category-btn" data-category="core">Core (8)</button>
-      <button class="category-btn" data-category="listening">Listening (6)</button>
-      <button class="category-btn" data-category="warmth">Warmth (6)</button>
-      <button class="category-btn" data-category="presence">Presence (5)</button>
-      <button class="category-btn" data-category="coaching">Coaching (6)</button>
-      <button class="category-btn" data-category="relational">Relational (6)</button>
-      <button class="category-btn" data-category="crisis">Crisis (5)</button>
-      <button class="category-btn" data-category="playful">Playful (6)</button>
-      <button class="category-btn" data-category="thinking">Thinking (5)</button>
-      <button class="category-btn" data-category="micro">Micro (4)</button>
+      <button class="category-btn active" data-category="all">All (100)</button>
+      <button class="category-btn" data-category="core">Core</button>
+      <button class="category-btn" data-category="happy">Happy</button>
+      <button class="category-btn" data-category="warmth">Warmth</button>
+      <button class="category-btn" data-category="playful">Playful</button>
+      <button class="category-btn" data-category="surprised">Surprised</button>
+      <button class="category-btn" data-category="thinking">Thinking</button>
+      <button class="category-btn" data-category="listening">Listening</button>
+      <button class="category-btn" data-category="presence">Presence</button>
+      <button class="category-btn" data-category="coaching">Coaching</button>
+      <button class="category-btn" data-category="tired">Tired</button>
+      <button class="category-btn" data-category="concern">Concern</button>
+      <button class="category-btn" data-category="sad">Sad</button>
+      <button class="category-btn" data-category="frustrated">Frustrated</button>
+      <button class="category-btn" data-category="confused">Confused</button>
+      <button class="category-btn" data-category="nervous">Nervous</button>
+      <button class="category-btn" data-category="embarrassed">Embarrassed</button>
+      <button class="category-btn" data-category="cool">Cool</button>
+      <button class="category-btn" data-category="intense">Intense</button>
     </nav>
 
-    <!-- Core Emotions -->
-    <section class="category-section" data-section="core">
-      <div class="category-header">
-        <h2 class="category-title">Core Emotions</h2>
-        <span class="category-count">8 expressions</span>
-      </div>
-      <div class="expression-grid" id="coreGrid">
-        <!-- Cards generated by JS -->
-      </div>
-    </section>
-
-    <!-- Listening States -->
-    <section class="category-section" data-section="listening">
-      <div class="category-header">
-        <h2 class="category-title">Listening States</h2>
-        <span class="category-count">6 expressions</span>
-      </div>
-      <div class="expression-grid" id="listeningGrid"></div>
-    </section>
-
-    <!-- Warmth Gradient -->
-    <section class="category-section" data-section="warmth">
-      <div class="category-header">
-        <h2 class="category-title">Warmth Gradient</h2>
-        <span class="category-count">6 expressions</span>
-      </div>
-      <div class="expression-grid" id="warmthGrid"></div>
-    </section>
-
-    <!-- Presence States -->
-    <section class="category-section" data-section="presence">
-      <div class="category-header">
-        <h2 class="category-title">Presence States</h2>
-        <span class="category-count">5 expressions</span>
-      </div>
-      <div class="expression-grid" id="presenceGrid"></div>
-    </section>
-
-    <!-- Coaching Emotions -->
-    <section class="category-section" data-section="coaching">
-      <div class="category-header">
-        <h2 class="category-title">Coaching Emotions</h2>
-        <span class="category-count">6 expressions</span>
-      </div>
-      <div class="expression-grid" id="coachingGrid"></div>
-    </section>
-
-    <!-- Relational Moments -->
-    <section class="category-section" data-section="relational">
-      <div class="category-header">
-        <h2 class="category-title">Relational Moments</h2>
-        <span class="category-count">6 expressions</span>
-      </div>
-      <div class="expression-grid" id="relationalGrid"></div>
-    </section>
-
-    <!-- Crisis Support -->
-    <section class="category-section" data-section="crisis">
-      <div class="category-header">
-        <h2 class="category-title">Crisis Support</h2>
-        <span class="category-count">5 expressions</span>
-      </div>
-      <div class="expression-grid" id="crisisGrid"></div>
-    </section>
-
-    <!-- Playful -->
-    <section class="category-section" data-section="playful">
-      <div class="category-header">
-        <h2 class="category-title">Playful</h2>
-        <span class="category-count">6 expressions</span>
-      </div>
-      <div class="expression-grid" id="playfulGrid"></div>
-    </section>
-
-    <!-- Thinking -->
-    <section class="category-section" data-section="thinking">
-      <div class="category-header">
-        <h2 class="category-title">Thinking</h2>
-        <span class="category-count">5 expressions</span>
-      </div>
-      <div class="expression-grid" id="thinkingGrid"></div>
-    </section>
-
-    <!-- Micro-Expressions -->
-    <section class="category-section" data-section="micro">
-      <div class="category-header">
-        <h2 class="category-title">Micro-Expressions</h2>
-        <span class="category-count">4 expressions</span>
-      </div>
-      <div class="expression-grid" id="microGrid"></div>
-    </section>
+    <!-- Expression Sections (generated by JS) -->
+    <div id="expressionSections"></div>
 
     <!-- Persona Comparison -->
     <div class="comparison-section">
@@ -842,7 +859,7 @@
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #5a7a51, #3d5a35);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--ferni-start), var(--ferni-end));"></span>
                 <span class="name">Ferni</span>
               </div>
             </td>
@@ -853,29 +870,29 @@
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #b88a7a, #a67a6a);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--maya-start), var(--maya-end));"></span>
                 <span class="name">Maya</span>
               </div>
             </td>
             <td class="timing-cell">1.1x</td>
             <td>Warm, nurturing flow</td>
-            <td class="signature-cell">Comfort pulse (3 rings)</td>
+            <td class="signature-cell">Comfort pulse</td>
           </tr>
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #3d8888, #2d6a6a);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--peter-start), var(--peter-end));"></span>
                 <span class="name">Peter</span>
               </div>
             </td>
             <td class="timing-cell">0.8x</td>
             <td>Quick, curious movements</td>
-            <td class="signature-cell">Research spark (data particles)</td>
+            <td class="signature-cell">Research spark</td>
           </tr>
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #e5a55c, #d4944c);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--jordan-start), var(--jordan-end));"></span>
                 <span class="name">Jordan</span>
               </div>
             </td>
@@ -886,7 +903,7 @@
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #7a8ab8, #5c6b99);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--alex-start), var(--alex-end));"></span>
                 <span class="name">Alex</span>
               </div>
             </td>
@@ -897,13 +914,13 @@
           <tr>
             <td>
               <div class="persona-cell">
-                <span class="dot" style="background: linear-gradient(135deg, #b08f5f, #9a7b4f);"></span>
+                <span class="dot" style="background: linear-gradient(135deg, var(--nayan-start), var(--nayan-end));"></span>
                 <span class="name">Nayan</span>
               </div>
             </td>
             <td class="timing-cell">1.3x</td>
             <td>Deliberate, contemplative</td>
-            <td class="signature-cell">Stillness (pause before response)</td>
+            <td class="signature-cell">Stillness pause</td>
           </tr>
         </tbody>
       </table>
@@ -911,124 +928,282 @@
   </div>
 
   <script>
-    // Expression Data - 57 total across 10 categories
+    // ============================================
+    // EXPRESSION DATA (100 expressions, 18 families)
+    // Luxo-style: scaleY/scaleX transforms, no pupils
+    // ============================================
     const EXPRESSIONS = {
       core: [
-        { name: 'Neutral', trigger: 'Default resting state', lid: 'M 50,72 Q 70,72 90,72', glow: 'sage', waveform: [50, 55, 60, 55, 50, 55, 60, 55, 50] },
-        { name: 'Happy', trigger: 'Good news, accomplishment', lid: 'M 50,78 Q 70,82 90,78', glow: 'golden', waveform: [90, 70, 50, 40, 35, 40, 50, 70, 90] },
-        { name: 'Sad', trigger: 'Loss, disappointment', lid: 'M 50,70 Q 70,66 90,70', glow: 'protective', waveform: [20, 35, 55, 75, 85, 75, 55, 35, 20] },
-        { name: 'Surprised', trigger: 'Unexpected revelation', lid: 'M 50,62 Q 70,58 90,62', glow: 'coral', waveform: [85, 95, 100, 90, 100, 90, 100, 95, 85], micro: '150ms' },
-        { name: 'Curious', trigger: 'Intriguing detail', lid: 'M 50,70 Q 70,66 90,70', glow: 'teal', waveform: [50, 60, 70, 75, 80, 75, 70, 60, 50] },
-        { name: 'Worried', trigger: 'Concern, anxiety', lid: 'M 50,74 Q 70,70 90,74', glow: 'alert', waveform: [45, 55, 65, 75, 70, 65, 60, 55, 45] },
-        { name: 'Angry', trigger: 'Frustration, injustice', lid: 'M 50,68 Q 70,72 90,68', glow: 'alert', waveform: [70, 80, 90, 95, 90, 85, 90, 80, 70] },
-        { name: 'Calm', trigger: 'Peaceful, centered', lid: 'M 50,76 Q 70,78 90,76', glow: 'calm', waveform: [40, 45, 50, 55, 55, 55, 50, 45, 40] }
+        { name: 'Neutral', trigger: 'Default resting state', scaleY: 1, scaleX: 1, glow: 'sage' },
+        { name: 'Listening', trigger: 'User speaking', scaleY: 1.08, scaleX: 1, glow: 'sage' },
+        { name: 'Speaking', trigger: 'AI responding', scaleY: 0.88, scaleX: 1.02, glow: 'sage' }
       ],
-      listening: [
-        { name: 'Attentive', trigger: 'User speaking', lid: 'M 50,72 Q 70,70 90,72', glow: 'sage', waveform: [55, 60, 65, 70, 75, 70, 65, 60, 55] },
-        { name: 'Absorbing', trigger: 'Heavy content', lid: 'M 50,74 Q 70,72 90,74', glow: 'protective', waveform: [40, 50, 55, 60, 65, 60, 55, 50, 40] },
-        { name: 'Receiving', trigger: 'User vulnerable', lid: 'M 50,76 Q 70,74 90,76', glow: 'protective', waveform: [45, 50, 55, 60, 60, 60, 55, 50, 45] },
-        { name: 'Curious Lean', trigger: 'Wants more detail', lid: 'M 50,70 Q 70,66 90,70', glow: 'teal', waveform: [60, 65, 70, 75, 80, 75, 70, 65, 60] },
-        { name: 'Processing', trigger: 'Understanding complex info', lid: 'M 50,73 Q 70,71 90,73', glow: 'calm', waveform: [50, 55, 60, 65, 60, 55, 60, 55, 50] },
-        { name: 'Empathic Lean', trigger: 'Emotional resonance', lid: 'M 50,75 Q 70,73 90,75', glow: 'coral', waveform: [45, 55, 60, 65, 70, 65, 60, 55, 45] }
+      happy: [
+        { name: 'Happy', trigger: 'Good news', scaleY: 0.8, scaleX: 1.06, glow: 'golden' },
+        { name: 'Joyful', trigger: 'Celebration', scaleY: 0.7, scaleX: 1.12, glow: 'golden', micro: true },
+        { name: 'Delighted', trigger: 'Pleasant surprise', scaleY: 0.6, scaleX: 1.15, glow: 'golden', micro: true },
+        { name: 'Amused', trigger: 'Finding humor', scaleY: 0.78, scaleX: 1.06, glow: 'golden' },
+        { name: 'Pleased', trigger: 'Satisfaction', scaleY: 0.82, scaleX: 1.04, glow: 'sage' },
+        { name: 'Content', trigger: 'Peaceful state', scaleY: 0.85, scaleX: 1.02, glow: 'sage' },
+        { name: 'Excited', trigger: 'Anticipation', scaleY: 0.75, scaleX: 1.1, glow: 'warm' },
+        { name: 'Grateful', trigger: 'Appreciation', scaleY: 0.78, scaleX: 1.05, glow: 'golden' },
+        { name: 'Proud', trigger: 'Achievement', scaleY: 0.72, scaleX: 1.08, glow: 'golden' }
       ],
       warmth: [
-        { name: 'Pleased', trigger: 'Mild satisfaction', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage', waveform: [55, 60, 65, 70, 65, 60, 65, 60, 55] },
-        { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', waveform: [60, 65, 70, 75, 70, 65, 70, 65, 60] },
-        { name: 'Proud', trigger: 'User achievement', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden', waveform: [65, 70, 80, 85, 80, 75, 80, 70, 65] },
-        { name: 'Celebrating', trigger: 'Major win', lid: 'M 50,82 Q 70,88 90,82', glow: 'warm', waveform: [75, 85, 95, 100, 95, 90, 95, 85, 75] },
-        { name: 'Tender', trigger: 'Gentle care moment', lid: 'M 50,78 Q 70,82 90,78', glow: 'coral', waveform: [50, 55, 65, 70, 65, 60, 65, 55, 50] },
-        { name: 'Affectionate', trigger: 'Deep connection', lid: 'M 50,80 Q 70,85 90,80', glow: 'golden', waveform: [60, 70, 80, 85, 80, 75, 80, 70, 60] }
-      ],
-      presence: [
-        { name: 'Present', trigger: 'Grounding, steadiness', lid: 'M 50,74 Q 70,74 90,74', glow: 'sage', waveform: [50, 55, 55, 60, 60, 60, 55, 55, 50] },
-        { name: 'Holding', trigger: 'User in pain', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective', waveform: [45, 50, 55, 60, 60, 60, 55, 50, 45] },
-        { name: 'Accompanying', trigger: 'Walking alongside', lid: 'M 50,75 Q 70,75 90,75', glow: 'golden', waveform: [50, 55, 60, 60, 60, 60, 60, 55, 50] },
-        { name: 'Waiting', trigger: 'Giving space', lid: 'M 50,74 Q 70,74 90,74', glow: 'sage', waveform: [40, 45, 50, 50, 50, 50, 50, 45, 40] },
-        { name: 'Witnessing', trigger: 'Silent support', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective', waveform: [45, 50, 55, 55, 55, 55, 55, 50, 45] }
-      ],
-      coaching: [
-        { name: 'Encouraging', trigger: 'User needs support', lid: 'M 50,76 Q 70,80 90,76', glow: 'sage', waveform: [60, 65, 75, 80, 75, 70, 75, 65, 60] },
-        { name: 'Challenging', trigger: 'Loving push', lid: 'M 50,72 Q 70,70 90,72', glow: 'sage', waveform: [55, 65, 70, 75, 70, 70, 70, 65, 55] },
-        { name: 'Reflecting', trigger: 'Mirroring back', lid: 'M 50,74 Q 70,72 90,74', glow: 'teal', waveform: [50, 55, 60, 65, 65, 65, 60, 55, 50] },
-        { name: 'Recognizing', trigger: '"I see you" moment', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden', waveform: [55, 65, 70, 75, 75, 75, 70, 65, 55], micro: '80ms' },
-        { name: 'Guiding', trigger: 'Gentle direction', lid: 'M 50,74 Q 70,72 90,74', glow: 'sage', waveform: [55, 60, 65, 70, 70, 70, 65, 60, 55] },
-        { name: 'Celebrating Growth', trigger: 'Progress acknowledged', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden', waveform: [70, 80, 90, 95, 90, 85, 90, 80, 70] }
-      ],
-      relational: [
-        { name: 'Remembering', trigger: 'Callback to past', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden', waveform: [50, 60, 70, 75, 70, 65, 70, 60, 50] },
-        { name: 'Reconnecting', trigger: 'Welcome back', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm', waveform: [60, 70, 80, 85, 80, 75, 80, 70, 60] },
-        { name: 'Insider', trigger: 'Shared history', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', waveform: [65, 70, 75, 80, 75, 70, 75, 70, 65] },
-        { name: 'Growing', trigger: 'Noticing evolution', lid: 'M 50,78 Q 70,82 90,78', glow: 'golden', waveform: [55, 65, 75, 85, 80, 75, 80, 65, 55] },
-        { name: 'Missing', trigger: 'After long absence', lid: 'M 50,76 Q 70,78 90,76', glow: 'warm', waveform: [50, 60, 65, 70, 70, 70, 65, 60, 50] },
-        { name: 'Trusting', trigger: 'Deep bond moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'sage', waveform: [55, 60, 70, 75, 75, 75, 70, 60, 55] }
-      ],
-      crisis: [
-        { name: 'Concerned', trigger: 'Detecting distress', lid: 'M 50,72 Q 70,68 90,72', glow: 'alert', waveform: [45, 55, 60, 70, 65, 60, 65, 55, 45], micro: '100ms' },
-        { name: 'Protective', trigger: 'User in danger', lid: 'M 50,74 Q 70,72 90,74', glow: 'protective', waveform: [50, 60, 65, 70, 70, 70, 65, 60, 50] },
-        { name: 'Grounding', trigger: 'Anxiety/panic', lid: 'M 50,76 Q 70,76 90,76', glow: 'sage', waveform: [40, 45, 50, 55, 55, 55, 50, 45, 40] },
-        { name: 'Safe Harbor', trigger: 'Crisis support', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective', waveform: [45, 50, 55, 55, 55, 55, 55, 50, 45] },
-        { name: 'Steadfast', trigger: 'Unwavering support', lid: 'M 50,74 Q 70,74 90,74', glow: 'sage', waveform: [50, 55, 55, 60, 60, 60, 55, 55, 50] }
+        { name: 'Warm', trigger: 'Connection moment', scaleY: 0.75, scaleX: 1.04, glow: 'warm' },
+        { name: 'Caring', trigger: 'Showing care', scaleY: 0.78, scaleX: 1.03, glow: 'terracotta' },
+        { name: 'Loving', trigger: 'Deep affection', scaleY: 0.7, scaleX: 1.06, glow: 'terracotta' },
+        { name: 'Tender', trigger: 'Gentle moment', scaleY: 0.76, scaleX: 1.02, glow: 'warm' },
+        { name: 'Supportive', trigger: 'Backing user', scaleY: 0.8, scaleX: 1.04, glow: 'sage' },
+        { name: 'Compassionate', trigger: 'Deep empathy', scaleY: 0.78, scaleX: 1.02, glow: 'terracotta' },
+        { name: 'Empathetic', trigger: 'Feeling with user', scaleY: 0.82, scaleX: 1.01, glow: 'protective' },
+        { name: 'Nurturing', trigger: 'Gentle guidance', scaleY: 0.76, scaleX: 1.03, glow: 'terracotta' }
       ],
       playful: [
-        { name: 'Playful', trigger: 'Light banter', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm', waveform: [65, 75, 85, 80, 85, 80, 85, 75, 65] },
-        { name: 'Teasing', trigger: 'Gentle joke', lid: 'M 50,76 Q 70,80 90,76', glow: 'coral', waveform: [60, 70, 75, 80, 75, 70, 75, 70, 60] },
-        { name: 'Mischievous', trigger: 'Knowing something', lid: 'M 50,76 Q 70,78 90,76', glow: 'warm', waveform: [55, 65, 75, 80, 75, 70, 75, 65, 55] },
-        { name: 'Amused', trigger: 'Finding humor', lid: 'M 50,78 Q 70,82 90,78', glow: 'golden', waveform: [60, 70, 80, 85, 80, 75, 80, 70, 60] },
-        { name: 'Delighted', trigger: 'Genuine joy', lid: 'M 50,80 Q 70,86 90,80', glow: 'golden', waveform: [70, 80, 90, 95, 90, 85, 90, 80, 70], micro: '120ms' },
-        { name: 'Excited', trigger: 'Anticipation', lid: 'M 50,76 Q 70,80 90,76', glow: 'warm', waveform: [65, 75, 85, 90, 85, 80, 85, 75, 65] }
+        { name: 'Playful', trigger: 'Light banter', scaleY: 0.78, scaleX: 1.08, glow: 'warm' },
+        { name: 'Mischievous', trigger: 'Playful secret', scaleY: 0.75, scaleX: 1.1, glow: 'warm' },
+        { name: 'Cheeky', trigger: 'Sly comment', scaleY: 0.72, scaleX: 1.12, glow: 'golden' },
+        { name: 'Silly', trigger: 'Being goofy', scaleY: 0.68, scaleX: 1.15, glow: 'warm' },
+        { name: 'Winking', trigger: 'Knowing signal', scaleY: 0.5, scaleX: 1.1, glow: 'golden', asymmetric: true },
+        { name: 'Teasing', trigger: 'Gentle ribbing', scaleY: 0.76, scaleX: 1.08, glow: 'warm' }
+      ],
+      surprised: [
+        { name: 'Surprised', trigger: 'Unexpected news', scaleY: 1.25, scaleX: 1.1, glow: 'teal', micro: true },
+        { name: 'Shocked', trigger: 'Major revelation', scaleY: 1.35, scaleX: 1.15, glow: 'alert' },
+        { name: 'Amazed', trigger: 'Wonder', scaleY: 1.3, scaleX: 1.12, glow: 'golden' },
+        { name: 'Intrigued', trigger: 'Curiosity piqued', scaleY: 1.15, scaleX: 1.05, glow: 'teal' },
+        { name: 'Astonished', trigger: 'Disbelief', scaleY: 1.4, scaleX: 1.18, glow: 'teal' },
+        { name: 'Curious', trigger: 'Want to know more', scaleY: 1.15, scaleX: 0.95, glow: 'teal' }
       ],
       thinking: [
-        { name: 'Thinking', trigger: 'Processing', lid: 'M 50,73 Q 70,71 90,73', glow: 'sage', waveform: [40, 50, 60, 65, 70, 65, 60, 50, 40] },
-        { name: 'Pondering', trigger: 'Deep consideration', lid: 'M 50,74 Q 70,70 90,74', glow: 'calm', waveform: [45, 55, 60, 65, 65, 65, 60, 55, 45] },
-        { name: 'Connecting Dots', trigger: 'Making links', lid: 'M 50,72 Q 70,68 90,72', glow: 'teal', waveform: [50, 60, 65, 70, 75, 70, 65, 60, 50] },
-        { name: 'Eureka', trigger: 'Insight moment', lid: 'M 50,70 Q 70,66 90,70', glow: 'golden', waveform: [60, 70, 85, 95, 85, 75, 85, 70, 60] },
-        { name: 'Uncertain', trigger: 'Not sure', lid: 'M 50,74 Q 70,72 90,74', glow: 'calm', waveform: [45, 50, 55, 60, 55, 50, 55, 50, 45] }
+        { name: 'Thinking', trigger: 'Processing', scaleY: 0.95, scaleX: 0.98, glow: 'calm' },
+        { name: 'Pondering', trigger: 'Deep thought', scaleY: 0.92, scaleX: 0.96, glow: 'calm' },
+        { name: 'Contemplating', trigger: 'Weighing options', scaleY: 0.9, scaleX: 0.94, glow: 'protective' },
+        { name: 'Focused', trigger: 'Concentration', scaleY: 0.88, scaleX: 0.95, glow: 'teal' },
+        { name: 'Processing', trigger: 'Computing', scaleY: 0.94, scaleX: 0.97, glow: 'calm' },
+        { name: 'Reflecting', trigger: 'Looking back', scaleY: 0.9, scaleX: 0.96, glow: 'protective' },
+        { name: 'Analyzing', trigger: 'Breaking down', scaleY: 0.92, scaleX: 0.94, glow: 'teal' }
       ],
-      micro: [
-        { name: 'Recognition', trigger: '"I see you" flash', lid: 'M 50,76 Q 70,80 90,76', glow: 'golden', waveform: [60, 75, 85, 90, 85, 75, 85, 75, 60], micro: '80ms' },
-        { name: 'Concern Flash', trigger: 'Detecting worry', lid: 'M 50,72 Q 70,68 90,72', glow: 'alert', waveform: [50, 60, 70, 75, 70, 65, 70, 60, 50], micro: '100ms' },
-        { name: 'Delight Spark', trigger: 'Joy moment', lid: 'M 50,80 Q 70,86 90,80', glow: 'golden', waveform: [65, 80, 90, 95, 90, 85, 90, 80, 65], micro: '120ms' },
-        { name: 'Interest Flash', trigger: 'Catching attention', lid: 'M 50,70 Q 70,66 90,70', glow: 'teal', waveform: [55, 65, 75, 80, 75, 70, 75, 65, 55], micro: '90ms' }
+      listening: [
+        { name: 'Attentive', trigger: 'Full attention', scaleY: 1.05, scaleX: 1.02, glow: 'sage' },
+        { name: 'Engaged', trigger: 'Active listening', scaleY: 1.08, scaleX: 1.03, glow: 'sage' },
+        { name: 'Interested', trigger: 'Curiosity', scaleY: 1.1, scaleX: 1.02, glow: 'teal' },
+        { name: 'Absorbing', trigger: 'Taking it in', scaleY: 1.04, scaleX: 1.01, glow: 'sage' },
+        { name: 'Receptive', trigger: 'Open to input', scaleY: 1.06, scaleX: 1.02, glow: 'sage' }
+      ],
+      presence: [
+        { name: 'Present', trigger: 'Being here', scaleY: 1, scaleX: 1, glow: 'sage' },
+        { name: 'Grounded', trigger: 'Centered', scaleY: 0.98, scaleX: 1, glow: 'protective' },
+        { name: 'Calm', trigger: 'Peaceful', scaleY: 0.95, scaleX: 0.98, glow: 'calm' },
+        { name: 'Serene', trigger: 'Deep peace', scaleY: 0.92, scaleX: 0.96, glow: 'calm' },
+        { name: 'Peaceful', trigger: 'Tranquil', scaleY: 0.94, scaleX: 0.97, glow: 'sage' }
+      ],
+      coaching: [
+        { name: 'Encouraging', trigger: 'Boosting confidence', scaleY: 0.85, scaleX: 1.05, glow: 'golden' },
+        { name: 'Cheering', trigger: 'Celebrating win', scaleY: 0.75, scaleX: 1.1, glow: 'warm' },
+        { name: 'Guiding', trigger: 'Showing the way', scaleY: 0.9, scaleX: 1.02, glow: 'sage' },
+        { name: 'Wise', trigger: 'Sharing wisdom', scaleY: 0.88, scaleX: 0.98, glow: 'protective' },
+        { name: 'Knowing', trigger: 'Understanding', scaleY: 0.86, scaleX: 0.96, glow: 'sage' },
+        { name: 'Mentoring', trigger: 'Teaching moment', scaleY: 0.88, scaleX: 1, glow: 'sage' }
+      ],
+      tired: [
+        { name: 'Sleepy', trigger: 'Low energy', scaleY: 0.45, scaleX: 1, glow: 'protective' },
+        { name: 'Drowsy', trigger: 'Fading', scaleY: 0.5, scaleX: 0.98, glow: 'calm' },
+        { name: 'Exhausted', trigger: 'Depleted', scaleY: 0.4, scaleX: 0.95, glow: 'protective' },
+        { name: 'Yawning', trigger: 'Tired stretch', scaleY: 0.35, scaleX: 1.1, glow: 'calm' },
+        { name: 'Resting', trigger: 'Recuperating', scaleY: 0.55, scaleX: 0.98, glow: 'sage' },
+        { name: 'Blissful', trigger: 'Content rest', scaleY: 0.5, scaleX: 1.02, glow: 'golden' }
+      ],
+      concern: [
+        { name: 'Concerned', trigger: 'Worry detected', scaleY: 1.1, scaleX: 1.02, glow: 'alert', micro: true },
+        { name: 'Worried', trigger: 'Anxiety signal', scaleY: 1.12, scaleX: 1.03, glow: 'alert' },
+        { name: 'Sympathetic', trigger: 'Feeling for user', scaleY: 1.05, scaleX: 1.01, glow: 'protective' },
+        { name: 'Understanding', trigger: 'Getting it', scaleY: 1.02, scaleX: 1, glow: 'sage' },
+        { name: 'Comforting', trigger: 'Providing comfort', scaleY: 0.95, scaleX: 1.02, glow: 'protective' }
+      ],
+      sad: [
+        { name: 'Sad', trigger: 'Sadness', scaleY: 0.85, scaleX: 0.95, glow: 'protective' },
+        { name: 'Crying', trigger: 'Deep sadness', scaleY: 0.75, scaleX: 0.9, glow: 'calm' },
+        { name: 'Melancholy', trigger: 'Wistful', scaleY: 0.8, scaleX: 0.92, glow: 'calm' },
+        { name: 'Disappointed', trigger: 'Let down', scaleY: 0.82, scaleX: 0.94, glow: 'protective' },
+        { name: 'Dejected', trigger: 'Discouraged', scaleY: 0.78, scaleX: 0.9, glow: 'calm' }
+      ],
+      frustrated: [
+        { name: 'Frustrated', trigger: 'Blocked', scaleY: 0.88, scaleX: 1.05, glow: 'alert' },
+        { name: 'Annoyed', trigger: 'Irritated', scaleY: 0.85, scaleX: 1.08, glow: 'alert' },
+        { name: 'Irritated', trigger: 'Minor annoyance', scaleY: 0.86, scaleX: 1.06, glow: 'alert' },
+        { name: 'Exasperated', trigger: 'At wits end', scaleY: 0.82, scaleX: 1.1, glow: 'alert' },
+        { name: 'Eyeroll', trigger: 'Dismissive', scaleY: 0.6, scaleX: 1.15, glow: 'calm', asymmetric: true }
+      ],
+      confused: [
+        { name: 'Confused', trigger: 'Not understanding', scaleY: 1.08, scaleX: 0.92, glow: 'calm' },
+        { name: 'Skeptical', trigger: 'Doubting', scaleY: 0.9, scaleX: 0.95, glow: 'calm', asymmetric: true },
+        { name: 'Puzzled', trigger: 'Trying to figure out', scaleY: 1.05, scaleX: 0.9, glow: 'teal' },
+        { name: 'Perplexed', trigger: 'Deeply confused', scaleY: 1.12, scaleX: 0.88, glow: 'calm' },
+        { name: 'Bewildered', trigger: 'Lost', scaleY: 1.15, scaleX: 0.85, glow: 'alert' }
+      ],
+      nervous: [
+        { name: 'Nervous', trigger: 'Anxiety', scaleY: 1.08, scaleX: 0.96, glow: 'alert' },
+        { name: 'Anxious', trigger: 'Worry', scaleY: 1.1, scaleX: 0.94, glow: 'alert' },
+        { name: 'Scared', trigger: 'Fear', scaleY: 1.2, scaleX: 1.05, glow: 'alert' },
+        { name: 'Fearful', trigger: 'Deep fear', scaleY: 1.25, scaleX: 1.08, glow: 'alert' },
+        { name: 'Uneasy', trigger: 'Discomfort', scaleY: 1.05, scaleX: 0.98, glow: 'protective' }
+      ],
+      embarrassed: [
+        { name: 'Embarrassed', trigger: 'Self-conscious', scaleY: 0.7, scaleX: 0.9, glow: 'terracotta' },
+        { name: 'Awkward', trigger: 'Uncomfortable', scaleY: 0.75, scaleX: 0.92, glow: 'calm' },
+        { name: 'Cringing', trigger: 'Secondhand', scaleY: 0.65, scaleX: 0.88, glow: 'terracotta' },
+        { name: 'Sheepish', trigger: 'Mild shame', scaleY: 0.72, scaleX: 0.9, glow: 'warm' },
+        { name: 'Flustered', trigger: 'Rattled', scaleY: 0.78, scaleX: 0.95, glow: 'terracotta' }
+      ],
+      cool: [
+        { name: 'Confident', trigger: 'Self-assured', scaleY: 0.85, scaleX: 1.05, glow: 'sage' },
+        { name: 'Smirking', trigger: 'Knowing smile', scaleY: 0.75, scaleX: 1.08, glow: 'golden', asymmetric: true },
+        { name: 'Cool', trigger: 'Composed', scaleY: 0.82, scaleX: 1.04, glow: 'calm' },
+        { name: 'Sassy', trigger: 'Attitude', scaleY: 0.78, scaleX: 1.1, glow: 'warm' },
+        { name: 'Smug', trigger: 'Self-satisfied', scaleY: 0.72, scaleX: 1.12, glow: 'golden' }
+      ],
+      intense: [
+        { name: 'Determined', trigger: 'Resolve', scaleY: 0.85, scaleX: 1.08, glow: 'sage' },
+        { name: 'Fierce', trigger: 'Intensity', scaleY: 0.8, scaleX: 1.12, glow: 'alert' },
+        { name: 'Intense', trigger: 'Focus', scaleY: 0.82, scaleX: 1.1, glow: 'teal' },
+        { name: 'Resolute', trigger: 'Committed', scaleY: 0.84, scaleX: 1.06, glow: 'sage' },
+        { name: 'Passionate', trigger: 'Deep feeling', scaleY: 0.78, scaleX: 1.1, glow: 'terracotta' }
       ]
     };
 
-    // Persona configurations
+    // Persona configurations (correct colors from design tokens)
     const PERSONAS = {
-      ferni: { name: 'Ferni', start: '#5a7a51', end: '#3d5a35', timing: '1.0x', desc: 'Balanced, grounded' },
-      maya: { name: 'Maya', start: '#b88a7a', end: '#a67a6a', timing: '1.1x', desc: 'Warm, nurturing' },
-      peter: { name: 'Peter', start: '#3d8888', end: '#2d6a6a', timing: '0.8x', desc: 'Quick, curious' },
-      jordan: { name: 'Jordan', start: '#e5a55c', end: '#d4944c', timing: '1.0x', desc: 'Energetic, celebratory' },
-      alex: { name: 'Alex', start: '#7a8ab8', end: '#5c6b99', timing: '0.95x', desc: 'Clear, professional' },
-      nayan: { name: 'Nayan', start: '#b08f5f', end: '#9a7b4f', timing: '1.3x', desc: 'Deliberate, contemplative' }
+      ferni: { name: 'Ferni', start: '#5a7a51', end: '#3d5a35', color: '#4a6741', timing: '1.0x', desc: 'Balanced, grounded' },
+      maya: { name: 'Maya', start: '#b88a7a', end: '#946a5a', color: '#a67a6a', timing: '1.1x', desc: 'Warm, nurturing' },
+      peter: { name: 'Peter', start: '#4a7b83', end: '#3a6b73', color: '#3a6b73', timing: '0.8x', desc: 'Quick, curious' },
+      jordan: { name: 'Jordan', start: '#d49574', end: '#c4856a', color: '#c4856a', timing: '1.0x', desc: 'Energetic, celebratory' },
+      alex: { name: 'Alex', start: '#6a7b9a', end: '#5a6b8a', color: '#5a6b8a', timing: '0.95x', desc: 'Clear, professional' },
+      nayan: { name: 'Nayan', start: '#c8a57a', end: '#b8956a', color: '#b8956a', timing: '1.3x', desc: 'Deliberate, contemplative' }
     };
 
     // Glow color map
     const GLOW_COLORS = {
-      sage: 'rgba(90, 122, 81, 0.5)',
+      sage: 'rgba(74, 103, 65, 0.5)',
       golden: 'rgba(196, 162, 101, 0.5)',
-      teal: 'rgba(61, 136, 136, 0.5)',
-      coral: 'rgba(212, 136, 139, 0.5)',
-      warm: 'rgba(229, 165, 92, 0.5)',
-      protective: 'rgba(176, 143, 95, 0.5)',
-      alert: 'rgba(239, 68, 68, 0.4)',
-      calm: 'rgba(122, 138, 184, 0.4)'
+      teal: 'rgba(58, 107, 115, 0.5)',
+      terracotta: 'rgba(166, 122, 106, 0.5)',
+      warm: 'rgba(196, 133, 106, 0.5)',
+      protective: 'rgba(184, 149, 106, 0.5)',
+      alert: 'rgba(181, 69, 58, 0.4)',
+      calm: 'rgba(90, 107, 138, 0.4)'
+    };
+
+    // Family display names
+    const FAMILY_NAMES = {
+      core: 'Core',
+      happy: 'Happy',
+      warmth: 'Warmth',
+      playful: 'Playful',
+      surprised: 'Surprised',
+      thinking: 'Thinking',
+      listening: 'Listening',
+      presence: 'Presence',
+      coaching: 'Coaching',
+      tired: 'Tired',
+      concern: 'Concern',
+      sad: 'Sad',
+      frustrated: 'Frustrated',
+      confused: 'Confused',
+      nervous: 'Nervous',
+      embarrassed: 'Embarrassed',
+      cool: 'Cool',
+      intense: 'Intense'
     };
 
     let currentPersona = 'ferni';
-    let currentExpression = 'Neutral';
 
     // DOM references
+    const avatarContainer = document.getElementById('avatarContainer');
     const avatarGlow = document.getElementById('avatarGlow');
     const gradientStart = document.getElementById('gradientStart');
     const gradientEnd = document.getElementById('gradientEnd');
-    const lidLeft = document.getElementById('lidLeft');
-    const lidRight = document.getElementById('lidRight');
     const timingText = document.getElementById('timingText');
     const currentExpressionEl = document.getElementById('currentExpression');
     const expressionDescEl = document.getElementById('expressionDesc');
 
-    // Create expression card element safely (no innerHTML)
-    function createExpressionCard(expr, category) {
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'midnight' ? 'zen' : 'midnight';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Restore theme from localStorage
+    const savedTheme = localStorage.getItem('ferni-theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // Create Luxo-style avatar SVG (no pupils)
+    function createLuxoAvatar(gradientId, startColor, endColor) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 60 60');
+      svg.setAttribute('width', '60');
+      svg.setAttribute('height', '60');
+
+      // Defs with gradient
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      gradient.setAttribute('id', gradientId);
+      gradient.setAttribute('x1', '0%');
+      gradient.setAttribute('y1', '0%');
+      gradient.setAttribute('x2', '100%');
+      gradient.setAttribute('y2', '100%');
+
+      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', startColor);
+
+      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', endColor);
+
+      gradient.appendChild(stop1);
+      gradient.appendChild(stop2);
+      defs.appendChild(gradient);
+      svg.appendChild(defs);
+
+      // Body circle
+      const body = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      body.setAttribute('cx', '30');
+      body.setAttribute('cy', '30');
+      body.setAttribute('r', '28');
+      body.setAttribute('fill', 'url(#' + gradientId + ')');
+      svg.appendChild(body);
+
+      // Eyes - LUXO STYLE (opaque white, no pupils!)
+      const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      leftEye.setAttribute('class', 'eye-white');
+      leftEye.setAttribute('cx', '21');
+      leftEye.setAttribute('cy', '27');
+      leftEye.setAttribute('rx', '5');
+      leftEye.setAttribute('ry', '4.5');
+      leftEye.setAttribute('fill', 'white');
+      svg.appendChild(leftEye);
+
+      const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+      rightEye.setAttribute('class', 'eye-white');
+      rightEye.setAttribute('cx', '39');
+      rightEye.setAttribute('cy', '27');
+      rightEye.setAttribute('rx', '5');
+      rightEye.setAttribute('ry', '4.5');
+      rightEye.setAttribute('fill', 'white');
+      svg.appendChild(rightEye);
+
+      return svg;
+    }
+
+    // Create expression card
+    function createExpressionCard(expr, family) {
+      const persona = PERSONAS[currentPersona];
       const card = document.createElement('div');
       card.className = 'expression-card';
       card.style.setProperty('--glow-color', GLOW_COLORS[expr.glow]);
@@ -1040,75 +1215,19 @@
 
       const glowDiv = document.createElement('div');
       glowDiv.className = 'card-avatar-glow';
-
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('viewBox', '0 0 70 70');
-      svg.setAttribute('width', '70');
-      svg.setAttribute('height', '70');
-
-      // Create gradient
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-      const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-      gradient.setAttribute('id', 'cardGrad-' + expr.name.replace(/\s/g, ''));
-      gradient.setAttribute('x1', '0%');
-      gradient.setAttribute('y1', '0%');
-      gradient.setAttribute('x2', '100%');
-      gradient.setAttribute('y2', '100%');
-
-      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop1.setAttribute('offset', '0%');
-      stop1.setAttribute('stop-color', PERSONAS[currentPersona].start);
-
-      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stop2.setAttribute('offset', '100%');
-      stop2.setAttribute('stop-color', PERSONAS[currentPersona].end);
-
-      gradient.appendChild(stop1);
-      gradient.appendChild(stop2);
-      defs.appendChild(gradient);
-      svg.appendChild(defs);
-
-      // Body circle
-      const body = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      body.setAttribute('cx', '35');
-      body.setAttribute('cy', '35');
-      body.setAttribute('r', '32');
-      body.setAttribute('fill', 'url(#cardGrad-' + expr.name.replace(/\s/g, '') + ')');
-      svg.appendChild(body);
-
-      // Eyes
-      const leftEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-      leftEye.setAttribute('cx', '25');
-      leftEye.setAttribute('cy', '32');
-      leftEye.setAttribute('rx', '6');
-      leftEye.setAttribute('ry', '5');
-      leftEye.setAttribute('fill', 'white');
-      svg.appendChild(leftEye);
-
-      const rightEye = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-      rightEye.setAttribute('cx', '45');
-      rightEye.setAttribute('cy', '32');
-      rightEye.setAttribute('rx', '6');
-      rightEye.setAttribute('ry', '5');
-      rightEye.setAttribute('fill', 'white');
-      svg.appendChild(rightEye);
-
-      // Pupils
-      const leftPupil = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      leftPupil.setAttribute('cx', '25');
-      leftPupil.setAttribute('cy', '33');
-      leftPupil.setAttribute('r', '3');
-      leftPupil.setAttribute('fill', '#2c2520');
-      svg.appendChild(leftPupil);
-
-      const rightPupil = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      rightPupil.setAttribute('cx', '45');
-      rightPupil.setAttribute('cy', '33');
-      rightPupil.setAttribute('r', '3');
-      rightPupil.setAttribute('fill', '#2c2520');
-      svg.appendChild(rightPupil);
-
       avatarDiv.appendChild(glowDiv);
+
+      // Create Luxo-style SVG (no pupils!)
+      const gradientId = 'grad-' + expr.name.replace(/\s/g, '-').toLowerCase();
+      const svg = createLuxoAvatar(gradientId, persona.start, persona.end);
+
+      // Apply expression transform to eyes
+      const eyes = svg.querySelectorAll('.eye-white');
+      eyes.forEach(function(eye) {
+        eye.style.transform = 'scaleY(' + expr.scaleY + ') scaleX(' + expr.scaleX + ')';
+        eye.style.transformOrigin = 'center center';
+      });
+
       avatarDiv.appendChild(svg);
       card.appendChild(avatarDiv);
 
@@ -1124,51 +1243,67 @@
       triggerEl.textContent = expr.trigger;
       card.appendChild(triggerEl);
 
-      // Waveform
-      const waveformDiv = document.createElement('div');
-      waveformDiv.className = 'waveform-preview';
-      expr.waveform.forEach(height => {
-        const bar = document.createElement('div');
-        bar.className = 'waveform-bar';
-        bar.style.height = height + '%';
-        waveformDiv.appendChild(bar);
-      });
-      card.appendChild(waveformDiv);
-
       // Meta info
       const metaDiv = document.createElement('div');
       metaDiv.className = 'expression-meta';
 
-      const lidBadge = document.createElement('span');
-      lidBadge.className = 'lid-badge';
-      lidBadge.textContent = expr.glow + ' glow';
+      const transformBadge = document.createElement('span');
+      transformBadge.className = 'transform-badge';
+      transformBadge.textContent = 'Y:' + expr.scaleY + ' X:' + expr.scaleX;
 
       const timingMicro = document.createElement('span');
       timingMicro.className = 'timing-micro';
-      timingMicro.textContent = expr.micro || 'standard';
+      timingMicro.textContent = expr.micro ? 'micro' : expr.glow;
 
-      metaDiv.appendChild(lidBadge);
+      metaDiv.appendChild(transformBadge);
       metaDiv.appendChild(timingMicro);
       card.appendChild(metaDiv);
 
       // Click handler
-      card.addEventListener('click', () => {
+      card.addEventListener('click', function() {
         setExpression(expr);
       });
 
       return card;
     }
 
-    // Populate grids
-    function populateGrids() {
-      Object.keys(EXPRESSIONS).forEach(category => {
-        const grid = document.getElementById(category + 'Grid');
-        if (grid) {
-          grid.textContent = ''; // Clear safely
-          EXPRESSIONS[category].forEach(expr => {
-            grid.appendChild(createExpressionCard(expr, category));
-          });
-        }
+    // Generate all sections
+    function generateSections() {
+      const container = document.getElementById('expressionSections');
+      // Clear container using safe DOM method
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+
+      Object.keys(EXPRESSIONS).forEach(function(family) {
+        const section = document.createElement('section');
+        section.className = 'category-section';
+        section.dataset.section = family;
+
+        const header = document.createElement('div');
+        header.className = 'category-header';
+
+        const title = document.createElement('h2');
+        title.className = 'category-title';
+        title.textContent = FAMILY_NAMES[family];
+
+        const count = document.createElement('span');
+        count.className = 'category-count';
+        count.textContent = EXPRESSIONS[family].length + ' expressions';
+
+        header.appendChild(title);
+        header.appendChild(count);
+        section.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'expression-grid';
+
+        EXPRESSIONS[family].forEach(function(expr) {
+          grid.appendChild(createExpressionCard(expr, family));
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
       });
     }
 
@@ -1180,6 +1315,7 @@
       // Update CSS variables
       document.documentElement.style.setProperty('--active-start', persona.start);
       document.documentElement.style.setProperty('--active-end', persona.end);
+      document.documentElement.style.setProperty('--active-color', persona.color);
 
       // Update avatar gradient
       gradientStart.setAttribute('stop-color', persona.start);
@@ -1189,56 +1325,46 @@
       timingText.textContent = persona.timing + ' - ' + persona.desc;
 
       // Update persona buttons
-      document.querySelectorAll('.persona-btn').forEach(btn => {
+      document.querySelectorAll('.persona-btn').forEach(function(btn) {
         btn.classList.toggle('active', btn.dataset.persona === personaId);
       });
 
       // Regenerate cards with new colors
-      populateGrids();
+      generateSections();
     }
 
     // Set expression on main avatar
     function setExpression(expr) {
-      currentExpression = expr.name;
-
-      // Update lid position (scale path for main avatar)
-      const scaledLid = expr.lid.replace(/50/g, '50').replace(/70/g, '70').replace(/90/g, '90');
-      lidLeft.setAttribute('d', scaledLid);
-      lidRight.setAttribute('d', scaledLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
-
-      // Update glow
+      avatarContainer.setAttribute('data-expression', expr.name.toLowerCase());
       avatarGlow.style.background = GLOW_COLORS[expr.glow];
-
-      // Update description
       currentExpressionEl.textContent = expr.name;
-      expressionDescEl.textContent = expr.trigger + (expr.micro ? ' (Micro: ' + expr.micro + ')' : '');
+      expressionDescEl.textContent = expr.trigger + (expr.micro ? ' (Micro-expression)' : '');
     }
 
     // Micro-expression flash
     function playMicroExpression(type) {
-      const microExpressions = {
-        recognition: { lid: 'M 50,76 Q 70,80 90,76', glow: 'golden', duration: 80 },
-        concern: { lid: 'M 50,72 Q 70,68 90,72', glow: 'alert', duration: 100 },
-        delight: { lid: 'M 50,80 Q 70,86 90,80', glow: 'golden', duration: 120 }
+      var microExpressions = {
+        recognition: { scaleY: 0.75, scaleX: 1.08, glow: 'golden', duration: 80 },
+        concern: { scaleY: 1.1, scaleX: 1.02, glow: 'alert', duration: 100 },
+        delight: { scaleY: 0.6, scaleX: 1.15, glow: 'golden', duration: 120 },
+        warmth: { scaleY: 0.75, scaleX: 1.04, glow: 'warm', duration: 100 }
       };
 
-      const micro = microExpressions[type];
+      var micro = microExpressions[type];
       if (!micro) return;
 
       // Store current state
-      const currentLid = lidLeft.getAttribute('d');
-      const currentGlow = avatarGlow.style.background;
+      var currentDataExpr = avatarContainer.getAttribute('data-expression');
+      var currentGlow = avatarGlow.style.background;
 
       // Flash expression
-      lidLeft.setAttribute('d', micro.lid);
-      lidRight.setAttribute('d', micro.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarContainer.setAttribute('data-expression', type);
       avatarGlow.style.background = GLOW_COLORS[micro.glow];
       avatarGlow.style.opacity = '0.9';
 
       // Return to previous state
-      setTimeout(() => {
-        lidLeft.setAttribute('d', currentLid);
-        lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      setTimeout(function() {
+        avatarContainer.setAttribute('data-expression', currentDataExpr || 'neutral');
         avatarGlow.style.background = currentGlow;
         avatarGlow.style.opacity = '0.6';
       }, micro.duration);
@@ -1246,11 +1372,11 @@
 
     // Category filtering
     function filterCategory(category) {
-      document.querySelectorAll('.category-btn').forEach(btn => {
+      document.querySelectorAll('.category-btn').forEach(function(btn) {
         btn.classList.toggle('active', btn.dataset.category === category);
       });
 
-      document.querySelectorAll('.category-section').forEach(section => {
+      document.querySelectorAll('.category-section').forEach(function(section) {
         if (category === 'all') {
           section.style.display = 'block';
         } else {
@@ -1260,20 +1386,26 @@
     }
 
     // Event listeners
-    document.querySelectorAll('.persona-btn').forEach(btn => {
-      btn.addEventListener('click', () => setPersona(btn.dataset.persona));
+    document.querySelectorAll('.persona-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setPersona(btn.dataset.persona);
+      });
     });
 
-    document.querySelectorAll('.category-btn').forEach(btn => {
-      btn.addEventListener('click', () => filterCategory(btn.dataset.category));
+    document.querySelectorAll('.category-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        filterCategory(btn.dataset.category);
+      });
     });
 
-    document.querySelectorAll('.micro-btn').forEach(btn => {
-      btn.addEventListener('click', () => playMicroExpression(btn.dataset.micro));
+    document.querySelectorAll('.micro-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        playMicroExpression(btn.dataset.micro);
+      });
     });
 
     // Initialize
-    populateGrids();
+    generateSections();
     setPersona('ferni');
   </script>
 </body>
