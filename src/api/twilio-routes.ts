@@ -269,28 +269,60 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
       log.error({ error: String(error), roomName }, 'Failed to create phone bridge');
     }
 
-    // Start local outbound agent (Ferni with Cartesia voice)
+    // Dispatch the REAL Ferni voice agent (runs on GCE)
     const params = customParameters as Record<string, string>;
     try {
-      // Start the agent asynchronously, passing the bridge for audio I/O
-      startOutboundAgent(
-        {
-          roomName,
+      const { AgentDispatchClient } = await import('livekit-server-sdk');
+
+      const agentDispatch = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+
+      // Determine agent name based on environment
+      const agentName = process.env.AGENT_NAME || 'voice-agent';
+
+      // Dispatch with on_behalf_call metadata so the agent knows this is an outbound call
+      await agentDispatch.createDispatch(roomName, agentName, {
+        metadata: JSON.stringify({
+          type: 'on_behalf_call',
           callId: params.callId || roomName,
-          recipientName: params.recipientName || 'Friend',
+          originalSessionId: params.sessionId || roomName,
+          userId: params.userId || 'unknown',
+          userName: params.userName || 'User',
+          contact: {
+            name: params.recipientName || 'Friend',
+            phone: params.phone,
+            relationship: params.relationship || 'contact',
+          },
           purpose: params.purpose || 'Check in',
           objective: params.objective || 'Have a conversation',
-          callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
-          userId: params.userId,
-          userName: params.userName,
-        },
-        bridge,
-        callSid
-      ).catch((err: unknown) => log.error({ error: String(err) }, 'Outbound agent error'));
+          callType: params.callType || 'personal',
+        }),
+      });
 
-      log.info({ roomName, callSid }, '✅ Local Ferni agent started');
+      log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
     } catch (error) {
-      log.error({ error: String(error), roomName }, 'Failed to start local agent');
+      log.error({ error: String(error), roomName }, 'Failed to dispatch agent, falling back to local');
+
+      // Fall back to local agent if dispatch fails (e.g., no workers available)
+      try {
+        startOutboundAgent(
+          {
+            roomName,
+            callId: params.callId || roomName,
+            recipientName: params.recipientName || 'Friend',
+            purpose: params.purpose || 'Check in',
+            objective: params.objective || 'Have a conversation',
+            callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
+            userId: params.userId,
+            userName: params.userName,
+          },
+          bridge,
+          callSid
+        ).catch((err: unknown) => log.error({ error: String(err) }, 'Local agent error'));
+
+        log.info({ roomName, callSid }, '⚠️ Using local fallback agent');
+      } catch (fallbackError) {
+        log.error({ error: String(fallbackError), roomName }, 'Both agent strategies failed');
+      }
     }
   });
 
