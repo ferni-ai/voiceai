@@ -25,8 +25,8 @@ import { EventEmitter } from 'events';
 
 const log = createLogger({ module: 'twilio-stream-bridge' });
 
-// Transcription config
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+// Transcription config - using Google Cloud Speech-to-Text
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
 const SILENCE_THRESHOLD_MS = 1200; // Wait 1.2s silence before transcribing
 const MIN_AUDIO_DURATION_MS = 400; // Need at least 400ms of audio
 const SAMPLE_RATE_8K = 8000;
@@ -526,41 +526,63 @@ export class TwilioStreamBridge extends EventEmitter {
   }
 
   /**
-   * Transcribe audio using OpenAI Whisper
+   * Transcribe audio using Google Cloud Speech-to-Text REST API
    */
   private async transcribeAudio(pcmAudio: Buffer): Promise<string> {
-    if (!OPENAI_API_KEY) {
-      log.warn('No OpenAI API key for transcription');
+    if (!GOOGLE_API_KEY) {
+      log.warn('No Google API key for transcription');
       return '';
     }
 
     try {
-      // Convert PCM to WAV
-      const wavBuffer = this.createWavBuffer(pcmAudio, SAMPLE_RATE_8K);
+      // Convert PCM (16-bit signed) to base64
+      // Google Speech API wants LINEAR16 at 8000Hz
+      const audioBase64 = pcmAudio.toString('base64');
 
-      // Send to Whisper
-      const formData = new FormData();
-      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
-      formData.append('file', blob, 'audio.wav');
-      formData.append('model', 'whisper-1');
-      formData.append('response_format', 'text');
-      formData.append('language', 'en');
-
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: formData,
-      });
+      // Call Google Cloud Speech-to-Text REST API
+      const response = await fetch(
+        `https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            config: {
+              encoding: 'LINEAR16',
+              sampleRateHertz: SAMPLE_RATE_8K,
+              languageCode: 'en-US',
+              model: 'phone_call', // Optimized for phone audio
+              useEnhanced: true,
+              enableAutomaticPunctuation: true,
+            },
+            audio: {
+              content: audioBase64,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Whisper error: ${response.status} ${await response.text()}`);
+        const errorText = await response.text();
+        throw new Error(`Google STT error: ${response.status} ${errorText}`);
       }
 
-      return (await response.text()).trim();
+      const result = (await response.json()) as {
+        results?: Array<{
+          alternatives?: Array<{ transcript: string; confidence: number }>;
+        }>;
+      };
+
+      // Extract transcript from response
+      const transcript = result.results
+        ?.map((r) => r.alternatives?.[0]?.transcript || '')
+        .join(' ')
+        .trim();
+
+      return transcript || '';
     } catch (error) {
-      log.error({ error: String(error) }, 'Whisper transcription failed');
+      log.error({ error: String(error) }, 'Google STT transcription failed');
       return '';
     }
   }
