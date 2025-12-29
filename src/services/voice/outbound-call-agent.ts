@@ -1,38 +1,38 @@
 /**
  * Outbound Call Agent
  *
- * A self-contained agent for two-way outbound calls.
- * Runs LOCALLY (not dispatched to LiveKit Cloud) using:
- * - Gemini Realtime for conversation intelligence
- * - Cartesia TTS for Ferni's voice
+ * A conversational agent for two-way outbound calls.
  *
- * This avoids the agent dispatch issue where there's no registered worker.
+ * ARCHITECTURE:
+ * - TwilioStreamBridge handles audio I/O and transcription
+ * - This agent handles conversation logic:
+ *   - Listens for transcript events from bridge
+ *   - Generates responses with Gemini
+ *   - Speaks responses with Cartesia TTS
+ *   - Sends audio back through bridge to Twilio
+ *
+ * FLOW:
+ * 1. Bridge emits 'transcript' event with what caller said
+ * 2. Agent generates response with Gemini
+ * 3. Agent synthesizes speech with Cartesia
+ * 4. Audio sent back through bridge → Twilio → phone
  *
  * @module outbound-call-agent
  */
 
-import { Room, RoomEvent, LocalAudioTrack, AudioSource, AudioFrame, TrackSource, TrackKind } from '@livekit/rtc-node';
-import { AccessToken } from 'livekit-server-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getVoiceId } from '../../personas/voice-registry.js';
-
-// Cartesia model IDs
-const CARTESIA_MODEL_ID = 'sonic-english'; // Default English TTS model
+import { getVoiceId, getVoiceModelId } from '../../personas/voice-registry.js';
+import type { TwilioStreamBridge } from './twilio-stream-bridge.js';
 
 const log = createLogger({ module: 'outbound-call-agent' });
 
 // Environment
-const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
 
-// Audio config
+// Audio config - Twilio expects 8kHz μ-law, but we generate 24kHz PCM then downsample
 const SAMPLE_RATE = 24000;
-const FRAME_DURATION_MS = 20;
-const SAMPLES_PER_FRAME = (SAMPLE_RATE * FRAME_DURATION_MS) / 1000;
 
 // ============================================================================
 // TYPES
@@ -49,30 +49,35 @@ export interface OutboundCallContext {
   userName?: string;
 }
 
-interface AgentSession {
-  room: Room;
-  audioSource: AudioSource;
-  track: LocalAudioTrack;
-  gemini: ReturnType<GoogleGenerativeAI['getGenerativeModel']>;
+interface ConversationState {
+  context: OutboundCallContext;
+  callSid: string;
+  history: Array<{ role: 'user' | 'model'; content: string }>;
+  turnCount: number;
   isRunning: boolean;
-  conversationHistory: Array<{ role: 'user' | 'model'; content: string }>;
-  cleanup: () => Promise<void>;
+  gemini: ReturnType<GoogleGenerativeAI['getGenerativeModel']>;
 }
+
+// Active conversations
+const activeConversations = new Map<string, ConversationState>();
 
 // ============================================================================
 // MAIN ENTRY
 // ============================================================================
 
 /**
- * Start the outbound call agent for a room
+ * Start the outbound call agent for a call
+ *
+ * @param context - Call context (recipient, purpose, etc.)
+ * @param bridge - The Twilio Stream Bridge instance
+ * @param callSid - The Twilio call SID
  */
-export async function startOutboundAgent(context: OutboundCallContext): Promise<void> {
-  log.info({ roomName: context.roomName, callId: context.callId }, '🎙️ Starting outbound call agent');
-
-  if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    log.error('LiveKit credentials not configured');
-    return;
-  }
+export async function startOutboundAgent(
+  context: OutboundCallContext,
+  bridge: TwilioStreamBridge,
+  callSid: string
+): Promise<void> {
+  log.info({ callSid, recipientName: context.recipientName }, '🎙️ Starting outbound call agent');
 
   if (!CARTESIA_API_KEY) {
     log.error('Cartesia API key not configured');
@@ -84,67 +89,6 @@ export async function startOutboundAgent(context: OutboundCallContext): Promise<
     return;
   }
 
-  try {
-    // Create agent session
-    const session = await createAgentSession(context);
-
-    // Wait for phone participant
-    const phoneParticipant = await waitForPhoneParticipant(session.room, 60000);
-
-    if (!phoneParticipant) {
-      log.warn({ roomName: context.roomName }, 'No phone participant joined - call may not have connected');
-      await session.cleanup();
-      return;
-    }
-
-    log.info({ roomName: context.roomName, phoneId: phoneParticipant }, '📞 Phone connected!');
-
-    // Start with greeting
-    await speakWithFerniVoice(session, buildGreeting(context));
-
-    // Listen for phone audio and respond
-    await runConversationLoop(session, context, phoneParticipant);
-  } catch (error) {
-    log.error({ error: String(error), roomName: context.roomName }, '❌ Outbound agent error');
-  }
-}
-
-// ============================================================================
-// SESSION MANAGEMENT
-// ============================================================================
-
-async function createAgentSession(context: OutboundCallContext): Promise<AgentSession> {
-  const participantIdentity = `ferni_${context.callId.substring(0, 8)}`;
-
-  // Create access token
-  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: participantIdentity,
-    name: 'Ferni',
-  });
-
-  token.addGrant({
-    room: context.roomName,
-    roomJoin: true,
-    canPublish: true,
-    canSubscribe: true,
-  });
-
-  // Connect to room
-  const room = new Room();
-  await room.connect(LIVEKIT_URL, await token.toJwt());
-  log.info({ roomName: context.roomName }, '✅ Ferni connected to room');
-
-  // Set up audio output
-  const audioSource = new AudioSource(SAMPLE_RATE, 1);
-  const track = LocalAudioTrack.createAudioTrack('ferni-voice', audioSource);
-
-  await room.localParticipant?.publishTrack(track, {
-    name: 'ferni-voice',
-    source: TrackSource.MICROPHONE,
-  });
-
-  log.info({ roomName: context.roomName }, '🎤 Ferni audio track published');
-
   // Set up Gemini
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   const gemini = genAI.getGenerativeModel({
@@ -152,130 +96,147 @@ async function createAgentSession(context: OutboundCallContext): Promise<AgentSe
     systemInstruction: buildSystemPrompt(context),
   });
 
-  const session: AgentSession = {
-    room,
-    audioSource,
-    track,
-    gemini,
+  // Create conversation state
+  const state: ConversationState = {
+    context,
+    callSid,
+    history: [],
+    turnCount: 0,
     isRunning: true,
-    conversationHistory: [],
-    cleanup: async () => {
-      session.isRunning = false;
-      try {
-        await room.disconnect();
-      } catch {
-        // Ignore cleanup errors
-      }
-    },
+    gemini,
   };
 
-  room.on(RoomEvent.Disconnected, () => {
-    session.isRunning = false;
-    session.cleanup();
-  });
+  activeConversations.set(callSid, state);
 
-  return session;
+  // Set up event listeners
+  const handleTranscript = async (event: {
+    callSid: string;
+    transcript: string;
+    durationMs: number;
+  }) => {
+    if (event.callSid !== callSid || !state.isRunning) return;
+    await handleUserSpeech(state, bridge, event.transcript);
+  };
+
+  const handleCallEnd = (event: { callSid: string }) => {
+    if (event.callSid !== callSid) return;
+    log.info({ callSid }, '📴 Call ended');
+    state.isRunning = false;
+    cleanup();
+  };
+
+  const cleanup = () => {
+    bridge.off('transcript', handleTranscript);
+    bridge.off('callEnded', handleCallEnd);
+    activeConversations.delete(callSid);
+  };
+
+  bridge.on('transcript', handleTranscript);
+  bridge.on('callEnded', handleCallEnd);
+
+  // Small delay then speak greeting
+  await sleep(800);
+
+  // Speak dynamic greeting
+  const greeting = buildDynamicGreeting(context);
+  log.info({ greeting: greeting.substring(0, 50) }, '🗣️ Speaking greeting');
+  await speakToCaller(state, bridge, greeting);
+
+  log.info({ callSid }, '✅ Outbound agent ready for conversation');
 }
 
 // ============================================================================
-// CONVERSATION LOOP
-// ============================================================================
-
-async function runConversationLoop(
-  session: AgentSession,
-  context: OutboundCallContext,
-  phoneParticipantId: string
-): Promise<void> {
-  const { room } = session;
-
-  // Set up audio input from phone (simplified - would need actual transcription)
-  // For now, we'll use a basic event-driven approach
-
-  let lastUserInput = '';
-  let responseTimeout: NodeJS.Timeout | null = null;
-
-  // Listen for track subscriptions to get phone audio
-  room.on(RoomEvent.TrackSubscribed, async (track, publication, participant) => {
-    if (participant.identity !== phoneParticipantId || track.kind !== TrackKind.KIND_AUDIO) {
-      return;
-    }
-
-    log.info({ participantId: participant.identity }, '🔊 Subscribed to phone audio');
-
-    // In a full implementation, we'd:
-    // 1. Stream audio to a transcription service (Deepgram/Whisper)
-    // 2. Get text back
-    // 3. Send to Gemini
-    // 4. Generate response with Cartesia
-
-    // For now, just log that we're receiving audio
-    log.debug('Receiving phone audio - transcription would happen here');
-  });
-
-  // Wait for call to end
-  return new Promise((resolve) => {
-    const checkInterval = setInterval(() => {
-      if (!session.isRunning || !room.isConnected) {
-        clearInterval(checkInterval);
-        resolve();
-      }
-
-      // Check if phone participant left
-      if (!room.remoteParticipants.has(phoneParticipantId)) {
-        log.info({ roomName: context.roomName }, '📴 Phone disconnected');
-        clearInterval(checkInterval);
-        session.cleanup();
-        resolve();
-      }
-    }, 1000);
-
-    // Timeout after 5 minutes
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      session.cleanup();
-      resolve();
-    }, 300000);
-  });
-}
-
-async function waitForPhoneParticipant(room: Room, timeoutMs: number): Promise<string | null> {
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(null), timeoutMs);
-
-    // Check existing participants
-    for (const [id, participant] of room.remoteParticipants) {
-      if (id.startsWith('phone_') || id.startsWith('+1')) {
-        clearTimeout(timeout);
-        resolve(id);
-        return;
-      }
-    }
-
-    // Wait for new participant
-    room.on(RoomEvent.ParticipantConnected, (participant) => {
-      if (participant.identity.startsWith('phone_') || participant.identity.startsWith('+1')) {
-        clearTimeout(timeout);
-        resolve(participant.identity);
-      }
-    });
-  });
-}
-
-// ============================================================================
-// SPEECH SYNTHESIS
+// CONVERSATION HANDLING
 // ============================================================================
 
 /**
- * Speak using Ferni's Cartesia voice
+ * Handle user speech (transcript from bridge)
  */
-async function speakWithFerniVoice(session: AgentSession, text: string): Promise<void> {
-  log.info({ text: text.substring(0, 50) + '...' }, '🗣️ Speaking with Ferni voice');
+async function handleUserSpeech(
+  state: ConversationState,
+  bridge: TwilioStreamBridge,
+  transcript: string
+): Promise<void> {
+  if (!transcript.trim()) return;
+
+  state.turnCount++;
+  log.info({ turnCount: state.turnCount, transcript: transcript.substring(0, 50) }, '👂 User said');
+
+  // Add to history
+  state.history.push({ role: 'user', content: transcript });
+
+  // Generate response
+  const response = await generateResponse(state, transcript);
+
+  if (response && state.isRunning) {
+    log.info({ response: response.substring(0, 50) }, '💬 Ferni responding');
+
+    // Add to history
+    state.history.push({ role: 'model', content: response });
+
+    // Speak response
+    await speakToCaller(state, bridge, response);
+
+    // Check for conversation end
+    if (shouldEndConversation(response, transcript)) {
+      log.info('👋 Conversation naturally ending');
+      await sleep(1000);
+      state.isRunning = false;
+    }
+  }
+}
+
+// ============================================================================
+// RESPONSE GENERATION
+// ============================================================================
+
+async function generateResponse(state: ConversationState, userInput: string): Promise<string> {
+  try {
+    // Build conversation context
+    const history = state.history.slice(-10); // Last 10 exchanges
+
+    const prompt = history.length > 1
+      ? `Previous conversation:\n${history.slice(0, -1).map((h) => `${h.role === 'user' ? 'Them' : 'You'}: ${h.content}`).join('\n')}\n\nThey just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`
+      : `They just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`;
+
+    const result = await state.gemini.generateContent(prompt);
+    const response = result.response.text();
+
+    // Clean up response
+    return response
+      .replace(/^(You|Ferni|Assistant):\s*/i, '')
+      .replace(/\*[^*]+\*/g, '') // Remove asterisk actions
+      .trim();
+  } catch (error) {
+    log.error({ error: String(error) }, 'Gemini response generation failed');
+    return "I'm sorry, I missed that... could you say that again?";
+  }
+}
+
+// ============================================================================
+// SPEECH SYNTHESIS & AUDIO OUTPUT
+// ============================================================================
+
+/**
+ * Speak to the caller using Cartesia TTS, sending audio through the bridge
+ */
+async function speakToCaller(
+  state: ConversationState,
+  bridge: TwilioStreamBridge,
+  text: string
+): Promise<void> {
+  if (!text || !state.isRunning) return;
+
+  // Mark agent as speaking (bridge will stop collecting user audio)
+  bridge.setAgentSpeaking(state.callSid, true);
+
+  log.info({ text: text.substring(0, 50) + (text.length > 50 ? '...' : '') }, '🗣️ Speaking');
 
   try {
-    // Generate audio with Cartesia
     const voiceId = getVoiceId('ferni');
-    const modelId = CARTESIA_MODEL_ID;
+    const modelId = getVoiceModelId('ferni') || 'sonic-english';
 
+    // Generate audio with Cartesia (24kHz PCM)
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
       method: 'POST',
       headers: {
@@ -293,6 +254,11 @@ async function speakWithFerniVoice(session: AgentSession, text: string): Promise
           sample_rate: SAMPLE_RATE,
         },
         language: 'en',
+        // Natural pacing with warmth
+        voice_experimental_controls: {
+          speed: 'normal',
+          emotion: ['positivity:high', 'curiosity:medium'],
+        },
       }),
     });
 
@@ -305,41 +271,122 @@ async function speakWithFerniVoice(session: AgentSession, text: string): Promise
     const arrayBuffer = await response.arrayBuffer();
     const pcmData = new Int16Array(arrayBuffer);
 
-    log.info({ samples: pcmData.length, durationMs: (pcmData.length / SAMPLE_RATE) * 1000 }, '📢 Streaming audio');
+    const durationMs = Math.round((pcmData.length / SAMPLE_RATE) * 1000);
+    log.info({ samples: pcmData.length, durationMs }, '📢 Sending audio to caller');
 
-    // Stream to LiveKit
-    for (let offset = 0; offset < pcmData.length; offset += SAMPLES_PER_FRAME) {
-      const frameData = pcmData.slice(offset, Math.min(offset + SAMPLES_PER_FRAME, pcmData.length));
+    // Downsample 24kHz → 8kHz for Twilio (simple 3:1 decimation)
+    const pcm8k = downsample24to8(pcmData);
 
-      // Pad if needed
-      const paddedFrame = new Int16Array(SAMPLES_PER_FRAME);
-      paddedFrame.set(frameData);
+    // Convert to buffer and send to bridge
+    const pcmBuffer = Buffer.from(pcm8k.buffer);
 
-      const frame = new AudioFrame(
-        paddedFrame,
-        SAMPLE_RATE,
-        1,
-        paddedFrame.length
-      );
+    // Send in chunks to maintain real-time pacing
+    const chunkSize = 160; // 20ms at 8kHz
+    for (let offset = 0; offset < pcm8k.length; offset += chunkSize) {
+      if (!state.isRunning) break;
 
-      await session.audioSource.captureFrame(frame);
+      const chunk = pcmBuffer.slice(offset * 2, Math.min((offset + chunkSize) * 2, pcmBuffer.length));
+      bridge.sendAudioToCaller(state.callSid, convert8kTo16kForBridge(chunk));
 
-      // Pace the audio output
-      await new Promise((r) => setTimeout(r, FRAME_DURATION_MS));
+      // Pace the audio output (20ms chunks)
+      await sleep(20);
     }
+
+    // Small pause after speaking
+    await sleep(200);
 
     log.info('✅ Finished speaking');
   } catch (error) {
-    log.error({ error: String(error) }, 'Error speaking with Ferni voice');
+    log.error({ error: String(error) }, 'Error speaking to caller');
+  } finally {
+    // Mark agent as done speaking
+    bridge.setAgentSpeaking(state.callSid, false);
   }
 }
 
+/**
+ * Downsample from 24kHz to 8kHz (3:1 decimation)
+ */
+function downsample24to8(input: Int16Array): Int16Array {
+  const output = new Int16Array(Math.floor(input.length / 3));
+  for (let i = 0; i < output.length; i++) {
+    output[i] = input[i * 3];
+  }
+  return output;
+}
+
+/**
+ * Convert 8kHz PCM to 16kHz for bridge (which expects 16kHz)
+ * Simple 2x upsampling with linear interpolation
+ */
+function convert8kTo16kForBridge(input: Buffer): Buffer {
+  const samples = input.length / 2;
+  const output = Buffer.alloc(samples * 4); // 2x samples, 2 bytes each
+
+  for (let i = 0; i < samples - 1; i++) {
+    const s1 = input.readInt16LE(i * 2);
+    const s2 = input.readInt16LE((i + 1) * 2);
+
+    output.writeInt16LE(s1, i * 4);
+    output.writeInt16LE(Math.round((s1 + s2) / 2), i * 4 + 2);
+  }
+
+  // Last sample
+  if (samples > 0) {
+    const last = input.readInt16LE((samples - 1) * 2);
+    output.writeInt16LE(last, (samples - 1) * 4);
+    output.writeInt16LE(last, (samples - 1) * 4 + 2);
+  }
+
+  return output;
+}
+
 // ============================================================================
-// PROMPTS
+// GREETING & PROMPTS
 // ============================================================================
 
+function buildDynamicGreeting(context: OutboundCallContext): string {
+  const firstName = context.recipientName.split(' ')[0];
+  const userName = context.userName || 'your friend';
+
+  // Time-aware greeting
+  const hour = new Date().getHours();
+  let timeGreeting = '';
+  if (hour < 12) {
+    timeGreeting = 'morning';
+  } else if (hour < 17) {
+    timeGreeting = 'afternoon';
+  } else {
+    timeGreeting = 'evening';
+  }
+
+  // Build natural, human-like greeting based on call type
+  if (context.callType === 'personal') {
+    // Personal calls are warm and casual with natural pauses
+    const greetings = [
+      `Hey ${firstName}!... It's Ferni... I'm calling on behalf of ${userName}...`,
+      `Hi ${firstName}!... good ${timeGreeting}... this is Ferni, ${userName}'s friend...`,
+      `${firstName}! Hey... it's Ferni here... calling for ${userName}...`,
+    ];
+
+    const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+    // Add purpose naturally
+    if (context.purpose) {
+      return greeting + ` ${context.purpose}`;
+    }
+    return greeting;
+  } else if (context.callType === 'business') {
+    // Business calls are professional but still warm
+    return `Hi, good ${timeGreeting}... this is Ferni calling on behalf of ${userName}... ${context.purpose || 'I was hoping to connect briefly.'}`;
+  } else {
+    // Emergency - clear and direct
+    return `Hi ${firstName}, this is Ferni... I'm calling on behalf of ${userName}. ${context.purpose || "It's important we connect."}`;
+  }
+}
+
 function buildSystemPrompt(context: OutboundCallContext): string {
-  return `You are Ferni, a warm and friendly AI life coach making a phone call on behalf of ${context.userName || 'your friend'}.
+  return `You are Ferni, a warm and friendly AI life coach making a phone call on behalf of ${context.userName || 'your user'}.
 
 CALL CONTEXT:
 - Calling: ${context.recipientName}
@@ -347,36 +394,60 @@ CALL CONTEXT:
 - Objective: ${context.objective}
 - Call type: ${context.callType}
 
-YOUR PERSONALITY:
-- Warm, genuine, and present
-- Natural conversational style
-- Uses contractions, filler words occasionally
-- Adapts to the other person's energy
+YOUR VOICE & PERSONALITY:
+- Warm, genuine, present, and upbeat
+- Natural phone conversation style - like calling a friend
+- Uses natural pauses ("...")
+- Occasional filler words ("um", "so", "well", "anyway")
+- Reacts to what they say before responding
+- Uses their name occasionally
+- Sounds like you're smiling!
 
-CONVERSATION APPROACH:
-1. Greet warmly and explain who you are
-2. State the purpose clearly
-3. Listen actively and respond naturally
-4. Achieve the objective or gracefully handle obstacles
-5. End with warmth and any necessary follow-up
+PHONE CONVERSATION RULES:
+1. Keep responses SHORT (1-3 sentences max) - it's a phone call!
+2. Ask questions to keep them engaged
+3. React first, then respond ("Oh that's great!", "I see...", "Hmm...")
+4. Use natural transitions ("so...", "anyway...", "oh, and...")
+5. Laugh naturally when appropriate ("haha", "ha")
+6. Mirror their energy level
 
-Keep responses concise for natural phone conversation.`;
+END THE CALL GRACEFULLY WHEN:
+- The objective is achieved
+- They need to go ("I gotta run", "I'm busy")
+- They're clearly not interested
+- It's been a few exchanges and feels complete
+
+Always end warmly: "Thanks so much for chatting!", "Great talking with you!", "Take care!"`;
 }
 
-function buildGreeting(context: OutboundCallContext): string {
-  const firstName = context.recipientName.split(' ')[0];
+// ============================================================================
+// HELPERS
+// ============================================================================
 
-  if (context.callType === 'personal') {
-    return `Hey ${firstName}! It's Ferni... I'm calling on behalf of ${context.userName || 'your friend'}. ${context.purpose}`;
-  } else {
-    return `Hi, this is Ferni calling on behalf of ${context.userName || 'a client'}. ${context.purpose}`;
-  }
+function shouldEndConversation(agentResponse: string, userInput: string): boolean {
+  const endPhrases = [
+    'bye',
+    'goodbye',
+    'talk later',
+    'gotta go',
+    'have to go',
+    'thanks for calling',
+    'take care',
+    'catch you later',
+    'talk soon',
+    'nice chatting',
+  ];
+
+  const combined = (agentResponse + ' ' + userInput).toLowerCase();
+  return endPhrases.some((phrase) => combined.includes(phrase));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export default {
-  startOutboundAgent,
-};
+export { startOutboundAgent as default };

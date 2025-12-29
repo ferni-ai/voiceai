@@ -7,6 +7,12 @@
  * 3. We bridge the audio to LiveKit for the AI agent
  * 4. Agent audio flows back through the same bridge
  *
+ * ENHANCED with:
+ * - Audio buffering from caller
+ * - Simple VAD (Voice Activity Detection)
+ * - Automatic transcription on silence
+ * - Transcript event emission for conversation loop
+ *
  * This avoids the need for Twilio Elastic SIP Trunking ($$)
  *
  * @module twilio-stream-bridge
@@ -18,6 +24,13 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 
 const log = createLogger({ module: 'twilio-stream-bridge' });
+
+// Transcription config
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
+const SILENCE_THRESHOLD_MS = 1200; // Wait 1.2s silence before transcribing
+const MIN_AUDIO_DURATION_MS = 400; // Need at least 400ms of audio
+const SAMPLE_RATE_8K = 8000;
+const SAMPLE_RATE_16K = 16000;
 
 // ============================================================================
 // TYPES
@@ -61,6 +74,12 @@ export interface BridgeSession {
   twilioWs: WebSocket;
   startedAt: Date;
   status: 'connecting' | 'active' | 'ended';
+  // Audio buffering for transcription
+  audioBuffer: Buffer[];
+  lastAudioTime: number;
+  silenceTimer: NodeJS.Timeout | null;
+  isAgentSpeaking: boolean;
+  customParameters: Record<string, string>;
 }
 
 export interface BridgeConfig {
@@ -393,6 +412,12 @@ export class TwilioStreamBridge extends EventEmitter {
       twilioWs: ws,
       startedAt: new Date(),
       status: 'active',
+      // Audio buffering
+      audioBuffer: [],
+      lastAudioTime: Date.now(),
+      silenceTimer: null,
+      isAgentSpeaking: false,
+      customParameters: customParameters || {},
     };
 
     this.sessions.set(callSid, session);
@@ -410,7 +435,7 @@ export class TwilioStreamBridge extends EventEmitter {
 
   /**
    * Handle incoming audio from Twilio
-   * Convert μ-law 8kHz → Linear PCM 16kHz and forward to LiveKit
+   * Convert μ-law 8kHz → Linear PCM 16kHz, buffer, and detect silence
    */
   private async handleMedia(
     session: BridgeSession,
@@ -420,23 +445,183 @@ export class TwilioStreamBridge extends EventEmitter {
       return; // Only process inbound (caller's voice)
     }
 
+    // Skip if agent is speaking (avoid echo)
+    if (session.isAgentSpeaking) {
+      return;
+    }
+
     // Decode base64 μ-law audio
     const mulawBuffer = Buffer.from(media.payload, 'base64');
 
-    // Convert to linear PCM
+    // Convert to linear PCM (stays at 8kHz for storage efficiency)
     const linearBuffer = mulawToLinear(mulawBuffer);
 
-    // Upsample to 16kHz
-    const upsampledBuffer = upsample8to16(linearBuffer);
+    // Buffer the audio
+    session.audioBuffer.push(linearBuffer);
+    session.lastAudioTime = Date.now();
 
-    // Forward to LiveKit (this would need a proper audio track)
-    // For now, emit an event that the intelligent agent can handle
+    // Reset silence timer
+    if (session.silenceTimer) {
+      clearTimeout(session.silenceTimer);
+    }
+
+    // Set new silence timer - transcribe when silence detected
+    session.silenceTimer = setTimeout(() => {
+      void this.processBufferedAudio(session);
+    }, SILENCE_THRESHOLD_MS);
+
+    // Emit raw audio event (for potential LiveKit bridging)
+    const upsampledBuffer = upsample8to16(linearBuffer);
     this.emit('audioFromCaller', {
       callSid: session.callSid,
       roomName: session.livekitRoomName,
       audio: upsampledBuffer,
       timestamp: media.timestamp,
     });
+  }
+
+  /**
+   * Process buffered audio - transcribe and emit transcript event
+   */
+  private async processBufferedAudio(session: BridgeSession): Promise<void> {
+    if (session.audioBuffer.length === 0) {
+      return;
+    }
+
+    // Calculate audio duration
+    const totalBytes = session.audioBuffer.reduce((sum, buf) => sum + buf.length, 0);
+    const durationMs = (totalBytes / 2 / SAMPLE_RATE_8K) * 1000; // 16-bit samples
+
+    if (durationMs < MIN_AUDIO_DURATION_MS) {
+      log.debug({ durationMs }, 'Audio too short, skipping transcription');
+      session.audioBuffer = [];
+      return;
+    }
+
+    log.info({ durationMs: Math.round(durationMs), callSid: session.callSid }, '🎤 Processing buffered audio');
+
+    // Combine all audio chunks
+    const combinedAudio = Buffer.concat(session.audioBuffer);
+    session.audioBuffer = []; // Clear buffer
+
+    // Transcribe
+    try {
+      const transcript = await this.transcribeAudio(combinedAudio);
+
+      if (transcript && transcript.trim()) {
+        log.info({ transcript: transcript.substring(0, 50), callSid: session.callSid }, '📝 Transcript received');
+
+        // Emit transcript event for the conversation controller
+        this.emit('transcript', {
+          callSid: session.callSid,
+          roomName: session.livekitRoomName,
+          transcript: transcript.trim(),
+          durationMs,
+          customParameters: session.customParameters,
+        });
+      }
+    } catch (error) {
+      log.error({ error: String(error) }, 'Transcription failed');
+    }
+  }
+
+  /**
+   * Transcribe audio using OpenAI Whisper
+   */
+  private async transcribeAudio(pcmAudio: Buffer): Promise<string> {
+    if (!OPENAI_API_KEY) {
+      log.warn('No OpenAI API key for transcription');
+      return '';
+    }
+
+    try {
+      // Convert PCM to WAV
+      const wavBuffer = this.createWavBuffer(pcmAudio, SAMPLE_RATE_8K);
+
+      // Send to Whisper
+      const formData = new FormData();
+      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      formData.append('file', blob, 'audio.wav');
+      formData.append('model', 'whisper-1');
+      formData.append('response_format', 'text');
+      formData.append('language', 'en');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Whisper error: ${response.status} ${await response.text()}`);
+      }
+
+      return (await response.text()).trim();
+    } catch (error) {
+      log.error({ error: String(error) }, 'Whisper transcription failed');
+      return '';
+    }
+  }
+
+  /**
+   * Create WAV file from PCM data
+   */
+  private createWavBuffer(pcmData: Buffer, sampleRate: number): ArrayBuffer {
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+    const blockAlign = (numChannels * bitsPerSample) / 8;
+    const dataSize = pcmData.length;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    // WAV header
+    this.writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    this.writeString(view, 8, 'WAVE');
+    this.writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    this.writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    // PCM data
+    const pcmView = new Uint8Array(buffer, 44);
+    pcmView.set(pcmData);
+
+    return buffer;
+  }
+
+  private writeString(view: DataView, offset: number, str: string): void {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  }
+
+  /**
+   * Set agent speaking state (to avoid echo during agent speech)
+   */
+  setAgentSpeaking(callSid: string, isSpeaking: boolean): void {
+    const session = this.sessions.get(callSid);
+    if (session) {
+      session.isAgentSpeaking = isSpeaking;
+      if (isSpeaking) {
+        // Clear any pending silence timer when agent starts speaking
+        if (session.silenceTimer) {
+          clearTimeout(session.silenceTimer);
+          session.silenceTimer = null;
+        }
+        // Clear audio buffer to avoid processing agent's own speech
+        session.audioBuffer = [];
+      }
+    }
   }
 
   /**

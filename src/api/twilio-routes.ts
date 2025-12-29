@@ -272,19 +272,23 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
     // Start local outbound agent (Ferni with Cartesia voice)
     const params = customParameters as Record<string, string>;
     try {
-      // Start the agent asynchronously (don't await - let it run)
-      startOutboundAgent({
-        roomName,
-        callId: params.callId || roomName,
-        recipientName: params.recipientName || 'Friend',
-        purpose: params.purpose || 'Check in',
-        objective: params.objective || 'Have a conversation',
-        callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
-        userId: params.userId,
-        userName: params.userName,
-      }).catch((err: unknown) => log.error({ error: String(err) }, 'Outbound agent error'));
+      // Start the agent asynchronously, passing the bridge for audio I/O
+      startOutboundAgent(
+        {
+          roomName,
+          callId: params.callId || roomName,
+          recipientName: params.recipientName || 'Friend',
+          purpose: params.purpose || 'Check in',
+          objective: params.objective || 'Have a conversation',
+          callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
+          userId: params.userId,
+          userName: params.userName,
+        },
+        bridge,
+        callSid
+      ).catch((err: unknown) => log.error({ error: String(err) }, 'Outbound agent error'));
 
-      log.info({ roomName }, '✅ Local Ferni agent started');
+      log.info({ roomName, callSid }, '✅ Local Ferni agent started');
     } catch (error) {
       log.error({ error: String(error), roomName }, 'Failed to start local agent');
     }
