@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 
 const log = createLogger({ module: 'PerformanceMetrics' });
 
@@ -521,35 +522,40 @@ let logIntervalId: NodeJS.Timeout | null = null;
  */
 export function startMetricsLogging(intervalMs = 60_000): void {
   if (logIntervalId) {
-    clearInterval(logIntervalId);
+    clearNamedInterval('performance-metrics-logging');
   }
 
-  logIntervalId = setInterval(() => {
-    const report = getPerformanceReport();
+  registerInterval(
+    'performance-metrics-logging',
+    () => {
+      const report = getPerformanceReport();
 
-    // Only log if we have data
-    if (report.turn.count > 0) {
-      log.info(
-        {
-          turnProcessing: {
-            p50: report.turn.p50.toFixed(0),
-            p95: report.turn.p95.toFixed(0),
-            p99: report.turn.p99.toFixed(0),
-            count: report.turn.count,
+      // Only log if we have data
+      if (report.turn.count > 0) {
+        log.info(
+          {
+            turnProcessing: {
+              p50: report.turn.p50.toFixed(0),
+              p95: report.turn.p95.toFixed(0),
+              p99: report.turn.p99.toFixed(0),
+              count: report.turn.count,
+            },
+            slowestInjections: report.contextInjections.slice(0, 3).map((i) => ({
+              name: i.builder,
+              avg: i.avgDurationMs.toFixed(0),
+            })),
+            caches: Object.entries(report.caches).map(([name, c]) => ({
+              name,
+              hitRate: `${(c.hitRate * 100).toFixed(1)}%`,
+            })),
           },
-          slowestInjections: report.contextInjections.slice(0, 3).map((i) => ({
-            name: i.builder,
-            avg: i.avgDurationMs.toFixed(0),
-          })),
-          caches: Object.entries(report.caches).map(([name, c]) => ({
-            name,
-            hitRate: `${(c.hitRate * 100).toFixed(1)}%`,
-          })),
-        },
-        '📊 Performance metrics'
-      );
-    }
-  }, intervalMs);
+          '📊 Performance metrics'
+        );
+      }
+    },
+    intervalMs
+  );
+  logIntervalId = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 }
 
 /**
@@ -557,7 +563,7 @@ export function startMetricsLogging(intervalMs = 60_000): void {
  */
 export function stopMetricsLogging(): void {
   if (logIntervalId) {
-    clearInterval(logIntervalId);
+    clearNamedInterval('performance-metrics-logging');
     logIntervalId = null;
   }
 }

@@ -29,6 +29,7 @@ import 'dotenv/config';
 // ============================================================================
 
 import { registerGlobalErrorHandlers } from '../utils/safe-fire-and-forget.js';
+import { registerInterval } from '../utils/interval-manager.js';
 registerGlobalErrorHandlers();
 
 // ============================================================================
@@ -184,18 +185,22 @@ async function main(): Promise<void> {
   log('✅ Startup complete - worker ready for jobs');
 
   // Diagnostic summary with crash analytics
-  setInterval(() => {
-    const metrics = getJobMetrics();
-    const crashSummary = getCrashSummary();
-    log('Diagnostic summary', {
-      uptimeMs: Date.now() - _startTime,
-      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-      ...metrics,
-      crashes: crashSummary.totalCrashes,
-      activeSessions: crashSummary.activeSessions,
-      crashRate: crashSummary.crashRate,
-    });
-  }, 60000);
+  registerInterval(
+    'gce-worker-diagnostics',
+    () => {
+      const metrics = getJobMetrics();
+      const crashSummary = getCrashSummary();
+      log('Diagnostic summary', {
+        uptimeMs: Date.now() - _startTime,
+        memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        ...metrics,
+        crashes: crashSummary.totalCrashes,
+        activeSessions: crashSummary.activeSessions,
+        crashRate: crashSummary.crashRate,
+      });
+    },
+    60000
+  );
 
   const totalStartupTime = Date.now() - _startTime;
   log('✅ GCE Voice Worker ready', {

@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { getAgentEvolution } from './agent-evolution.js';
 import { getCommunityInsights, saveCommunityInsightsToFirestore } from './community-insights.js';
 
@@ -152,23 +153,28 @@ export function startCollectiveLearningScheduler(): void {
   log.info('🚀 Starting collective learning scheduler');
 
   // Pattern recomputation: every 15 minutes
-  recomputeIntervalId = setInterval(
+  registerInterval(
+    'collective-learning-pattern-recompute',
     () => {
       void runPatternRecomputation();
     },
     15 * 60 * 1000
   );
+  recomputeIntervalId = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   // Firestore save: every 10 minutes
-  saveIntervalId = setInterval(
+  registerInterval(
+    'collective-learning-firestore-save',
     () => {
       void saveCommunityInsightsToFirestore();
     },
     10 * 60 * 1000
   );
+  saveIntervalId = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   // Story analysis: every hour
-  setInterval(
+  registerInterval(
+    'collective-learning-story-analysis',
     () => {
       void runStoryAnalysis();
     },
@@ -176,7 +182,8 @@ export function startCollectiveLearningScheduler(): void {
   );
 
   // Evolution update: every hour
-  setInterval(
+  registerInterval(
+    'collective-learning-evolution-update',
     () => {
       void runEvolutionUpdate();
     },
@@ -205,14 +212,18 @@ export function stopCollectiveLearningScheduler(): void {
   log.info('Stopping collective learning scheduler');
 
   if (recomputeIntervalId) {
-    clearInterval(recomputeIntervalId);
+    clearNamedInterval('collective-learning-pattern-recompute');
     recomputeIntervalId = null;
   }
 
   if (saveIntervalId) {
-    clearInterval(saveIntervalId);
+    clearNamedInterval('collective-learning-firestore-save');
     saveIntervalId = null;
   }
+
+  // Also clear the other intervals
+  clearNamedInterval('collective-learning-story-analysis');
+  clearNamedInterval('collective-learning-evolution-update');
 
   isRunning = false;
 

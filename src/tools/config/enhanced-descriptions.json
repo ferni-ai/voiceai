@@ -538,6 +538,132 @@
       "parameters": {
         "readiness": "Readiness level. Options: 'just-curious', 'starting-to-feel-ready', 'definitely-ready', 'scared-but-willing'"
       }
+    },
+
+    "_comment_cross_domain": "=== CROSS-DOMAIN CONNECTION TOOLS (Better Than Human) ===",
+
+    "getWeatherHabitInsights": {
+      "description": "Analyze weather and environmental conditions to suggest habit adjustments. Returns proactive insights like 'Rainy day - try indoor workout instead.' Can fetch user's real habits if userId provided.",
+      "parameters": {
+        "location": "City name for weather analysis. Examples: 'Philadelphia', 'Denver', 'San Francisco'",
+        "userId": "Optional: User ID to fetch their actual tracked habits. If provided, will check their fitness/outdoor habits against conditions.",
+        "userHabits": "Optional: List of habit names if userId not provided. Examples: ['running', 'cycling', 'yoga']"
+      }
+    },
+    "getHabitRecommendation": {
+      "description": "Get a personalized recommendation for a specific habit based on current weather and environmental conditions. Use when user asks 'should I run today?' or 'is it good for outdoor yoga?'",
+      "parameters": {
+        "location": "City name for weather check. Examples: 'Philadelphia', 'New York'",
+        "habitName": "Name of the habit to check. Examples: 'running', 'cycling', 'outdoor yoga', 'hiking'",
+        "habitType": "Type of habit. Options: 'outdoor', 'indoor', 'any'"
+      }
+    },
+    "analyzeNewsMoodImpact": {
+      "description": "Analyze news headlines for emotional impact and determine best delivery approach. Better than human - protects user from overwhelming news when stressed.",
+      "parameters": {
+        "newsHeadlines": "Array of news headlines to analyze for mood impact",
+        "userMoodState": "Optional: Current user mood. Options: 'calm', 'happy', 'excited', 'anxious', 'stressed', 'sad', 'frustrated', 'tired', 'neutral'"
+      }
+    },
+    "getPositiveNewsOnly": {
+      "description": "Filter news to show only positive, uplifting stories. Use when user needs a mood boost or explicitly wants to avoid heavy news.",
+      "parameters": {
+        "newsHeadlines": "Array of news headlines to filter for positive content"
+      }
+    },
+    "shouldSkipNews": {
+      "description": "Determine if news should be skipped based on user mood and news content. Returns recommendation and reason.",
+      "parameters": {
+        "newsHeadlines": "Headlines to analyze",
+        "userMoodState": "Current user mood. Options: 'calm', 'happy', 'excited', 'anxious', 'stressed', 'sad', 'frustrated', 'tired', 'neutral'"
+      }
+    },
+    "getCommuteSuggestions": {
+      "description": "Get personalized suggestions for making commute time productive or enjoyable. Suggests podcasts, audiobooks, pep talks based on commute length and context.",
+      "parameters": {
+        "commuteTime": "Expected commute time in minutes. Examples: 15, 30, 45, 60",
+        "trafficSeverity": "Current traffic level. Options: 'light', 'moderate', 'heavy', 'severe'",
+        "hasUpcomingMeeting": "Whether user has a meeting shortly after arrival - triggers pep talk suggestions"
+      }
+    },
+    "suggestPreMeetingPepTalk": {
+      "description": "Offer a pep talk or confidence boost before an important meeting during commute. Use when user mentions nervousness about upcoming meeting.",
+      "parameters": {
+        "meetingType": "Type of meeting. Examples: 'presentation', 'interview', 'client call', 'performance review'",
+        "minutesUntilMeeting": "Minutes until the meeting starts"
+      }
+    },
+
+    "_comment_relationships": "=== RELATIONSHIP INTELLIGENCE TOOLS (Better Than Human) ===",
+
+    "addRelationship": {
+      "description": "Add a new relationship/contact to track. Use when user mentions a friend, family member, or important person they want to remember. Stores birthdays, interests, favorite teams for future insights.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Person's name. Examples: 'John Smith', 'Mom', 'Sarah from work'",
+        "relationshipType": "Type of relationship. Options: 'family_parent', 'family_sibling', 'family_child', 'spouse', 'partner', 'friend_close', 'friend', 'colleague', 'mentor', 'other'",
+        "birthdayMonth": "Birthday month (1-12). Optional but enables birthday reminders.",
+        "birthdayDay": "Birthday day (1-31). Optional but enables birthday reminders.",
+        "interests": "Their interests/hobbies for gift suggestions. Examples: ['reading', 'golf', 'cooking']",
+        "favoriteTeams": "Their favorite sports teams for 'friend's team won' alerts. Examples: ['Eagles', 'Lakers', 'Yankees']"
+      }
+    },
+    "getRelationshipInfo": {
+      "description": "Get information about a specific relationship/contact including birthday, interests, favorite teams, and last contact date.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person to look up"
+      }
+    },
+    "recordContact": {
+      "description": "Record that user had contact with someone. Use when they mention they talked to, called, or met with someone. Helps track relationship health.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person they contacted"
+      }
+    },
+    "getUpcomingBirthdays": {
+      "description": "Get upcoming birthdays from tracked relationships. Better than human - we never forget a birthday! Use proactively or when user asks about birthdays.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "getContactReminders": {
+      "description": "Get reminders about people user hasn't contacted in a while. Better than human - we track relationship health and gently nudge. Use for relationship check-ins.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "getGiftSuggestions": {
+      "description": "Get gift suggestions for a person based on their tracked interests. Use when user needs gift ideas for birthdays, holidays, or special occasions.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "occasion": "The occasion. Examples: 'birthday', 'Christmas', 'thank you', 'anniversary'",
+        "budget": "Optional budget level. Options: 'budget', 'moderate', 'premium'"
+      }
+    },
+    "getRelationshipInsights": {
+      "description": "Get all relationship insights - birthdays, contact reminders, team updates ('friend's team won!'). Use for comprehensive relationship health check-in.",
+      "parameters": {
+        "userId": "The user ID"
+      }
+    },
+    "addInterestToRelationship": {
+      "description": "Add an interest to a person's profile. Helps with gift suggestions and conversation topics.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "interest": "The interest to add. Examples: 'cooking', 'hiking', 'sci-fi movies', 'gardening'"
+      }
+    },
+    "addFavoriteTeamToRelationship": {
+      "description": "Add a favorite sports team to a person's profile. Enables 'Your friend's team won!' notifications.",
+      "parameters": {
+        "userId": "The user ID",
+        "name": "Name of the person",
+        "team": "The sports team to add. Examples: 'Eagles', 'Lakers', 'Yankees', 'Manchester United'"
+      }
     }
   }
 }

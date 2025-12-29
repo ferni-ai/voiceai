@@ -36,11 +36,19 @@ function isHandlerCapability(value: string): value is HandlerCapability {
 // ============================================================================
 
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 const TEAM_STATUS_COLLECTION = 'team_member_status';
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -54,6 +62,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
       { error },
       'Firestore not available for team coordination, using in-memory only'
     );
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

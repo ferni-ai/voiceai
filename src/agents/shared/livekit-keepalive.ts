@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'livekit-keepalive' });
 
@@ -146,17 +147,19 @@ export function startKeepalive(worker?: { running: boolean }): void {
   lastPingTime = Date.now();
   connectionAlive = true;
 
-  keepaliveInterval = setInterval(() => {
-    // If worker explicitly stopped, don't check
-    if (workerRef && !workerRef.running) {
-      return;
-    }
+  registerInterval(
+    'livekit-keepalive',
+    () => {
+      // If worker explicitly stopped, don't check
+      if (workerRef && !workerRef.running) {
+        return;
+      }
 
-    checkConnectionHealth();
-  }, KEEPALIVE_INTERVAL_MS);
-
-  // Don't prevent process exit
-  keepaliveInterval.unref();
+      checkConnectionHealth();
+    },
+    KEEPALIVE_INTERVAL_MS
+  );
+  keepaliveInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   log.info(
     {
@@ -172,7 +175,7 @@ export function startKeepalive(worker?: { running: boolean }): void {
  */
 export function stopKeepalive(): void {
   if (keepaliveInterval) {
-    clearInterval(keepaliveInterval);
+    clearNamedInterval('livekit-keepalive');
     keepaliveInterval = null;
     log.debug('Keep-alive monitor stopped');
   }

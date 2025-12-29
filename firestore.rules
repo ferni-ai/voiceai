@@ -76,6 +76,12 @@ service cloud.firestore {
       match /group_sessions/{sessionId} {
         allow read, write: if isOwner(userId) || isServiceAccount();
       }
+      
+      // Social graph (people mentioned in conversations)
+      // "Better than Human" - relationship network intelligence
+      match /social_graph/{docId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
     }
     
     // ============================================================================

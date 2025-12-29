@@ -13,6 +13,25 @@
  * - PRIMARY: Firebase Auth token (Authorization: Bearer header)
  * - FALLBACK: X-User-Id header for user identification (migration)
  * - DEV MODE: X-Admin-Key: dev-mode to bypass auth
+ *
+ * ⚠️ IMPORTANT: Response Type Pattern
+ * -----------------------------------
+ * All api* functions return a WRAPPER object, NOT the raw data:
+ *
+ *   { ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }
+ *
+ * The generic type T describes what's inside .data, not the response itself!
+ *
+ * ✅ CORRECT usage:
+ *   const response = await apiGet<{ users: User[] }>('/api/users');
+ *   if (!response.ok || !response.data) {
+ *     throw new Error(response.error || 'Failed');
+ *   }
+ *   return response.data; // ← Access .data to get { users: User[] }
+ *
+ * ❌ WRONG (causes type errors):
+ *   const response = await apiGet<{ users: User[] }>('/api/users');
+ *   return response; // ← response is the wrapper, not { users: User[] }
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
@@ -20,6 +39,36 @@ import { createLogger } from './logger.js';
 import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 
 const log = createLogger('API');
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/**
+ * Standard response wrapper returned by all api* functions.
+ * The generic T describes what's inside .data, NOT the response itself.
+ *
+ * @example
+ * // T = { users: User[] } means response.data is { users: User[] }
+ * const response: ApiResponse<{ users: User[] }> = await apiGet('/api/users');
+ * if (response.ok && response.data) {
+ *   console.log(response.data.users); // ← Access .data for the typed payload
+ * }
+ */
+export interface ApiResponse<T> {
+  /** Whether the request succeeded (2xx status) */
+  ok: boolean;
+  /** The typed payload - only present when ok is true */
+  data?: T;
+  /** Error message when ok is false */
+  error?: string;
+  /** HTTP status code */
+  status: number;
+  /** Number of retry attempts (0 if succeeded first try) */
+  retries?: number;
+  /** True if request failed due to offline status */
+  offline?: boolean;
+}
 
 // Track if we've ensured auth is ready
 let authReadyPromise: Promise<void> | null = null;
@@ -147,12 +196,14 @@ const DEFAULT_RETRY_OPTIONS: FetchRetryOptions = {
 /**
  * Make an authenticated GET request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiGet<T = unknown>(
   path: string,
   params?: Record<string, string>,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API GET skipped: device is offline', { path });
@@ -225,12 +276,14 @@ export async function apiGet<T = unknown>(
 /**
  * Make an authenticated POST request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiPost<T = unknown>(
   path: string,
   body?: unknown,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API POST skipped: device is offline', { path });
@@ -373,12 +426,14 @@ export async function apiPut<T = unknown>(
 /**
  * Make an authenticated DELETE request with self-healing retry logic.
  * Automatically retries on transient failures with exponential backoff.
+ *
+ * @returns ApiResponse<T> - Check .ok and access .data for the typed payload
  */
 export async function apiDelete<T = unknown>(
   path: string,
   params?: Record<string, string>,
   retryOptions?: Partial<FetchRetryOptions>
-): Promise<{ ok: boolean; data?: T; error?: string; status: number; retries?: number; offline?: boolean }> {
+): Promise<ApiResponse<T>> {
   // Early exit if offline
   if (isOffline()) {
     log.warn('API DELETE skipped: device is offline', { path });

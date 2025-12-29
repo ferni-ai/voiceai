@@ -62,10 +62,12 @@ export interface SettingsMenuUICallbacks {
   onNotificationSettingsClick?: () => void;
   onSpotifyClick?: () => void;
   onVibeControllerClick?: () => void;
+  onSmartHomeClick?: () => void;
   onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
   onTeamHuddleClick?: () => void;
+  onTeamObservationsClick?: () => void;
   onTrustJourneyClick?: () => void;
   onMusicDashboardClick?: () => void;
   onPlayGamesClick?: () => void;
@@ -750,6 +752,7 @@ class SettingsMenuUI {
                   expandedSections.has('waysToConnect'),
                   `
             ${this.renderMenuItemWithBadge('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'), t('common.new'))}
+            ${this.renderMenuItemWithBadge('smart-home', ICONS.home, t('menu.items.yourHome') || 'Your Home', t('common.new'))}
             ${this.renderMenuItemWithBadge('journal', ICONS.journal, t('menu.items.journaling'), t('common.new'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
@@ -1003,6 +1006,7 @@ class SettingsMenuUI {
       'video-call-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
       team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
+      'team-observations': { icon: ICONS.lightbulb, label: 'Team Observations' },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
@@ -1213,6 +1217,9 @@ class SettingsMenuUI {
       case 'team':
         this.callbacks.onTeamHuddleClick?.();
         break;
+      case 'team-observations':
+        this.callbacks.onTeamObservationsClick?.();
+        break;
       case 'notifications':
         this.callbacks.onNotificationSettingsClick?.();
         break;
@@ -1221,6 +1228,9 @@ class SettingsMenuUI {
         break;
       case 'vibe-controller':
         this.callbacks.onVibeControllerClick?.();
+        break;
+      case 'smart-home':
+        this.callbacks.onSmartHomeClick?.();
         break;
       case 'eight-sleep-settings':
         this.callbacks.onEightSleepClick?.();

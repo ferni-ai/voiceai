@@ -232,10 +232,23 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // Step 2: Spawn agent into the room
       await this.spawnOnBehalfAgent(roomName, callId, request, script);
 
-      // Step 3: Initiate Twilio call
+      // Step 3: Initiate call via LiveKit SIP (preferred) or Twilio (fallback)
       call.status = 'initiating';
       call.initiatedAt = new Date();
-      const { callSid } = await this.initiateTwilioCall(callId, request, roomName);
+
+      let callSid: string;
+      if (this.config.sipTrunkId) {
+        // Use LiveKit SIP outbound - this is the proper way to do conversational calls
+        log.info({ callId }, '📞 Using LiveKit SIP outbound (preferred)');
+        const result = await this.initiateLiveKitSipCall(callId, request, roomName);
+        callSid = result.callSid;
+      } else {
+        // Fallback to Twilio direct call (TTS only, no conversation)
+        log.info({ callId }, '📞 Using Twilio call (SIP trunk not configured)');
+        const result = await this.initiateTwilioCall(callId, request, roomName);
+        callSid = result.callSid;
+      }
+
       call.twilioCallSid = callSid;
       call.status = 'ringing';
 
@@ -313,28 +326,143 @@ class OnBehalfCallOrchestrator extends EventEmitter {
   ): Promise<void> {
     log.info(
       { roomName, callId, contactName: request.resolvedContact?.name },
-      'Spawning on-behalf agent'
+      '🤖 Dispatching on-behalf agent to room'
     );
 
-    // Emit event for the agent dispatcher to handle
-    // The voice-agent-entry will pick this up and join with on-behalf context
-    this.emit('agent-join-requested', {
-      roomName,
-      callId,
-      agentType: 'on-behalf-caller',
-      userId: request.userId,
-      metadata: {
+    try {
+      // CRITICAL FIX: Actually dispatch an agent instead of just emitting an event!
+      // The agent will join the room and handle the outbound call
+      const { AgentDispatchClient } = await import('livekit-server-sdk');
+
+      const agentDispatch = new AgentDispatchClient(
+        this.config.livekitUrl,
+        this.config.livekitApiKey,
+        this.config.livekitApiSecret
+      );
+
+      // Determine agent name based on environment
+      const agentName = process.env.AGENT_NAME || 'voice-agent';
+
+      // Dispatch the agent with full call context in metadata
+      // The agent will read this metadata and behave as an outbound caller
+      await agentDispatch.createDispatch(roomName, agentName, {
+        metadata: JSON.stringify({
+          type: 'on_behalf_call',
+          callId,
+          originalSessionId: request.originalSessionId,
+          userId: request.userId,
+          userName: request.userName,
+          contact: {
+            name: request.resolvedContact?.name,
+            phone: request.resolvedContact?.phone,
+            relationship: request.resolvedContact?.relationship,
+          },
+          purpose: request.purpose,
+          objective: request.objective,
+          callType: request.callType,
+          script, // Full script for the agent
+          userPreferences: request.userPreferences,
+        }),
+      });
+
+      log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
+    } catch (error) {
+      // Fall back to event emission for backwards compatibility
+      log.warn(
+        { error: String(error), callId },
+        '⚠️ AgentDispatchClient failed, falling back to event emission'
+      );
+
+      // Emit event for any external listeners (backwards compat)
+      this.emit('agent-join-requested', {
+        roomName,
         callId,
-        purpose: request.purpose,
-        callType: request.callType,
-        contactName: request.resolvedContact?.name,
-        script,
-      },
-    });
+        agentType: 'on-behalf-caller',
+        userId: request.userId,
+        metadata: {
+          callId,
+          purpose: request.purpose,
+          callType: request.callType,
+          contactName: request.resolvedContact?.name,
+          script,
+        },
+      });
+    }
   }
 
   // =========================================================================
-  // TWILIO CALL MANAGEMENT
+  // LIVEKIT SIP OUTBOUND CALL (PREFERRED)
+  // =========================================================================
+
+  /**
+   * Make an outbound call using LiveKit's native SIP functionality.
+   * This is the preferred method - the call originates FROM LiveKit,
+   * so there's no complex SIP bridging needed.
+   */
+  private async initiateLiveKitSipCall(
+    callId: string,
+    request: OnBehalfCallRequest,
+    roomName: string
+  ): Promise<{ callSid: string }> {
+    const contact = request.resolvedContact!;
+
+    // Normalize phone number to E.164
+    const cleanPhone = contact.phone.replace(/\D/g, '');
+    const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+
+    log.info(
+      { callId, to: this.maskPhone(e164Phone), roomName, sipTrunkId: this.config.sipTrunkId },
+      '📞 Initiating outbound call via LiveKit SIP'
+    );
+
+    try {
+      const { SipClient } = await import('livekit-server-sdk');
+
+      const sipClient = new SipClient(
+        this.config.livekitUrl,
+        this.config.livekitApiKey,
+        this.config.livekitApiSecret
+      );
+
+      // Create SIP participant - this makes LiveKit call out to the phone number
+      const sipParticipant = await sipClient.createSipParticipant(
+        this.config.sipTrunkId!,
+        e164Phone,
+        roomName,
+        {
+          participantIdentity: `phone_${callId}`,
+          participantName: contact.name || 'Contact',
+          playDialtone: false, // Agent should speak, not dialtone
+          hidePhoneNumber: false,
+        }
+      );
+
+      log.info(
+        { callId, sipParticipantId: sipParticipant.participantId, roomName },
+        '✅ LiveKit SIP call initiated'
+      );
+
+      // Track the call
+      trackOutboundCall(sipParticipant.participantId, {
+        callId,
+        userId: request.userId,
+        contactName: contact.name || 'Unknown',
+        purpose: request.purpose,
+        objective: request.objective,
+        callType: request.callType,
+        originalSessionId: request.originalSessionId,
+        startedAt: new Date().toISOString(),
+      });
+
+      return { callSid: sipParticipant.participantId };
+    } catch (error) {
+      log.error({ error: String(error), callId }, 'LiveKit SIP call failed');
+      throw error;
+    }
+  }
+
+  // =========================================================================
+  // TWILIO CALL MANAGEMENT (FALLBACK)
   // =========================================================================
 
   private async initiateTwilioCall(
@@ -348,10 +476,13 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     const cleanPhone = contact.phone.replace(/\D/g, '');
     const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
 
-    // Generate TwiML for SIP bridge
+    // Generate TwiML for SIP bridge (fallback approach)
     const twiml = this.generateSipBridgeTwiml(roomName);
 
-    log.debug({ callId, to: this.maskPhone(e164Phone), roomName }, 'Initiating Twilio call');
+    log.debug(
+      { callId, to: this.maskPhone(e164Phone), roomName },
+      'Initiating Twilio call (fallback)'
+    );
 
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${this.config.twilioAccountSid}/Calls.json`,

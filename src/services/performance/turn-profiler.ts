@@ -115,27 +115,32 @@ export interface SessionMetricsSummary {
 // PERFORMANCE THRESHOLDS
 // ============================================================================
 
+/**
+ * Performance thresholds - UPDATED Dec 29 2024
+ * More aggressive targets for "Better than Human" latency
+ * Research: Human turn-taking gaps are 200-500ms
+ */
 export const PERFORMANCE_THRESHOLDS = {
-  /** Excellent: < 300ms total turn time */
-  EXCELLENT_TOTAL_MS: 300,
-  /** Good: < 500ms total turn time */
-  GOOD_TOTAL_MS: 500,
-  /** Acceptable: < 800ms total turn time */
-  ACCEPTABLE_TOTAL_MS: 800,
-  /** Slow: < 1500ms total turn time */
-  SLOW_TOTAL_MS: 1500,
-  /** Critical: >= 1500ms */
+  /** Excellent: < 250ms total turn time (was 300ms) */
+  EXCELLENT_TOTAL_MS: 250,
+  /** Good: < 400ms total turn time (was 500ms) */
+  GOOD_TOTAL_MS: 400,
+  /** Acceptable: < 600ms total turn time (was 800ms) */
+  ACCEPTABLE_TOTAL_MS: 600,
+  /** Slow: < 1200ms total turn time (was 1500ms) */
+  SLOW_TOTAL_MS: 1200,
+  /** Critical: >= 1200ms */
 
-  /** Target time to first audio */
-  TARGET_TTFA_MS: 400,
+  /** Target time to first audio (was 400ms) */
+  TARGET_TTFA_MS: 300,
 
-  /** Component thresholds */
-  ANALYSIS_MAX_MS: 50,
-  CONTEXT_BUILD_MAX_MS: 100,
-  MEMORY_RETRIEVAL_MAX_MS: 50,
-  EMBEDDING_MAX_MS: 100,
-  LLM_TTFT_MAX_MS: 200,
-  TTS_TTFB_MAX_MS: 150,
+  /** Component thresholds - tightened */
+  ANALYSIS_MAX_MS: 30, // Was 50ms
+  CONTEXT_BUILD_MAX_MS: 80, // Was 100ms
+  MEMORY_RETRIEVAL_MAX_MS: 40, // Was 50ms
+  EMBEDDING_MAX_MS: 80, // Was 100ms
+  LLM_TTFT_MAX_MS: 150, // Was 200ms
+  TTS_TTFB_MAX_MS: 100, // Was 150ms
 } as const;
 
 // ============================================================================

@@ -387,6 +387,9 @@ export function getProgressToNextStage(
   }
 
   const nextStage = stages[currentIndex + 1];
+  if (!nextStage) {
+    return { nextStage: null, progress: 100, missingRequirements: [] };
+  }
   const threshold = STAGE_THRESHOLDS[nextStage];
   const missing: string[] = [];
 
@@ -502,7 +505,7 @@ export function isDeeperThan(stageA: RelationshipStage, stageB: RelationshipStag
 export function getNextStage(stage: RelationshipStage): RelationshipStage | null {
   const stages: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_confidant'];
   const index = stages.indexOf(stage);
-  return index < stages.length - 1 ? stages[index + 1] : null;
+  return index < stages.length - 1 ? (stages[index + 1] ?? null) : null;
 }
 
 /**
@@ -511,7 +514,7 @@ export function getNextStage(stage: RelationshipStage): RelationshipStage | null
 export function getPreviousStage(stage: RelationshipStage): RelationshipStage | null {
   const stages: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_confidant'];
   const index = stages.indexOf(stage);
-  return index > 0 ? stages[index - 1] : null;
+  return index > 0 ? (stages[index - 1] ?? null) : null;
 }
 
 // ============================================================================

@@ -13,6 +13,12 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import {
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE_LOW,
+  GEMINI_MAX_OUTPUT_TOKENS_SHORT,
+  LLM_TIMEOUT_MS,
+} from '../../../../config/gemini-config.js';
 import type { ToolMatch, SemanticRouterResult } from '../../types.js';
 
 const log = createLogger({ module: 'llm-fallback-router' });
@@ -427,23 +433,25 @@ export interface LLMProvider {
 
 /**
  * Create a simple Gemini provider
+ * Config values from centralized gemini-config.ts
  */
 export function createGeminiProvider(apiKey: string): LLMProvider {
   return {
-    model: 'gemini-2.0-flash',
+    model: GEMINI_MODEL,
     async generate(prompt: string): Promise<string> {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 500,
+              temperature: GEMINI_TEMPERATURE_LOW,
+              maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,
             },
           }),
+          signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
         }
       );
 
@@ -459,6 +467,7 @@ export function createGeminiProvider(apiKey: string): LLMProvider {
 
 /**
  * Create a simple OpenAI provider
+ * Config values from centralized gemini-config.ts (for consistency)
  */
 export function createOpenAIProvider(apiKey: string): LLMProvider {
   return {
@@ -473,9 +482,10 @@ export function createOpenAIProvider(apiKey: string): LLMProvider {
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.2,
-          max_tokens: 500,
+          temperature: GEMINI_TEMPERATURE_LOW,
+          max_tokens: GEMINI_MAX_OUTPUT_TOKENS_SHORT,
         }),
+        signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
       });
 
       if (!response.ok) {

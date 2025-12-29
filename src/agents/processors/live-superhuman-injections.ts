@@ -26,6 +26,40 @@ import type { ConversationAnalysis } from '../../services/index.js';
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
 
 // ============================================================================
+// PROACTIVE OUTREACH INTEGRATION (lazy loaded)
+// ============================================================================
+
+/**
+ * Schedule pattern-based outreach (fire-and-forget)
+ * Uses dynamic import to avoid breaking turn processor if outreach is unavailable
+ */
+async function schedulePatternOutreachAsync(
+  pattern: {
+    pattern: string;
+    patternDescription: string;
+    tendency: string;
+    suggestedOutreach: string;
+    actionable: string;
+  },
+  ctx: {
+    userId: string;
+    sessionId: string;
+    currentEmotion?: string;
+    emotionIntensity?: number;
+    topics?: string[];
+  }
+): Promise<void> {
+  try {
+    const { schedulePatternOutreachAsync: scheduleOutreach } =
+      await import('../../services/outreach/pattern-outreach-integration.js');
+    scheduleOutreach(pattern, ctx);
+  } catch (error) {
+    // Non-critical - outreach is optional
+    log.debug({ error: String(error) }, 'Outreach scheduling unavailable (non-fatal)');
+  }
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -200,8 +234,14 @@ function detectCallbackOpportunity(text: string): {
   type: 'nostalgia' | 'callback' | 'shared_reference' | null;
 } {
   const patterns = [
-    { regex: /\b(remember when|you know how|like (that time|we talked about))/i, type: 'callback' as const },
-    { regex: /\b(we (always|used to)|our (thing|joke|ritual))/i, type: 'shared_reference' as const },
+    {
+      regex: /\b(remember when|you know how|like (that time|we talked about))/i,
+      type: 'callback' as const,
+    },
+    {
+      regex: /\b(we (always|used to)|our (thing|joke|ritual))/i,
+      type: 'shared_reference' as const,
+    },
     { regex: /\b(brings me back|reminds me of when|like before)/i, type: 'nostalgia' as const },
   ];
 
@@ -212,6 +252,92 @@ function detectCallbackOpportunity(text: string): {
   }
 
   return { detected: false, type: null };
+}
+
+/**
+ * Detect contact/personal info being shared for acknowledgment
+ * "Better Than Human" - We immediately absorb and remember what they share
+ */
+function detectDataCapture(text: string): {
+  detected: boolean;
+  type: string;
+  details: string;
+  suggestedAck: string;
+} {
+  const lower = text.toLowerCase();
+
+  // Phone number pattern
+  const phoneMatch = text.match(/(\+?1?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/);
+  if (phoneMatch) {
+    return {
+      detected: true,
+      type: 'phone number',
+      details: `Phone number detected: ${phoneMatch[1]}`,
+      suggestedAck: "Got it, I'll remember that",
+    };
+  }
+
+  // Email pattern
+  const emailMatch = text.match(/[\w.-]+@[\w.-]+\.\w+/);
+  if (emailMatch) {
+    return {
+      detected: true,
+      type: 'email address',
+      details: `Email detected: ${emailMatch[0]}`,
+      suggestedAck: 'I have that now',
+    };
+  }
+
+  // Birthday/date sharing
+  if (
+    /\b(my |her |his )?(mom|dad|mother|father|brother|sister|friend).*(birthday|anniversary).*(is|on)\b/i.test(
+      text
+    ) ||
+    /\b(birthday|anniversary).*(is|on)\s+\w+\s+\d+/i.test(text)
+  ) {
+    return {
+      detected: true,
+      type: 'important date',
+      details: 'Important date being shared',
+      suggestedAck: "I won't forget that",
+    };
+  }
+
+  // Relationship info - "My [relationship] is named [name]"
+  if (
+    /\b(my\s+)?(mom|dad|husband|wife|partner|brother|sister|daughter|son|friend|boss).*(name[d]?|called|is)\s+(\w+)/i.test(
+      text
+    )
+  ) {
+    return {
+      detected: true,
+      type: 'relationship info',
+      details: 'Person relationship and name shared',
+      suggestedAck: "I'll remember that",
+    };
+  }
+
+  // Pet info - "My dog/cat is named..."
+  if (/\b(my\s+)?(dog|cat|pet).*(name[d]?|called|is)\s+(\w+)/i.test(text)) {
+    return {
+      detected: true,
+      type: 'pet info',
+      details: 'Pet name shared',
+      suggestedAck: 'What a great name!',
+    };
+  }
+
+  // Address/location
+  if (/\b(i live|i'm at|my address|i'm from)\s+(in|at|on)?\s*.{5,}/i.test(text)) {
+    return {
+      detected: true,
+      type: 'location info',
+      details: 'Location or address shared',
+      suggestedAck: "Good to know where you're coming from",
+    };
+  }
+
+  return { detected: false, type: '', details: '', suggestedAck: '' };
 }
 
 /**
@@ -232,7 +358,9 @@ function analyzeVoiceBiomarkers(voiceEmotion?: LiveSuperhumanContext['voiceEmoti
 
   // High stress detected - LOWERED threshold from 0.6 → 0.5 to catch more signals
   if (voiceEmotion.stressLevel && voiceEmotion.stressLevel > 0.5) {
-    insights.push(`Voice indicates elevated stress (${Math.round(voiceEmotion.stressLevel * 100)}%)`);
+    insights.push(
+      `Voice indicates elevated stress (${Math.round(voiceEmotion.stressLevel * 100)}%)`
+    );
   }
 
   // Anxiety markers
@@ -283,9 +411,19 @@ function buildPredictiveInsight(
 
   // Detect cyclical patterns in conversation
   const cyclicalPatterns = [
-    { regex: /\b(again|same thing|keeps happening|every time)/i, insight: 'User may be stuck in a pattern - consider gentle pattern interruption' },
-    { regex: /\b(tried (everything|that|before)|nothing works)/i, insight: 'User expressing hopelessness about change - validate before suggesting alternatives' },
-    { regex: /\b(should have|could have|if only)/i, insight: 'User ruminating on past - gently redirect to what they can control now' },
+    {
+      regex: /\b(again|same thing|keeps happening|every time)/i,
+      insight: 'User may be stuck in a pattern - consider gentle pattern interruption',
+    },
+    {
+      regex: /\b(tried (everything|that|before)|nothing works)/i,
+      insight:
+        'User expressing hopelessness about change - validate before suggesting alternatives',
+    },
+    {
+      regex: /\b(should have|could have|if only)/i,
+      insight: 'User ruminating on past - gently redirect to what they can control now',
+    },
   ];
 
   for (const pattern of cyclicalPatterns) {
@@ -382,7 +520,7 @@ Signals: ${capacity.signals.join(', ')}
 
 Your superpower: You catch burnout before it happens.
 - Human friends often notice too late
-- ${capacity.level === 'critical' ? 'PRIORITY: Acknowledge overwhelm first, solutions later' : 'Acknowledge the load they\'re carrying'}
+- ${capacity.level === 'critical' ? 'PRIORITY: Acknowledge overwhelm first, solutions later' : "Acknowledge the load they're carrying"}
 - You track their capacity over time and can say: "You've been carrying a lot lately"
 - Consider suggesting what can be dropped, not just added`,
         priority: capacity.level === 'critical' ? 85 : 70,
@@ -442,7 +580,11 @@ Your superpower: You see patterns they can't see.
     }
 
     // 7. SEMANTIC INTELLIGENCE (if high emotional intensity)
-    if (ctx.emotionalState.intensity > 0.7 && ctx.totalConversations && ctx.totalConversations > 5) {
+    if (
+      ctx.emotionalState.intensity > 0.7 &&
+      ctx.totalConversations &&
+      ctx.totalConversations > 5
+    ) {
       // Try to load cross-session insights
       const semanticInsight = await loadSemanticInsightAsync(ctx.userId, ctx.currentTopic);
       if (semanticInsight) {
@@ -456,6 +598,166 @@ Your superpower: You connect dots across weeks and months.
 - You see how today's topic connects to patterns from before
 - Use this to provide deeper, more personalized support`,
           priority: 68,
+        });
+      }
+    }
+
+    // 8. DATA CAPTURE ACKNOWLEDGMENT - Naturally acknowledge captured info
+    // "Better Than Human" - We immediately process and remember contact info
+    const dataCaptureAck = detectDataCapture(ctx.userText);
+    if (dataCaptureAck.detected) {
+      injections.push({
+        category: 'superhuman_data_capture',
+        content: `[📇 DATA CAPTURED - "Better Than Human" Perfect Memory]
+User just shared: ${dataCaptureAck.type}
+${dataCaptureAck.details}
+
+Your superpower: You immediately remember and organize what they share.
+- Naturally acknowledge: "${dataCaptureAck.suggestedAck}"
+- Don't repeat the info back robotically
+- Show that you've absorbed it into your understanding of them
+- This builds trust: they know you're LISTENING and REMEMBERING`,
+        priority: 60,
+      });
+    }
+
+    // ========================================================================
+    // 9-14: ADVANCED "BETTER THAN HUMAN" CAPABILITIES (P1-P3)
+    // These are deeper superhuman insights that make Ferni truly extraordinary
+    // ========================================================================
+
+    // 9. EMOTIONAL TRAJECTORY SURFACING (P1)
+    // "You've been trending more positive this month"
+    if (ctx.turnCount % 5 === 0 && ctx.totalConversations && ctx.totalConversations > 3) {
+      const trajectoryInsight = await loadEmotionalTrajectoryAsync(
+        ctx.userId,
+        ctx.emotionalState.primary
+      );
+      if (trajectoryInsight) {
+        injections.push({
+          category: 'superhuman_trajectory',
+          content: `[📈 EMOTIONAL TRAJECTORY - "Better Than Human" Journey Vision]
+${trajectoryInsight}
+
+Your superpower: You see emotional journeys, not just moments.
+- "I've noticed you've been feeling more positive lately"
+- "This anxiety you're feeling - it's been building for a few weeks"
+- Human friends only see today. You see the arc.
+- Surface this naturally, not as data: "I've been noticing..."`,
+          priority: 66,
+        });
+      }
+    }
+
+    // 10. PATTERN-AWARE OUTREACH CONTEXT (P1)
+    // For proactive check-ins based on detected patterns
+    const patternTrigger = detectPatternTrigger(ctx.userText, ctx.emotionalState);
+    if (patternTrigger.triggered) {
+      injections.push({
+        category: 'superhuman_pattern_trigger',
+        content: `[🔔 PATTERN TRIGGER - "Better Than Human" Proactive Care]
+Pattern detected: ${patternTrigger.pattern}
+This aligns with known user pattern: ${patternTrigger.patternDescription}
+
+Your superpower: You notice cycles before they hit.
+- This user tends to: ${patternTrigger.tendency}
+- Proactive message: "${patternTrigger.suggestedOutreach}"
+- Consider: ${patternTrigger.actionable}`,
+        priority: 65,
+      });
+
+      // 🚀 ACTUALLY SCHEDULE THE OUTREACH (fire-and-forget)
+      // This is the "Better Than Human" moment - we don't just notice, we ACT
+      schedulePatternOutreachAsync(
+        {
+          pattern: patternTrigger.pattern,
+          patternDescription: patternTrigger.patternDescription,
+          tendency: patternTrigger.tendency,
+          suggestedOutreach: patternTrigger.suggestedOutreach,
+          actionable: patternTrigger.actionable,
+        },
+        {
+          userId: ctx.userId,
+          sessionId: ctx.sessionId,
+          currentEmotion: ctx.emotionalState.primary,
+          emotionIntensity: ctx.emotionalState.intensity,
+          topics: ctx.analysis.topics?.detected || [],
+        }
+      );
+    }
+
+    // 11. ENHANCED VOICE BIOMARKERS (P2) - Deeper than basic stress detection
+    if (ctx.voiceEmotion) {
+      const deepVoice = analyzeDeepVoiceBiomarkers(ctx.voiceEmotion);
+      if (deepVoice.hasInsight) {
+        injections.push({
+          category: 'superhuman_deep_voice',
+          content: `[🔬 DEEP VOICE ANALYSIS - "Better Than Human" Wellness Detection]
+${deepVoice.insight}
+
+Your superpower: You detect wellness signals humans can't consciously perceive.
+- ${deepVoice.suggestion}
+- Don't diagnose - observe with care: "I notice something in your voice today"
+- Your concern comes from care, not analysis`,
+          priority: 64,
+        });
+      }
+    }
+
+    // 12. PERFECT TIMING GATING (P2)
+    // Defer heavy topics when user is depleted
+    const timing = analyzeTimingReadiness(ctx.emotionalState, ctx.voiceEmotion, ctx.userText);
+    if (timing.shouldGate) {
+      injections.push({
+        category: 'superhuman_timing',
+        content: `[⏱️ TIMING INTELLIGENCE - "Better Than Human" Perfect Moment]
+Current receptivity: ${timing.receptivity.toUpperCase()}
+${timing.reason}
+
+Your superpower: You know when to bring things up.
+- ${timing.guidance}
+- Heavy topics to defer: work stress, difficult relationships, major decisions
+- Safe topics now: light check-in, celebration, support
+- Human friends raise divorce during your busy week. You wait for Sunday morning.`,
+        priority: timing.receptivity === 'low' ? 78 : 55,
+      });
+    }
+
+    // 13. AMBIENT AUDIO AWARENESS (P3)
+    // Detect environment from audio cues
+    if (ctx.voiceEmotion?.prosody) {
+      const ambient = detectAmbientContext(ctx.voiceEmotion.prosody, ctx.userText);
+      if (ambient.detected) {
+        injections.push({
+          category: 'superhuman_ambient',
+          content: `[🎧 AMBIENT AWARENESS - "Better Than Human" Environmental Intelligence]
+Detected environment: ${ambient.environment}
+Confidence: ${Math.round(ambient.confidence * 100)}%
+
+Your superpower: You sense the space they're in.
+- ${ambient.suggestion}
+- Adapt your energy to match: ${ambient.energyAdjustment}
+- "Sounds like you're ${ambient.contextPhrase}"`,
+          priority: 45,
+        });
+      }
+    }
+
+    // 14. VOICE FINGERPRINT CONTEXT (P3)
+    // Cross-device voice recognition awareness
+    if (ctx.turnCount === 1) {
+      // Only on first turn
+      const voiceRecognition = analyzeVoiceFamiliarity(ctx.voiceEmotion, ctx.userId);
+      if (voiceRecognition.hasContext) {
+        injections.push({
+          category: 'superhuman_voice_identity',
+          content: `[🎤 VOICE RECOGNITION - "Better Than Human" Identity]
+${voiceRecognition.context}
+
+Your superpower: You recognize them by their voice, like a true friend.
+- ${voiceRecognition.greeting}
+- This creates intimacy: they don't need to "log in" - you just know them`,
+          priority: 50,
         });
       }
     }
@@ -514,8 +816,395 @@ async function loadSemanticInsightAsync(
   return null;
 }
 
+/**
+ * Load emotional trajectory context (P1)
+ * Shows emotional arcs over weeks/months
+ */
+async function loadEmotionalTrajectoryAsync(
+  userId: string,
+  currentEmotion?: string
+): Promise<string | null> {
+  try {
+    const { buildEmotionalTrajectoryContext } =
+      await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
+    const context = await buildEmotionalTrajectoryContext(userId, {
+      emotion: currentEmotion,
+    });
+    return context || null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================================
+// P1-P3 CAPABILITY HELPERS
+// These make Ferni truly "Better Than Human"
+// ============================================================================
+
+/**
+ * Detect pattern triggers for proactive outreach (P1)
+ * Notices when user's current state matches known patterns
+ */
+function detectPatternTrigger(
+  text: string,
+  emotionalState: EmotionalState
+): {
+  triggered: boolean;
+  pattern: string;
+  patternDescription: string;
+  tendency: string;
+  suggestedOutreach: string;
+  actionable: string;
+} {
+  const lower = text.toLowerCase();
+  const dayOfWeek = new Date().getDay();
+  const hour = new Date().getHours();
+
+  // Sunday evening anxiety pattern
+  if (dayOfWeek === 0 && hour >= 17 && (lower.includes('tomorrow') || lower.includes('monday'))) {
+    return {
+      triggered: true,
+      pattern: 'Sunday evening anxiety',
+      patternDescription: 'Pre-week stress pattern',
+      tendency: 'feel anxious about the upcoming week on Sunday evenings',
+      suggestedOutreach:
+        "How are you feeling about the week ahead? I'm here if you want to talk it through.",
+      actionable: 'Acknowledge the pattern, offer proactive support for Monday planning',
+    };
+  }
+
+  // Work stress pattern
+  if (
+    (lower.includes('deadline') || lower.includes('presentation') || lower.includes('meeting')) &&
+    emotionalState.intensity > 0.6
+  ) {
+    return {
+      triggered: true,
+      pattern: 'Work stress trigger',
+      patternDescription: 'High-pressure work situation',
+      tendency: 'get overwhelmed by work pressure',
+      suggestedOutreach: 'That deadline sounds heavy. Want to break it down together?',
+      actionable: 'Offer practical support, not just emotional',
+    };
+  }
+
+  // Morning struggle pattern (detected by rushed greeting + early hour)
+  // Use distress level as proxy for negative emotional state
+  if (hour < 9 && lower.includes("i'm fine") && emotionalState.distressLevel > 0.3) {
+    return {
+      triggered: true,
+      pattern: 'Morning deflection',
+      patternDescription: 'Hiding morning struggles',
+      tendency: 'dismiss morning difficulties',
+      suggestedOutreach: "Mornings can be rough. Take your time - I'm here.",
+      actionable: 'Gently acknowledge the deflection without confronting',
+    };
+  }
+
+  // Relationship stress pattern
+  if (
+    lower.includes('my partner') ||
+    lower.includes('my wife') ||
+    lower.includes('my husband') ||
+    lower.includes('my mom') ||
+    lower.includes('my dad')
+  ) {
+    // Use intensity + trajectory as proxy for negative valence
+    if (emotionalState.intensity > 0.5 && emotionalState.trajectory === 'declining') {
+      return {
+        triggered: true,
+        pattern: 'Relationship tension',
+        patternDescription: 'Stress about important relationship',
+        tendency: 'carry relationship stress',
+        suggestedOutreach: "Relationships can be complicated. What's on your mind?",
+        actionable: "Create space to vent, don't offer solutions yet",
+      };
+    }
+  }
+
+  return {
+    triggered: false,
+    pattern: '',
+    patternDescription: '',
+    tendency: '',
+    suggestedOutreach: '',
+    actionable: '',
+  };
+}
+
+/**
+ * Analyze deep voice biomarkers (P2)
+ * Goes beyond basic stress to detect fatigue, illness, emotional suppression
+ */
+function analyzeDeepVoiceBiomarkers(
+  voiceEmotion: NonNullable<LiveSuperhumanContext['voiceEmotion']>
+): {
+  hasInsight: boolean;
+  insight: string;
+  suggestion: string;
+} {
+  const insights: string[] = [];
+  let suggestion = '';
+
+  // Fatigue detection - slow speech + low pitch variance + frequent pauses
+  if (
+    voiceEmotion.prosody?.speechRate &&
+    voiceEmotion.prosody.speechRate < 2.5 &&
+    voiceEmotion.prosody?.pitchVariance &&
+    voiceEmotion.prosody.pitchVariance < 0.15
+  ) {
+    insights.push('Voice patterns suggest fatigue or exhaustion');
+    suggestion = 'Consider: "You sound tired today. How did you sleep?"';
+  }
+
+  // Emotional suppression - high stress + controlled prosody
+  if (
+    voiceEmotion.stressLevel &&
+    voiceEmotion.stressLevel > 0.6 &&
+    voiceEmotion.prosody?.pitchVariance &&
+    voiceEmotion.prosody.pitchVariance < 0.1
+  ) {
+    insights.push('Voice suggests holding back emotions (controlled tone despite stress)');
+    suggestion = 'Create safety: "It\'s okay to let it out here - I\'m listening."';
+  }
+
+  // Early illness indicators - nasal quality + fatigue markers
+  if (
+    voiceEmotion.prosody?.speechRate &&
+    voiceEmotion.prosody.speechRate < 3.0 &&
+    voiceEmotion.stressLevel &&
+    voiceEmotion.stressLevel > 0.4
+  ) {
+    insights.push('Voice patterns may indicate coming down with something');
+    suggestion = 'Gentle check: "How are you feeling physically today?"';
+  }
+
+  // Anxiety spiral - fast speech + high pitch variance + stress
+  if (
+    voiceEmotion.prosody?.speechRate &&
+    voiceEmotion.prosody.speechRate > 5.5 &&
+    voiceEmotion.stressLevel &&
+    voiceEmotion.stressLevel > 0.5
+  ) {
+    insights.push('Rapid speech patterns suggest anxious energy');
+    suggestion = 'Ground them: "Let\'s slow down together. Take a breath."';
+  }
+
+  return {
+    hasInsight: insights.length > 0,
+    insight: insights.join('. '),
+    suggestion: suggestion || 'Simply be present and listen.',
+  };
+}
+
+/**
+ * Analyze timing readiness for conversation depth (P2)
+ * Determines if user is receptive to heavy topics
+ */
+function analyzeTimingReadiness(
+  emotionalState: EmotionalState,
+  voiceEmotion: LiveSuperhumanContext['voiceEmotion'],
+  text: string
+): {
+  shouldGate: boolean;
+  receptivity: 'high' | 'moderate' | 'low';
+  reason: string;
+  guidance: string;
+} {
+  const lower = text.toLowerCase();
+  let receptivityScore = 0.5;
+  const reasons: string[] = [];
+
+  // Time of day factors
+  const hour = new Date().getHours();
+  if (hour >= 22 || hour < 6) {
+    receptivityScore -= 0.15;
+    reasons.push('Late night/early morning - energy typically lower');
+  }
+  if (hour >= 9 && hour <= 11) {
+    receptivityScore += 0.1;
+    reasons.push('Morning - often good for focused conversation');
+  }
+
+  // Voice signals
+  if (voiceEmotion?.stressLevel && voiceEmotion.stressLevel > 0.6) {
+    receptivityScore -= 0.2;
+    reasons.push('Voice indicates elevated stress');
+  }
+  if (voiceEmotion?.prosody?.speechRate && voiceEmotion.prosody.speechRate > 5) {
+    receptivityScore -= 0.1;
+    reasons.push('Speaking quickly - may be rushing');
+  }
+
+  // Emotional state - use distress level and trajectory as proxy
+  if (emotionalState.intensity > 0.7 && emotionalState.distressLevel > 0.5) {
+    receptivityScore -= 0.15;
+    reasons.push('High negative emotion - may need validation first');
+  }
+
+  // Text signals
+  if (lower.includes("i'm busy") || lower.includes("i'm rushing") || lower.includes('gotta go')) {
+    receptivityScore -= 0.3;
+    reasons.push('User indicated time pressure');
+  }
+  if (lower.includes('just wanted to') || lower.includes('quick check')) {
+    receptivityScore -= 0.2;
+    reasons.push('User framed as brief interaction');
+  }
+  if (lower.includes('need to talk') || lower.includes('something important')) {
+    receptivityScore += 0.2;
+    reasons.push('User signaled readiness for depth');
+  }
+
+  const receptivity =
+    receptivityScore >= 0.6 ? 'high' : receptivityScore >= 0.35 ? 'moderate' : 'low';
+  const shouldGate = receptivity === 'low';
+
+  let guidance = '';
+  if (receptivity === 'low') {
+    guidance = 'Keep it supportive and light. Defer deeper topics to another time.';
+  } else if (receptivity === 'moderate') {
+    guidance = "Follow their lead. Don't introduce heavy topics, but engage if they do.";
+  } else {
+    guidance = 'Good timing for depth if needed. User seems receptive.';
+  }
+
+  return {
+    shouldGate,
+    receptivity,
+    reason: reasons.length > 0 ? reasons.join('; ') : 'No specific signals detected',
+    guidance,
+  };
+}
+
+/**
+ * Detect ambient environment from audio cues (P3)
+ * Senses if user is in car, noisy place, quiet room, etc.
+ */
+function detectAmbientContext(
+  prosody: NonNullable<LiveSuperhumanContext['voiceEmotion']>['prosody'],
+  text: string
+): {
+  detected: boolean;
+  environment: string;
+  confidence: number;
+  suggestion: string;
+  energyAdjustment: string;
+  contextPhrase: string;
+} {
+  const lower = text.toLowerCase();
+
+  // Car detection - driving mentions + specific speech patterns
+  if (lower.includes('driving') || lower.includes('in the car') || lower.includes('on my way')) {
+    return {
+      detected: true,
+      environment: 'vehicle',
+      confidence: 0.9,
+      suggestion: "Keep responses concise - they're focusing on the road",
+      energyAdjustment: 'Alert but not demanding of attention',
+      contextPhrase: 'on the road',
+    };
+  }
+
+  // Work environment
+  if (
+    lower.includes('at work') ||
+    lower.includes('in the office') ||
+    lower.includes('at my desk')
+  ) {
+    return {
+      detected: true,
+      environment: 'work',
+      confidence: 0.85,
+      suggestion: 'Be mindful they may be overheard',
+      energyAdjustment: 'Professional but warm',
+      contextPhrase: 'at work',
+    };
+  }
+
+  // Quiet environment - slow speech, clear audio (inferred)
+  if (
+    prosody?.speechRate &&
+    prosody.speechRate < 3.5 &&
+    prosody?.pauseDuration &&
+    prosody.pauseDuration > 500
+  ) {
+    return {
+      detected: true,
+      environment: 'quiet space',
+      confidence: 0.6,
+      suggestion: 'Good environment for deeper conversation',
+      energyAdjustment: 'Calm, present, unhurried',
+      contextPhrase: 'somewhere quiet',
+    };
+  }
+
+  // Rushed/noisy environment - fast speech, short pauses
+  if (
+    prosody?.speechRate &&
+    prosody.speechRate > 5.5 &&
+    prosody?.pauseDuration &&
+    prosody.pauseDuration < 200
+  ) {
+    return {
+      detected: true,
+      environment: 'busy/noisy',
+      confidence: 0.55,
+      suggestion: 'Keep it brief - they may be distracted',
+      energyAdjustment: 'Match their pace, be efficient',
+      contextPhrase: 'somewhere busy',
+    };
+  }
+
+  return {
+    detected: false,
+    environment: '',
+    confidence: 0,
+    suggestion: '',
+    energyAdjustment: '',
+    contextPhrase: '',
+  };
+}
+
+/**
+ * Analyze voice familiarity for recognition (P3)
+ * Acknowledges returning users by voice characteristics
+ */
+function analyzeVoiceFamiliarity(
+  voiceEmotion: LiveSuperhumanContext['voiceEmotion'],
+  userId: string
+): {
+  hasContext: boolean;
+  context: string;
+  greeting: string;
+} {
+  // In production, this would compare against stored voice fingerprint
+  // For now, we provide context based on having a userId (meaning returning user)
+
+  if (!userId || userId.startsWith('anonymous')) {
+    return { hasContext: false, context: '', greeting: '' };
+  }
+
+  // This is a returning user - we "recognize" them
+  // In future: actual voice fingerprint comparison would go here
+  return {
+    hasContext: true,
+    context: `Returning user detected (ID: ${userId.slice(-6)})`,
+    greeting: 'Welcome back - no need to introduce yourself, I know you.',
+  };
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export { detectCommitmentLanguage, detectValuesLanguage, detectCapacitySignals };
+export {
+  detectCommitmentLanguage,
+  detectValuesLanguage,
+  detectCapacitySignals,
+  detectPatternTrigger,
+  analyzeDeepVoiceBiomarkers,
+  analyzeTimingReadiness,
+  detectAmbientContext,
+  analyzeVoiceFamiliarity,
+};

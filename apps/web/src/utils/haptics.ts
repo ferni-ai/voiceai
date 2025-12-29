@@ -36,27 +36,27 @@ export type EmotionalState = 'empathy' | 'encouragement' | 'understanding' | 'co
 // BASE PATTERNS (from design-system/tokens/haptics.json)
 // =============================================================================
 
-const BASE_PATTERNS: Record<string, HapticPattern> = {
-  tap: { duration: 10, intensity: 2 },
-  softTap: { duration: 8, intensity: 1 },
-  doubleTap: { duration: 40, intensity: 2, gap: 30 },
-  bump: { duration: 20, intensity: 3 },
-  click: { duration: 15, intensity: 3 },
-};
+const BASE_PATTERNS = {
+  tap: { duration: 10, intensity: 2 as const },
+  softTap: { duration: 8, intensity: 1 as const },
+  doubleTap: { duration: 40, intensity: 2 as const, gap: 30 },
+  bump: { duration: 20, intensity: 3 as const },
+  click: { duration: 15, intensity: 3 as const },
+} as const satisfies Record<string, HapticPattern>;
 
-const ORGANIC_PATTERNS: Record<string, HapticPattern> = {
-  ferniBreath: { duration: 300, intensity: 2, waveform: [0.2, 0.4, 0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 0] },
-  warmPulse: { duration: 250, intensity: 3, waveform: [0.3, 0.6, 1, 0.6, 0.3, 0] },
-  heartbeat: { duration: 800, intensity: [3, 2] as HapticIntensity[], waveform: [0.6, 1, 0, 0, 0.5, 0.8, 0, 0, 0] },
-  slowBreath: { duration: 500, intensity: 2 },
-  quickBreath: { duration: 200, intensity: 2 },
-};
+const ORGANIC_PATTERNS = {
+  ferniBreath: { duration: 300, intensity: 2 as const, waveform: [0.2, 0.4, 0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 0] },
+  warmPulse: { duration: 250, intensity: 3 as const, waveform: [0.3, 0.6, 1, 0.6, 0.3, 0] },
+  heartbeat: { duration: 800, intensity: [3, 2] as [HapticIntensity, HapticIntensity], waveform: [0.6, 1, 0, 0, 0.5, 0.8, 0, 0, 0] },
+  slowBreath: { duration: 500, intensity: 2 as const },
+  quickBreath: { duration: 200, intensity: 2 as const },
+} as const satisfies Record<string, HapticPattern>;
 
-const CELEBRATION_PATTERNS: Record<string, HapticPattern> = {
-  smallWin: { duration: 200, intensity: [2, 1, 1] as HapticIntensity[] },
-  bigWin: { duration: 400, intensity: [3, 4, 2, 2, 1] as HapticIntensity[] },
-  streakAchieved: { duration: 500, intensity: [2, 2, 2, 3] as HapticIntensity[] },
-};
+const CELEBRATION_PATTERNS = {
+  smallWin: { duration: 200, intensity: [2, 1, 1] as [HapticIntensity, HapticIntensity, HapticIntensity] },
+  bigWin: { duration: 400, intensity: [3, 4, 2, 2, 1] as [HapticIntensity, HapticIntensity, HapticIntensity, HapticIntensity, HapticIntensity] },
+  streakAchieved: { duration: 500, intensity: [2, 2, 2, 3] as [HapticIntensity, HapticIntensity, HapticIntensity, HapticIntensity] },
+} as const satisfies Record<string, HapticPattern>;
 
 // =============================================================================
 // PERSONA HAPTIC SIGNATURES
@@ -70,58 +70,58 @@ interface PersonaHapticSignature {
   celebration?: HapticPattern;
 }
 
-const PERSONA_HAPTICS: Record<PersonaId, PersonaHapticSignature> = {
+const PERSONA_HAPTICS = {
   ferni: {
     signature: 'ferniBreath',
-    speaking: { duration: 300, intensity: 2 },
-    acknowledgment: { duration: 40, intensity: 2, gap: 40 },
-    insight: { duration: 300, intensity: 3 },
-    celebration: { duration: 250, intensity: 3 },
+    speaking: { duration: 300, intensity: 2 as const },
+    acknowledgment: { duration: 40, intensity: 2 as const, gap: 40 },
+    insight: { duration: 300, intensity: 3 as const },
+    celebration: { duration: 250, intensity: 3 as const },
   },
   peter: {
     signature: 'quickBreath',
-    speaking: { duration: 200, intensity: 2 },
-    acknowledgment: { duration: 300, intensity: [3, 2, 2, 1] as HapticIntensity[] },
-    insight: { duration: 350, intensity: 4 },
+    speaking: { duration: 200, intensity: 2 as const },
+    acknowledgment: { duration: 300, intensity: [3, 2, 2, 1] as [HapticIntensity, HapticIntensity, HapticIntensity, HapticIntensity] },
+    insight: { duration: 350, intensity: 4 as const },
   },
   alex: {
     signature: 'warmPulse',
-    speaking: { duration: 350, intensity: 2 },
-    acknowledgment: { duration: 15, intensity: 2 },
-    insight: { duration: 250, intensity: 3 },
+    speaking: { duration: 350, intensity: 2 as const },
+    acknowledgment: { duration: 15, intensity: 2 as const },
+    insight: { duration: 250, intensity: 3 as const },
   },
   maya: {
     signature: 'steadyRhythm',
-    speaking: { duration: 300, intensity: 2 },
-    acknowledgment: { duration: 20, intensity: 3 },
-    insight: { duration: 400, intensity: [1, 2, 2] as HapticIntensity[] },
+    speaking: { duration: 300, intensity: 2 as const },
+    acknowledgment: { duration: 20, intensity: 3 as const },
+    insight: { duration: 400, intensity: [1, 2, 2] as [HapticIntensity, HapticIntensity, HapticIntensity] },
   },
   jordan: {
     signature: 'bounce',
-    speaking: { duration: 250, intensity: 2 },
-    acknowledgment: { duration: 350, intensity: [2, 2, 3, 2] as HapticIntensity[] },
-    celebration: { duration: 500, intensity: 4 },
+    speaking: { duration: 250, intensity: 2 as const },
+    acknowledgment: { duration: 350, intensity: [2, 2, 3, 2] as [HapticIntensity, HapticIntensity, HapticIntensity, HapticIntensity] },
+    celebration: { duration: 500, intensity: 4 as const },
   },
   nayan: {
     signature: 'deepBreath',
-    speaking: { duration: 600, intensity: 2 },
-    acknowledgment: { duration: 600, intensity: 3 },
-    insight: { duration: 400, intensity: 3 },
+    speaking: { duration: 600, intensity: 2 as const },
+    acknowledgment: { duration: 600, intensity: 3 as const },
+    insight: { duration: 400, intensity: 3 as const },
   },
-};
+} as const satisfies Record<PersonaId, PersonaHapticSignature>;
 
 // =============================================================================
 // EMOTIONAL HAPTICS
 // =============================================================================
 
-const EMOTIONAL_HAPTICS: Record<EmotionalState, HapticPattern> = {
-  empathy: { duration: 300, intensity: 3 },
-  encouragement: { duration: 200, intensity: 2 },
-  understanding: { duration: 500, intensity: 2 },
-  concern: { duration: 400, intensity: 2 },
-  celebration: { duration: 400, intensity: 3 },
-  curiosity: { duration: 180, intensity: 2 },
-};
+const EMOTIONAL_HAPTICS = {
+  empathy: { duration: 300, intensity: 3 as const },
+  encouragement: { duration: 200, intensity: 2 as const },
+  understanding: { duration: 500, intensity: 2 as const },
+  concern: { duration: 400, intensity: 2 as const },
+  celebration: { duration: 400, intensity: 3 as const },
+  curiosity: { duration: 180, intensity: 2 as const },
+} as const satisfies Record<EmotionalState, HapticPattern>;
 
 // =============================================================================
 // HAPTICS ENGINE

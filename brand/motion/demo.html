@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Motion Language - Animation Studio Showcase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Core Colors */
+      --bg-primary: #faf8f5;
+      --bg-elevated: #fffdfb;
+      --bg-dark: #1e1e1e;
+      --text-primary: #2c2520;
+      --text-secondary: #5c544a;
+      --text-muted: #756a5e;
+      --accent: #3D5A45;
+
+      /* Persona Colors */
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --maya: #a67a6a;
+      --peter: #2d6a6a;
+      --jordan: #d4944c;
+      --alex: #5c6b99;
+      --nayan: #9a7b4f;
+
+      /* Emotional Glow Colors */
+      --glow-neutral: #f5f5f5;
+      --glow-joy: #ffd700;
+      --glow-concern: #daa520;
+      --glow-excitement: #ff6b6b;
+      --glow-calm: #87ceeb;
+      --glow-empathy: #ffb6c1;
+      --glow-focus: #4fc3f7;
+      --glow-celebration: #ffc107;
+      --glow-wisdom: #b8956a;
+      --glow-love: #ff69b4;
+
+      /* Ferni Animation Easings - Better than Pixar Lamp */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding-top: 56px;
+    }
+
+    /* Brand Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(250, 248, 245, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      font-size: 13px;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--ferni); }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 48px 40px 32px;
+      background: linear-gradient(180deg, rgba(74, 103, 65, 0.03) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .header-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 16px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ferni);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 40px;
+    }
+
+    /* Section Cards */
+    .section {
+      background: var(--bg-elevated);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 32px;
+      border: 1px solid rgba(44, 37, 32, 0.06);
+      box-shadow: 0 4px 24px rgba(44, 37, 32, 0.04);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--ferni-light) 0%, var(--ferni-dark) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .section-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 600px;
+    }
+
+    .why-box {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 20px;
+      border-left: 3px solid var(--ferni);
+    }
+
+    .why-box-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ferni);
+      margin-bottom: 6px;
+    }
+
+    .why-box p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ============================================
+       THE LIVING AVATAR - Full SVG System
+       ============================================ */
+
+    .avatar-showcase {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+
+    .avatar-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px;
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.05) 0%, transparent 100%);
+      border-radius: 20px;
+      min-width: 280px;
+    }
+
+    .ferni-avatar {
+      --size: 160px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      transition: transform 0.4s var(--ease-spring);
+    }
+
+    .avatar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Presence Ring */
+    .presence-ring {
+      fill: none;
+      stroke: var(--ferni);
+      stroke-width: 1.5;
+      opacity: 0.3;
+      transition: all 0.4s var(--ease-gentle);
+      transform-origin: center center;
+    }
+
+    /* Glow Ring */
+    .glow-ring {
+      fill: none;
+      stroke: var(--glow-neutral);
+      stroke-width: 3;
+      filter: blur(4px);
+      opacity: 0.5;
+      transition: all 0.5s ease;
+    }
+
+    /* BREATHING - Makes Ferni feel alive */
+    .ferni-avatar.breathing .avatar-body {
+      animation: breathe 4s ease-in-out infinite;
+    }
+
+    .ferni-avatar.breathing .presence-ring {
+      animation: ringBreathe 4s ease-in-out infinite;
+      animation-delay: 0.3s;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.018) scaleX(0.994); }
+    }
+
+    @keyframes ringBreathe {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.008); opacity: 0.35; }
+    }
+
+    /* BLINKING */
+    .eye-white {
+      transform-origin: center center;
+      transition: transform 0.08s ease-out;
+    }
+
+    .ferni-avatar.blinking .eye-white {
+      animation: blink 0.15s ease-in-out;
+    }
+
+    @keyframes blink {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.1); }
+    }
+
+    /* LID TRANSITIONS with anticipation */
+    .lid-top, .lid-bottom {
+      transition: d 0.35s var(--ease-spring);
+    }
+
+    .ferni-avatar.anticipation .lid-top,
+    .ferni-avatar.anticipation .lid-bottom {
+      transition: d 0.4s var(--ease-spring-heavy);
+    }
+
+    /* GAZE DRIFT */
+    .eyes-group {
+      transition: transform 0.8s var(--ease-organic);
+    }
+
+    .ferni-avatar.gazing .eyes-group {
+      animation: gazeDrift 8s ease-in-out infinite;
+    }
+
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(1px, -0.5px); }
+      50% { transform: translate(-0.5px, 0.5px); }
+      75% { transform: translate(0.5px, 0px); }
+    }
+
+    /* Smile Creases */
+    .smile-crease {
+      opacity: 0;
+      transition: opacity 0.3s var(--ease-gentle), stroke-width 0.2s var(--ease-spring);
+    }
+
+    /* Sparkle Stars */
+    .sparkle-group {
+      opacity: 0;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .sparkle-star {
+      transform-origin: center;
+    }
+
+    @keyframes sparkleRotate {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(15deg) scale(1.1); }
+    }
+
+    /* Expression States */
+    .ferni-avatar[data-mood="neutral"] .lid-top {
+      d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="neutral"] .lid-bottom {
+      d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+    }
+
+    .ferni-avatar[data-mood="listening"] {
+      transform: translateY(-2px);
+    }
+    .ferni-avatar[data-mood="listening"] .eye-white {
+      transform: scaleY(1.08);
+    }
+    .ferni-avatar[data-mood="listening"] .lid-top {
+      d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+    }
+
+    .ferni-avatar[data-mood="speaking"] .eye-white {
+      transform: scaleY(0.88) scaleX(1.02);
+    }
+    .ferni-avatar[data-mood="speaking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="speaking"] .avatar-body {
+      animation: speakPulse 0.45s ease-in-out infinite;
+    }
+
+    @keyframes speakPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.012) scaleX(0.992); }
+    }
+
+    .ferni-avatar[data-mood="happy"] .eye-white {
+      transform: scaleY(0.8) scaleX(1.06);
+    }
+    .ferni-avatar[data-mood="happy"] .lid-top {
+      d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .lid-bottom {
+      d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="happy"] .smile-crease { opacity: 0.7; }
+
+    .ferni-avatar[data-mood="thinking"] {
+      transform: rotate(1.5deg);
+    }
+    .ferni-avatar[data-mood="thinking"] .eyes-group {
+      transform: translate(2px, -2px);
+    }
+    .ferni-avatar[data-mood="thinking"] .eye-white {
+      transform: scaleY(0.95);
+    }
+    .ferni-avatar[data-mood="thinking"] .lid-top {
+      d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+    }
+
+    .ferni-avatar[data-mood="surprised"] {
+      transform: scaleY(1.02) scaleX(0.99);
+    }
+    .ferni-avatar[data-mood="surprised"] .eye-white {
+      transform: scaleY(1.15) scaleX(1.05);
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-top {
+      d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="surprised"] .lid-bottom {
+      d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z");
+    }
+
+    .ferni-avatar[data-mood="concern"] {
+      transform: rotate(-1deg);
+    }
+    .ferni-avatar[data-mood="concern"] .eye-white {
+      transform: scaleY(1.02);
+    }
+    .ferni-avatar[data-mood="concern"] .eye-left {
+      transform: scaleY(1.04);
+    }
+    .ferni-avatar[data-mood="concern"] .lid-top {
+      d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+    }
+
+    .ferni-avatar[data-mood="joy"] {
+      transform: translateY(-4px) scale(1.03);
+    }
+    .ferni-avatar[data-mood="joy"] .eye-white {
+      transform: scaleY(0.7) scaleX(1.12);
+    }
+    .ferni-avatar[data-mood="joy"] .lid-top {
+      d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+    }
+    .ferni-avatar[data-mood="joy"] .lid-bottom {
+      d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+    }
+    .ferni-avatar[data-mood="joy"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+    .ferni-avatar[data-mood="joy"] .sparkle-group { opacity: 1; }
+    .ferni-avatar[data-mood="joy"] .sparkle-star {
+      animation: sparkleRotate 0.6s ease-in-out infinite;
+    }
+
+    /* Micro-Expression Classes */
+    .ferni-avatar.micro-recognition .eye-white {
+      animation: microRecognition 80ms ease-out;
+    }
+
+    .ferni-avatar.micro-concern .lid-top {
+      animation: microConcern 100ms ease-out;
+    }
+
+    .ferni-avatar.micro-delight .smile-crease {
+      animation: microDelight 120ms ease-out;
+    }
+
+    .ferni-avatar.micro-warmth .smile-crease {
+      animation: microWarmth 100ms ease-out;
+    }
+
+    .ferni-avatar.micro-interest .eye-white {
+      animation: microInterest 90ms ease-out;
+    }
+
+    .ferni-avatar.micro-surprise .eye-white {
+      animation: microSurprise 150ms ease-out;
+    }
+
+    @keyframes microRecognition {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.08); }
+    }
+
+    @keyframes microConcern {
+      0%, 100% { d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"); }
+      50% { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+    }
+
+    @keyframes microDelight {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.8; }
+    }
+
+    @keyframes microWarmth {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 0.6; }
+    }
+
+    @keyframes microInterest {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.05); }
+    }
+
+    @keyframes microSurprise {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.12) scaleX(1.05); }
+    }
+
+    /* Micro-nod for active listening */
+    @keyframes microNod {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(2px); }
+    }
+
+    .ferni-avatar.nodding {
+      animation: microNod 0.3s ease-out;
+    }
+
+    /* Avatar Controls */
+    .avatar-controls {
+      flex: 1;
+      max-width: 480px;
+    }
+
+    .control-group {
+      background: var(--bg-primary);
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .layer-toggles {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .layer-toggle:hover {
+      border-color: rgba(74, 103, 65, 0.2);
+    }
+
+    .layer-toggle.active {
+      border-color: var(--ferni);
+      background: rgba(74, 103, 65, 0.05);
+    }
+
+    .layer-icon {
+      font-size: 20px;
+    }
+
+    .layer-info {
+      flex: 1;
+    }
+
+    .layer-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .layer-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       SUPERHUMAN EQ DEMO SECTION
+       ============================================ */
+
+    .eq-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .eq-card {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .eq-card:hover {
+      border-color: rgba(74, 103, 65, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .eq-card.active {
+      border-color: var(--ferni);
+      box-shadow: 0 8px 24px rgba(74, 103, 65, 0.15);
+    }
+
+    .eq-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .eq-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--ferni-light) 0%, var(--ferni-dark) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .eq-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .eq-timing {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--ferni);
+      background: rgba(74, 103, 65, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+
+    .eq-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .eq-demo-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: var(--ferni);
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .eq-demo-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    }
+
+    /* Active Listening Visualization */
+    .listening-viz {
+      height: 60px;
+      background: rgba(74, 103, 65, 0.05);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .listening-bar {
+      width: 4px;
+      height: 20px;
+      background: var(--ferni);
+      border-radius: 2px;
+      opacity: 0.3;
+      transition: all 0.15s;
+    }
+
+    .listening-viz.active .listening-bar {
+      animation: listenPulse 0.8s ease-in-out infinite;
+      opacity: 0.8;
+    }
+
+    .listening-viz.active .listening-bar:nth-child(1) { animation-delay: 0s; }
+    .listening-viz.active .listening-bar:nth-child(2) { animation-delay: 0.1s; }
+    .listening-viz.active .listening-bar:nth-child(3) { animation-delay: 0.2s; }
+    .listening-viz.active .listening-bar:nth-child(4) { animation-delay: 0.3s; }
+    .listening-viz.active .listening-bar:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes listenPulse {
+      0%, 100% { height: 20px; }
+      50% { height: 40px; }
+    }
+
+    /* Breath Sync Visualization */
+    .breath-viz {
+      height: 80px;
+      background: rgba(74, 103, 65, 0.05);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .breath-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--ferni);
+      opacity: 0.3;
+    }
+
+    .breath-viz.syncing .breath-circle {
+      animation: breathSync var(--breath-rate, 4s) ease-in-out infinite;
+    }
+
+    @keyframes breathSync {
+      0%, 100% { transform: scale(1); opacity: 0.3; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    .breath-label {
+      position: absolute;
+      bottom: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ============================================
+       PERSONA TIMING PROFILES
+       ============================================ */
+
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .persona-card {
+      padding: 16px 12px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-spring);
+      border: 2px solid transparent;
+      background: var(--bg-primary);
+    }
+
+    .persona-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .persona-card.active {
+      border-color: currentColor;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .persona-card[data-persona="ferni"] { color: var(--ferni); }
+    .persona-card[data-persona="maya"] { color: var(--maya); }
+    .persona-card[data-persona="peter"] { color: var(--peter); }
+    .persona-card[data-persona="jordan"] { color: var(--jordan); }
+    .persona-card[data-persona="alex"] { color: var(--alex); }
+    .persona-card[data-persona="nayan"] { color: var(--nayan); }
+
+    .persona-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .persona-timing {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .persona-trait {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Timeline Visualization */
+    .timeline-container {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .timeline-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .timeline-duration {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ferni);
+    }
+
+    .timeline-bar {
+      height: 48px;
+      background: rgba(74, 103, 65, 0.1);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .timeline-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--ferni-light) 0%, var(--ferni-dark) 100%);
+      border-radius: 8px;
+      transition: width 0.05s linear;
+    }
+
+    .timeline-markers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Timing Slider */
+    .slider-control {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      background: rgba(44, 37, 32, 0.1);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--ferni);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s;
+      box-shadow: 0 2px 8px rgba(74, 103, 65, 0.3);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    .slider-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ferni);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* Button Groups */
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--ferni);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    }
+
+    .btn-secondary {
+      background: rgba(44, 37, 32, 0.08);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(44, 37, 32, 0.15);
+    }
+
+    .btn-secondary.active {
+      background: var(--ferni);
+      color: white;
+    }
+
+    /* ============================================
+       EMOTIONAL GLOW PALETTE
+       ============================================ */
+
+    .glow-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .glow-swatch {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 3px solid var(--bg-elevated);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .glow-swatch:hover {
+      transform: scale(1.1);
+    }
+
+    .glow-swatch.active {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 3px var(--ferni);
+    }
+
+    .glow-swatch::after {
+      content: attr(data-name);
+      position: absolute;
+      bottom: -20px;
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ============================================
+       WAVEFORM VISUALIZER
+       ============================================ */
+
+    .waveform-stage {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .waveform-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      height: 100px;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .waveform-bar {
+      width: 12px;
+      background: var(--ferni);
+      border-radius: 6px;
+      transition: height 0.15s ease, background 0.3s;
+    }
+
+    .waveform-presets {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .waveform-preset {
+      padding: 8px 16px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .waveform-preset:hover {
+      border-color: rgba(74, 103, 65, 0.2);
+    }
+
+    .waveform-preset.active {
+      border-color: var(--ferni);
+      background: rgba(74, 103, 65, 0.1);
+      color: var(--ferni);
+    }
+
+    /* ============================================
+       CODE PREVIEW
+       ============================================ */
+
+    .code-preview {
+      background: var(--bg-dark);
+      color: #d4d4d4;
+      padding: 24px;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .code-preview .comment { color: #6a9955; }
+    .code-preview .keyword { color: #c586c0; }
+    .code-preview .string { color: #ce9178; }
+    .code-preview .number { color: #b5cea8; }
+    .code-preview .function { color: #dcdcaa; }
+
+    /* ============================================
+       MICRO-EXPRESSIONS TIMING CARDS
+       ============================================ */
+
+    .timing-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .timing-card {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .timing-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(44, 37, 32, 0.1);
+      border-color: rgba(74, 103, 65, 0.2);
+    }
+
+    .timing-card:active {
+      transform: scale(0.98);
+    }
+
+    .timing-duration {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--ferni);
+    }
+
+    .timing-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .timing-card.flash {
+      background: var(--ferni);
+    }
+
+    .timing-card.flash .timing-duration,
+    .timing-card.flash .timing-label {
+      color: white;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .persona-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .avatar-showcase {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 28px; }
+      .container { padding: 20px; }
+      .section { padding: 24px; }
+      .persona-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Brand Navigation -->
+  <nav class="nav">
+    <a href="../index.html" class="nav-back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Brand Library
+    </a>
+    <div class="nav-links">
+      <a href="../capabilities/gallery.html">Capabilities</a>
+      <a href="../marketing/introducing-ferni.html">Intro</a>
+      <a href="../characters/ferni/expressions.html">Expressions</a>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>Motion Language</h1>
+    <p class="header-subtitle">
+      A Pixar Animation Studio approach to emotional AI. Every motion choice is intentional,
+      building unconscious trust and genuine connection.
+    </p>
+    <div class="header-badge">
+      <span>57 Expressions</span> | <span>Micro-Expressions</span> | <span>Superhuman EQ</span>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- 1. THE LIVING AVATAR -->
+    <section class="section" id="living-avatar">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x1F3A5;</span>
+        </div>
+        <div>
+          <h2 class="section-title">The Living Avatar</h2>
+          <p class="section-subtitle">
+            Luxo-style opaque eyes with no pupils. Emotion comes from shape and movement,
+            not internal details. Like Pixar's lamp, but with two expressive eyes.
+          </p>
+        </div>
+      </div>
+
+      <div class="avatar-showcase">
+        <div class="avatar-stage">
+          <div class="ferni-avatar breathing gazing anticipation" data-mood="neutral" id="mainAvatar">
+            <svg class="avatar-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a7a51"/>
+                  <stop offset="100%" stop-color="#3d5a35"/>
+                </linearGradient>
+                <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#f0ebe4"/>
+                </linearGradient>
+                <clipPath id="orbClip">
+                  <circle cx="50" cy="50" r="40"/>
+                </clipPath>
+              </defs>
+              <circle class="glow-ring" cx="50" cy="50" r="46" id="glowRing"/>
+              <circle class="presence-ring" cx="50" cy="50" r="44"/>
+              <g clip-path="url(#orbClip)">
+                <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)" id="avatarBody"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+                  <ellipse class="eye-white eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+                </g>
+                <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"/>
+                <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"/>
+                <path class="smile-crease crease-left" d="M 26,56 Q 30,58 34,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+                <path class="smile-crease crease-right" d="M 66,56 Q 70,58 74,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+                <g class="sparkle sparkle-group">
+                  <path class="sparkle-star sparkle-1" d="M 72,38 L 73,40 L 75,40 L 73.5,41.5 L 74,44 L 72,42.5 L 70,44 L 70.5,41.5 L 69,40 L 71,40 Z" fill="white"/>
+                  <path class="sparkle-star sparkle-2" d="M 78,44 L 78.5,45 L 80,45 L 79,46 L 79.3,47.5 L 78,46.8 L 76.7,47.5 L 77,46 L 76,45 L 77.5,45 Z" fill="white" transform="scale(0.7) translate(32, 20)"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <div style="margin-top: 16px; font-size: 13px; color: var(--text-muted);" id="avatarStatus">
+            Neutral | Breathing
+          </div>
+        </div>
+
+        <div class="avatar-controls">
+          <div class="control-group">
+            <label class="control-label">Animation Layers</label>
+            <div class="layer-toggles">
+              <div class="layer-toggle active" data-layer="breathing">
+                <span class="layer-icon">&#x1FAC1;</span>
+                <div class="layer-info">
+                  <div class="layer-name">Breathing</div>
+                  <div class="layer-desc">4s cycle, 1.8% expansion</div>
+                </div>
+              </div>
+              <div class="layer-toggle active" data-layer="blink">
+                <span class="layer-icon">&#x1F441;</span>
+                <div class="layer-info">
+                  <div class="layer-name">Blinking</div>
+                  <div class="layer-desc">Random 3-7s interval</div>
+                </div>
+              </div>
+              <div class="layer-toggle active" data-layer="gaze">
+                <span class="layer-icon">&#x1F440;</span>
+                <div class="layer-info">
+                  <div class="layer-name">Gaze Drift</div>
+                  <div class="layer-desc">8s subtle eye movement</div>
+                </div>
+              </div>
+              <div class="layer-toggle active" data-layer="anticipation">
+                <span class="layer-icon">&#x26A1;</span>
+                <div class="layer-info">
+                  <div class="layer-name">Anticipation</div>
+                  <div class="layer-desc">Overshoot on transitions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Expression States</label>
+            <div class="btn-group" id="expressionBtns">
+              <button class="btn btn-secondary active" data-mood="neutral">Neutral</button>
+              <button class="btn btn-secondary" data-mood="listening">Listening</button>
+              <button class="btn btn-secondary" data-mood="speaking">Speaking</button>
+              <button class="btn btn-secondary" data-mood="thinking">Thinking</button>
+              <button class="btn btn-secondary" data-mood="happy">Happy</button>
+              <button class="btn btn-secondary" data-mood="joy">Joy</button>
+              <button class="btn btn-secondary" data-mood="surprised">Surprised</button>
+              <button class="btn btn-secondary" data-mood="concern">Concern</button>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" id="triggerBlink">Trigger Blink</button>
+            <button class="btn btn-secondary" id="playConversation">Play Conversation Demo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="why-box">
+        <div class="why-box-title">Why This Matters</div>
+        <p>
+          The Pixar lamp (Luxo Jr.) communicates emotion with NO face - just a lamp shade that tilts.
+          Ferni uses the same principle: opaque eyes that express through <strong>shape and movement</strong>,
+          not internal details. This creates instant emotional recognition at any scale.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. SUPERHUMAN EQ DEMO -->
+    <section class="section" id="superhuman-eq">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x2728;</span>
+        </div>
+        <div>
+          <h2 class="section-title">Superhuman EQ</h2>
+          <p class="section-subtitle">
+            Five capabilities that go beyond Pixar. These build unconscious trust through
+            subliminal signals humans can't consciously perceive but deeply feel.
+          </p>
+        </div>
+      </div>
+
+      <div class="eq-grid">
+        <!-- Micro-Expressions -->
+        <div class="eq-card" id="eqMicro">
+          <div class="eq-card-header">
+            <div class="eq-icon">&#x26A1;</div>
+            <div class="eq-title">Micro-Expressions</div>
+            <div class="eq-timing">40-150ms</div>
+          </div>
+          <p class="eq-description">
+            Subliminal emotional flashes below conscious perception. You don't see them,
+            but your limbic system does. This builds trust unconsciously.
+          </p>
+          <div class="timing-cards" style="margin-bottom: 16px;">
+            <div class="timing-card" data-micro="recognition" data-duration="80">
+              <div class="timing-duration">80ms</div>
+              <div class="timing-label">Recognition</div>
+            </div>
+            <div class="timing-card" data-micro="concern" data-duration="100">
+              <div class="timing-duration">100ms</div>
+              <div class="timing-label">Concern</div>
+            </div>
+            <div class="timing-card" data-micro="delight" data-duration="120">
+              <div class="timing-duration">120ms</div>
+              <div class="timing-label">Delight</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Listening -->
+        <div class="eq-card" id="eqListening">
+          <div class="eq-card-header">
+            <div class="eq-icon">&#x1F442;</div>
+            <div class="eq-title">Active Listening</div>
+            <div class="eq-timing">300ms nods</div>
+          </div>
+          <p class="eq-description">
+            Micro-nods during user speech show moment-to-moment engagement.
+            Creates the feeling of being truly heard.
+          </p>
+          <div class="listening-viz" id="listeningViz">
+            <div class="listening-bar"></div>
+            <div class="listening-bar"></div>
+            <div class="listening-bar"></div>
+            <div class="listening-bar"></div>
+            <div class="listening-bar"></div>
+          </div>
+          <button class="eq-demo-btn" id="demoListening">Simulate User Speaking</button>
+        </div>
+
+        <!-- Breath Synchronization -->
+        <div class="eq-card" id="eqBreath">
+          <div class="eq-card-header">
+            <div class="eq-icon">&#x1FAC1;</div>
+            <div class="eq-title">Breath Sync</div>
+            <div class="eq-timing">Neural Mirroring</div>
+          </div>
+          <p class="eq-description">
+            Matching breathing patterns creates unconscious rapport through neural mirroring.
+            Breathe 10% slower to gently calm an anxious user.
+          </p>
+          <div class="breath-viz" id="breathViz">
+            <div class="breath-circle"></div>
+            <div class="breath-label">Inhale... Exhale...</div>
+          </div>
+          <div class="btn-group" style="justify-content: center;">
+            <button class="btn btn-secondary" data-breath="5000">Relaxed (12/min)</button>
+            <button class="btn btn-secondary active" data-breath="4000">Normal (15/min)</button>
+            <button class="btn btn-secondary" data-breath="3000">Alert (20/min)</button>
+          </div>
+        </div>
+
+        <!-- Concern Detection -->
+        <div class="eq-card" id="eqConcern">
+          <div class="eq-card-header">
+            <div class="eq-icon">&#x1F49C;</div>
+            <div class="eq-title">Concern Detection</div>
+            <div class="eq-timing">Pre-emptive</div>
+          </div>
+          <p class="eq-description">
+            Detect distress from voice tremor, word choice, and timing patterns.
+            Show care before the user has to ask. "I notice you seem a bit stressed today."
+          </p>
+          <button class="eq-demo-btn" id="demoConcern">Simulate Concern Detection</button>
+        </div>
+
+        <!-- Anticipatory Emotion -->
+        <div class="eq-card" id="eqAnticipate">
+          <div class="eq-card-header">
+            <div class="eq-icon">&#x1F52E;</div>
+            <div class="eq-title">Anticipation</div>
+            <div class="eq-timing">200ms ahead</div>
+          </div>
+          <p class="eq-description">
+            Begin emotional response before the user finishes speaking.
+            Creates the profound feeling: "They understand me."
+          </p>
+          <button class="eq-demo-btn" id="demoAnticipate">Show Anticipation Demo</button>
+        </div>
+      </div>
+
+      <div class="why-box">
+        <div class="why-box-title">Beyond Pixar</div>
+        <p>
+          Pixar animates for <strong>conscious perception</strong> - you see and enjoy the animation.
+          Ferni adds a layer beneath: signals that work on your <strong>unconscious mind</strong>.
+          A 80ms micro-expression isn't seen, but it's felt. This is how we build genuine trust.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. PERSONA TIMING PROFILES -->
+    <section class="section" id="persona-timing">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x1F3AD;</span>
+        </div>
+        <div>
+          <h2 class="section-title">Persona Timing Profiles</h2>
+          <p class="section-subtitle">
+            Animation IS personality. Peter thinks fast (0.8x). Nayan contemplates (1.15x).
+            The same transition feels completely different.
+          </p>
+        </div>
+      </div>
+
+      <div class="persona-grid" id="personaGrid">
+        <div class="persona-card" data-persona="peter" data-timing="0.8">
+          <div class="persona-name">Peter</div>
+          <div class="persona-timing">0.8x</div>
+          <div class="persona-trait">Fast thinker</div>
+        </div>
+        <div class="persona-card" data-persona="jordan" data-timing="0.85">
+          <div class="persona-name">Jordan</div>
+          <div class="persona-timing">0.85x</div>
+          <div class="persona-trait">Enthusiastic</div>
+        </div>
+        <div class="persona-card" data-persona="maya" data-timing="0.95">
+          <div class="persona-name">Maya</div>
+          <div class="persona-timing">0.95x</div>
+          <div class="persona-trait">Nurturing</div>
+        </div>
+        <div class="persona-card active" data-persona="ferni" data-timing="1.0">
+          <div class="persona-name">Ferni</div>
+          <div class="persona-timing">1.0x</div>
+          <div class="persona-trait">Baseline</div>
+        </div>
+        <div class="persona-card" data-persona="alex" data-timing="1.1">
+          <div class="persona-name">Alex</div>
+          <div class="persona-timing">1.1x</div>
+          <div class="persona-trait">Deliberate</div>
+        </div>
+        <div class="persona-card" data-persona="nayan" data-timing="1.15">
+          <div class="persona-name">Nayan</div>
+          <div class="persona-timing">1.15x</div>
+          <div class="persona-trait">Contemplative</div>
+        </div>
+      </div>
+
+      <div class="timeline-container">
+        <div class="timeline-header">
+          <div class="timeline-title">400ms Base Transition (Neutral to Happy)</div>
+          <div class="timeline-duration" id="actualDuration">400ms</div>
+        </div>
+        <div class="timeline-bar">
+          <div class="timeline-fill" id="timelineFill" style="width: 0%;"></div>
+        </div>
+        <div class="timeline-markers">
+          <span>0ms</span>
+          <span>100ms</span>
+          <span>200ms</span>
+          <span>300ms</span>
+          <span>400ms</span>
+          <span>500ms</span>
+        </div>
+
+        <div class="slider-control">
+          <label style="font-size: 13px; color: var(--text-secondary);">Custom Timing</label>
+          <input type="range" id="timingSlider" min="0.5" max="1.5" step="0.05" value="1.0">
+          <span class="slider-value" id="timingValue">1.0x</span>
+        </div>
+
+        <div class="btn-group" style="justify-content: center; margin-top: 20px;">
+          <button class="btn btn-primary" id="playTransition">Play Transition</button>
+        </div>
+      </div>
+
+      <div class="why-box">
+        <div class="why-box-title">Timing Is Character</div>
+        <p>
+          Watch the same "happy" transition at Peter's 0.8x (snappy, energetic) vs Nayan's 1.15x (gentle, wise).
+          This is how we encode <strong>personality in motion</strong> - no different art assets needed.
+        </p>
+      </div>
+    </section>
+
+    <!-- 4. EMOTIONAL GLOW PALETTE -->
+    <section class="section" id="glow-palette">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x1F308;</span>
+        </div>
+        <div>
+          <h2 class="section-title">Emotional Glow Palette</h2>
+          <p class="section-subtitle">
+            The avatar's ambient glow shifts with emotional state.
+            Click to see each glow color applied to the avatar.
+          </p>
+        </div>
+      </div>
+
+      <div class="glow-palette" id="glowPalette">
+        <div class="glow-swatch active" style="background: #f5f5f5; box-shadow: 0 0 24px rgba(245, 245, 245, 0.6);" data-glow="#f5f5f5" data-name="Neutral"></div>
+        <div class="glow-swatch" style="background: #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, 0.6);" data-glow="#ffd700" data-name="Joy"></div>
+        <div class="glow-swatch" style="background: #daa520; box-shadow: 0 0 24px rgba(218, 165, 32, 0.6);" data-glow="#daa520" data-name="Concern"></div>
+        <div class="glow-swatch" style="background: #ff6b6b; box-shadow: 0 0 24px rgba(255, 107, 107, 0.6);" data-glow="#ff6b6b" data-name="Excitement"></div>
+        <div class="glow-swatch" style="background: #87ceeb; box-shadow: 0 0 24px rgba(135, 206, 235, 0.6);" data-glow="#87ceeb" data-name="Calm"></div>
+        <div class="glow-swatch" style="background: #ffb6c1; box-shadow: 0 0 24px rgba(255, 182, 193, 0.6);" data-glow="#ffb6c1" data-name="Empathy"></div>
+        <div class="glow-swatch" style="background: #4fc3f7; box-shadow: 0 0 24px rgba(79, 195, 247, 0.6);" data-glow="#4fc3f7" data-name="Focus"></div>
+        <div class="glow-swatch" style="background: #ffc107; box-shadow: 0 0 24px rgba(255, 193, 7, 0.6);" data-glow="#ffc107" data-name="Celebration"></div>
+        <div class="glow-swatch" style="background: #b8956a; box-shadow: 0 0 24px rgba(184, 149, 106, 0.6);" data-glow="#b8956a" data-name="Wisdom"></div>
+        <div class="glow-swatch" style="background: #ff69b4; box-shadow: 0 0 24px rgba(255, 105, 180, 0.6);" data-glow="#ff69b4" data-name="Love"></div>
+      </div>
+
+      <div class="code-preview" style="margin-top: 24px;">
+        <span class="comment">// Glow color reflects emotional state - ambient feedback</span><br>
+        <span class="keyword">const</span> glowColors = {<br>
+        &nbsp;&nbsp;neutral: <span class="string">'#f5f5f5'</span>,<br>
+        &nbsp;&nbsp;joy: <span class="string">'#ffd700'</span>, <span class="comment">// Golden warmth</span><br>
+        &nbsp;&nbsp;concern: <span class="string">'#daa520'</span>, <span class="comment">// Amber attention</span><br>
+        &nbsp;&nbsp;calm: <span class="string">'#87ceeb'</span>, <span class="comment">// Sky serenity</span><br>
+        &nbsp;&nbsp;love: <span class="string">'#ff69b4'</span> <span class="comment">// Warm pink</span><br>
+        };
+      </div>
+    </section>
+
+    <!-- 5. WAVEFORM VISUALIZER -->
+    <section class="section" id="waveform">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x1F3B5;</span>
+        </div>
+        <div>
+          <h2 class="section-title">Waveform Visualizer</h2>
+          <p class="section-subtitle">
+            The 9-bar waveform serves as Ferni's "mouth" - shaping to emotion through
+            height patterns, not literal lip-sync.
+          </p>
+        </div>
+      </div>
+
+      <div class="waveform-stage">
+        <div class="waveform-container" id="waveformBars">
+          <div class="waveform-bar" style="height: 15%"></div>
+          <div class="waveform-bar" style="height: 20%"></div>
+          <div class="waveform-bar" style="height: 25%"></div>
+          <div class="waveform-bar" style="height: 30%"></div>
+          <div class="waveform-bar" style="height: 25%"></div>
+          <div class="waveform-bar" style="height: 20%"></div>
+          <div class="waveform-bar" style="height: 15%"></div>
+          <div class="waveform-bar" style="height: 10%"></div>
+          <div class="waveform-bar" style="height: 15%"></div>
+        </div>
+
+        <div class="waveform-presets">
+          <button class="waveform-preset active" data-wave="idle">Idle</button>
+          <button class="waveform-preset" data-wave="joy">Joy</button>
+          <button class="waveform-preset" data-wave="concern">Concern</button>
+          <button class="waveform-preset" data-wave="thinking">Thinking</button>
+          <button class="waveform-preset" data-wave="speaking">Speaking</button>
+        </div>
+      </div>
+
+      <div class="why-box">
+        <div class="why-box-title">Emotion Through Rhythm</div>
+        <p>
+          <strong>Idle:</strong> Low, calm waves (15-30% height).<br>
+          <strong>Joy:</strong> High, bouncy waves (40-80%).<br>
+          <strong>Concern:</strong> Subtle, attentive (10-18%).<br>
+          <strong>Speaking:</strong> Dynamic, animated with random variation.
+        </p>
+      </div>
+    </section>
+
+    <!-- PIXAR PRINCIPLES FOOTER -->
+    <section class="section" style="background: linear-gradient(135deg, rgba(74, 103, 65, 0.05) 0%, rgba(74, 103, 65, 0.02) 100%);">
+      <div class="section-header">
+        <div class="section-icon">
+          <span style="filter: brightness(0) invert(1);">&#x1F3AC;</span>
+        </div>
+        <div>
+          <h2 class="section-title">Pixar's 12 Principles Applied</h2>
+          <p class="section-subtitle">
+            How we translate classic animation principles to emotional AI.
+          </p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+        <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">1</div>
+            <strong>Squash & Stretch</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Eyes scale from scaleY(0.3) exhausted to scaleY(1.25) shocked. Body compresses on excitement.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">2</div>
+            <strong>Anticipation</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Spring overshoot (1.8 tension) on lid transitions. Lids settle with organic bounce.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">3</div>
+            <strong>Secondary Action</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Presence ring follows body breathing with 0.3s offset. Smile creases add warmth.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">4</div>
+            <strong>Timing</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            350ms expression transitions. 150ms blinks. 4s breathing cycle. Persona multipliers 0.8x-1.15x.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); padding: 20px; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">5</div>
+            <strong>Exaggeration</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Eyes 125% scale for shock, 30% for exhaustion. Readable at any size.
+          </p>
+        </div>
+
+        <div style="background: linear-gradient(135deg, rgba(74, 103, 65, 0.1) 0%, rgba(74, 103, 65, 0.02) 100%); padding: 20px; border-radius: 12px; border: 1px solid rgba(74, 103, 65, 0.2);">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; background: var(--ferni); color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">+</div>
+            <strong style="color: var(--ferni);">Beyond Pixar</strong>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary);">
+            Micro-expressions (40-150ms), breath sync, and anticipatory emotion detection. Unconscious trust building.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // ============================================
+    // MAIN AVATAR CONTROLLER
+    // ============================================
+
+    const avatar = document.getElementById('mainAvatar');
+    const avatarStatus = document.getElementById('avatarStatus');
+    const glowRing = document.getElementById('glowRing');
+
+    // State
+    let currentTiming = 1.0;
+    let currentGlow = '#f5f5f5';
+    let blinkInterval = null;
+
+    const layers = {
+      breathing: true,
+      blink: true,
+      gaze: true,
+      anticipation: true
+    };
+
+    // Persona colors for avatar
+    const personaColors = {
+      ferni: { primary: '#5a7a51', secondary: '#3d5a35' },
+      maya: { primary: '#b88a7a', secondary: '#a67a6a' },
+      peter: { primary: '#3d8888', secondary: '#2d6a6a' },
+      jordan: { primary: '#e5a55c', secondary: '#d4944c' },
+      alex: { primary: '#7a8ab8', secondary: '#5c6b99' },
+      nayan: { primary: '#b08f5f', secondary: '#9a7b4f' }
+    };
+
+    // Waveform profiles
+    const waveformProfiles = {
+      idle: [15, 20, 25, 30, 25, 20, 15, 10, 15],
+      joy: [40, 70, 50, 80, 60, 75, 45, 65, 50],
+      concern: [10, 15, 12, 18, 14, 16, 11, 14, 10],
+      thinking: [20, 35, 25, 40, 30, 38, 22, 32, 25],
+      speaking: [30, 60, 45, 70, 55, 65, 40, 55, 45]
+    };
+
+    // Update layers
+    function updateLayers() {
+      avatar.classList.toggle('breathing', layers.breathing);
+      avatar.classList.toggle('gazing', layers.gaze);
+      avatar.classList.toggle('anticipation', layers.anticipation);
+
+      document.querySelectorAll('.layer-toggle').forEach(toggle => {
+        const layer = toggle.dataset.layer;
+        toggle.classList.toggle('active', layers[layer]);
+      });
+
+      // Manage blink interval
+      if (layers.blink && !blinkInterval) {
+        scheduleBlink();
+      } else if (!layers.blink && blinkInterval) {
+        clearTimeout(blinkInterval);
+        blinkInterval = null;
+      }
+    }
+
+    // Layer toggle clicks
+    document.querySelectorAll('.layer-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const layer = toggle.dataset.layer;
+        layers[layer] = !layers[layer];
+        updateLayers();
+      });
+    });
+
+    // Expression buttons
+    document.getElementById('expressionBtns').addEventListener('click', (e) => {
+      if (e.target.dataset.mood) {
+        document.querySelectorAll('#expressionBtns .btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        avatar.dataset.mood = e.target.dataset.mood;
+        updateStatus();
+      }
+    });
+
+    function updateStatus() {
+      const mood = avatar.dataset.mood;
+      const activeLayers = Object.entries(layers)
+        .filter(([k, v]) => v)
+        .map(([k]) => k.charAt(0).toUpperCase() + k.slice(1))
+        .join(' | ');
+      avatarStatus.textContent = `${mood.charAt(0).toUpperCase() + mood.slice(1)} | ${activeLayers || 'No layers'}`;
+    }
+
+    // Blinking system
+    function triggerBlink() {
+      if (!layers.blink) return;
+      avatar.classList.add('blinking');
+      setTimeout(() => avatar.classList.remove('blinking'), 150);
+    }
+
+    function scheduleBlink() {
+      if (!layers.blink) return;
+      const delay = 3000 + Math.random() * 4000;
+      blinkInterval = setTimeout(() => {
+        triggerBlink();
+        scheduleBlink();
+      }, delay);
+    }
+
+    document.getElementById('triggerBlink').addEventListener('click', triggerBlink);
+
+    // ============================================
+    // MICRO-EXPRESSIONS
+    // ============================================
+
+    function triggerMicroExpression(type, duration) {
+      avatar.classList.add(`micro-${type}`);
+      setTimeout(() => avatar.classList.remove(`micro-${type}`), duration);
+    }
+
+    // Micro-expression timing cards
+    document.querySelectorAll('.timing-card[data-micro]').forEach(card => {
+      card.addEventListener('click', () => {
+        const type = card.dataset.micro;
+        const duration = parseInt(card.dataset.duration);
+
+        // Visual flash feedback
+        card.classList.add('flash');
+        setTimeout(() => card.classList.remove('flash'), duration);
+
+        triggerMicroExpression(type, duration);
+      });
+    });
+
+    // ============================================
+    // ACTIVE LISTENING DEMO
+    // ============================================
+
+    let listeningDemo = null;
+    const listeningViz = document.getElementById('listeningViz');
+
+    document.getElementById('demoListening').addEventListener('click', () => {
+      if (listeningDemo) {
+        clearInterval(listeningDemo);
+        listeningDemo = null;
+        listeningViz.classList.remove('active');
+        return;
+      }
+
+      listeningViz.classList.add('active');
+      avatar.dataset.mood = 'listening';
+      updateStatus();
+
+      // Trigger micro-nods
+      let nodCount = 0;
+      listeningDemo = setInterval(() => {
+        avatar.classList.add('nodding');
+        setTimeout(() => avatar.classList.remove('nodding'), 300);
+        nodCount++;
+
+        if (nodCount >= 5) {
+          clearInterval(listeningDemo);
+          listeningDemo = null;
+          listeningViz.classList.remove('active');
+        }
+      }, 1500);
+    });
+
+    // ============================================
+    // BREATH SYNC DEMO
+    // ============================================
+
+    const breathViz = document.getElementById('breathViz');
+
+    document.querySelectorAll('[data-breath]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-breath]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const rate = btn.dataset.breath;
+        breathViz.style.setProperty('--breath-rate', `${rate}ms`);
+        breathViz.classList.add('syncing');
+
+        // Also update avatar breathing
+        document.getElementById('mainAvatar').style.setProperty('--breath-duration', `${rate}ms`);
+      });
+    });
+
+    // Start breath viz
+    breathViz.classList.add('syncing');
+
+    // ============================================
+    // CONCERN DETECTION DEMO
+    // ============================================
+
+    document.getElementById('demoConcern').addEventListener('click', async () => {
+      // Sequence: listening -> subtle micro-concern -> full concern expression
+      avatar.dataset.mood = 'listening';
+      updateStatus();
+      await delay(500);
+
+      triggerMicroExpression('concern', 100);
+      await delay(200);
+
+      avatar.dataset.mood = 'concern';
+      updateStatus();
+
+      // Update glow to amber
+      updateGlow('#daa520');
+
+      await delay(2000);
+
+      // Return to neutral
+      avatar.dataset.mood = 'neutral';
+      updateStatus();
+      updateGlow('#f5f5f5');
+    });
+
+    // ============================================
+    // ANTICIPATION DEMO
+    // ============================================
+
+    document.getElementById('demoAnticipate').addEventListener('click', async () => {
+      avatar.dataset.mood = 'listening';
+      updateStatus();
+      await delay(400);
+
+      // Show recognition micro-expression (anticipating positive)
+      triggerMicroExpression('recognition', 80);
+      await delay(150);
+
+      // Transition to happy before "user finishes"
+      avatar.dataset.mood = 'happy';
+      updateStatus();
+
+      await delay(1500);
+
+      avatar.dataset.mood = 'neutral';
+      updateStatus();
+    });
+
+    // ============================================
+    // PERSONA TIMING
+    // ============================================
+
+    const personaGrid = document.getElementById('personaGrid');
+    const timingSlider = document.getElementById('timingSlider');
+    const timingValue = document.getElementById('timingValue');
+    const actualDuration = document.getElementById('actualDuration');
+    const timelineFill = document.getElementById('timelineFill');
+
+    personaGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.persona-card');
+      if (!card) return;
+
+      personaGrid.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+
+      const persona = card.dataset.persona;
+      currentTiming = parseFloat(card.dataset.timing);
+
+      timingSlider.value = currentTiming;
+      timingValue.textContent = `${currentTiming}x`;
+
+      // Update avatar colors
+      const colors = personaColors[persona];
+      document.querySelector('#orbGrad stop:first-child').setAttribute('stop-color', colors.primary);
+      document.querySelector('#orbGrad stop:last-child').setAttribute('stop-color', colors.secondary);
+    });
+
+    timingSlider.addEventListener('input', () => {
+      currentTiming = parseFloat(timingSlider.value);
+      timingValue.textContent = `${currentTiming.toFixed(2)}x`;
+
+      // Clear persona selection if custom
+      personaGrid.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+    });
+
+    document.getElementById('playTransition').addEventListener('click', () => {
+      const baseDuration = 400;
+      const duration = Math.round(baseDuration * currentTiming);
+
+      actualDuration.textContent = `${duration}ms`;
+
+      // Animate timeline
+      timelineFill.style.transition = 'none';
+      timelineFill.style.width = '0%';
+
+      requestAnimationFrame(() => {
+        timelineFill.style.transition = `width ${duration}ms linear`;
+        timelineFill.style.width = '100%';
+      });
+
+      // Animate avatar
+      avatar.dataset.mood = 'happy';
+      updateStatus();
+
+      setTimeout(() => {
+        avatar.dataset.mood = 'neutral';
+        updateStatus();
+      }, duration + 500);
+    });
+
+    // ============================================
+    // GLOW PALETTE
+    // ============================================
+
+    function updateGlow(color) {
+      currentGlow = color;
+      glowRing.style.stroke = color;
+      glowRing.style.filter = `blur(6px)`;
+
+      document.querySelectorAll('.glow-swatch').forEach(s => {
+        s.classList.toggle('active', s.dataset.glow === color);
+      });
+    }
+
+    document.getElementById('glowPalette').addEventListener('click', (e) => {
+      const swatch = e.target.closest('.glow-swatch');
+      if (!swatch) return;
+
+      updateGlow(swatch.dataset.glow);
+    });
+
+    // ============================================
+    // WAVEFORM VISUALIZER
+    // ============================================
+
+    const waveformBars = document.getElementById('waveformBars');
+    let waveInterval = null;
+
+    function setWaveform(profile) {
+      const bars = waveformBars.querySelectorAll('.waveform-bar');
+      const heights = waveformProfiles[profile];
+
+      bars.forEach((bar, i) => {
+        bar.style.height = `${heights[i]}%`;
+      });
+
+      // Animate if speaking
+      if (profile === 'speaking') {
+        animateWaveform();
+      } else if (waveInterval) {
+        clearInterval(waveInterval);
+        waveInterval = null;
+      }
+    }
+
+    function animateWaveform() {
+      if (waveInterval) clearInterval(waveInterval);
+
+      waveInterval = setInterval(() => {
+        const bars = waveformBars.querySelectorAll('.waveform-bar');
+        bars.forEach((bar, i) => {
+          const base = waveformProfiles.speaking[i];
+          const variation = Math.random() * 20 - 10;
+          bar.style.height = `${Math.max(10, base + variation)}%`;
+        });
+      }, 100);
+
+      setTimeout(() => {
+        if (waveInterval) {
+          clearInterval(waveInterval);
+          waveInterval = null;
+          setWaveform('idle');
+          document.querySelectorAll('.waveform-preset').forEach(p => {
+            p.classList.toggle('active', p.dataset.wave === 'idle');
+          });
+        }
+      }, 3000);
+    }
+
+    document.querySelectorAll('.waveform-preset').forEach(preset => {
+      preset.addEventListener('click', () => {
+        document.querySelectorAll('.waveform-preset').forEach(p => p.classList.remove('active'));
+        preset.classList.add('active');
+        setWaveform(preset.dataset.wave);
+      });
+    });
+
+    // ============================================
+    // CONVERSATION DEMO
+    // ============================================
+
+    document.getElementById('playConversation').addEventListener('click', async () => {
+      const sequence = [
+        { mood: 'neutral', duration: 400 },
+        { mood: 'listening', duration: 1200, micro: 'recognition' },
+        { mood: 'thinking', duration: 800 },
+        { mood: 'speaking', duration: 1500 },
+        { mood: 'happy', duration: 800, micro: 'delight' },
+        { mood: 'listening', duration: 1000 },
+        { mood: 'concern', duration: 800, micro: 'concern', glow: '#daa520' },
+        { mood: 'speaking', duration: 1200 },
+        { mood: 'happy', duration: 600, glow: '#ffd700' },
+        { mood: 'neutral', duration: 500, glow: '#f5f5f5' }
+      ];
+
+      for (const step of sequence) {
+        if (step.micro) {
+          triggerMicroExpression(step.micro, 100);
+          await delay(50);
+        }
+
+        if (step.glow) {
+          updateGlow(step.glow);
+        }
+
+        avatar.dataset.mood = step.mood;
+        document.querySelectorAll('#expressionBtns .btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.mood === step.mood);
+        });
+        updateStatus();
+
+        await delay(step.duration);
+      }
+    });
+
+    // Helper
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // ============================================
+    // INITIALIZE
+    // ============================================
+
+    updateLayers();
+    setWaveform('idle');
+  </script>
+</body>
+</html>

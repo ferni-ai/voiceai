@@ -68,3 +68,9 @@ export * from './team-unlock.service.js';
 
 export * from './roadmap.service.js';
 export * from './soul-stats.service.js';
+
+// ============================================================================
+// 🧠 BETTER THAN HUMAN - Voice ↔ App Sync
+// ============================================================================
+
+export * from './app-context-tracking.service.js';

@@ -105,13 +105,33 @@ export const REGISTERED_TOOLS = [
   'controlLock',
   'getHomeStatus',
 
-  // Productivity
+  // Productivity - Tasks
   'addTask',
   'completeTask',
   'getTasks',
-  'saveNote',
+  'deleteTask',
+  // Productivity - Goals
+  'addGoal',
+  'updateGoal',
+  'getGoals',
+  // Productivity - Timers
+  'setTimer',
+  'getTimer',
+  'cancelTimer',
+  // Productivity - Reminders
+  'scheduleReminder',
+  'cancelReminder',
+  'getReminders',
+  // Productivity - Notes
+  'addNote',
+  'saveNote', // alias for addNote
   'getNotes',
-  'journal',
+  'searchNotes',
+  // Productivity - Journal
+  'addJournal',
+  'getJournals',
+  'journal', // alias for addJournal
+  // Habits
   'createHabit',
   'logHabitCompletion',
   'getHabits',
@@ -124,7 +144,7 @@ export const REGISTERED_TOOLS = [
   'searchFlights',
   'searchHotels',
   'planTrip',
-  'scheduleReminder',
+  // scheduleReminder moved up to Productivity - Reminders section
   'getCalendarToday',
   'createCalendarEvent',
   'manageMedication',
@@ -214,6 +234,11 @@ export const REGISTERED_TOOLS = [
   'scheduleHealthcareAppointment',
   'getServiceQuotes',
   'checkConciergeStatus',
+
+  // Language/Settings
+  'setSpokenLanguage',
+  'listSupportedLanguages',
+  'getCurrentLanguage',
 ] as const;
 
 export type RegisteredToolName = (typeof REGISTERED_TOOLS)[number];

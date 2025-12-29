@@ -89,10 +89,18 @@ interface DocumentSnapshot {
 
 let db: FirestoreDB | null = null;
 let FieldValue: { increment: (n: number) => unknown } | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreDB | null> | null = null;
 
 async function getFirestore(): Promise<FirestoreDB | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreDB | null> {
   try {
     const firestore = await import('@google-cloud/firestore');
     const { Firestore } = firestore;
@@ -107,6 +115,7 @@ async function getFirestore(): Promise<FirestoreDB | null> {
     return db;
   } catch (error) {
     log.warn({ error: String(error) }, 'Firestore not available for realtime memory');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

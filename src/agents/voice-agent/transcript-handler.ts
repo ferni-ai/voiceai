@@ -408,18 +408,20 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             // ===============================================
             if (sendDataMessage && anticipation.emotion.confidence > 0.5) {
               // Determine urgency from trajectory
-              const urgency = anticipation.emotion.trajectory.includes('distress') ||
+              const urgency =
+                anticipation.emotion.trajectory.includes('distress') ||
                 anticipation.emotion.trajectory.includes('crisis')
-                ? 'high'
-                : anticipation.emotion.trajectory.includes('stable')
-                  ? 'low'
-                  : 'normal';
+                  ? 'high'
+                  : anticipation.emotion.trajectory.includes('stable')
+                    ? 'low'
+                    : 'normal';
 
               void sendDataMessage('anticipation_signal', {
                 intent: anticipation.intent.intent,
                 intentConfidence: anticipation.intent.confidence,
                 emotionTrajectory: anticipation.emotion.trajectory,
-                predictedEmotion: anticipation.emotion.anticipatedEmotion || anticipation.emotion.trajectory,
+                predictedEmotion:
+                  anticipation.emotion.anticipatedEmotion || anticipation.emotion.trajectory,
                 emotionConfidence: anticipation.emotion.confidence,
                 urgency,
                 timestamp: Date.now(),
@@ -618,6 +620,38 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
       // Use cleaned transcript if available
       const cleanedTranscript = validation.cleanedTranscript || event.transcript;
+
+      // ===============================================
+      // 🌍 LANGUAGE DETECTION (First few utterances)
+      // Detect user's language from speech patterns
+      // Fire-and-forget since this handler is sync
+      // ===============================================
+      void (async () => {
+        try {
+          // Lazy import to avoid circular dependencies
+          const { accumulateForDetection, updateDetectedLanguage, initializeSessionLanguage } =
+            await import('../../services/language/index.js');
+
+          // Initialize session language if not already done
+          const preferredLang = userData.preferredLanguage as string | undefined;
+          initializeSessionLanguage(sessionId, userData.userId, preferredLang as Parameters<typeof initializeSessionLanguage>[2]);
+
+          // Accumulate for detection (returns result after 2+ utterances)
+          const detection = accumulateForDetection(sessionId, cleanedTranscript);
+          if (detection && detection.confidence >= 0.7) {
+            const updated = updateDetectedLanguage(sessionId, detection);
+            if (updated) {
+              userData.preferredLanguage = detection.detectedLanguage;
+              diag.state('🌍 Language auto-detected', {
+                detected: detection.detectedLanguage,
+                confidence: detection.confidence.toFixed(2),
+              });
+            }
+          }
+        } catch {
+          // Language detection is non-critical - silently continue
+        }
+      })();
 
       // ===============================================
       // 🧠 HUMAN TURN INTELLIGENCE (Final)

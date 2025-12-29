@@ -18,6 +18,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { registerInterval } from '../../../../utils/interval-manager.js';
 import type { ToolContext, ToolDefinition, Tool } from '../../../registry/types.js';
 
 // Contact & relationship services
@@ -91,7 +92,8 @@ const pendingBatches = new Map<
 >();
 
 // Clean up old pending batches (15 min expiry)
-setInterval(
+registerInterval(
+  'batch-outreach-cleanup',
   () => {
     const now = Date.now();
     const FIFTEEN_MINUTES = 15 * 60 * 1000;

@@ -8,6 +8,15 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import {
+  cosineSimilarity,
+  type EmbeddingVector as RustEmbeddingVector,
+} from './rust-accelerator.js';
+
+// Re-export for backwards compatibility with existing consumers
+export { cosineSimilarity };
+export type { RustEmbeddingVector as EmbeddingVectorLike };
 
 // ============================================================================
 // CIRCUIT BREAKERS
@@ -404,29 +413,7 @@ export class LocalEmbeddings extends EmbeddingProvider {
 // SIMILARITY FUNCTIONS
 // ============================================================================
 
-/**
- * Calculate cosine similarity between two vectors
- */
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error(`Vector dimensions must match: ${a.length} vs ${b.length}`);
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
-  }
-
-  const magnitude = Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB);
-  if (magnitude === 0) return 0;
-
-  return dotProduct / magnitude;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
 
 /**
  * Calculate Euclidean distance between two vectors

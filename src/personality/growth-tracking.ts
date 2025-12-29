@@ -114,7 +114,7 @@ function generateGrowthCelebration(growth: GrowthMoment): string {
     `I've been watching you grow in this area. ${timePhrase}: "${growth.pastEvidence}". Now: "${growth.currentEvidence}". I'm proud of you.`,
   ];
 
-  return templates[Math.floor(Math.random() * templates.length)];
+  return templates[Math.floor(Math.random() * templates.length)] ?? templates[0] ?? '';
 }
 
 // ============================================================================

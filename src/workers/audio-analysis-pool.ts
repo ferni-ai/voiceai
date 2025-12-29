@@ -17,8 +17,16 @@
  * - Automatic scaling based on load
  */
 
-import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+/* eslint-disable no-await-in-loop -- Sequential processing required for worker thread management */
+
+import { Worker, isMainThread } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { createLogger } from '../utils/safe-logger.js';
+
+// Get the directory of this module for worker file resolution
+const currentFile = fileURLToPath(import.meta.url);
+const currentDir = dirname(currentFile);
 
 const log = createLogger({ module: 'AudioAnalysisPool' });
 
@@ -77,6 +85,9 @@ export interface BoundaryResult {
 // WORKER POOL
 // ============================================================================
 
+// Backpressure: max jobs queued before rejecting
+const MAX_QUEUE_DEPTH = 100;
+
 class AudioAnalysisWorkerPool {
   private workers: Worker[] = [];
   private jobQueue: Array<{
@@ -84,6 +95,10 @@ class AudioAnalysisWorkerPool {
     resolve: (r: AudioAnalysisResult) => void;
     reject: (e: Error) => void;
   }> = [];
+  private pendingJobs = new Map<
+    string,
+    { resolve: (r: AudioAnalysisResult) => void; reject: (e: Error) => void }
+  >();
   private activeJobs = new Map<string, { worker: Worker; startTime: number }>();
   private currentWorkerIndex = 0;
   private poolSize: number;
@@ -103,7 +118,7 @@ class AudioAnalysisWorkerPool {
   /**
    * Initialize the worker pool
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (!isMainThread) {
       throw new Error('AudioAnalysisWorkerPool must be initialized from main thread');
     }
@@ -120,257 +135,41 @@ class AudioAnalysisWorkerPool {
 
   /**
    * Create a worker thread
+   *
+   * SECURITY: Worker code is loaded from a separate file, NOT via eval().
+   * This prevents code injection vulnerabilities.
    */
   private createWorker(): Worker {
-    // Create inline worker code as a data URL
-    const workerCode = `
-      const { parentPort } = require('node:worker_threads');
-      
-      // Simple prosody analysis (would be more sophisticated in production)
-      function analyzeProsody(audioData, sampleRate) {
-        const n = audioData.length;
-        if (n === 0) return null;
-        
-        // Calculate energy
-        let energySum = 0;
-        for (let i = 0; i < n; i++) {
-          energySum += audioData[i] * audioData[i];
-        }
-        const energyMean = energySum / n;
-        
-        // Calculate energy variance
-        let energyVarSum = 0;
-        for (let i = 0; i < n; i++) {
-          const diff = audioData[i] * audioData[i] - energyMean;
-          energyVarSum += diff * diff;
-        }
-        const energyVariance = energyVarSum / n;
-        
-        // Estimate pitch using autocorrelation (simplified)
-        const minPeriod = Math.floor(sampleRate / 500); // Max 500Hz
-        const maxPeriod = Math.floor(sampleRate / 50);  // Min 50Hz
-        
-        let maxCorr = 0;
-        let bestPeriod = 0;
-        
-        for (let period = minPeriod; period < maxPeriod && period < n / 2; period++) {
-          let corr = 0;
-          for (let i = 0; i < n - period; i++) {
-            corr += audioData[i] * audioData[i + period];
-          }
-          if (corr > maxCorr) {
-            maxCorr = corr;
-            bestPeriod = period;
-          }
-        }
-        
-        const pitchHz = bestPeriod > 0 ? sampleRate / bestPeriod : 150;
-        
-        return {
-          pitchMean: pitchHz,
-          pitchRange: 30,
-          pitchVariance: 0.3,
-          energyMean: Math.sqrt(energyMean),
-          energyVariance: Math.sqrt(energyVariance),
-          speechRate: 150,
-          pauseFrequency: 3,
-          pauseDuration: 300,
-        };
-      }
-      
-      // Simple emotion classification based on prosody features
-      function classifyEmotion(prosody) {
-        if (!prosody) {
-          return { primary: 'neutral', confidence: 0.3, arousal: 0.5, valence: 0.5 };
-        }
-        
-        const { pitchMean, energyMean, pitchVariance } = prosody;
-        
-        // High energy + high pitch variance = excited/happy
-        // Low energy + low pitch = sad
-        // High energy + low pitch variance = angry
-        
-        let primary = 'neutral';
-        let arousal = 0.5;
-        let valence = 0.5;
-        let confidence = 0.5;
-        
-        if (energyMean > 0.3 && pitchMean > 200) {
-          primary = 'excited';
-          arousal = 0.8;
-          valence = 0.7;
-          confidence = 0.6;
-        } else if (energyMean < 0.1 && pitchMean < 150) {
-          primary = 'sad';
-          arousal = 0.2;
-          valence = 0.3;
-          confidence = 0.5;
-        } else if (energyMean > 0.3 && pitchMean < 150) {
-          primary = 'frustrated';
-          arousal = 0.7;
-          valence = 0.3;
-          confidence = 0.5;
-        }
-        
-        return { primary, confidence, arousal, valence };
-      }
-      
-      // Laughter detection (simplified)
-      function detectLaughter(audioData, sampleRate) {
-        // Laughter has characteristic burst patterns
-        const n = audioData.length;
-        let burstCount = 0;
-        let inBurst = false;
-        const burstThreshold = 0.2;
-        
-        for (let i = 0; i < n; i++) {
-          const energy = Math.abs(audioData[i]);
-          if (energy > burstThreshold && !inBurst) {
-            inBurst = true;
-            burstCount++;
-          } else if (energy < burstThreshold * 0.5) {
-            inBurst = false;
-          }
-        }
-        
-        const durationSec = n / sampleRate;
-        const burstsPerSecond = burstCount / durationSec;
-        
-        // Laughter typically has 4-8 bursts per second
-        const isLaughing = burstsPerSecond > 3 && burstsPerSecond < 10;
-        
-        return {
-          isLaughing,
-          confidence: isLaughing ? Math.min(burstsPerSecond / 8, 0.9) : 0.1,
-          laughType: isLaughing ? 'genuine' : undefined,
-          duration: isLaughing ? durationSec : undefined,
-        };
-      }
-      
-      // Speech/silence boundary detection
-      function detectBoundaries(audioData, sampleRate) {
-        const n = audioData.length;
-        const windowSize = Math.floor(sampleRate * 0.02); // 20ms windows
-        const silenceThreshold = 0.02;
-        
-        const speechSegments = [];
-        const silenceSegments = [];
-        const breathPauses = [];
-        
-        let inSpeech = false;
-        let segmentStart = 0;
-        
-        for (let i = 0; i < n; i += windowSize) {
-          // Calculate window energy
-          let windowEnergy = 0;
-          const windowEnd = Math.min(i + windowSize, n);
-          for (let j = i; j < windowEnd; j++) {
-            windowEnergy += audioData[j] * audioData[j];
-          }
-          windowEnergy /= (windowEnd - i);
-          
-          const isSilent = windowEnergy < silenceThreshold;
-          const timeMs = (i / sampleRate) * 1000;
-          
-          if (isSilent && inSpeech) {
-            // End of speech segment
-            speechSegments.push({ start: segmentStart, end: timeMs });
-            segmentStart = timeMs;
-            inSpeech = false;
-          } else if (!isSilent && !inSpeech) {
-            // Start of speech segment
-            if (segmentStart > 0) {
-              const silenceDuration = timeMs - segmentStart;
-              silenceSegments.push({ start: segmentStart, end: timeMs });
-              
-              // Breath pauses are typically 200-500ms
-              if (silenceDuration > 150 && silenceDuration < 600) {
-                breathPauses.push({ position: segmentStart, duration: silenceDuration });
-              }
-            }
-            segmentStart = timeMs;
-            inSpeech = true;
-          }
-        }
-        
-        // Close final segment
-        const finalTimeMs = (n / sampleRate) * 1000;
-        if (inSpeech) {
-          speechSegments.push({ start: segmentStart, end: finalTimeMs });
-        } else {
-          silenceSegments.push({ start: segmentStart, end: finalTimeMs });
-        }
-        
-        return { speechSegments, silenceSegments, breathPauses };
-      }
-      
-      parentPort.on('message', (job) => {
-        const startTime = Date.now();
-        
-        try {
-          let result;
-          
-          switch (job.type) {
-            case 'prosody':
-              result = analyzeProsody(job.audioData, job.sampleRate);
-              break;
-            case 'emotion':
-              const prosody = analyzeProsody(job.audioData, job.sampleRate);
-              result = classifyEmotion(prosody);
-              break;
-            case 'laughter':
-              result = detectLaughter(job.audioData, job.sampleRate);
-              break;
-            case 'boundaries':
-              result = detectBoundaries(job.audioData, job.sampleRate);
-              break;
-            default:
-              throw new Error('Unknown analysis type: ' + job.type);
-          }
-          
-          parentPort.postMessage({
-            jobId: job.id,
-            type: job.type,
-            result,
-            durationMs: Date.now() - startTime,
-          });
-        } catch (error) {
-          parentPort.postMessage({
-            jobId: job.id,
-            error: error.message || String(error),
-          });
-        }
-      });
-    `;
-
-    const worker = new Worker(workerCode, { eval: true });
+    // Load worker from separate file (secure - no eval)
+    const workerPath = join(currentDir, 'audio-analysis-worker-thread.js');
+    const worker = new Worker(workerPath);
 
     worker.on('message', (result: AudioAnalysisResult | { jobId: string; error: string }) => {
       const active = this.activeJobs.get(result.jobId);
       if (active) {
         this.activeJobs.delete(result.jobId);
 
-        if ('error' in result) {
-          const pending = this.jobQueue.find((j) => j.job.id === result.jobId);
-          if (pending) {
-            pending.reject(new Error(result.error));
-          }
-          this.stats.failedJobs++;
-        } else {
-          const pending = this.jobQueue.find((j) => j.job.id === result.jobId);
-          if (pending) {
-            pending.resolve(result);
-          }
+        // Get pending job callbacks and clean up
+        const pending = this.pendingJobs.get(result.jobId);
+        if (pending) {
+          this.pendingJobs.delete(result.jobId);
 
-          // Update stats
-          this.stats.completedJobs++;
-          this.stats.processingTimes.push(result.durationMs);
-          if (this.stats.processingTimes.length > 100) {
-            this.stats.processingTimes.shift();
+          if ('error' in result) {
+            pending.reject(new Error(result.error));
+            this.stats.failedJobs++;
+          } else {
+            pending.resolve(result);
+
+            // Update stats
+            this.stats.completedJobs++;
+            this.stats.processingTimes.push(result.durationMs);
+            if (this.stats.processingTimes.length > 100) {
+              this.stats.processingTimes.shift();
+            }
+            this.stats.avgProcessingMs =
+              this.stats.processingTimes.reduce((a, b) => a + b, 0) /
+              this.stats.processingTimes.length;
           }
-          this.stats.avgProcessingMs =
-            this.stats.processingTimes.reduce((a, b) => a + b, 0) /
-            this.stats.processingTimes.length;
         }
       }
 
@@ -393,9 +192,15 @@ class AudioAnalysisWorkerPool {
       throw new Error('Worker pool is shutting down');
     }
 
+    // Backpressure check
+    if (this.jobQueue.length >= MAX_QUEUE_DEPTH) {
+      throw new Error('Audio analysis queue full (backpressure)');
+    }
+
     this.stats.totalJobs++;
 
     return new Promise((resolve, reject) => {
+      this.pendingJobs.set(job.id, { resolve, reject });
       this.jobQueue.push({ job, resolve, reject });
       this.processNextJob();
     });
@@ -410,9 +215,13 @@ class AudioAnalysisWorkerPool {
 
     // Find available worker
     const availableWorker = this.workers[this.currentWorkerIndex];
+    if (availableWorker == null) return;
     this.currentWorkerIndex = (this.currentWorkerIndex + 1) % this.workers.length;
 
-    const { job } = this.jobQueue[0];
+    // Remove from queue (prevents memory leak)
+    const queueItem = this.jobQueue.shift();
+    if (!queueItem) return;
+    const { job } = queueItem;
 
     // Transfer audio data to worker
     this.activeJobs.set(job.id, { worker: availableWorker, startTime: Date.now() });
@@ -463,27 +272,31 @@ let poolInstance: AudioAnalysisWorkerPool | null = null;
  * Get the audio analysis worker pool
  */
 export function getAudioAnalysisPool(): AudioAnalysisWorkerPool {
-  if (!poolInstance) {
-    poolInstance = new AudioAnalysisWorkerPool(2);
+  if (poolInstance) {
+    return poolInstance;
   }
-  return poolInstance;
+  // Create new instance (non-concurrent singleton creation)
+  const instance = new AudioAnalysisWorkerPool(2);
+  poolInstance = instance;
+  return instance;
 }
 
 /**
  * Initialize the audio analysis worker pool
  */
-export async function initializeAudioAnalysisPool(): Promise<void> {
+export function initializeAudioAnalysisPool(): void {
   const pool = getAudioAnalysisPool();
-  await pool.initialize();
+  pool.initialize();
 }
 
 /**
  * Shutdown the audio analysis worker pool
  */
 export async function shutdownAudioAnalysisPool(): Promise<void> {
-  if (poolInstance) {
-    await poolInstance.shutdown();
+  const instance = poolInstance;
+  if (instance) {
     poolInstance = null;
+    await instance.shutdown();
   }
 }
 

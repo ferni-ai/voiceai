@@ -101,7 +101,17 @@ data:
       timezone: "America/Los_Angeles"
       uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-old-tasks"
       httpMethod: POST
-      
+
+    - name: transcript-cleanup
+      description: "Clean up old transcripts, summaries, and group sessions based on TTL"
+      schedule: "0 2 * * *"  # 2 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/cleanup-transcripts"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+
     # ==========================================================================
     # COLLECTIVE LEARNING JOBS
     # ==========================================================================

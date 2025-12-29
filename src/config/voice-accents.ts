@@ -194,8 +194,9 @@ export function detectAccentFromLocale(locale: string): LocaleDetectionResult {
 
   // Try extracting country code (e.g., 'US' from 'en-US')
   const parts = normalized.split(/[-_]/);
-  if (parts.length >= 2) {
-    const countryCode = parts[1].toUpperCase();
+  const countryPart = parts[1];
+  if (parts.length >= 2 && countryPart) {
+    const countryCode = countryPart.toUpperCase();
     if (COUNTRY_TO_ACCENT[countryCode]) {
       return {
         accent: COUNTRY_TO_ACCENT[countryCode],

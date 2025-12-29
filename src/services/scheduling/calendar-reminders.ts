@@ -13,6 +13,7 @@
 
 import { canReachUser, scheduleText } from '../../tools/domains/proactive/outreach/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { canSendOutreach, getPreferences } from '../outreach-intelligence.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -584,19 +585,24 @@ export function startCalendarReminders(intervalMs: number = 5 * 60 * 1000): void
   );
 
   // Then run on interval
-  reminderCheckInterval = setInterval(() => {
-    void (async () => {
-      try {
-        const { digestsSent, remindersSent } = await checkAndSendReminders();
+  registerInterval(
+    'calendar-reminders',
+    () => {
+      void (async () => {
+        try {
+          const { digestsSent, remindersSent } = await checkAndSendReminders();
 
-        if (digestsSent > 0 || remindersSent > 0) {
-          getLogger().info({ digestsSent, remindersSent }, '📅 Calendar reminder cycle complete');
+          if (digestsSent > 0 || remindersSent > 0) {
+            getLogger().info({ digestsSent, remindersSent }, '📅 Calendar reminder cycle complete');
+          }
+        } catch (error) {
+          getLogger().error({ error }, 'Calendar reminder error');
         }
-      } catch (error) {
-        getLogger().error({ error }, 'Calendar reminder error');
-      }
-    })();
-  }, intervalMs);
+      })();
+    },
+    intervalMs
+  );
+  reminderCheckInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 }
 
 /**
@@ -604,7 +610,7 @@ export function startCalendarReminders(intervalMs: number = 5 * 60 * 1000): void
  */
 export function stopCalendarReminders(): void {
   if (reminderCheckInterval) {
-    clearInterval(reminderCheckInterval);
+    clearNamedInterval('calendar-reminders');
     reminderCheckInterval = null;
     getLogger().info('Calendar reminders stopped');
   }

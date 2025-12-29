@@ -172,6 +172,234 @@ audio.play().catch((e) => {
 }
 ```
 
+### API Response Pattern (CRITICAL)
+
+The `apiGet`, `apiPost`, `apiDelete` utilities return a **wrapper object**, NOT the raw data:
+
+```typescript
+// Return type: { ok: boolean; data?: T; error?: string; status: number; ... }
+
+// ✅ CORRECT - Check ok and access .data
+async function getProfile(): Promise<Profile> {
+  const response = await apiGet<Profile>('/api/profile');
+  if (!response.ok || !response.data) {
+    throw new Error(response.error || 'Failed to get profile');
+  }
+  return response.data;  // ← The actual Profile object
+}
+
+// ❌ WRONG - Returning the wrapper causes type errors
+async function getProfile(): Promise<Profile> {
+  const response = await apiGet<Profile>('/api/profile');
+  return response;  // ← This is the wrapper, NOT Profile!
+}
+```
+
+**Pattern for services:**
+1. Call `apiGet<T>()` / `apiPost<T>()` / `apiDelete<T>()`
+2. Check `response.ok` and `response.data`
+3. Return `response.data` (the unwrapped typed data)
+4. Handle errors via `response.error`
+
+See `src/utils/api.ts` for full documentation.
+
+### Result Types (USE THESE)
+
+Use standardized result types instead of inline `{ success: boolean; error?: string }`:
+
+```typescript
+import { OperationResult, SyncResult, success, failure } from '../types/index.js';
+
+// ✅ CORRECT - Named type with factory functions
+async function saveProfile(): Promise<OperationResult> {
+  try {
+    await api.save();
+    return success();
+  } catch (e) {
+    return failure(e);
+  }
+}
+
+// ✅ With data payload
+async function syncCalendar(): Promise<SyncResult> {
+  const count = await doSync();
+  return { success: true, count };
+}
+
+// ❌ WRONG - Inline types are inconsistent and lack docs
+async function saveProfile(): Promise<{ success: boolean; error?: string }> { ... }
+```
+
+**Available types** (see `src/types/results.ts`):
+- `OperationResult` - Basic success/error
+- `OperationResultWith<T>` - Success with data payload
+- `SyncResult` - Sync operations with count
+- `ValidationResult` - Validation with errors/warnings
+- `ConnectionResult` - Auth/connection status
+- `PurchaseResult` - Transaction results
+
+**Helpers:**
+- `success()` / `success(data)` - Create success result
+- `failure(error)` - Create failure result
+- `isSuccess(result)` / `isFailure(result)` - Type guards
+
+### Result Monad (Functional Error Handling)
+
+For complex async operations, use the full `Result<T, E>` monad (mirrors backend pattern):
+
+```typescript
+import { Result, ok, err, isOk, isErr, AsyncResult } from '../types/index.js';
+import { ApiError, ValidationError } from '../types/index.js';
+
+// ✅ Return type makes errors explicit
+async function fetchUser(id: string): AsyncResult<User, ApiError> {
+  const response = await apiGet<User>(`/api/users/${id}`);
+  if (!response.ok || !response.data) {
+    return err(new ApiError(response.error || 'Not found', response.status));
+  }
+  return ok(response.data);
+}
+
+// ✅ Handle with pattern matching
+const result = await fetchUser('123');
+if (isOk(result)) {
+  console.log(result.value.name);  // TypeScript knows it's User
+} else {
+  showError(result.error.message); // TypeScript knows it's ApiError
+}
+```
+
+**Available utilities** (see `src/types/result.ts`):
+- `ok(value)` / `err(error)` - Constructors
+- `isOk(result)` / `isErr(result)` - Type guards
+- `unwrapOr(result, default)` - Get value or default
+- `map(result, fn)` - Transform success value
+- `chain(result, fn)` - Flatmap for chaining
+- `fromPromise(promise)` - Convert throwing promise
+- `combine([results])` - Collect array of results
+
+### Branded Types (Type-Safe IDs)
+
+Prevent ID mix-ups at compile time:
+
+```typescript
+import { UserId, SessionId, createUserId, createSessionId } from '../types/index.js';
+
+// ✅ These are NOT interchangeable
+function getUser(userId: UserId): Promise<User> { ... }
+function getSession(sessionId: SessionId): Promise<Session> { ... }
+
+const userId = createUserId(firebaseUid);
+const sessionId = createSessionId(roomName);
+
+getUser(userId);      // ✅ OK
+getUser(sessionId);   // ❌ Type error! SessionId is not assignable to UserId
+```
+
+**Available branded types** (see `src/types/branded.ts`):
+- **IDs**: `UserId`, `SessionId`, `PersonaId`, `DeviceId`, `ContactId`, `MemoryId`
+- **Numeric**: `Timestamp`, `DurationMs`, `Percentage`, `CentsAmount`
+- **Factory functions**: `createUserId()`, `createSessionId()`, etc.
+
+### Zod Schemas (Runtime Validation)
+
+Validate external data at boundaries:
+
+```typescript
+import { z } from 'zod';
+import { parseWithErrors, safeValidate } from '../types/index.js';
+
+// 1. Define schema (source of truth)
+const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().min(1),
+});
+
+// 2. Infer type (never write types manually!)
+type User = z.infer<typeof UserSchema>;
+
+// 3. Validate at API boundary
+const result = safeValidate(UserSchema, apiResponse);
+if (result.ok) {
+  const user = result.value; // Fully typed User!
+}
+```
+
+**Available schemas** (see `src/types/schemas.ts`):
+- `LiveKitTokenSchema` - LiveKit token validation
+- `UserProfileSchema` - User data
+- `HealthStatusSchema`, `HealthDataPointSchema` - Health data
+- `ContactFormSchema`, `SettingsFormSchema` - Form validation
+- `UserIdSchema`, `SessionIdSchema`, `PersonaIdSchema` - ID validation
+
+**Utilities:**
+- `parseWithErrors(schema, data, context)` - Parse or throw with context
+- `safeValidate(schema, data)` - Returns `{ ok, value/error }`
+- `readLocalStorage(schema, key)` - Validated localStorage reads
+- `parseSearchParams(schema, search)` - Validated URL params
+
+### Inline Result Pattern Linter
+
+Detect and flag inline `{ success: boolean }` patterns:
+
+```bash
+npm run lint:result-types        # Check for inline patterns
+npm run lint:result-types --fix  # Show suggested replacements
+```
+
+### Defensive Programming Utilities
+
+Use guards to catch bugs early and make assumptions explicit:
+
+```typescript
+import {
+  assertNever,
+  invariant,
+  assertDefined,
+  compact,
+  safeGet,
+} from '../utils/guards.js';
+
+// ✅ Exhaustive switch - compile error if new case added
+type Status = 'pending' | 'active' | 'done';
+function getLabel(status: Status): string {
+  switch (status) {
+    case 'pending': return 'Waiting...';
+    case 'active': return 'In progress';
+    case 'done': return 'Complete!';
+    default:
+      return assertNever(status); // Compile error if case missed!
+  }
+}
+
+// ✅ Runtime assertions - fail fast with clear messages
+function processUser(userId: string | null): void {
+  invariant(userId, 'User ID is required');
+  // userId is now string, not string | null
+}
+
+// ✅ Safe array access
+const items = ['a', 'b', 'c'];
+const first = safeGet(items, 0); // string | undefined
+if (first) {
+  // TypeScript knows first is string
+}
+
+// ✅ Filter nulls with proper types
+const mixed = [user1, null, user2, undefined];
+const users = compact(mixed); // User[]
+```
+
+**Available guards** (see `src/utils/guards.ts`):
+- `assertNever(value)` - Exhaustive check for discriminated unions
+- `invariant(condition, message)` - Runtime assertion
+- `assertDefined(value, message)` - Non-null assertion
+- `compact(array)` - Filter null/undefined from array
+- `safeGet(array, index)` - Safe array access
+- `isNonEmptyString(value)` - Type guard for non-empty strings
+- `isPlainObject(value)` - Type guard for plain objects
+
 ---
 
 ## File Size Limits
@@ -266,3 +494,8 @@ Once authenticated, toggle with `Cmd/Ctrl+Shift+D`. See `README.md` for full det
 5. **Keep files small** - Max 500 lines
 6. **Run quality checks** - `npm run quality` before commits
 7. **No emojis** - Use SVG icons
+8. **Use Result types** - No inline `{ success: boolean }` patterns
+9. **Use branded IDs** - `UserId`, `SessionId` prevent mix-ups
+10. **Validate at boundaries** - Use Zod schemas for external data
+11. **Use assertNever** - Exhaustive switch/if checks for unions
+12. **Use invariant** - Make runtime assumptions explicit

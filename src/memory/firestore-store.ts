@@ -730,7 +730,7 @@ export class FirestoreStore extends MemoryStore {
       'followUpDate',
     ];
 
-    const hydrated = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
+    const hydrated = structuredClone(data) as Record<string, unknown>;
 
     const hydrateObject = (obj: Record<string, unknown>): void => {
       for (const [key, value] of Object.entries(obj)) {

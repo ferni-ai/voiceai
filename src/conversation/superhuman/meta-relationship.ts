@@ -341,7 +341,7 @@ export class MetaRelationshipEngine {
     sessionCount: number;
   } {
     return {
-      milestones: JSON.parse(JSON.stringify(this.milestones)),
+      milestones: structuredClone(this.milestones),
       stage: this.currentStage,
       sessionCount: this.sessionCount,
     };

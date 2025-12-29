@@ -14,6 +14,7 @@ export { handlePushRoutes } from './push.js';
 export { handleWebhookRoutes } from './webhooks.js';
 export { handleSpotifyRoomsRoutes } from './spotify-rooms.js';
 export { handleEcobeeRoutes } from './ecobee.js';
+export { handleSmartHomeRoutes } from './smart-home.js';
 export { handleVibeRoutes } from './vibe.js';
 export { handleEightSleepRoutes } from './eight-sleep.js';
 export { handleOuraRoutes } from './oura.js';
@@ -32,5 +33,7 @@ export {
 export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.js';
 // Semantic Intelligence API (V3.0-V3.7)
 export { handleSemanticIntelligenceRoutes } from './semantic-intelligence.js';
+// Digital Twin Profile API
+export { handleTwinProfileRoutes } from './twin-profile.js';
 // NOTE: handleOutreachRoutes is registered from src/api/outreach.routes.ts in the main server
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

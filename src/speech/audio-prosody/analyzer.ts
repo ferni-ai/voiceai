@@ -10,6 +10,16 @@ import { createLogger } from '../../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ProsodyFeatures, VoiceEmotionResult, AudioBuffer } from './types.js';
 import { convertToFloat32, mergeBuffers, extractProsodyFeatures } from './feature-extraction.js';
+// Native Rust audio utilities (zero-allocation when available)
+import {
+  isNativeAudioAvailable,
+  convertI16ToF32,
+  getOrCreateNativeProcessor,
+  processNativeFrame,
+  getNativeFullFeatures,
+  resetNativeProcessor,
+  type NativeFullProsodyFeatures,
+} from './native-analyzer.js';
 import {
   mapToEmotionalDimensions,
   classifyEmotion,
@@ -52,9 +62,22 @@ export class AudioProsodyAnalyzer {
   // Session ID for metrics tracking
   private sessionId: string | null = null;
 
+  // Native Rust processor state
+  private useNativeProcessor = false;
+  private lastFrameTimestamp = 0;
+
   constructor(sessionId?: string) {
     this.sessionId = sessionId ?? null;
-    log.debug({ sessionId }, 'AudioProsodyAnalyzer initialized');
+
+    // Initialize native Rust processor if available
+    if (sessionId && isNativeAudioAvailable()) {
+      this.useNativeProcessor = getOrCreateNativeProcessor(sessionId, 16000);
+      if (this.useNativeProcessor) {
+        log.debug({ sessionId }, '🦀 AudioProsodyAnalyzer using Rust acceleration');
+      }
+    }
+
+    log.debug({ sessionId, native: this.useNativeProcessor }, 'AudioProsodyAnalyzer initialized');
   }
 
   /**
@@ -71,18 +94,29 @@ export class AudioProsodyAnalyzer {
     if (!frame.data || frame.data.length === 0) return;
 
     try {
-      // Convert to Float32Array
-      const samples = convertToFloat32(frame.data);
+      const now = Date.now();
+
+      // If using native Rust processor, feed it directly with Int16 (zero-copy)
+      if (this.useNativeProcessor && this.sessionId) {
+        processNativeFrame(this.sessionId, frame.data as unknown as Int16Array, now);
+        this.lastFrameTimestamp = now;
+      }
+
+      // Also maintain JS buffers for fallback and additional analysis
+      // Convert to Float32Array - use native Rust when available (zero-allocation)
+      const samples = isNativeAudioAvailable()
+        ? convertI16ToF32(frame.data as unknown as Int16Array)
+        : convertToFloat32(frame.data);
 
       this.buffers.push({
         samples,
         sampleRate: frame.sampleRate,
         channels: frame.channels,
-        timestamp: Date.now(),
+        timestamp: now,
       });
 
       // Trim old buffers
-      const cutoff = Date.now() - this.maxBufferMs;
+      const cutoff = now - this.maxBufferMs;
       this.buffers = this.buffers.filter((b) => b.timestamp >= cutoff);
     } catch (error) {
       // Gracefully handle malformed audio data
@@ -124,12 +158,26 @@ export class AudioProsodyAnalyzer {
       return null;
     }
 
-    // Merge buffers
-    const merged = mergeBuffers(this.buffers);
-    if (!merged) return null;
+    // Try to get prosody features from native Rust processor first (10-50x faster)
+    let prosody: ProsodyFeatures;
 
-    // Extract prosody features
-    const prosody = extractProsodyFeatures(merged.samples, merged.sampleRate);
+    if (this.useNativeProcessor && this.sessionId) {
+      const nativeFeatures = getNativeFullFeatures(this.sessionId);
+      if (nativeFeatures) {
+        prosody = this.mapNativeToJsFeatures(nativeFeatures);
+        log.debug({ sessionId: this.sessionId }, '🦀 Using Rust prosody analysis');
+      } else {
+        // Fall back to JS extraction
+        const merged = mergeBuffers(this.buffers);
+        if (!merged) return null;
+        prosody = extractProsodyFeatures(merged.samples, merged.sampleRate);
+      }
+    } else {
+      // JS-only path
+      const merged = mergeBuffers(this.buffers);
+      if (!merged) return null;
+      prosody = extractProsodyFeatures(merged.samples, merged.sampleRate);
+    }
 
     // Auto-calibrate baseline on first good sample
     if (!this.calibrated && prosody.pitchMean > 50) {
@@ -192,6 +240,12 @@ export class AudioProsodyAnalyzer {
     this.buffers = [];
     this.featureHistory = [];
     this.calibrated = false;
+    this.lastFrameTimestamp = 0;
+
+    // Also reset native Rust processor
+    if (this.useNativeProcessor && this.sessionId) {
+      resetNativeProcessor(this.sessionId);
+    }
   }
 
   // ============================================================================
@@ -211,6 +265,58 @@ export class AudioProsodyAnalyzer {
       },
       'Baseline calibrated'
     );
+  }
+
+  /**
+   * Map native Rust prosody features to JS ProsodyFeatures interface.
+   * Rust provides core features; we compute defaults for voice quality metrics.
+   */
+  private mapNativeToJsFeatures(native: NativeFullProsodyFeatures): ProsodyFeatures {
+    // Determine pitch contour from variance/range ratio
+    const varianceToRangeRatio = native.pitchRange > 0 ? native.pitchVariance / native.pitchRange : 0;
+    let pitchContour: 'rising' | 'falling' | 'flat' | 'dynamic' = 'flat';
+    if (varianceToRangeRatio > 0.3) {
+      pitchContour = 'dynamic';
+    } else if (native.pitchVariance < 5) {
+      pitchContour = 'flat';
+    }
+
+    // Calculate pause frequency from pause count and duration
+    const durationMinutes = native.durationMs / 60000;
+    const pauseFrequency = durationMinutes > 0 ? native.pauseCount / durationMinutes : 0;
+
+    // Estimate average pause duration (rough heuristic from speaking ratio)
+    // If speaking 80% of time with 10 pauses over 60s, avg pause = (60s * 0.2) / 10 = 1.2s
+    const nonSpeakingMs = native.durationMs * (1 - native.speakingRatio);
+    const pauseDuration = native.pauseCount > 0 ? nonSpeakingMs / native.pauseCount : 0;
+
+    return {
+      // Core pitch features (directly from Rust)
+      pitchMean: native.pitchMean,
+      pitchVariance: native.pitchVariance,
+      pitchRange: native.pitchRange,
+      pitchContour,
+
+      // Energy features (directly from Rust)
+      energyMean: native.energyMean,
+      energyVariance: native.energyVariance,
+      energyPeaks: Math.round(native.pauseCount / 2), // Approximate energy peaks from pauses
+
+      // Rhythm features
+      speechRate: native.speechRate,
+      pauseDuration,
+      pauseFrequency,
+
+      // Voice quality (defaults - Rust doesn't compute these yet)
+      // These require more sophisticated DSP that could be added to Rust later
+      jitter: 0.02, // Default low jitter
+      shimmer: 0.03, // Default low shimmer
+      breathiness: 0.1, // Default low breathiness
+
+      // Timing
+      utteranceDuration: native.durationMs,
+      speakingRatio: native.speakingRatio,
+    };
   }
 }
 

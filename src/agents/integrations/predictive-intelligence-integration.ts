@@ -25,6 +25,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+// 🧠 TRUE PREDICTIVE INTELLIGENCE: Flush ML state on session end
+import { flushUserMLState } from '../../intelligence/predictive/index.js';
+
 // Import the three pattern systems
 import {
   recordObservation,
@@ -127,8 +130,16 @@ export function initializePredictiveIntelligence(
 /**
  * Cleanup predictive intelligence for a session
  */
-export function cleanupPredictiveIntelligence(sessionId: string): void {
+export function cleanupPredictiveIntelligence(sessionId: string, userId?: string): void {
   sessionEngines.delete(sessionId);
+
+  // 🧠 Flush ML state to Firestore on session end (non-blocking)
+  if (userId) {
+    void flushUserMLState(userId).catch((err) => {
+      log.debug({ error: String(err), userId }, 'ML state flush failed (non-fatal)');
+    });
+  }
+
   log.debug({ sessionId }, '🔮 Predictive intelligence cleaned up');
 }
 

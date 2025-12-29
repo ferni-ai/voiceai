@@ -21,9 +21,8 @@ describe('Live Superhuman Injections', () => {
   });
 
   it('detects commitment language', async () => {
-    const { detectCommitmentLanguage } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { detectCommitmentLanguage } =
+      await import('../agents/processors/live-superhuman-injections.js');
 
     // Test various commitment phrases
     const tests = [
@@ -46,9 +45,8 @@ describe('Live Superhuman Injections', () => {
   });
 
   it('detects values language and conflicts', async () => {
-    const { detectValuesLanguage } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { detectValuesLanguage } =
+      await import('../agents/processors/live-superhuman-injections.js');
 
     // Test values detection
     const valuesResult = detectValuesLanguage("It's important to me that I spend time with family");
@@ -56,7 +54,9 @@ describe('Live Superhuman Injections', () => {
     expect(valuesResult.value).toBeTruthy();
 
     // Test conflict detection
-    const conflictResult = detectValuesLanguage("I value honesty but I also don't want to hurt them");
+    const conflictResult = detectValuesLanguage(
+      "I value honesty but I also don't want to hurt them"
+    );
     expect(conflictResult.potential_conflict).toBe(true);
 
     // Test no values
@@ -65,9 +65,8 @@ describe('Live Superhuman Injections', () => {
   });
 
   it('detects capacity signals with correct severity', async () => {
-    const { detectCapacitySignals } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { detectCapacitySignals } =
+      await import('../agents/processors/live-superhuman-injections.js');
 
     // Critical
     const critical = detectCapacitySignals("I can't do this anymore, I'm at my breaking point");
@@ -82,14 +81,13 @@ describe('Live Superhuman Injections', () => {
     expect(moderate.level).toBe('moderate');
 
     // None
-    const none = detectCapacitySignals("I had a productive day");
+    const none = detectCapacitySignals('I had a productive day');
     expect(none.level).toBe('none');
   });
 
   it('builds full superhuman injections for context', async () => {
-    const { buildLiveSuperhumanInjections } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { buildLiveSuperhumanInjections } =
+      await import('../agents/processors/live-superhuman-injections.js');
 
     const result = await buildLiveSuperhumanInjections({
       userId: 'test-user',
@@ -169,7 +167,7 @@ describe('Voice-Text Mismatch Detection', () => {
     const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     const result = detectMismatch(
-      "I went to the grocery store today",
+      'I went to the grocery store today',
       {
         primary: 'neutral',
         confidence: 0.8,
@@ -191,11 +189,8 @@ describe('Voice-Text Mismatch Detection', () => {
 
 describe('Speech State Dispatcher', () => {
   it('dispatches speech pause events with correct nod types', async () => {
-    const {
-      dispatchSpeechPause,
-      dispatchSpeechStart,
-      clearSpeechStateTracker,
-    } = await import('../agents/realtime/speech-state-dispatcher.js');
+    const { dispatchSpeechPause, dispatchSpeechStart, clearSpeechStateTracker } =
+      await import('../agents/realtime/speech-state-dispatcher.js');
 
     const sendDataMessage = vi.fn().mockResolvedValue(undefined);
     const sessionId = 'test-session';
@@ -205,33 +200,38 @@ describe('Speech State Dispatcher', () => {
 
     // Start speaking first
     await dispatchSpeechStart(sessionId, sendDataMessage);
-    expect(sendDataMessage).toHaveBeenCalledWith('speech_state', expect.objectContaining({
-      type: 'speech_start',
-    }));
+    expect(sendDataMessage).toHaveBeenCalledWith(
+      'speech_state',
+      expect.objectContaining({
+        type: 'speech_start',
+      })
+    );
 
     // Send a pause
     await dispatchSpeechPause(sessionId, sendDataMessage, 300);
-    expect(sendDataMessage).toHaveBeenCalledWith('speech_state', expect.objectContaining({
-      type: 'speech_pause',
-      pauseType: 'breath',
-      nodType: 'micro',
-    }));
+    expect(sendDataMessage).toHaveBeenCalledWith(
+      'speech_state',
+      expect.objectContaining({
+        type: 'speech_pause',
+        pauseType: 'breath',
+        nodType: 'micro',
+      })
+    );
 
     // Longer pause = different nod type
     await dispatchSpeechPause(sessionId, sendDataMessage, 600);
-    expect(sendDataMessage).toHaveBeenCalledWith('speech_state', expect.objectContaining({
-      pauseType: 'thinking',
-      nodType: 'subtle',
-    }));
+    expect(sendDataMessage).toHaveBeenCalledWith(
+      'speech_state',
+      expect.objectContaining({
+        pauseType: 'thinking',
+        nodType: 'subtle',
+      })
+    );
   });
 
   it('estimates breath rate from pause patterns', async () => {
-    const {
-      dispatchSpeechPause,
-      dispatchSpeechStart,
-      dispatchSpeechEnd,
-      clearSpeechStateTracker,
-    } = await import('../agents/realtime/speech-state-dispatcher.js');
+    const { dispatchSpeechPause, dispatchSpeechStart, dispatchSpeechEnd, clearSpeechStateTracker } =
+      await import('../agents/realtime/speech-state-dispatcher.js');
 
     const sendDataMessage = vi.fn().mockResolvedValue(undefined);
     const sessionId = 'breath-test';
@@ -276,9 +276,8 @@ describe('Trust Moment Write-Through', () => {
       recordCelebrationResponse: vi.fn(),
     }));
 
-    const { recordConversationTurn } = await import(
-      '../services/trust-systems/unified-recorder.js'
-    );
+    const { recordConversationTurn } =
+      await import('../services/trust-systems/unified-recorder.js');
 
     await expect(
       recordConversationTurn({
@@ -300,9 +299,8 @@ describe('Trust Moment Write-Through', () => {
 
 describe('BTH Pipeline Performance', () => {
   it('live superhuman injections complete under 80ms', async () => {
-    const { buildLiveSuperhumanInjections } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { buildLiveSuperhumanInjections } =
+      await import('../agents/processors/live-superhuman-injections.js');
 
     const start = Date.now();
     await buildLiveSuperhumanInjections({
@@ -359,9 +357,8 @@ describe('BTH End-to-End Flow', () => {
     // This test verifies the conceptual flow works
     // In production, this happens in turn-processor.ts
 
-    const { buildLiveSuperhumanInjections } = await import(
-      '../agents/processors/live-superhuman-injections.js'
-    );
+    const { buildLiveSuperhumanInjections } =
+      await import('../agents/processors/live-superhuman-injections.js');
     const { detectMismatch } = await import('../intelligence/voice-text-mismatch.js');
 
     // Simulate user saying "I'm fine" with distressed voice
@@ -409,9 +406,7 @@ describe('BTH End-to-End Flow', () => {
     expect(superhuman.signals.voiceDistressDetected).toBe(true);
 
     // 4. Verify injections include guidance for Ferni
-    const hasVoiceInjection = superhuman.injections.some(
-      (i) => i.category === 'superhuman_voice'
-    );
+    const hasVoiceInjection = superhuman.injections.some((i) => i.category === 'superhuman_voice');
     expect(hasVoiceInjection).toBe(true);
   });
 });

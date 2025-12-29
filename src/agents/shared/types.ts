@@ -368,6 +368,21 @@ export interface UserData {
 
   /** Timestamp of last anticipatory firing (for cooldown) */
   lastAnticipatoryFiringAt?: number;
+
+  // ============================================================
+  // SEMANTIC INTELLIGENCE (Learning Loop Integration)
+  // Tool prediction from semantic analysis for learning loop
+  // ============================================================
+
+  /** Semantic prediction from the current turn (for learning loop comparison) */
+  semanticPrediction?: {
+    /** Predicted tool ID */
+    toolId: string;
+    /** Confidence level (0-1) */
+    confidence: number;
+    /** Whether this was classified as a tool request */
+    isToolRequest: boolean;
+  };
 }
 
 // ============================================================================

@@ -407,10 +407,171 @@ export async function loadUserPatterns(userId: string): Promise<PatternObservati
 }
 
 // ============================================================================
+// CONFIDENCE DECAY
+// ============================================================================
+
+// Patterns decay if not observed within these windows
+const CONFIDENCE_DECAY_CONFIG = {
+  very_high: { daysToDecay: 30, decayTo: 'high' as PredictionConfidence },
+  high: { daysToDecay: 21, decayTo: 'medium' as PredictionConfidence },
+  medium: { daysToDecay: 14, decayTo: 'low' as PredictionConfidence },
+  low: { daysToDecay: 30, decayTo: null }, // Low stays low until removed
+};
+
+/**
+ * Apply confidence decay to patterns that haven't been observed recently.
+ * This prevents stale patterns from dominating predictions.
+ */
+export function applyConfidenceDecay(pattern: PatternObservation): PatternObservation {
+  const daysSinceObserved = (Date.now() - pattern.lastObserved) / (24 * 60 * 60 * 1000);
+  const decayConfig = CONFIDENCE_DECAY_CONFIG[pattern.confidence];
+
+  if (daysSinceObserved > decayConfig.daysToDecay && decayConfig.decayTo) {
+    return {
+      ...pattern,
+      confidence: decayConfig.decayTo,
+    };
+  }
+
+  return pattern;
+}
+
+/**
+ * Apply decay to all patterns and save updated confidence levels
+ */
+export async function decayStalePatterns(userId: string): Promise<number> {
+  const patterns = await loadUserPatterns(userId);
+  let decayedCount = 0;
+
+  for (const pattern of patterns) {
+    const decayed = applyConfidenceDecay(pattern);
+    if (decayed.confidence !== pattern.confidence) {
+      await savePattern(userId, decayed);
+      decayedCount++;
+    }
+  }
+
+  if (decayedCount > 0) {
+    // Invalidate cache after decay updates
+    patternCache.delete(userId);
+    await invalidateRedisCache(userId);
+    log.debug({ userId, decayedCount }, '📉 Decayed stale pattern confidence');
+  }
+
+  return decayedCount;
+}
+
+// ============================================================================
+// PATTERN FEEDBACK (Confirm/Invalidate)
+// ============================================================================
+
+/**
+ * Confirm a prediction was accurate - boosts pattern confidence
+ */
+export async function confirmPrediction(
+  userId: string,
+  patternId: string
+): Promise<void> {
+  try {
+    const patterns = await loadUserPatterns(userId);
+    const pattern = patterns.find((p) => p.id === patternId);
+
+    if (!pattern) {
+      log.debug({ userId, patternId }, 'Pattern not found for confirmation');
+      return;
+    }
+
+    // Boost confidence
+    const confidenceBoost: Record<PredictionConfidence, PredictionConfidence> = {
+      low: 'medium',
+      medium: 'high',
+      high: 'very_high',
+      very_high: 'very_high',
+    };
+
+    const updated: PatternObservation = {
+      ...pattern,
+      confidence: confidenceBoost[pattern.confidence],
+      observationCount: pattern.observationCount + 1,
+      lastObserved: Date.now(),
+    };
+
+    await savePattern(userId, updated);
+    log.info(
+      { userId, patternId, newConfidence: updated.confidence },
+      '✅ Prediction confirmed - confidence boosted'
+    );
+  } catch (error) {
+    log.warn({ error: String(error), userId, patternId }, 'Failed to confirm prediction');
+  }
+}
+
+/**
+ * Invalidate a prediction - reduces pattern confidence
+ */
+export async function invalidatePrediction(
+  userId: string,
+  patternId: string
+): Promise<void> {
+  try {
+    const patterns = await loadUserPatterns(userId);
+    const pattern = patterns.find((p) => p.id === patternId);
+
+    if (!pattern) {
+      log.debug({ userId, patternId }, 'Pattern not found for invalidation');
+      return;
+    }
+
+    // Reduce confidence
+    const confidenceReduce: Record<PredictionConfidence, PredictionConfidence | null> = {
+      very_high: 'high',
+      high: 'medium',
+      medium: 'low',
+      low: null, // Will be removed
+    };
+
+    const newConfidence = confidenceReduce[pattern.confidence];
+
+    if (newConfidence === null) {
+      // Remove pattern entirely if confidence drops below low
+      const db = getFirestoreDb();
+      if (db) {
+        await db
+          .collection('bogle_users')
+          .doc(userId)
+          .collection('patterns')
+          .doc(patternId)
+          .delete();
+        log.info({ userId, patternId }, '🗑️ Low-confidence pattern removed');
+      }
+    } else {
+      const updated: PatternObservation = {
+        ...pattern,
+        confidence: newConfidence,
+      };
+      await savePattern(userId, updated);
+      log.info(
+        { userId, patternId, newConfidence },
+        '❌ Prediction invalidated - confidence reduced'
+      );
+    }
+
+    // Invalidate cache
+    patternCache.delete(userId);
+    await invalidateRedisCache(userId);
+  } catch (error) {
+    log.warn({ error: String(error), userId, patternId }, 'Failed to invalidate prediction');
+  }
+}
+
+// ============================================================================
 // PREDICTION GENERATION
 // ============================================================================
 
 export async function generatePredictions(userId: string): Promise<Prediction[]> {
+  // Apply decay before generating predictions
+  await decayStalePatterns(userId);
+
   const patterns = await loadUserPatterns(userId);
   const predictions: Prediction[] = [];
   const now = new Date();
@@ -642,6 +803,11 @@ export const predictiveCoaching = {
   clearCache: clearPatternCache,
   getCacheStats,
   initializeRedis: initializeRedisCache,
+  // Confidence management
+  confirmPrediction,
+  invalidatePrediction,
+  applyConfidenceDecay,
+  decayStalePatterns,
   // Aliases for test compatibility
   recordPattern: recordObservation,
   getPatterns: loadUserPatterns,

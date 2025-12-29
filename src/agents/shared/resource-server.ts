@@ -189,7 +189,7 @@ class ResourceRegistry {
       const { initializeFromBundles, getPersonaAsync } = await import('../../personas/index.js');
       await initializeFromBundles();
 
-      // Cache all persona configs
+      // Cache all persona configs in parallel
       const personaIds = [
         'ferni',
         'alex-chen',
@@ -198,14 +198,20 @@ class ResourceRegistry {
         'jordan-taylor',
         'nayan-patel',
       ];
-      for (const id of personaIds) {
-        try {
-          const config = await getPersonaAsync(id);
-          if (config) {
-            this.personas.configs.set(id, config);
+      const results = await Promise.all(
+        personaIds.map(async (id) => {
+          try {
+            const config = await getPersonaAsync(id);
+            return { id, config };
+          } catch {
+            // Non-fatal
+            return { id, config: null };
           }
-        } catch {
-          // Non-fatal
+        })
+      );
+      for (const { id, config } of results) {
+        if (config) {
+          this.personas.configs.set(id, config);
         }
       }
 

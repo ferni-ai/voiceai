@@ -53,7 +53,8 @@ export async function generateMoodSignal(
 ): Promise<GeneratorResult> {
   const probability = HUMANIZATION_CONFIG.probabilities.moodDrift;
 
-  if (!seededChance(`${Date.now()}:1`, probability)) {
+  // Use turnCount + timestamp for better seed entropy across calls
+  if (!seededChance(`${context.turnCount}:${Date.now()}:mood`, probability)) {
     return null;
   }
 

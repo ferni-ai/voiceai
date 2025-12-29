@@ -55,14 +55,22 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     },
     emphasisStyle: 'warm', // Slows down for emotional words
     specialPatterns: [
-      // Ferni's Wyoming pauses
-      { trigger: /\bWyoming\b/i, pause: 200, emotion: 'wistful' },
-      // Second chances emphasis
+      // Ferni's Wyoming pauses - nostalgic reflection
+      { trigger: /\bWyoming\b/i, pause: 200, emotion: 'nostalgic' },
+      // Second chances emphasis - warm hope
       { trigger: /\bsecond chance/i, speed: 0.88, emotion: 'affectionate' },
-      // Kintsugi philosophy
-      { trigger: /\bkintsugi\b/i, pause: 300, emotion: 'contemplative' },
-      // Japan/tsunami moments
+      // Kintsugi philosophy - serene wisdom
+      { trigger: /\bkintsugi\b/i, pause: 300, emotion: 'serene' },
+      // Japan/tsunami moments - wistful memories
       { trigger: /\b(Japan|tsunami)\b/i, pause: 250, emotion: 'wistful' },
+      // Celebration moments - elated joy
+      { trigger: /\b(proud of you|you did it|amazing)\b/i, speed: 1.02, emotion: 'elated' },
+      // Deep gratitude moments
+      { trigger: /\bthank you for (trusting|sharing|being)\b/i, speed: 0.88, emotion: 'grateful' },
+      // Playful teasing - joking warmth
+      { trigger: /\b(just kidding|teasing|don't judge)\b/i, emotion: 'joking' },
+      // Mysterious/intriguing moments
+      { trigger: /\b(here's the thing|between you and me)\b/i, pause: 150, emotion: 'mysterious' },
     ],
   },
   'peter-john': {
@@ -86,19 +94,19 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\bwait wait wait\b/i, speed: 1.08, emotion: 'enthusiastic', pause: 100 },
       { trigger: /\b(Oh!|Ooh!|Wait—)\b/i, speed: 1.05, emotion: 'excited' },
       { trigger: /\bdo you see (it|that|this)\b/i, speed: 1.05, emotion: 'enthusiastic' },
-      // Pattern discovery - builds excitement
-      { trigger: /\b(data|analysis|pattern|trend)\b/i, speed: 1.02, emotion: 'curious' },
+      // Pattern discovery - builds excitement with anticipation
+      { trigger: /\b(data|analysis|pattern|trend)\b/i, speed: 1.02, emotion: 'anticipation' },
       { trigger: /\bcross[- ]domain\b/i, speed: 1.0, emotion: 'enthusiastic' },
-      // Peter's philosophy - warm slowdown
+      // Peter's philosophy - warm slowdown with serene confidence
       {
         trigger: /\bthe pattern['']?s already there\b/i,
         speed: 0.92,
         pause: 200,
-        emotion: 'affectionate',
+        emotion: 'serene',
       },
       { trigger: /\binvest in what you know\b/i, speed: 0.92, pause: 150, emotion: 'confident' },
-      // Carolyn references - warmth
-      { trigger: /\bcarolyn\b/i, speed: 0.92, emotion: 'affectionate' },
+      // Carolyn references - nostalgic warmth
+      { trigger: /\bcarolyn\b/i, speed: 0.92, emotion: 'nostalgic' },
       // Heavy moments - genuine care (SLOWEST)
       {
         trigger: /\b(struggling|stressed|anxious|worried|overwhelmed)\b/i,
@@ -112,6 +120,10 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         pause: 200,
         emotion: 'sympathetic',
       },
+      // Research triumph moments - proud satisfaction
+      { trigger: /\b(I found|discovered|here['']s the insight)\b/i, speed: 1.0, emotion: 'triumphant' },
+      // Playful data nerd moments
+      { trigger: /\b(nerding out|geeking|spreadsheet)\b/i, emotion: 'joking' },
     ],
   },
   'alex-chen': {
@@ -155,31 +167,33 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 0.92,
         emotion: 'affectionate',
       },
-      // Productivity wins - celebrate with warmth!
+      // Productivity wins - celebrate with triumph!
       {
         trigger: /\b(done|finished|sent|scheduled|inbox zero)\b/i,
-        emotion: 'confident',
+        emotion: 'triumphant',
         speed: 1.0,
       },
-      // Dry wit moments
-      { trigger: /\b(technically|actually)\b/i, emotion: 'amused' },
-      // Alex's philosophy - deliberate delivery
-      { trigger: /\bclear is kind\b/i, speed: 0.88, pause: 200, emotion: 'affectionate' },
+      // Dry wit moments - sarcastic charm
+      { trigger: /\b(technically|actually)\b/i, emotion: 'sarcastic' },
+      // Alex's philosophy - deliberate delivery with serene confidence
+      { trigger: /\bclear is kind\b/i, speed: 0.88, pause: 200, emotion: 'serene' },
       {
         trigger: /\bstructure (is|creates) freedom\b/i,
         speed: 0.88,
         pause: 180,
-        emotion: 'affectionate',
+        emotion: 'serene',
       },
       { trigger: /\bboundaries? or burnout\b/i, speed: 0.88, pause: 180, emotion: 'determined' },
-      // Plant council (easter egg)
-      { trigger: /\b(susan|greg|ferndinand|peggy|the council)\b/i, emotion: 'affectionate' },
-      // Family warmth
+      // Plant council (easter egg) - playful affection
+      { trigger: /\b(susan|greg|ferndinand|peggy|the council)\b/i, emotion: 'joking' },
+      // Family warmth - nostalgic love
       {
         trigger: /\b(chen['']s garden|the restaurant|did you eat)\b/i,
         speed: 0.92,
-        emotion: 'affectionate',
+        emotion: 'nostalgic',
       },
+      // Skeptical challenge moments
+      { trigger: /\b(is that really|are you sure|let's think about)\b/i, emotion: 'skeptical' },
     ],
   },
   'maya-santos': {
@@ -228,22 +242,26 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         pause: 250,
         emotion: 'affectionate',
       },
-      // Maya's habit celebrations - warm emphasis
-      { trigger: /\b(habit|routine|progress)\b/i, emotion: 'proud' },
-      // Glidepath method
-      { trigger: /\bglidepath\b/i, pause: 150, speed: 0.9, emotion: 'affectionate' },
-      // Tiny wins - encouraging
+      // Maya's habit celebrations - warm emphasis with gratitude
+      { trigger: /\b(habit|routine|progress)\b/i, emotion: 'grateful' },
+      // Glidepath method - peaceful confidence
+      { trigger: /\bglidepath\b/i, pause: 150, speed: 0.9, emotion: 'peaceful' },
+      // Tiny wins - encouraging warmth
       {
         trigger: /\b(small step|tiny|gradual|one percent)\b/i,
         emotion: 'affectionate',
         speed: 0.92,
       },
-      // Questions - curious energy
-      { trigger: /\bwhat (does|would) that look like\b/i, emotion: 'curious', speed: 0.92 },
-      // Late night softening
-      { trigger: /\b(late|can['']t sleep)\b/i, speed: 0.85, emotion: 'calm' },
-      // Grandmother wisdom
-      { trigger: /\b(lola|grandmother|apo)\b/i, speed: 0.88, emotion: 'wistful', pause: 200 },
+      // Questions - curious anticipation
+      { trigger: /\bwhat (does|would) that look like\b/i, emotion: 'anticipation', speed: 0.92 },
+      // Late night softening - serene presence
+      { trigger: /\b(late|can['']t sleep)\b/i, speed: 0.85, emotion: 'serene' },
+      // Grandmother wisdom - nostalgic reverence
+      { trigger: /\b(lola|grandmother|apo)\b/i, speed: 0.88, emotion: 'nostalgic', pause: 200 },
+      // Celebrating comebacks - triumphant resilience
+      { trigger: /\b(you came back|you're here|starting again)\b/i, emotion: 'triumphant', speed: 0.95 },
+      // Self-compassion moments - peaceful acceptance
+      { trigger: /\b(be kind to yourself|it's okay|forgive yourself)\b/i, emotion: 'peaceful', speed: 0.88 },
     ],
   },
   'jordan-taylor': {
@@ -283,13 +301,13 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 1.02,
         emotion: 'happy',
       },
-      // Dream/vision moments - hopeful energy, not rushed
-      { trigger: /\b(dream|vision|imagine|picture)\b/i, emotion: 'hopeful', speed: 0.95 },
-      { trigger: /\bin (five|ten) years\b/i, speed: 0.92, pause: 200, emotion: 'hopeful' },
-      // Life arc philosophy - Jordan's signature, needs to land
-      { trigger: /\blife arc\b/i, speed: 0.88, pause: 300, emotion: 'hopeful' },
-      { trigger: /\bseries of chapters\b/i, speed: 0.88, pause: 250, emotion: 'hopeful' },
-      { trigger: /\bbigger picture\b/i, pause: 200, speed: 0.9, emotion: 'hopeful' },
+      // Dream/vision moments - anticipatory energy, not rushed
+      { trigger: /\b(dream|vision|imagine|picture)\b/i, emotion: 'anticipation', speed: 0.95 },
+      { trigger: /\bin (five|ten) years\b/i, speed: 0.92, pause: 200, emotion: 'anticipation' },
+      // Life arc philosophy - Jordan's signature, needs to land (contemplative → hopeful via content)
+      { trigger: /\blife arc\b/i, speed: 0.88, pause: 300, emotion: 'contemplative' },
+      { trigger: /\bseries of chapters\b/i, speed: 0.88, pause: 250, emotion: 'contemplative' },
+      { trigger: /\bbigger picture\b/i, pause: 200, speed: 0.9, emotion: 'content' },
       // HARD CHAPTERS - grief deserves presence, not positivity (SLOWEST)
       {
         trigger: /\b(grief|grieving|loss|lost|died|death)\b/i,
@@ -350,35 +368,37 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       },
       // Disturbing comfort
       { trigger: /\bi am here to disturb you\b/i, pause: 500, speed: 0.75 },
-      // Nayan's wisdom pauses (extended)
+      // Nayan's wisdom pauses (extended) - serene depth
       {
         trigger: /\b(wisdom|meaning|purpose|life|death|existence)\b/i,
         pause: 500,
         speed: 0.78,
-        emotion: 'contemplative',
+        emotion: 'serene',
       },
-      // Poetry/philosophy emphasis (slower)
+      // Poetry/philosophy emphasis (slower) - mysterious depth
       {
         trigger: /\b(poem|rumi|hafiz|ancient|guru|sanskrit)\b/i,
         speed: 0.75,
         pause: 300,
-        emotion: 'contemplative',
+        emotion: 'mysterious',
       },
-      // Paradoxes - need space to land
-      { trigger: /\b(both|neither|and yet|but also)\b/i, pause: 350, speed: 0.8 },
-      // Chamundi Hills / Mount Kailash - sacred places
+      // Paradoxes - need space to land (contemplative pondering)
+      { trigger: /\b(both|neither|and yet|but also)\b/i, pause: 350, speed: 0.8, emotion: 'contemplative' },
+      // Chamundi Hills / Mount Kailash - sacred places (nostalgic reverence)
       {
         trigger: /\b(chamundi|kailash|mysore|india)\b/i,
         pause: 250,
-        emotion: 'wistful',
+        emotion: 'nostalgic',
         speed: 0.82,
       },
-      // Motorcycle/presence moments
-      { trigger: /\b(motorcycle|ride|road|mountains)\b/i, speed: 0.85, emotion: 'content' },
-      // Namaskaram - closing blessing
-      { trigger: /\bnamaskaram\b/i, pause: 600, speed: 0.7, emotion: 'affectionate' },
-      // Laughter at the cosmic joke
-      { trigger: /\b(absurd|funny|joke|seven billion)\b/i, emotion: 'happy', speed: 0.88 },
+      // Motorcycle/presence moments - peaceful contentment
+      { trigger: /\b(motorcycle|ride|road|mountains)\b/i, speed: 0.85, emotion: 'peaceful' },
+      // Namaskaram - closing blessing (serene blessing)
+      { trigger: /\bnamaskaram\b/i, pause: 600, speed: 0.7, emotion: 'serene' },
+      // Laughter at the cosmic joke - amused wisdom
+      { trigger: /\b(absurd|funny|joke|seven billion)\b/i, emotion: 'joking', speed: 0.88 },
+      // Uncomfortable truths - delivered with calm directness
+      { trigger: /\b(you (already )?know|the truth is|stop pretending)\b/i, speed: 0.78, pause: 300, emotion: 'calm' },
     ],
   },
 };

@@ -418,7 +418,7 @@ export class EvolvingJokesEngine {
    * Export for persistence
    */
   export(): EvolvingJoke[] {
-    return JSON.parse(JSON.stringify(Array.from(this.jokes.values())));
+    return structuredClone(Array.from(this.jokes.values()));
   }
 
   /**

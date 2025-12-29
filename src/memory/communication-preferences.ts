@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { cleanForFirestore } from '../utils/firestore-utils.js';
 import type {
   CommunicationPreferencesService,
   InteractionPreference,
@@ -21,6 +22,100 @@ import type {
 } from './interfaces/index.js';
 
 const log = createLogger({ module: 'CommunicationPreferences' });
+
+// ============================================================================
+// FIRESTORE PERSISTENCE
+// ============================================================================
+
+/**
+ * Get Firestore instance (lazy load to avoid circular deps)
+ */
+async function getFirestoreDb() {
+  try {
+    const { getFirestore } = await import('firebase-admin/firestore');
+    return getFirestore();
+  } catch {
+    log.debug('Firestore not available');
+    return null;
+  }
+}
+
+/**
+ * Save user preferences to Firestore
+ */
+export async function saveUserPreferences(
+  userId: string,
+  preferences: InteractionPreference[]
+): Promise<boolean> {
+  const db = await getFirestoreDb();
+  if (!db) return false;
+
+  try {
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('preferences')
+      .doc('communication')
+      .set(
+        cleanForFirestore({
+          preferences,
+          updatedAt: new Date(),
+        })
+      );
+    log.debug({ userId }, 'Saved communication preferences to Firestore');
+    return true;
+  } catch (err) {
+    log.warn({ error: String(err), userId }, 'Failed to save preferences to Firestore');
+    return false;
+  }
+}
+
+/**
+ * Load user preferences from Firestore
+ */
+export async function loadUserPreferences(userId: string): Promise<InteractionPreference[] | null> {
+  const db = await getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('preferences')
+      .doc('communication')
+      .get();
+
+    if (!doc.exists) {
+      log.debug({ userId }, 'No saved preferences found');
+      return null;
+    }
+
+    const data = doc.data();
+    if (!data?.preferences) return null;
+
+    // Convert Firestore timestamps back to Dates
+    const preferences = (data.preferences as InteractionPreference[]).map((p) => ({
+      ...p,
+      lastUpdated:
+        p.lastUpdated instanceof Date
+          ? p.lastUpdated
+          : new Date((p.lastUpdated as { toDate?: () => Date })?.toDate?.() || Date.now()),
+      evidence: (p.evidence || []).map((e) => ({
+        ...e,
+        timestamp:
+          e.timestamp instanceof Date
+            ? e.timestamp
+            : new Date((e.timestamp as { toDate?: () => Date })?.toDate?.() || Date.now()),
+      })),
+    }));
+
+    log.debug({ userId, count: preferences.length }, 'Loaded preferences from Firestore');
+    return preferences;
+  } catch (err) {
+    log.warn({ error: String(err), userId }, 'Failed to load preferences from Firestore');
+    return null;
+  }
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -215,14 +310,53 @@ function analyzeResponseSentiment(response: string): ResponseSignal {
 
 export class CommunicationPreferences implements CommunicationPreferencesService {
   private config: PreferencesConfig;
-  private preferences = new Map<string, InteractionPreference[]>(); // userId -> preferences
+  private preferences = new Map<string, InteractionPreference[]>(); // userId -> preferences (in-memory cache)
+  private loadingPromises = new Map<string, Promise<InteractionPreference[]>>(); // Prevent duplicate loads
 
   constructor(config?: Partial<PreferencesConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
   /**
+   * Ensure preferences are loaded from Firestore (with caching)
+   */
+  private async ensureLoaded(userId: string): Promise<InteractionPreference[]> {
+    // Return from cache if available
+    if (this.preferences.has(userId)) {
+      return this.preferences.get(userId)!;
+    }
+
+    // Prevent duplicate concurrent loads
+    if (this.loadingPromises.has(userId)) {
+      return this.loadingPromises.get(userId)!;
+    }
+
+    // Load from Firestore
+    const loadPromise = (async () => {
+      const loaded = await loadUserPreferences(userId);
+      if (loaded) {
+        this.preferences.set(userId, loaded);
+        return loaded;
+      }
+      // Initialize fresh preferences if not found
+      const fresh = this.initializePreferences();
+      this.preferences.set(userId, fresh);
+      return fresh;
+    })();
+
+    this.loadingPromises.set(userId, loadPromise);
+
+    try {
+      const result = await loadPromise;
+      return result;
+    } finally {
+      this.loadingPromises.delete(userId);
+    }
+  }
+
+  /**
    * Observe an interaction and update preferences
+   * Now persists to Firestore after each update
    */
   async observeInteraction(observation: {
     userId: string;
@@ -236,8 +370,8 @@ export class CommunicationPreferences implements CommunicationPreferencesService
     // Analyze response sentiment
     const sentiment = analyzeResponseSentiment(userResponse);
 
-    // Get or create user preferences
-    const userPrefs = this.preferences.get(userId) || this.initializePreferences();
+    // Get or create user preferences (loads from Firestore if needed)
+    const userPrefs = await this.ensureLoaded(userId);
 
     // Find the dimension
     const pref = userPrefs.find((p) => p.dimension === dimension);
@@ -272,13 +406,18 @@ export class CommunicationPreferences implements CommunicationPreferencesService
       },
       'Updated communication preference'
     );
+
+    // Persist to Firestore (fire-and-forget, don't block)
+    saveUserPreferences(userId, userPrefs).catch((err) => {
+      log.warn({ error: String(err), userId }, 'Failed to persist preferences');
+    });
   }
 
   /**
-   * Get all preferences for a user
+   * Get all preferences for a user (loads from Firestore if needed)
    */
   async getPreferences(userId: string): Promise<InteractionPreference[]> {
-    return this.preferences.get(userId) || this.initializePreferences();
+    return this.ensureLoaded(userId);
   }
 
   /**

@@ -12,8 +12,9 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { embed, cosineSimilarity } from './embeddings.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { embed } from './embeddings.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { topKSimilar } from './rust-accelerator.js';
 
 const log = createLogger({ module: 'semantic-memory-cache' });
 
@@ -154,17 +155,18 @@ export async function findSimilarCached<T>(
     return { hit: false };
   }
 
-  // Find most similar cached query
+  // Find most similar cached query using SIMD-accelerated top-K search
+  const cacheEmbeddings = prunedCache.map((entry) => entry.embedding);
+  const topKResult = topKSimilar(queryEmbedding, cacheEmbeddings, 1, config.similarityThreshold);
+
+  // Check if we found a match above threshold
   let bestMatch: { entry: CachedQuery<T>; similarity: number } | null = null;
-
-  for (const entry of prunedCache) {
-    const similarity = cosineSimilarity(queryEmbedding, entry.embedding);
-
-    if (similarity >= config.similarityThreshold) {
-      if (!bestMatch || similarity > bestMatch.similarity) {
-        bestMatch = { entry: entry as CachedQuery<T>, similarity };
-      }
-    }
+  if (topKResult.indices.length > 0) {
+    const bestIdx = topKResult.indices[0];
+    bestMatch = {
+      entry: prunedCache[bestIdx] as CachedQuery<T>,
+      similarity: topKResult.similarities[0],
+    };
   }
 
   if (bestMatch) {
@@ -239,12 +241,15 @@ export async function storeInSemanticCache<T>(
   }
 
   // Check if we already have a very similar entry (avoid duplicates)
-  for (const entry of userCache) {
-    const similarity = cosineSimilarity(queryEmbedding, entry.embedding);
-    if (similarity > 0.95) {
-      // Very similar - update existing entry instead
-      entry.result = result;
-      entry.timestamp = Date.now();
+  // Use SIMD-accelerated similarity check - find top match with >95% threshold
+  if (userCache.length > 0) {
+    const cacheEmbeddings = userCache.map((entry) => entry.embedding);
+    const topKResult = topKSimilar(queryEmbedding, cacheEmbeddings, 1, 0.95);
+    if (topKResult.indices.length > 0) {
+      // Very similar entry found - update existing instead of creating duplicate
+      const duplicateEntry = userCache[topKResult.indices[0]];
+      duplicateEntry.result = result;
+      duplicateEntry.timestamp = Date.now();
       return;
     }
   }

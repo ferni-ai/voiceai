@@ -2,12 +2,15 @@
  * Vibe Service
  *
  * Orchestrates environment control for a unified "vibe" experience:
- * - Music: Spotify playback control
- * - Lights: Home Assistant / Hue / LIFX integration
+ * - Music: Sonos, Spotify playback control
+ * - Lights: Hue, LIFX, HomeKit integration
  * - Temperature: Ecobee thermostat control
  *
  * Philosophy: Users think in vibes ("I need to focus"), not devices.
  * This service translates human intent into coordinated device control.
+ *
+ * IMPORTANT: This service now uses per-user credentials from Firestore.
+ * All methods require a userId parameter.
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -15,9 +18,14 @@ import {
   getAllDevices,
   controlDevice,
   activateScene,
+  setLightsForVibe,
+  playVibeMusic,
 } from '../../tools/domains/smart-home/smart-home.js';
 import { getThermostatStatus, setTemperature, setClimateMode } from '../identity/ecobee-api.js';
 import { isEcobeeConfigured } from '../identity/ecobee-auth.js';
+import { getUserSmartHomeCredentials } from '../smart-home/user-credentials.js';
+import * as sonosService from '../smart-home/sonos.js';
+import * as homekitBridge from '../smart-home/homekit-bridge.js';
 
 const log = createLogger({ module: 'vibe-service' });
 
@@ -242,9 +250,40 @@ export async function getVibeState(userId: string): Promise<VibeState> {
     },
   };
 
-  // Check lights (Home Assistant, Hue, LIFX)
+  // Load user credentials
+  const credentials = await getUserSmartHomeCredentials(userId);
+
+  // Check Sonos (music)
+  if (credentials.sonos) {
+    try {
+      const connectionTest = await sonosService.testConnection(credentials.sonos);
+      state.music.connected = connectionTest.connected;
+      
+      if (connectionTest.connected) {
+        // Try to get current playback
+        const households = await sonosService.getHouseholds(credentials.sonos);
+        if (households.length > 0) {
+          const groups = await sonosService.getGroups(credentials.sonos, households[0].id);
+          if (groups.length > 0) {
+            state.music.playing = groups[0].playbackState === 'playing';
+            state.music.volume = groups[0].volume;
+            
+            const track = await sonosService.getCurrentTrack(credentials.sonos, groups[0].id);
+            if (track) {
+              state.music.track = track.name;
+              state.music.artist = track.artist;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Failed to get Sonos status');
+    }
+  }
+
+  // Check lights (Hue, LIFX, HomeKit) - pass userId for credentials
   try {
-    const devices = await getAllDevices();
+    const devices = await getAllDevices(userId);
     const lights = devices.filter((d) => d.type === 'light');
     state.lights.connected = lights.length > 0;
     state.lights.devices = lights.map((l) => ({
@@ -317,33 +356,60 @@ export async function activateVibe(
     message: '',
   };
 
-  // Apply music settings
+  // Load user credentials
+  const credentials = await getUserSmartHomeCredentials(userId);
+
+  // Apply music settings via Sonos
   if (preset.music) {
     try {
-      // For now, we'll dispatch an event for music. In the future, integrate with Spotify API.
-      // The frontend/voice agent can pick this up and play appropriate music.
-      result.applied.music = true;
-      log.info({ preset: presetId, music: preset.music }, 'Music vibe set');
+      if (credentials.sonos) {
+        // Set volume first
+        if (preset.music.volume !== undefined) {
+          await sonosService.setAllGroupsVolume(credentials.sonos, preset.music.volume);
+        }
+        
+        // Try to play matching music from favorites
+        const musicResult = await playVibeMusic(userId, presetId, preset.music.volume);
+        result.applied.music = musicResult.success;
+        
+        if (!musicResult.success) {
+          log.info({ preset: presetId, music: preset.music }, 'Music vibe set (no matching playlist)');
+        } else {
+          log.info({ preset: presetId, music: preset.music }, 'Playing vibe music on Sonos');
+        }
+      } else {
+        // No Sonos connected, just mark as "set" (frontend can handle)
+        result.applied.music = true;
+        log.info({ preset: presetId, music: preset.music }, 'Music vibe set (no Sonos)');
+      }
     } catch (error) {
       result.errors.push(`Music: ${String(error)}`);
       log.warn({ error: String(error) }, 'Failed to set music vibe');
     }
   }
 
-  // Apply light settings
+  // Apply light settings via all platforms (pass userId)
   if (preset.lights) {
     try {
-      const devices = await getAllDevices();
-      const lights = devices.filter((d) => d.type === 'light');
-
-      if (lights.length > 0) {
-        // Set all lights to the preset brightness
-        const setPromises = lights.map(async (light) =>
-          controlDevice(light.id, 'set', preset.lights!.brightness)
-        );
-        await Promise.allSettled(setPromises);
+      // Use the new setLightsForVibe which handles all platforms
+      const lightResult = await setLightsForVibe(
+        userId,
+        preset.lights.brightness,
+        preset.lights.colorTemp
+      );
+      
+      if (lightResult.success) {
         result.applied.lights = true;
-        log.info({ preset: presetId, lightCount: lights.length }, 'Lights set');
+        log.info({ preset: presetId, lightCount: lightResult.devices.length }, 'Lights set for vibe');
+      }
+
+      // Also try HomeKit scenes if available
+      if (credentials.homeKit?.enabled) {
+        const sceneActivated = await homekitBridge.activateMatchingScene(userId, presetId);
+        if (sceneActivated) {
+          result.applied.lights = true;
+          log.info({ preset: presetId }, 'Activated HomeKit scene');
+        }
       }
     } catch (error) {
       result.errors.push(`Lights: ${String(error)}`);
@@ -377,6 +443,16 @@ export async function activateVibe(
           result.errors.push(`Temperature: ${tempResult.error}`);
         }
       }
+
+      // Also try HomeKit thermostats if configured
+      if (credentials.homeKit?.enabled) {
+        await homekitBridge.activateHomeKitVibe(userId, presetId, {
+          temperature: preset.temperature.target,
+          brightness: preset.lights?.brightness,
+          colorTemperature: preset.lights?.colorTemp,
+        });
+        // Don't override Ecobee result, just supplement
+      }
     } catch (error) {
       result.errors.push(`Temperature: ${String(error)}`);
       log.warn({ error: String(error) }, 'Failed to set temperature');
@@ -395,7 +471,7 @@ export async function activateVibe(
     result.success = false;
     result.message = `Couldn't set the ${preset.name} vibe. ${result.errors[0]}`;
   } else {
-    result.message = `${preset.name} vibe ready! Connect your devices in Settings to activate.`;
+    result.message = `${preset.name} vibe ready! Connect your devices in Settings → Your Home to activate.`;
   }
 
   return result;
@@ -405,25 +481,20 @@ export async function activateVibe(
  * Set just the lights (brightness and/or color temperature)
  */
 export async function setLights(
+  userId: string,
   brightness?: number,
   colorTemp?: number
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const devices = await getAllDevices();
-    const lights = devices.filter((d) => d.type === 'light');
+    const lightResult = await setLightsForVibe(
+      userId,
+      brightness ?? 50,
+      colorTemp
+    );
 
-    if (lights.length === 0) {
+    if (!lightResult.success) {
       return { success: false, message: 'No lights connected' };
     }
-
-    if (brightness !== undefined) {
-      const setPromises = lights.map(async (light) => controlDevice(light.id, 'set', brightness));
-      await Promise.allSettled(setPromises);
-    }
-
-    // Note: Color temperature control depends on the light type and platform
-    // Home Assistant supports color_temp, Hue uses ct, LIFX uses kelvin
-    // This is a simplified implementation
 
     return {
       success: true,
@@ -431,6 +502,62 @@ export async function setLights(
     };
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to set lights');
+    return { success: false, message: String(error) };
+  }
+}
+
+/**
+ * Control music playback
+ */
+export async function controlMusic(
+  userId: string,
+  action: 'play' | 'pause' | 'volume' | 'skip',
+  value?: number
+): Promise<{ success: boolean; message: string }> {
+  const credentials = await getUserSmartHomeCredentials(userId);
+
+  if (!credentials.sonos) {
+    return { success: false, message: 'Sonos not connected. Go to Settings → Your Home to connect.' };
+  }
+
+  try {
+    const households = await sonosService.getHouseholds(credentials.sonos);
+    if (households.length === 0) {
+      return { success: false, message: 'No Sonos households found' };
+    }
+
+    const groups = await sonosService.getGroups(credentials.sonos, households[0].id);
+    if (groups.length === 0) {
+      return { success: false, message: 'No Sonos groups found' };
+    }
+
+    const groupId = groups[0].id;
+
+    switch (action) {
+      case 'play':
+        await sonosService.setPlaybackState(credentials.sonos, groupId, 'play');
+        return { success: true, message: 'Playing' };
+      
+      case 'pause':
+        await sonosService.setPlaybackState(credentials.sonos, groupId, 'pause');
+        return { success: true, message: 'Paused' };
+      
+      case 'volume':
+        if (value !== undefined) {
+          await sonosService.setGroupVolume(credentials.sonos, groupId, value);
+          return { success: true, message: `Volume set to ${value}%` };
+        }
+        return { success: false, message: 'Volume value required' };
+      
+      case 'skip':
+        await sonosService.skipToNext(credentials.sonos, groupId);
+        return { success: true, message: 'Skipped to next track' };
+      
+      default:
+        return { success: false, message: `Unknown action: ${action}` };
+    }
+  } catch (error) {
+    log.warn({ error: String(error), action }, 'Failed to control music');
     return { success: false, message: String(error) };
   }
 }
@@ -447,4 +574,26 @@ export function getAvailablePresets(): VibePreset[] {
  */
 export function getPreset(presetId: string): VibePreset | undefined {
   return VIBE_PRESETS[presetId];
+}
+
+/**
+ * Get configured integrations summary for UI
+ */
+export async function getConfiguredIntegrations(userId: string): Promise<{
+  sonos: boolean;
+  hue: boolean;
+  lifx: boolean;
+  homeKit: boolean;
+  ecobee: boolean;
+}> {
+  const credentials = await getUserSmartHomeCredentials(userId);
+  const ecobeeConfigured = await isEcobeeConfigured(userId);
+
+  return {
+    sonos: !!credentials.sonos,
+    hue: !!credentials.hue,
+    lifx: !!credentials.lifx,
+    homeKit: !!credentials.homeKit?.enabled,
+    ecobee: ecobeeConfigured,
+  };
 }

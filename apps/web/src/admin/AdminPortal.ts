@@ -19,6 +19,7 @@ import {
   ICON_DESIGN_SYSTEM,
   ICON_DIAGNOSTICS,
   ICON_EVALOPS,
+  ICON_EYE_OFF,
   ICON_FLAGS,
   ICON_LAYOUT_GRID,
   ICON_LEAF,
@@ -28,6 +29,7 @@ import {
   ICON_SETTINGS,
   ICON_SPARKLES,
   ICON_SPEAKER,
+  ICON_TARGET,
   ICON_TRUST,
   ICON_WARNING,
   iconSm,
@@ -113,6 +115,32 @@ const ADMIN_SECTIONS: AdminSection[] = [
     description: 'Evaluation operations',
     badge: 'NEW',
     component: async () => (await import('./sections/EvalOpsSection.js')).render(),
+  },
+  {
+    id: 'bth-validation',
+    name: 'BTH Validation',
+    icon: ICON_TARGET,
+    description: 'Better Than Human benchmark metrics',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/BTHValidationSection.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement), 100);
+      return html;
+    },
+  },
+  {
+    id: 'blind-evaluation',
+    name: 'Blind Evaluation',
+    icon: ICON_EYE_OFF,
+    description: 'A/B evaluation panel for human vs AI comparison',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/BlindEvaluationPanel.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(document.querySelector('.admin-section-content') as HTMLElement), 100);
+      return html;
+    },
   },
   {
     id: 'trust',

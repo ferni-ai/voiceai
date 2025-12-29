@@ -14,7 +14,7 @@ import type {
 } from '../types.js';
 
 // ============================================================================
-// CRISIS SUPPORT - IMMEDIATE HELP
+// CRISIS SUPPORT - IMMEDIATE HELP (Routes to domains/crisis)
 // ============================================================================
 
 export const crisisSupportTool: SemanticToolDefinition = {
@@ -112,6 +112,302 @@ export const crisisSupportTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
+// HUMAN TRANSFER TOOLS (Routes to domains/human-transfer)
+// ============================================================================
+
+/**
+ * Evaluate Human Transfer - Assesses if user needs professional help
+ * SAFETY-CRITICAL: Routes to human-transfer domain for professional escalation
+ */
+export const evaluateHumanTransferTool: SemanticToolDefinition = {
+  id: 'evaluate_human_transfer',
+  name: 'Evaluate Human Transfer',
+  description: 'Assess if the user would benefit from connecting with a human professional.',
+  shortDescription: 'evaluate need for professional help',
+  category: 'crisis',
+  priority: 98, // Just below immediate crisis - evaluates transfer need
+
+  triggers: {
+    phrases: [
+      'i need a therapist',
+      'i need professional help',
+      'i should see someone',
+      'i need to talk to a real person',
+      'this is beyond what you can help with',
+      "i've been depressed for months",
+      "i've been struggling for weeks",
+      'i think i need real help',
+      'can you connect me with someone',
+      'i need a counselor',
+      'i should see a doctor',
+      'i need psychiatric help',
+    ],
+    patterns: [
+      /^i\s+(?:think\s+)?(?:i\s+)?need\s+(?:a\s+)?(?:real\s+)?(?:therapist|counselor|psychiatrist|professional)/i,
+      /^(?:i've|i have)\s+been\s+(?:depressed|anxious|struggling)\s+for\s+(?:weeks|months|a\s+long\s+time)/i,
+      /^(?:can|could)\s+you\s+(?:help\s+me\s+)?(?:find|connect|refer)\s+(?:me\s+to\s+)?(?:a\s+)?(?:therapist|professional)/i,
+      /^i\s+(?:should|need\s+to)\s+(?:see|talk\s+to)\s+(?:a\s+)?(?:doctor|professional|someone\s+real)/i,
+    ],
+    keywords: [
+      { word: 'therapist', weight: 1.0 },
+      { word: 'counselor', weight: 1.0 },
+      { word: 'psychiatrist', weight: 1.0 },
+      { word: 'professional help', weight: 1.0 },
+      { word: 'real person', weight: 0.9 },
+      { word: 'doctor', weight: 0.7 },
+      { word: 'struggling for', weight: 0.8 },
+      { word: 'depressed for months', weight: 0.9 },
+      { word: 'beyond', weight: 0.6 },
+      { word: 'refer', weight: 0.8 },
+    ],
+    antiKeywords: [], // Never deprioritize professional help requests
+  },
+
+  examples: [
+    'I think I need to see a therapist',
+    "I've been depressed for months",
+    'Can you help me find a counselor?',
+    'I need professional help',
+    'This is beyond what I think you can help with',
+    'I should talk to a real person about this',
+    "I've been struggling for weeks and need professional support",
+  ],
+
+  counterExamples: [
+    "I'm feeling a bit stressed today",
+    'Work has been busy lately',
+    'Having a rough week',
+  ],
+
+  arguments: [
+    {
+      name: 'userStatement',
+      type: 'string',
+      description: 'What the user said that triggered evaluation',
+      required: true,
+    },
+    {
+      name: 'context',
+      type: 'string',
+      description: 'Additional conversation context',
+      required: false,
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.9,
+    patternMatchBonus: 0.08,
+    keywordDensityMultiplier: 1.1,
+    negativeKeywordPenalty: 0.0, // Never penalize
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'evaluateHumanTransfer',
+      args,
+      delegateTo: 'domains/human-transfer',
+    };
+  },
+};
+
+/**
+ * Quick Crisis Resources - Immediate resources for acute crisis
+ * SAFETY-CRITICAL: Provides 988, DV hotline, etc.
+ */
+export const quickCrisisResourcesTool: SemanticToolDefinition = {
+  id: 'quick_crisis_resources',
+  name: 'Quick Crisis Resources',
+  description: 'Provide immediate crisis resources like 988, DV hotline, etc.',
+  shortDescription: 'crisis resources',
+  category: 'crisis',
+  priority: 99, // Very high - just below immediate crisis
+
+  triggers: {
+    phrases: [
+      'give me crisis resources',
+      'what number can i call',
+      'hotline number',
+      'crisis line',
+      'suicide hotline',
+      'dv hotline',
+      'domestic violence hotline',
+      'abuse hotline',
+      'who can i call',
+      'emergency resources',
+      '988',
+      'crisis text line',
+    ],
+    patterns: [
+      /^(?:what(?:'s| is)\s+(?:the\s+)?)?(?:crisis|suicide|dv|abuse)\s+(?:hotline|line|number)/i,
+      /^(?:give|get)\s+(?:me\s+)?(?:crisis|emergency)\s+(?:resources|numbers|contacts)/i,
+      /^(?:i\s+need|where\s+can\s+i\s+(?:find|get)|what(?:'s| is))\s+(?:the\s+)?(?:number|hotline)\s+(?:for|to\s+call)/i,
+      /^(?:who|what)\s+can\s+i\s+call\s+(?:right\s+now|in\s+an\s+emergency)/i,
+    ],
+    keywords: [
+      { word: 'crisis hotline', weight: 1.0 },
+      { word: 'suicide hotline', weight: 1.0 },
+      { word: '988', weight: 1.0 },
+      { word: 'crisis line', weight: 1.0 },
+      { word: 'dv hotline', weight: 1.0 },
+      { word: 'domestic violence', weight: 0.9 },
+      { word: 'abuse hotline', weight: 0.9 },
+      { word: 'emergency resources', weight: 0.8 },
+      { word: 'who can i call', weight: 0.8 },
+    ],
+    antiKeywords: [], // Never deprioritize crisis resources
+  },
+
+  examples: [
+    "What's the suicide hotline number?",
+    'Give me crisis resources',
+    'What is 988?',
+    'I need the domestic violence hotline',
+    'Who can I call right now?',
+    'Crisis line number',
+    'Emergency resources please',
+  ],
+
+  counterExamples: ['Customer service hotline', 'Tech support number', 'Restaurant phone number'],
+
+  arguments: [
+    {
+      name: 'situation',
+      type: 'string',
+      description: 'Type of crisis situation',
+      required: false,
+      enumValues: [
+        'suicidal-thoughts',
+        'self-harm',
+        'domestic-violence',
+        'mental-health',
+        'substance-abuse',
+        'general-crisis',
+      ],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.92,
+    patternMatchBonus: 0.06,
+    keywordDensityMultiplier: 1.0,
+    negativeKeywordPenalty: 0.0, // Never penalize
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'quickCrisisResources',
+      args,
+      delegateTo: 'domains/human-transfer',
+    };
+  },
+};
+
+/**
+ * Connect to Human Expert - Warm handoff to professional
+ * SAFETY-CRITICAL: Connects user to therapist, legal, financial, or medical help
+ */
+export const connectToHumanExpertTool: SemanticToolDefinition = {
+  id: 'connect_to_human_expert',
+  name: 'Connect to Human Expert',
+  description: 'Initiate warm handoff to a human professional.',
+  shortDescription: 'connect to professional',
+  category: 'crisis',
+  priority: 95, // High priority but after evaluation
+
+  triggers: {
+    phrases: [
+      'connect me to a therapist',
+      'find me a counselor',
+      'help me find a doctor',
+      'i want to speak to someone',
+      'transfer me to a professional',
+      'get me professional help',
+      'help me schedule with a therapist',
+      'find me a lawyer',
+      'connect me with legal help',
+      'i need financial advice',
+    ],
+    patterns: [
+      /^(?:connect|transfer|refer)\s+me\s+(?:to|with)\s+(?:a\s+)?(?:therapist|counselor|professional|doctor|lawyer)/i,
+      /^(?:find|get|help\s+me\s+(?:find|get))\s+(?:me\s+)?(?:a\s+)?(?:therapist|counselor|professional|doctor)/i,
+      /^i\s+(?:want|need)\s+to\s+(?:speak|talk)\s+(?:to|with)\s+(?:a\s+)?(?:real\s+)?(?:person|professional|therapist)/i,
+      /^(?:help\s+me\s+)?(?:schedule|book)\s+(?:with|an\s+appointment\s+with)\s+(?:a\s+)?(?:therapist|doctor)/i,
+    ],
+    keywords: [
+      { word: 'connect me', weight: 0.9 },
+      { word: 'transfer me', weight: 0.9 },
+      { word: 'refer me', weight: 0.9 },
+      { word: 'find me a', weight: 0.8 },
+      { word: 'speak to someone', weight: 0.8 },
+      { word: 'real person', weight: 0.7 },
+      { word: 'schedule', weight: 0.6 },
+      { word: 'appointment', weight: 0.6 },
+    ],
+    antiKeywords: ['chatbot'], // Might be expressing frustration with AI
+  },
+
+  examples: [
+    'Connect me to a therapist',
+    'Help me find a counselor',
+    'I want to speak to a real person',
+    'Transfer me to professional help',
+    'Can you help me schedule with a doctor?',
+    'Find me legal help',
+    'I need to talk to someone real about this',
+  ],
+
+  counterExamples: [
+    'Tell me about therapists',
+    'What does a counselor do?',
+    'How do I become a therapist?',
+  ],
+
+  arguments: [
+    {
+      name: 'transferType',
+      type: 'string',
+      description: 'Type of professional to connect with',
+      required: true,
+      enumValues: ['therapy', 'legal', 'financial', 'medical', 'crisis'],
+    },
+    {
+      name: 'userConsent',
+      type: 'string',
+      description: 'Level of information sharing consent',
+      required: false,
+      enumValues: ['full', 'minimal', 'none'],
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.88,
+    patternMatchBonus: 0.1,
+    keywordDensityMultiplier: 1.1,
+    negativeKeywordPenalty: 0.1,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'connectToHumanExpert',
+      args,
+      delegateTo: 'domains/human-transfer',
+    };
+  },
+};
+
+// ============================================================================
 // SAFETY PLANNING
 // ============================================================================
 
@@ -191,4 +487,12 @@ export const safetyPlanningTool: SemanticToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const crisisTools: SemanticToolDefinition[] = [crisisSupportTool, safetyPlanningTool];
+export const crisisTools: SemanticToolDefinition[] = [
+  // Crisis domain tools (grounding, resources, de-escalation)
+  crisisSupportTool,
+  safetyPlanningTool,
+  // Human-transfer domain tools (professional escalation)
+  evaluateHumanTransferTool,
+  quickCrisisResourcesTool,
+  connectToHumanExpertTool,
+];

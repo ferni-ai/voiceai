@@ -77,14 +77,14 @@ function generateSyntheticTranscripts(scenario: string): string[] {
       "I can't remember the last time I took a day off",
       "I feel like I'm running on empty but I can't stop",
       "I think about quitting every day but I'm scared to",
-      "I had a panic attack in my car before work yesterday",
+      'I had a panic attack in my car before work yesterday',
       "I don't feel like myself anymore, I've lost who I am",
     ],
 
     // Crisis escalation - increasingly concerning signals
     crisis_escalation: [
       "I've been feeling really down lately",
-      "Nothing seems to matter anymore",
+      'Nothing seems to matter anymore',
       "I've been having dark thoughts",
       "I don't see the point in going on sometimes",
       "I've been thinking about hurting myself",
@@ -95,10 +95,10 @@ function generateSyntheticTranscripts(scenario: string): string[] {
       "I promise I'll call my mom this weekend",
       "I'm going to start exercising tomorrow",
       "I'll definitely finish that project by Friday",
-      "I need to remember to pick up groceries",
-      "I should probably check in with Sarah",
+      'I need to remember to pick up groceries',
+      'I should probably check in with Sarah',
       "I'm planning to apply for that job next week",
-      "I want to learn Spanish this year",
+      'I want to learn Spanish this year',
       "I've decided to quit smoking for good this time",
     ],
 
@@ -109,19 +109,19 @@ function generateSyntheticTranscripts(scenario: string): string[] {
       "I'm relieved it's over but I also feel guilty",
       "I'm excited about moving but sad to leave my friends",
       "I want to forgive her but I can't forget what happened",
-      "I feel grateful for what I have but empty inside",
+      'I feel grateful for what I have but empty inside',
     ],
 
     // Vague emotional language - imprecise feeling words
     vague_emotions: [
-      "I feel bad about the whole situation",
+      'I feel bad about the whole situation',
       "I'm just... off today",
-      "Things have been weird between us",
-      "I feel fine, I guess",
-      "Something just feels wrong",
+      'Things have been weird between us',
+      'I feel fine, I guess',
+      'Something just feels wrong',
       "I'm feeling kind of blah",
       "I don't know, I'm just not okay",
-      "Everything is just too much right now",
+      'Everything is just too much right now',
     ],
 
     // Time pressure signals - indicators of overwhelm
@@ -129,7 +129,7 @@ function generateSyntheticTranscripts(scenario: string): string[] {
       "I don't have time for lunch anymore",
       "I'm double-booked every day this week",
       "I haven't seen my kids in three days",
-      "I missed another family dinner",
+      'I missed another family dinner',
       "I'm working through the weekend again",
       "I haven't had a vacation in two years",
     ],
@@ -142,7 +142,9 @@ function generateSyntheticTranscripts(scenario: string): string[] {
  * Generates synthetic voice analysis data.
  * Simulates prosody features from real conversations.
  */
-function generateVoiceData(state: 'stressed' | 'calm' | 'fatigued' | 'energized'): VoiceAnalysisInput {
+function generateVoiceData(
+  state: 'stressed' | 'calm' | 'fatigued' | 'energized'
+): VoiceAnalysisInput {
   const voiceProfiles: Record<string, VoiceAnalysisInput> = {
     stressed: {
       pitchVariability: 0.8,
@@ -197,12 +199,24 @@ function generateVoiceData(state: 'stressed' | 'calm' | 'fatigued' | 'energized'
  * not overall declining trends. To trigger patterns, we need to create
  * varied timing data with statistical deviations from the mean.
  */
-function generateMoodHistory(pattern: 'stable' | 'declining' | 'cycling' | 'recovering'): MoodEntry[] {
+function generateMoodHistory(
+  pattern: 'stable' | 'declining' | 'cycling' | 'recovering'
+): MoodEntry[] {
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
 
   // MoodType values with approximate scores: joyful=0.9, content=0.75, calm=0.65, neutral=0.5, etc.
-  const moodTypes = ['joyful', 'content', 'calm', 'neutral', 'anxious', 'sad', 'frustrated', 'overwhelmed', 'exhausted'] as const;
+  const moodTypes = [
+    'joyful',
+    'content',
+    'calm',
+    'neutral',
+    'anxious',
+    'sad',
+    'frustrated',
+    'overwhelmed',
+    'exhausted',
+  ] as const;
 
   // For pattern detection, we need 10+ entries with day-of-week variation
   // Generate 21 days of data with multiple entries per day to trigger patterns
@@ -227,9 +241,10 @@ function generateMoodHistory(pattern: 'stable' | 'declining' | 'cycling' | 'reco
       const date = new Date(now - (21 - i) * day);
       const dayOfWeek = date.getDay();
       // Sundays (0) and Mondays (1) are harder - creates detectable day-of-week pattern
-      const mood = (dayOfWeek === 0 || dayOfWeek === 1)
-        ? (['anxious', 'sad', 'frustrated'] as const)[i % 3]
-        : (['content', 'calm', 'neutral'] as const)[i % 3];
+      const mood =
+        dayOfWeek === 0 || dayOfWeek === 1
+          ? (['anxious', 'sad', 'frustrated'] as const)[i % 3]
+          : (['content', 'calm', 'neutral'] as const)[i % 3];
       return {
         userId: 'test-user',
         mood,
@@ -389,10 +404,10 @@ describe('Synthetic Scenario Tests', () => {
     it('should detect crisis from concerning language patterns', () => {
       // Use phrases that match actual CRISIS_PATTERNS
       const crisisTranscripts = [
-        "I can't take it anymore, I'm falling apart",                    // containing level
-        "Nothing matters anymore",                                        // containing level
-        "I don't see the point of trying",                               // containing level
-        "What's the point of living",                                     // safety level
+        "I can't take it anymore, I'm falling apart", // containing level
+        'Nothing matters anymore', // containing level
+        "I don't see the point of trying", // containing level
+        "What's the point of living", // safety level
       ];
 
       const detections: CrisisSignal[] = [];
@@ -416,10 +431,10 @@ describe('Synthetic Scenario Tests', () => {
       // Phrases that might sound concerning but aren't
       const ambiguousTranscripts = [
         "I'm dying to see that movie",
-        "This deadline is killing me",
-        "I could murder a pizza right now",
+        'This deadline is killing me',
+        'I could murder a pizza right now',
         "I'm so tired I could sleep forever",
-        "I want to disappear into a good book",
+        'I want to disappear into a good book',
       ];
 
       let falsePositives = 0;
@@ -462,14 +477,14 @@ describe('Synthetic Scenario Tests', () => {
     it('should distinguish between firm commitments and tentative intentions', () => {
       const firmCommitments = [
         "I promise I'll be there",
-        "I will call you tomorrow",
+        'I will call you tomorrow',
         "I'm committing to this goal",
       ];
 
       const tentativeIntentions = [
-        "I might try to exercise more",
-        "I should probably clean my room",
-        "I was thinking about maybe applying",
+        'I might try to exercise more',
+        'I should probably clean my room',
+        'I was thinking about maybe applying',
       ];
 
       let firmConfidenceSum = 0;
@@ -511,9 +526,9 @@ describe('Synthetic Scenario Tests', () => {
     it('should validate commonly coexisting emotions', () => {
       // These are the ACTUAL emotion pairs defined in CONTRADICTION_PATTERNS
       const validPairs = [
-        ['excited', 'sad'],     // from CONTRADICTION_PATTERNS
-        ['happy', 'sad'],       // from CONTRADICTION_PATTERNS
-        ['love', 'angry'],      // from CONTRADICTION_PATTERNS
+        ['excited', 'sad'], // from CONTRADICTION_PATTERNS
+        ['happy', 'sad'], // from CONTRADICTION_PATTERNS
+        ['love', 'angry'], // from CONTRADICTION_PATTERNS
         ['relieved', 'guilty'], // from CONTRADICTION_PATTERNS
       ];
 
@@ -539,7 +554,10 @@ describe('Synthetic Scenario Tests', () => {
         if (vague.length > 0) {
           detectedCount++;
           // If detected, try to get suggestions
-          const suggestions = suggestPreciseEmotions(vague[0].vagueWord as import('../emotional-vocabulary.js').EmotionCategory, 'medium');
+          const suggestions = suggestPreciseEmotions(
+            vague[0].vagueWord as import('../emotional-vocabulary.js').EmotionCategory,
+            'medium'
+          );
           // May or may not have suggestions depending on the word
         }
       }
@@ -658,9 +676,14 @@ describe('Synthetic Scenario Tests', () => {
 
         // Type should be influenced by context
         // (Exact match not required due to multi-factor scoring)
-        expect(['processing', 'emotional', 'uncomfortable', 'invitational', 'exhausted', 'contemplative']).toContain(
-          result.type
-        );
+        expect([
+          'processing',
+          'emotional',
+          'uncomfortable',
+          'invitational',
+          'exhausted',
+          'contemplative',
+        ]).toContain(result.type);
       }
     });
 
@@ -756,7 +779,8 @@ describe('Cross-Service Integration Scenarios', () => {
     const voiceResult = analyzeVoiceBiomarkers(voiceData);
 
     // 2. Overcommitment detection from text
-    const burnoutText = "I haven't slept well in weeks and I can't keep up with everything. I have too many commitments.";
+    const burnoutText =
+      "I haven't slept well in weeks and I can't keep up with everything. I have too many commitments.";
     const isOvercommitted = detectOvercommitment(burnoutText);
 
     // 3. Mood patterns showing decline
@@ -773,7 +797,8 @@ describe('Cross-Service Integration Scenarios', () => {
 
   it('should maintain context across emotional complexity', () => {
     // Complex emotional statement
-    const complexStatement = "I'm so relieved the project is done but I feel guilty about not being there for my family";
+    const complexStatement =
+      "I'm so relieved the project is done but I feel guilty about not being there for my family";
 
     // Should detect commitment implications
     const commitment = detectCommitment(complexStatement, 'test-user');

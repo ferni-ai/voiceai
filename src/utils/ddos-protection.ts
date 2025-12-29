@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, Server, ServerResponse } from 'http';
 import { createLogger } from './safe-logger.js';
+import { registerInterval, clearNamedInterval } from './interval-manager.js';
 
 const log = createLogger({ module: 'DDoSProtection' });
 
@@ -227,14 +228,19 @@ function startHealthRateLimitCleanup(): void {
   if (healthRateLimitCleanupInterval) return; // Already running
 
   // Cleanup old entries every minute
-  healthRateLimitCleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [ip, data] of Array.from(healthRateLimits.entries())) {
-      if (data.resetTime < now) {
-        healthRateLimits.delete(ip);
+  registerInterval(
+    'ddos-health-rate-limit-cleanup',
+    () => {
+      const now = Date.now();
+      for (const [ip, data] of Array.from(healthRateLimits.entries())) {
+        if (data.resetTime < now) {
+          healthRateLimits.delete(ip);
+        }
       }
-    }
-  }, 60_000);
+    },
+    60_000
+  );
+  healthRateLimitCleanupInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 }
 
 // Start cleanup automatically
@@ -331,7 +337,11 @@ export function getClientIp(req: IncomingMessage): string {
   // But only take the first IP (client IP), not proxy chain
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
-    const ips = (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(',');
+    const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    if (!forwardedValue) {
+      return req.socket?.remoteAddress || 'unknown';
+    }
+    const ips = forwardedValue.split(',');
     // First IP should be client, last would be the proxy
     const clientIp = ips[0]?.trim();
     if (clientIp && isValidIp(clientIp)) {

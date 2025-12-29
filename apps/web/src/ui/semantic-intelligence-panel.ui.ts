@@ -78,7 +78,40 @@ interface SelfAwarenessContext {
   valuesMisalignment: Array<{ value: string; behavior: string }>;
 }
 
-type TabId = 'insights' | 'loops' | 'commitments' | 'relationships' | 'patterns' | 'coaching' | 'awareness';
+interface DeepAnalysisInsight {
+  observation: string;
+  significance: string;
+  confidence: number;
+  evidence: string[];
+  surfacingContext: 'proactive' | 'when_relevant' | 'crisis_only';
+}
+
+interface DeepAnalysisHypothesis {
+  prediction: string;
+  reasoning: string;
+  probability: number;
+  timeframe: 'immediate' | 'this_week' | 'this_month' | 'eventual';
+  testableSignals: string[];
+}
+
+interface DeepAnalysisOutreach {
+  message: string;
+  timing: 'morning' | 'afternoon' | 'evening' | 'specific_trigger';
+  rationale: string;
+  priority: number;
+}
+
+interface DeepAnalysisResult {
+  hasAnalysis: boolean;
+  analysisId?: string;
+  analysisTimestamp?: string;
+  insights: DeepAnalysisInsight[];
+  hypotheses: DeepAnalysisHypothesis[];
+  outreachSuggestions: DeepAnalysisOutreach[];
+  coachingGuidance: string[];
+}
+
+type TabId = 'insights' | 'loops' | 'commitments' | 'relationships' | 'patterns' | 'coaching' | 'awareness' | 'deepanalysis';
 
 // ============================================================================
 // STATE
@@ -113,6 +146,9 @@ let cachedCoachingTime = 0;
 
 let cachedSelfAwareness: SelfAwarenessContext | null = null;
 let cachedSelfAwarenessTime = 0;
+
+let cachedDeepAnalysis: DeepAnalysisResult | null = null;
+let cachedDeepAnalysisTime = 0;
 
 /** Check if cache is still valid */
 function isCacheValid(cacheTime: number): boolean {
@@ -519,6 +555,19 @@ async function fetchSelfAwareness(): Promise<SelfAwarenessContext | null> {
   }
 }
 
+async function fetchDeepAnalysis(): Promise<DeepAnalysisResult | null> {
+  const userId = getUserId();
+  if (!userId) return null;
+
+  try {
+    const response = await apiGet<DeepAnalysisResult>(`/api/semantic-intelligence/deep-analysis?userId=${userId}`);
+    return response.data || null;
+  } catch (error) {
+    log.debug({ error }, 'Failed to fetch deep analysis');
+    return null;
+  }
+}
+
 // ============================================================================
 // RENDERING
 // ============================================================================
@@ -785,6 +834,99 @@ function renderAwarenessTab(): string {
   return html || '<div class="semantic-empty">I\'m still learning about you. Keep talking!</div>';
 }
 
+function renderDeepAnalysisTab(): string {
+  if (isLoading) {
+    return '<div class="semantic-loading">Gathering deep insights from our conversations...</div>';
+  }
+
+  if (!cachedDeepAnalysis || !cachedDeepAnalysis.hasAnalysis) {
+    return '<div class="semantic-empty">Deep analysis hasn\'t run yet. This happens automatically as we have more conversations together.</div>';
+  }
+
+  const { insights, hypotheses, outreachSuggestions, coachingGuidance, analysisTimestamp } = cachedDeepAnalysis;
+  let html = '';
+
+  // Show when analysis was last run
+  if (analysisTimestamp) {
+    const analysisDate = new Date(analysisTimestamp);
+    html += `<p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--space-lg);">Last analyzed: ${analysisDate.toLocaleDateString()} ${analysisDate.toLocaleTimeString()}</p>`;
+  }
+
+  // Semantic Insights section
+  if (insights.length > 0) {
+    html += '<div class="semantic-section-title">What I\'ve Noticed</div>';
+    html += insights
+      .slice(0, 5)
+      .map(
+        (insight) => `
+      <div class="semantic-insight-card priority-${insight.confidence > 0.8 ? 'high' : insight.confidence > 0.6 ? 'medium' : 'low'}">
+        <div class="semantic-insight-content">${insight.observation}</div>
+        <div class="semantic-insight-meta">
+          <span class="semantic-insight-source">${Math.round(insight.confidence * 100)}% confident</span>
+          <span>Why: ${insight.significance}</span>
+        </div>
+        ${insight.evidence.length > 0 ? `<div style="margin-top: var(--space-xs); font-size: 0.75rem; color: var(--color-text-muted);">Evidence: ${insight.evidence.slice(0, 2).join('; ')}</div>` : ''}
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  // Predictive Hypotheses section
+  if (hypotheses.length > 0) {
+    html += '<div class="semantic-section-title" style="margin-top: var(--space-lg);">What I Anticipate</div>';
+    html += hypotheses
+      .slice(0, 3)
+      .map(
+        (hyp) => `
+      <div class="semantic-insight-card">
+        <div class="semantic-insight-content">${hyp.prediction}</div>
+        <div class="semantic-insight-meta">
+          <span class="semantic-insight-source">${Math.round(hyp.probability * 100)}% likely</span>
+          <span>Timeframe: ${hyp.timeframe.replace('_', ' ')}</span>
+        </div>
+        <div style="margin-top: var(--space-xs); font-size: 0.8125rem; color: var(--color-text-secondary);">${hyp.reasoning}</div>
+        ${hyp.testableSignals.length > 0 ? `<div style="margin-top: var(--space-xs); font-size: 0.75rem; color: var(--color-text-muted);">Watch for: ${hyp.testableSignals.slice(0, 2).join(', ')}</div>` : ''}
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  // Outreach Suggestions section
+  if (outreachSuggestions.length > 0) {
+    html += '<div class="semantic-section-title" style="margin-top: var(--space-lg);">Moments to Reach Out</div>';
+    html += outreachSuggestions
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 3)
+      .map(
+        (sug) => `
+      <div class="semantic-loop-card">
+        <div class="semantic-loop-icon">📞</div>
+        <div class="semantic-loop-content">
+          <div class="semantic-loop-text">${sug.message}</div>
+          <div class="semantic-loop-context">${sug.timing} • ${sug.rationale}</div>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  // Coaching Guidance section
+  if (coachingGuidance.length > 0) {
+    html += '<div class="semantic-section-title" style="margin-top: var(--space-lg);">Coaching Approach</div>';
+    html += '<div style="background: var(--color-bg-secondary); border-radius: var(--radius-lg); padding: var(--space-md);">';
+    html += coachingGuidance
+      .slice(0, 4)
+      .map((guidance) => `<p style="margin: 0 0 var(--space-xs); font-size: 0.875rem; color: var(--color-text-secondary);">• ${guidance}</p>`)
+      .join('');
+    html += '</div>';
+  }
+
+  return html || '<div class="semantic-empty">Deep analysis is building up. Keep chatting!</div>';
+}
+
 function renderContent(): string {
   switch (currentTab) {
     case 'insights':
@@ -801,6 +943,8 @@ function renderContent(): string {
       return renderCoachingTab();
     case 'awareness':
       return renderAwarenessTab();
+    case 'deepanalysis':
+      return renderDeepAnalysisTab();
     default:
       return '';
   }
@@ -851,6 +995,9 @@ async function loadTabData(tab: TabId): Promise<void> {
     case 'awareness':
       needsFetch = !cachedSelfAwareness || !isCacheValid(cachedSelfAwarenessTime);
       break;
+    case 'deepanalysis':
+      needsFetch = !cachedDeepAnalysis || !isCacheValid(cachedDeepAnalysisTime);
+      break;
   }
 
   // If cached, render immediately without showing loading state
@@ -892,6 +1039,10 @@ async function loadTabData(tab: TabId): Promise<void> {
       case 'awareness':
         cachedSelfAwareness = await fetchSelfAwareness();
         cachedSelfAwarenessTime = now;
+        break;
+      case 'deepanalysis':
+        cachedDeepAnalysis = await fetchDeepAnalysis();
+        cachedDeepAnalysisTime = now;
         break;
     }
   } catch (error) {
@@ -937,6 +1088,7 @@ export function showSemanticIntelligencePanel(): void {
       </div>
       <div class="semantic-panel-tabs">
         <button class="semantic-tab active" data-tab="insights">Insights</button>
+        <button class="semantic-tab" data-tab="deepanalysis">Deep Analysis</button>
         <button class="semantic-tab" data-tab="loops">Following Up</button>
         <button class="semantic-tab" data-tab="commitments">Remembering</button>
         <button class="semantic-tab" data-tab="relationships">Your People</button>

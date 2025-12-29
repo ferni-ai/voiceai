@@ -275,6 +275,42 @@ export {
   type MergeResult,
 } from './memory-deduplication.js';
 
+// LSH Deduplication (O(n) approximate matching)
+export {
+  exactJaccardSimilarity,
+  findDuplicatesLSH,
+  isNativeLshAvailable,
+  LSHIndex,
+  type DuplicatePair,
+  type LSHConfig,
+} from './lsh-deduplication.js';
+
+// ============================================================================
+// RUST-ACCELERATED OPERATIONS (SIMD-optimized for batch processing)
+// ============================================================================
+
+export {
+  // Euclidean distance (SIMD-accelerated for batches)
+  batchEuclideanDistance,
+  batchEuclideanDistanceF32,
+  euclideanDistanceF32,
+
+  // Vector normalization (SIMD-accelerated)
+  normalizeVector,
+  normalizeVectorF32,
+  batchNormalizeVectorsF32,
+  vectorNormF32,
+
+  // Centroid computation (SIMD-accelerated)
+  computeCentroidF32,
+
+  // Cosine similarity (already Rust-accelerated)
+  batchCosineSimilarity,
+
+  // Native module availability check
+  isRustAvailable,
+} from './rust-accelerator.js';
+
 // Memory Metrics (observability)
 export {
   checkMemoryHealthAlerts,

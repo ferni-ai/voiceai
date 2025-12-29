@@ -699,6 +699,28 @@ export interface UserProfile {
   customData?: Record<string, unknown>;
 
   // ============================================================================
+  // EXTRACTED DETAILS (real-time learning from conversations)
+  // ============================================================================
+
+  /**
+   * Small details extracted from conversations (names, places, pets, etc.)
+   * Persisted in real-time to prevent data loss on unexpected disconnects.
+   * "Better than Human" - We remember every little thing you share.
+   */
+  extractedDetails?: Array<{
+    type:
+      | 'person_name'
+      | 'pet_name'
+      | 'place'
+      | 'company'
+      | 'date'
+      | 'amount'
+      | 'user_name'
+      | 'other';
+    value: string;
+  }>;
+
+  // ============================================================================
   // HUMANIZING STATE (cross-session persona depth)
   // ============================================================================
 

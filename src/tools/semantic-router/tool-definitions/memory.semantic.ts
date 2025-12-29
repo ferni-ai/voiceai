@@ -290,7 +290,225 @@ export const peopleMemoryTool: SemanticToolDefinition = {
 };
 
 // ============================================================================
+// SURFACE RELEVANT MEMORY (Better-Than-Human)
+// ============================================================================
+
+export const surfaceMemoryTool: SemanticToolDefinition = {
+  id: 'memory_surface',
+  name: 'Surface Relevant Memory',
+  description:
+    'Proactively surface a relevant memory when the current context connects to something from past conversations. Use when something the user says reminds you of previous context.',
+  shortDescription: 'surface a relevant memory',
+  category: 'memory',
+
+  triggers: {
+    phrases: [
+      'this reminds me',
+      'you mentioned before',
+      'you told me once',
+      'earlier you said',
+      'last time we talked',
+      'remember when you',
+      'speaking of',
+      'that connects to',
+      'related to what you said',
+    ],
+    patterns: [
+      /(?:this|that)\s+reminds?\s+me\s+(?:of|that)/i,
+      /you\s+(?:mentioned|told|said)\s+(?:before|earlier|once)/i,
+      /last\s+(?:time|week|month)\s+(?:you|we)\s+(?:talked|discussed)/i,
+      /speaking\s+of\s+(.+)/i,
+      /that\s+connects?\s+to\s+(?:what\s+you\s+said)/i,
+      /remember\s+when\s+you\s+(?:mentioned|said|told)/i,
+    ],
+    keywords: [
+      { word: 'reminds', weight: 1.0 },
+      { word: 'earlier', weight: 0.8 },
+      { word: 'before', weight: 0.8 },
+      { word: 'connects', weight: 0.9 },
+      { word: 'related', weight: 0.8 },
+      { word: 'mentioned', weight: 0.9 },
+      { word: 'celebration', weight: 0.7 },
+      { word: 'milestone', weight: 0.7 },
+      { word: 'progress', weight: 0.6 },
+    ],
+    antiKeywords: ['what', 'do you remember', 'tell me'],
+  },
+
+  examples: [
+    'This reminds me of when you mentioned wanting to learn guitar',
+    'Speaking of travel, you once said you dreamed of visiting Japan',
+    'That connects to the career change you were considering',
+    'You mentioned last week that you were stressed about the project',
+    'Remember when you talked about your running goals? This seems related',
+  ],
+
+  counterExamples: [
+    'What did I tell you?',
+    'Do you remember my name?',
+    'Remember to buy groceries',
+    'Save this for later',
+  ],
+
+  arguments: [
+    {
+      name: 'context',
+      type: 'string',
+      description: 'Current conversation context that triggered the memory',
+      required: true,
+    },
+    {
+      name: 'memoryToSurface',
+      type: 'string',
+      description: 'The relevant memory to bring up',
+      required: true,
+    },
+    {
+      name: 'connectionReason',
+      type: 'string',
+      description: 'Why this memory is relevant now',
+      required: true,
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.85,
+    patternMatchBonus: 0.1,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.4,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'surfaceRelevantMemory',
+      args,
+      delegateTo: 'domains/memory',
+    };
+  },
+};
+
+// ============================================================================
+// PREDICT USER NEED (Better-Than-Human)
+// ============================================================================
+
+export const predictNeedTool: SemanticToolDefinition = {
+  id: 'memory_predict',
+  name: 'Predict User Need',
+  description:
+    'Anticipate what the user might need based on context, time, patterns, or upcoming events. Use proactively when you can infer a need before they ask.',
+  shortDescription: 'anticipate user needs',
+  category: 'memory',
+
+  triggers: {
+    phrases: [
+      'you might need',
+      'you probably want',
+      'before you go',
+      'dont forget you have',
+      'coming up you have',
+      'wanted to remind you',
+      'might want to prepare',
+      'usually around this time',
+    ],
+    patterns: [
+      /you\s+(?:might|probably|may)\s+(?:need|want)/i,
+      /(?:before|since|given)\s+(?:you|your)\s+(.+)/i,
+      /(?:coming\s+up|upcoming)\s+(?:you\s+have)/i,
+      /usually\s+(?:around\s+this\s+time|at\s+this\s+point)/i,
+      /wanted\s+to\s+(?:remind|prepare)\s+you/i,
+      /anticipate\s+(?:that\s+you|your\s+need)/i,
+    ],
+    keywords: [
+      { word: 'anticipate', weight: 1.0 },
+      { word: 'predict', weight: 1.0 },
+      { word: 'upcoming', weight: 0.9 },
+      { word: 'prepare', weight: 0.8 },
+      { word: 'coming', weight: 0.7 },
+      { word: 'remind', weight: 0.7 },
+      { word: 'routine', weight: 0.8 },
+      { word: 'pattern', weight: 0.8 },
+      { word: 'usually', weight: 0.7 },
+      { word: 'morning', weight: 0.6 },
+      { word: 'evening', weight: 0.6 },
+    ],
+    antiKeywords: ['remember this', 'save', 'note'],
+  },
+
+  examples: [
+    "Good morning! Since it's Monday, you might want your weekly planning overview",
+    'You have a presentation tomorrow - want me to help you prepare?',
+    "Given that you're meeting your parents this weekend, you might want to...",
+    'Usually around this time you check on your habit streaks',
+    'Before your trip next week, you might need to pack your medications',
+  ],
+
+  counterExamples: [
+    'Remember I need groceries',
+    'What do I need to do today?',
+    'What am I forgetting?',
+    'Save this reminder',
+  ],
+
+  arguments: [
+    {
+      name: 'context',
+      type: 'string',
+      description: 'What triggered this prediction (time, event, pattern)',
+      required: true,
+    },
+    {
+      name: 'prediction',
+      type: 'string',
+      description: 'What you predict they might need',
+      required: true,
+    },
+    {
+      name: 'confidence',
+      type: 'string',
+      description: 'How confident you are in this prediction',
+      required: true,
+      enumValues: ['high', 'medium', 'low'],
+    },
+    {
+      name: 'suggestedAction',
+      type: 'string',
+      description: 'Optional suggested action',
+      required: false,
+    },
+  ],
+
+  confidence: {
+    baseScore: 0.8,
+    patternMatchBonus: 0.1,
+    keywordDensityMultiplier: 1.2,
+    negativeKeywordPenalty: 0.4,
+  },
+
+  execute: async (
+    args: Record<string, unknown>,
+    _context: ToolExecutionContext
+  ): Promise<ToolExecutionResult> => {
+    return {
+      success: true,
+      toolId: 'predictUserNeed',
+      args,
+      delegateTo: 'domains/memory',
+    };
+  },
+};
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const memoryTools: SemanticToolDefinition[] = [rememberTool, recallTool, peopleMemoryTool];
+export const memoryTools: SemanticToolDefinition[] = [
+  rememberTool,
+  recallTool,
+  peopleMemoryTool,
+  surfaceMemoryTool,
+  predictNeedTool,
+];

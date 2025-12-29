@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 import {
   BuilderCategory,
   createStandardInjection,
@@ -522,7 +523,8 @@ IMPORTANT:
 }
 
 // Clean up old session states periodically
-setInterval(
+registerInterval(
+  'thinking-of-you-cleanup',
   () => {
     const now = Date.now();
     const maxAge = 30 * 60 * 1000; // 30 minutes

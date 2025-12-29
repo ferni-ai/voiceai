@@ -209,3 +209,34 @@ export const regexCache = {
     return regexCacheMap.size;
   },
 };
+
+// =============================================================================
+// NATIVE ACCELERATION (Rust regex engine)
+// =============================================================================
+
+export {
+  // Native SSML analysis functions
+  analyzeSsmlNative,
+  batchAnalyzeSsmlNative,
+  containsSsmlNative,
+  stripSsmlNative,
+  // Tag extraction
+  extractBreaksNative,
+  extractEmotionsNative,
+  extractSpeedsNative,
+  // Tag insertion
+  insertBreakNative,
+  insertEmotionNative,
+  wrapWithSpeedNative,
+  // Native availability check
+  getNativeSsmlInfo,
+  getNativeSsmlLoadError,
+  isNativeSsmlAvailable,
+  // Metrics
+  getSsmlMetrics,
+  logSsmlStatus,
+  resetSsmlMetrics,
+  // Types
+  type SsmlAnalysis,
+  type NativeSsmlLibraryInfo,
+} from './native-ssml-processor.js';

@@ -14,9 +14,15 @@ import { createLogger } from '../utils/safe-logger.js';
 import {
   getAnalyticsWorker,
   getTrustWorker,
+  getEmbeddingWorker,
+  getSummarizationWorker,
+  getPredictionsWorker,
   startAllWorkers,
   startAnalyticsWorker,
   startTrustWorker,
+  startEmbeddingWorker,
+  startSummarizationWorker,
+  startPredictionsWorker,
   stopAllWorkers,
 } from './index.js';
 
@@ -53,23 +59,37 @@ function getHealthResponse(): HealthResponse {
   let stats;
 
   try {
-    if (WORKER_TYPE === 'trust') {
-      stats = getTrustWorker().getStats();
-    } else if (WORKER_TYPE === 'analytics') {
-      stats = getAnalyticsWorker().getStats();
-    } else {
-      // Combined stats for 'all' mode
-      const trustStats = getTrustWorker().getStats();
-      const analyticsStats = getAnalyticsWorker().getStats();
-      stats = {
-        messagesReceived: trustStats.messagesReceived + analyticsStats.messagesReceived,
-        messagesProcessed: trustStats.messagesProcessed + analyticsStats.messagesProcessed,
-        messagesFailed: trustStats.messagesFailed + analyticsStats.messagesFailed,
-        averageProcessingMs:
-          (trustStats.averageProcessingMs + analyticsStats.averageProcessingMs) / 2,
-        lastProcessedAt:
-          Math.max(trustStats.lastProcessedAt || 0, analyticsStats.lastProcessedAt || 0) || null,
-      };
+    switch (WORKER_TYPE) {
+      case 'trust':
+        stats = getTrustWorker().getStats();
+        break;
+      case 'analytics':
+        stats = getAnalyticsWorker().getStats();
+        break;
+      case 'embedding':
+        stats = getEmbeddingWorker().getStats();
+        break;
+      case 'summarization':
+        stats = getSummarizationWorker().getStats();
+        break;
+      case 'predictions':
+        stats = getPredictionsWorker().getStats();
+        break;
+      default: {
+        // Combined stats for 'all' mode
+        const trustStats = getTrustWorker().getStats();
+        const analyticsStats = getAnalyticsWorker().getStats();
+        stats = {
+          messagesReceived: trustStats.messagesReceived + analyticsStats.messagesReceived,
+          messagesProcessed: trustStats.messagesProcessed + analyticsStats.messagesProcessed,
+          messagesFailed: trustStats.messagesFailed + analyticsStats.messagesFailed,
+          averageProcessingMs:
+            (trustStats.averageProcessingMs + analyticsStats.averageProcessingMs) / 2,
+          lastProcessedAt:
+            Math.max(trustStats.lastProcessedAt ?? 0, analyticsStats.lastProcessedAt ?? 0) || null,
+        };
+        break;
+      }
     }
   } catch {
     // Worker not started yet
@@ -147,6 +167,21 @@ async function main(): Promise<void> {
       case 'analytics':
         await startAnalyticsWorker();
         log.info('Analytics worker started');
+        break;
+
+      case 'embedding':
+        await startEmbeddingWorker();
+        log.info('Embedding worker started');
+        break;
+
+      case 'summarization':
+        await startSummarizationWorker();
+        log.info('Summarization worker started');
+        break;
+
+      case 'predictions':
+        await startPredictionsWorker();
+        log.info('Predictions worker started');
         break;
 
       case 'all':

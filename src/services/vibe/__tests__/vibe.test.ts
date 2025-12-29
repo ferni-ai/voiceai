@@ -363,43 +363,45 @@ describe('VibeService', () => {
   });
 
   describe('setLights', () => {
+    const testUserId = 'test-user-123';
+
     it('should set brightness', async () => {
-      const result = await setLights(75);
+      const result = await setLights(testUserId, 75);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('75%');
     });
 
     it('should handle no lights connected', async () => {
-      const { getAllDevices } = await import('../../../tools/domains/smart-home/smart-home.js');
-      (getAllDevices as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
+      const { setLightsForVibe } = await import('../../../tools/domains/smart-home/smart-home.js');
+      (setLightsForVibe as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ success: false, devices: [] });
 
-      const result = await setLights(50);
+      const result = await setLights(testUserId, 50);
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('No lights');
     });
 
-    it('should call controlDevice for each light', async () => {
-      const { controlDevice } = await import('../../../tools/domains/smart-home/smart-home.js');
+    it('should call setLightsForVibe', async () => {
+      const { setLightsForVibe } = await import('../../../tools/domains/smart-home/smart-home.js');
 
-      await setLights(80);
+      await setLights(testUserId, 80);
 
-      expect(controlDevice).toHaveBeenCalledTimes(2); // 2 lights in mock
+      expect(setLightsForVibe).toHaveBeenCalled();
     });
 
     it('should handle undefined brightness', async () => {
-      const result = await setLights(undefined);
+      const result = await setLights(testUserId, undefined);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('unchanged');
     });
 
     it('should handle control failure', async () => {
-      const { getAllDevices } = await import('../../../tools/domains/smart-home/smart-home.js');
-      (getAllDevices as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
+      const { setLightsForVibe } = await import('../../../tools/domains/smart-home/smart-home.js');
+      (setLightsForVibe as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('API error'));
 
-      const result = await setLights(50);
+      const result = await setLights(testUserId, 50);
 
       expect(result.success).toBe(false);
     });

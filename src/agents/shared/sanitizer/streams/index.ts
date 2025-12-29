@@ -10,6 +10,7 @@ export {
   createSanitizerTransformStream,
   createSanitizerWithMusicFallback,
   stripGuidanceBlocks,
+  containsGuidanceBlocks,
   createGuidanceStripStream,
   type AnyTransformStream,
 } from './transform-stream.js';

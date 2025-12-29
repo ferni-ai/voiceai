@@ -733,6 +733,127 @@ export function clearSocialGraph(userId: string): void {
   log.info({ userId }, 'Social graph cleared');
 }
 
+// ============================================================================
+// PERSISTENCE (for real-time saving)
+// ============================================================================
+
+/**
+ * Get the in-memory graph for a user (for persistence)
+ */
+export function getUserGraph(userId: string): UserSocialGraph | undefined {
+  return userGraphs.get(userId);
+}
+
+/**
+ * Serialize graph for storage
+ */
+export function serializeGraph(graph: UserSocialGraph): object {
+  return {
+    userId: graph.userId,
+    people: Array.from(graph.people.entries()).map(([id, person]) => ({
+      ...person,
+      lastMentioned: person.lastMentioned.toISOString(),
+      createdAt: person.createdAt.toISOString(),
+      updatedAt: person.updatedAt.toISOString(),
+    })),
+    mentions: graph.mentions.slice(-100).map((m) => ({
+      ...m,
+      timestamp: m.timestamp.toISOString(),
+    })),
+    patterns: graph.patterns,
+    lastAnalysis: graph.lastAnalysis.toISOString(),
+  };
+}
+
+/**
+ * Persist graph to Firestore
+ */
+export async function persistGraphToFirestore(
+  userId: string,
+  graph: UserSocialGraph
+): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) {
+      log.warn({ userId }, 'Cannot persist social graph - no Firestore connection');
+      return;
+    }
+
+    const serialized = serializeGraph(graph);
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('social_graph')
+      .doc('current')
+      .set(
+        {
+          ...serialized,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+    log.debug({ userId, peopleCount: graph.people.size }, 'Social graph persisted');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to persist social graph');
+  }
+}
+
+/**
+ * Load graph from Firestore
+ */
+export async function loadGraphFromFirestore(userId: string): Promise<void> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('social_graph')
+      .doc('current')
+      .get();
+
+    if (!doc.exists) return;
+
+    const data = doc.data();
+    if (!data) return;
+
+    // Reconstruct the graph
+    const graph: UserSocialGraph = {
+      userId,
+      people: new Map(),
+      mentions: [],
+      patterns: data.patterns || [],
+      lastAnalysis: new Date(data.lastAnalysis || 0),
+    };
+
+    // Reconstruct people
+    for (const personData of data.people || []) {
+      const person: Person = {
+        ...personData,
+        lastMentioned: new Date(personData.lastMentioned),
+        createdAt: new Date(personData.createdAt),
+        updatedAt: new Date(personData.updatedAt),
+      };
+      graph.people.set(person.id, person);
+    }
+
+    // Reconstruct mentions
+    graph.mentions = (data.mentions || []).map((m: Record<string, unknown>) => ({
+      ...m,
+      timestamp: new Date(m.timestamp as string),
+    }));
+
+    userGraphs.set(userId, graph);
+    log.info({ userId, peopleCount: graph.people.size }, 'Social graph loaded from Firestore');
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to load social graph from Firestore');
+  }
+}
+
 export default {
   recordMention,
   extractNames,
@@ -747,4 +868,8 @@ export default {
   confirmImportantPerson,
   getMentionFrequency,
   clearSocialGraph,
+  getUserGraph,
+  serializeGraph,
+  persistGraphToFirestore,
+  loadGraphFromFirestore,
 };

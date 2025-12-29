@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import { SlackNotificationService } from './slack-notifications.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 
@@ -800,35 +801,43 @@ export function startOpsOrchestrator(userConfig?: Partial<OpsConfig>): void {
   checkCircuits().catch((e) => log.error({ error: String(e) }, 'Initial circuit check failed'));
 
   // Schedule periodic checks
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'ops-orchestrator-health',
+    () => {
       checkServiceHealth().catch((e) => log.error({ error: String(e) }, 'Health check failed'));
       checkCircuits().catch((e) => log.error({ error: String(e) }, 'Circuit check failed'));
       checkErrorRate().catch((e) => log.error({ error: String(e) }, 'Error rate check failed'));
       checkDisconnectPatterns().catch((e) =>
         log.error({ error: String(e) }, 'Disconnect pattern check failed')
       );
-    }, config.serviceHealthIntervalMs)
+    },
+    config.serviceHealthIntervalMs
   );
 
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'ops-orchestrator-costs',
+    () => {
       checkCosts().catch((e) => log.error({ error: String(e) }, 'Cost check failed'));
-    }, config.costCheckIntervalMs)
+    },
+    config.costCheckIntervalMs
   );
 
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'ops-orchestrator-latency',
+    () => {
       checkLatency().catch((e) => log.error({ error: String(e) }, 'Latency check failed'));
-    }, config.latencyCheckIntervalMs)
+    },
+    config.latencyCheckIntervalMs
   );
 
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'ops-orchestrator-external-status',
+    () => {
       checkExternalStatus().catch((e) =>
         log.error({ error: String(e) }, 'External status check failed')
       );
-    }, config.externalStatusIntervalMs)
+    },
+    config.externalStatusIntervalMs
   );
 }
 
@@ -837,9 +846,10 @@ export function stopOpsOrchestrator(): void {
 
   log.info('Stopping ops orchestrator...');
 
-  for (const interval of intervals) {
-    clearInterval(interval);
-  }
+  clearNamedInterval('ops-orchestrator-health');
+  clearNamedInterval('ops-orchestrator-costs');
+  clearNamedInterval('ops-orchestrator-latency');
+  clearNamedInterval('ops-orchestrator-external-status');
   intervals = [];
   state.isRunning = false;
 

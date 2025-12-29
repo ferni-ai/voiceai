@@ -310,9 +310,9 @@ describe('SSML Pronunciation Dictionary', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('Practice kaizen daily'), 'ky-zen')).toBe(
         true
       );
-      expect(
-        containsTextIgnoringSsml(tagTextWithSsml('Try shinrin-yoku'), 'SHIN-rin YO-koo')
-      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Try shinrin-yoku'), 'SHIN-rin YO-koo')).toBe(
+        true
+      );
       expect(
         containsTextIgnoringSsml(tagTextWithSsml('Like kintsugi repairs'), 'kin-TSOO-gee')
       ).toBe(true);

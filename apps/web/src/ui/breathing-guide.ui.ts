@@ -473,6 +473,11 @@ export class BreathingGuide {
 
     this.animate();
     log.info('Breathing started', { pattern: this.pattern });
+    
+    // 🤲 Sidekick: Dispatch breathing exercise event for avatar sidekick
+    document.dispatchEvent(new CustomEvent('ferni:breathing-exercise', {
+      detail: { pattern: this.pattern }
+    }));
   }
 
   stop(): void {

@@ -7,15 +7,19 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger (must include getLogger for rust-accelerator.ts import)
+vi.mock('../../utils/safe-logger.js', () => {
+  const logger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+  };
+  return {
+    createLogger: () => logger,
+    getLogger: () => logger,
+  };
+});
 
 // Mock embeddings
 const mockEmbed = vi.fn();

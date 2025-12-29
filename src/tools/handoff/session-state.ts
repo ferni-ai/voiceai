@@ -18,6 +18,8 @@
  * @see docs/audits/AGENT-TRANSFER-BUGS-GAPS.md for context
  */
 
+import { registerInterval } from '../../utils/interval-manager.js';
+
 import { EventEmitter } from 'events';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
@@ -275,8 +277,8 @@ function evictStaleSessions(): void {
   }
 }
 
-// Start periodic eviction check
-setInterval(evictStaleSessions, EVICTION_CHECK_INTERVAL_MS);
+// Start periodic eviction check (managed interval for proper shutdown)
+registerInterval('handoff-session-eviction', evictStaleSessions, EVICTION_CHECK_INTERVAL_MS);
 
 /**
  * Create a new session state with default values

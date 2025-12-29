@@ -350,6 +350,25 @@ export interface TurnProcessorResult {
    * directly instead of sending to the LLM.
    */
   semanticRouting?: SemanticRoutingResult;
+
+  /**
+   * 📊 RESONANCE CHECK: Voice-native feedback for superhuman capability effectiveness
+   * When shouldCheck=true, the caller should include instructions in the LLM context
+   * to trigger a natural backchannel like "Does that track?"
+   */
+  resonanceCheck?: ResonanceCheckResult;
+}
+
+/**
+ * Result of checking for pending resonance feedback
+ */
+export interface ResonanceCheckResult {
+  /** Whether to trigger a resonance check this turn */
+  shouldCheck: boolean;
+  /** Instructions for the backchannel (if shouldCheck is true) */
+  instructions?: string;
+  /** The capability being checked (for tracking response) */
+  capability?: string;
 }
 
 // ============================================================================

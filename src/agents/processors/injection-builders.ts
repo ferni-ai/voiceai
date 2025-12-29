@@ -1759,14 +1759,29 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
  * And when we do transfer, it's a WARM handoff with full context.
  *
  * @param userText - Current user message to evaluate
+ * @param userId - Optional user ID for logging crisis signals to Firestore
  * @returns Context injection with transfer guidance if needed, or null
  */
 export async function buildHumanTransferInjections(
-  userText: string
+  userText: string,
+  userId?: string
 ): Promise<ContextInjection | null> {
   try {
-    const { humanTransfer, buildTransferAwarenessContext } =
+    const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
       await import('../../services/human-transfer/index.js');
+
+    // Detect crisis signals first
+    const signals = humanTransfer.detectCrisisSignals(userText);
+
+    // Log significant signals to Firestore for analytics and follow-up
+    // Severity is 0-10: 0 = none, 1-3 = mild, 4-6 = moderate, 7-10 = severe
+    if (userId && signals.severity > 0) {
+      // Fire and forget - don't block injection on logging
+      // logCrisisSignal(userId, signals, transcript?, sessionId?)
+      logCrisisSignal(userId, signals, userText).catch((err: Error) => {
+        diag.debug('Crisis signal logging failed', { error: String(err) });
+      });
+    }
 
     // Evaluate if transfer might be needed
     const decision = humanTransfer.evaluateTransferNeed(userText);
@@ -1801,6 +1816,68 @@ export async function buildHumanTransferInjections(
 }
 
 // ============================================================================
+// CRISIS HISTORY INJECTION BUILDER (Better Than Human)
+// Priority: 85 (important for continuity but below active crisis)
+// ============================================================================
+
+/**
+ * Build crisis history context injection for users who had recent crisis.
+ * BETTER-THAN-HUMAN: Remember past crises and gently check in.
+ *
+ * @param userId - User ID to check crisis history for
+ * @returns Context injection with crisis follow-up guidance, or null
+ */
+export async function buildCrisisHistoryInjection(
+  userId: string
+): Promise<ContextInjection | null> {
+  try {
+    const { hadRecentCrisis } = await import('../../services/human-transfer/index.js');
+
+    const { hasCrisis, lastCrisis } = await hadRecentCrisis(userId, 7);
+
+    if (!hasCrisis || !lastCrisis) {
+      return null;
+    }
+
+    // Build gentle follow-up context
+    const daysSince = Math.floor(
+      (Date.now() - new Date(lastCrisis.timestamp).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    const sections: string[] = [];
+    sections.push('[CRISIS FOLLOW-UP - Better Than Human]');
+    sections.push('');
+    sections.push(`This user had a difficult moment ${daysSince} day(s) ago.`);
+    sections.push(`Type: ${lastCrisis.escalationType}`);
+    sections.push('');
+    sections.push('GENTLE CHECK-IN GUIDANCE:');
+    sections.push("- Don't immediately bring it up - let them lead");
+    sections.push('- If they seem down, you might ask: "How have you been doing since last time?"');
+    sections.push(
+      '- If they mention struggling again, acknowledge: "I remember last time was hard."'
+    );
+    sections.push('- Be ready to provide resources again if needed');
+    sections.push('');
+    sections.push('This is better-than-human: we remember what matters.');
+
+    diag.info('🔁 Crisis follow-up context injected', {
+      userId,
+      daysSince,
+      escalationType: lastCrisis.escalationType,
+    });
+
+    return {
+      category: 'better_than_human',
+      content: sections.join('\n'),
+      priority: 85,
+    };
+  } catch (error) {
+    diag.debug('Crisis history injection skipped', { error: String(error) });
+    return null;
+  }
+}
+
+// ============================================================================
 // SESSION DYNAMICS INJECTION BUILDER
 // Priority: 55-60 (guides response behavior based on conversation phase)
 // ============================================================================
@@ -1818,3 +1895,102 @@ export async function buildHumanTransferInjections(
  * - Extended: Check-ins, acknowledge fatigue
  */
 export { buildSessionDynamicsInjection } from '../integrations/session-dynamics-integration.js';
+
+// ============================================================================
+// SEMANTIC INTELLIGENCE INJECTION BUILDER
+// Priority: 75-80 (tool hints help LLM make better tool decisions)
+// ============================================================================
+
+/**
+ * Enhanced result from semantic intelligence that includes:
+ * - The context injection for LLM (if any)
+ * - The tool prediction for learning loop comparison
+ */
+export interface SemanticIntelligenceInjectionResult {
+  /** Context injection for LLM (null if no meaningful hints) */
+  injection: ContextInjection | null;
+
+  /**
+   * Tool prediction to store in userData for learning loop.
+   * When a tool is actually executed, the executor compares this prediction
+   * to the actual tool to detect implicit corrections.
+   */
+  prediction?: {
+    toolId: string;
+    confidence: number;
+    isToolRequest: boolean;
+  };
+}
+
+/**
+ * Build semantic intelligence injection for LLM context.
+ *
+ * This provides:
+ * - Tool hints based on semantic analysis
+ * - Learned user patterns
+ * - Intent classification
+ * - Proactive suggestions
+ *
+ * Key insight: JSON handles tool dispatch (reliable),
+ * semantic adds hints (no auto-execution risk).
+ *
+ * Returns both the injection AND the prediction so turn-processor
+ * can store the prediction in userData for the learning loop.
+ */
+export async function buildSemanticIntelligenceInjection(params: {
+  userId: string;
+  sessionId: string;
+  personaId: string;
+  userText: string;
+  recentTools?: string[];
+  recentTopics?: string[];
+}): Promise<SemanticIntelligenceInjectionResult> {
+  try {
+    const { getSemanticIntelligence } =
+      await import('../../intelligence/semantic-intelligence/index.js');
+
+    const result = await getSemanticIntelligence({
+      userId: params.userId,
+      sessionId: params.sessionId,
+      personaId: params.personaId,
+      inputText: params.userText,
+      recentTools: params.recentTools,
+      recentTopics: params.recentTopics,
+    });
+
+    // Extract the top prediction for learning loop
+    const topHint = result.toolHints.hints[0];
+    const prediction = topHint
+      ? {
+          toolId: topHint.toolId,
+          confidence: topHint.confidence,
+          isToolRequest: result.toolHints.isToolRequest,
+        }
+      : undefined;
+
+    // Only inject if we have meaningful hints
+    if (!result.combinedInjection || result.combinedInjection.trim().length === 0) {
+      return { injection: null, prediction };
+    }
+
+    diag.debug('🧠 Semantic intelligence injected', {
+      userId: params.userId,
+      topHint: topHint?.toolId,
+      intentType: result.intentClassification.type,
+      isToolRequest: result.toolHints.isToolRequest,
+      processingTimeMs: result.totalProcessingTimeMs,
+    });
+
+    return {
+      injection: {
+        category: 'semantic_intelligence',
+        content: result.combinedInjection,
+        priority: 78, // High but below crisis/safety
+      },
+      prediction,
+    };
+  } catch (error) {
+    diag.debug('Semantic intelligence injection skipped', { error: String(error) });
+    return { injection: null };
+  }
+}

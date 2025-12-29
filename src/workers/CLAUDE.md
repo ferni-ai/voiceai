@@ -49,9 +49,7 @@ import { startAllWorkers, stopAllWorkers } from './workers/index.js';
 // Start with 30s timeout (prevents deploy hangs)
 await Promise.race([
   startAllWorkers(),
-  new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Worker startup timeout')), 30000)
-  )
+  new Promise((_, reject) => setTimeout(() => reject(new Error('Worker startup timeout')), 30000)),
 ]);
 ```
 
@@ -116,7 +114,7 @@ import { MyWorker } from './my-worker.js';
 const workers = [
   new EmbeddingWorker(config),
   new SummarizationWorker(config),
-  new MyWorker(config),  // Add here
+  new MyWorker(config), // Add here
 ];
 ```
 
@@ -153,15 +151,15 @@ if (queue.length >= MAX_QUEUE_DEPTH) {
 
 ## Worker Types
 
-| Worker | Purpose | Queue |
-|--------|---------|-------|
-| `EmbeddingWorker` | Generate vector embeddings | `embedding-queue` |
-| `SummarizationWorker` | Summarize conversations | `summarization-queue` |
-| `AnalyticsWorker` | Process usage analytics | `analytics-queue` |
-| `OutreachWorker` | Deliver proactive messages | `outreach-queue` |
-| `PredictionsWorker` | Generate predictive insights | `predictions-queue` |
-| `TrustWorker` | Calculate trust metrics | `trust-queue` |
-| `AudioAnalysisPool` | Analyze audio for emotion | In-memory pool |
+| Worker                | Purpose                      | Queue                 |
+| --------------------- | ---------------------------- | --------------------- |
+| `EmbeddingWorker`     | Generate vector embeddings   | `embedding-queue`     |
+| `SummarizationWorker` | Summarize conversations      | `summarization-queue` |
+| `AnalyticsWorker`     | Process usage analytics      | `analytics-queue`     |
+| `OutreachWorker`      | Deliver proactive messages   | `outreach-queue`      |
+| `PredictionsWorker`   | Generate predictive insights | `predictions-queue`   |
+| `TrustWorker`         | Calculate trust metrics      | `trust-queue`         |
+| `AudioAnalysisPool`   | Analyze audio for emotion    | In-memory pool        |
 
 ---
 
@@ -206,6 +204,7 @@ PUBSUB_EMULATOR_HOST=localhost:8085 pnpm vitest run src/workers/
 ## Rules
 
 ### Do
+
 - Extend `BaseWorker` for new workers
 - Implement backpressure (max queue depth)
 - Log job start/complete with userId
@@ -213,6 +212,7 @@ PUBSUB_EMULATOR_HOST=localhost:8085 pnpm vitest run src/workers/
 - Report metrics to observability
 
 ### Don't
+
 - Block the main thread with CPU work
 - Skip error handling in `processJob()`
 - Ignore queue depth limits
@@ -221,4 +221,4 @@ PUBSUB_EMULATOR_HOST=localhost:8085 pnpm vitest run src/workers/
 
 ---
 
-*Last updated: December 2024*
+_Last updated: December 2024_

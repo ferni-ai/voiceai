@@ -19,9 +19,14 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingVector } from '../types.js';
 import { getKeywordWord, getKeywordWeight } from '../types.js';
-import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
+import { getEmbedding } from '../embedding-providers.js';
 import type { TrainingExample } from './datasets.js';
 import { loadCombinedTrainingData } from './datasets.js';
+// Rust-accelerated operations for KNN scoring
+import {
+  cosineSimilarity,
+  batchCosineSimilarityOptimized,
+} from '../../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'semantic-router:learned-retriever' });
 
@@ -107,10 +112,8 @@ export class LearnedRetriever {
     // Build global vocabulary for IDF
     await this.buildGlobalIDF(allExamples);
 
-    // Build per-tool profiles
-    for (const tool of tools) {
-      await this.buildToolProfile(tool, allExamples);
-    }
+    // Build per-tool profiles in parallel
+    await Promise.all(tools.map((tool) => this.buildToolProfile(tool, allExamples)));
 
     this.isInitialized = true;
     log.info(
@@ -135,17 +138,14 @@ export class LearnedRetriever {
     // Tokenize query
     const queryTokens = this.tokenize(query);
 
-    // Score against each tool profile
-    const profileEntries = Array.from(this.profiles.entries());
-    for (const [_toolId, profile] of profileEntries) {
-      const result = await this.scoreQueryAgainstProfile(
-        query,
-        queryTokens,
-        queryEmbedding,
-        profile
-      );
-      results.push(result);
-    }
+    // Score against all tool profiles in parallel
+    const profileEntries = Array.from(this.profiles.values());
+    const scoredResults = await Promise.all(
+      profileEntries.map((profile) =>
+        this.scoreQueryAgainstProfile(query, queryTokens, queryEmbedding, profile)
+      )
+    );
+    results.push(...scoredResults);
 
     // Sort by score and take top-k
     results.sort((a, b) => b.score - a.score);
@@ -314,13 +314,21 @@ export class LearnedRetriever {
     let embeddingSimilarity = 0;
 
     if (profile.centroidEmbedding) {
-      // Centroid similarity
+      // Centroid similarity (single op - JS is fine)
       embeddingSimilarity = cosineSimilarity(queryEmbedding, profile.centroidEmbedding);
 
       // KNN boost: check similarity to nearest neighbors
+      // Uses SIMD-accelerated batch similarity for 5+ examples
       if (profile.exampleEmbeddings.length > 0) {
-        const knnSims = profile.exampleEmbeddings
-          .map((ex) => cosineSimilarity(queryEmbedding, ex.embedding) * ex.confidence)
+        const exampleVectors = profile.exampleEmbeddings.map((ex) => Array.from(ex.embedding));
+        const queryArray = Array.from(queryEmbedding);
+
+        // Batch compute all similarities at once (SIMD-accelerated for 5+ candidates)
+        const rawSims = batchCosineSimilarityOptimized(queryArray, exampleVectors);
+
+        // Apply confidence weights and get top-K
+        const knnSims = rawSims
+          .map((sim, i) => sim * profile.exampleEmbeddings[i].confidence)
           .sort((a, b) => b - a)
           .slice(0, this.config.knnK);
 

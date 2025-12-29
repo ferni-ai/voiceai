@@ -119,6 +119,8 @@ import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.
 import { dispose as disposeWeatherEffects, initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Character expressions
 import { dispose as disposeFerniMoments, initFerniMoments } from './ui/ferni-moments.ui.js';
+// Avatar Sidekicks - Expressive side icons (like "hands" holding props)
+import { avatarSidekicks, dispose as disposeSidekicks } from './ui/avatar-sidekicks.ui.js';
 // Ferni Milestones - Warm relationship celebrations
 import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
 // Connection Heart - Unified status + relationship indicator near avatar
@@ -231,6 +233,8 @@ import { showVideoSettings } from './ui/video-settings.ui.js';
 import { initLinkedInSettings, showLinkedInSettings } from './ui/linkedin-settings.ui.js';
 // Vibe Controller UI - Unified Music, Lights, Temperature control
 import { show as showVibeController } from './ui/vibe-controller.ui.js';
+// Smart Home Settings UI - Connect Ecobee, Hue, LIFX
+import { showSmartHomeSettings } from './ui/smart-home-settings.ui.js';
 // Eight Sleep Settings UI - Smart mattress control
 import { showEightSleepSettings } from './ui/eight-sleep-settings.ui.js';
 // Oura Ring Settings UI - Sleep and readiness tracking
@@ -1015,7 +1019,7 @@ class VoiceAIApp {
    * Initialize all services.
    * IMPORTANT: Services should NOT block UI initialization, especially on iOS.
    */
-  private initializeServices(): void {
+  private async initializeServices(): Promise<void> {
     // Initialize modal coordinator FIRST - gates all popups for first-time users
     // Philosophy: "First conversation IS the onboarding"
     initModalCoordinator();
@@ -1081,6 +1085,17 @@ class VoiceAIApp {
     // 🔐 Google One-Tap Sign-In - Gentle prompt for anonymous users
     // Shows after 8 seconds, respects dismissals with progressive cooldown
     initGoogleOneTap();
+
+    // 🧠 Better Than Human: Voice ↔ App Sync
+    // Track user activity in the app so voice agent knows context
+    try {
+      const { initAppContextTracking } = await import('./services/app-context-tracking.service.js');
+      initAppContextTracking();
+      log.debug('App context tracking initialized');
+    } catch (err) {
+      log.warn('App context tracking init failed:', err);
+      // Non-critical - continue without it
+    }
   }
 
   /**
@@ -1252,6 +1267,12 @@ class VoiceAIApp {
     this.deferredInit('FerniMoments', 500, async () => {
       const { initFerniMoments } = await import('./ui/ferni-moments.ui.js');
       initFerniMoments();
+    });
+    
+    // 🤲 Avatar Sidekicks - load after 550ms (expressive side icons)
+    this.deferredInit('AvatarSidekicks', 550, async () => {
+      const { avatarSidekicks } = await import('./ui/avatar-sidekicks.ui.js');
+      avatarSidekicks.init();
     });
 
     // 🎉 Ferni Milestones - load after 600ms
@@ -1675,6 +1696,7 @@ class VoiceAIApp {
         onNotificationSettingsClick: () => showNotificationSettings(),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
+        onTeamObservationsClick: () => void import('./ui/team-observations-panel.ui.js').then(m => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onMusicDashboardClick: () => void musicDashboard.show(),
@@ -1728,6 +1750,7 @@ class VoiceAIApp {
           showLinkedInSettings();
         },
         onVibeControllerClick: () => void showVibeController(),
+        onSmartHomeClick: () => void showSmartHomeSettings(),
         onEightSleepClick: () => void showEightSleepSettings(),
         onOuraClick: () => void showOuraSettings(),
         onAppleHealthClick: () => void showAppleHealthSettings(),
@@ -3081,6 +3104,7 @@ class VoiceAIApp {
     disposeMobileDelights();
     disposeMobileBottomSheet();
     disposeFerniMoments();
+    disposeSidekicks();
     disposeConnectionHeart();
     disposeLogoExpressions();
     disposeFerniEQ();

@@ -85,11 +85,19 @@ export interface PersistenceStore<T> {
 
 let db: FirestoreType | null = null;
 let dbInitAttempted = false;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
   if (dbInitAttempted) return null;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   dbInitAttempted = true;
 
   try {
@@ -102,6 +110,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for persistence layer');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

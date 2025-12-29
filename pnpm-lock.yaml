@@ -8,9 +8,9 @@ patchedDependencies:
   '@livekit/agents':
     hash: 71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1
     path: patches/@livekit__agents.patch
-  '@livekit/agents-plugin-google':
-    hash: 2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab
-    path: patches/@livekit__agents-plugin-google.patch
+  '@livekit/agents-plugin-google@1.0.31':
+    hash: a395dc0c2af4f265e44259e19500290be44a9bc9ae1996af6b018dba62a590db
+    path: patches/@livekit__agents-plugin-google@1.0.31.patch
 
 importers:
 
@@ -25,6 +25,9 @@ importers:
       '@google-cloud/storage':
         specifier: ^7.14.0
         version: 7.18.0
+      '@google-cloud/vertexai':
+        specifier: 1.10.0
+        version: 1.10.0
       '@google/genai':
         specifier: ^1.30.0
         version: 1.34.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
@@ -42,7 +45,7 @@ importers:
         version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)
       '@livekit/agents-plugin-google':
         specifier: ^1.0.31
-        version: 1.0.31(patch_hash=2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
+        version: 1.0.31(patch_hash=a395dc0c2af4f265e44259e19500290be44a9bc9ae1996af6b018dba62a590db)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
       '@livekit/agents-plugin-openai':
         specifier: ^1.0.31
         version: 1.0.31(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(zod@4.1.13)
@@ -197,6 +200,9 @@ importers:
       eslint-plugin-prettier:
         specifier: ^5.5.4
         version: 5.5.4(eslint-config-prettier@10.1.8(eslint@9.39.2(jiti@2.6.1)))(eslint@9.39.2(jiti@2.6.1))(prettier@3.7.4)
+      fast-check:
+        specifier: 4.5.2
+        version: 4.5.2
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -225,6 +231,12 @@ importers:
         specifier: ^4.0.14
         version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(jiti@2.6.1)(jsdom@23.2.0)(tsx@4.21.0)(yaml@2.8.2)
     optionalDependencies:
+      '@ferni/audio':
+        specifier: workspace:*
+        version: link:apps/rust-audio
+      '@ferni/perf':
+        specifier: workspace:*
+        version: link:apps/rust-perf
       ferni-speaker:
         specifier: github:sethdford/ferni-speaker#v0.1.0
         version: https://codeload.github.com/sethdford/ferni-speaker/tar.gz/99034254a600dc9b2105fbb2dccb1c85c34719ec
@@ -321,6 +333,18 @@ importers:
         specifier: ^3.2.3
         version: 3.2.4(@types/node@22.19.3)(jsdom@23.2.0)
 
+  apps/rust-audio:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.18.4
+        version: 2.18.4
+
+  apps/rust-perf:
+    devDependencies:
+      '@napi-rs/cli':
+        specifier: ^2.18.4
+        version: 2.18.4
+
   apps/web:
     dependencies:
       '@capacitor/core':
@@ -350,6 +374,9 @@ importers:
       livekit-client:
         specifier: ^2.0.0
         version: 2.16.1(@types/dom-mediacapture-record@1.0.22)
+      zod:
+        specifier: ^3.23.0
+        version: 3.24.4
     devDependencies:
       '@capacitor/cli':
         specifier: ^7.4.4
@@ -1464,6 +1491,10 @@ packages:
     resolution: {integrity: sha512-Y21jNAdaUwZvYQijJSE9E27NA87c/Wl9fZxNDGx6WsWFFGEBmJmc1zg2fXLXTW0kPvKIxHQC+IcKa9SNgvIEsQ==}
     engines: {node: '>=18'}
 
+  '@google-cloud/vertexai@1.10.0':
+    resolution: {integrity: sha512-HqYqoivNtkq59po8m7KI0n+lWKdz4kabENncYQXZCX/hBWJfXtKAfR/2nUQsP+TwSfHKoA7zDL2RrJYIv/j3VQ==}
+    engines: {node: '>=18.0.0'}
+
   '@google/genai@1.34.0':
     resolution: {integrity: sha512-vu53UMPvjmb7PGzlYu6Tzxso8Dfhn+a7eQFaS2uNemVtDZKwzSpJ5+ikqBbXplF7RGB1STcVDqCkPvquiwb2sw==}
     engines: {node: '>=20.0.0'}
@@ -1985,6 +2016,11 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
+
+  '@napi-rs/cli@2.18.4':
+    resolution: {integrity: sha512-SgJeA4df9DE2iAEpr3M2H0OKl/yjtg1BnRI5/JyowS71tUWhrfSu2LT0V3vlHET+g1hBVlrO60PmEXwUEKp8Mg==}
+    engines: {node: '>= 10'}
+    hasBin: true
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3980,6 +4016,10 @@ packages:
     resolution: {integrity: sha512-6ypT4XfgqJk/F3Yuv4SX26I3doUjt0GTG4a+JgWxXQpxXzTBq8fPUeGHfcYMMDPHJHm3yPOSjaeBwBGAHWXCdA==}
     engines: {node: '>=18.0.0'}
 
+  fast-check@4.5.2:
+    resolution: {integrity: sha512-tOzL01LMrDIWPLfvMiGUMH0AjqnOelHQPmgvYkW/aRO4Yaw+pBQqWmyebNzAEbKOigoCN8HkRWUZXFkjmiaXMQ==}
+    engines: {node: '>=12.17.0'}
+
   fast-copy@3.0.2:
     resolution: {integrity: sha512-dl0O9Vhju8IrcLndv2eU4ldt1ftXMqqfgN4H1cpmGV7P6jeB9FwpN9a2c8DPGE1Ys88rNUJVYDHq73CGAGOPfQ==}
 
@@ -5387,6 +5427,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  pure-rand@7.0.1:
+    resolution: {integrity: sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==}
 
   qs@6.14.0:
     resolution: {integrity: sha512-YWWTjgABSKcvs/nWBi9PycY/JiPJqOD4JA6o9Sej2AtvSGarXxKC3OQSk4pAarbdQlKAh5D4FCQkJNkW+GAn3w==}
@@ -7547,6 +7590,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@google-cloud/vertexai@1.10.0':
+    dependencies:
+      google-auth-library: 9.15.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   '@google/genai@1.34.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
     dependencies:
       google-auth-library: 10.5.0
@@ -7928,7 +7978,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.0.31(patch_hash=2cf131168270687524bab23d91159468d7d7b8e993c80bb750ffc5c3bb7a74ab)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
+  '@livekit/agents-plugin-google@1.0.31(patch_hash=a395dc0c2af4f265e44259e19500290be44a9bc9ae1996af6b018dba62a590db)(@livekit/agents@1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13))(@livekit/rtc-node@0.13.22)(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))':
     dependencies:
       '@google/genai': 1.34.0(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.1.13))
       '@livekit/agents': 1.0.31(patch_hash=71e498a85c9a847722c02dc700c91396503f95af598c46e619d9f842374795e1)(@livekit/rtc-node@0.13.22)(zod@4.1.13)
@@ -8099,6 +8149,8 @@ snapshots:
     transitivePeerDependencies:
       - hono
       - supports-color
+
+  '@napi-rs/cli@2.18.4': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -10557,6 +10609,10 @@ snapshots:
 
   farmhash-modern@1.1.0: {}
 
+  fast-check@4.5.2:
+    dependencies:
+      pure-rand: 7.0.1
+
   fast-copy@3.0.2: {}
 
   fast-copy@4.0.2: {}
@@ -12123,6 +12179,8 @@ snapshots:
       once: 1.4.0
 
   punycode@2.3.1: {}
+
+  pure-rand@7.0.1: {}
 
   qs@6.14.0:
     dependencies:

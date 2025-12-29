@@ -91,6 +91,10 @@ export interface FeatureFlags {
     crossSessionThreading: boolean;
     /** Proactive insights */
     proactiveInsights: boolean;
+    /** Native Rust audio processing (zero-allocation, lower GC pressure) */
+    nativeAudioProcessing: boolean;
+    /** Native Rust embedding operations (SIMD-accelerated cosine similarity) */
+    nativeEmbeddings: boolean;
   };
 
   /**
@@ -257,6 +261,14 @@ const DEFAULT_FLAGS: FeatureFlags = {
     geminiEmotionAnalysis: false, // Disabled by default - enable with ENABLE_GEMINI_EMOTION=true
     crossSessionThreading: true,
     proactiveInsights: true,
+    nativeAudioProcessing: process.env.USE_NATIVE_AUDIO !== 'false', // Enabled by default, disable with USE_NATIVE_AUDIO=false
+    nativeEmbeddings: process.env.USE_NATIVE_EMBEDDINGS !== 'false', // Enabled by default, disable with USE_NATIVE_EMBEDDINGS=false
+    /** Pre-warm context builders at session start for faster first turn */
+    contextBuilderPrewarm: process.env.DISABLE_CONTEXT_PREWARM !== 'true', // Enabled by default
+    /** Use worker threads for embedding operations */
+    embeddingWorkerIntegration: process.env.DISABLE_EMBEDDING_WORKER !== 'true', // Enabled by default
+    /** Batch summarization in SummarizationWorker */
+    batchedSummarization: process.env.DISABLE_BATCHED_SUMMARIZATION !== 'true', // Enabled by default
   },
   personalJourney: {
     enabled: true,
@@ -429,13 +441,18 @@ function setNestedValue(obj: Record<string, any>, path: string, value: boolean):
   let current = obj;
 
   for (let i = 0; i < parts.length - 1; i++) {
-    if (!(parts[i] in current)) {
-      current[parts[i]] = {};
+    const part = parts[i];
+    if (!part) continue; // Guard for noUncheckedIndexedAccess
+    if (!(part in current)) {
+      current[part] = {};
     }
-    current = current[parts[i]];
+    current = current[part];
   }
 
-  current[parts[parts.length - 1]] = value;
+  const lastPart = parts[parts.length - 1];
+  if (lastPart) {
+    current[lastPart] = value;
+  }
 }
 
 /**
@@ -458,7 +475,7 @@ function getNestedValue(obj: Record<string, any>, path: string): boolean | undef
  */
 function loadFeatureFlags(): FeatureFlags {
   // Start with defaults
-  const flags: FeatureFlags = JSON.parse(JSON.stringify(DEFAULT_FLAGS));
+  const flags: FeatureFlags = structuredClone(DEFAULT_FLAGS);
 
   // Override from environment variables
   let overrideCount = 0;

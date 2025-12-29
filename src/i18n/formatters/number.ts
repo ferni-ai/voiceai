@@ -154,14 +154,16 @@ export function formatCurrency(
   currency = 'USD',
   locale: SupportedLocale = DEFAULT_LOCALE
 ): string {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  const displayValue = config.decimals > 0 ? value / Math.pow(10, config.decimals) : value;
+  const config = CURRENCIES[currency] ??
+    CURRENCIES.USD ?? { code: 'USD', symbol: '$', decimals: 2 };
+  const decimals = config.decimals ?? 2;
+  const displayValue = decimals > 0 ? value / Math.pow(10, decimals) : value;
 
   return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: config.code,
-    minimumFractionDigits: config.decimals,
-    maximumFractionDigits: config.decimals,
+    currency: config.code ?? 'USD',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(displayValue);
 }
 
@@ -216,8 +218,9 @@ export function getTierPrice(
   locale: SupportedLocale = DEFAULT_LOCALE
 ): { amount: number; currency: string; formatted: string } {
   const currency = getCurrencyForLocale(locale);
-  const prices = TIER_PRICES[currency] || TIER_PRICES.USD;
-  const amount = prices[period][tier];
+  const prices = TIER_PRICES[currency] ?? TIER_PRICES.USD;
+  const periodPrices = prices?.[period];
+  const amount = periodPrices?.[tier] ?? 0;
 
   return {
     amount,
@@ -286,14 +289,16 @@ export function getStripeCurrency(locale: SupportedLocale): StripeCurrency {
  * Stripe expects amounts in smallest currency unit
  */
 export function toStripeAmount(displayAmount: number, currency: string): number {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  return Math.round(displayAmount * Math.pow(10, config.decimals));
+  const config = CURRENCIES[currency] ?? CURRENCIES.USD;
+  const decimals = config?.decimals ?? 2;
+  return Math.round(displayAmount * Math.pow(10, decimals));
 }
 
 /**
  * Convert Stripe amount to display amount
  */
 export function fromStripeAmount(stripeAmount: number, currency: string): number {
-  const config = CURRENCIES[currency] || CURRENCIES.USD;
-  return stripeAmount / Math.pow(10, config.decimals);
+  const config = CURRENCIES[currency] ?? CURRENCIES.USD;
+  const decimals = config?.decimals ?? 2;
+  return stripeAmount / Math.pow(10, decimals);
 }

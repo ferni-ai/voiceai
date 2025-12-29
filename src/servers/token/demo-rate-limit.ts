@@ -3,6 +3,7 @@
  */
 
 import crypto from 'crypto';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { DemoConfig, RateLimitResult } from '../shared/types.js';
 
 /**
@@ -51,12 +52,13 @@ let cleanupInterval: NodeJS.Timeout | null = null;
 
 export function startRateLimitCleanup(): void {
   if (cleanupInterval) return;
-  cleanupInterval = setInterval(cleanupOldRateLimits, 60 * 60 * 1000);
+  registerInterval('demo-rate-limit-cleanup', cleanupOldRateLimits, 60 * 60 * 1000);
+  cleanupInterval = 1 as unknown as NodeJS.Timeout; // Marker
 }
 
 export function stopRateLimitCleanup(): void {
   if (cleanupInterval) {
-    clearInterval(cleanupInterval);
+    clearNamedInterval('demo-rate-limit-cleanup');
     cleanupInterval = null;
   }
 }

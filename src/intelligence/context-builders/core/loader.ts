@@ -13,10 +13,88 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isFeatureEnabled } from '../../../config/feature-flags.js';
 import { BUILDER_IMPORTS } from './builder-imports.js';
 import { BuilderCategory } from './categories.js';
 
 const log = createLogger({ module: 'context-builder-loader' });
+
+// ============================================================================
+// CONDITIONAL LOADING CONFIG
+// ============================================================================
+
+/**
+ * Categories that can be conditionally skipped based on feature flags or context.
+ * This reduces startup time by not loading builders that won't be used.
+ */
+export interface ConditionalLoadingConfig {
+  /** Skip VOICE category if voice emotion analysis is disabled */
+  skipVoiceBuilders: boolean;
+  /** Skip EXTERNAL category if no external integrations are configured */
+  skipExternalBuilders: boolean;
+  /** Skip COACHING category if not in coaching mode */
+  skipCoachingBuilders: boolean;
+  /** Skip TEAM category for single-persona mode */
+  skipTeamBuilders: boolean;
+}
+
+let conditionalConfig: ConditionalLoadingConfig = {
+  skipVoiceBuilders: false,
+  skipExternalBuilders: false,
+  skipCoachingBuilders: false,
+  skipTeamBuilders: false,
+};
+
+/**
+ * Configure conditional loading options.
+ * Call this before ensureBuildersLoaded() to customize which categories load.
+ */
+export function configureConditionalLoading(config: Partial<ConditionalLoadingConfig>): void {
+  conditionalConfig = { ...conditionalConfig, ...config };
+  log.debug({ config: conditionalConfig }, 'Conditional loading configured');
+}
+
+/**
+ * Check if a category should be loaded based on conditional config.
+ */
+function shouldLoadCategory(category: BuilderCategory): boolean {
+  switch (category) {
+    case BuilderCategory.VOICE:
+      // Skip if voice emotion analysis is disabled
+      if (conditionalConfig.skipVoiceBuilders) {
+        return false;
+      }
+      // Also check feature flag
+      if (!isFeatureEnabled('voiceEmotionDetection')) {
+        return false;
+      }
+      return true;
+
+    case BuilderCategory.EXTERNAL:
+      // External integrations often require setup
+      return !conditionalConfig.skipExternalBuilders;
+
+    case BuilderCategory.COACHING:
+      // Coaching is core functionality, but can be skipped for simpler use cases
+      return !conditionalConfig.skipCoachingBuilders;
+
+    case BuilderCategory.TEAM:
+      // Multi-persona coordination - skip for single-persona mode
+      return !conditionalConfig.skipTeamBuilders;
+
+    // These categories are always required
+    case BuilderCategory.SAFETY:
+    case BuilderCategory.EMOTIONAL:
+    case BuilderCategory.MEMORY:
+    case BuilderCategory.PERSONA:
+    case BuilderCategory.HUMANIZING:
+      return true;
+
+    // Default: load the category
+    default:
+      return true;
+  }
+}
 
 // ============================================================================
 // BUILDER MANIFEST
@@ -82,6 +160,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // PERSONA - Character and identity
   [BuilderCategory.PERSONA]: [
+    'twin-profile-context', // Digital Twin profile - runs early for personalization
     'persona-identity',
     'persona-quirks',
     'persona-playful',
@@ -239,6 +318,7 @@ let loadingPromise: Promise<void> | null = null;
 export interface BuilderLoadReport {
   loaded: number;
   failed: string[];
+  skipped: string[];
   durationMs: number;
   loadedAt: number;
 }
@@ -287,12 +367,17 @@ async function loadBuilderModule(moduleName: string): Promise<boolean> {
 
 /**
  * Load all builders by category (respects priority order)
+ *
+ * Now supports conditional loading - categories can be skipped based on
+ * feature flags and runtime configuration for faster startup.
  */
 async function loadBuildersByCategory(): Promise<{
   loaded: number;
   failed: string[];
+  skipped: string[];
 }> {
   const failed: string[] = [];
+  const skipped: string[] = [];
   let loaded = 0;
 
   // Load in category order (safety first, learning last)
@@ -313,6 +398,16 @@ async function loadBuildersByCategory(): Promise<{
   ];
 
   for (const category of categoryOrder) {
+    // EARLY EXIT: Skip category if conditions not met
+    if (!shouldLoadCategory(category)) {
+      const modules = BUILDER_MANIFEST[category];
+      if (modules) {
+        skipped.push(...modules);
+        log.debug({ category, count: modules.length }, '⏭️ Skipped builder category (conditional)');
+      }
+      continue;
+    }
+
     const modules = BUILDER_MANIFEST[category];
     if (!modules || modules.length === 0) continue;
 
@@ -330,7 +425,7 @@ async function loadBuildersByCategory(): Promise<{
     log.debug({ category, count: modules.length }, 'Loaded builder category');
   }
 
-  return { loaded, failed };
+  return { loaded, failed, skipped };
 }
 
 /**
@@ -339,7 +434,7 @@ async function loadBuildersByCategory(): Promise<{
 async function loadBuildersInternal(): Promise<void> {
   const start = Date.now();
 
-  const { loaded, failed } = await loadBuildersByCategory();
+  const { loaded, failed, skipped } = await loadBuildersByCategory();
 
   buildersLoaded = true;
   const duration = Date.now() - start;
@@ -347,14 +442,17 @@ async function loadBuildersInternal(): Promise<void> {
   lastLoadReport = {
     loaded,
     failed,
+    skipped,
     durationMs: duration,
     loadedAt: Date.now(),
   };
 
   if (failed.length > 0) {
-    log.warn({ loaded, failed, durationMs: duration }, 'Some context builders failed to load');
+    log.warn({ loaded, failed, skipped: skipped.length, durationMs: duration }, 'Some context builders failed to load');
+  } else if (skipped.length > 0) {
+    log.info({ loaded, skipped: skipped.length, durationMs: duration }, '✅ Context builders loaded (some skipped)');
   } else {
-    log.info({ loaded, durationMs: duration }, 'All context builders loaded');
+    log.info({ loaded, durationMs: duration }, '✅ All context builders loaded');
   }
 }
 
@@ -425,6 +523,59 @@ export function getLoadingStatus(): {
 }
 
 // ============================================================================
+// PRE-WARMING (SESSION START OPTIMIZATION)
+// ============================================================================
+
+/**
+ * Pre-warm context builders in background at session start.
+ * Fire-and-forget - doesn't block session startup.
+ *
+ * Call this early in session initialization to ensure builders
+ * are loaded before the first conversation turn.
+ *
+ * @example
+ * // In session initialization
+ * prewarmBuildersInBackground(); // Non-blocking
+ */
+export function prewarmBuildersInBackground(): void {
+  if (!isFeatureEnabled('contextBuilderPrewarm')) {
+    log.debug('Context builder pre-warm disabled by feature flag');
+    return;
+  }
+
+  // Already loaded, nothing to do
+  if (buildersLoaded) {
+    log.debug('Context builders already loaded, skipping pre-warm');
+    return;
+  }
+
+  // Fire-and-forget - don't await
+  log.info('🔥 Pre-warming context builders in background');
+  ensureBuildersLoaded().catch((error) => {
+    log.warn({ error: String(error) }, 'Context builder pre-warm failed');
+  });
+}
+
+/**
+ * Pre-warm with conditional loading config.
+ * Allows session-specific optimization based on session context.
+ *
+ * @param config - Conditional loading configuration
+ */
+export function prewarmBuildersWithConfig(config: Partial<ConditionalLoadingConfig>): void {
+  if (!isFeatureEnabled('contextBuilderPrewarm')) {
+    log.debug('Context builder pre-warm disabled by feature flag');
+    return;
+  }
+
+  // Configure conditional loading
+  configureConditionalLoading(config);
+
+  // Trigger pre-warm
+  prewarmBuildersInBackground();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -435,5 +586,8 @@ export default {
   getLoadingStatus,
   getAllBuilderModules,
   getBuilderModulesByCategory,
+  configureConditionalLoading,
+  prewarmBuildersInBackground,
+  prewarmBuildersWithConfig,
   BUILDER_MANIFEST,
 };

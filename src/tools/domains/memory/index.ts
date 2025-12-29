@@ -13,6 +13,10 @@
  *   - getRelationshipSummary: Get relationship history with user
  *   - updateMemory: Update an existing memory with new/corrected information
  *   - forgetMemory: Remove something from memory when user requests
+ *
+ * BETTER-THAN-HUMAN TOOLS:
+ *   - surfaceRelevantMemory: Proactively surface relevant memories when context connects
+ *   - predictUserNeed: Anticipate what the user might need before they ask
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -25,6 +29,8 @@ import {
   getRelationshipSummaryDef,
   updateMemoryDef,
   forgetMemoryDef,
+  surfaceRelevantMemoryDef,
+  predictUserNeedDef,
 } from './tools.js';
 
 // ============================================================================
@@ -39,6 +45,9 @@ const memoryTools: ToolDefinition[] = [
   getRelationshipSummaryDef,
   updateMemoryDef,
   forgetMemoryDef,
+  // Better-Than-Human proactive tools
+  surfaceRelevantMemoryDef,
+  predictUserNeedDef,
 ];
 
 // ============================================================================
@@ -59,6 +68,9 @@ export {
   getRelationshipSummaryDef,
   updateMemoryDef,
   forgetMemoryDef,
+  // Better-Than-Human proactive tools
+  surfaceRelevantMemoryDef,
+  predictUserNeedDef,
 };
 
 // Re-export persona-specific memory tools

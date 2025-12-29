@@ -19,6 +19,11 @@ import {
   wasToolExecutedBySemanticRouter,
   markToolExecutedBySemanticRouter,
 } from '../executors/deduplication.js';
+import {
+  stripGuidanceBlocks as rustStripGuidanceBlocks,
+  containsGuidanceBlocks as rustContainsGuidanceBlocks,
+  isGuidanceStrippingAvailable,
+} from '../../../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'sanitizer-stream' });
 
@@ -245,7 +250,7 @@ async function executeMusicFallback(
 // ============================================================================
 
 /**
- * Patterns for internal guidance blocks to strip
+ * Patterns for internal guidance blocks to strip (JS fallback)
  */
 const GUIDANCE_BLOCK_PATTERNS = [
   /<guidance>[\s\S]*?<\/guidance>/gi,
@@ -257,18 +262,62 @@ const GUIDANCE_BLOCK_PATTERNS = [
   /---\s*guidance\s*---[\s\S]*?---\s*end\s*guidance\s*---/gi,
 ];
 
+/** Check if native Rust acceleration is available */
+const useNativeStripping = isGuidanceStrippingAvailable();
+
+if (useNativeStripping) {
+  log.debug('🦀 Using Rust-accelerated guidance block stripping (Aho-Corasick O(n))');
+}
+
 /**
- * Strip guidance blocks from text
- *
- * @param text - Text to strip guidance from
- * @returns Text with guidance blocks removed
+ * Strip guidance blocks from text (JS fallback implementation)
  */
-export function stripGuidanceBlocks(text: string): string {
+function stripGuidanceBlocksJS(text: string): string {
   let result = text;
   for (const pattern of GUIDANCE_BLOCK_PATTERNS) {
     result = result.replace(pattern, '');
   }
   return result.trim();
+}
+
+/**
+ * Strip guidance blocks from text
+ * Uses Rust Aho-Corasick for O(n) multi-pattern matching when available.
+ *
+ * **Behavior Note (Rust vs JS):**
+ * - Unclosed blocks: Rust strips everything after open tag, JS keeps unclosed content
+ * - This is intentional: in streaming TTS, unclosed blocks should be hidden
+ * - Markdown patterns use literal matching (most common spacing variations supported)
+ *
+ * @param text - Text to strip guidance from
+ * @returns Text with guidance blocks removed
+ */
+export function stripGuidanceBlocks(text: string): string {
+  if (useNativeStripping) {
+    try {
+      return rustStripGuidanceBlocks(text);
+    } catch {
+      // Fall back to JS on any error
+      return stripGuidanceBlocksJS(text);
+    }
+  }
+  return stripGuidanceBlocksJS(text);
+}
+
+/**
+ * Fast check if text contains guidance blocks (no stripping)
+ * Uses Rust Aho-Corasick for O(n) detection when available.
+ */
+export function containsGuidanceBlocks(text: string): boolean {
+  if (useNativeStripping) {
+    try {
+      return rustContainsGuidanceBlocks(text);
+    } catch {
+      // Fall back to JS pattern check
+      return GUIDANCE_BLOCK_PATTERNS.some((p) => p.test(text));
+    }
+  }
+  return GUIDANCE_BLOCK_PATTERNS.some((p) => p.test(text));
 }
 
 /**

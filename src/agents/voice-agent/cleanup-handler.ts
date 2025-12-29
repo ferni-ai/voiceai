@@ -47,6 +47,8 @@ import {
   finalizeSpeechMetrics,
   logMetricsSummary,
 } from '../integrations/speech-metrics-integration.js';
+// GC pressure baseline metrics (for Rust migration validation)
+import { logGcPressureSummary } from '../../utils/performance-metrics.js';
 
 // Better-than-human API services cleanup
 import { clearEmotionalArc } from '../../intelligence/context-builders/emotional/advanced-voice-emotion.js';
@@ -387,6 +389,47 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           })()
         : Promise.resolve(),
 
+      // 📱 SESSION SUMMARY: Store for Voice ↔ App sync (Better Than Human)
+      // This enables the app to show insights from this conversation
+      userId
+        ? (async () => {
+            try {
+              const { storeSessionSummary } =
+                await import('../../services/session-context/session-summary.js');
+              const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
+              const startTime = services?.sessionStartTime 
+                ? new Date(services.sessionStartTime) 
+                : new Date(Date.now() - sessionDurationMs);
+              
+              // Extract topic string from conversation state
+            const topicStr = typeof finalConvState?.topic === 'string' 
+              ? finalConvState.topic 
+              : 'general topics';
+            
+            await storeSessionSummary({
+                sessionId,
+                userId,
+                startedAt: startTime,
+                endedAt: new Date(),
+                durationSeconds: Math.round(sessionDurationMs / 1000),
+                personasEngaged: [sessionPersona?.id || 'ferni'],
+                mainTopics: topicStr !== 'general topics' ? [topicStr] : [],
+                naturalSummary: `Conversation about ${topicStr}`,
+                insightsGenerated: [], // TODO: Collect from turn processor
+                unfinishedTopics: [], // TODO: Detect unfinished topics
+                commitmentsMade: [], // TODO: Extract from commitments tracker
+                emotionalArc: [], // TODO: Collect from emotional state
+                endingEmotionalState: finalConvState?.emotional?.sentiment || 'neutral',
+                wasSignificant: turnCount >= 5 || sessionDurationMs >= 5 * 60 * 1000,
+                significanceScore: Math.min(1, (turnCount * 0.1) + (sessionDurationMs / (30 * 60 * 1000))),
+              });
+              diag.session('📱 Session summary stored for app sync', { userId, turnCount });
+            } catch (err) {
+              diag.warn('Session summary storage failed (non-fatal)', { error: String(err) });
+            }
+          })()
+        : Promise.resolve(),
+
       // Personality resonance - flush to Firestore
       userId
         ? (async () => {
@@ -500,6 +543,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         unregisterSessionTTS(sessionId);
         cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
         logMetricsSummary(sessionId);
+        logGcPressureSummary(); // GC pressure baseline for Rust migration
         finalizeSpeechMetrics(sessionId, true);
         cleanupDynamicSpeed(sessionId);
       })(),
@@ -525,11 +569,11 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         cleanupConversationSession(sessionId);
       })(),
 
-      // Predictive Intelligence cleanup
+      // Predictive Intelligence cleanup + ML state flush
       (async () => {
         const { cleanupPredictiveIntelligence } =
           await import('../integrations/predictive-intelligence-integration.js');
-        cleanupPredictiveIntelligence(sessionId);
+        cleanupPredictiveIntelligence(sessionId, userId);
       })(),
 
       // Humanization analytics

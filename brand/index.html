@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="zen">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Brand Library</title>
+  <link rel="stylesheet" href="ferni-design-tokens.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       BASE STYLES - Using Design System Tokens
+       ============================================ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      transition: background var(--duration-slow) var(--ease-smooth),
+                  color var(--duration-slow) var(--ease-smooth);
+    }
+
+    /* ============================================
+       THEME TOGGLE
+       ============================================ */
+    .theme-toggle {
+      position: fixed;
+      top: var(--space-5);
+      right: var(--space-5);
+      z-index: 100;
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-full);
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-md);
+      transition: all var(--duration-slow) var(--ease-spring);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-secondary);
+      transition: transform var(--duration-slow) var(--ease-spring);
+    }
+
+    .theme-toggle:hover svg {
+      transform: rotate(15deg);
+    }
+
+    .sun-icon { display: none; }
+    .moon-icon { display: block; }
+    [data-theme="midnight"] .sun-icon { display: block; }
+    [data-theme="midnight"] .moon-icon { display: none; }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .header {
+      text-align: center;
+      padding: var(--space-20) var(--space-10) var(--space-10);
+      background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+    }
+
+    /* ============================================
+       LUXO-STYLE AVATAR (No Pupils!)
+       Expression via CSS transforms on opaque eyes
+       ============================================ */
+    .logo-container {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto var(--space-6);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .logo-glow {
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 70%);
+      border-radius: var(--radius-full);
+      animation: breatheGlow 4s ease-in-out infinite;
+      transition: opacity var(--duration-slow) var(--ease-smooth);
+    }
+
+    .logo-container:hover .logo-glow {
+      opacity: 0.9;
+    }
+
+    @keyframes breatheGlow {
+      0%, 100% { opacity: 0.4; transform: scale(0.95); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+
+    .logo-container svg {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+      animation: breatheOrb 4s ease-in-out infinite;
+    }
+
+    @keyframes breatheOrb {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    /* Luxo-style eyes - CSS transforms for expressions */
+    .logo-eyes {
+      transition: transform var(--duration-fast) var(--ease-smooth);
+      transform-origin: 50px 48px;
+    }
+
+    .logo-eye-white {
+      transition: transform var(--duration-normal) var(--ease-spring);
+    }
+
+    /* Expression states via data attribute */
+    .logo-container[data-expression="happy"] .logo-eye-white {
+      transform: scaleY(0.7) scaleX(1.1);
+    }
+
+    .logo-container[data-expression="listening"] .logo-eye-white {
+      transform: scaleY(1.05);
+    }
+
+    .logo-container[data-expression="curious"] .logo-eye-white {
+      transform: scaleY(1.15) scaleX(0.95);
+    }
+
+    .logo-container[data-expression="warm"] .logo-eye-white {
+      transform: scaleY(0.75);
+    }
+
+    /* Micro-expression: Recognition flash */
+    .logo-container.recognition .logo-glow {
+      animation: recognitionFlash 80ms ease-out forwards;
+    }
+
+    @keyframes recognitionFlash {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; filter: brightness(1.3); }
+      100% { opacity: 0.7; }
+    }
+
+    /* Micro-expression: Delight */
+    .logo-container.delight .logo-eyes {
+      animation: delightSquash 100ms var(--ease-spring) forwards;
+    }
+
+    @keyframes delightSquash {
+      0% { transform: scaleY(1) scaleX(1); }
+      50% { transform: scaleY(0.9) scaleX(1.1); }
+      100% { transform: scaleY(1) scaleX(1); }
+    }
+
+    /* Hover: Show warmth */
+    .logo-container:hover .logo-eye-white {
+      transform: scaleY(0.8);
+    }
+
+    /* Active listening nod */
+    @keyframes microNod {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(1.5px); }
+    }
+
+    .logo-container.listening .logo-eyes {
+      animation: microNod 0.3s ease-in-out;
+    }
+
+    /* ============================================
+       TYPOGRAPHY
+       ============================================ */
+    h1 {
+      font-family: var(--font-display);
+      font-size: var(--text-5xl);
+      font-weight: var(--font-weight-extrabold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-3);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: var(--text-xl);
+      color: var(--color-text-secondary);
+      max-width: 600px;
+      margin: 0 auto var(--space-6);
+    }
+
+    /* Philosophy Quote */
+    .philosophy {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-3);
+      background: var(--color-bg-elevated);
+      padding: var(--space-3) var(--space-6);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border-subtle);
+      margin-bottom: var(--space-8);
+    }
+
+    .philosophy-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-jordan);
+    }
+
+    .philosophy span {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+      font-style: italic;
+      color: var(--color-text-secondary);
+    }
+
+    /* Stats Row */
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-12);
+      padding: var(--space-6);
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--color-border-subtle);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .stat { text-align: center; }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: var(--text-4xl);
+      font-weight: var(--font-weight-extrabold);
+      color: var(--color-accent);
+    }
+
+    .stat-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================
+       CONTAINER
+       ============================================ */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-10) var(--space-20);
+    }
+
+    /* ============================================
+       QUICK START SECTION
+       ============================================ */
+    .quick-start {
+      background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-10);
+      margin: var(--space-10) 0;
+      color: white;
+    }
+
+    .quick-start h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-2);
+    }
+
+    .quick-start p {
+      opacity: 0.85;
+      margin-bottom: var(--space-6);
+      font-size: var(--text-base);
+    }
+
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+    }
+
+    @media (max-width: 900px) {
+      .quick-links { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .quick-links { grid-template-columns: 1fr; }
+    }
+
+    .quick-link {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      text-decoration: none;
+      color: white;
+      transition: all var(--duration-slow) var(--ease-spring);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .quick-link:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .quick-link svg {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .quick-link-text h3 {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-1);
+    }
+
+    .quick-link-text span {
+      font-size: var(--text-sm);
+      opacity: 0.8;
+    }
+
+    /* ============================================
+       SEARCH & FILTER
+       ============================================ */
+    .search-container {
+      margin: var(--space-10) 0 var(--space-5);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-5);
+      max-width: 400px;
+      transition: all var(--duration-normal) var(--ease-smooth);
+    }
+
+    .search-box:focus-within {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-glow);
+    }
+
+    .search-box svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+
+    .search-box input {
+      flex: 1;
+      border: none;
+      background: none;
+      font-size: var(--text-base);
+      color: var(--color-text-primary);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .search-box input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    /* Filter Tags */
+    .filter-tags {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    .filter-tag {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-full);
+      padding: var(--space-1_5) var(--space-3_5);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--duration-normal) var(--ease-smooth);
+    }
+
+    .filter-tag:hover, .filter-tag.active {
+      background: var(--color-accent);
+      color: white;
+      border-color: var(--color-accent);
+    }
+
+    /* ============================================
+       SECTION HEADERS
+       ============================================ */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin: var(--space-12) 0 var(--space-6);
+    }
+
+    .section-header h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-muted);
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--color-border-subtle);
+    }
+
+    /* ============================================
+       CARD GRID
+       ============================================ */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-5);
+    }
+
+    .card {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-lg);
+      padding: var(--space-7);
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--duration-slow) var(--ease-spring);
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--color-border-medium);
+    }
+
+    .card.hidden { display: none; }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-4);
+      color: white;
+    }
+
+    .card-icon svg { width: 24px; height: 24px; }
+
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-2);
+      color: var(--color-text-primary);
+    }
+
+    .card p {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    .card-badge {
+      display: inline-block;
+      font-size: var(--text-2xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-1) var(--space-2_5);
+      border-radius: var(--radius-full);
+      margin-top: var(--space-3);
+      background: var(--color-accent-subtle);
+      color: var(--color-accent);
+    }
+
+    [data-theme="midnight"] .card-badge {
+      background: var(--color-accent-glow);
+    }
+
+    /* Icon backgrounds - using persona colors */
+    .icon-story { background: var(--color-ferni); }
+    .icon-expression { background: var(--color-maya); }
+    .icon-motion { background: var(--color-peter); }
+    .icon-capability { background: var(--color-jordan); }
+    .icon-marketing { background: var(--color-alex); }
+    .icon-specs { background: var(--color-nayan); }
+
+    /* ============================================
+       TEAM GRID - Luxo-Style Avatars
+       ============================================ */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: var(--space-4);
+    }
+
+    @media (max-width: 900px) {
+      .team-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .team-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .team-card {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6) var(--space-4);
+      text-align: center;
+      border: 1px solid var(--color-border-subtle);
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--duration-slow) var(--ease-spring);
+    }
+
+    .team-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: var(--shadow-md);
+    }
+
+    .team-card.hidden { display: none; }
+
+    /* SVG Avatar - Luxo Style (no pupils!) */
+    .team-avatar {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto var(--space-3);
+      position: relative;
+    }
+
+    .team-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Luxo-style eye animation on hover */
+    .team-card:hover .team-avatar .eye-white {
+      transform: scaleY(0.85);
+      transition: transform var(--duration-fast) var(--ease-spring);
+    }
+
+    .team-card h4 {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-1);
+    }
+
+    .team-card .role {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* ============================================
+       BETTER THAN HUMAN SECTION
+       ============================================ */
+    .bth-section {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-12);
+      margin: var(--space-12) 0;
+      text-align: center;
+    }
+
+    .bth-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-4xl);
+      font-weight: var(--font-weight-extrabold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+    }
+
+    .bth-section .tagline {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      max-width: 600px;
+      margin: 0 auto var(--space-8);
+    }
+
+    .bth-features {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: var(--space-6);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 800px) {
+      .bth-features { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .bth-features { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .bth-feature {
+      text-align: center;
+    }
+
+    .bth-feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-3);
+      color: white;
+    }
+
+    .bth-feature-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .bth-feature h4 {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text-primary);
+    }
+
+    .bth-feature-timing {
+      font-size: var(--text-2xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+    }
+
+    /* Animated EQ icons */
+    .bth-feature-icon.animated-micro {
+      animation: microPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes microPulse {
+      0%, 85%, 100% { transform: scale(1); opacity: 1; }
+      87% { transform: scale(1.05); opacity: 0.9; }
+      89% { transform: scale(1); opacity: 1; }
+    }
+
+    .bth-feature-icon.animated-nod {
+      animation: nodAnim 2.5s ease-in-out infinite;
+    }
+
+    @keyframes nodAnim {
+      0%, 100% { transform: translateY(0); }
+      40%, 60% { transform: translateY(2px); }
+    }
+
+    .bth-feature-icon.animated-breath {
+      animation: breathAnim 4s ease-in-out infinite;
+    }
+
+    @keyframes breathAnim {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    .bth-feature-icon.animated-care {
+      animation: careGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes careGlow {
+      0%, 100% { box-shadow: 0 0 0 0 transparent; }
+      50% { box-shadow: 0 0 20px 4px var(--color-jordan-glow); }
+    }
+
+    .bth-feature-icon.animated-fast {
+      animation: fastTick 2s ease-in-out infinite;
+    }
+
+    @keyframes fastTick {
+      0%, 100% { transform: rotate(0deg); }
+      10% { transform: rotate(-5deg); }
+      20% { transform: rotate(0deg); }
+    }
+
+    /* ============================================
+       MOTION SHOWCASE SECTION
+       ============================================ */
+    .motion-showcase {
+      background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-secondary) 100%);
+      border-radius: var(--radius-2xl);
+      padding: var(--space-12);
+      margin: var(--space-12) 0;
+      color: white;
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: var(--space-12);
+      align-items: center;
+    }
+
+    @media (max-width: 800px) {
+      .motion-showcase {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+    }
+
+    .motion-avatar-demo {
+      width: 160px;
+      height: 160px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .motion-avatar-demo .demo-glow {
+      position: absolute;
+      inset: -15px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      border-radius: var(--radius-full);
+      animation: demoGlow 4s ease-in-out infinite;
+    }
+
+    @keyframes demoGlow {
+      0%, 100% { opacity: 0.3; transform: scale(0.95); }
+      50% { opacity: 0.6; transform: scale(1.08); }
+    }
+
+    .motion-avatar-demo svg {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 1;
+      animation: demoBreathe 4s ease-in-out infinite;
+    }
+
+    @keyframes demoBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .motion-showcase-content h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-weight-extrabold);
+      margin-bottom: var(--space-2);
+    }
+
+    .motion-showcase-content .tagline {
+      font-size: var(--text-base);
+      opacity: 0.9;
+      margin-bottom: var(--space-6);
+    }
+
+    .motion-showcase-content blockquote {
+      font-style: italic;
+      font-size: var(--text-lg);
+      opacity: 0.85;
+      border-left: 3px solid rgba(255, 255, 255, 0.4);
+      padding-left: var(--space-4);
+      margin: var(--space-6) 0;
+    }
+
+    .motion-links {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 800px) {
+      .motion-links { justify-content: center; }
+    }
+
+    .motion-link {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-full);
+      padding: var(--space-2_5) var(--space-5);
+      text-decoration: none;
+      color: white;
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+      transition: all var(--duration-slow) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .motion-link:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .motion-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    .footer {
+      text-align: center;
+      padding: var(--space-10);
+      border-top: 1px solid var(--color-border-subtle);
+      margin-top: var(--space-16);
+    }
+
+    .footer p {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .footer a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    .footer a:hover { text-decoration: underline; }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 600px) {
+      .header { padding: var(--space-16) var(--space-6) var(--space-10); }
+      h1 { font-size: var(--text-4xl); }
+      .subtitle { font-size: var(--text-base); }
+      .container { padding: 0 var(--space-6) var(--space-16); }
+      .stats-row { flex-wrap: wrap; gap: var(--space-6); padding: var(--space-5); }
+      .quick-start { padding: var(--space-7); }
+      .bth-section { padding: var(--space-8) var(--space-6); }
+      .bth-section h2 { font-size: var(--text-2xl); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
+
+  <header class="header">
+    <!-- Animated Logo - Luxo-Style Eyes (NO PUPILS) -->
+    <div class="logo-container" id="heroLogo" data-expression="neutral">
+      <div class="logo-glow"></div>
+      <svg viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5a7a51"/>
+            <stop offset="100%" stop-color="#3d5a35"/>
+          </linearGradient>
+          <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#f0ebe4"/>
+          </linearGradient>
+          <clipPath id="orbClip">
+            <circle cx="50" cy="50" r="45"/>
+          </clipPath>
+        </defs>
+        <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="2"/>
+        <g clip-path="url(#orbClip)">
+          <circle cx="50" cy="50" r="45" fill="url(#orbGrad)"/>
+          <!-- Luxo-Style Eyes - Opaque white, NO PUPILS! -->
+          <g class="logo-eyes" id="logoEyes">
+            <ellipse class="logo-eye-white" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+            <ellipse class="logo-eye-white" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <h1>Ferni Brand Library</h1>
+    <p class="subtitle">The complete visual and storytelling resource for the Ferni universe.</p>
+
+    <!-- Philosophy Quote -->
+    <div class="philosophy">
+      <svg class="philosophy-icon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      <span>"The cracks are where the gold goes."</span>
+    </div>
+
+    <!-- Stats - UPDATED to match 100 expressions system -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-value">6</div>
+        <div class="stat-label">Personas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">5</div>
+        <div class="stat-label">EQ Features</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">100</div>
+        <div class="stat-label">Expressions</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">18</div>
+        <div class="stat-label">Expression Families</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Quick Start -->
+    <div class="quick-start">
+      <h2>Quick Start</h2>
+      <p>Jump right into the most essential resources</p>
+      <div class="quick-links">
+        <a href="FERNI-UNIVERSE-BIBLE.md" class="quick-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <div class="quick-link-text">
+            <h3>Universe Bible</h3>
+            <span>Origin story &amp; philosophy</span>
+          </div>
+        </a>
+        <a href="capabilities/index.html" class="quick-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <div class="quick-link-text">
+            <h3>50+ Capabilities</h3>
+            <span>The Complete Laundry List</span>
+          </div>
+        </a>
+        <a href="../design-system/playground/expression-gallery.html" class="quick-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+          <div class="quick-link-text">
+            <h3>100 Expressions</h3>
+            <span>Interactive Luxo gallery</span>
+          </div>
+        </a>
+        <a href="motion/demo.html" class="quick-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <div class="quick-link-text">
+            <h3>Pixar-Grade Motion</h3>
+            <span>The animation system that makes Ferni alive</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="search-container">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search resources..." oninput="filterResources()">
+      </div>
+      <div class="filter-tags">
+        <span class="filter-tag active" data-filter="all" onclick="setFilter('all')">All</span>
+        <span class="filter-tag" data-filter="story" onclick="setFilter('story')">Story</span>
+        <span class="filter-tag" data-filter="interactive" onclick="setFilter('interactive')">Interactive</span>
+        <span class="filter-tag" data-filter="motion" onclick="setFilter('motion')">Motion</span>
+        <span class="filter-tag" data-filter="marketing" onclick="setFilter('marketing')">Marketing</span>
+        <span class="filter-tag" data-filter="specs" onclick="setFilter('specs')">Specs</span>
+      </div>
+    </div>
+
+    <!-- Better Than Human Section -->
+    <div class="bth-section">
+      <h2>Better Than Human</h2>
+      <p class="tagline">Five superhuman EQ capabilities that make Ferni genuinely understand you</p>
+      <div class="bth-features">
+        <div class="bth-feature">
+          <div class="bth-feature-icon animated-micro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </div>
+          <h4>Micro-Expressions</h4>
+          <div class="bth-feature-timing">40-150ms subliminal</div>
+        </div>
+        <div class="bth-feature">
+          <div class="bth-feature-icon animated-nod">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+            </svg>
+          </div>
+          <h4>Active Listening</h4>
+          <div class="bth-feature-timing">Micro-nods in real-time</div>
+        </div>
+        <div class="bth-feature">
+          <div class="bth-feature-icon animated-breath">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="8"/>
+              <circle cx="12" cy="12" r="4" opacity="0.5"/>
+            </svg>
+          </div>
+          <h4>Breath Sync</h4>
+          <div class="bth-feature-timing">Neural mirroring</div>
+        </div>
+        <div class="bth-feature">
+          <div class="bth-feature-icon animated-care">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <h4>Concern Detection</h4>
+          <div class="bth-feature-timing">Protective care</div>
+        </div>
+        <div class="bth-feature">
+          <div class="bth-feature-icon animated-fast">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <h4>Anticipation</h4>
+          <div class="bth-feature-timing">Faster than human</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Motion Showcase Section - Luxo Style Avatar (NO PUPILS) -->
+    <div class="motion-showcase">
+      <div class="motion-avatar-demo">
+        <div class="demo-glow"></div>
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="demoOrbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <clipPath id="demoClip">
+              <circle cx="50" cy="50" r="45"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#demoClip)">
+            <circle cx="50" cy="50" r="45" fill="url(#demoOrbGrad)"/>
+            <!-- Luxo-Style Eyes - Opaque white, NO PUPILS! -->
+            <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+            <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+          </g>
+        </svg>
+      </div>
+      <div class="motion-showcase-content">
+        <h2>Pixar-Grade Motion Language</h2>
+        <p class="tagline">The animation system that makes Ferni feel alive</p>
+        <blockquote>"Motion is emotion made visible."</blockquote>
+        <div class="motion-links">
+          <a href="motion/demo.html" class="motion-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Interactive Demo
+          </a>
+          <a href="motion/README.md" class="motion-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Persona Timing
+          </a>
+          <a href="../design-system/playground/expression-gallery.html" class="motion-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/>
+            </svg>
+            100 Expressions
+          </a>
+          <a href="motion/waveforms.html" class="motion-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Waveforms
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story & Narrative -->
+    <div class="section-header">
+      <h2>Story &amp; Narrative</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card-grid">
+      <a href="FERNI-UNIVERSE-BIBLE.md" class="card" data-category="story" data-keywords="universe bible origin story philosophy kintsugi wyoming japan">
+        <div class="card-icon icon-story">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <h3>Universe Bible</h3>
+        <p>The complete Ferni origin story, philosophy, team backstories, and brand promise.</p>
+        <span class="card-badge">Core Document</span>
+      </a>
+      <a href="brand-book.html" class="card" data-category="story" data-keywords="brand guidelines colors typography spacing components">
+        <div class="card-icon icon-story">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+          </svg>
+        </div>
+        <h3>Brand Guidelines</h3>
+        <p>Comprehensive visual brand book with colors, typography, and usage rules.</p>
+        <span class="card-badge">Print Ready</span>
+      </a>
+    </div>
+
+    <!-- Character Expressions - Luxo Style Avatars (NO PUPILS) -->
+    <div class="section-header">
+      <h2>Character Expressions</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="team-grid">
+      <!-- Ferni - Using correct design system color -->
+      <a href="characters/ferni/expressions.html" class="team-card" data-category="interactive" data-keywords="ferni coordinator expressions emotions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="ferniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/><stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <clipPath id="ferniClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#ferniClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#ferniGrad)"/>
+              <!-- Luxo-Style Eyes - NO PUPILS -->
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Ferni</h4>
+        <div class="role">The Coordinator</div>
+      </a>
+      <!-- Maya - Using correct design system color -->
+      <a href="characters/maya/expressions.html" class="team-card" data-category="interactive" data-keywords="maya habits coach expressions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="mayaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#c4a090"/><stop offset="100%" stop-color="#8a635a"/>
+              </linearGradient>
+              <clipPath id="mayaClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#mayaClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#mayaGrad)"/>
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Maya</h4>
+        <div class="role">Habits Coach</div>
+      </a>
+      <!-- Peter - Using CORRECT color #3a6b73 from design system -->
+      <a href="characters/peter/expressions.html" class="team-card" data-category="interactive" data-keywords="peter quant research expressions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="peterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#4a8b93"/><stop offset="100%" stop-color="#2d5359"/>
+              </linearGradient>
+              <clipPath id="peterClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#peterClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#peterGrad)"/>
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Peter</h4>
+        <div class="role">The Quant</div>
+      </a>
+      <!-- Jordan - Using correct design system color -->
+      <a href="characters/jordan/expressions.html" class="team-card" data-category="interactive" data-keywords="jordan lifetime planner milestones expressions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="jordanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#e4a07a"/><stop offset="100%" stop-color="#a86d55"/>
+              </linearGradient>
+              <clipPath id="jordanClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#jordanClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#jordanGrad)"/>
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Jordan</h4>
+        <div class="role">Lifetime Planner</div>
+      </a>
+      <!-- Alex - Using correct design system color -->
+      <a href="characters/alex/expressions.html" class="team-card" data-category="interactive" data-keywords="alex chief staff communications expressions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="alexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7a8bb8"/><stop offset="100%" stop-color="#4a5a73"/>
+              </linearGradient>
+              <clipPath id="alexClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#alexClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#alexGrad)"/>
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Alex</h4>
+        <div class="role">Chief of Staff</div>
+      </a>
+      <!-- Nayan - Using correct design system color -->
+      <a href="characters/nayan/expressions.html" class="team-card" data-category="interactive" data-keywords="nayan sage wisdom expressions">
+        <div class="team-avatar">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="nayanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#d8b57a"/><stop offset="100%" stop-color="#9a7a52"/>
+              </linearGradient>
+              <clipPath id="nayanClip"><circle cx="50" cy="50" r="45"/></clipPath>
+            </defs>
+            <g clip-path="url(#nayanClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#nayanGrad)"/>
+              <ellipse class="eye-white" cx="36" cy="48" rx="7" ry="10" fill="#fff"/>
+              <ellipse class="eye-white" cx="64" cy="48" rx="7" ry="10" fill="#fff"/>
+            </g>
+          </svg>
+        </div>
+        <h4>Nayan</h4>
+        <div class="role">The Sage</div>
+      </a>
+    </div>
+
+    <!-- Interactive Galleries -->
+    <div class="section-header">
+      <h2>Interactive Galleries</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card-grid">
+      <a href="../design-system/playground/expression-gallery.html" class="card" data-category="interactive" data-keywords="expressions emotions waveform glow animation luxo">
+        <div class="card-icon icon-expression">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <h3>Expression Library</h3>
+        <p>100 Luxo-style expressions across 18 families with CSS transform-based animations.</p>
+        <span class="card-badge">Interactive</span>
+      </a>
+      <a href="capabilities/gallery.html" class="card" data-category="interactive" data-keywords="capabilities superhuman better than human commitment keeper">
+        <div class="card-icon icon-capability">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <h3>19 Superhuman Capabilities</h3>
+        <p>What makes Ferni "Better Than Human" - from Commitment Keeper to Protective Memory.</p>
+        <span class="card-badge">Interactive</span>
+      </a>
+      <a href="motion/demo.html" class="card" data-category="motion" data-keywords="motion animation timing micro-expressions breath sync pixar luxo">
+        <div class="card-icon icon-motion">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+        <h3>Motion Language Demo</h3>
+        <p>Interactive animation playground with persona timing and micro-expressions.</p>
+        <span class="card-badge">Pixar-Grade</span>
+      </a>
+    </div>
+
+    <!-- Marketing Materials -->
+    <div class="section-header">
+      <h2>Marketing Materials</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card-grid">
+      <a href="marketing/introducing-ferni.html" class="card" data-category="marketing" data-keywords="landing page hero introducing marketing">
+        <div class="card-icon icon-marketing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h3>Introducing Ferni</h3>
+        <p>Hero landing page with animated avatar and full brand experience.</p>
+        <span class="card-badge">Landing Page</span>
+      </a>
+      <a href="marketing/persona-picker.html" class="card" data-category="marketing" data-keywords="persona picker quiz team matching">
+        <div class="card-icon icon-marketing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3>Persona Picker</h3>
+        <p>Interactive tool to match users with their ideal team member.</p>
+        <span class="card-badge">Interactive</span>
+      </a>
+      <a href="marketing/video-timeline.html" class="card" data-category="marketing" data-keywords="video timeline storyboard planning">
+        <div class="card-icon icon-marketing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
+          </svg>
+        </div>
+        <h3>Video Timeline</h3>
+        <p>Storyboard and timeline for marketing video content.</p>
+        <span class="card-badge">Planning</span>
+      </a>
+    </div>
+
+    <!-- Design Specs -->
+    <div class="section-header">
+      <h2>Design Specifications</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card-grid">
+      <a href="ferni-design-tokens.css" class="card" data-category="specs" data-keywords="design tokens css variables colors typography">
+        <div class="card-icon icon-specs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+        </div>
+        <h3>Design Tokens (CSS)</h3>
+        <p>Complete CSS custom properties for colors, typography, and animation.</p>
+        <span class="card-badge">Code</span>
+      </a>
+      <a href="motion/README.md" class="card" data-category="motion" data-keywords="motion language animation principles pixar timing profiles eq superhuman">
+        <div class="card-icon icon-motion">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <h3>Motion Language Guide</h3>
+        <p>Pixar-grade animation principles, persona timing profiles, and EQ system.</p>
+        <span class="card-badge">Core Spec</span>
+      </a>
+      <a href="brand-book.html#specs" class="card" data-category="specs" data-keywords="technical specs implementation developer guide">
+        <div class="card-icon icon-specs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3>Technical Specs</h3>
+        <p>Implementation details and component specifications.</p>
+        <span class="card-badge">Documentation</span>
+      </a>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Ferni Brand Library v2.0 &bull; <a href="FERNI-UNIVERSE-BIBLE.md">Universe Bible</a> &bull; <a href="brand-book.html">Brand Guidelines</a></p>
+    <p style="margin-top: 8px; font-style: italic;">"The cracks are where the gold goes."</p>
+  </footer>
+
+  <script>
+    // ========================================
+    // Theme Toggle (zen/midnight)
+    // ========================================
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'midnight' ? 'zen' : 'midnight';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('ferni-theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // ========================================
+    // Search & Filter
+    // ========================================
+    let currentFilter = 'all';
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tag').forEach(function(tag) {
+        tag.classList.toggle('active', tag.dataset.filter === filter);
+      });
+      filterResources();
+    }
+
+    function filterResources() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const cards = document.querySelectorAll('.card, .team-card');
+
+      cards.forEach(function(card) {
+        const keywords = (card.dataset.keywords || '').toLowerCase();
+        const category = card.dataset.category || '';
+        const text = card.textContent.toLowerCase();
+
+        const matchesSearch = !query || keywords.includes(query) || text.includes(query);
+        const matchesFilter = currentFilter === 'all' || category === currentFilter;
+
+        card.classList.toggle('hidden', !(matchesSearch && matchesFilter));
+      });
+    }
+
+    // ========================================
+    // Luxo-Style Expression System
+    // No eye tracking (no pupils to track!)
+    // Expression changes via data-expression attribute
+    // ========================================
+    const heroLogo = document.getElementById('heroLogo');
+    const logoEyes = document.getElementById('logoEyes');
+
+    // Expression cycling for demo
+    const expressions = ['neutral', 'happy', 'listening', 'curious', 'warm'];
+    let currentExpressionIndex = 0;
+
+    // Micro-expression on hover (recognition flash)
+    if (heroLogo) {
+      heroLogo.addEventListener('mouseenter', function() {
+        heroLogo.classList.add('recognition');
+        setTimeout(function() {
+          heroLogo.classList.remove('recognition');
+        }, 80);
+      });
+
+      // Cycle expression on click
+      heroLogo.addEventListener('click', function() {
+        heroLogo.classList.add('delight');
+        setTimeout(function() {
+          heroLogo.classList.remove('delight');
+        }, 100);
+
+        // Cycle to next expression
+        currentExpressionIndex = (currentExpressionIndex + 1) % expressions.length;
+        heroLogo.setAttribute('data-expression', expressions[currentExpressionIndex]);
+      });
+    }
+
+    // Active listening simulation when typing in search
+    const searchInput = document.getElementById('searchInput');
+    let listeningInterval = null;
+
+    if (searchInput) {
+      searchInput.addEventListener('focus', function() {
+        // Start micro-nods while focused
+        listeningInterval = setInterval(function() {
+          if (document.activeElement === searchInput && heroLogo) {
+            heroLogo.classList.add('listening');
+            setTimeout(function() {
+              heroLogo.classList.remove('listening');
+            }, 300);
+          }
+        }, 2000);
+      });
+
+      searchInput.addEventListener('blur', function() {
+        if (listeningInterval) {
+          clearInterval(listeningInterval);
+          listeningInterval = null;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

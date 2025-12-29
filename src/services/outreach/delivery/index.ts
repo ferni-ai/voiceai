@@ -254,9 +254,49 @@ export async function deliverOutreach(
         };
 
       case 'call':
-        // Calls are handled differently - initiate via conversational calls
-        log.info({ userId }, 'Call delivery requested - delegating to conversational calls');
-        return { success: false, channel, error: 'Call delivery handled by separate service' };
+        // Initiate proactive voice call via conversational call service
+        log.info({ userId, personaId: persona }, 'Initiating proactive voice call');
+        try {
+          const { makeConversationalCall, isConversationalCallingConfigured } = await import(
+            '../../voice/conversational-call.service.js'
+          );
+
+          const callConfig = isConversationalCallingConfigured();
+          if (!callConfig.configured) {
+            log.warn({ missing: callConfig.missing }, 'Conversational calling not configured');
+            return { success: false, channel, error: `Missing config: ${callConfig.missing.join(', ')}` };
+          }
+
+          // Get user's phone and name for the call
+          const userPhone = await getUserPhoneNumber(userId);
+          const userName = await getUserName(userId);
+
+          if (!userPhone) {
+            return { success: false, channel, error: 'User phone number not found' };
+          }
+
+          const callResult = await makeConversationalCall({
+            phone: userPhone,
+            recipientName: userName || 'there',
+            userId,
+            personaId: persona,
+            purpose: `Proactive check-in: ${message.slice(0, 100)}`,
+            objective: 'Check in with the user based on ML prediction',
+            greeting: message,
+            callType: 'personal_call',
+            context: { outreachId: outreach, mlDriven: true },
+          });
+
+          return {
+            success: callResult.success,
+            channel,
+            messageId: callResult.callSid,
+            error: callResult.error,
+          };
+        } catch (err) {
+          log.error({ userId, error: String(err) }, 'Failed to initiate proactive call');
+          return { success: false, channel, error: String(err) };
+        }
 
       default:
         return { success: false, channel, error: `Unknown channel: ${channel}` };
@@ -290,6 +330,21 @@ async function getUserEmail(userId: string): Promise<string | null> {
     if (!db) return null;
     const doc = await db.collection('profiles').doc(userId).get();
     return doc.data()?.email || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get user name from profile
+ */
+async function getUserName(userId: string): Promise<string | null> {
+  try {
+    const db = getFirestoreClient();
+    if (!db) return null;
+    const doc = await db.collection('profiles').doc(userId).get();
+    const data = doc.data();
+    return data?.displayName || data?.firstName || data?.name || null;
   } catch {
     return null;
   }

@@ -70,6 +70,12 @@ export interface MultiAgentSessionConfig {
   onHandoffComplete?: (fromPersona: string, toPersona: string) => void;
   /** Enable full handlers (music, transcript, etc.) - default: true */
   enableFullHandlers?: boolean;
+  /**
+   * ⚡ FAST-AGENT-JOIN: Defer handler wiring until after greeting.
+   * When true, handlers wire in background after greeting starts (~500ms saved).
+   * Default: false (for backward compatibility)
+   */
+  deferHandlers?: boolean;
 }
 
 export interface MultiAgentSessionResult {
@@ -103,10 +109,11 @@ export async function initializeMultiAgentSession(
     userId,
     onHandoffComplete,
     enableFullHandlers = true,
+    deferHandlers = false, // ⚡ FAST-AGENT-JOIN: defer handlers for faster startup
   } = config;
 
   log.info(
-    { sessionId, initialPersonaId, enableFullHandlers },
+    { sessionId, initialPersonaId, enableFullHandlers, deferHandlers },
     '🎭 Initializing multi-agent session'
   );
 
@@ -128,6 +135,7 @@ export async function initializeMultiAgentSession(
   }
 
   // Create the persona agent factory
+  // ⚡ FAST-AGENT-JOIN: Pass deferHandlers for faster initial agent creation
   const agentFactory = createPersonaAgentFactory({
     ctx,
     services,
@@ -136,6 +144,7 @@ export async function initializeMultiAgentSession(
     userId,
     conversationManager,
     enableFullHandlers,
+    deferHandlers, // Wire handlers after greeting for faster startup
   });
 
   // Create the orchestrator

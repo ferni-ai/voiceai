@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 
 const log = createLogger({ module: 'worker-readiness' });
 
@@ -303,9 +304,13 @@ if (!process.send) {
   registerWorker(mainWorkerId, process.pid);
 
   // Start heartbeat interval
-  setInterval(() => {
-    workerHeartbeat(mainWorkerId);
-  }, 10_000); // Every 10 seconds
+  registerInterval(
+    'worker-readiness-heartbeat',
+    () => {
+      workerHeartbeat(mainWorkerId);
+    },
+    10_000
+  ); // Every 10 seconds
 }
 
 // ============================================================================

@@ -71,7 +71,8 @@ export async function generateExcitementInterruption(
   // Boost probability for clear breakthroughs
   const adjustedProbability = isBreakthrough ? probability * 1.5 : probability;
 
-  if (!seededChance(`${Date.now()}:1`, adjustedProbability)) {
+  // Use turnCount + timestamp for better seed entropy across calls
+  if (!seededChance(`${context.turnCount}:${Date.now()}:excitement`, adjustedProbability)) {
     return null;
   }
 

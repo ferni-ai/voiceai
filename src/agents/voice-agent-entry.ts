@@ -338,6 +338,40 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
+    // =========================================================================
+    // ON-BEHALF CALL DETECTION
+    // =========================================================================
+    // If this is an on-behalf call (calling someone on behalf of user),
+    // delegate to the specialized outbound call handler
+    const callType = metadata.type as string | undefined;
+    if (callType === 'on_behalf_call') {
+      process.stderr.write(
+        `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - delegating to outbound handler\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 📞 Call context: ${JSON.stringify({
+          callId: metadata.callId,
+          contactName: (metadata.contact as Record<string, unknown>)?.name,
+          purpose: metadata.purpose,
+          callType: metadata.callType,
+        })}\n`
+      );
+
+      try {
+        // Use the INTELLIGENT outbound agent with full user/contact context
+        const { runIntelligentOutboundAgent } =
+          await import('./outbound/intelligent-outbound-agent.js');
+        await runIntelligentOutboundAgent(ctx, metadata);
+        process.stderr.write(`[voice-agent-entry] 📞 Intelligent on-behalf call completed\n`);
+        return; // Exit early - the intelligent agent handled everything
+      } catch (error) {
+        process.stderr.write(
+          `[voice-agent-entry] ❌ Intelligent on-behalf call failed: ${error}\n`
+        );
+        throw error;
+      }
+    }
+
     const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
     process.stderr.write(`[voice-agent-entry] Resolved personaId: ${personaId}\n`);
 
@@ -944,15 +978,33 @@ Reference past context when relevant, but don't force it. Let the conversation f
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // ⚡ OPTIMIZATION: Skip Silero VAD - Gemini Realtime has built-in turn detection!
+    // ⚡ OPTIMIZATION: Skip Silero VAD by default - Gemini/OpenAI have built-in turn detection
     // The VAD was adding 200-400ms to session start for no real benefit.
-    // Gemini's 'realtime_llm' turn detection handles user speaking detection.
+    // Gemini's 'realtime_llm' and OpenAI's 'server_vad' handle user speaking detection.
     // DJ Booth ducking is triggered by UserStateChanged events from the LLM, not VAD.
     //
-    // If VAD is needed for specific features in the future, use lazy loading:
-    // const { silero } = getVoiceDeps();
-    // const vad = await silero.VAD.load();
-    const vad = undefined; // Let Gemini handle turn detection
+    // FALLBACK: Set USE_LOCAL_VAD=true to load Silero VAD as redundancy/fallback
+    // This adds latency but provides backup if LLM turn detection has issues.
+    const USE_LOCAL_VAD = process.env.USE_LOCAL_VAD === 'true';
+    let vad:
+      | Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>
+      | undefined;
+
+    if (USE_LOCAL_VAD) {
+      try {
+        const vadLoadStart = Date.now();
+        const { silero } = getVoiceDeps();
+        vad = await silero.VAD.load();
+        process.stderr.write(
+          `[voice-agent-entry] 🎙️ Silero VAD loaded as fallback in ${Date.now() - vadLoadStart}ms\n`
+        );
+      } catch (vadErr) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ VAD fallback load failed (non-fatal): ${vadErr}\n`
+        );
+        // Continue without VAD - LLM turn detection will still work
+      }
+    }
 
     // =========================================================================
     // VOICE LOCALIZATION (International Accent Support)
@@ -1192,6 +1244,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // Agent-level: Full persona prompt (identity, detailed tools, personality)
       //   - Sent via LiveKit's updateInstructions() after session starts
       //   - Contains full persona identity and detailed tool catalog
+      // Determine STT language: use preferred language if set, otherwise let Gemini auto-detect
+      const sttLanguage = userData.preferredLanguage;
+      const inputAudioTranscriptionOptions = sttLanguage
+        ? { languageCode: sttLanguage }
+        : {}; // Empty = auto-detect
+
+      if (sttLanguage) {
+        process.stderr.write(`[voice-agent-entry] 🌍 STT language hint: ${sttLanguage}\n`);
+      }
+
       llm = new google.beta.realtime.RealtimeModel({
         model: geminiConfig.model,
         modalities: [genai.Modality.TEXT],
@@ -1199,12 +1261,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         instructions: modelBaseInstructions, // Model-level: foundational rules (active immediately)
         language: geminiConfig.language,
         // ENABLE USER TRANSCRIPTION - Gemini STT exposes what user says
-        // Without this, userTranscriptionEnabled: false and we can't see user speech
-        inputAudioTranscription: {
-          // REMOVED languageCode: 'en-US' - Let Gemini auto-detect language
-          // This enables multilingual support (Japanese, Spanish, etc.)
-          // The transcript validator respects expectedLanguage from user profile
-        },
+        // If preferredLanguage is set, use it for better accuracy; otherwise auto-detect
+        inputAudioTranscription: inputAudioTranscriptionOptions,
         // PATCHED: toolChoice triggers function calling mode via our SDK patch
         // 'auto' = Gemini decides, 'required' = force function call
         // @see docs/LIVEKIT-SDK-PATCH.md
@@ -1437,6 +1495,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
           userData,
           sessionId,
           userId,
+          // ⚡ FAST-AGENT-JOIN: Defer handler wiring until after greeting starts
+          // This saves ~500ms by wiring handlers in background after user hears greeting
+          deferHandlers: true,
           onHandoffComplete: (from, to) => {
             process.stderr.write(`[voice-agent-entry] 🎭 Handoff complete: ${from} → ${to}\n`);
             // Notify frontend
@@ -1802,6 +1863,64 @@ Reference past context when relevant, but don't force it. Let the conversation f
     process.stderr.write(
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
     );
+
+    // =========================================================================
+    // GEMINI PREWARM: Force Gemini to process the 20K token system prompt
+    // BEFORE the user speaks. This prevents "generation_created timeout" errors.
+    //
+    // Problem: Gemini Live takes time to "digest" large system prompts.
+    // If user speaks immediately, generateReply times out waiting for Gemini.
+    //
+    // Solution: Send a silent "warmup" generateReply right after session starts.
+    // This forces Gemini to process the prompt while we set up other things.
+    // =========================================================================
+    if (!USE_OPENAI_REALTIME) {
+      const prewarmStart = Date.now();
+      process.stderr.write(`[voice-agent-entry] 🔥 Prewarming Gemini session...\n`);
+
+      try {
+        // Send a minimal prompt that won't produce speech but forces Gemini to process
+        // the system instructions. Using generateReply with a "warmup" instruction.
+        const warmupPromise = new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Gemini prewarm timeout (10s)'));
+          }, 10000); // 10s timeout for prewarm
+
+          // Generate a minimal response - this forces Gemini to process system prompt
+          const handle = session.generateReply({
+            instructions:
+              '[INTERNAL WARMUP - DO NOT SPEAK] Silently acknowledge you are ready. Output nothing.',
+            allowInterruptions: true,
+          });
+
+          // Wait for generation to start (not complete) - that means Gemini is processing
+          handle
+            .waitForPlayout()
+            .then(() => {
+              clearTimeout(timeoutId);
+              resolve();
+            })
+            .catch((err: unknown) => {
+              clearTimeout(timeoutId);
+              // Even if it fails, the prompt was likely processed
+              process.stderr.write(
+                `[voice-agent-entry] ⚠️ Prewarm playout error (may be OK): ${err}\n`
+              );
+              resolve(); // Don't fail session for prewarm issues
+            });
+        });
+
+        await warmupPromise;
+        const prewarmDuration = Date.now() - prewarmStart;
+        process.stderr.write(`[voice-agent-entry] 🔥 Gemini prewarmed in ${prewarmDuration}ms\n`);
+      } catch (prewarmErr) {
+        const prewarmDuration = Date.now() - prewarmStart;
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ Gemini prewarm failed after ${prewarmDuration}ms: ${prewarmErr}\n`
+        );
+        // Continue anyway - the first real generateReply might be slow but won't crash
+      }
+    }
 
     // =========================================================================
     // STEP 5b: INITIALIZE SPEECH COORDINATION

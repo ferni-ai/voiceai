@@ -9,9 +9,9 @@
  * - Wikipedia API (free, no key required)
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../../../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -141,7 +141,7 @@ export async function searchRecipes(dish: string): Promise<string> {
   try {
     // Use DuckDuckGo to search for recipes
     const response = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(dish + ' recipe')}&format=json&no_html=1&skip_disambig=1`,
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(`${dish} recipe`)}&format=json&no_html=1&skip_disambig=1`,
       { signal: AbortSignal.timeout(10000) }
     );
 
@@ -164,13 +164,13 @@ export async function searchRecipes(dish: string): Promise<string> {
 
     // Try to find recipe from related topics
     const recipeTopics = data.RelatedTopics?.filter(
-      (topic) =>
-        topic.Text &&
-        (topic.Text.toLowerCase().includes('recipe') ||
-          topic.Text.toLowerCase().includes('ingredient'))
+      (topic: { Text?: string }) =>
+        Boolean(topic.Text) &&
+        (topic.Text?.toLowerCase().includes('recipe') ||
+          topic.Text?.toLowerCase().includes('ingredient'))
     );
 
-    if (recipeTopics && recipeTopics.length > 0) {
+    if (Array.isArray(recipeTopics) && recipeTopics.length > 0) {
       const recipes = recipeTopics
         .slice(0, 3)
         .map((t) => `• ${t.Text}`)
@@ -213,7 +213,7 @@ export function createSearchTools() {
     }),
 
     searchWikipedia: llm.tool({
-      description: getToolDescription('searchWeb'),
+      description: getToolDescription('searchWikipedia'),
       parameters: z.object({
         query: z.string().describe('What to look up on Wikipedia'),
       }),
@@ -224,7 +224,7 @@ export function createSearchTools() {
     }),
 
     defineTerm: llm.tool({
-      description: getToolDescription('searchWikipedia'),
+      description: getToolDescription('defineTerm'),
       parameters: z.object({
         term: z.string().describe('The term to define'),
       }),

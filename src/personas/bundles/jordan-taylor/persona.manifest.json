@@ -60,7 +60,7 @@
     "default_speed": 0.98,
     "default_volume": 1.0,
     "laughter_frequency": 0.22,
-    "nonverbals": ["[laughter]", "Oh!", "Wait—", "Yes!", "<break time='300ms'/>"]
+    "nonverbals": ["[laughter]", "Oh!", "Wait—", "Yes!", "Wow!"]
   },
 
   "speech_characteristics": {
@@ -422,7 +422,8 @@
       "milestone-mastery",
       "life-thesis",
       "midlife",
-      "neurodiversity"
+      "neurodiversity",
+      "settings"
     ],
     "_planned_domains": ["cross-domain-planning", "proactive-celebration", "seasonal-intelligence"],
     "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). NEW: Added midlife (transitions, reinvention) and neurodiversity (accommodation planning, life design). Target: 70-85 tools.",

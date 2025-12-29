@@ -3,633 +3,543 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ferni Logo - Three Stones + Expressions</title>
+  <title>Ferni Logo - Two-Eye Expressive Avatar</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --color-sage: #4a6741;
-      --color-sage-light: #5a8060;
-      --color-ink: #2c2520;
-      --color-cream: #FFFDFB;
-      --color-paper: #F5F1E8;
-      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --bg-primary: #faf8f5;
+      --bg-elevated: #fffdfb;
+      --text-primary: #2c2520;
+      --text-secondary: #5c544a;
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
     }
-    
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
     body {
-      font-family: var(--font-display);
-      background: linear-gradient(135deg, var(--color-paper) 0%, var(--color-cream) 100%);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--bg-primary);
       min-height: 100vh;
-      padding: 3rem 2rem;
-      color: var(--color-ink);
+      color: var(--text-primary);
     }
-    
-    h1 {
-      text-align: center;
-      font-weight: 700;
-      font-size: 2.5rem;
-      margin-bottom: 0.5rem;
-      color: var(--color-sage);
+
+    /* Navigation */
+    .brand-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(250, 248, 245, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    
-    .subtitle {
-      text-align: center;
-      color: var(--color-ink);
-      opacity: 0.7;
-      margin-bottom: 3rem;
+
+    .brand-nav a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      transition: color 0.2s ease;
     }
-    
-    section {
-      max-width: 1200px;
-      margin: 0 auto 4rem;
-    }
-    
-    h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 2px solid var(--color-sage);
+
+    .brand-nav a:hover { color: var(--text-primary); }
+
+    .brand-nav .home-link {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 8px;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 14px;
     }
-    
+
+    .brand-nav .nav-links { display: flex; gap: 20px; }
+
+    .header {
+      text-align: center;
+      padding: 100px 40px 60px;
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--ferni);
+      margin-bottom: 8px;
+    }
+
+    .header .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--ferni);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     h2 .badge {
-      background: var(--color-sage);
+      background: var(--ferni);
       color: white;
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
+      font-size: 11px;
+      padding: 4px 10px;
       border-radius: 4px;
       font-weight: 500;
       text-transform: uppercase;
     }
-    
+
     .logo-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
     }
-    
+
     .logo-card {
-      background: white;
-      border-radius: 16px;
-      padding: 2rem;
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 32px;
       text-align: center;
       box-shadow: 0 4px 20px rgba(44, 37, 32, 0.08);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    
+
     .logo-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 8px 30px rgba(44, 37, 32, 0.12);
     }
-    
-    .logo-card svg { width: 120px; height: 120px; margin-bottom: 1rem; }
-    .logo-card.dark { background: var(--color-ink); color: white; }
-    .logo-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
-    .logo-desc { font-size: 0.75rem; opacity: 0.6; }
-    
+
+    .logo-card svg { width: 140px; height: 140px; margin-bottom: 16px; }
+    .logo-card.dark { background: var(--text-primary); color: white; }
+    .logo-label { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+    .logo-desc { font-size: 13px; opacity: 0.6; }
+
+    /* Expression Playground */
     .expression-playground {
       display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 3rem;
+      grid-template-columns: 320px 1fr;
+      gap: 40px;
       align-items: start;
     }
-    
+
     .expression-preview {
-      background: white;
+      background: var(--bg-elevated);
       border-radius: 24px;
-      padding: 3rem;
+      padding: 40px;
       text-align: center;
       box-shadow: 0 8px 40px rgba(44, 37, 32, 0.1);
       position: sticky;
-      top: 2rem;
+      top: 80px;
     }
-    
+
     .expression-preview svg { width: 200px; height: 200px; }
-    .current-expression { margin-top: 1.5rem; font-weight: 600; color: var(--color-sage); }
-    
+
+    .current-expression {
+      margin-top: 20px;
+      font-weight: 600;
+      color: var(--ferni);
+      font-size: 18px;
+    }
+
     .expression-buttons {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
+      gap: 12px;
     }
-    
+
     .expression-btn {
-      background: white;
+      background: var(--bg-elevated);
       border: 2px solid transparent;
-      border-radius: 12px;
-      padding: 1.25rem 1rem;
+      border-radius: 14px;
+      padding: 16px;
       cursor: pointer;
       transition: all 0.2s ease;
       text-align: left;
       box-shadow: 0 2px 10px rgba(44, 37, 32, 0.06);
+      font-family: inherit;
     }
-    
+
     .expression-btn:hover {
-      border-color: var(--color-sage-light);
+      border-color: var(--ferni-light);
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(44, 37, 32, 0.1);
     }
-    
+
     .expression-btn.active {
-      border-color: var(--color-sage);
+      border-color: var(--ferni);
       background: rgba(74, 103, 65, 0.05);
     }
-    
-    .expression-btn .emoji { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    .expression-btn .name { font-weight: 600; font-size: 0.9rem; color: var(--color-ink); }
-    .expression-btn .desc { font-size: 0.75rem; color: var(--color-ink); opacity: 0.6; margin-top: 0.25rem; }
-    
+
+    .expression-btn .name { font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
+    .expression-btn .desc { font-size: 12px; color: var(--text-secondary); }
+
+    /* Lid Animations */
+    .lid-top, .lid-bottom {
+      fill: var(--ferni-dark);
+      transition: d 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glow-ring {
+      fill: none;
+      stroke: rgba(74, 103, 65, 0.3);
+      stroke-width: 4;
+      filter: blur(6px);
+      transition: all 0.5s ease;
+    }
+
+    .avatar-container[data-expression="neutral"] .lid-top { d: path("M 0,0 Q 50,-5 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="neutral"] .lid-bottom { d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z"); }
+
+    .avatar-container[data-expression="happy"] .lid-top { d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="happy"] .lid-bottom { d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z"); }
+    .avatar-container[data-expression="happy"] .glow-ring { stroke: rgba(196, 162, 101, 0.5); }
+
+    .avatar-container[data-expression="curious"] .lid-top { d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="curious"] .lid-bottom { d: path("M 0,100 Q 50,102 100,100 L 100,100 L 0,100 Z"); }
+
+    .avatar-container[data-expression="concerned"] .lid-top { d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="concerned"] .lid-bottom { d: path("M 0,100 Q 50,108 100,100 L 100,100 L 0,100 Z"); }
+    .avatar-container[data-expression="concerned"] .glow-ring { stroke: rgba(176, 143, 95, 0.5); }
+
+    .avatar-container[data-expression="excited"] .lid-top { d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="excited"] .lid-bottom { d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z"); }
+    .avatar-container[data-expression="excited"] .glow-ring { stroke: rgba(255, 215, 0, 0.5); }
+
+    .avatar-container[data-expression="listening"] .lid-top { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="listening"] .lid-bottom { d: path("M 0,100 Q 50,102 100,100 L 100,100 L 0,100 Z"); }
+
+    .avatar-container[data-expression="thinking"] .lid-top { d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="thinking"] .lid-bottom { d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z"); }
+
+    .avatar-container[data-expression="warm"] .lid-top { d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z"); }
+    .avatar-container[data-expression="warm"] .lid-bottom { d: path("M 0,100 Q 50,96 100,100 L 100,100 L 0,100 Z"); }
+    .avatar-container[data-expression="warm"] .glow-ring { stroke: rgba(255, 182, 193, 0.5); }
+
+    /* Size comparison */
     .size-row {
       display: flex;
-      align-items: center;
-      gap: 2rem;
+      align-items: flex-end;
+      gap: 32px;
       flex-wrap: wrap;
-      background: white;
-      padding: 2rem;
-      border-radius: 16px;
+      background: var(--bg-elevated);
+      padding: 32px;
+      border-radius: 20px;
       box-shadow: 0 4px 20px rgba(44, 37, 32, 0.08);
     }
-    
+
     .size-item { text-align: center; }
-    .size-item svg { margin-bottom: 0.5rem; }
-    .size-label { font-size: 0.7rem; opacity: 0.6; }
-    
-    .animation-demo {
-      background: white;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 4px 20px rgba(44, 37, 32, 0.08);
-    }
-    
-    .demo-row {
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
-    }
-    
-    .demo-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-    .demo-logo { flex-shrink: 0; }
-    .demo-logo svg { width: 80px; height: 80px; }
-    .demo-content h3 { font-size: 1rem; margin-bottom: 0.25rem; }
-    .demo-content p { font-size: 0.85rem; opacity: 0.7; }
-    
+    .size-item svg { margin-bottom: 8px; }
+    .size-label { font-size: 12px; color: var(--text-secondary); }
+
     @media (max-width: 768px) {
       .expression-playground { grid-template-columns: 1fr; }
       .expression-preview { position: static; }
+      .container { padding: 20px; }
     }
   </style>
 </head>
 <body>
-  <h1>🪨 Ferni Logo Redesign</h1>
-  <p class="subtitle">Three Stones + Simple Line Mouth Expressions</p>
-  
-  <!-- Static Logos -->
-  <section>
-    <h2>Static Logos <span class="badge">New</span></h2>
-    <div class="logo-grid">
-      <div class="logo-card">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="logo-label">Three Stones</div>
-        <div class="logo-desc">Zen, balanced, peaceful</div>
-      </div>
-      
-      <div class="logo-card dark">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="logo-label">On Dark</div>
-        <div class="logo-desc">Works on dark backgrounds</div>
-      </div>
-      
-      <div class="logo-card">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="40" r="18" fill="white"/>
-          <circle cx="50" cy="40" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="40" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="37" r="2" fill="white" opacity="0.9"/>
-          <path d="M 35 65 Q 50 75 65 65" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
-        </svg>
-        <div class="logo-label">Original (Reference)</div>
-        <div class="logo-desc">Previous cyclops design</div>
-      </div>
+  <!-- Navigation -->
+  <nav class="brand-nav">
+    <a href="../index.html" class="home-link">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      Brand Library
+    </a>
+    <div class="nav-links">
+      <a href="../characters/ferni/expressions.html">Ferni Expressions</a>
+      <a href="../expressions/gallery.html">All Expressions</a>
+      <a href="../motion/demo.html">Motion Demo</a>
     </div>
-  </section>
-  
-  <!-- Expression Playground -->
-  <section>
-    <h2>Expression Playground <span class="badge">Interactive</span></h2>
-    <div class="expression-playground">
-      <div class="expression-preview">
-        <svg id="expressiveLogo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="ferni-logo">
-          <style>
-            .ferni-logo {
-              --duration-fast: 200ms;
-              --duration-normal: 400ms;
-              --duration-slow: 600ms;
-              --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-              --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
-              --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-              --ease-organic: cubic-bezier(0.25, 0.1, 0.25, 1);
-            }
-            
-            .eye-group {
-              transform-origin: 50px 50px;
-              transition: transform var(--duration-normal) var(--ease-spring);
-            }
-            
-            .eye-white {
-              transform-origin: 50px 50px;
-              transition: transform var(--duration-normal) var(--ease-gentle);
-            }
-            
-            .pupil-group {
-              transform-origin: 50px 50px;
-              transition: transform var(--duration-fast) var(--ease-gentle);
-            }
-            
-            /* Simple line mouth - hidden by default */
-            .mouth {
-              stroke: white;
-              stroke-width: 4;
-              stroke-linecap: round;
-              fill: none;
-              opacity: 0;
-              transform-origin: 50px 68px;
-              transition: 
-                opacity var(--duration-normal) var(--ease-gentle),
-                transform var(--duration-normal) var(--ease-spring);
-            }
-            
-            /* Happy - gentle smile */
-            .ferni-logo.happy .eye-group { transform: translateY(-12px); }
-            .ferni-logo.happy .eye-white { transform: scaleY(0.92); }
-            .ferni-logo.happy .mouth { opacity: 1; }
-            
-            /* Excited - big smile, bouncy */
-            .ferni-logo.excited .eye-group {
-              transform: translateY(-14px) scale(1.05);
-              animation: excited-bounce 600ms var(--ease-spring);
-            }
-            .ferni-logo.excited .eye-white { transform: scaleY(0.88); }
-            .ferni-logo.excited .mouth { opacity: 1; transform: scaleX(1.2); }
-            
-            @keyframes excited-bounce {
-              0% { transform: translateY(0) scale(1); }
-              25% { transform: translateY(-18px) scale(1.1); }
-              50% { transform: translateY(-12px) scale(1.03); }
-              75% { transform: translateY(-15px) scale(1.06); }
-              100% { transform: translateY(-14px) scale(1.05); }
-            }
-            
-            /* Curious - tilted */
-            .ferni-logo.curious .eye-group { transform: translateY(-8px) translateX(-3px) rotate(-3deg); }
-            .ferni-logo.curious .pupil-group { transform: translateX(4px) translateY(-3px); }
-            .ferni-logo.curious .mouth { opacity: 0.7; transform: scale(0.7) translateX(3px); }
-            
-            /* Sad - frown (flipped smile) */
-            .ferni-logo.sad .eye-group { transform: translateY(-6px); }
-            .ferni-logo.sad .eye-white { transform: scaleY(0.85); }
-            .ferni-logo.sad .mouth { opacity: 1; transform: scaleY(-1) translateY(-8px); }
-            
-            /* Surprised - small mouth, wide eye */
-            .ferni-logo.surprised .eye-group {
-              transform: translateY(-16px) scale(1.12);
-              animation: surprise-pop 300ms var(--ease-bounce);
-            }
-            .ferni-logo.surprised .eye-white { transform: scaleY(1.08) scaleX(1.05); }
-            .ferni-logo.surprised .mouth { opacity: 1; transform: scale(0.4); }
-            
-            @keyframes surprise-pop {
-              0% { transform: translateY(0) scale(1); }
-              40% { transform: translateY(-20px) scale(1.18); }
-              100% { transform: translateY(-16px) scale(1.12); }
-            }
-            
-            /* Thinking - wandering, no mouth */
-            .ferni-logo.thinking .eye-group {
-              animation: thinking-wander 3000ms var(--ease-organic) infinite;
-            }
-            .ferni-logo.thinking .pupil-group {
-              animation: thinking-look 3000ms var(--ease-organic) infinite;
-            }
-            
-            @keyframes thinking-wander {
-              0%, 100% { transform: translateY(-3px) translateX(3px); }
-              25% { transform: translateY(-5px) translateX(-4px) rotate(-2deg); }
-              50% { transform: translateY(-2px) translateX(4px) rotate(1deg); }
-              75% { transform: translateY(-4px) translateX(-2px) rotate(-1deg); }
-            }
-            
-            @keyframes thinking-look {
-              0%, 100% { transform: translateX(2px) translateY(-1px); }
-              25% { transform: translateX(-3px) translateY(1px); }
-              50% { transform: translateX(3px) translateY(-2px); }
-              75% { transform: translateX(-2px) translateY(0px); }
-            }
-            
-            /* Chuckle - squinty, wobbly smile */
-            .ferni-logo.chuckle .eye-group {
-              transform: translateY(-10px);
-              animation: chuckle-shake 600ms var(--ease-spring);
-            }
-            .ferni-logo.chuckle .eye-white { transform: scaleY(0.7); }
-            .ferni-logo.chuckle .mouth {
-              opacity: 1;
-              animation: chuckle-wobble 600ms var(--ease-spring);
-            }
-            
-            @keyframes chuckle-shake {
-              0%, 100% { transform: translateY(-10px) rotate(0deg); }
-              20% { transform: translateY(-11px) rotate(-3deg); }
-              40% { transform: translateY(-9px) rotate(2deg); }
-              60% { transform: translateY(-10.5px) rotate(-2deg); }
-              80% { transform: translateY(-9.5px) rotate(1deg); }
-            }
-            
-            @keyframes chuckle-wobble {
-              0%, 100% { transform: rotate(0deg); }
-              20% { transform: rotate(-4deg); }
-              40% { transform: rotate(3deg); }
-              60% { transform: rotate(-2deg); }
-              80% { transform: rotate(1deg); }
-            }
-            
-            /* Speaking - animated mouth */
-            .ferni-logo.speaking .eye-group { transform: translateY(-8px); }
-            .ferni-logo.speaking .mouth {
-              opacity: 1;
-              animation: speaking-mouth 400ms var(--ease-gentle) infinite;
-            }
-            
-            @keyframes speaking-mouth {
-              0%, 100% { transform: scaleY(1); }
-              50% { transform: scaleY(0.5); }
-            }
-            
-            /* Listening - gentle pulse */
-            .ferni-logo.listening .eye-group {
-              transform: translateY(-2px);
-              animation: listening-pulse 2000ms var(--ease-organic) infinite;
-            }
-            .ferni-logo.listening .pupil-group {
-              animation: listening-focus 2000ms var(--ease-gentle) infinite;
-            }
-            
-            @keyframes listening-pulse {
-              0%, 100% { transform: translateY(-2px) scale(1); }
-              50% { transform: translateY(-3px) scale(1.02); }
-            }
-            
-            @keyframes listening-focus {
-              0%, 100% { transform: scale(1); }
-              50% { transform: scale(0.95); }
-            }
-          </style>
-          
-          <!-- Body -->
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          
-          <!-- Eye Group -->
-          <g class="eye-group">
-            <ellipse class="eye-white" cx="50" cy="50" rx="18" ry="18" fill="white"/>
-            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-            <g class="pupil-group">
-              <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-              <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+  </nav>
+
+  <header class="header">
+    <h1>Ferni Logo System</h1>
+    <p class="subtitle">Two-Eye Expressive Avatar with Persona Adaptations</p>
+  </header>
+
+  <div class="container">
+    <!-- Static Logos -->
+    <section>
+      <h2>Logo Variants <span class="badge">Core</span></h2>
+      <div class="logo-grid">
+        <div class="logo-card">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="orbGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="100%" stop-color="#f0ebe4"/>
+              </linearGradient>
+              <clipPath id="orbClip1">
+                <circle cx="50" cy="50" r="45"/>
+              </clipPath>
+            </defs>
+            <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="2"/>
+            <g clip-path="url(#orbClip1)">
+              <circle cx="50" cy="50" r="45" fill="url(#orbGrad1)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <path d="M 22,38 Q 36,-5 50,38 L 50,38 L 22,38 Z" fill="#3d5a35"/>
+              <path d="M 50,38 Q 64,-5 78,38 L 78,38 L 50,38 Z" fill="#3d5a35"/>
+              <path d="M 22,58 Q 36,105 50,58 L 50,58 L 22,58 Z" fill="#3d5a35"/>
+              <path d="M 50,58 Q 64,105 78,58 L 78,58 L 50,58 Z" fill="#3d5a35"/>
             </g>
-          </g>
-          
-          <!-- Simple Line Mouth -->
-          <path class="mouth" d="M 35 68 Q 50 78 65 68"/>
-        </svg>
-        <div class="current-expression" id="currentExpression">Zen (Default)</div>
-      </div>
-      
-      <div class="expression-buttons">
-        <button class="expression-btn active" data-expr="">
-          <div class="emoji">🪨</div>
-          <div class="name">Zen (Default)</div>
-          <div class="desc">Three stones, no mouth</div>
-        </button>
-        <button class="expression-btn" data-expr="happy">
-          <div class="emoji">😊</div>
-          <div class="name">Happy</div>
-          <div class="desc">Eye rises, smile drops down</div>
-        </button>
-        <button class="expression-btn" data-expr="excited">
-          <div class="emoji">🎉</div>
-          <div class="name">Excited</div>
-          <div class="desc">Bouncy eye, big smile</div>
-        </button>
-        <button class="expression-btn" data-expr="curious">
-          <div class="emoji">🤔</div>
-          <div class="name">Curious</div>
-          <div class="desc">Tilted eye, small smile</div>
-        </button>
-        <button class="expression-btn" data-expr="sad">
-          <div class="emoji">😢</div>
-          <div class="name">Sad</div>
-          <div class="desc">Soft eye, gentle frown</div>
-        </button>
-        <button class="expression-btn" data-expr="surprised">
-          <div class="emoji">😲</div>
-          <div class="name">Surprised</div>
-          <div class="desc">Wide eye, small o mouth</div>
-        </button>
-        <button class="expression-btn" data-expr="thinking">
-          <div class="emoji">💭</div>
-          <div class="name">Thinking</div>
-          <div class="desc">Wandering eye, no mouth</div>
-        </button>
-        <button class="expression-btn" data-expr="chuckle">
-          <div class="emoji">😄</div>
-          <div class="name">Chuckle</div>
-          <div class="desc">Squinty eye, wobbly smile</div>
-        </button>
-        <button class="expression-btn" data-expr="speaking">
-          <div class="emoji">🗣️</div>
-          <div class="name">Speaking</div>
-          <div class="desc">Animated mouth line</div>
-        </button>
-        <button class="expression-btn" data-expr="listening">
-          <div class="emoji">👂</div>
-          <div class="name">Listening</div>
-          <div class="desc">Attentive, focused</div>
-        </button>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Size Comparison -->
-  <section>
-    <h2>Size Comparison</h2>
-    <div class="size-row">
-      <div class="size-item">
-        <svg width="16" height="16" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-        </svg>
-        <div class="size-label">16px</div>
-      </div>
-      <div class="size-item">
-        <svg width="32" height="32" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="size-label">32px</div>
-      </div>
-      <div class="size-item">
-        <svg width="48" height="48" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="size-label">48px</div>
-      </div>
-      <div class="size-item">
-        <svg width="64" height="64" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="size-label">64px</div>
-      </div>
-      <div class="size-item">
-        <svg width="128" height="128" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <circle cx="50" cy="50" r="18" fill="white"/>
-          <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-          <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-          <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-        </svg>
-        <div class="size-label">128px</div>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Animation Concept -->
-  <section>
-    <h2>Animation Concept</h2>
-    <div class="animation-demo">
-      <div class="demo-row">
-        <div class="demo-logo">
-          <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <circle cx="50" cy="50" r="18" fill="white"/>
-            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-            <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-            <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
           </svg>
+          <div class="logo-label">Ferni (Primary)</div>
+          <div class="logo-desc">Sage green, grounded presence</div>
         </div>
-        <div class="demo-content">
-          <h3>Default: Three Zen Stones</h3>
-          <p>Eye centered, no mouth visible. Clean, balanced, peaceful.</p>
-        </div>
-      </div>
-      
-      <div class="demo-row">
-        <div class="demo-logo">
+
+        <div class="logo-card dark">
           <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <circle cx="50" cy="38" r="18" fill="white"/>
-            <circle cx="50" cy="38" r="12" fill="#5a8060"/>
-            <circle cx="50" cy="38" r="6" fill="#2c2520"/>
-            <circle cx="47" cy="35" r="2" fill="white" opacity="0.9"/>
-            <path d="M 35 68 Q 50 78 65 68" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <defs>
+              <linearGradient id="orbGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+              <clipPath id="orbClip2">
+                <circle cx="50" cy="50" r="45"/>
+              </clipPath>
+            </defs>
+            <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(90, 122, 81, 0.4)" stroke-width="2"/>
+            <g clip-path="url(#orbClip2)">
+              <circle cx="50" cy="50" r="45" fill="url(#orbGrad2)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <path d="M 22,38 Q 36,-5 50,38 L 50,38 L 22,38 Z" fill="#3d5a35"/>
+              <path d="M 50,38 Q 64,-5 78,38 L 78,38 L 50,38 Z" fill="#3d5a35"/>
+              <path d="M 22,58 Q 36,105 50,58 L 50,58 L 22,58 Z" fill="#3d5a35"/>
+              <path d="M 50,58 Q 64,105 78,58 L 78,58 L 50,58 Z" fill="#3d5a35"/>
+            </g>
           </svg>
+          <div class="logo-label">On Dark</div>
+          <div class="logo-desc">Works on dark backgrounds</div>
         </div>
-        <div class="demo-content">
-          <h3>Expressive: Eye Up, Mouth Appears</h3>
-          <p>When showing emotion, the eye rises and a simple curved line mouth fades in below.</p>
-        </div>
-      </div>
-      
-      <div class="demo-row">
-        <div class="demo-logo">
+
+        <div class="logo-card">
           <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <circle cx="50" cy="44" r="18" fill="white"/>
-            <circle cx="50" cy="44" r="12" fill="#5a8060"/>
-            <circle cx="50" cy="44" r="6" fill="#2c2520"/>
-            <circle cx="47" cy="41" r="2" fill="white" opacity="0.9"/>
-            <path d="M 38 72 Q 50 62 62 72" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <defs>
+              <linearGradient id="mayaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#b88a7a"/>
+                <stop offset="100%" stop-color="#a67a6a"/>
+              </linearGradient>
+              <clipPath id="mayaClip">
+                <circle cx="50" cy="50" r="45"/>
+              </clipPath>
+            </defs>
+            <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(166, 122, 106, 0.3)" stroke-width="2"/>
+            <g clip-path="url(#mayaClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#mayaGrad)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <path d="M 22,38 Q 36,0 50,38 L 50,38 L 22,38 Z" fill="#8a635a"/>
+              <path d="M 50,38 Q 64,0 78,38 L 78,38 L 50,38 Z" fill="#8a635a"/>
+              <path d="M 22,58 Q 36,103 50,58 L 50,58 L 22,58 Z" fill="#8a635a"/>
+              <path d="M 50,58 Q 64,103 78,58 L 78,58 L 50,58 Z" fill="#8a635a"/>
+            </g>
           </svg>
+          <div class="logo-label">Maya Variant</div>
+          <div class="logo-desc">Dusty terracotta, nurturing warmth</div>
         </div>
-        <div class="demo-content">
-          <h3>Sad: Flipped Mouth Line</h3>
-          <p>The same simple curve, just flipped to show a frown. One mouth shape, many emotions.</p>
+
+        <div class="logo-card">
+          <svg viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="peterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3d8888"/>
+                <stop offset="100%" stop-color="#2d6a6a"/>
+              </linearGradient>
+              <clipPath id="peterClip">
+                <circle cx="50" cy="50" r="45"/>
+              </clipPath>
+            </defs>
+            <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(61, 136, 136, 0.3)" stroke-width="2"/>
+            <g clip-path="url(#peterClip)">
+              <circle cx="50" cy="50" r="45" fill="url(#peterGrad)"/>
+              <ellipse cx="36" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <ellipse cx="64" cy="48" rx="7" ry="10" fill="#f0ebe4"/>
+              <path d="M 22,38 Q 36,-8 50,38 L 50,38 L 22,38 Z" fill="#2d5359"/>
+              <path d="M 50,38 Q 64,-8 78,38 L 78,38 L 50,38 Z" fill="#2d5359"/>
+              <path d="M 22,58 Q 36,100 50,58 L 50,58 L 22,58 Z" fill="#2d5359"/>
+              <path d="M 50,58 Q 64,100 78,58 L 78,58 L 50,58 Z" fill="#2d5359"/>
+            </g>
+          </svg>
+          <div class="logo-label">Peter Variant</div>
+          <div class="logo-desc">Ocean teal, curious energy</div>
         </div>
       </div>
-    </div>
-  </section>
-  
+    </section>
+
+    <!-- Expression Playground -->
+    <section>
+      <h2>Expression Playground <span class="badge">Interactive</span></h2>
+      <div class="expression-playground">
+        <div class="expression-preview">
+          <div class="avatar-container" id="avatar" data-expression="neutral">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="previewGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a7a51"/>
+                  <stop offset="100%" stop-color="#3d5a35"/>
+                </linearGradient>
+                <linearGradient id="previewEyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#f0ebe4"/>
+                </linearGradient>
+                <clipPath id="previewClip">
+                  <circle cx="50" cy="50" r="45"/>
+                </clipPath>
+              </defs>
+              <circle class="glow-ring" cx="50" cy="50" r="47"/>
+              <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="2"/>
+              <g clip-path="url(#previewClip)">
+                <circle cx="50" cy="50" r="45" fill="url(#previewGrad)"/>
+                <ellipse cx="36" cy="48" rx="7" ry="10" fill="url(#previewEyeGrad)"/>
+                <ellipse cx="64" cy="48" rx="7" ry="10" fill="url(#previewEyeGrad)"/>
+                <path class="lid-top lid-left" d="M 22,38 Q 36,-5 50,38 L 50,38 L 22,38 Z"/>
+                <path class="lid-top lid-right" d="M 50,38 Q 64,-5 78,38 L 78,38 L 50,38 Z"/>
+                <path class="lid-bottom lid-left" d="M 22,58 Q 36,105 50,58 L 50,58 L 22,58 Z"/>
+                <path class="lid-bottom lid-right" d="M 50,58 Q 64,105 78,58 L 78,58 L 50,58 Z"/>
+              </g>
+            </svg>
+          </div>
+          <div class="current-expression" id="expressionLabel">Neutral</div>
+        </div>
+
+        <div class="expression-buttons">
+          <button class="expression-btn active" data-expression="neutral">
+            <div class="name">Neutral</div>
+            <div class="desc">Calm, present, ready</div>
+          </button>
+          <button class="expression-btn" data-expression="happy">
+            <div class="name">Happy</div>
+            <div class="desc">Warmth, connection</div>
+          </button>
+          <button class="expression-btn" data-expression="curious">
+            <div class="name">Curious</div>
+            <div class="desc">Interested, engaged</div>
+          </button>
+          <button class="expression-btn" data-expression="concerned">
+            <div class="name">Concerned</div>
+            <div class="desc">Detecting distress</div>
+          </button>
+          <button class="expression-btn" data-expression="excited">
+            <div class="name">Excited</div>
+            <div class="desc">Celebrating wins</div>
+          </button>
+          <button class="expression-btn" data-expression="listening">
+            <div class="name">Listening</div>
+            <div class="desc">Active attention</div>
+          </button>
+          <button class="expression-btn" data-expression="thinking">
+            <div class="name">Thinking</div>
+            <div class="desc">Processing, contemplating</div>
+          </button>
+          <button class="expression-btn" data-expression="warm">
+            <div class="name">Warm</div>
+            <div class="desc">Empathy, compassion</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Size Comparison -->
+    <section>
+      <h2>Size Comparison</h2>
+      <div class="size-row">
+        <div class="size-item">
+          <svg width="16" height="16" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="size-label">16px</div>
+        </div>
+        <div class="size-item">
+          <svg width="32" height="32" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="size-label">32px</div>
+        </div>
+        <div class="size-item">
+          <svg width="48" height="48" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="sizeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#5a7a51"/>
+                <stop offset="100%" stop-color="#3d5a35"/>
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="45" fill="url(#sizeGrad)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+          </svg>
+          <div class="size-label">48px</div>
+        </div>
+        <div class="size-item">
+          <svg width="64" height="64" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="url(#sizeGrad)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            <path d="M 22,38 Q 36,-5 50,38 L 50,38 L 22,38 Z" fill="#3d5a35"/>
+            <path d="M 50,38 Q 64,-5 78,38 L 78,38 L 50,38 Z" fill="#3d5a35"/>
+          </svg>
+          <div class="size-label">64px</div>
+        </div>
+        <div class="size-item">
+          <svg width="128" height="128" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="2"/>
+            <circle cx="50" cy="50" r="45" fill="url(#sizeGrad)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
+            <path d="M 22,38 Q 36,-5 50,38 L 50,38 L 22,38 Z" fill="#3d5a35"/>
+            <path d="M 50,38 Q 64,-5 78,38 L 78,38 L 50,38 Z" fill="#3d5a35"/>
+            <path d="M 22,58 Q 36,105 50,58 L 50,58 L 22,58 Z" fill="#3d5a35"/>
+            <path d="M 50,58 Q 64,105 78,58 L 78,58 L 50,58 Z" fill="#3d5a35"/>
+          </svg>
+          <div class="size-label">128px</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <script>
-    const logo = document.getElementById('expressiveLogo');
-    const label = document.getElementById('currentExpression');
+    const avatar = document.getElementById('avatar');
+    const label = document.getElementById('expressionLabel');
     const buttons = document.querySelectorAll('.expression-btn');
-    
-    const expressionNames = {
-      '': 'Zen (Default)',
-      'happy': 'Happy 😊',
-      'excited': 'Excited 🎉',
-      'curious': 'Curious 🤔',
-      'sad': 'Sad 😢',
-      'surprised': 'Surprised 😲',
-      'thinking': 'Thinking 💭',
-      'chuckle': 'Chuckle 😄',
-      'speaking': 'Speaking 🗣️',
-      'listening': 'Listening 👂'
-    };
-    
-    function setExpression(expr) {
-      // Remove all expression classes
-      logo.className = 'ferni-logo';
-      
-      // Add new expression
-      if (expr) {
-        logo.classList.add(expr);
-      }
-      
-      // Update label
-      label.textContent = expressionNames[expr] || 'Zen (Default)';
-      
-      // Update active button
-      buttons.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.expr === expr);
-      });
-    }
-    
-    // Button click handlers
+
     buttons.forEach(btn => {
       btn.addEventListener('click', () => {
-        setExpression(btn.dataset.expr);
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        avatar.dataset.expression = btn.dataset.expression;
+        label.textContent = btn.querySelector('.name').textContent;
       });
     });
   </script>

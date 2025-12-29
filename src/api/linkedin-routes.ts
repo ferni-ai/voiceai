@@ -11,6 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 import {
   getLinkedInAuthUrl,
   exchangeLinkedInCode,
@@ -31,14 +32,18 @@ const oauthStates = new Map<string, { userId: string; timestamp: number }>();
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Clean up expired states periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [state, data] of oauthStates.entries()) {
-    if (now - data.timestamp > STATE_TTL_MS) {
-      oauthStates.delete(state);
+registerInterval(
+  'linkedin-oauth-cleanup',
+  () => {
+    const now = Date.now();
+    for (const [state, data] of oauthStates.entries()) {
+      if (now - data.timestamp > STATE_TTL_MS) {
+        oauthStates.delete(state);
+      }
     }
-  }
-}, 60 * 1000);
+  },
+  60 * 1000
+);
 
 /**
  * Handle LinkedIn personal profile routes

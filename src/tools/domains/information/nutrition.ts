@@ -305,7 +305,7 @@ export async function getNutritionInfo(food: string): Promise<string> {
     parts.push(`${nutrition.sugar}g sugar`);
   }
 
-  return parts.join(', ') + '.';
+  return `${parts.join(', ')}.`;
 }
 
 /**

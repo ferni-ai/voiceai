@@ -16,16 +16,16 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getCircuitBreaker, CircuitOpenError } from '../../../utils/circuit-breaker.js';
+import { getGeminiClient } from '../../../config/gemini-config.js';
+import { getDefaultModel, getShortLLMTimeout } from '../../model-config.js';
 import type { ExtractedPerson, PersonRelationship } from './person-extractor.js';
 
 const log = createLogger({ module: 'llm-detector' });
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (from centralized model-config.ts)
 // ============================================================================
 
-const MODEL_NAME = 'gemini-2.0-flash-exp';
-const DEFAULT_TIMEOUT = 2000; // 2s - Flash is fast
 const MAX_TOKENS = 200; // Short responses only
 
 // Circuit breaker for LLM calls
@@ -40,30 +40,18 @@ const cache = new Map<string, { result: unknown; expires: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // ============================================================================
-// GEMINI CLIENT
+// GEMINI CLIENT (uses centralized factory from gemini-config.ts)
 // ============================================================================
 
 let geminiClient: unknown = null;
 
 async function getClient(): Promise<unknown> {
   if (geminiClient) return geminiClient;
-
-  try {
-    const { GoogleGenAI } = await import('@google/genai');
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      log.debug('No Google API key found for LLM detector');
-      return null;
-    }
-
-    geminiClient = new GoogleGenAI({ apiKey });
-    log.info('LLM detector initialized with Gemini Flash');
-    return geminiClient;
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to initialize Gemini client');
-    return null;
+  geminiClient = await getGeminiClient();
+  if (geminiClient) {
+    log.info('LLM detector initialized via centralized config');
   }
+  return geminiClient;
 }
 
 // ============================================================================
@@ -81,7 +69,7 @@ async function callLLM<T>(
   prompt: string,
   cacheKey: string,
   parseResponse: (text: string) => T | null,
-  timeout = DEFAULT_TIMEOUT
+  timeout = getShortLLMTimeout()
 ): Promise<LLMResponse<T>> {
   const startTime = Date.now();
 
@@ -122,7 +110,7 @@ async function callLLM<T>(
             };
           }
         ).models.generateContent({
-          model: MODEL_NAME,
+          model: getDefaultModel(),
           contents: prompt,
           config: {
             maxOutputTokens: MAX_TOKENS,

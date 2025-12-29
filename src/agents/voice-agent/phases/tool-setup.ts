@@ -65,12 +65,26 @@ export async function setupTools(config: ToolSetupConfig): Promise<ToolSetupResu
     }
   }
 
-  // Log geo data for debugging
+  // Store user's IP-detected location for weather and other location-based tools
   if (userLocation?.city) {
     log.debug(
       { city: userLocation.city, region: userLocation.regionCode },
-      'User location detected'
+      'User location detected from IP geo'
     );
+
+    // Make location available to tools (weather, local content, etc.)
+    try {
+      const { setSessionLocation } =
+        await import('../../../tools/domains/information/location-preference.js');
+      setSessionLocation(
+        userId,
+        userLocation.city,
+        userLocation.regionCode,
+        userLocation.countryCode
+      );
+    } catch (err) {
+      log.debug({ error: String(err) }, 'Could not set session location');
+    }
   }
 
   // Get tools from orchestrator

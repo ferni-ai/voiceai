@@ -70,12 +70,20 @@ export interface GlobalAnalytics {
 // ============================================================================
 
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 const OUTREACH_EVENTS_COLLECTION = 'outreach_events';
 const USER_ANALYTICS_COLLECTION = 'outreach_user_analytics';
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -89,6 +97,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
       { error },
       'Firestore not available for outreach analytics, using in-memory only'
     );
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

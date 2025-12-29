@@ -15,6 +15,7 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx --fix",
     "lint:tokens": "node scripts/validate-design-tokens.js",
+    "lint:result-types": "node scripts/lint-result-types.js",
     "lint:i18n": "node scripts/lint-i18n.js",
     "i18n:sync": "node scripts/sync-i18n.js --write",
     "i18n:check": "node scripts/sync-i18n.js",
@@ -43,7 +44,8 @@
     "@tsparticles/slim": "^3.9.1",
     "firebase": "^10.14.1",
     "gsap": "^3.13.0",
-    "livekit-client": "^2.0.0"
+    "livekit-client": "^2.0.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",

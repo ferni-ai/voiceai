@@ -275,21 +275,57 @@ async function main(): Promise<void> {
     attemptDeadline: '600s', // 10 minutes max
   };
 
-  // Create the job
-  const success = createSchedulerJob(dailyOutreachJob, dryRun);
+  // Define the weekly deep analysis job
+  const deepAnalysisJob: SchedulerJob = {
+    name: 'weekly-deep-analysis',
+    description: 'Run Gemini deep analysis on user conversations (Sundays 3 AM PT)',
+    schedule: '0 3 * * 0', // 3 AM on Sundays
+    timezone: 'America/Los_Angeles',
+    uri: `${workerUrl}/api/jobs/run-deep-analysis`,
+    httpMethod: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CloudScheduler': 'true',
+    },
+    retryCount: 1, // Expensive operation, don't retry too much
+    attemptDeadline: '1800s', // 30 minutes max (deep analysis can be slow)
+  };
+
+  // Define the daily ML state flush job
+  const mlFlushJob: SchedulerJob = {
+    name: 'daily-ml-flush',
+    description: 'Flush ML model state to Firestore (2 AM PT daily)',
+    schedule: '0 2 * * *', // 2 AM daily
+    timezone: 'America/Los_Angeles',
+    uri: `${workerUrl}/api/jobs/flush-ml-state`,
+    httpMethod: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CloudScheduler': 'true',
+    },
+    retryCount: 2,
+    attemptDeadline: '300s', // 5 minutes
+  };
+
+  // Create the jobs
+  let success = createSchedulerJob(dailyOutreachJob, dryRun);
+  success = createSchedulerJob(deepAnalysisJob, dryRun) && success;
+  success = createSchedulerJob(mlFlushJob, dryRun) && success;
 
   if (success || dryRun) {
-    console.log(`\n${BOLD}${GREEN}✓ Daily outreach scheduler setup complete!${RESET}\n`);
-    console.log(`Schedule: ${dailyOutreachJob.schedule} (${dailyOutreachJob.timezone})`);
-    console.log(`Endpoint: ${dailyOutreachJob.uri}`);
+    console.log(`\n${BOLD}${GREEN}✓ Scheduler setup complete!${RESET}\n`);
+    console.log(`\n${CYAN}Jobs created:${RESET}`);
+    console.log(`  1. ${dailyOutreachJob.name}: ${dailyOutreachJob.schedule} (${dailyOutreachJob.timezone})`);
+    console.log(`  2. ${deepAnalysisJob.name}: ${deepAnalysisJob.schedule} (${deepAnalysisJob.timezone})`);
+    console.log(`  3. ${mlFlushJob.name}: ${mlFlushJob.schedule} (${mlFlushJob.timezone})`);
     console.log(`\nView scheduler jobs:`);
     console.log(`  https://console.cloud.google.com/cloudscheduler?project=${PROJECT_ID}`);
-    console.log(`\nManual trigger:`);
+    console.log(`\nManual triggers:`);
     console.log(`  gcloud scheduler jobs run ${dailyOutreachJob.name} --location=${REGION} --project=${PROJECT_ID}`);
-    console.log(`\nTest endpoint directly:`);
-    console.log(`  curl -X POST ${dailyOutreachJob.uri} -H "X-CloudScheduler: true"`);
+    console.log(`  gcloud scheduler jobs run ${deepAnalysisJob.name} --location=${REGION} --project=${PROJECT_ID}`);
+    console.log(`  gcloud scheduler jobs run ${mlFlushJob.name} --location=${REGION} --project=${PROJECT_ID}`);
   } else {
-    console.log(`\n${RED}Failed to create scheduler job.${RESET}`);
+    console.log(`\n${RED}Failed to create one or more scheduler jobs.${RESET}`);
     process.exit(1);
   }
 }

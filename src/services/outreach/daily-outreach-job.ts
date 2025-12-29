@@ -13,7 +13,7 @@
  *
  * // Run the job
  * const results = await runDailyOutreachJob();
- * console.log('Outreach job completed:', results);
+ * log.info({ results }, 'Outreach job completed');
  * ```
  *
  * @module DailyOutreachJob
@@ -158,6 +158,62 @@ export async function runDailyOutreachJob(
             log.debug(
               { userId: profile.id, error: String(mayaError) },
               'Maya habit outreach error (non-fatal)'
+            );
+          }
+
+          // 🔮 ML PREDICTION-DRIVEN OUTREACH: Act on ML predictions
+          // This is "Better than Human" - we reach out BEFORE they know they need us
+          try {
+            const { evaluatePredictionDrivenOutreach } = await import('./prediction-driven-outreach.js');
+            const mlDecision = await evaluatePredictionDrivenOutreach(profile.id, profile);
+            
+            if (mlDecision.shouldReach && mlDecision.channel === 'voice_call') {
+              // High confidence: Trigger proactive voice call
+              const voiceOutreach = await orchestrator.triggerProactiveCall(
+                profile.id,
+                mlDecision.personaId || 'ferni',
+                {
+                  trigger: mlDecision.trigger || 'ml_prediction',
+                  message: mlDecision.message,
+                  confidence: mlDecision.confidence,
+                  metadata: mlDecision.context,
+                }
+              );
+              if (voiceOutreach) {
+                outreachSent++;
+                byType['ml_voice_call'] = (byType['ml_voice_call'] || 0) + 1;
+                log.info(
+                  { userId: profile.id, trigger: mlDecision.trigger, confidence: mlDecision.confidence },
+                  '📞 ML-driven proactive voice call triggered'
+                );
+              }
+            } else if (mlDecision.shouldReach && mlDecision.channel === 'push') {
+              // Medium confidence: Send push notification
+              const pushOutreach = await orchestrator.sendPushNotification(
+                profile.id,
+                mlDecision.message || "I've been thinking about you...",
+                { 
+                  trigger: mlDecision.trigger,
+                  personaId: mlDecision.personaId,
+                  metadata: mlDecision.context,
+                }
+              );
+              if (pushOutreach) {
+                outreachSent++;
+                byType['ml_push'] = (byType['ml_push'] || 0) + 1;
+                log.info(
+                  { userId: profile.id, trigger: mlDecision.trigger, confidence: mlDecision.confidence },
+                  '🔔 ML-driven push notification sent'
+                );
+              }
+            } else if (mlDecision.updateAppInsights) {
+              // Low confidence: Just update app insights (passive)
+              byType['ml_insight_update'] = (byType['ml_insight_update'] || 0) + 1;
+            }
+          } catch (mlError) {
+            log.debug(
+              { userId: profile.id, error: String(mlError) },
+              'ML prediction outreach error (non-fatal)'
             );
           }
 

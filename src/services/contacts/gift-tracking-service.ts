@@ -65,10 +65,18 @@ const giftCache = new Map<string, Gift[]>();
 const COLLECTION_NAME = 'user_gifts';
 
 let db: Firestore | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<Firestore | null> | null = null;
 
 async function getFirestore(): Promise<Firestore | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<Firestore | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -79,6 +87,7 @@ async function getFirestore(): Promise<Firestore | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for gift tracking');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

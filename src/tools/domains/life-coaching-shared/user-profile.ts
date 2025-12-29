@@ -60,13 +60,21 @@ interface SerializedProfile extends Omit<LifeCoachingProfile, 'lastUpdated' | 'b
 // ============================================================================
 
 let db: Firestore | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<Firestore | null> | null = null;
 const USERS_COLLECTION = 'bogle_users';
 const LIFE_COACHING_SUBCOLLECTION = 'life_coaching';
 const PROFILE_DOC = 'profile';
 
 async function getFirestore(): Promise<Firestore | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<Firestore | null> {
   try {
     const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
     // Cast to our minimal interface - the actual implementation is compatible
@@ -77,6 +85,7 @@ async function getFirestore(): Promise<Firestore | null> {
     return db;
   } catch (error) {
     log.warn({ error: String(error) }, 'Firestore not available - using memory-only mode');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

@@ -551,15 +551,17 @@ async function analyzeWithGemini(
   errorLogs: string[],
   context: FailureContext
 ): Promise<DiagnosticResult> {
-  // Dynamic import to avoid loading Gemini unless needed
-  const { GoogleGenAI } = await import('@google/genai');
+  // Use centralized Gemini config
+  const { getGeminiClient, isGeminiConfigured } = await import('../../config/gemini-config.js');
 
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_API_KEY not configured');
+  if (!isGeminiConfigured()) {
+    throw new Error('Gemini not configured - check USE_VERTEX_AI and GOOGLE_CLOUD_PROJECT in .env');
   }
 
-  const genai = new GoogleGenAI({ apiKey });
+  const genai = await getGeminiClient();
+  if (!genai) {
+    throw new Error('Failed to initialize Gemini client');
+  }
 
   const prompt = `You are a voice AI systems expert analyzing a failure in the Ferni voice agent.
 
@@ -584,7 +586,8 @@ Analyze the failure and respond with ONLY valid JSON (no markdown, no explanatio
   "fixType": "retry" | "restart" | "circuit_break" | "failover" | "escalate"
 }`;
 
-  const response = await genai.models.generateContent({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const response = await (genai as any).models.generateContent({
     model: getDefaultModel(),
     contents: prompt,
   });

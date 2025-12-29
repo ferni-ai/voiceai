@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nayan Patel - Expression Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf8f5;
+      --bg-elevated: #fffdfb;
+      --text-primary: #2c2520;
+      --text-secondary: #5c544a;
+      --text-muted: #756a5e;
+
+      /* Nayan's Colors */
+      --persona-start: #b08f5f;
+      --persona-end: #9a7b4f;
+
+      /* Pixar Animation System */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+      /* Nayan's Timing: 1.3x (deliberate, contemplative - slowest) */
+      --timing-multiplier: 1.3;
+
+      /* Glow Colors */
+      --glow-protective: rgba(176, 143, 95, 0.5);
+      --glow-golden: rgba(196, 162, 101, 0.5);
+      --glow-sage: rgba(90, 122, 81, 0.5);
+      --glow-warm: rgba(229, 165, 92, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    .brand-nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(250, 248, 245, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-nav a { text-decoration: none; color: var(--text-secondary); font-size: 13px; transition: color 0.2s; }
+    .brand-nav a:hover { color: var(--text-primary); }
+    .brand-nav .home-link { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }
+    .brand-nav .nav-links { display: flex; gap: 20px; }
+
+    .header {
+      text-align: center;
+      padding: 100px 40px 40px;
+      background: linear-gradient(135deg, rgba(176, 143, 95, 0.1) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .header .role { font-size: 20px; color: var(--text-secondary); margin-bottom: 12px; }
+    .header .quote { font-style: italic; color: var(--persona-end); font-size: 16px; max-width: 500px; margin: 0 auto; }
+
+    .timing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(176, 143, 95, 0.15);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-top: 20px;
+    }
+    .timing-badge svg { width: 16px; height: 16px; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px; }
+
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      padding: 60px;
+      background: var(--bg-elevated);
+      border-radius: 32px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .avatar-container { position: relative; width: 200px; height: 200px; }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -30px;
+      border-radius: 50%;
+      background: var(--glow-protective);
+      filter: blur(30px);
+      opacity: 0.6;
+      transition: all 0.65s var(--ease-organic); /* Slower transitions */
+    }
+
+    .main-avatar { width: 200px; height: 200px; position: relative; }
+
+    /* Nayan's slower animations (1.3x) */
+    @keyframes breathing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.015); } /* Subtler breathing */
+    }
+
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(0.6px, -0.3px); }
+      50% { transform: translate(-0.3px, 0.3px); }
+      75% { transform: translate(0.3px, 0px); }
+    }
+
+    @keyframes stillnessGlow {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.02); }
+    }
+
+    .avatar-body {
+      animation: breathing 5.2s ease-in-out infinite; /* 4s * 1.3 */
+      transform-origin: center center;
+    }
+
+    .eyes-group {
+      animation: gazeDrift 10.4s ease-in-out infinite; /* 8s * 1.3 */
+    }
+
+    /* Stillness Effect - Nayan's Signature */
+    .stillness-indicator {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0;
+      transition: opacity 0.5s var(--ease-gentle);
+    }
+
+    .stillness-indicator.active {
+      opacity: 1;
+    }
+
+    .avatar-container.stillness .avatar-glow {
+      animation: stillnessGlow 3.9s var(--ease-organic) infinite; /* 3s * 1.3 */
+    }
+
+    .stage-controls { display: flex; flex-direction: column; gap: 16px; }
+    .current-expression { font-size: 28px; font-weight: 600; color: var(--text-primary); }
+    .expression-trigger { font-size: 14px; color: var(--text-muted); max-width: 250px; }
+
+    .micro-demo { display: flex; gap: 10px; margin-top: 16px; }
+    .micro-btn {
+      padding: 8px 14px;
+      border: 1px solid rgba(176, 143, 95, 0.3);
+      background: var(--bg-elevated);
+      border-radius: 100px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s var(--ease-gentle);
+    }
+    .micro-btn:hover { border-color: var(--persona-start); color: var(--persona-end); }
+
+    .section-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
+
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .expression-btn {
+      padding: 14px 18px;
+      border: 2px solid rgba(176, 143, 95, 0.2);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.39s var(--ease-gentle); /* Slower transitions */
+    }
+    .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }
+    .expression-btn.active {
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      border-color: transparent;
+      color: white;
+    }
+
+    .profile-section {
+      background: linear-gradient(135deg, rgba(176, 143, 95, 0.08) 0%, transparent 100%);
+      padding: 32px;
+      border-radius: 20px;
+      margin-bottom: 40px;
+    }
+
+    .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; }
+    .profile-item { text-align: center; }
+    .profile-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .profile-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+    .traits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .trait-card { background: var(--bg-elevated); padding: 28px; border-radius: 16px; border-left: 4px solid var(--persona-start); }
+    .trait-card h3 { font-size: 15px; font-weight: 600; color: var(--persona-end); margin-bottom: 10px; }
+    .trait-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+    @media (max-width: 768px) {
+      .avatar-stage { flex-direction: column; padding: 40px 20px; }
+      .stage-controls { align-items: center; text-align: center; }
+      .container { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="brand-nav">
+    <a href="../../index.html" class="home-link">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Brand Library
+    </a>
+    <div class="nav-links">
+      <a href="../ferni/expressions.html">Ferni</a>
+      <a href="../maya/expressions.html">Maya</a>
+      <a href="../peter/expressions.html">Peter</a>
+      <a href="../jordan/expressions.html">Jordan</a>
+      <a href="../alex/expressions.html">Alex</a>
+      <a href="../../expressions/gallery.html">All Expressions</a>
+    </div>
+  </nav>
+
+  <header class="header">
+    <h1>Nayan Patel</h1>
+    <p class="role">The Wisdom Keeper</p>
+    <p class="quote">"The answer you're looking for often reveals itself in the stillness between questions."</p>
+    <div class="timing-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+      </svg>
+      1.3x Timing - Deliberate, contemplative
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="avatar-stage">
+      <div class="avatar-container" id="avatarContainer">
+        <div class="avatar-glow" id="avatarGlow"></div>
+        <svg class="main-avatar" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#b08f5f"/>
+              <stop offset="100%" stop-color="#9a7b4f"/>
+            </linearGradient>
+            <clipPath id="eyeClipLeft"><ellipse cx="70" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipRight"><ellipse cx="130" cy="90" rx="20" ry="18"/></clipPath>
+          </defs>
+          <g class="avatar-body"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
+          <g class="eyes-group">
+            <g clip-path="url(#eyeClipLeft)">
+              <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
+              <circle cx="70" cy="92" r="10" fill="#2c2520"/>
+              <circle cx="73" cy="88" r="3" fill="white" opacity="0.8"/>
+            </g>
+            <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
+            <g clip-path="url(#eyeClipRight)">
+              <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
+              <circle cx="130" cy="92" r="10" fill="#2c2520"/>
+              <circle cx="133" cy="88" r="3" fill="white" opacity="0.8"/>
+            </g>
+            <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
+          </g>
+          <path d="M 75,130 Q 100,150 125,130" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+        </svg>
+        <div class="stillness-indicator" id="stillnessIndicator">...taking a moment...</div>
+      </div>
+      <div class="stage-controls">
+        <div class="current-expression" id="currentExpression">Neutral</div>
+        <div class="expression-trigger" id="expressionTrigger">Present. Patient. Ready to explore deeper meaning.</div>
+        <div class="micro-demo">
+          <button class="micro-btn" data-micro="stillness">Stillness Pause</button>
+          <button class="micro-btn" data-micro="wisdom">Wisdom 156ms</button>
+          <button class="micro-btn" data-micro="warmth">Warmth 143ms</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3 class="section-title">Animation Profile</h3>
+      <div class="profile-grid">
+        <div class="profile-item"><div class="profile-value">1.3x</div><div class="profile-label">Timing Multiplier</div></div>
+        <div class="profile-item"><div class="profile-value">Organic</div><div class="profile-label">Easing Curve</div></div>
+        <div class="profile-item"><div class="profile-value">Earthy</div><div class="profile-label">Primary Glow</div></div>
+        <div class="profile-item"><div class="profile-value">Stillness</div><div class="profile-label">Signature Effect</div></div>
+      </div>
+    </div>
+
+    <h3 class="section-title">Nayan's Expressions</h3>
+    <div class="expression-grid" id="expressionGrid"></div>
+
+    <h3 class="section-title">Character Traits</h3>
+    <div class="traits-grid">
+      <div class="trait-card">
+        <h3>Signature Move</h3>
+        <p>Stillness - a deliberate pause before responding to deep questions. The avatar becomes very still, breathing slows, glow softens. Wisdom needs space.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Core Philosophy</h3>
+        <p>"What if instead of solving this problem, we understood it?" Nayan helps you see the bigger picture and find meaning in life's patterns.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Superpower</h3>
+        <p>Synthesizes your life story across time. Sees patterns humans miss because they're too close. Holds space for the questions without easy answers.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const EXPRESSIONS = [
+      { name: 'Neutral', trigger: 'Present, patient, ready', lid: 'M 50,72 Q 70,72 90,72', glow: 'protective' },
+      { name: 'Contemplating', trigger: 'Processing deep question', lid: 'M 50,74 Q 70,72 90,74', glow: 'protective', signature: true },
+      { name: 'Wise', trigger: 'Offering perspective', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden' },
+      { name: 'Listening', trigger: 'Holding space', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective' },
+      { name: 'Understanding', trigger: 'Seeing deeper meaning', lid: 'M 50,76 Q 70,76 90,76', glow: 'sage' },
+      { name: 'Gentle', trigger: 'Soft challenge', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden' },
+      { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'warm' },
+      { name: 'Reflecting', trigger: 'Mirroring back', lid: 'M 50,74 Q 70,72 90,74', glow: 'sage' },
+      { name: 'Present', trigger: 'Grounding moment', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective' },
+      { name: 'Curious', trigger: 'Exploring meaning', lid: 'M 50,70 Q 70,66 90,70', glow: 'sage' },
+      { name: 'Holding', trigger: 'User in difficulty', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective' },
+      { name: 'Serene', trigger: 'Peaceful wisdom', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden' }
+    ];
+
+    const GLOW_COLORS = {
+      protective: 'rgba(176, 143, 95, 0.5)',
+      golden: 'rgba(196, 162, 101, 0.5)',
+      sage: 'rgba(90, 122, 81, 0.5)',
+      warm: 'rgba(229, 165, 92, 0.5)'
+    };
+
+    const avatarContainer = document.getElementById('avatarContainer');
+    const avatarGlow = document.getElementById('avatarGlow');
+    const lidLeft = document.getElementById('lidLeft');
+    const lidRight = document.getElementById('lidRight');
+    const currentExpressionEl = document.getElementById('currentExpression');
+    const expressionTriggerEl = document.getElementById('expressionTrigger');
+    const expressionGrid = document.getElementById('expressionGrid');
+    const stillnessIndicator = document.getElementById('stillnessIndicator');
+
+    function buildExpressionGrid() {
+      EXPRESSIONS.forEach((expr, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'expression-btn' + (i === 0 ? ' active' : '');
+        btn.textContent = expr.name;
+        btn.addEventListener('click', () => setExpression(expr, btn));
+        expressionGrid.appendChild(btn);
+      });
+    }
+
+    function setExpression(expr, btn) {
+      document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      lidLeft.setAttribute('d', expr.lid);
+      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[expr.glow];
+      currentExpressionEl.textContent = expr.name;
+      expressionTriggerEl.textContent = expr.trigger;
+      if (expr.signature) playStillness();
+    }
+
+    function playStillness() {
+      avatarContainer.classList.add('stillness');
+      stillnessIndicator.classList.add('active');
+
+      // Stillness lasts longer for Nayan (1.3x)
+      setTimeout(() => {
+        avatarContainer.classList.remove('stillness');
+        stillnessIndicator.classList.remove('active');
+      }, 3900); // 3000ms * 1.3
+    }
+
+    document.querySelectorAll('.micro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.micro;
+        if (type === 'stillness') playStillness();
+        else if (type === 'wisdom') playMicroExpression('M 50,76 Q 70,78 90,76', 'golden', 156);
+        else if (type === 'warmth') playMicroExpression('M 50,78 Q 70,80 90,78', 'warm', 143);
+      });
+    });
+
+    function playMicroExpression(lid, glow, duration) {
+      const currentLid = lidLeft.getAttribute('d');
+      const currentGlow = avatarGlow.style.background;
+      lidLeft.setAttribute('d', lid);
+      lidRight.setAttribute('d', lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[glow];
+      avatarGlow.style.opacity = '0.9';
+      setTimeout(() => {
+        lidLeft.setAttribute('d', currentLid);
+        lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+        avatarGlow.style.background = currentGlow;
+        avatarGlow.style.opacity = '0.6';
+      }, duration);
+    }
+
+    buildExpressionGrid();
+  </script>
+</body>
+</html>

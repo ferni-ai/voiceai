@@ -8,8 +8,10 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
-import { cosineSimilarity, embed, embedBatch } from '../embeddings.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
+import { embed, embedBatch } from '../embeddings.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { topKSimilar } from '../rust-accelerator.js';
 import type {
   VectorStoreContract,
   VectorDocument,
@@ -369,7 +371,15 @@ export class FirestoreVectorStore implements VectorStoreContract {
         });
 
         const snapshot = await searchQuery.get();
-        const results: VectorSearchResult[] = [];
+
+        // Extract documents and embeddings for batch processing
+        const candidateDocs: Array<{
+          id: string;
+          text: string;
+          embedding: number[];
+          metadata: VectorDocument['metadata'];
+        }> = [];
+        const candidateEmbeddings: number[][] = [];
 
         for (const doc of snapshot.docs) {
           const data = doc.data();
@@ -378,22 +388,32 @@ export class FirestoreVectorStore implements VectorStoreContract {
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;
 
-          const score = cosineSimilarity(queryEmbedding, docEmbedding);
-
-          if (score >= minScore) {
-            results.push({
-              document: {
-                id: doc.id,
-                text: data.text as string,
-                embedding: docEmbedding,
-                metadata: data.metadata as VectorDocument['metadata'],
-              },
-              score,
-            });
-          }
+          candidateDocs.push({
+            id: doc.id,
+            text: data.text as string,
+            embedding: docEmbedding,
+            metadata: data.metadata as VectorDocument['metadata'],
+          });
+          candidateEmbeddings.push(docEmbedding);
         }
 
-        return results.sort((a, b) => b.score - a.score).slice(0, topK);
+        if (candidateDocs.length === 0) {
+          return [];
+        }
+
+        // Use SIMD-accelerated top-K search (computes all similarities + sorts + filters in one pass)
+        const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
+
+        // Map indices back to documents
+        return topKResult.indices.map((idx, i) => ({
+          document: {
+            id: candidateDocs[idx].id,
+            text: candidateDocs[idx].text,
+            embedding: candidateDocs[idx].embedding,
+            metadata: candidateDocs[idx].metadata,
+          },
+          score: topKResult.similarities[i],
+        }));
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'Firestore search failed, using fallback');
@@ -424,15 +444,24 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
+        // Request more results to allow for minScore filtering
         const searchQuery = collRef.findNearest({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
-          limit: topK,
+          limit: topK * 2,
           distanceMeasure: 'COSINE',
         });
 
         const snapshot = await searchQuery.get();
-        const results: VectorSearchResult[] = [];
+
+        // Extract documents and embeddings for batch processing
+        const candidateDocs: Array<{
+          id: string;
+          text: string;
+          embedding: number[];
+          metadata: VectorDocument['metadata'];
+        }> = [];
+        const candidateEmbeddings: number[][] = [];
 
         for (const doc of snapshot.docs) {
           const data = doc.data();
@@ -441,22 +470,32 @@ export class FirestoreVectorStore implements VectorStoreContract {
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;
 
-          const score = cosineSimilarity(queryEmbedding, docEmbedding);
-
-          if (score >= minScore) {
-            results.push({
-              document: {
-                id: doc.id,
-                text: data.text as string,
-                embedding: docEmbedding,
-                metadata: data.metadata as VectorDocument['metadata'],
-              },
-              score,
-            });
-          }
+          candidateDocs.push({
+            id: doc.id,
+            text: data.text as string,
+            embedding: docEmbedding,
+            metadata: data.metadata as VectorDocument['metadata'],
+          });
+          candidateEmbeddings.push(docEmbedding);
         }
 
-        return results;
+        if (candidateDocs.length === 0) {
+          return [];
+        }
+
+        // Use SIMD-accelerated top-K search (computes all similarities + sorts + filters in one pass)
+        const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
+
+        // Map indices back to documents
+        return topKResult.indices.map((idx, i) => ({
+          document: {
+            id: candidateDocs[idx].id,
+            text: candidateDocs[idx].text,
+            embedding: candidateDocs[idx].embedding,
+            metadata: candidateDocs[idx].metadata,
+          },
+          score: topKResult.similarities[i],
+        }));
       }
     } catch (error) {
       log.warn({ error: String(error) }, 'searchByEmbedding failed');

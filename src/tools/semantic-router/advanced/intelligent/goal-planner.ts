@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { GEMINI_MODEL, LLM_TIMEOUT_MS } from '../../../../config/gemini-config.js';
 
 const log = createLogger({ module: 'goal-planner' });
 
@@ -29,8 +30,8 @@ export interface GoalPlannerConfig {
   enableParallelExecution: boolean;
   /** Confidence threshold to auto-execute plan */
   autoExecuteThreshold: number;
-  /** Model for planning */
-  model: 'gemini-2.0-flash' | 'gpt-4o-mini' | 'gpt-4o';
+  /** Model for planning (from .env) */
+  model: string;
 }
 
 export interface PlanStep {
@@ -108,10 +109,10 @@ export interface ToolDefinition {
 
 const DEFAULT_CONFIG: GoalPlannerConfig = {
   maxPlanSteps: 8,
-  planningTimeoutMs: 5000,
+  planningTimeoutMs: LLM_TIMEOUT_MS,
   enableParallelExecution: true,
   autoExecuteThreshold: 0.8,
-  model: 'gemini-2.0-flash',
+  model: GEMINI_MODEL,
 };
 
 // ============================================================================

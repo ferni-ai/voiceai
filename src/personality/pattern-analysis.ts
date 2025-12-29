@@ -248,7 +248,7 @@ function findMostCommonTopic(dataPoints: EmotionalDataPoint[], keywords: string[
   }
 
   let maxCount = 0;
-  let mostCommon = keywords[0];
+  let mostCommon = keywords[0] ?? '';
 
   for (const [topic, count] of counts) {
     if (count > maxCount) {
@@ -357,12 +357,13 @@ export function analyzeForPatterns(userId: string): void {
     // Merge with existing, don't duplicate
     for (const newPattern of patterns) {
       const existingIndex = existingPatterns.findIndex((p) => p.id === newPattern.id);
-      if (existingIndex >= 0) {
+      const existing = existingPatterns[existingIndex];
+      if (existing) {
         // Update existing
         existingPatterns[existingIndex] = {
-          ...existingPatterns[existingIndex],
+          ...existing,
           ...newPattern,
-          surfacedToUser: existingPatterns[existingIndex].surfacedToUser,
+          surfacedToUser: existing.surfacedToUser,
         };
       } else {
         existingPatterns.push(newPattern);

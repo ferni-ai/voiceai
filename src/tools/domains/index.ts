@@ -105,6 +105,9 @@ export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js'
 // Telephony domain - phone calls, callbacks
 export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/index.js';
 
+// Human Transfer domain - escalation to human professionals (therapy, crisis, legal, financial)
+export { getToolDefinitions as getHumanTransferToolDefinitions } from './human-transfer/index.js';
+
 // Cameo domain - team member pop-in interactions
 export { getToolDefinitions as getCameoToolDefinitions } from './cameo/index.js';
 
@@ -319,6 +322,13 @@ export { getToolDefinitions as getVideoToolDefinitions } from './video/index.js'
 export { getToolDefinitions as getBooksToolDefinitions } from './books/index.js';
 
 // ============================================================================
+// USER SETTINGS DOMAINS
+// ============================================================================
+
+// Settings domain - language preferences, user settings
+export { getToolDefinitions as getSettingsToolDefinitions } from './settings/index.js';
+
+// ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
 // ============================================================================
@@ -366,6 +376,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./vibe/index.js').then(async (m) => m.getToolDefinitions()),
     import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
+    // Human Transfer domain - escalation to human professionals
+    import('./human-transfer/index.js').then(async (m) => m.getToolDefinitions()),
     // Cameo domain - team member pop-ins
     import('./cameo/index.js').then(async (m) => m.getToolDefinitions()),
     // Group Conversation domain - team roundtables, conference calls
@@ -450,6 +462,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     // "Better Than Human" Core domains
     import('./visual-memory/index.js').then(async (m) => m.getToolDefinitions()),
     import('./ambient-mode/index.js').then(async (m) => m.getToolDefinitions()),
+    // Settings domains - user preferences
+    import('./settings/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -561,6 +575,13 @@ export const DOMAIN_METADATA = {
     name: 'Telephony',
     description: 'Phone calls and callbacks',
     icon: '📞',
+    status: 'active',
+  },
+  'human-transfer': {
+    name: 'Human Transfer',
+    description:
+      "Evaluate and connect to human professionals when AI coaching isn't enough - therapy, crisis support, legal, financial",
+    icon: '🤝',
     status: 'active',
   },
   cameo: {
@@ -942,6 +963,13 @@ export const DOMAIN_METADATA = {
     description:
       'Continuous presence, location awareness, and proactive nudges - Ferni knows when to check in',
     icon: '🌙',
+    status: 'active',
+  },
+  // Settings domains
+  settings: {
+    name: 'Settings',
+    description: 'User preferences - language, voice, and session settings',
+    icon: '⚙️',
     status: 'active',
   },
 } as const;

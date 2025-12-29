@@ -122,46 +122,103 @@ export interface DetectedVocalCues {
 // =============================================================================
 
 /**
- * All emotions supported by Cartesia Sonic-3 TTS
+ * All 60+ emotions supported by Cartesia Sonic-3 TTS
  * Use these values in <emotion value="..."/> tags
+ *
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
+ *
+ * Primary emotions (best results): neutral, angry, excited, content, sad, scared
  */
 export const CARTESIA_EMOTIONS = {
-  // Primary emotions
+  // ==========================================================================
+  // PRIMARY EMOTIONS (Most reliable, best training data)
+  // ==========================================================================
   NEUTRAL: 'neutral',
   ANGRY: 'angry',
-  SAD: 'sad',
-  SURPRISED: 'surprised',
-  CURIOUS: 'curious',
-  AFFECTIONATE: 'affectionate',
-
-  // Extended emotions
   EXCITED: 'excited',
   CONTENT: 'content',
+  SAD: 'sad',
   SCARED: 'scared',
-  HAPPY: 'happy',
-  NOSTALGIC: 'nostalgic',
-  CONTEMPLATIVE: 'contemplative',
-  GRATEFUL: 'grateful',
-  PROUD: 'proud',
-  SYMPATHETIC: 'sympathetic',
-  SKEPTICAL: 'skeptical',
 
-  // Additional nuanced emotions
-  CALM: 'calm',
-  THOUGHTFUL: 'thoughtful',
-  CONFIDENT: 'confident',
-  WARM: 'warm',
-  PEACEFUL: 'peaceful',
+  // ==========================================================================
+  // POSITIVE EMOTIONS - Joy & Enthusiasm
+  // ==========================================================================
+  HAPPY: 'happy',
   ENTHUSIASTIC: 'enthusiastic',
+  ELATED: 'elated',
+  EUPHORIC: 'euphoric',
+  TRIUMPHANT: 'triumphant',
   AMAZED: 'amazed',
-  HESITANT: 'hesitant',
-  APOLOGETIC: 'apologetic',
-  DISAPPOINTED: 'disappointed',
-  RESIGNED: 'resigned',
-  FRUSTRATED: 'frustrated',
-  WISTFUL: 'wistful',
+  SURPRISED: 'surprised',
+  FLIRTATIOUS: 'flirtatious',
+  JOKING: 'joking', // Also: 'comedic'
+  CURIOUS: 'curious',
+  PEACEFUL: 'peaceful',
+  SERENE: 'serene',
+  CALM: 'calm',
+  GRATEFUL: 'grateful',
+  AFFECTIONATE: 'affectionate',
+  TRUST: 'trust',
+  SYMPATHETIC: 'sympathetic',
   ANTICIPATION: 'anticipation',
+  MYSTERIOUS: 'mysterious',
+
+  // ==========================================================================
+  // NEGATIVE EMOTIONS - Anger Spectrum
+  // ==========================================================================
+  MAD: 'mad',
+  OUTRAGED: 'outraged',
+  FRUSTRATED: 'frustrated',
+  AGITATED: 'agitated',
+  THREATENED: 'threatened',
+  DISGUSTED: 'disgusted',
+  CONTEMPT: 'contempt',
+  ENVIOUS: 'envious',
+  SARCASTIC: 'sarcastic',
+  IRONIC: 'ironic',
+
+  // ==========================================================================
+  // NEGATIVE EMOTIONS - Sadness Spectrum
+  // ==========================================================================
+  DEJECTED: 'dejected',
+  MELANCHOLIC: 'melancholic',
+  DISAPPOINTED: 'disappointed',
+  HURT: 'hurt',
+  GUILTY: 'guilty',
+  BORED: 'bored',
+  TIRED: 'tired',
+  REJECTED: 'rejected',
+  NOSTALGIC: 'nostalgic',
+  WISTFUL: 'wistful',
+  APOLOGETIC: 'apologetic',
+  HESITANT: 'hesitant',
+  INSECURE: 'insecure',
+  CONFUSED: 'confused',
+  RESIGNED: 'resigned',
+
+  // ==========================================================================
+  // FEAR & ANXIETY SPECTRUM
+  // ==========================================================================
+  ANXIOUS: 'anxious',
+  PANICKED: 'panicked',
+  ALARMED: 'alarmed',
+
+  // ==========================================================================
+  // CONFIDENT & ASSERTIVE
+  // ==========================================================================
+  PROUD: 'proud',
+  CONFIDENT: 'confident',
+  DISTANT: 'distant',
+  SKEPTICAL: 'skeptical',
+  CONTEMPLATIVE: 'contemplative',
   DETERMINED: 'determined',
+
+  // ==========================================================================
+  // LEGACY ALIASES (for backwards compatibility)
+  // ==========================================================================
+  WARM: 'affectionate', // Alias → affectionate
+  CARING: 'sympathetic', // Alias → sympathetic
+  THOUGHTFUL: 'contemplative', // Alias → contemplative
 } as const;
 
 /**

@@ -73,6 +73,8 @@ import { winterSolsticeMoment } from './winter-solstice.ui.js';
 
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
+// Avatar Sidekicks - Expressive side icons (like "hands" holding props)
+import { avatarSidekicks, type SidekickIcon } from './avatar-sidekicks.ui.js';
 // Ferni Milestones - Relationship celebrations
 import { ferniMilestones, type MilestoneType } from './ferni-milestones.ui.js';
 // Journey UI - Milestone scrapbook view
@@ -903,6 +905,128 @@ function createPanel(): HTMLElement {
             <button aria-label="Idea Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">${ICONS.lightbulb} Idea Morph</button>
             <button aria-label="Heart Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">${ICONS.heart} Heart Morph</button>
             <button aria-label="Sparkle Morph" class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">${ICONS.sparkles} Sparkle Morph</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">🤲 Side Expressions (80+ Icons!)</span>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin: 4px 0 8px;">Icons float beside avatar like expressive "hands"</p>
+          
+          <!-- Time of Day -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">☀️ Time of Day</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Coffee" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="coffee" title="Morning coffee">${ICONS.coffee}</button>
+            <button aria-label="Sun" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sun" title="Sunshine">${ICONS.sun}</button>
+            <button aria-label="Sunrise" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sunrise" title="Sunrise">${ICONS.sunrise}</button>
+            <button aria-label="Sunset" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sunset" title="Sunset">${ICONS.sunset}</button>
+            <button aria-label="Moon" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="moon" title="Moon">${ICONS.moon}</button>
+            <button aria-label="Flame" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flame" title="Cozy flame">${ICONS.flame}</button>
+            <button aria-label="Clock" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="clock" title="Time">${ICONS.clock}</button>
+            <button aria-label="Alarm" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="alarm" title="Alarm">${ICONS.alarm}</button>
+          </div>
+          
+          <!-- Emotions -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">❤️ Emotions</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Heart" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="heart" title="Love">${ICONS.heart}</button>
+            <button aria-label="Heart Pulse" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="heartPulse" title="Heart pulse">${ICONS.heartPulse}</button>
+            <button aria-label="Sparkles" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sparkles" title="Sparkles">${ICONS.sparkles}</button>
+            <button aria-label="Smile" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="smile" title="Smile">${ICONS.smile}</button>
+            <button aria-label="Laughing" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="laughing" title="Laughing">${ICONS.laughing}</button>
+            <button aria-label="Wink" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="wink" title="Wink">${ICONS.wink}</button>
+            <button aria-label="Hug" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="hug" title="Hug">${ICONS.hugging}</button>
+            <button aria-label="Thumbs Up" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="thumbsUp" title="Thumbs up">${ICONS.thumbsUp}</button>
+          </div>
+          
+          <!-- Ideas & Thinking -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">💡 Ideas & Thinking</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Lightbulb" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="lightbulb" title="Idea">${ICONS.lightbulb}</button>
+            <button aria-label="Brain" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="brain" title="Thinking">${ICONS.brain}</button>
+            <button aria-label="Thinking" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="thinking" title="Pondering">${ICONS.thinking}</button>
+            <button aria-label="Compass" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="compass" title="Direction">${ICONS.compass}</button>
+            <button aria-label="Focus" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="focus" title="Focus">${ICONS.focus}</button>
+            <button aria-label="Target" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="target" title="Goal">${ICONS.target}</button>
+            <button aria-label="Search" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="search" title="Search">${ICONS.search}</button>
+          </div>
+          
+          <!-- Gestures -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">👋 Gestures</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Wave" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="hand" title="Wave">${ICONS.hand}</button>
+            <button aria-label="Handshake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="handshake" title="Handshake">${ICONS.handshake}</button>
+            <button aria-label="Pointer" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="pointer" title="Pointer">${ICONS.pointer}</button>
+            <button aria-label="Flex" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flex" title="Strength">${ICONS.flex}</button>
+          </div>
+          
+          <!-- Activities -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🎵 Activities</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Music" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="music" title="Music">${ICONS.music}</button>
+            <button aria-label="Headphones" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="headphones" title="Listening">${ICONS.headphones}</button>
+            <button aria-label="Book" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="book" title="Reading">${ICONS.book}</button>
+            <button aria-label="Book Open" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="bookOpen" title="Learning">${ICONS.bookOpen}</button>
+            <button aria-label="Palette" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="palette" title="Art">${ICONS.palette}</button>
+            <button aria-label="Brush" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="brush" title="Creative">${ICONS.brush}</button>
+            <button aria-label="Gamepad" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="gamepad" title="Gaming">${ICONS.gamepad}</button>
+            <button aria-label="Yoga" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="yoga" title="Wellness">${ICONS.yoga}</button>
+          </div>
+          
+          <!-- Celebrations -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Celebrations</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Trophy" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="trophy" title="Achievement">${ICONS.trophy}</button>
+            <button aria-label="Star" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="star" title="Star">${ICONS.star}</button>
+            <button aria-label="Crown" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="crown" title="Recognition">${ICONS.crown}</button>
+            <button aria-label="Gift" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="gift" title="Gift">${ICONS.gift}</button>
+            <button aria-label="Cake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cake" title="Birthday">${ICONS.cake}</button>
+            <button aria-label="Party" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="party" title="Party">${ICONS.party}</button>
+            <button aria-label="Confetti" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="confetti" title="Confetti">${ICONS.confetti}</button>
+            <button aria-label="Rocket" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="rocket" title="Launch">${ICONS.rocket}</button>
+          </div>
+          
+          <!-- Nature & Weather -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">🌿 Nature & Weather</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Leaf" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="leaf" title="Nature">${ICONS.leaf}</button>
+            <button aria-label="Flower" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flower" title="Flower">${ICONS.flower}</button>
+            <button aria-label="Sprout" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="sprout" title="Growth">${ICONS.sparkle}</button>
+            <button aria-label="Grow" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="grow" title="Growing">${ICONS.grow}</button>
+            <button aria-label="Cloud" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cloud" title="Cloud">${ICONS.cloud}</button>
+            <button aria-label="Rain" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="cloudRain" title="Rain">${ICONS.cloudRain}</button>
+            <button aria-label="Snowflake" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="snowflake" title="Snow">${ICONS.snowflake}</button>
+            <button aria-label="Rainbow" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="rainbow" title="Rainbow">${ICONS.rainbow}</button>
+            <button aria-label="Waves" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="waves" title="Waves">${ICONS.waves}</button>
+          </div>
+          
+          <!-- Energy & Motivation -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">⚡ Energy & Motivation</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Zap" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="zap" title="Energy">${ICONS.zap}</button>
+            <button aria-label="Trending Up" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="trendingUp" title="Progress">${ICONS.trendingUp}</button>
+            <button aria-label="Activity" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="activity" title="Activity">${ICONS.activity}</button>
+            <button aria-label="Flag" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="flag" title="Milestone">${ICONS.flag}</button>
+          </div>
+          
+          <!-- Communication -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">💬 Communication</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Chat" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="chat" title="Chat">${ICONS.chat}</button>
+            <button aria-label="Message" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="messageCircle" title="Message">${ICONS.messageCircle}</button>
+            <button aria-label="Bell" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="bell" title="Reminder">${ICONS.bell}</button>
+            <button aria-label="Mail" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="mail" title="Email">${ICONS.mail}</button>
+            <button aria-label="Mic" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="mic" title="Voice">${ICONS.mic}</button>
+          </div>
+          
+          <!-- Misc -->
+          <p style="font-size: 10px; color: var(--color-text-dimmed); margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">✨ More</p>
+          <div class="dev-expression-buttons" role="button" tabindex="0">
+            <button aria-label="Eye" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="eye" title="Vision">${ICONS.eye}</button>
+            <button aria-label="Calendar" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="calendar" title="Schedule">${ICONS.calendar}</button>
+            <button aria-label="Check" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="checkCircle" title="Done">${ICONS.checkCircle}</button>
+            <button aria-label="Magic" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="magic" title="Magic">${ICONS.magic}</button>
+            <button aria-label="Layers" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="layers" title="Layers">${ICONS.layers}</button>
+            <button aria-label="Info" class="dev-expression-btn dev-expression-btn--sidekick" data-sidekick="info" title="Info">${ICONS.info}</button>
           </div>
         </div>
       </section>
@@ -2172,6 +2296,9 @@ function createPanel(): HTMLElement {
             <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
               ${ICONS.movie} Animations
             </a>
+            <button aria-label="BTH Analytics" class="dev-dashboard-link" data-action="open-bth-analytics" title="Better Than Human Analytics">
+              ${ICONS.heart} BTH Analytics
+            </button>
           </div>
         </div>
       </section>
@@ -2453,6 +2580,16 @@ function createPanel(): HTMLElement {
       const morph = (btn as HTMLElement).dataset.morph;
       if (morph) {
         void triggerFerniMorph(morph);
+      }
+    });
+  });
+
+  // 🤲 Avatar Sidekicks - Side expression icons
+  container.querySelectorAll('[data-sidekick]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sidekick = (btn as HTMLElement).dataset.sidekick;
+      if (sidekick) {
+        void triggerSidekick(sidekick);
       }
     });
   });
@@ -3152,6 +3289,9 @@ function handleAction(action: string): void {
     case 'open-evalops':
       void openEvalOpsDashboard();
       break;
+    case 'open-bth-analytics':
+      void openBTHAnalyticsDashboard();
+      break;
   }
 }
 
@@ -3165,6 +3305,19 @@ async function openEvalOpsDashboard(): Promise<void> {
     log.info('${ICONS.target} Opened EvalOps dashboard');
   } catch (e) {
     log.error('Failed to open EvalOps dashboard:', e);
+  }
+}
+
+/**
+ * Open BTH Analytics dashboard
+ */
+async function openBTHAnalyticsDashboard(): Promise<void> {
+  try {
+    const { showBTHAnalyticsDashboard } = await import('./bth-analytics-dashboard.ui.js');
+    await showBTHAnalyticsDashboard();
+    log.info('Opened BTH Analytics dashboard');
+  } catch (e) {
+    log.error('Failed to open BTH Analytics dashboard:', e);
   }
 }
 
@@ -4054,6 +4207,31 @@ async function triggerFerniMorph(iconType: string): Promise<void> {
   await ferniExpressions.morphIconToText(iconElement);
 
   log.info({ iconType }, 'Completed Ferni morph');
+}
+
+/**
+ * Trigger a sidekick (side expression icon).
+ * These float beside the avatar instead of over it.
+ */
+async function triggerSidekick(iconName: string): Promise<void> {
+  // Initialize if not already done
+  avatarSidekicks.init();
+  
+  // Cast to SidekickIcon if valid
+  const validIcons: SidekickIcon[] = avatarSidekicks.icons;
+  if (!validIcons.includes(iconName as SidekickIcon)) {
+    log.warn({ iconName }, 'Unknown sidekick icon');
+    return;
+  }
+  
+  // Show the sidekick
+  avatarSidekicks.show({
+    icon: iconName as SidekickIcon,
+    position: 'right', // Default to right side
+    duration: 2500,
+  });
+  
+  log.info({ iconName }, 'Triggered sidekick');
 }
 
 function triggerMusicAction(action: string): void {

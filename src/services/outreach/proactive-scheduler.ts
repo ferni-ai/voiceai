@@ -241,8 +241,42 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
         break;
       }
       case 'text': {
-        // SMS requires phone number lookup - skip for now
-        log.debug({ userId: outreach.userId }, 'SMS delivery not yet implemented');
+        try {
+          const { sendSMS } = await import('./delivery/sms-delivery.js');
+          const { getDefaultStore } = await import('../../memory/index.js');
+          const store = getDefaultStore();
+          const profile = await store.getProfile(outreach.userId);
+          const phone = profile?.contactInfo?.phone;
+
+          if (phone) {
+            await sendSMS({
+              to: phone,
+              body: outreach.message,
+              personaId: 'ferni',
+              userId: outreach.userId,
+              outreachId: outreach.id,
+            });
+          } else {
+            log.debug(
+              { userId: outreach.userId },
+              'No phone number for SMS delivery, falling back to push'
+            );
+            const { sendPushNotification } = await import('./delivery/push-notifications.js');
+            await sendPushNotification({
+              userId: outreach.userId,
+              outreachId: outreach.id,
+              personaId: 'ferni',
+              title: 'Ferni',
+              body: outreach.message,
+              data: { type: outreach.type },
+            });
+          }
+        } catch (err) {
+          log.warn(
+            { error: String(err), userId: outreach.userId },
+            'SMS delivery failed, falling back to push'
+          );
+        }
         break;
       }
       // Voice would require initiating a call - more complex

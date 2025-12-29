@@ -13,6 +13,7 @@
 
 import { CROSS_PERSONA_REFERENCES } from '../../../services/team-engagement/banter.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { registerInterval } from '../../../utils/interval-manager.js';
 import {
   BuilderCategory,
   createHintInjection,
@@ -443,7 +444,8 @@ It builds the world and makes the AI feel more human.`;
 };
 
 // Clean up old session states periodically
-setInterval(
+registerInterval(
+  'team-gossip-cleanup',
   () => {
     const now = Date.now();
     const maxAge = 30 * 60 * 1000; // 30 minutes

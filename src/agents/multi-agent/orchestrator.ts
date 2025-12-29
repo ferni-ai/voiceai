@@ -45,6 +45,11 @@ export interface PersonaAgent {
   setMuted: (muted: boolean) => void;
   /** Function to interrupt any ongoing speech/generation */
   interrupt: () => void;
+  /**
+   * ⚡ FAST-AGENT-JOIN: Wire handlers after greeting.
+   * Only present when deferHandlers=true. Called automatically after greeting.
+   */
+  wireHandlers?: () => Promise<void>;
 }
 
 export interface HandoffRequest {
@@ -192,6 +197,9 @@ export class AgentOrchestrator {
    *
    * SIMPLIFIED: Uses warm-greeting.ts directly with agent.say() wrapper.
    * No LLM call, no timeouts, no failures - just speaks immediately.
+   *
+   * ⚡ FAST-AGENT-JOIN: If handlers were deferred, wire them after greeting starts.
+   * This reduces critical path by ~500ms (handlers wire in parallel with speech).
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
@@ -215,6 +223,14 @@ export class AgentOrchestrator {
       // FIX: Disable interruptions for initial greeting - iOS background noise was cutting it off
       diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
       agent.say(greeting, { allowInterruptions: false });
+
+      // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
+      // Handlers run in parallel with speech - user hears greeting while handlers wire
+      if (agent.wireHandlers) {
+        void agent.wireHandlers().then(() => {
+          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after greeting');
+        });
+      }
     } catch (err) {
       log.warn({ error: String(err), personaId: agent.personaId }, '🎭 Initial greeting failed');
     }

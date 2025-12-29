@@ -347,21 +347,30 @@ async function callGeminiForExpressions(
   const startTime = Date.now();
 
   try {
-    // Dynamic import to avoid blocking at startup
-    const { GoogleGenAI: GenAI } = await import('@google/genai');
-    const apiKey = process.env.GOOGLE_API_KEY;
+    // Use centralized Gemini config
+    const { getGeminiClient, isGeminiConfigured, GEMINI_MODEL, LLM_TIMEOUT_MS } =
+      await import('../../../config/gemini-config.js');
 
-    if (!apiKey) {
-      log.debug('No GOOGLE_API_KEY, skipping LLM generation');
+    if (!isGeminiConfigured()) {
+      log.debug('Gemini not configured, skipping LLM generation');
       return null;
     }
 
-    const genai = new GenAI({ apiKey });
+    const genai = await getGeminiClient();
+    if (!genai) {
+      log.debug('Failed to get Gemini client, skipping LLM generation');
+      return null;
+    }
+
     const prompt = buildExpressionPrompt(requests);
 
     const response = await Promise.race([
-      genai.models.generateContent({
-        model: 'gemini-2.0-flash-exp',
+      (
+        genai as {
+          models: { generateContent: (p: unknown) => Promise<{ text: string }> };
+        }
+      ).models.generateContent({
+        model: GEMINI_MODEL, // From centralized config
         contents: prompt,
         config: {
           temperature: 0.9, // High creativity
@@ -369,7 +378,7 @@ async function callGeminiForExpressions(
         },
       }),
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Gemini timeout')), 8000);
+        setTimeout(() => reject(new Error('Gemini timeout')), LLM_TIMEOUT_MS * 1.6); // Slightly longer for generation
       }),
     ]);
 

@@ -49,19 +49,49 @@ const ECHO_VIGILANCE_WINDOW_MS = 2500;
 /** Minimum transcript length to consider valid during echo window */
 const MIN_ECHO_WINDOW_LENGTH = 3;
 
-/** Characters that indicate non-Latin script (likely noise in English mode) */
-const NON_LATIN_PATTERNS = {
+/** Characters that indicate non-Latin script - mapped by language code */
+const SCRIPT_PATTERNS: Record<string, RegExp> = {
   chinese: /[\u4e00-\u9fff\u3400-\u4dbf]/,
   thai: /[\u0e00-\u0e7f]/,
   arabic: /[\u0600-\u06ff]/,
   cyrillic: /[\u0400-\u04ff]/,
-  japanese: /[\u3040-\u309f\u30a0-\u30ff]/,
+  japanese: /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]/,
   korean: /[\uac00-\ud7af\u1100-\u11ff]/,
   hebrew: /[\u0590-\u05ff]/,
   devanagari: /[\u0900-\u097f]/,
   vietnamese: /[\u1ea0-\u1ef9]/,
   greek: /[\u0370-\u03ff]/,
 };
+
+/** Map language codes to their expected scripts */
+const LANGUAGE_SCRIPTS: Record<string, string[]> = {
+  'en': ['latin'],
+  'es': ['latin'],
+  'fr': ['latin'],
+  'de': ['latin'],
+  'it': ['latin'],
+  'pt': ['latin'],
+  'nl': ['latin'],
+  'pl': ['latin'],
+  'tr': ['latin'],
+  'sv': ['latin'],
+  'ja': ['japanese', 'chinese'], // Japanese uses kanji (Chinese chars) + kana
+  'ko': ['korean'],
+  'zh': ['chinese'],
+  'hi': ['devanagari'],
+  'ar': ['arabic'],
+  'ru': ['cyrillic'],
+  'he': ['hebrew'],
+  'th': ['thai'],
+  'el': ['greek'],
+  'vi': ['vietnamese', 'latin'],
+};
+
+/** Get allowed scripts for a language code */
+function getAllowedScripts(languageCode: string): string[] {
+  const baseLang = languageCode.split('-')[0].toLowerCase();
+  return LANGUAGE_SCRIPTS[baseLang] || ['latin'];
+}
 
 /** Portuguese/Spanish accented words that are commonly mistranscribed from noise */
 const LIKELY_NOISE_WORDS = [
@@ -121,16 +151,22 @@ export function validateTranscript(
   }
 
   // =========================================================================
-  // CHECK 2: Foreign characters / noise words (likely noise in English mode)
+  // CHECK 2: Foreign characters / noise words
+  // Only applies when speaking a language - validates script matches language
   // =========================================================================
   const expectedLang = context.expectedLanguage || 'en';
-  if (expectedLang.startsWith('en')) {
-    // CHECK 2a: Likely noise words (Portuguese/Spanish mistranscriptions)
+  const allowedScripts = getAllowedScripts(expectedLang);
+  const isLatinLanguage = allowedScripts.includes('latin');
+
+  // CHECK 2a: Only filter noise words for Latin-script languages (English, Spanish, etc.)
+  // This prevents "não", "sí" from being treated as valid when expecting English
+  if (isLatinLanguage) {
     for (const pattern of LIKELY_NOISE_WORDS) {
       if (pattern.test(trimmed)) {
         log.debug('Transcript rejected: likely noise word', {
           transcript: trimmed,
           pattern: pattern.source,
+          expectedLang,
         });
         return {
           isValid: false,
@@ -140,39 +176,41 @@ export function validateTranscript(
         };
       }
     }
+  }
 
-    // CHECK 2b: Foreign characters
-    const foreignCharCount = countForeignCharacters(trimmed);
-    const foreignRatio = foreignCharCount / Math.max(trimmed.length, 1);
+  // CHECK 2b: Foreign characters - validate script matches expected language
+  const foreignCharCount = countForeignCharactersForLanguage(trimmed, expectedLang);
+  const foreignRatio = foreignCharCount / Math.max(trimmed.length, 1);
 
-    // For short transcripts (< 15 chars), ANY foreign character is suspicious
-    if (trimmed.length < 15 && foreignCharCount > 0) {
-      log.debug('Transcript rejected: foreign characters in short transcript', {
-        transcript: trimmed.slice(0, 30),
-        foreignCount: foreignCharCount,
-        length: trimmed.length,
-      });
-      return {
-        isValid: false,
-        reason: 'foreign_chars',
-        confidence: 0.88,
-        transcript,
-      };
-    }
+  // For short transcripts (< 15 chars), foreign characters are suspicious
+  if (trimmed.length < 15 && foreignCharCount > 0) {
+    log.debug('Transcript rejected: foreign characters in short transcript', {
+      transcript: trimmed.slice(0, 30),
+      foreignCount: foreignCharCount,
+      length: trimmed.length,
+      expectedLang,
+    });
+    return {
+      isValid: false,
+      reason: 'foreign_chars',
+      confidence: 0.88,
+      transcript,
+    };
+  }
 
-    // For longer transcripts, if more than 15% foreign characters, likely noise
-    if (foreignRatio > 0.15) {
-      log.debug('Transcript rejected: too many foreign characters', {
-        transcript: trimmed.slice(0, 30),
-        foreignRatio: foreignRatio.toFixed(2),
-      });
-      return {
-        isValid: false,
-        reason: 'foreign_chars',
-        confidence: 0.85 + foreignRatio * 0.1,
-        transcript,
-      };
-    }
+  // For longer transcripts, if more than 15% foreign characters, likely noise
+  if (foreignRatio > 0.15) {
+    log.debug('Transcript rejected: too many foreign characters', {
+      transcript: trimmed.slice(0, 30),
+      foreignRatio: foreignRatio.toFixed(2),
+      expectedLang,
+    });
+    return {
+      isValid: false,
+      reason: 'foreign_chars',
+      confidence: 0.85 + foreignRatio * 0.1,
+      transcript,
+    };
   }
 
   // =========================================================================
@@ -263,17 +301,37 @@ export function validateTranscript(
 // ============================================================================
 
 /**
- * Count characters that don't belong to Latin script
+ * Count characters that don't belong to the expected language's script
+ * For Latin languages, counts non-Latin characters
+ * For non-Latin languages, counts characters from unexpected scripts
  */
-function countForeignCharacters(text: string): number {
+function countForeignCharactersForLanguage(text: string, expectedLang: string): number {
+  const allowedScripts = getAllowedScripts(expectedLang);
   let count = 0;
-  for (const [_lang, pattern] of Object.entries(NON_LATIN_PATTERNS)) {
+
+  // For each script pattern, check if it's allowed for this language
+  for (const [scriptName, pattern] of Object.entries(SCRIPT_PATTERNS)) {
+    // If this script is allowed, don't count its characters as foreign
+    if (allowedScripts.includes(scriptName)) {
+      continue;
+    }
+
+    // Count characters from disallowed scripts
     const matches = text.match(new RegExp(pattern.source, 'g'));
     if (matches) {
       count += matches.length;
     }
   }
+
   return count;
+}
+
+/**
+ * Legacy function for backwards compatibility
+ * Counts non-Latin characters (for English mode)
+ */
+function countForeignCharacters(text: string): number {
+  return countForeignCharactersForLanguage(text, 'en');
 }
 
 /**
@@ -312,8 +370,10 @@ function calculateSimilarity(a: string, b: string): number {
 
 /**
  * Quick check if transcript looks like noise (for use in hot paths)
+ * @param transcript - The transcript to check
+ * @param expectedLanguage - The expected language code (default: 'en')
  */
-export function isLikelyNoise(transcript: string): boolean {
+export function isLikelyNoise(transcript: string, expectedLanguage = 'en'): boolean {
   const trimmed = transcript.trim();
 
   // Single char
@@ -324,20 +384,23 @@ export function isLikelyNoise(transcript: string): boolean {
     if (pattern.test(trimmed)) return true;
   }
 
-  // Likely noise words (Portuguese/Spanish)
-  for (const pattern of LIKELY_NOISE_WORDS) {
-    if (pattern.test(trimmed)) return true;
+  // Likely noise words - only check for Latin-script languages
+  const allowedScripts = getAllowedScripts(expectedLanguage);
+  if (allowedScripts.includes('latin')) {
+    for (const pattern of LIKELY_NOISE_WORDS) {
+      if (pattern.test(trimmed)) return true;
+    }
   }
 
-  // ANY foreign characters in short transcript = noise
+  // Foreign characters in short transcript = noise
   if (trimmed.length < 15) {
-    const foreignCount = countForeignCharacters(trimmed);
+    const foreignCount = countForeignCharactersForLanguage(trimmed, expectedLanguage);
     if (foreignCount > 0) return true;
   }
 
   // Mostly foreign characters in longer transcript
   if (trimmed.length >= 15) {
-    const foreignCount = countForeignCharacters(trimmed);
+    const foreignCount = countForeignCharactersForLanguage(trimmed, expectedLanguage);
     if (foreignCount > trimmed.length * 0.15) return true;
   }
 

@@ -23,6 +23,8 @@
  * - Production: Workers can run as separate Cloud Run services with Pub/Sub
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+
 export * from './analytics-worker.js';
 export * from './base-worker.js';
 export * from './trust-worker.js';
@@ -30,6 +32,7 @@ export * from './embedding-worker.js';
 export * from './summarization-worker.js';
 export * from './audio-analysis-pool.js';
 export * from './predictions-worker.js';
+export * from './outreach-worker.js';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { resilienceMetrics } from '../services/observability/resilience-metrics.js';
@@ -51,6 +54,7 @@ const log = createLogger({ module: 'Workers' });
 // ============================================================================
 
 let workersStarted = false;
+let workersStarting = false; // Prevents race condition during startup
 
 /** Default timeout for worker startup (30 seconds) */
 const WORKER_STARTUP_TIMEOUT_MS = 30_000;
@@ -79,6 +83,13 @@ export async function startAllWorkers(timeoutMs = WORKER_STARTUP_TIMEOUT_MS): Pr
     return;
   }
 
+  // Prevent race condition: check if startup is already in progress
+  if (workersStarting) {
+    log.debug('Workers startup already in progress');
+    return;
+  }
+  workersStarting = true;
+
   log.info({ timeoutMs }, 'Starting background workers');
   const start = Date.now();
 
@@ -96,9 +107,9 @@ export async function startAllWorkers(timeoutMs = WORKER_STARTUP_TIMEOUT_MS): Pr
     ]);
 
     // Initialize audio analysis worker pool (uses worker_threads)
-    // This has its own shorter timeout since it's non-critical
+    // This is non-critical, wrapped in try/catch
     try {
-      await Promise.race([initializeAudioAnalysisPool(), createTimeout(5000, 'Audio pool init')]);
+      initializeAudioAnalysisPool();
       log.info('Audio analysis worker pool initialized');
     } catch (audioPoolError) {
       // Non-critical - fallback to main thread analysis
@@ -108,13 +119,18 @@ export async function startAllWorkers(timeoutMs = WORKER_STARTUP_TIMEOUT_MS): Pr
       );
     }
 
+    // eslint-disable-next-line require-atomic-updates -- Variables only modified in this function
     workersStarted = true;
+    // eslint-disable-next-line require-atomic-updates -- Variables only modified in this function
+    workersStarting = false;
     const elapsed = Date.now() - start;
     log.info({ elapsedMs: elapsed }, 'Background workers started');
 
     // Record successful startup metrics
     resilienceMetrics.recordWorkerEvent('all-workers', 'startup', elapsed, true);
   } catch (error) {
+    // eslint-disable-next-line require-atomic-updates -- Variables only modified in this function
+    workersStarting = false;
     const elapsed = Date.now() - start;
     const isTimeout = String(error).includes('timeout');
 
@@ -150,6 +166,7 @@ export async function stopAllWorkers(): Promise<void> {
     shutdownAudioAnalysisPool(),
   ]);
 
+  // eslint-disable-next-line require-atomic-updates -- Variables only modified in this function
   workersStarted = false;
   log.info('Background workers stopped');
 }
@@ -162,6 +179,8 @@ export function getWorkerStats(): Record<string, unknown> {
     trust: getTrustWorker().getStats(),
     analytics: getAnalyticsWorker().getStats(),
     predictions: getPredictionsWorker().getStats(),
+    embedding: getEmbeddingWorker().getStats(),
+    summarization: getSummarizationWorker().getStats(),
   };
 }
 

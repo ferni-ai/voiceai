@@ -11,7 +11,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { embed } from '../../memory/embeddings.js';
+// Centralized embedding operations - cosineSimilarity uses SIMD-ready implementation
+import { embed, cosineSimilarity } from '../../memory/embeddings.js';
 import type {
   AgentStory,
   AgentWisdom,
@@ -789,27 +790,7 @@ export async function findRelevantMemories(
   return scored.slice(0, limit);
 }
 
-/**
- * Cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) {
-    return 0;
-  }
-
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator > 0 ? dot / denominator : 0;
-}
+// Note: cosineSimilarity is imported from embeddings.js (SIMD-accelerated via rust-accelerator)
 
 // ============================================================================
 // API RESPONSE HELPER

@@ -662,6 +662,77 @@
     }
   },
 
+  "speakingSystem": {
+    "_documentation": "Three-Layer Speaking Animation System - Body, Halo, and Lid work in harmony to convey speech without a mouth",
+    "_philosophy": "Body is PRIMARY (most visible, like a speaker cone), Halo is AMBIENT (peripheral awareness), Lid is DETAIL (articulation)",
+    
+    "layers": {
+      "body": {
+        "_role": "Primary speaking indicator - bass speaker effect",
+        "maxScaleY": 1.08,
+        "minScaleX": 0.97,
+        "squashRatio": 0.4,
+        "eyeSquintMax": 0.15,
+        "smoothingAttack": 0.25,
+        "smoothingRelease": 0.08
+      },
+      "halo": {
+        "_role": "Ambient indicator - sound waves emanating",
+        "maxScale": 1.015,
+        "minOpacity": 0.3,
+        "maxOpacity": 0.5,
+        "waveCount": 2,
+        "waveScaleIncrement": 0.04,
+        "waveOpacityDecay": 0.5
+      },
+      "lidMouth": {
+        "_role": "Articulation detail - subtle mouth opening",
+        "topLidYClosed": -10,
+        "topLidYOpen": 15,
+        "bottomLidYClosed": 110,
+        "bottomLidYOpen": 70,
+        "smoothingAttack": 0.25,
+        "smoothingRelease": 0.12
+      }
+    },
+    
+    "timing": {
+      "transitionDuration": "80ms",
+      "transitionEasing": "ease-out",
+      "phraseRhythm": "450ms",
+      "wavePhaseOffset": "100ms"
+    },
+    
+    "volumeMapping": {
+      "_description": "How voice volume (0-1) maps to animation intensity",
+      "threshold": 0.05,
+      "minSpeaking": 0.15,
+      "maxSpeaking": 1.0,
+      "silenceDecay": "200ms"
+    },
+
+    "platformImplementation": {
+      "web": {
+        "bodyProperty": "transform: scaleY() scaleX()",
+        "haloProperty": "transform: scale(); opacity",
+        "lidProperty": "d: path()",
+        "updateRate": "requestAnimationFrame"
+      },
+      "ios": {
+        "bodyProperty": "CGAffineTransform.scale",
+        "haloProperty": "CABasicAnimation.scale + opacity",
+        "lidProperty": "CAShapeLayer.path",
+        "updateRate": "CADisplayLink"
+      },
+      "android": {
+        "bodyProperty": "Modifier.graphicsLayer { scaleX, scaleY }",
+        "haloProperty": "animateFloatAsState + alpha",
+        "lidProperty": "Path.quadraticBezierTo",
+        "updateRate": "LaunchedEffect + animationSpec"
+      }
+    }
+  },
+
   "animations": {
     "fadeIn": "fadeIn 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards",
     "fadeOut": "fadeOut 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards",

@@ -51,7 +51,8 @@ export interface HapticEvent {
 // HAPTIC PATTERNS
 // ============================================================================
 
-export const HAPTIC_PATTERNS: Record<string, HapticPattern> = {
+// Using satisfies to get type-safe keys while maintaining literal types
+export const HAPTIC_PATTERNS = {
   // ==========================================================================
   // BASIC PATTERNS
   // ==========================================================================
@@ -334,7 +335,27 @@ export const HAPTIC_PATTERNS: Record<string, HapticPattern> = {
       { type: 'continuous', startTime: 250, duration: 200, intensity: 0.2, sharpness: 0.1 },
     ],
   },
-};
+} as const satisfies Record<string, HapticPattern>;
+
+// Type for safe pattern key access
+export type HapticPatternName = keyof typeof HAPTIC_PATTERNS;
+
+/**
+ * Type guard to check if a string is a valid haptic pattern name
+ */
+export function isHapticPatternName(name: string): name is HapticPatternName {
+  return name in HAPTIC_PATTERNS;
+}
+
+/**
+ * Safely get a haptic pattern by name (for runtime string access)
+ */
+export function getHapticPattern(name: string): HapticPattern | undefined {
+  if (isHapticPatternName(name)) {
+    return HAPTIC_PATTERNS[name];
+  }
+  return undefined;
+}
 
 // ============================================================================
 // PERSONA HAPTIC PROFILES
@@ -498,16 +519,16 @@ export class HapticsService {
    */
   play(patternName: string, options: { intensity?: number } = {}): void {
     if (!this.isAvailable()) return;
-    
-    const pattern = HAPTIC_PATTERNS[patternName];
+
+    const pattern = getHapticPattern(patternName);
     if (!pattern) {
       log.warn('Unknown haptic pattern', { patternName });
       return;
     }
-    
+
     const intensity = (options.intensity ?? 1) * this.config.intensityMultiplier;
     this.executePattern(pattern, intensity);
-    
+
     log.debug('Playing haptic', { pattern: patternName, intensity });
   }
   

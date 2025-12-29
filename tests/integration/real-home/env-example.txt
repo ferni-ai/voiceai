@@ -1,0 +1,55 @@
+# =============================================================================
+# REAL HOME INTEGRATION TEST CONFIGURATION
+# =============================================================================
+# Copy this file to .env.local and fill in your values
+# Direct integrations preferred - Home Assistant is optional!
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 🧑 TEST USER (Required)
+# -----------------------------------------------------------------------------
+TEST_USER_ID=seth-test-user
+
+# -----------------------------------------------------------------------------
+# 🌡️ ECOBEE THERMOSTAT (Recommended - easiest to set up!)
+# -----------------------------------------------------------------------------
+# 1. Get API key at: https://www.ecobee.com/developers/
+# 2. Fill in your key below
+# 3. Run: pnpm ecobee:auth (interactive PIN authorization)
+ECOBEE_API_KEY=
+
+# -----------------------------------------------------------------------------
+# 💡 PHILIPS HUE (Direct local bridge - no cloud needed!)
+# -----------------------------------------------------------------------------
+# 1. Find your bridge IP (check router or Hue app)
+# 2. Press the physical link button on your bridge
+# 3. Run: curl -X POST http://<bridge-ip>/api -d '{"devicetype":"ferni#test"}'
+# 4. Copy the username from the response below
+HUE_BRIDGE_IP=
+HUE_USERNAME=
+
+# -----------------------------------------------------------------------------
+# 💡 LIFX (Cloud API - simple setup)
+# -----------------------------------------------------------------------------
+# Get your token at: https://cloud.lifx.com/settings
+LIFX_TOKEN=
+
+# -----------------------------------------------------------------------------
+# 🏠 HOME ASSISTANT (Optional - for power users only)
+# -----------------------------------------------------------------------------
+# Only set these if you already run Home Assistant.
+# It can aggregate ALL your devices into one API.
+# HOME_ASSISTANT_URL=http://homeassistant.local:8123
+# HOME_ASSISTANT_TOKEN=your_long_lived_access_token
+
+# -----------------------------------------------------------------------------
+# 🧪 TEST CONFIGURATION
+# -----------------------------------------------------------------------------
+# Run in dry-run mode (log actions, don't execute)
+# DRY_RUN=true
+
+# Skip restore after tests
+# SKIP_RESTORE=true
+
+# Verbose logging
+# VERBOSE=true

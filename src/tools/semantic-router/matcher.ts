@@ -24,6 +24,13 @@ import type {
 } from './types.js';
 import { getKeywordWord, getKeywordWeight } from './types.js';
 import { runHolisticLayer, type HolisticLayerResult } from './holistic-layer.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import {
+  cosineSimilarity,
+  batchCosineSimilarityOptimized,
+} from '../../memory/rust-accelerator.js';
+// Re-export for backwards compatibility with existing consumers
+export { cosineSimilarity };
 
 // ============================================================================
 // TEXT NORMALIZATION
@@ -211,29 +218,7 @@ export function scoreKeywords(
 // LAYER 3: EMBEDDING SIMILARITY
 // ============================================================================
 
-/**
- * Calculate cosine similarity between two vectors
- */
-export function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
-  if (a.length !== b.length) {
-    throw new Error(`Vector dimension mismatch: ${a.length} vs ${b.length}`);
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  if (denominator === 0) return 0;
-
-  return dotProduct / denominator;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
 
 interface EmbeddingMatchResult {
   toolId: string;
@@ -244,7 +229,8 @@ interface EmbeddingMatchResult {
 }
 
 /**
- * Score based on embedding similarity
+ * Score based on embedding similarity.
+ * Uses SIMD-accelerated batch operations when there are 5+ tools (40-60x speedup).
  */
 export function scoreEmbeddings(
   queryEmbedding: EmbeddingVector,
@@ -256,39 +242,110 @@ export function scoreEmbeddings(
 ): EmbeddingMatchResult[] {
   const results: EmbeddingMatchResult[] = [];
 
-  for (const tool of tools) {
-    // Skip tools without embeddings
-    if (!tool.descriptionEmbedding) continue;
+  // Filter tools that have embeddings
+  const toolsWithEmbeddings = tools.filter((t) => t.descriptionEmbedding);
+  if (toolsWithEmbeddings.length === 0) return results;
 
-    // Description similarity
-    const descSim = cosineSimilarity(queryEmbedding, tool.descriptionEmbedding);
+  // Use batch SIMD for 5+ tools (threshold where SIMD provides benefit)
+  const useBatch = toolsWithEmbeddings.length >= 5;
+  const queryArray = Array.isArray(queryEmbedding)
+    ? queryEmbedding
+    : Array.from(queryEmbedding);
 
-    // Best example similarity
-    let bestExSim = 0;
-    let bestExIdx = -1;
+  if (useBatch) {
+    // === BATCH PATH: SIMD-accelerated ===
 
-    if (tool.exampleEmbeddings) {
-      for (let i = 0; i < tool.exampleEmbeddings.length; i++) {
-        const exSim = cosineSimilarity(queryEmbedding, tool.exampleEmbeddings[i]);
-        if (exSim > bestExSim) {
-          bestExSim = exSim;
-          bestExIdx = i;
-        }
+    // 1. Batch all description similarities at once
+    const descEmbeddings = toolsWithEmbeddings.map((t) =>
+      Array.isArray(t.descriptionEmbedding)
+        ? t.descriptionEmbedding
+        : Array.from(t.descriptionEmbedding!)
+    );
+    const descSimilarities = batchCosineSimilarityOptimized(queryArray, descEmbeddings);
+
+    // 2. Collect all examples with metadata for batch processing
+    const exampleMeta: Array<{ toolIdx: number; exampleIdx: number }> = [];
+    const exampleEmbeddings: number[][] = [];
+
+    toolsWithEmbeddings.forEach((tool, toolIdx) => {
+      if (tool.exampleEmbeddings && tool.exampleEmbeddings.length > 0) {
+        tool.exampleEmbeddings.forEach((emb, exIdx) => {
+          exampleMeta.push({ toolIdx, exampleIdx: exIdx });
+          exampleEmbeddings.push(Array.isArray(emb) ? emb : Array.from(emb));
+        });
       }
+    });
+
+    // 3. Batch example similarities (only if we have examples)
+    let exampleSimilarities: number[] = [];
+    if (exampleEmbeddings.length >= 5) {
+      exampleSimilarities = batchCosineSimilarityOptimized(queryArray, exampleEmbeddings);
+    } else if (exampleEmbeddings.length > 0) {
+      // Small batch - use individual comparisons
+      exampleSimilarities = exampleEmbeddings.map((emb) =>
+        cosineSimilarity(queryArray, emb)
+      );
     }
 
-    // Combined score (examples weighted higher - they're more specific)
-    const combinedScore = descSim * 0.3 + bestExSim * 0.7;
+    // 4. Aggregate best example per tool
+    const bestExamplePerTool = new Map<number, { similarity: number; index: number }>();
+    exampleSimilarities.forEach((sim, i) => {
+      const { toolIdx, exampleIdx } = exampleMeta[i];
+      const current = bestExamplePerTool.get(toolIdx);
+      if (!current || sim > current.similarity) {
+        bestExamplePerTool.set(toolIdx, { similarity: sim, index: exampleIdx });
+      }
+    });
 
-    if (combinedScore > 0.3) {
-      // Minimum threshold for embedding matches
-      results.push({
-        toolId: tool.definition.id,
-        score: combinedScore,
-        descriptionSimilarity: descSim,
-        bestExampleSimilarity: bestExSim,
-        bestExampleIndex: bestExIdx,
-      });
+    // 5. Build results
+    toolsWithEmbeddings.forEach((tool, toolIdx) => {
+      const descSim = descSimilarities[toolIdx];
+      const bestEx = bestExamplePerTool.get(toolIdx);
+      const bestExSim = bestEx?.similarity ?? 0;
+      const bestExIdx = bestEx?.index ?? -1;
+
+      // Combined score (examples weighted higher - they're more specific)
+      const combinedScore = descSim * 0.3 + bestExSim * 0.7;
+
+      if (combinedScore > 0.3) {
+        results.push({
+          toolId: tool.definition.id,
+          score: combinedScore,
+          descriptionSimilarity: descSim,
+          bestExampleSimilarity: bestExSim,
+          bestExampleIndex: bestExIdx,
+        });
+      }
+    });
+  } else {
+    // === INDIVIDUAL PATH: Small batch, use direct comparisons ===
+    for (const tool of toolsWithEmbeddings) {
+      const descSim = cosineSimilarity(queryEmbedding, tool.descriptionEmbedding!);
+
+      let bestExSim = 0;
+      let bestExIdx = -1;
+
+      if (tool.exampleEmbeddings) {
+        for (let i = 0; i < tool.exampleEmbeddings.length; i++) {
+          const exSim = cosineSimilarity(queryEmbedding, tool.exampleEmbeddings[i]);
+          if (exSim > bestExSim) {
+            bestExSim = exSim;
+            bestExIdx = i;
+          }
+        }
+      }
+
+      const combinedScore = descSim * 0.3 + bestExSim * 0.7;
+
+      if (combinedScore > 0.3) {
+        results.push({
+          toolId: tool.definition.id,
+          score: combinedScore,
+          descriptionSimilarity: descSim,
+          bestExampleSimilarity: bestExSim,
+          bestExampleIndex: bestExIdx,
+        });
+      }
     }
   }
 

@@ -80,6 +80,8 @@ export interface BridgeSession {
   silenceTimer: NodeJS.Timeout | null;
   isAgentSpeaking: boolean;
   customParameters: Record<string, string>;
+  // Debug tracking
+  audioPacketCount?: number;
 }
 
 export interface BridgeConfig {
@@ -445,6 +447,18 @@ export class TwilioStreamBridge extends EventEmitter {
       return; // Only process inbound (caller's voice)
     }
 
+    // Log first few audio packets to confirm audio is flowing
+    if (!session.audioPacketCount) {
+      session.audioPacketCount = 0;
+    }
+    session.audioPacketCount++;
+    if (session.audioPacketCount <= 5 || session.audioPacketCount % 100 === 0) {
+      log.debug(
+        { callSid: session.callSid, packetNum: session.audioPacketCount, isAgentSpeaking: session.isAgentSpeaking },
+        '🎵 Audio packet received'
+      );
+    }
+
     // Skip if agent is speaking (avoid echo)
     if (session.isAgentSpeaking) {
       return;
@@ -633,6 +647,7 @@ export class TwilioStreamBridge extends EventEmitter {
   setAgentSpeaking(callSid: string, isSpeaking: boolean): void {
     const session = this.sessions.get(callSid);
     if (session) {
+      log.info({ callSid, isSpeaking, prevState: session.isAgentSpeaking }, `🔊 Agent speaking: ${isSpeaking}`);
       session.isAgentSpeaking = isSpeaking;
       if (isSpeaking) {
         // Clear any pending silence timer when agent starts speaking
@@ -643,6 +658,8 @@ export class TwilioStreamBridge extends EventEmitter {
         // Clear audio buffer to avoid processing agent's own speech
         session.audioBuffer = [];
       }
+    } else {
+      log.warn({ callSid, isSpeaking }, '⚠️ setAgentSpeaking called but no session found');
     }
   }
 

@@ -43,6 +43,11 @@ export interface PersonaAgentFactoryConfig {
   conversationManager?: import('../../services/conversation-manager.js').ConversationManager;
   /** Enable full handlers on agents */
   enableFullHandlers?: boolean;
+  /**
+   * ⚡ FAST-AGENT-JOIN: Defer handler wiring until after greeting.
+   * When true, handlers are wired in background after greeting starts.
+   */
+  deferHandlers?: boolean;
 }
 
 // ============================================================================
@@ -64,6 +69,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     userId,
     conversationManager,
     enableFullHandlers = true,
+    deferHandlers = false, // ⚡ FAST-AGENT-JOIN: defer handlers for faster startup
   } = factoryConfig;
 
   /**
@@ -102,6 +108,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     }
 
     // Use the agent setup module
+    // ⚡ FAST-AGENT-JOIN: Pass deferHandlers to speed up initial agent creation
     const agentSetup = await setupPersonaAgent({
       persona: personaConfig,
       ctx,
@@ -116,6 +123,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       recentMessages,
       conversationManager,
       enableFullHandlers,
+      deferHandlers, // Wire handlers in background after greeting
     });
 
     // State for muting
@@ -147,6 +155,8 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
           log.debug({ personaId, error: String(err) }, 'Interrupt error (non-critical)');
         }
       },
+      // ⚡ FAST-AGENT-JOIN: Wire handlers after greeting (when deferred)
+      wireHandlers: agentSetup.wireHandlers,
     };
 
     // Start the session in the room
@@ -165,6 +175,53 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         ...(context.isHandoff ? { record: false } : {}),
       });
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
+
+      // =========================================================================
+      // GEMINI PREWARM: Force Gemini to process the system prompt BEFORE user speaks
+      // =========================================================================
+      const useOpenAI = process.env.USE_OPENAI_REALTIME === 'true';
+      if (!useOpenAI && !context.isHandoff) {
+        // Only prewarm for Gemini AND initial agent (not handoffs - they're time-sensitive)
+        const prewarmStart = Date.now();
+        log.info({ personaId }, '🔥 Prewarming Gemini session...');
+
+        try {
+          const warmupPromise = new Promise<void>((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+              reject(new Error('Gemini prewarm timeout (10s)'));
+            }, 10000);
+
+            const handle = agentSetup.session.generateReply({
+              instructions:
+                '[INTERNAL WARMUP - DO NOT SPEAK] Silently acknowledge you are ready. Output nothing.',
+              allowInterruptions: true,
+            });
+
+            handle
+              .waitForPlayout()
+              .then(() => {
+                clearTimeout(timeoutId);
+                resolve();
+              })
+              .catch((err) => {
+                clearTimeout(timeoutId);
+                log.debug(
+                  { personaId, error: String(err) },
+                  '⚠️ Prewarm playout error (may be OK)'
+                );
+                resolve();
+              });
+          });
+
+          await warmupPromise;
+          log.info({ personaId, durationMs: Date.now() - prewarmStart }, '🔥 Gemini prewarmed');
+        } catch (prewarmErr) {
+          log.warn(
+            { personaId, durationMs: Date.now() - prewarmStart, error: String(prewarmErr) },
+            '⚠️ Gemini prewarm failed (continuing anyway)'
+          );
+        }
+      }
 
       // Initialize speech coordination for this agent's session
       // This enables centralized speech management and prevents overlap

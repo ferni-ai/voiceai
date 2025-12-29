@@ -16,6 +16,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'node:http';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../utils/interval-manager.js';
 import {
   insightsBroadcast,
   type InsightBroadcastEvent,
@@ -138,35 +139,40 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
   });
 
   // Heartbeat to keep connections alive AND clean up stale connections
-  heartbeatInterval = setInterval(() => {
-    const heartbeat = {
-      type: 'heartbeat',
-      timestamp: new Date().toISOString(),
-      clientCount: clients.size,
-    };
+  registerInterval(
+    'insights-websocket-heartbeat',
+    () => {
+      const heartbeat = {
+        type: 'heartbeat',
+        timestamp: new Date().toISOString(),
+        clientCount: clients.size,
+      };
 
-    // Collect stale connections for cleanup (can't modify Map during iteration)
-    const staleConnections: WebSocket[] = [];
+      // Collect stale connections for cleanup (can't modify Map during iteration)
+      const staleConnections: WebSocket[] = [];
 
-    clients.forEach((info, ws) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        safeSend(ws, heartbeat);
-      } else {
-        // Connection is closed, closing, or connecting - mark for cleanup
-        staleConnections.push(ws);
+      clients.forEach((info, ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          safeSend(ws, heartbeat);
+        } else {
+          // Connection is closed, closing, or connecting - mark for cleanup
+          staleConnections.push(ws);
+        }
+      });
+
+      // Clean up stale connections that didn't trigger close/error events
+      // This prevents memory leaks from network disconnections
+      if (staleConnections.length > 0) {
+        log.info(
+          { staleCount: staleConnections.length, totalClients: clients.size },
+          'Cleaning up stale WebSocket connections'
+        );
+        staleConnections.forEach((ws) => handleClientDisconnect(ws));
       }
-    });
-
-    // Clean up stale connections that didn't trigger close/error events
-    // This prevents memory leaks from network disconnections
-    if (staleConnections.length > 0) {
-      log.info(
-        { staleCount: staleConnections.length, totalClients: clients.size },
-        'Cleaning up stale WebSocket connections'
-      );
-      staleConnections.forEach((ws) => handleClientDisconnect(ws));
-    }
-  }, HEARTBEAT_INTERVAL);
+    },
+    HEARTBEAT_INTERVAL
+  );
+  heartbeatInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 
   return wss;
 }
@@ -403,7 +409,7 @@ function safeSend(ws: WebSocket, data: unknown): void {
  */
 export function shutdownInsightsWebSocket(): void {
   if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
+    clearNamedInterval('insights-websocket-heartbeat');
     heartbeatInterval = null;
   }
 

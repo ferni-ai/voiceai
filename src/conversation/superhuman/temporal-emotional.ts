@@ -603,7 +603,7 @@ export class TemporalEmotionalEngine {
    * Export for persistence
    */
   export(): TemporalEmotionalProfile {
-    return JSON.parse(JSON.stringify(this.profile));
+    return structuredClone(this.profile);
   }
 
   /**

@@ -22,10 +22,13 @@
  * @module workers/outreach-worker
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+/* eslint-disable no-await-in-loop -- Sequential processing required for outreach triggers */
+
 import { createLogger } from '../utils/safe-logger.js';
-import { getPubSubClient, type PubSubMessage } from '../services/pubsub/pubsub-client.js';
+import { getPubSubClient } from '../services/pubsub/pubsub-client.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+// cleanForFirestore removed - not used in this worker
 
 const log = createLogger({ module: 'OutreachWorker' });
 
@@ -33,7 +36,7 @@ const log = createLogger({ module: 'OutreachWorker' });
 // TYPES
 // ============================================================================
 
-export interface WorkerConfig {
+export interface OutreachWorkerConfig {
   /** Max messages to process per run */
   maxMessages: number;
   /** Processing timeout per message (ms) */
@@ -62,7 +65,7 @@ interface ScheduledDelivery {
 // DEFAULT CONFIG
 // ============================================================================
 
-const DEFAULT_CONFIG: WorkerConfig = {
+const DEFAULT_CONFIG: OutreachWorkerConfig = {
   maxMessages: 100,
   messageTimeoutMs: 30_000,
   dryRun: process.env.OUTREACH_DRY_RUN === 'true',
@@ -141,7 +144,14 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
 }
 
 /**
- * Schedule delivery via Cloud Tasks (simplified for now)
+ * Schedule delivery for outreach
+ *
+ * Current implementation:
+ * - Immediate deliveries: Direct execution via deliverOutreach()
+ * - Future deliveries: Stored in Firestore, processed by next worker run
+ *
+ * Note: Cloud Tasks could be used for more precise scheduling in the future,
+ * but the current Firestore-based approach works well with the 5-min cron.
  */
 async function scheduleDelivery(delivery: ScheduledDelivery, dryRun: boolean): Promise<boolean> {
   if (dryRun) {
@@ -152,8 +162,6 @@ async function scheduleDelivery(delivery: ScheduledDelivery, dryRun: boolean): P
     return true;
   }
 
-  // TODO: Implement Cloud Tasks scheduling
-  // For now, we'll use the existing delivery infrastructure
   try {
     const { deliverOutreach } = await import('../services/outreach/delivery/index.js');
 
@@ -209,10 +217,72 @@ async function updateTriggerStatus(
 // ============================================================================
 
 /**
+ * Create a message handler for processing triggers
+ */
+function createTriggerHandler(
+  cfg: OutreachWorkerConfig,
+  result: ProcessingResult,
+  processed: Set<string>
+) {
+  return async (
+    msg: { data: OutreachTriggerPayload },
+    ack: () => void,
+    nack: () => void
+  ): Promise<void> => {
+    if (processed.size >= cfg.maxMessages) {
+      nack();
+      return;
+    }
+
+    const trigger = msg.data;
+    processed.add(trigger.id);
+    result.processed++;
+
+    try {
+      const decision = await evaluateTrigger(trigger);
+
+      if (!decision.shouldSend) {
+        log.debug({ triggerId: trigger.id, reason: decision.reason }, 'Trigger rejected');
+        await updateTriggerStatus(trigger.id, 'cancelled');
+        result.skipped++;
+        ack();
+        return;
+      }
+
+      const deliveryScheduled = await scheduleDelivery(
+        {
+          triggerId: trigger.id,
+          userId: trigger.userId,
+          deliverAt: decision.optimalTime || new Date(),
+          channel: decision.channel || 'sms',
+          message: decision.message || trigger.reason,
+        },
+        cfg.dryRun
+      );
+
+      if (deliveryScheduled) {
+        await updateTriggerStatus(trigger.id, 'sent');
+        result.scheduled++;
+        log.debug({ triggerId: trigger.id }, 'Trigger scheduled');
+      } else {
+        await updateTriggerStatus(trigger.id, 'failed');
+        result.failed++;
+      }
+
+      ack();
+    } catch (error) {
+      log.error({ triggerId: trigger.id, error: String(error) }, 'Failed to process trigger');
+      result.failed++;
+      nack();
+    }
+  };
+}
+
+/**
  * Process pending outreach triggers from Pub/Sub
  */
 export async function processPendingTriggers(
-  config: Partial<WorkerConfig> = {}
+  config: Partial<OutreachWorkerConfig> = {}
 ): Promise<ProcessingResult> {
   const startTime = Date.now();
   const cfg = { ...DEFAULT_CONFIG, ...config };
@@ -233,78 +303,19 @@ export async function processPendingTriggers(
 
     if (!client.isEnabled()) {
       log.info('Pub/Sub disabled, processing locally queued triggers');
-      // Fall back to Firestore-based queue
       return await processFirestoreQueue(cfg, result);
     }
 
-    // Subscribe to process messages
     const processed = new Set<string>();
+    const handler = createTriggerHandler(cfg, result, processed);
 
-    await client.subscribe<OutreachTriggerPayload>(
-      'outreach-triggers',
-      'outreach-worker',
-      async (msg, ack, nack) => {
-        if (processed.size >= cfg.maxMessages) {
-          // Don't process more than max
-          nack();
-          return;
-        }
-
-        const trigger = msg.data;
-        processed.add(trigger.id);
-        result.processed++;
-
-        try {
-          // 1. Evaluate trigger
-          const decision = await evaluateTrigger(trigger);
-
-          if (!decision.shouldSend) {
-            log.debug(
-              { triggerId: trigger.id, reason: decision.reason },
-              'Trigger rejected by decision engine'
-            );
-            await updateTriggerStatus(trigger.id, 'cancelled');
-            result.skipped++;
-            ack();
-            return;
-          }
-
-          // 2. Schedule delivery
-          const deliveryScheduled = await scheduleDelivery(
-            {
-              triggerId: trigger.id,
-              userId: trigger.userId,
-              deliverAt: decision.optimalTime || new Date(),
-              channel: decision.channel || 'sms',
-              message: decision.message || trigger.reason,
-            },
-            cfg.dryRun
-          );
-
-          if (deliveryScheduled) {
-            await updateTriggerStatus(trigger.id, 'sent');
-            result.scheduled++;
-            log.debug({ triggerId: trigger.id }, 'Trigger scheduled for delivery');
-          } else {
-            await updateTriggerStatus(trigger.id, 'failed');
-            result.failed++;
-          }
-
-          ack();
-        } catch (error) {
-          log.error({ triggerId: trigger.id, error: String(error) }, 'Failed to process trigger');
-          result.failed++;
-          nack();
-        }
-      }
-    );
+    await client.subscribe<OutreachTriggerPayload>('outreach-triggers', 'outreach-worker', handler);
 
     // Wait for processing to complete (with timeout)
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       setTimeout(resolve, Math.min(cfg.maxMessages * 500, 60_000));
     });
 
-    // Unsubscribe after processing
     await client.unsubscribe('outreach-worker');
   } catch (error) {
     log.error({ error: String(error) }, 'Outreach worker failed');
@@ -331,7 +342,7 @@ export async function processPendingTriggers(
  * Fallback: Process triggers from Firestore queue
  */
 async function processFirestoreQueue(
-  cfg: WorkerConfig,
+  cfg: OutreachWorkerConfig,
   result: ProcessingResult
 ): Promise<ProcessingResult> {
   const startTime = Date.now();

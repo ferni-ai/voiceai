@@ -2,6 +2,7 @@
  * Alive Orchestrator Tests
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { GameMemory } from '../../types/user-profile.js';
 
 // Mock dependencies before imports
 vi.mock('../../utils/safe-logger.js', () => ({
@@ -53,6 +54,20 @@ import type {
   VoiceEmotion,
   ProsodyFeatures,
 } from '../../speech/audio-prosody/types.js';
+
+/**
+ * Create a minimal mock GameMemory for testing
+ */
+function createMockGameMemory(overrides: Partial<GameMemory> = {}): GameMemory {
+  return {
+    gameStats: {},
+    recentGames: [],
+    favoriteGames: [],
+    totalGamesPlayed: 5,
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
 
 // Helper to create valid VoiceEmotionResult mock with all required properties
 function createMockVoiceEmotion(
@@ -188,9 +203,33 @@ describe('AliveOrchestrator', () => {
     it('should respect cooldown between events', async () => {
       const orchestrator = new AliveOrchestrator(createConfig());
 
-      // Manually set last event time to recent
-      const state = orchestrator.getState();
-      (orchestrator as any).state.lastAliveEventTime = Date.now() - 10000; // 10s ago
+      // Manually set last event time to recent by triggering an event first
+      // then checking that subsequent events are blocked by cooldown
+      mockAnalyzeAndSuggest.mockReturnValueOnce({
+        shouldOffer: true,
+        urgency: 'high',
+        offer: 'Music?',
+        searchQuery: 'test',
+        reason: 'test',
+        confidence: 0.9,
+      });
+
+      // First call triggers an event and sets lastAliveEventTime
+      await orchestrator.onUserTurn({
+        userMessage: 'First',
+        turnCount: 5,
+        voiceEmotion: createMockVoiceEmotion('happy', { confidence: 0.9 }),
+      });
+
+      // Second call should be blocked by cooldown
+      mockAnalyzeAndSuggest.mockReturnValueOnce({
+        shouldOffer: true,
+        urgency: 'high',
+        offer: 'More music?',
+        searchQuery: 'test2',
+        reason: 'test2',
+        confidence: 0.9,
+      });
 
       const event = await orchestrator.onUserTurn({
         userMessage: 'Hello',
@@ -256,7 +295,7 @@ describe('AliveOrchestrator', () => {
       orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 3,
       });
 
@@ -269,7 +308,7 @@ describe('AliveOrchestrator', () => {
       const event = orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 3,
       });
 
@@ -281,13 +320,18 @@ describe('AliveOrchestrator', () => {
 
     it('should return high intensity event at streak 5', () => {
       const orchestrator = new AliveOrchestrator(createConfig());
-      // Set starting intensity
-      (orchestrator as any).state.gameIntensity = 'medium';
+      // First get to medium intensity
+      orchestrator.onGameEvent({
+        gameType: 'name-that-tune',
+        eventType: 'correct',
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 10 }),
+        currentStreak: 3,
+      });
 
       const event = orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 10 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 10 }),
         currentStreak: 5,
       });
 
@@ -299,12 +343,18 @@ describe('AliveOrchestrator', () => {
 
     it('should return climax intensity event at streak 8', () => {
       const orchestrator = new AliveOrchestrator(createConfig());
-      (orchestrator as any).state.gameIntensity = 'high';
+      // First get to high intensity
+      orchestrator.onGameEvent({
+        gameType: 'name-that-tune',
+        eventType: 'correct',
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 15 }),
+        currentStreak: 5,
+      });
 
       const event = orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 15 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 15 }),
         currentStreak: 8,
       });
 
@@ -316,12 +366,18 @@ describe('AliveOrchestrator', () => {
 
     it('should not fire event when intensity decreases', () => {
       const orchestrator = new AliveOrchestrator(createConfig());
-      (orchestrator as any).state.gameIntensity = 'high';
+      // First get to high intensity
+      orchestrator.onGameEvent({
+        gameType: 'name-that-tune',
+        eventType: 'correct',
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 10 }),
+        currentStreak: 6,
+      });
 
       const event = orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'wrong',
-        gameMemory: { totalGamesPlayed: 10 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 10 }),
         currentStreak: 0,
       });
 
@@ -358,12 +414,15 @@ describe('AliveOrchestrator', () => {
       expect(state1).toEqual(state2);
     });
 
-    it('should reset state', () => {
+    it('should reset state', async () => {
       const orchestrator = new AliveOrchestrator(createConfig());
 
-      // Modify state
-      (orchestrator as any).state.turnCount = 10;
-      (orchestrator as any).state.hasSharedPersonalityInsight = true;
+      // Modify state by triggering turns
+      await orchestrator.onUserTurn({ userMessage: 'Hello', turnCount: 10 });
+
+      // Verify state was modified
+      const stateBefore = orchestrator.getState();
+      expect(stateBefore.turnCount).toBe(10);
 
       orchestrator.reset();
 
@@ -398,10 +457,12 @@ describe('AliveOrchestrator', () => {
       expect(orch1).not.toBe(orch2);
     });
 
-    it('should reset and remove orchestrator', () => {
+    it('should reset and remove orchestrator', async () => {
       const config = createConfig();
       const orch1 = getAliveOrchestrator('session-reset', config);
-      (orch1 as any).state.turnCount = 10;
+      // Modify state by triggering turns
+      await orch1.onUserTurn({ userMessage: 'Hello', turnCount: 10 });
+      expect(orch1.getState().turnCount).toBe(10);
 
       resetAliveOrchestrator('session-reset');
 
@@ -503,7 +564,7 @@ describe('AliveOrchestrator', () => {
       orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 2,
       });
 
@@ -516,7 +577,7 @@ describe('AliveOrchestrator', () => {
       orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 4,
       });
 
@@ -529,7 +590,7 @@ describe('AliveOrchestrator', () => {
       orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 6,
       });
 
@@ -542,7 +603,7 @@ describe('AliveOrchestrator', () => {
       orchestrator.onGameEvent({
         gameType: 'name-that-tune',
         eventType: 'correct',
-        gameMemory: { totalGamesPlayed: 5 } as any,
+        gameMemory: createMockGameMemory({ totalGamesPlayed: 5 }),
         currentStreak: 10,
       });
 

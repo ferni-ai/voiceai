@@ -281,6 +281,16 @@ export async function createSessionServices(
       // Non-critical
     }
 
+    // 🧠 REAL-TIME LEARNING: Load social graph from Firestore
+    // "Better than Human" - Remember all the people they've mentioned
+    try {
+      const { loadGraphFromFirestore } = await import('./social-graph/index.js');
+      await loadGraphFromFirestore(validatedUserId);
+      getLogger().debug({ userId: validatedUserId }, '📇 Loaded social graph from Firestore');
+    } catch {
+      // Non-critical - graph will be rebuilt from conversations
+    }
+
     // Initialize unified trust persistence for this session
     try {
       await onSessionStartUnified(validatedUserId, sessionId);

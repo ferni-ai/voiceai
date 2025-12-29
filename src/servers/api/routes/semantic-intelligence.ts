@@ -48,6 +48,12 @@ import {
   getGaps,
   getValuesAlignment,
 } from '../../../services/superhuman/semantic-intelligence/self-awareness.js';
+import { getLatestDeepAnalysis } from '../../../intelligence/predictive/llm-deep-analysis.js';
+import {
+  getObservations,
+  generateTeamHuddle,
+  type PersonaObservation,
+} from '../../../services/cross-persona/team-huddle.js';
 
 const log = createLogger({ module: 'SemanticIntelligenceRoutes' });
 
@@ -202,7 +208,7 @@ export async function handleSemanticIntelligenceRoutes(
       return true;
     }
 
-    const insightId = pathname.split('/')[4];
+    const insightId = pathname.split('/')[4] ?? '';
 
     try {
       await markInsightSurfaced(userId, insightId);
@@ -225,7 +231,7 @@ export async function handleSemanticIntelligenceRoutes(
       return true;
     }
 
-    const insightId = pathname.split('/')[4];
+    const insightId = pathname.split('/')[4] ?? '';
 
     try {
       await dismissInsight(userId, insightId);
@@ -274,7 +280,7 @@ export async function handleSemanticIntelligenceRoutes(
       return true;
     }
 
-    const loopId = pathname.split('/')[4];
+    const loopId = pathname.split('/')[4] ?? '';
 
     try {
       const body = await parseJsonBody(req);
@@ -330,7 +336,7 @@ export async function handleSemanticIntelligenceRoutes(
       return true;
     }
 
-    const commitmentId = pathname.split('/')[4];
+    const commitmentId = pathname.split('/')[4] ?? '';
 
     try {
       await fulfillCommitment(userId, commitmentId);
@@ -485,6 +491,99 @@ export async function handleSemanticIntelligenceRoutes(
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to get self-awareness data');
       sendJson(res, 500, { error: 'Failed to get self-awareness data' });
+    }
+    return true;
+  }
+
+  // =========================================================================
+  // DEEP ANALYSIS (TIER 3 - Gemini Powered Insights)
+  // =========================================================================
+
+  // GET /api/semantic-intelligence/deep-analysis
+  if (pathname === '/api/semantic-intelligence/deep-analysis' && req.method === 'GET') {
+    const userId = getUserId(req, pathname);
+    if (!userId) {
+      sendJson(res, 400, { error: 'userId required' });
+      return true;
+    }
+
+    try {
+      const analysis = await getLatestDeepAnalysis(userId);
+
+      if (!analysis) {
+        sendJson(res, 200, {
+          hasAnalysis: false,
+          message: 'No deep analysis available yet',
+          timestamp: new Date().toISOString(),
+        });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        hasAnalysis: true,
+        analysisId: analysis.analysisId,
+        analysisTimestamp: analysis.timestamp,
+        insights: analysis.insights,
+        hypotheses: analysis.hypotheses,
+        outreachSuggestions: analysis.outreachSuggestions,
+        coachingGuidance: analysis.coachingGuidance,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Failed to get deep analysis');
+      sendJson(res, 500, { error: 'Failed to get deep analysis' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // GET /api/semantic-intelligence/team-observations
+  // Returns real-time observations from cross-persona coordination
+  // ============================================================================
+  if (path === '/api/semantic-intelligence/team-observations' && method === 'GET') {
+    const userId = url.searchParams.get('userId');
+    if (!userId) {
+      sendJson(res, 400, { error: 'userId is required' });
+      return true;
+    }
+
+    try {
+      // Get raw observations
+      const observations = getObservations(userId);
+
+      // Generate team huddle synthesis if we have enough observations
+      let synthesis = null;
+      if (observations.length >= 2) {
+        synthesis = await generateTeamHuddle(userId);
+      }
+
+      // Group observations by persona for easier display
+      const byPersona: Record<string, PersonaObservation[]> = {};
+      for (const obs of observations) {
+        if (!byPersona[obs.personaId]) {
+          byPersona[obs.personaId] = [];
+        }
+        byPersona[obs.personaId].push(obs);
+      }
+
+      sendJson(res, 200, {
+        observations,
+        byPersona,
+        synthesis: synthesis ? {
+          generatedAt: synthesis.generatedAt,
+          connectionCount: synthesis.connections.length,
+          recommendationCount: synthesis.recommendations.length,
+          overallSynthesis: synthesis.synthesis,
+          userState: synthesis.userStateAssessment,
+          topConnections: synthesis.connections.slice(0, 3),
+          topRecommendations: synthesis.recommendations.slice(0, 3),
+        } : null,
+        total: observations.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Failed to get team observations');
+      sendJson(res, 500, { error: 'Failed to get team observations' });
     }
     return true;
   }

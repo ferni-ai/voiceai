@@ -14,6 +14,8 @@
  * @module workers/predictions-worker
  */
 
+/* eslint-disable no-restricted-imports -- Workers need direct service imports */
+
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import type { EventPayload } from '../services/async-events/index.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -22,17 +24,16 @@ import { createLogger } from '../utils/safe-logger.js';
 import {
   recordObservation,
   generatePredictions,
-  loadUserPatterns,
   clearPatternCache,
+  confirmPrediction,
+  invalidatePrediction,
+  decayStalePatterns,
   type PatternType,
 } from '../services/superhuman/predictive-coaching.js';
 
-// Coaching patterns import
-import { recordPattern as recordCoachingPattern } from '../intelligence/coaching-patterns.js';
-
 // Superhuman observations
 import { getSuperhumanObservations } from '../conversation/superhuman/superhuman-observations.js';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+// cleanForFirestore removed - not used in this worker
 
 const log = createLogger({ module: 'PredictionsWorker' });
 
@@ -65,6 +66,9 @@ export interface PatternUpdateData {
  * Batch processor for observations.
  * Collects observations and writes them in batches to reduce Firestore calls.
  */
+// Backpressure: max observations per user before dropping
+const MAX_BATCH_PER_USER = 100;
+
 class ObservationBatcher {
   private batches = new Map<string, Array<{ data: ObservationData; timestamp: number }>>();
   private flushInterval: NodeJS.Timeout | null = null;
@@ -83,6 +87,12 @@ class ObservationBatcher {
     if (!batch) {
       batch = [];
       this.batches.set(userId, batch);
+    }
+
+    // Backpressure: drop if user batch is too large
+    if (batch.length >= MAX_BATCH_PER_USER) {
+      log.warn({ userId, batchSize: batch.length }, 'Backpressure: dropping observation');
+      return;
     }
 
     batch.push({ data, timestamp: Date.now() });
@@ -185,7 +195,7 @@ export class PredictionsWorker extends LocalWorker {
 
     switch (type) {
       case 'prediction:observation':
-        await this.handleObservation(userId, sessionId, data);
+        this.handleObservation(userId, sessionId, data);
         break;
 
       case 'prediction:pattern-update':
@@ -197,11 +207,11 @@ export class PredictionsWorker extends LocalWorker {
         break;
 
       case 'prediction:surface':
-        await this.handleSurfacePrediction(userId, sessionId, data);
+        this.handleSurfacePrediction(userId, sessionId, data);
         break;
 
       case 'conversation:turn':
-        await this.handleConversationTurn(userId, sessionId, data);
+        this.handleConversationTurn(userId, sessionId, data);
         break;
 
       case 'conversation:end':
@@ -217,11 +227,11 @@ export class PredictionsWorker extends LocalWorker {
    * Handle observation recording.
    * Adds to batch for efficient Firestore writes.
    */
-  private async handleObservation(
+  private handleObservation(
     userId: string,
     sessionId: string | undefined,
     data: Record<string, unknown>
-  ): Promise<void> {
+  ): void {
     const observationData = data as unknown as ObservationData;
 
     this.log.debug(
@@ -245,6 +255,7 @@ export class PredictionsWorker extends LocalWorker {
 
   /**
    * Handle pattern update (confirm/invalidate prediction accuracy).
+   * This implements the feedback loop for learning from prediction outcomes.
    */
   private async handlePatternUpdate(userId: string, data: Record<string, unknown>): Promise<void> {
     const updateData = data as unknown as PatternUpdateData;
@@ -254,12 +265,43 @@ export class PredictionsWorker extends LocalWorker {
       'Processing pattern update'
     );
 
-    // Clear cache to force refresh with updated data
-    void clearPatternCache(userId);
+    try {
+      switch (updateData.action) {
+        case 'confirm':
+          // User resonated with prediction - boost confidence
+          await confirmPrediction(userId, updateData.patternId);
+          this.log.info(
+            { userId, patternId: updateData.patternId },
+            '✅ Prediction confirmed - pattern strengthened'
+          );
+          break;
 
-    // TODO: Implement pattern feedback loop
-    // - If action === 'confirm': Increase pattern confidence
-    // - If action === 'invalidate': Decrease confidence or remove pattern
+        case 'invalidate':
+          // Prediction was wrong - reduce confidence
+          await invalidatePrediction(userId, updateData.patternId);
+          this.log.info(
+            { userId, patternId: updateData.patternId },
+            '❌ Prediction invalidated - pattern weakened'
+          );
+          break;
+
+        case 'increment':
+          // Just saw the pattern again - handled via recordObservation
+          this.log.debug({ userId, patternId: updateData.patternId }, 'Pattern incremented');
+          break;
+
+        default:
+          this.log.warn({ userId, action: updateData.action }, 'Unknown pattern update action');
+      }
+
+      // Clear cache to force refresh with updated data
+      await clearPatternCache(userId);
+    } catch (error) {
+      this.log.warn(
+        { userId, patternId: updateData.patternId, error: String(error) },
+        'Failed to process pattern update'
+      );
+    }
   }
 
   /**
@@ -274,7 +316,7 @@ export class PredictionsWorker extends LocalWorker {
 
       if (predictions.length > 0) {
         this.log.info(
-          { userId, count: predictions.length, topPrediction: predictions[0].prediction },
+          { userId, count: predictions.length, topPrediction: predictions[0]?.prediction },
           '🔮 Predictions generated'
         );
       }
@@ -287,11 +329,11 @@ export class PredictionsWorker extends LocalWorker {
    * Handle prediction surfacing.
    * Records when a prediction was surfaced and tracks outcome.
    */
-  private async handleSurfacePrediction(
+  private handleSurfacePrediction(
     userId: string,
     _sessionId: string | undefined,
     data: Record<string, unknown>
-  ): Promise<void> {
+  ): void {
     this.log.debug(
       { userId, predictionId: data.predictionId, outcome: data.outcome },
       'Recording prediction surface'
@@ -307,11 +349,11 @@ export class PredictionsWorker extends LocalWorker {
    * Handle conversation turn.
    * Process patterns from each turn in the background.
    */
-  private async handleConversationTurn(
+  private handleConversationTurn(
     userId: string,
     sessionId: string | undefined,
     data: Record<string, unknown>
-  ): Promise<void> {
+  ): void {
     const { message, topic, emotion, dayOfWeek, hourOfDay } = data as {
       message?: string;
       topic?: string;
@@ -359,7 +401,7 @@ export class PredictionsWorker extends LocalWorker {
 
   /**
    * Handle conversation end.
-   * Flush batches and generate predictions for next session.
+   * Flush batches, apply decay, and generate predictions for next session.
    */
   private async handleConversationEnd(
     userId: string,
@@ -369,6 +411,16 @@ export class PredictionsWorker extends LocalWorker {
 
     // Flush any pending observations
     await this.batcher.flushUser(userId);
+
+    // Apply confidence decay to stale patterns
+    try {
+      const decayedCount = await decayStalePatterns(userId);
+      if (decayedCount > 0) {
+        this.log.debug({ userId, decayedCount }, '📉 Decayed stale patterns');
+      }
+    } catch (err) {
+      this.log.debug({ error: String(err) }, 'Pattern decay skipped');
+    }
 
     // Generate fresh predictions for next session
     try {
@@ -415,32 +467,44 @@ function getTimeOfDay(hour: number): string {
 // ============================================================================
 
 let workerInstance: PredictionsWorker | null = null;
+let instanceLock = false;
 
 /**
  * Get or create the predictions worker instance
  */
 export function getPredictionsWorker(config?: Partial<WorkerConfig>): PredictionsWorker {
-  if (!workerInstance) {
-    workerInstance = new PredictionsWorker(config);
+  if (workerInstance) {
+    return workerInstance;
   }
-  return workerInstance;
+  // Create new instance (non-concurrent singleton creation)
+  const instance = new PredictionsWorker(config);
+  workerInstance = instance;
+  return instance;
 }
 
 /**
  * Start the predictions worker
  */
 export async function startPredictionsWorker(config?: Partial<WorkerConfig>): Promise<void> {
-  const worker = getPredictionsWorker(config);
-  await worker.start();
+  if (instanceLock) return;
+  instanceLock = true;
+  try {
+    const worker = getPredictionsWorker(config);
+    await worker.start();
+  } finally {
+    // eslint-disable-next-line require-atomic-updates -- Lock variable only modified in this function
+    instanceLock = false;
+  }
 }
 
 /**
  * Stop the predictions worker
  */
 export async function stopPredictionsWorker(): Promise<void> {
-  if (workerInstance) {
-    await workerInstance.stop();
+  const instance = workerInstance;
+  if (instance) {
     workerInstance = null;
+    await instance.stop();
   }
 }
 

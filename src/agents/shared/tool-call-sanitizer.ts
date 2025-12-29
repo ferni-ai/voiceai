@@ -39,6 +39,21 @@ import {
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // "Better than Human" semantic tool presence for emotion-aware feedback
 import { startToolPresence } from '../../tools/execution/index.js';
+// Native SIMD-accelerated JSON parser (for faster tool call detection)
+import {
+  likelyContainsFunctionCall as nativeLikelyContainsFunctionCall,
+  parseFunctionCall as nativeParseFunctionCall,
+  registerToolNames as nativeRegisterToolNames,
+  isNativeJsonParserAvailable,
+  logJsonParserStatus,
+  // Aho-Corasick multi-pattern matching (O(n) for all patterns)
+  buildToolNameAutomaton,
+  containsAnyToolName,
+  scanForToolNames,
+  getToolNameByIndex,
+  isAhoCorasickAvailable,
+  type AhoCorasickMatch,
+} from './native-json-parser.js';
 
 // TransformStream is available globally in Node.js 18+
 // Using loose type due to incompatibilities between Web Streams and Node.js streams in piping
@@ -426,15 +441,103 @@ const TOOL_NAME_PATTERNS = [
   'setTimer',
   'set timer',
   'getTimer',
+  'get timer',
   'cancelTimer',
-  'addTask',
-  'getTasks',
-  'completeTask',
+  'cancel timer',
 
-  // Notes/Journal tools
+  // Task tools
+  'addTask',
+  'add task',
+  'getTasks',
+  'get tasks',
+  'completeTask',
+  'complete task',
+  'deleteTask',
+  'delete task',
+
+  // Goal tools
+  'addGoal',
+  'add goal',
+  'getGoals',
+  'get goals',
+  'updateGoal',
+  'update goal',
+
+  // Notes tools
+  'addNote',
+  'add note',
   'saveNote',
+  'save note',
   'getNotes',
+  'get notes',
+  'searchNotes',
+  'search notes',
+
+  // Journal tools
+  'addJournal',
+  'add journal',
   'journal',
+  'getJournals',
+  'get journals',
+
+  // Reminder tools
+  'scheduleReminder',
+  'schedule reminder',
+  'getReminders',
+  'get reminders',
+  'cancelReminder',
+  'cancel reminder',
+
+  // Reflection Games tools
+  'startReflectionGame',
+  'start reflection game',
+  'threeWordDay',
+  'three word day',
+  'threeWordDayRespond',
+  'valuesCardSort',
+  'values card sort',
+  'valuesCardSortRespond',
+  'headlineWriter',
+  'headline writer',
+  'headlineWriterRespond',
+  'playReflectionGame',
+  'play reflection game',
+
+  // Research/Stock Analysis tools (Peter's domain)
+  'analyzeStock',
+  'analyze stock',
+  'findStocks',
+  'find stocks',
+  'marketData',
+  'market data',
+  'marketAwareness',
+  'market awareness',
+  'getStockQuote',
+  'get stock quote',
+  'getMarketSummary',
+  'get market summary',
+  'analyzePatterns',
+  'analyze patterns',
+  'behavioralInsights',
+  'behavioral insights',
+  'insightBriefing',
+  'insight briefing',
+  'proactiveInsights',
+  'proactive insights',
+  'technicalIndicators',
+  'technical indicators',
+  'riskAnalysis',
+  'risk analysis',
+  'analyzeSavingsRate',
+  'analyze savings rate',
+  'calculateFIRE',
+  'calculate fire',
+  'retirementReadiness',
+  'retirement readiness',
+  'behavioralScore',
+  'behavioral score',
+  'peerComparison',
+  'peer comparison',
 
   // Calendar/Scheduling tools
   'scheduleEvent',
@@ -983,7 +1086,60 @@ const TOOL_NAME_PATTERNS = [
   'Current events',
   'whats happening',
   'What is happening',
+
+  // Language/Settings tools
+  'setSpokenLanguage',
+  'set spoken language',
+  'Set spoken language',
+  'switch language',
+  'Switch language',
+  'change language',
+  'Change language',
+  'speak in',
+  'Speak in',
+  'listSupportedLanguages',
+  'list supported languages',
+  'List supported languages',
+  'what languages',
+  'What languages',
+  'getCurrentLanguage',
+  'get current language',
+  'Get current language',
+  'current language',
+  'Current language',
 ];
+
+// ============================================================================
+// NATIVE MODULE INITIALIZATION
+// Register tool names with native parser for faster memchr-based detection
+// AND build Aho-Corasick automaton for O(n) multi-pattern matching
+// ============================================================================
+(() => {
+  try {
+    // Deduplicate tool names (case-insensitive) and register with native parser
+    const uniqueTools = [...new Set(TOOL_NAME_PATTERNS.map((t) => t.toLowerCase()))];
+    nativeRegisterToolNames(uniqueTools);
+
+    // Build Aho-Corasick automaton for O(n) multi-pattern matching
+    // This replaces O(n×p) loops with single-pass matching
+    buildToolNameAutomaton(uniqueTools);
+
+    logJsonParserStatus(); // Log native module status at startup
+    log.info(
+      {
+        toolCount: uniqueTools.length,
+        nativeAvailable: isNativeJsonParserAvailable(),
+        ahoCorasick: isAhoCorasickAvailable(),
+      },
+      '🚀 Tool call sanitizer initialized with native acceleration + Aho-Corasick'
+    );
+  } catch (err) {
+    log.warn(
+      { error: String(err) },
+      '⚠️ Native module initialization failed, using JS fallback'
+    );
+  }
+})();
 
 /**
  * Parameter names that indicate function call leakage.
@@ -1112,6 +1268,10 @@ function extractBalancedJson(text: string, startIndex: number): string | null {
  * Also handles markdown-wrapped JSON: ```json\n{...}\n```
  * Now handles nested args objects properly with balanced brace matching.
  * Returns the parsed call if found, null otherwise.
+ *
+ * NATIVE ACCELERATION (Dec 2024):
+ * Uses simd-json via @ferni/perf for 2-5x faster parsing when available.
+ * Falls back to JS implementation when native module not loaded.
  */
 function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
   // First, strip markdown code fences if present
@@ -1126,6 +1286,34 @@ function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
       { original: text.slice(0, 50), cleaned: cleanText.slice(0, 50) },
       '📝 Stripped markdown code fence'
     );
+  }
+
+  // FAST PATH: Early exit if no function call likely present
+  // Uses memchr-based byte search when native available (10x faster than JS includes)
+  if (!nativeLikelyContainsFunctionCall(cleanText)) {
+    return null;
+  }
+
+  // STRATEGY 0 (NATIVE): Use SIMD-accelerated JSON parsing if available
+  // This handles most well-formed function calls with 2-5x speedup
+  if (isNativeJsonParserAvailable()) {
+    const nativeResult = nativeParseFunctionCall(cleanText);
+    if (nativeResult) {
+      try {
+        const args = JSON.parse(nativeResult.argsJson) as Record<string, unknown>;
+        log.info(
+          { fn: nativeResult.fnName, args, method: 'native-simd' },
+          '🎯 JSON function call detected (native simd-json)'
+        );
+        return { fn: nativeResult.fnName, args };
+      } catch {
+        // Native parsed but args JSON invalid, fall through to JS strategies
+        log.debug(
+          { fnName: nativeResult.fnName },
+          '🔧 Native parser found call but args invalid, trying JS fallback'
+        );
+      }
+    }
   }
 
   // STRATEGY 1: Find "fn" and extract the complete JSON object with balanced braces
@@ -1312,7 +1500,8 @@ async function executeJsonFunctionCall(
   sessionId?: string,
   userId?: string,
   personaId?: string,
-  originalTranscript?: string
+  originalTranscript?: string,
+  semanticPrediction?: { toolId: string; confidence: number }
 ): Promise<ToolExecutionResult | null> {
   try {
     // 🛡️ HIGH-RISK TOOL PROTECTION: Block execution if user was asking a question
@@ -1409,6 +1598,9 @@ async function executeJsonFunctionCall(
         sessionId,
         userId,
         personaId: personaId || 'ferni',
+        // For semantic intelligence learning loop
+        inputText: originalTranscript,
+        semanticPrediction,
       }
     );
     return {
@@ -1428,12 +1620,13 @@ async function executeJsonFunctionCall(
   }
 }
 
-/** Check if a name matches known tools or team members */
+/** Check if a name matches known tools or team members
+ * Uses Aho-Corasick for O(n) pattern matching instead of O(n×p) loop
+ */
 function isKnownToolOrTeamMember(name: string): boolean {
   const lowerName = name.toLowerCase();
-  const isKnownTool = TOOL_NAME_PATTERNS.some(
-    (t) => t.toLowerCase() === lowerName || t.toLowerCase().includes(lowerName)
-  );
+  // O(n) Aho-Corasick check for tool names
+  const isKnownTool = containsAnyToolName(lowerName);
   return isKnownTool || TEAM_MEMBER_NAMES.includes(lowerName);
 }
 
@@ -1479,19 +1672,26 @@ function checkIntentionPatterns(text: string): LeakageDetection | null {
   return null;
 }
 
-/** Check for "toolName paramName value" pattern */
+/** Check for "toolName paramName value" pattern
+ * Uses Aho-Corasick to find tool name matches, then checks for param suffix
+ */
 function checkToolParamPattern(lowerText: string): LeakageDetection | null {
-  for (const toolPattern of TOOL_NAME_PATTERNS) {
-    const lowerPattern = toolPattern.toLowerCase();
-    if (!lowerText.startsWith(lowerPattern)) continue;
+  // Use Aho-Corasick O(n) scan to find all tool name matches
+  const scanResult = scanForToolNames(lowerText);
+  if (!scanResult.hasMatches) return null;
 
-    const remainder = lowerText.slice(lowerPattern.length).trim();
+  // Look for matches at the start of the text (position 0)
+  for (const match of scanResult.matches) {
+    if (match.start !== 0) continue; // Only consider matches at start
+
+    const remainder = lowerText.slice(match.end).trim();
     for (const paramPattern of PARAM_PATTERNS) {
       if (remainder.startsWith(paramPattern.toLowerCase())) {
         const value = remainder.slice(paramPattern.length).trim();
+        const toolName = getToolNameByIndex(match.patternIdx) ?? match.matchedText;
         return {
           detected: true,
-          toolName: toolPattern,
+          toolName,
           parameter: paramPattern,
           value: value || undefined,
           pattern: 'tool_param',
@@ -1502,15 +1702,24 @@ function checkToolParamPattern(lowerText: string): LeakageDetection | null {
   return null;
 }
 
-/** Check for tool names with "function" or "tool" suffix */
+/** Check for tool names with "function" or "tool" suffix
+ * Uses Aho-Corasick to find tool name matches, then checks for suffix
+ * This avoids creating a new RegExp for each of 200+ patterns
+ */
 function checkToolMentionPattern(text: string): LeakageDetection | null {
-  for (const toolPattern of TOOL_NAME_PATTERNS) {
-    const regex = new RegExp(
-      `\\b${toolPattern.replace(/\s+/g, '\\s*')}\\s*(?:function|tool)\\b`,
-      'i'
-    );
-    if (regex.test(text)) {
-      return { detected: true, toolName: toolPattern, pattern: 'tool_mention' };
+  const lowerText = text.toLowerCase();
+
+  // Use Aho-Corasick O(n) scan to find all tool name matches
+  const scanResult = scanForToolNames(lowerText);
+  if (!scanResult.hasMatches) return null;
+
+  // Check if any match is followed by "function" or "tool"
+  const suffixPattern = /^\s*(?:function|tool)\b/i;
+  for (const match of scanResult.matches) {
+    const afterMatch = text.slice(match.end);
+    if (suffixPattern.test(afterMatch)) {
+      const toolName = getToolNameByIndex(match.patternIdx) ?? match.matchedText;
+      return { detected: true, toolName, pattern: 'tool_mention' };
     }
   }
   return null;
@@ -2310,6 +2519,37 @@ export function createSanitizerWithMusicFallback(
   let jsonToolExecuted = false;
   let accumulatedTextForSemanticFallback = '';
 
+  // 🧠 SEMANTIC INTELLIGENCE: Helper to get last user transcript for learning loop
+  // This enables the learning loop to associate tool executions with user inputs
+  const getLastUserTranscript = (): string | undefined => {
+    try {
+      const userData = session?.userData as { recentTranscripts?: string[] } | undefined;
+      const transcripts = userData?.recentTranscripts ?? [];
+      return transcripts[transcripts.length - 1];
+    } catch {
+      return undefined;
+    }
+  };
+
+  // 🧠 SEMANTIC INTELLIGENCE: Helper to get semantic prediction for learning loop
+  // The prediction is compared to the actual tool executed to detect implicit corrections
+  const getSemanticPrediction = (): { toolId: string; confidence: number } | undefined => {
+    try {
+      const userData = session?.userData as
+        | {
+            semanticPrediction?: { toolId: string; confidence: number; isToolRequest: boolean };
+          }
+        | undefined;
+      const prediction = userData?.semanticPrediction;
+      if (prediction) {
+        return { toolId: prediction.toolId, confidence: prediction.confidence };
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
   // 🔒 RACE CONDITION FIX: Speech coordination mutex
   // Prevents dual speaking (session.say() vs safeGenerateReply())
   // NOTE: This is a LOCAL mutex for the sanitizer. The global coordination
@@ -2583,7 +2823,14 @@ export function createSanitizerWithMusicFallback(
           // This is the proper way to inject async tool results - not stream injection
           // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
           jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
-          executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
+          executeJsonFunctionCall(
+            jsonCall,
+            sessionId,
+            toolContext?.userId,
+            toolContext?.personaId,
+            getLastUserTranscript(),
+            getSemanticPrediction()
+          )
             .then(async (execResult) => {
               // ========================================
               // HANDOFF TOOLS: Special handling
@@ -2913,7 +3160,14 @@ export function createSanitizerWithMusicFallback(
         // Execute the tool and speak the result via safeGenerateReply
         // Pass sessionId/userId/personaId for observability tracking (Option C: semantic router primary)
         jsonToolExecuted = true; // 🎯 Mark that we handled JSON - skip semantic fallback
-        executeJsonFunctionCall(jsonCall, sessionId, toolContext?.userId, toolContext?.personaId)
+        executeJsonFunctionCall(
+          jsonCall,
+          sessionId,
+          toolContext?.userId,
+          toolContext?.personaId,
+          getLastUserTranscript(),
+          getSemanticPrediction()
+        )
           .then(async (execResult) => {
             if (execResult?.success && execResult.result) {
               const resultText =
@@ -3150,7 +3404,9 @@ export function createSanitizerWithMusicFallback(
               lastChanceJson,
               sessionId,
               toolContext?.userId,
-              toolContext?.personaId
+              toolContext?.personaId,
+              getLastUserTranscript(),
+              getSemanticPrediction()
             )
               .then(async (result) => {
                 log.info(

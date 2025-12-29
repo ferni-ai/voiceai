@@ -260,6 +260,22 @@ export function cleanupSpeechSession(
   safeCleanup('environmentTracker', () => resetEnvironmentTracker(sessionId));
 
   // ============================================================================
+  // LANGUAGE SERVICE (Multilingual support)
+  // ============================================================================
+
+  safeCleanup('languageService', () => {
+    // Dynamic import to avoid circular dependencies
+    import('../services/language/index.js')
+      .then(({ clearSessionLanguage, clearUtteranceBuffer }) => {
+        clearSessionLanguage(sessionId);
+        clearUtteranceBuffer(sessionId);
+      })
+      .catch(() => {
+        // Non-critical - language module may not be loaded
+      });
+  });
+
+  // ============================================================================
   // VOICE MANAGER (Session-Scoped)
   // ============================================================================
 

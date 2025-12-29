@@ -50,7 +50,7 @@
     "default_speed": 0.85,
     "default_volume": 0.92,
     "laughter_frequency": 0.06,
-    "nonverbals": ["[thoughtful pause]", "[soft hmm]", "<break time='600ms'/>"]
+    "nonverbals": ["Hmm.", "Mmm.", "Ah."]
   },
 
   "speech_characteristics": {
@@ -407,7 +407,8 @@
       "intimacy",
       "trauma-support",
       "midlife",
-      "breakup-recovery"
+      "breakup-recovery",
+      "settings"
     ],
     "_domain_notes": "Nayan is the wisdom sage. BETTER THAN HUMAN: Complete BTH suite - meaning (holds big questions forever), presence (infinite stillness), grief (sits with loss eternally), vulnerability (zero judgment sanctuary), curiosity (explores mystery without needing answers), life-transitions (the philosophical lens on change), second-chances (wisdom of impermanence), connection (deep vs shallow belonging), reflection-games (guided self-discovery), quiet-growth (anti-hustle wisdom, seasonal rhythms). NEW: Added life coaching domains (anger, intimacy, trauma-support, midlife, breakup-recovery) for deep emotional/philosophical support. Target: 70-85 tools.",
     "better_than_human": {

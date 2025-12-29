@@ -14,6 +14,7 @@
 
 import { execSync } from 'child_process';
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService, type NotificationType } from '../slack-notifications.js';
 import {
   quickDiagnose,
@@ -707,22 +708,28 @@ export function startWatchdog(userConfig?: Partial<WatchdogConfig>): void {
   checkMemory().catch((e) => log.error({ error: String(e) }, 'Initial memory check failed'));
 
   // Schedule periodic checks
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'container-watchdog-disk',
+    () => {
       checkDisk().catch((e) => log.error({ error: String(e) }, 'Disk check failed'));
-    }, config.diskCheckIntervalMs)
+    },
+    config.diskCheckIntervalMs
   );
 
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'container-watchdog-memory',
+    () => {
       checkMemory().catch((e) => log.error({ error: String(e) }, 'Memory check failed'));
-    }, config.memoryCheckIntervalMs)
+    },
+    config.memoryCheckIntervalMs
   );
 
-  intervals.push(
-    setInterval(() => {
+  registerInterval(
+    'container-watchdog-health-report',
+    () => {
       sendHealthReport().catch((e) => log.error({ error: String(e) }, 'Health report failed'));
-    }, config.healthReportIntervalMs)
+    },
+    config.healthReportIntervalMs
   );
 }
 
@@ -733,9 +740,9 @@ export function stopWatchdog(): void {
 
   log.info('Stopping watchdog...');
 
-  for (const interval of intervals) {
-    clearInterval(interval);
-  }
+  clearNamedInterval('container-watchdog-disk');
+  clearNamedInterval('container-watchdog-memory');
+  clearNamedInterval('container-watchdog-health-report');
   intervals = [];
   isRunning = false;
 

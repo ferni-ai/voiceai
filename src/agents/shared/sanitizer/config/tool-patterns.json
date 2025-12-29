@@ -56,7 +56,19 @@
         "getRelationshipSummary",
         "get relationship summary",
         "reinforceMemory",
-        "reinforce memory"
+        "reinforce memory",
+        "surfaceRelevantMemory",
+        "surface relevant memory",
+        "Surface relevant memory",
+        "proactive memory",
+        "Proactive memory",
+        "predictUserNeed",
+        "predict user need",
+        "Predict user need",
+        "anticipate need",
+        "Anticipate need",
+        "anticipate what",
+        "Anticipate what"
       ]
     },
 
@@ -104,7 +116,29 @@
         "getEmergencyServices",
         "getCrisisHotlines",
         "logMood",
-        "getMoodHistory"
+        "getMoodHistory",
+        "evaluateHumanTransfer",
+        "evaluate human transfer",
+        "connectToHumanExpert",
+        "connect to human expert",
+        "quickCrisisResources",
+        "quick crisis resources",
+        "provideCrisisResources",
+        "provide crisis resources",
+        "guideGroundingExercise",
+        "guide grounding exercise",
+        "deEscalateAnxiety",
+        "de-escalate anxiety",
+        "createSafetyPlan",
+        "create safety plan",
+        "findSafeResources",
+        "find safe resources",
+        "supportRecoveryJourney",
+        "support recovery journey",
+        "trackSobrietyMilestone",
+        "track sobriety milestone",
+        "findFinancialAssistance",
+        "find financial assistance"
       ]
     },
 

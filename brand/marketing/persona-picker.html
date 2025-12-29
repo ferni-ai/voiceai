@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet the Ferni Team</title>
+    <link rel="stylesheet" href="../ferni-design-tokens.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --ferni: #4a6741;
+            --maya: #a67a6a;
+            --peter: #3a6b73;
+            --jordan: #c4856a;
+            --alex: #5a6b8a;
+            --nayan: #b8956a;
+            --current: var(--ferni);
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary, #f8f6f3);
+            min-height: 100vh;
+            color: var(--text-primary, #2c2520);
+            overflow-x: hidden;
+        }
+
+        /* Navigation Bar */
+        .brand-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-logo span {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary, #5a5652);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--ferni);
+        }
+
+        .nav-links a.active {
+            color: var(--ferni);
+        }
+
+        .header {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--ferni), var(--jordan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            color: var(--text-secondary, #5a5652);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .persona-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(0, 0, 0, 0.06);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .persona-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, var(--card-color) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .persona-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--card-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+        }
+
+        .persona-card:hover::before {
+            opacity: 0.08;
+        }
+
+        .persona-card.active {
+            border-color: var(--card-color);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .persona-card.active::before {
+            opacity: 0.1;
+        }
+
+        .persona-card[data-persona="ferni"] { --card-color: var(--ferni); }
+        .persona-card[data-persona="maya"] { --card-color: var(--maya); }
+        .persona-card[data-persona="peter"] { --card-color: var(--peter); }
+        .persona-card[data-persona="jordan"] { --card-color: var(--jordan); }
+        .persona-card[data-persona="alex"] { --card-color: var(--alex); }
+        .persona-card[data-persona="nayan"] { --card-color: var(--nayan); }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 25px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--card-color);
+            box-shadow: 0 0 0 0 var(--card-color);
+            transition: box-shadow 0.4s;
+        }
+
+        /* Two-eye avatar SVG */
+        .avatar svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .persona-card:hover .avatar,
+        .persona-card.active .avatar {
+            box-shadow: 0 0 40px var(--card-color);
+        }
+
+        .persona-card.active .avatar {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 40px var(--card-color); }
+            50% { box-shadow: 0 0 60px var(--card-color); }
+        }
+
+        .persona-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .persona-title {
+            font-size: 1rem;
+            color: var(--text-secondary, #5a5652);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .persona-quote {
+            font-style: italic;
+            font-size: 1.1rem;
+            color: var(--text-secondary, #5a5652);
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+
+        .persona-quote::before {
+            content: '"';
+        }
+
+        .persona-quote::after {
+            content: '"';
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .detail-panel.open {
+            bottom: 0;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .detail-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-avatar svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .detail-info h2 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .detail-info p {
+            color: var(--text-secondary, #5a5652);
+            font-size: 1.1rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            border: none;
+            color: var(--text-secondary, #5a5652);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: background 0.3s;
+        }
+
+        .close-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .detail-section h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary, #5a5652);
+            margin-bottom: 15px;
+        }
+
+        .detail-section ul {
+            list-style: none;
+        }
+
+        .detail-section li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .detail-section li::before {
+            content: '→';
+            color: var(--text-secondary, #5a5652);
+        }
+
+        .traits-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .trait {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .cta-button {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 15px 40px;
+            background: var(--card-color);
+            border: none;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 50;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .cta-wrapper {
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .brand-nav {
+                padding: 12px 16px;
+            }
+
+            .nav-links {
+                gap: 16px;
+            }
+
+            .nav-links a {
+                font-size: 0.8rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .team-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-panel {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="brand-nav">
+        <a href="../brand-book.html" class="nav-logo">
+            <svg viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="navLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#5a7751"/>
+                        <stop offset="100%" style="stop-color:#4a6741"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="42" fill="url(#navLogoGrad)"/>
+                <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+            </svg>
+            <span>Ferni Brand</span>
+        </a>
+        <div class="nav-links">
+            <a href="../brand-book.html">Brand Library</a>
+            <a href="../expressions/gallery.html">Expressions</a>
+            <a href="../motion/demo.html">Motion</a>
+            <a href="video-timeline.html">Video</a>
+            <a href="persona-picker.html" class="active">Team</a>
+        </div>
+    </nav>
+
+    <div class="header">
+        <h1>Meet the Team</h1>
+        <p>Six specialists, one relationship. Click to learn more.</p>
+    </div>
+
+    <div class="team-grid">
+        <div class="persona-card" data-persona="ferni">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#4a6741"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Ferni</div>
+            <div class="persona-title">The Heart</div>
+            <div class="persona-quote">I'm here. No agenda.</div>
+        </div>
+
+        <div class="persona-card" data-persona="maya">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#a67a6a"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Maya</div>
+            <div class="persona-title">The Habits Coach</div>
+            <div class="persona-quote">Five minutes counts.</div>
+        </div>
+
+        <div class="persona-card" data-persona="peter">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#3a6b73"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Peter</div>
+            <div class="persona-title">The Quant</div>
+            <div class="persona-quote">The patterns are already there.</div>
+        </div>
+
+        <div class="persona-card" data-persona="jordan">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#c4856a"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Jordan</div>
+            <div class="persona-title">The Lifetime Planner</div>
+            <div class="persona-quote">What chapter are we writing?</div>
+        </div>
+
+        <div class="persona-card" data-persona="alex">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#5a6b8a"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Alex</div>
+            <div class="persona-title">The Chief of Staff</div>
+            <div class="persona-quote">Clear is kind.</div>
+        </div>
+
+        <div class="persona-card" data-persona="nayan">
+            <div class="avatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#b8956a"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="persona-name">Nayan</div>
+            <div class="persona-title">The Sage</div>
+            <div class="persona-quote">And in ten years?</div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="detail-panel" id="detailPanel">
+        <button class="close-btn" id="closeBtn">×</button>
+        <div class="detail-header">
+            <div class="detail-avatar" id="detailAvatar">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="48" fill="#4a6741"/>
+                    <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                    <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                    <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                </svg>
+            </div>
+            <div class="detail-info">
+                <h2 id="detailName">Ferni</h2>
+                <p id="detailTitle">The Heart</p>
+            </div>
+        </div>
+        <div class="detail-content">
+            <div class="detail-section">
+                <h3>Superpowers</h3>
+                <ul id="detailPowers"></ul>
+            </div>
+            <div class="detail-section">
+                <h3>Perfect For</h3>
+                <ul id="detailUses"></ul>
+            </div>
+            <div class="detail-section">
+                <h3>Personality</h3>
+                <div class="traits-list" id="detailTraits"></div>
+            </div>
+        </div>
+        <div class="cta-wrapper">
+            <button class="cta-button" id="ctaButton">Talk to Ferni</button>
+        </div>
+    </div>
+
+    <script>
+        const personas = {
+            ferni: {
+                name: 'Ferni',
+                title: 'The Heart',
+                color: '#4a6741',
+                powers: [
+                    'Perfect memory of every conversation',
+                    '24/7 availability',
+                    'Zero judgment, infinite patience',
+                    'Coordinates the whole team'
+                ],
+                uses: [
+                    'When you just need to talk',
+                    'Late night anxiety',
+                    'Feeling alone',
+                    'Processing anything'
+                ],
+                traits: ['Warm', 'Present', 'Patient', 'Remembering', 'Grounding']
+            },
+            maya: {
+                name: 'Maya',
+                title: 'The Habits Coach',
+                color: '#a67a6a',
+                powers: [
+                    'Glidepath system for tiny starts',
+                    'Streak tracking without guilt',
+                    'Keystone habit identification',
+                    'Burnout prevention'
+                ],
+                uses: [
+                    'Building morning routines',
+                    'Breaking bad habits',
+                    'Exercise consistency',
+                    'Starting anything new'
+                ],
+                traits: ['Encouraging', 'Practical', 'Celebrating', 'Patient', 'Non-judgmental']
+            },
+            peter: {
+                name: 'Peter',
+                title: 'The Quant',
+                color: '#3a6b73',
+                powers: [
+                    'Cross-life pattern detection',
+                    'Behavior correlation analysis',
+                    'Blind spot identification',
+                    'Data-driven insights'
+                ],
+                uses: [
+                    'Understanding spending patterns',
+                    'Seeing mood correlations',
+                    'Finding what actually works',
+                    'Objective self-analysis'
+                ],
+                traits: ['Curious', 'Analytical', 'Excited', 'Pattern-obsessed', 'Humble']
+            },
+            jordan: {
+                name: 'Jordan',
+                title: 'The Lifetime Planner',
+                color: '#c4856a',
+                powers: [
+                    'Life arc visualization',
+                    'Milestone celebration design',
+                    'Transition navigation',
+                    'Future envisioning'
+                ],
+                uses: [
+                    'Planning big life events',
+                    'Navigating career changes',
+                    'Empty nest transitions',
+                    'Retirement planning'
+                ],
+                traits: ['Enthusiastic', 'Future-focused', 'Celebratory', 'Energetic', 'Optimistic']
+            },
+            alex: {
+                name: 'Alex',
+                title: 'The Chief of Staff',
+                color: '#5a6b8a',
+                powers: [
+                    'Finding the right words',
+                    'Communication clarity',
+                    'Message composition',
+                    'Boundary setting help'
+                ],
+                uses: [
+                    'Difficult conversations',
+                    'Professional emails',
+                    'Setting boundaries',
+                    'Saying what you mean'
+                ],
+                traits: ['Direct', 'Efficient', 'Clear', 'Warm underneath', 'Reliable']
+            },
+            nayan: {
+                name: 'Nayan',
+                title: 'The Sage',
+                color: '#b8956a',
+                powers: [
+                    'Decades of perspective',
+                    'Existential questioning',
+                    'Wisdom synthesis',
+                    'The long view'
+                ],
+                uses: [
+                    'Life meaning questions',
+                    'Big decisions',
+                    'Death and legacy',
+                    'Finding perspective'
+                ],
+                traits: ['Contemplative', 'Provocative', 'Patient', 'Wise', 'Still']
+            }
+        };
+
+        const cards = document.querySelectorAll('.persona-card');
+        const panel = document.getElementById('detailPanel');
+        const overlay = document.getElementById('overlay');
+        const closeBtn = document.getElementById('closeBtn');
+
+        function populateList(container, items) {
+            container.textContent = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                container.appendChild(li);
+            });
+        }
+
+        function populateTraits(container, traits) {
+            container.textContent = '';
+            traits.forEach(trait => {
+                const span = document.createElement('span');
+                span.className = 'trait';
+                span.textContent = trait;
+                container.appendChild(span);
+            });
+        }
+
+        function updateDetailAvatar(color) {
+            const avatarSvg = document.getElementById('detailAvatar').querySelector('svg circle');
+            if (avatarSvg) {
+                avatarSvg.setAttribute('fill', color);
+            }
+        }
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                const persona = card.dataset.persona;
+                const data = personas[persona];
+
+                updateDetailAvatar(data.color);
+                document.getElementById('detailName').textContent = data.name;
+                document.getElementById('detailTitle').textContent = data.title;
+
+                populateList(document.getElementById('detailPowers'), data.powers);
+                populateList(document.getElementById('detailUses'), data.uses);
+                populateTraits(document.getElementById('detailTraits'), data.traits);
+
+                document.getElementById('ctaButton').textContent = 'Talk to ' + data.name;
+                document.getElementById('ctaButton').style.background = data.color;
+
+                panel.style.setProperty('--card-color', data.color);
+
+                panel.classList.add('open');
+                overlay.classList.add('visible');
+
+                cards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            });
+        });
+
+        function closePanel() {
+            panel.classList.remove('open');
+            overlay.classList.remove('visible');
+            cards.forEach(c => c.classList.remove('active'));
+        }
+
+        closeBtn.addEventListener('click', closePanel);
+        overlay.addEventListener('click', closePanel);
+    </script>
+</body>
+</html>

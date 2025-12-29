@@ -195,17 +195,19 @@ async function warmUserPreferences(
 ): Promise<{ usersLoaded: number; timeMs: number }> {
   const start = performance.now();
 
-  let usersLoaded = 0;
-  for (const userId of userIds) {
-    try {
-      const prefs = await loadUserPreferences(userId);
-      if (prefs) {
-        usersLoaded++;
+  // Load user preferences in parallel
+  const results = await Promise.all(
+    userIds.map(async (userId) => {
+      try {
+        const prefs = await loadUserPreferences(userId);
+        return prefs ? true : false;
+      } catch (error) {
+        log.warn({ error, userId }, 'Failed to load user preferences');
+        return false;
       }
-    } catch (error) {
-      log.warn({ error, userId }, 'Failed to load user preferences');
-    }
-  }
+    })
+  );
+  const usersLoaded = results.filter(Boolean).length;
 
   const timeMs = performance.now() - start;
   log.info({ usersLoaded, timeMs }, 'User preferences warmed');

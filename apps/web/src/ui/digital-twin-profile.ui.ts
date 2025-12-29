@@ -20,6 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { updateCustomAgent, getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
+import { saveTwinProfile, getTwinProfile } from '../services/twin-profile.service.js';
 
 const log = createLogger('DigitalTwinProfileUI');
 
@@ -227,8 +228,8 @@ export async function openTwinProfile(agentId: string): Promise<void> {
 
     currentAgent = agent;
 
-    // Load existing profile data if any
-    loadExistingProfile(agent);
+    // Load existing profile data - try API first, fall back to agent
+    await loadExistingProfile(agent);
 
     // Start at intro
     currentSection = 'intro';
@@ -259,8 +260,20 @@ export function closeTwinProfile(): void {
   soundUI.play('switch');
 }
 
-function loadExistingProfile(agent: CustomAgent): void {
-  // Load from agent's personality and behaviors if they exist
+async function loadExistingProfile(agent: CustomAgent): Promise<void> {
+  // Try to load from the Twin Profile API first
+  try {
+    const { profile: savedProfile, exists } = await getTwinProfile();
+    if (exists && savedProfile) {
+      profile = savedProfile;
+      log.info({ completion: savedProfile.completionPercentage }, 'Loaded profile from API');
+      return;
+    }
+  } catch (error) {
+    log.warn({ error }, 'Could not load profile from API, falling back to agent data');
+  }
+
+  // Fall back to loading from agent's personality and behaviors
   profile = createEmptyProfile();
 
   if (agent.personality) {
@@ -1289,7 +1302,11 @@ async function saveProfileToAgent(): Promise<void> {
       },
     };
 
-    await updateCustomAgent(currentAgent.id, updates as unknown as Parameters<typeof updateCustomAgent>[1]);
+    // Save to both the custom agent and the twin profile API
+    await Promise.all([
+      updateCustomAgent(currentAgent.id, updates as unknown as Parameters<typeof updateCustomAgent>[1]),
+      saveTwinProfile(profile),
+    ]);
 
     toast.success('Profile saved!');
     closeTwinProfile();

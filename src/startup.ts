@@ -27,6 +27,7 @@ import {
 } from './services/persistence/lifecycle.js';
 import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
 import { getLogger } from './utils/safe-logger.js';
+import { registerInterval } from './utils/interval-manager.js';
 import { recordStartupMetrics, startMetricsLogging } from './services/performance-metrics.js';
 
 // ============================================================================
@@ -197,7 +198,8 @@ export async function startup(): Promise<AppConfig> {
     const { processScheduledTriggers } = await import('./services/outreach/daily-outreach-job.js');
 
     // Run scheduled trigger check every 30 minutes
-    setInterval(
+    registerInterval(
+      'outreach-trigger-scheduler',
       () => {
         processScheduledTriggers().catch((err) => {
           logger.debug({ error: String(err) }, 'Scheduled triggers check failed (non-fatal)');
@@ -284,6 +286,15 @@ export async function startup(): Promise<AppConfig> {
         .then(() => {
           logger.debug('✓ Tool usage analytics ready (deferred)');
           return 'tool_analytics';
+        }),
+
+      // Predictive Intelligence ML system - not needed for first greeting
+      // This initializes Markov chains, time series, and reinforcement learning
+      import('./intelligence/predictive/index.js')
+        .then(({ initializePredictiveIntelligence }) => initializePredictiveIntelligence())
+        .then(() => {
+          logger.debug('✓ Predictive Intelligence ML system ready (deferred)');
+          return 'predictive_intelligence';
         }),
     ]);
 
@@ -393,6 +404,16 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Tool usage analytics flushed');
     } catch (error) {
       logger.warn(`Tool usage analytics flush failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown Predictive Intelligence ML system (flush learned patterns)
+    logger.info('Shutting down Predictive Intelligence...');
+    try {
+      const { shutdownPredictiveIntelligence } = await import('./intelligence/predictive/index.js');
+      await shutdownPredictiveIntelligence();
+      logger.info('✓ Predictive Intelligence shut down');
+    } catch (error) {
+      logger.warn(`Predictive Intelligence shutdown failed (non-fatal): ${error}`);
     }
 
     // Shutdown all persistence services (flush all pending data)

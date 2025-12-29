@@ -428,4 +428,191 @@ describe('Predictions E2E Integration', () => {
       expect(typeof context).toBe('string');
     });
   });
+
+  describe('9. Confidence Decay and Pattern Feedback', () => {
+    it('should apply confidence decay to stale patterns', async () => {
+      const { applyConfidenceDecay } = await import('../services/superhuman/predictive-coaching.js');
+
+      // Create a pattern that's 40 days old
+      const stalePattern = {
+        id: 'test-stale-pattern',
+        userId: TEST_USER_ID,
+        type: 'temporal' as const,
+        trigger: 'Sunday evening',
+        outcome: 'anxiety',
+        frequency: 5,
+        observationCount: 5,
+        lastObserved: Date.now() - 40 * 24 * 60 * 60 * 1000, // 40 days ago
+        firstObserved: Date.now() - 90 * 24 * 60 * 60 * 1000,
+        confidence: 'very_high' as const,
+      };
+
+      const decayed = applyConfidenceDecay(stalePattern);
+      console.log(`📉 Decayed from ${stalePattern.confidence} to ${decayed.confidence}`);
+
+      // Very high patterns should decay to high after 30 days
+      expect(decayed.confidence).toBe('high');
+    });
+
+    it('should export confirm and invalidate functions', async () => {
+      const { confirmPrediction, invalidatePrediction } =
+        await import('../services/superhuman/predictive-coaching.js');
+
+      // Both functions should be exported
+      expect(typeof confirmPrediction).toBe('function');
+      expect(typeof invalidatePrediction).toBe('function');
+
+      // Should not throw when called (even without Firestore)
+      await expect(confirmPrediction(TEST_USER_ID, 'non-existent-pattern')).resolves.not.toThrow();
+      await expect(invalidatePrediction(TEST_USER_ID, 'non-existent-pattern')).resolves.not.toThrow();
+    });
+
+    it('should trigger decay on conversation end in worker', async () => {
+      const { PredictionsWorker } = await import('../workers/predictions-worker.js');
+      
+      // Create worker and verify it handles conversation:end events
+      const worker = new PredictionsWorker({ name: 'DecayTestWorker' });
+      expect(worker).toBeDefined();
+
+      // Worker config should include conversation:end
+      const stats = worker.getStats();
+      expect(stats).toBeDefined();
+
+      await worker.stop();
+    });
+  });
+
+  describe('10. ML Predictive Intelligence Integration', () => {
+    it('should process conversation for ML learning', async () => {
+      const { processConversationForLearning } =
+        await import('../intelligence/predictive/index.js');
+
+      // Should not throw when processing a turn
+      await expect(
+        processConversationForLearning(TEST_USER_ID, {
+          text: 'I feel really stressed about tomorrow',
+          emotion: 'stressed',
+          topic: 'work',
+          mood: 0.3, // Low mood
+          energy: 0.4,
+          timestamp: new Date(),
+          previousEmotion: 'neutral',
+          previousTopic: 'general',
+        })
+      ).resolves.not.toThrow();
+
+      console.log('✅ ML learning processed conversation turn');
+    });
+
+    it('should get all predictions from ML system', async () => {
+      const { getAllPredictions } = await import('../intelligence/predictive/index.js');
+
+      const predictions = await getAllPredictions(TEST_USER_ID, {
+        currentEmotion: 'stressed',
+        currentTopic: 'work',
+      });
+
+      console.log(`🧠 ML predictions: ${predictions.size} targets`);
+
+      expect(predictions).toBeInstanceOf(Map);
+      // Should have predictions for standard targets
+      const targets = ['needs_support_now', 'burnout_risk', 'ready_for_challenge'];
+      for (const target of targets) {
+        const pred = predictions.get(target as never);
+        if (pred) {
+          expect(pred).toHaveProperty('confidence');
+          expect(pred).toHaveProperty('explanation');
+        }
+      }
+    });
+
+    it('should get predictive intelligence context for turn', async () => {
+      const { getPredictiveIntelligenceContext } =
+        await import('../intelligence/predictive/index.js');
+
+      const context = await getPredictiveIntelligenceContext(TEST_USER_ID, {
+        currentEmotion: 'anxious',
+        currentTopic: 'career',
+      });
+
+      console.log(`🧠 Predictive intelligence context (${context.length} chars)`);
+
+      expect(typeof context).toBe('string');
+      // Context may be empty if no data, but should be a string
+    });
+
+    it('should find best outreach times', async () => {
+      const { findBestOutreachTime } = await import('../intelligence/predictive/index.js');
+
+      const bestTimes = await findBestOutreachTime(TEST_USER_ID, 3);
+
+      console.log(`⏰ Best outreach times: ${bestTimes.length} suggestions`);
+
+      expect(Array.isArray(bestTimes)).toBe(true);
+      for (const time of bestTimes) {
+        expect(time).toHaveProperty('time');
+        expect(time).toHaveProperty('confidence');
+        expect(time).toHaveProperty('reasoning');
+      }
+    });
+  });
+
+  describe('11. Unified Context Building (All Prediction Sources)', () => {
+    it('should collect triggers from both rule-based and ML systems', async () => {
+      // Import the prediction surfacing builder
+      const { predictionSurfacingBuilder } = await import(
+        '../intelligence/context-builders/prediction-surfacing.js'
+      );
+
+      // Build context with mock input
+      const injections = await predictionSurfacingBuilder.build({
+        userData: { turnCount: 1 },
+        analysis: { emotion: { primary: 'stressed' } },
+        services: { userId: TEST_USER_ID },
+      } as never);
+
+      console.log(`📋 Unified context injections: ${injections.length}`);
+
+      expect(Array.isArray(injections)).toBe(true);
+      // May be empty without real data, but should not throw
+    });
+  });
+
+  describe('12. Persistence Layer', () => {
+    it('should have flush lock mechanism', async () => {
+      const { forceFlushUser } = await import('../intelligence/predictive/persistence.js');
+
+      // Should handle concurrent flush attempts gracefully
+      const flush1 = forceFlushUser(
+        TEST_USER_ID,
+        () => null,
+        () => null,
+        () => null
+      );
+      const flush2 = forceFlushUser(
+        TEST_USER_ID,
+        () => null,
+        () => null,
+        () => null
+      );
+
+      // Both should complete without errors (one waits for the other)
+      await expect(Promise.all([flush1, flush2])).resolves.not.toThrow();
+      console.log('✅ Concurrent flush handled correctly');
+    });
+
+    it('should mark users dirty for batch flushing', async () => {
+      const { markDirty, isUserLoaded, markUserLoaded } =
+        await import('../intelligence/predictive/persistence.js');
+
+      // Mark user as dirty
+      markDirty(TEST_USER_ID);
+      console.log('✅ User marked dirty');
+
+      // Mark user as loaded
+      markUserLoaded(TEST_USER_ID);
+      expect(isUserLoaded(TEST_USER_ID)).toBe(true);
+      console.log('✅ User load state tracked');
+    });
+  });
 });

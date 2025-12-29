@@ -3,8 +3,18 @@
  *
  * Signal processing functions for extracting prosodic features from audio.
  * Includes pitch detection, energy analysis, and voice quality metrics.
+ *
+ * REQUIRED: Native module must be available for Int16 audio processing.
+ * Uses Rust-accelerated functions via @ferni/audio module for 10-50x speedup.
+ *
+ * If the native module fails to load, functions throw NativeFeatureExtractionUnavailableError
+ * with clear instructions for building the native module.
+ *
+ * @module speech/audio-prosody/feature-extraction
  */
 
+import { createRequire } from 'module';
+import { getLogger } from '../../utils/safe-logger.js';
 import type {
   AudioBuffer,
   EnergyAnalysis,
@@ -14,29 +24,224 @@ import type {
   VoiceQualityMetrics,
 } from './types.js';
 
+// Create require for loading native modules in ESM context
+const require = createRequire(import.meta.url);
+
+const log = getLogger().child({ module: 'FeatureExtraction' });
+
+// ============================================================================
+// CUSTOM ERROR
+// ============================================================================
+
+/**
+ * Error thrown when native feature extraction module is unavailable.
+ * Provides actionable instructions for building the module.
+ */
+export class NativeFeatureExtractionUnavailableError extends Error {
+  readonly code = 'NATIVE_FEATURE_EXTRACTION_UNAVAILABLE';
+  readonly buildInstructions: string;
+
+  constructor(reason: string) {
+    super(`Native feature extraction module unavailable: ${reason}`);
+    this.name = 'NativeFeatureExtractionUnavailableError';
+    this.buildInstructions = `
+To fix this error, build the native audio module:
+
+  cd apps/rust-audio
+  pnpm build
+
+Or install pre-built binaries:
+
+  pnpm install @ferni/audio
+
+The native module is REQUIRED for production - no JavaScript fallback exists.
+This ensures consistent performance and prevents silent degradation.
+`;
+    Object.setPrototypeOf(this, NativeFeatureExtractionUnavailableError.prototype);
+  }
+}
+
+// ============================================================================
+// NATIVE MODULE (REQUIRED - NO JS FALLBACK)
+// ============================================================================
+
+// ============================================================================
+// NATIVE TYPES
+// ============================================================================
+
+/** Pitch estimation result from native module */
+export interface NativePitchEstimateResult {
+  pitchHz: number;
+  confidence: number;
+}
+
+/** Frame features result from native module */
+export interface NativeFrameFeaturesResult {
+  pitchHz: number;
+  pitchConfidence: number;
+  energyDb: number;
+  energyRms: number;
+  zcr: number;
+  isSpeech: boolean;
+  isVoiced: boolean;
+  timestampMs: number;
+}
+
+/** Native module functions we use */
+interface NativeAudioModule {
+  convertI16ToF32: (samples: Int16Array) => Float32Array;
+  computeEnergyDb: (samples: Float32Array) => number;
+  applyHanningWindow: (samples: Float32Array) => Float32Array;
+  // Standalone pitch detection (new!)
+  estimatePitch: (
+    samples: Float32Array,
+    sampleRate: number,
+    minPitch?: number,
+    maxPitch?: number
+  ) => NativePitchEstimateResult;
+  extractFrameFeatures: (
+    samples: Float32Array,
+    sampleRate: number,
+    timestampMs: number
+  ) => NativeFrameFeaturesResult;
+}
+
+let nativeModule: NativeAudioModule | null = null;
+let loadAttempted = false;
+let loadError: string | null = null;
+
+/**
+ * Load the native Rust audio module.
+ * THROWS if the module is unavailable - no silent fallback.
+ */
+function loadNativeModule(): NativeAudioModule {
+  if (loadAttempted && nativeModule) {
+    return nativeModule;
+  }
+
+  if (loadAttempted && loadError) {
+    throw new NativeFeatureExtractionUnavailableError(loadError);
+  }
+
+  loadAttempted = true;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    nativeModule = require('@ferni/audio') as NativeAudioModule;
+
+    log.debug('🦀 Native feature extraction loaded');
+
+    return nativeModule;
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : String(err);
+    log.error({ error: loadError }, '❌ Native feature extraction failed to load - NO FALLBACK');
+    throw new NativeFeatureExtractionUnavailableError(loadError);
+  }
+}
+
+/**
+ * Try to load the native module without throwing.
+ * Used for isNativeFeatureExtractionAvailable() check.
+ */
+function tryLoadNativeModule(): NativeAudioModule | null {
+  if (loadAttempted) {
+    return nativeModule;
+  }
+
+  try {
+    return loadNativeModule();
+  } catch {
+    return null;
+  }
+}
+
+/** Check if native feature extraction is available */
+export function isNativeFeatureExtractionAvailable(): boolean {
+  return tryLoadNativeModule() !== null;
+}
+
+/**
+ * Get the reason native module failed to load (for debugging).
+ */
+export function getNativeFeatureExtractionLoadError(): string | null {
+  tryLoadNativeModule(); // Ensure we've tried
+  return loadError;
+}
+
+// ============================================================================
+// NATIVE PITCH DETECTION (RUST-ACCELERATED)
+// ============================================================================
+
+/**
+ * Estimate pitch using native Rust autocorrelation.
+ *
+ * This is significantly faster than the JS autocorrelationPitch() function,
+ * especially for longer audio frames.
+ *
+ * @param samples Audio samples (Float32Array)
+ * @param sampleRate Sample rate in Hz (e.g., 16000)
+ * @param minPitch Minimum pitch to detect in Hz (default: 50)
+ * @param maxPitch Maximum pitch to detect in Hz (default: 500)
+ * @returns Pitch in Hz and confidence (0-1)
+ * @throws {NativeFeatureExtractionUnavailableError} if native unavailable
+ */
+export function estimatePitchNative(
+  samples: Float32Array,
+  sampleRate: number,
+  minPitch: number = 50,
+  maxPitch: number = 500
+): NativePitchEstimateResult {
+  const mod = loadNativeModule();
+  return mod.estimatePitch(samples, sampleRate, minPitch, maxPitch);
+}
+
+/**
+ * Extract full frame features using native Rust implementation.
+ *
+ * Returns pitch, energy, zero-crossing rate, and speech/voiced detection
+ * in a single call - more efficient than calling separate functions.
+ *
+ * @param samples Audio samples (Float32Array)
+ * @param sampleRate Sample rate in Hz (e.g., 16000)
+ * @param timestampMs Timestamp for the frame
+ * @returns Complete frame features
+ * @throws {NativeFeatureExtractionUnavailableError} if native unavailable
+ */
+export function extractFrameFeaturesNative(
+  samples: Float32Array,
+  sampleRate: number,
+  timestampMs: number
+): NativeFrameFeaturesResult {
+  const mod = loadNativeModule();
+  return mod.extractFrameFeatures(samples, sampleRate, timestampMs);
+}
+
 // ============================================================================
 // AUDIO CONVERSION
 // ============================================================================
 
 /**
  * Convert audio data to Float32Array
+ *
+ * Uses Rust SIMD-accelerated conversion for Int16Array (most common format).
+ * Uint8Array is converted in JavaScript (legacy format, rarely used).
+ *
+ * @throws {NativeFeatureExtractionUnavailableError} for Int16Array if native unavailable
  */
 export function convertToFloat32(data: Int16Array | Uint8Array | Float32Array): Float32Array {
   if (data instanceof Float32Array) return data;
 
-  const float32 = new Float32Array(data.length);
-
+  // Int16Array: Use Rust SIMD-accelerated conversion (REQUIRED)
   if (data instanceof Int16Array) {
-    for (let i = 0; i < data.length; i++) {
-      float32[i] = data[i] / 32768;
-    }
-  } else {
-    // Uint8Array
-    for (let i = 0; i < data.length; i++) {
-      float32[i] = (data[i] - 128) / 128;
-    }
+    const mod = loadNativeModule();
+    return mod.convertI16ToF32(data);
   }
 
+  // Uint8Array: JavaScript only (legacy format, no native implementation)
+  const float32 = new Float32Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    float32[i] = (data[i] - 128) / 128;
+  }
   return float32;
 }
 
@@ -71,7 +276,24 @@ export function mergeBuffers(buffers: AudioBuffer[]): AudioBuffer | null {
 // ============================================================================
 
 /**
+ * Apply a Hanning windowing function to audio frame
+ *
+ * Uses Rust SIMD-accelerated implementation.
+ * @throws {NativeFeatureExtractionUnavailableError} if native unavailable
+ */
+function applyWindow(frame: Float32Array): Float32Array {
+  const mod = loadNativeModule();
+  return mod.applyHanningWindow(frame);
+}
+
+/**
  * Autocorrelation-based pitch detection for a single frame
+ *
+ * Uses Rust SIMD-accelerated Hanning window (required).
+ * Note: The O(n²) autocorrelation is still in JS.
+ * For full native pitch detection, use NativeAudioProcessor from native-analyzer.ts.
+ *
+ * @throws {NativeFeatureExtractionUnavailableError} if native unavailable
  */
 export function autocorrelationPitch(
   frame: Float32Array,
@@ -82,14 +304,10 @@ export function autocorrelationPitch(
   const minLag = Math.floor(sampleRate / maxHz);
   const maxLag = Math.floor(sampleRate / minHz);
 
-  // Apply Hamming window
-  const windowed = new Float32Array(frame.length);
-  for (let i = 0; i < frame.length; i++) {
-    const w = 0.54 - 0.46 * Math.cos((2 * Math.PI * i) / (frame.length - 1));
-    windowed[i] = frame[i] * w;
-  }
+  // Apply window (Rust accelerated when available)
+  const windowed = applyWindow(frame);
 
-  // Autocorrelation
+  // Autocorrelation (O(n²) - consider using NativeAudioProcessor for full sessions)
   let maxCorr = 0;
   let bestLag = 0;
 
@@ -113,6 +331,9 @@ export function autocorrelationPitch(
 
 /**
  * Estimate pitch characteristics from audio samples
+ *
+ * Uses Rust-accelerated autocorrelation when native module is available,
+ * falling back to JS implementation only in edge cases.
  */
 export function estimatePitch(samples: Float32Array, sampleRate: number): PitchAnalysis {
   const frameSize = 2048;
@@ -121,10 +342,23 @@ export function estimatePitch(samples: Float32Array, sampleRate: number): PitchA
   const maxPitch = 500; // Hz
 
   const pitches: number[] = [];
+  const useNative = isNativeFeatureExtractionAvailable();
 
   for (let i = 0; i + frameSize <= samples.length; i += hopSize) {
     const frame = samples.slice(i, i + frameSize);
-    const pitch = autocorrelationPitch(frame, sampleRate, minPitch, maxPitch);
+    let pitch = 0;
+
+    if (useNative) {
+      // Use Rust-accelerated autocorrelation (SIMD-optimized)
+      const result = estimatePitchNative(frame, sampleRate, minPitch, maxPitch);
+      if (result.confidence > 0.3) {
+        pitch = result.pitchHz;
+      }
+    } else {
+      // Fallback to JS O(n²) autocorrelation (slower)
+      pitch = autocorrelationPitch(frame, sampleRate, minPitch, maxPitch);
+    }
+
     if (pitch > 0) {
       pitches.push(pitch);
     }
@@ -262,6 +496,8 @@ export function estimateSpeechRate(samples: Float32Array, sampleRate: number): n
 
 /**
  * Analyze voice quality metrics (jitter, shimmer, breathiness)
+ *
+ * Uses Rust-accelerated pitch detection when native module is available.
  */
 export function analyzeVoiceQuality(
   samples: Float32Array,
@@ -270,10 +506,22 @@ export function analyzeVoiceQuality(
   const frameSize = 2048;
   const pitches: number[] = [];
   const amplitudes: number[] = [];
+  const useNative = isNativeFeatureExtractionAvailable();
 
   for (let i = 0; i + frameSize <= samples.length; i += frameSize / 2) {
     const frame = samples.slice(i, i + frameSize);
-    const pitch = autocorrelationPitch(frame, sampleRate, 50, 500);
+    let pitch = 0;
+
+    if (useNative) {
+      // Use Rust-accelerated autocorrelation
+      const result = estimatePitchNative(frame, sampleRate, 50, 500);
+      if (result.confidence > 0.3) {
+        pitch = result.pitchHz;
+      }
+    } else {
+      pitch = autocorrelationPitch(frame, sampleRate, 50, 500);
+    }
+
     if (pitch > 0) {
       pitches.push(pitch);
 

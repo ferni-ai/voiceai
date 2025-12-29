@@ -258,7 +258,7 @@ export async function saveCoachingProfilesToFirestore(userId: string): Promise<b
     const bundle = await exportAllCoachingProfiles(userId);
 
     // Serialize dates for Firestore
-    const serialized = JSON.parse(JSON.stringify(bundle));
+    const serialized = structuredClone(bundle);
 
     await firestoreClient
       .collection(COACHING_COLLECTION)

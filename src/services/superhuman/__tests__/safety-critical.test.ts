@@ -81,16 +81,16 @@ describe('Emotional First Aid - Crisis Detection', () => {
   describe('detectCrisis', () => {
     describe('Safety Level (Highest Priority)', () => {
       const SAFETY_PHRASES = [
-        "I want to die",
-        "I wanna end it",
+        'I want to die',
+        'I wanna end it',
         "I don't want to be here anymore",
         "I don't want to live",
         "What's the point of living",
-        "What is the point anymore",
+        'What is the point anymore',
         "I'm going to hurt myself",
-        "Everyone would be better off without me",
-        "Nobody would care if I was gone",
-        "No one would miss me if I were gone",
+        'Everyone would be better off without me',
+        'Nobody would care if I was gone',
+        'No one would miss me if I were gone',
         "I'm just a burden to everyone",
         "What's the point",
         "What's even the point",
@@ -113,15 +113,15 @@ describe('Emotional First Aid - Crisis Detection', () => {
       const CONTAINING_PHRASES = [
         "I can't do this anymore",
         "I'm falling apart",
-        "Everything is too much",
+        'Everything is too much',
         "I'm completely overwhelmed",
         "I'm totally lost",
         "I'm so tired of everything",
         "I don't care anymore",
-        "Why do I even bother",
-        "Nothing matters anymore",
+        'Why do I even bother',
+        'Nothing matters anymore',
         "I've given up",
-        "I feel hopeless",
+        'I feel hopeless',
       ];
 
       it.each(CONTAINING_PHRASES)('should detect CONTAINING level for: "%s"', (phrase) => {
@@ -136,10 +136,10 @@ describe('Emotional First Aid - Crisis Detection', () => {
       const STABILIZING_PHRASES = [
         "I'm so sad I can't function",
         "I can't stop crying",
-        "My heart is so tight",
-        "My chest is pounding",
+        'My heart is so tight',
+        'My chest is pounding',
         "I'm so angry I can't think",
-        "I can't function today",  // "I can't cope" is caught by containing level first
+        "I can't function today", // "I can't cope" is caught by containing level first
       ];
 
       it.each(STABILIZING_PHRASES)('should detect STABILIZING level for: "%s"', (phrase) => {
@@ -158,7 +158,7 @@ describe('Emotional First Aid - Crisis Detection', () => {
         "My thoughts won't stop",
         "I'm freaking out",
         "I'm spiraling",
-        "My thoughts are racing",
+        'My thoughts are racing',
       ];
 
       it.each(CALMING_PHRASES)('should detect CALMING level for: "%s"', (phrase) => {
@@ -171,15 +171,15 @@ describe('Emotional First Aid - Crisis Detection', () => {
 
     describe('Grounding Level', () => {
       const GROUNDING_PHRASES = [
-        "I feel disconnected",
-        "I feel out of it",  // "I'm not here" doesn't match pattern - uses "I feel/am X" format
+        'I feel disconnected',
+        'I feel out of it', // "I'm not here" doesn't match pattern - uses "I feel/am X" format
         "I'm so anxious",
         "I'm really anxious",
         "I can't focus",
         "I'm stressed",
         "I'm overwhelmed",
-        "Nothing feels real",
-        "Everything seems unreal",
+        'Nothing feels real',
+        'Everything seems unreal',
         "I feel like I'm floating",
         "I'm numb",
         "I'm empty",
@@ -196,10 +196,10 @@ describe('Emotional First Aid - Crisis Detection', () => {
     describe('Non-crisis Detection', () => {
       const SAFE_PHRASES = [
         "I'm doing great today",
-        "Had a good meeting",
-        "Looking forward to the weekend",
+        'Had a good meeting',
+        'Looking forward to the weekend',
         "I'm feeling pretty good",
-        "Things are going well",
+        'Things are going well',
       ];
 
       it.each(SAFE_PHRASES)('should NOT detect crisis for: "%s"', (phrase) => {
@@ -275,7 +275,13 @@ describe('Emotional First Aid - Crisis Detection', () => {
   });
 
   describe('getFirstAidResponse', () => {
-    const ALL_LEVELS: CrisisLevel[] = ['safety', 'containing', 'stabilizing', 'calming', 'grounding'];
+    const ALL_LEVELS: CrisisLevel[] = [
+      'safety',
+      'containing',
+      'stabilizing',
+      'calming',
+      'grounding',
+    ];
 
     it.each(ALL_LEVELS)('should return valid response for %s level', (level) => {
       const response = getFirstAidResponse(level);
@@ -350,7 +356,7 @@ describe('Capacity Guardian - Energy & Burnout', () => {
       const HIGH_ENERGY = [
         "I'm feeling great today!",
         "I'm so energized right now",
-        "I have tons of energy",
+        'I have tons of energy',
         "I'm ready to tackle this",
         "I'm excited to start",
       ];
@@ -366,7 +372,7 @@ describe('Capacity Guardian - Energy & Burnout', () => {
       const GOOD_ENERGY = [
         "I'm doing good",
         "I'm feeling well",
-        "Things are going well",
+        'Things are going well',
         "I'm pretty energized",
       ];
 
@@ -382,7 +388,7 @@ describe('Capacity Guardian - Energy & Burnout', () => {
         "I'm okay",
         "I'm alright",
         "I'm hanging in there",
-        "Could be better",
+        'Could be better',
         "I'm managing",
       ];
 
@@ -399,7 +405,7 @@ describe('Capacity Guardian - Energy & Burnout', () => {
         "I'm tired",
         "I'm exhausted",
         "I'm drained",
-        "I need a break",
+        'I need a break',
         "I'm running on fumes",
         "I don't have any energy",
       ];
@@ -417,7 +423,7 @@ describe('Capacity Guardian - Energy & Burnout', () => {
         "I can't do this anymore",
         "I'm completely exhausted",
         "I'm totally burned out",
-        "I have nothing left",
+        'I have nothing left',
         "I'm at my limit",
         "I'm at the breaking point",
       ];
@@ -473,10 +479,10 @@ describe('Capacity Guardian - Energy & Burnout', () => {
 
   describe('detectOvercommitment', () => {
     const OVERCOMMITMENT_PHRASES = [
-      "I agreed to another meeting",  // "took on" doesn't match pattern directly
-      "I said yes to too much",
-      "I have so much to do",
-      "I have too much on my plate",
+      'I agreed to another meeting', // "took on" doesn't match pattern directly
+      'I said yes to too much',
+      'I have so much to do',
+      'I have too much on my plate',
       "I don't know how I'll get it all done",
       "I'm juggling so many things",
       "I can't say no",
@@ -487,8 +493,8 @@ describe('Capacity Guardian - Energy & Burnout', () => {
     });
 
     it('should not detect overcommitment in normal phrases', () => {
-      expect(detectOvercommitment("I finished my tasks")).toBe(false);
-      expect(detectOvercommitment("Having a good day")).toBe(false);
+      expect(detectOvercommitment('I finished my tasks')).toBe(false);
+      expect(detectOvercommitment('Having a good day')).toBe(false);
     });
   });
 
@@ -614,7 +620,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
 
     describe('only_if_they_bring_up severity', () => {
       it('should detect but mark as unsafe', () => {
-        const result = checkBoundaries("How is your father doing?", TEST_BOUNDARIES);
+        const result = checkBoundaries('How is your father doing?', TEST_BOUNDARIES);
 
         expect(result.isSafe).toBe(false);
         expect(result.guidance).toContain('⚠️');
@@ -622,7 +628,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
       });
 
       it('should provide safe alternatives', () => {
-        const result = checkBoundaries("Tell me about your dad", TEST_BOUNDARIES);
+        const result = checkBoundaries('Tell me about your dad', TEST_BOUNDARIES);
 
         expect(result.alternatives).toBeDefined();
         expect(result.alternatives).toContain('family');
@@ -631,7 +637,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
 
     describe('gentle_only severity', () => {
       it('should mark as safe but provide guidance', () => {
-        const result = checkBoundaries("How is your weight loss going?", TEST_BOUNDARIES);
+        const result = checkBoundaries('How is your weight loss going?', TEST_BOUNDARIES);
 
         expect(result.isSafe).toBe(true); // gentle_only is considered safe
         expect(result.guidance).toContain('🤏');
@@ -641,7 +647,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
 
     describe('time_sensitive severity', () => {
       it('should mark as safe but provide guidance', () => {
-        const result = checkBoundaries("Any news on the interview?", TEST_BOUNDARIES);
+        const result = checkBoundaries('Any news on the interview?', TEST_BOUNDARIES);
 
         expect(result.isSafe).toBe(true); // time_sensitive is considered safe
         expect(result.guidance).toContain('⏰');
@@ -651,7 +657,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
 
     describe('Safe content', () => {
       it('should pass safe content without matches', () => {
-        const result = checkBoundaries("Beautiful weather today!", TEST_BOUNDARIES);
+        const result = checkBoundaries('Beautiful weather today!', TEST_BOUNDARIES);
 
         expect(result.isSafe).toBe(true);
         expect(result.matchedBoundaries).toHaveLength(0);
@@ -683,7 +689,7 @@ describe('Protective Silence - Boundary Enforcement', () => {
           },
         ];
 
-        const result = checkBoundaries("How is your family?", mixedBoundaries);
+        const result = checkBoundaries('How is your family?', mixedBoundaries);
 
         expect(result.isSafe).toBe(false);
         expect(result.guidance).toContain('⛔');
@@ -772,18 +778,20 @@ describe('Safety-Critical Integration', () => {
 
   describe('Boundary Respect During Crisis', () => {
     it('should check boundaries even during crisis', () => {
-      const boundaries: ProtectiveBoundary[] = [{
-        userId: 'test-user',
-        topic: 'medication',
-        severity: 'only_if_they_bring_up',
-        category: 'health',
-        triggerKeywords: ['medication', 'pills', 'meds'],
-        createdAt: Date.now(),
-        source: 'user_stated',
-      }];
+      const boundaries: ProtectiveBoundary[] = [
+        {
+          userId: 'test-user',
+          topic: 'medication',
+          severity: 'only_if_they_bring_up',
+          category: 'health',
+          triggerKeywords: ['medication', 'pills', 'meds'],
+          createdAt: Date.now(),
+          source: 'user_stated',
+        },
+      ];
 
       // Crisis response that accidentally mentions medication
-      const response = "Are you taking your medication regularly?";
+      const response = 'Are you taking your medication regularly?';
       const check = checkBoundaries(response, boundaries);
 
       expect(check.isSafe).toBe(false);
@@ -838,7 +846,7 @@ describe('Edge Cases', () => {
 
   describe('Case Sensitivity', () => {
     it('should handle SHOUTING for crisis detection', () => {
-      const result = detectCrisis("I WANT TO DIE");
+      const result = detectCrisis('I WANT TO DIE');
       expect(result?.severity).toBe('safety');
     });
 
@@ -860,7 +868,7 @@ describe('Edge Cases', () => {
 
     it('should not go below 10 for energy score', () => {
       // Low arousal + slow speech + tired emotion + depleted text
-      const result = detectEnergyLevel("I have nothing left", {
+      const result = detectEnergyLevel('I have nothing left', {
         arousal: 0.1,
         speechRate: 60,
         emotion: 'exhausted',
@@ -875,8 +883,8 @@ describe('Regression Tests', () => {
   describe('P0 Fixes', () => {
     it('should detect passive suicidal ideation', () => {
       const phrases = [
-        "Everyone would be better off without me",
-        "Nobody would notice if I was gone",
+        'Everyone would be better off without me',
+        'Nobody would notice if I was gone',
         "I'm just a burden",
       ];
 

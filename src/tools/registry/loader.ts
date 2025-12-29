@@ -642,6 +642,13 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/travel/index.js').then(async (m) => m.getToolDefinitions()),
     },
+
+    // === SETTINGS DOMAIN (User preferences: language, voice, session settings) ===
+    {
+      name: 'settings' as ToolDomain,
+      loader: async () =>
+        import('../domains/settings/index.js').then(async (m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

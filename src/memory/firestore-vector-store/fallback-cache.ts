@@ -8,7 +8,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { cosineSimilarity } from '../embeddings.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { topKSimilar } from '../rust-accelerator.js';
 import type {
   VectorDocument,
   VectorFilter,
@@ -17,7 +18,6 @@ import type {
 import type { FallbackCacheEntry } from './types.js';
 import { MAX_FALLBACK_CACHE_SIZE } from './types.js';
 import { matchesFilter } from './helpers.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 /**
  * Manages the in-memory fallback cache for when Firestore is unavailable.
@@ -110,6 +110,8 @@ export class FallbackCache {
 
   /**
    * Search fallback cache using cosine similarity.
+   *
+   * Uses SIMD-accelerated topKSimilar for batch similarity + ranking.
    */
   search(
     queryEmbedding: number[],
@@ -117,19 +119,29 @@ export class FallbackCache {
     filter?: VectorFilter,
     minScore = 0
   ): VectorSearchResult[] {
-    const results: VectorSearchResult[] = [];
+    // Filter documents first and extract embeddings
+    const candidateDocs: VectorDocument[] = [];
+    const candidateEmbeddings: number[][] = [];
 
     for (const { doc, embedding } of this.cache.values()) {
-      // Apply filters
-      if (!matchesFilter(doc, filter)) continue;
-
-      const score = cosineSimilarity(queryEmbedding, embedding);
-      if (score >= minScore) {
-        results.push({ document: doc, score });
+      if (matchesFilter(doc, filter)) {
+        candidateDocs.push(doc);
+        candidateEmbeddings.push(embedding);
       }
     }
 
-    return results.sort((a, b) => b.score - a.score).slice(0, topK);
+    if (candidateDocs.length === 0) {
+      return [];
+    }
+
+    // Use SIMD-accelerated top-K search (computes all similarities + sorts + filters in one pass)
+    const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
+
+    // Map indices back to documents
+    return topKResult.indices.map((idx, i) => ({
+      document: candidateDocs[idx],
+      score: topKResult.similarities[i],
+    }));
   }
 
   /**

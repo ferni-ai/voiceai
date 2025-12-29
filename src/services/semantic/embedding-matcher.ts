@@ -15,6 +15,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'EmbeddingMatcher' });
 
@@ -110,25 +112,7 @@ async function getEmbedding(text: string): Promise<EmbeddingVector | null> {
   }
 }
 
-/**
- * Calculate cosine similarity between two vectors
- */
-function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-  return magnitude === 0 ? 0 : dotProduct / magnitude;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
 
 // ============================================================================
 // HABIT DETECTION CATEGORIES

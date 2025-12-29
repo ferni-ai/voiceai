@@ -310,10 +310,12 @@ export function formatPrice(
   currency?: string
 ): string {
   const currencyCode = currency || LOCALE_CURRENCY[locale] || 'USD';
-  const config = CURRENCY_CONFIG[currencyCode] || CURRENCY_CONFIG.USD;
+  const config = CURRENCY_CONFIG[currencyCode] ??
+    CURRENCY_CONFIG.USD ?? { symbol: '$', decimals: 2 };
+  const decimals = config.decimals ?? 2;
 
   // Convert from smallest unit to display value
-  const displayValue = config.decimals > 0 ? cents / Math.pow(10, config.decimals) : cents;
+  const displayValue = decimals > 0 ? cents / Math.pow(10, decimals) : cents;
 
   // For annual, show monthly equivalent
   const valueToFormat = frequency === 'annual' ? displayValue / 12 : displayValue;
@@ -322,12 +324,12 @@ export function formatPrice(
   const formatted = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currencyCode,
-    minimumFractionDigits: config.decimals,
-    maximumFractionDigits: config.decimals,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(valueToFormat);
 
   // Add period suffix
-  const suffix = PERIOD_SUFFIX[locale]?.[frequency] || PERIOD_SUFFIX['en-US'][frequency];
+  const suffix = PERIOD_SUFFIX[locale]?.[frequency] ?? PERIOD_SUFFIX['en-US']?.[frequency] ?? '/mo';
 
   return `${formatted}${suffix}`;
 }
@@ -767,7 +769,7 @@ function getSoftCapMessage(
   variables?: Record<string, string>
 ): string {
   const messages = SOFT_CAP_MESSAGES[category];
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  const message = messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? '';
 
   if (!variables) return message;
 
@@ -850,7 +852,7 @@ export function getLimitMessage(
   variables?: Record<string, string>
 ): string {
   const messages = LIMIT_MESSAGES[category];
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  const message = messages[Math.floor(Math.random() * messages.length)] ?? messages[0] ?? '';
 
   if (!variables) return message;
 

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ferni Quote Cards Gallery</title>
+    <link rel="stylesheet" href="../ferni-design-tokens.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary, #f8f6f3);
+            min-height: 100vh;
+            color: var(--text-primary, #2c2520);
+        }
+
+        /* Navigation Bar */
+        .brand-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary, #2c2520);
+        }
+
+        .nav-logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .nav-logo span {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary, #5a5652);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-ferni, #4a6741);
+        }
+
+        .nav-links a.active {
+            color: var(--color-ferni, #4a6741);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 60px 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-jordan, #c4856a));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary, #5a5652);
+        }
+
+        .persona-filter {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            background: white;
+            color: var(--text-secondary, #5a5652);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-btn.active {
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .filter-btn[data-persona="all"].active { background: linear-gradient(135deg, #4a6741, #c4856a); }
+        .filter-btn[data-persona="ferni"].active { background: var(--color-ferni, #4a6741); }
+        .filter-btn[data-persona="maya"].active { background: var(--color-maya, #a67a6a); }
+        .filter-btn[data-persona="peter"].active { background: var(--color-peter, #3a6b73); }
+        .filter-btn[data-persona="jordan"].active { background: var(--color-jordan, #c4856a); }
+        .filter-btn[data-persona="alex"].active { background: var(--color-alex, #5a6b8a); }
+        .filter-btn[data-persona="nayan"].active { background: var(--color-nayan, #b8956a); }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .quote-card {
+            aspect-ratio: 1;
+            border-radius: 20px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .quote-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            filter: brightness(1.1);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .quote-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .quote-card:hover::before {
+            opacity: 1;
+        }
+
+        .quote-card.ferni { background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, #5a7751 100%); }
+        .quote-card.maya { background: linear-gradient(135deg, #b88a7a 0%, var(--color-maya, #a67a6a) 100%); }
+        .quote-card.peter { background: linear-gradient(135deg, var(--color-peter, #3a6b73) 0%, #4a7b83 100%); }
+        .quote-card.jordan { background: linear-gradient(135deg, var(--color-jordan, #c4856a) 0%, #d4957a 100%); }
+        .quote-card.alex { background: linear-gradient(135deg, var(--color-alex, #5a6b8a) 0%, #6a7b9a 100%); }
+        .quote-card.nayan { background: linear-gradient(135deg, var(--color-nayan, #b8956a) 0%, #c8a57a 100%); }
+
+        .quote-text {
+            font-size: 1.5rem;
+            font-weight: 300;
+            line-height: 1.5;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-text::before {
+            content: '"';
+            font-size: 4rem;
+            position: absolute;
+            top: -40px;
+            left: -20px;
+            opacity: 0.3;
+            font-family: Georgia, serif;
+        }
+
+        .quote-attribution {
+            font-size: 1rem;
+            opacity: 0.8;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-logo {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            opacity: 0.5;
+        }
+
+        .quote-logo svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .download-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1;
+        }
+
+        .quote-card:hover .download-hint {
+            opacity: 0.6;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .format-selector {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .format-selector label {
+            margin: 0 15px;
+            cursor: pointer;
+            color: var(--text-secondary, #5a5652);
+            transition: color 0.3s;
+        }
+
+        .format-selector label:hover {
+            color: var(--text-primary, #2c2520);
+        }
+
+        .format-selector input {
+            margin-right: 5px;
+            accent-color: var(--color-ferni, #4a6741);
+        }
+
+        .cards-grid.story-format .quote-card {
+            aspect-ratio: 9/16;
+        }
+
+        .cards-grid.landscape-format .quote-card {
+            aspect-ratio: 1200/628;
+        }
+
+        @media (max-width: 768px) {
+            .brand-nav {
+                padding: 12px 16px;
+            }
+
+            .nav-links {
+                gap: 16px;
+            }
+
+            .nav-links a {
+                font-size: 0.8rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .quote-text {
+                font-size: 1.2rem;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="brand-nav">
+        <a href="../brand-book.html" class="nav-logo">
+            <svg viewBox="0 0 100 100">
+                <defs>
+                    <linearGradient id="navLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#5a7751"/>
+                        <stop offset="100%" style="stop-color:#4a6741"/>
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="42" fill="url(#navLogoGrad)"/>
+                <ellipse cx="35" cy="48" rx="8" ry="10" fill="white"/>
+                <ellipse cx="65" cy="48" rx="8" ry="10" fill="white"/>
+                <ellipse cx="35" cy="50" rx="4" ry="5" fill="#2c2520"/>
+                <ellipse cx="65" cy="50" rx="4" ry="5" fill="#2c2520"/>
+            </svg>
+            <span>Ferni Brand</span>
+        </a>
+        <div class="nav-links">
+            <a href="../brand-book.html">Brand Library</a>
+            <a href="../characters/ferni/expressions.html">Ferni Expressions</a>
+            <a href="../expressions/gallery.html">All Expressions</a>
+            <a href="../motion/demo.html">Motion Demo</a>
+            <a href="quote-cards.html" class="active">Quote Cards</a>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Quote Cards Gallery</h1>
+            <p>Click any card to copy. Right-click to save.</p>
+        </div>
+
+        <div class="format-selector">
+            <label>
+                <input type="radio" name="format" value="square" checked>
+                Square (1:1)
+            </label>
+            <label>
+                <input type="radio" name="format" value="story">
+                Story (9:16)
+            </label>
+            <label>
+                <input type="radio" name="format" value="landscape">
+                Landscape (1200×628)
+            </label>
+        </div>
+
+        <div class="persona-filter">
+            <button class="filter-btn active" data-persona="all">All</button>
+            <button class="filter-btn" data-persona="ferni">Ferni</button>
+            <button class="filter-btn" data-persona="maya">Maya</button>
+            <button class="filter-btn" data-persona="peter">Peter</button>
+            <button class="filter-btn" data-persona="jordan">Jordan</button>
+            <button class="filter-btn" data-persona="alex">Alex</button>
+            <button class="filter-btn" data-persona="nayan">Nayan</button>
+        </div>
+
+        <div class="cards-grid" id="cardsGrid">
+            <!-- Ferni Quotes -->
+            <div class="quote-card ferni" data-persona="ferni">
+                <div class="quote-text">I'm here. No agenda.</div>
+                <div class="quote-attribution">— Ferni</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card ferni" data-persona="ferni">
+                <div class="quote-text">You don't have to be okay right now.</div>
+                <div class="quote-attribution">— Ferni</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card ferni" data-persona="ferni">
+                <div class="quote-text">2am? Still here.</div>
+                <div class="quote-attribution">— Ferni</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card ferni" data-persona="ferni">
+                <div class="quote-text">Some days, showing up is the whole thing.</div>
+                <div class="quote-attribution">— Ferni</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Maya Quotes -->
+            <div class="quote-card maya" data-persona="maya">
+                <div class="quote-text">Five minutes counts.</div>
+                <div class="quote-attribution">— Maya</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card maya" data-persona="maya">
+                <div class="quote-text">Start embarrassingly small.</div>
+                <div class="quote-attribution">— Maya</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card maya" data-persona="maya">
+                <div class="quote-text">Konting tiis lang. Just a little patience.</div>
+                <div class="quote-attribution">— Maya</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card maya" data-persona="maya">
+                <div class="quote-text">Celebrate the almost.</div>
+                <div class="quote-attribution">— Maya</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Peter Quotes -->
+            <div class="quote-card peter" data-persona="peter">
+                <div class="quote-text">The patterns are already there. Your job is to find them.</div>
+                <div class="quote-attribution">— Peter</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card peter" data-persona="peter">
+                <div class="quote-text">Signal vs. noise. That's the whole game.</div>
+                <div class="quote-attribution">— Peter</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card peter" data-persona="peter">
+                <div class="quote-text">One data point is anecdote. Three is insight.</div>
+                <div class="quote-attribution">— Peter</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card peter" data-persona="peter">
+                <div class="quote-text">Your behavior is data. Start reading it.</div>
+                <div class="quote-attribution">— Peter</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Jordan Quotes -->
+            <div class="quote-card jordan" data-persona="jordan">
+                <div class="quote-text">Life isn't one long thing—it's a series of chapters.</div>
+                <div class="quote-attribution">— Jordan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card jordan" data-persona="jordan">
+                <div class="quote-text">What chapter are we writing here?</div>
+                <div class="quote-attribution">— Jordan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card jordan" data-persona="jordan">
+                <div class="quote-text">The hardest transitions are the quiet ones.</div>
+                <div class="quote-attribution">— Jordan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card jordan" data-persona="jordan">
+                <div class="quote-text">Celebrate everything. Yes, everything.</div>
+                <div class="quote-attribution">— Jordan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Alex Quotes -->
+            <div class="quote-card alex" data-persona="alex">
+                <div class="quote-text">Clear is kind.</div>
+                <div class="quote-attribution">— Alex</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card alex" data-persona="alex">
+                <div class="quote-text">What do you actually want to say?</div>
+                <div class="quote-attribution">— Alex</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card alex" data-persona="alex">
+                <div class="quote-text">Don't make people chase you.</div>
+                <div class="quote-attribution">— Alex</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card alex" data-persona="alex">
+                <div class="quote-text">Efficiency isn't cold—it's respect.</div>
+                <div class="quote-attribution">— Alex</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Nayan Quotes -->
+            <div class="quote-card nayan" data-persona="nayan">
+                <div class="quote-text">And in ten years?</div>
+                <div class="quote-attribution">— Nayan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card nayan" data-persona="nayan">
+                <div class="quote-text">I'm here to disturb you, not comfort you.</div>
+                <div class="quote-attribution">— Nayan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card nayan" data-persona="nayan">
+                <div class="quote-text">You are not your thoughts. You are the one who observes them.</div>
+                <div class="quote-attribution">— Nayan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="quote-card nayan" data-persona="nayan">
+                <div class="quote-text">This is very human of you.</div>
+                <div class="quote-attribution">— Nayan</div>
+                <div class="download-hint">Click to copy</div>
+                <div class="quote-logo">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.2)"/>
+                        <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
+                        <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Filter functionality
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const cards = document.querySelectorAll('.quote-card');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const persona = btn.dataset.persona;
+
+                cards.forEach(card => {
+                    if (persona === 'all' || card.dataset.persona === persona) {
+                        card.classList.remove('hidden');
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+        // Format selector
+        const formatRadios = document.querySelectorAll('input[name="format"]');
+        const grid = document.getElementById('cardsGrid');
+
+        formatRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                grid.classList.remove('story-format', 'landscape-format');
+                if (radio.value === 'story') {
+                    grid.classList.add('story-format');
+                } else if (radio.value === 'landscape') {
+                    grid.classList.add('landscape-format');
+                }
+            });
+        });
+
+        // Copy quote on click
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                const quote = card.querySelector('.quote-text').textContent;
+                const attribution = card.querySelector('.quote-attribution').textContent;
+                const text = `"${quote}" ${attribution}`;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    const hint = card.querySelector('.download-hint');
+                    hint.textContent = 'Copied!';
+                    hint.style.opacity = '1';
+                    setTimeout(() => {
+                        hint.textContent = 'Click to copy';
+                        hint.style.opacity = '0';
+                    }, 1500);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

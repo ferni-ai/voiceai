@@ -57,7 +57,13 @@ function getDb(): FirebaseFirestore.Firestore | null {
  */
 async function writeThroughTrustMoment(
   userId: string,
-  momentType: 'small_win' | 'boundary' | 'intention' | 'breakthrough' | 'vulnerability' | 'callback',
+  momentType:
+    | 'small_win'
+    | 'boundary'
+    | 'intention'
+    | 'breakthrough'
+    | 'vulnerability'
+    | 'callback',
   data: Record<string, unknown>
 ): Promise<void> {
   const firestore = getDb();

@@ -19,7 +19,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
-import type { ToolContext, ToolDefinition } from '../../registry/types.js';
+import { isTool, type ToolContext, type ToolDefinition, type Tool } from '../../registry/types.js';
 
 // Import underlying functions directly for routing
 import {
@@ -32,22 +32,49 @@ import {
 import { getSportScores, getTeamScore } from './sports.js';
 
 // Import legacy tool creators for simple wrapping
-// NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createTrafficTools } from './traffic.js';
 import { createNutritionTools } from './nutrition.js';
+import { createSearchTools } from './search.js';
+import { createDailyBriefingTools } from './daily-briefing.js';
+
+// Import new "Better Than Human" tool systems
+import { getEnvironmentalToolDefinitions } from './environmental/index.js';
+import { getPreferencesToolDefinitions } from './preferences/index.js';
+import { getProactiveToolDefinitions } from './proactive/index.js';
+import { getEnhancedBriefingToolDefinitions } from './enhanced-briefing.js';
+import { getCrossDomainToolDefinitions } from './cross-domain/index.js';
+import { getRelationshipToolDefinitions } from './relationships/index.js';
+
+const log = getLogger();
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LEGACY TOOL WRAPPER (for tools that don't need routing)
 // ============================================================================
 
+/**
+ * Wraps a legacy tool (from createXTools() functions) into a ToolDefinition.
+ *
+ * Legacy tools are created via llm.tool() and have:
+ * - description: string
+ * - execute: function
+ */
 function wrapLegacyTool(
   id: string,
   name: string,
   description: string,
-  legacyTool: unknown,
+  legacyTool: Tool,
   tags?: string[]
 ): ToolDefinition {
+  // Runtime validation to catch misconfigured tools early
+  if (!isTool(legacyTool)) {
+    log.error(
+      { id, legacyTool: typeof legacyTool },
+      '❌ Invalid legacy tool - missing description or execute'
+    );
+    throw new Error(`Tool "${id}" is not a valid Tool (missing description or execute)`);
+  }
+
   return {
     id,
     name,
@@ -393,6 +420,91 @@ function getNutritionToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// SEARCH TOOLS
+// ============================================================================
+
+function getSearchToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createSearchTools();
+
+  return [
+    wrapLegacyTool(
+      'searchWeb',
+      'Search Web',
+      'Search the web using DuckDuckGo for general information. Use when user asks about facts, definitions, or wants to look something up.',
+      legacyTools.searchWeb,
+      ['search', 'web', 'lookup', 'information']
+    ),
+    wrapLegacyTool(
+      'searchWikipedia',
+      'Search Wikipedia',
+      'Search Wikipedia for detailed information about topics, people, places, or concepts.',
+      legacyTools.searchWikipedia,
+      ['search', 'wikipedia', 'encyclopedia', 'knowledge']
+    ),
+    wrapLegacyTool(
+      'defineTerm',
+      'Define Term',
+      'Look up the definition of a word or concept. Use when user asks "what is X" or "define X".',
+      legacyTools.defineTerm,
+      ['define', 'definition', 'meaning', 'lookup']
+    ),
+    wrapLegacyTool(
+      'searchRecipes',
+      'Search Recipes',
+      'Search for recipes and cooking instructions for a dish. Use when user asks how to cook or make something.',
+      legacyTools.searchRecipes,
+      ['recipe', 'cooking', 'food', 'instructions']
+    ),
+  ];
+}
+
+// ============================================================================
+// DAILY BRIEFING TOOLS
+// ============================================================================
+
+function getDailyBriefingToolDefinitions(): ToolDefinition[] {
+  const legacyTools = createDailyBriefingTools();
+
+  return [
+    wrapLegacyTool(
+      'getMorningBriefing',
+      'Get Morning Briefing',
+      'Get a personalized morning briefing including tasks, habits, medications, bills due, and a motivational quote. Use at the start of the day.',
+      legacyTools.getMorningBriefing,
+      ['briefing', 'morning', 'daily', 'productivity']
+    ),
+    wrapLegacyTool(
+      'getEveningReflection',
+      'Get Evening Reflection',
+      'Get an end-of-day reflection summary including what was accomplished, pending habits, and reflection prompts.',
+      legacyTools.getEveningReflection,
+      ['reflection', 'evening', 'daily', 'review']
+    ),
+    wrapLegacyTool(
+      'getQuickStatus',
+      'Get Quick Status',
+      'Get a quick status of urgent items: overdue tasks, due medications, pending habits, and bills due soon.',
+      legacyTools.getQuickStatus,
+      ['status', 'quick', 'urgent', 'overview']
+    ),
+    wrapLegacyTool(
+      'getWeeklyReview',
+      'Get Weekly Review',
+      'Get a weekly review summary including tasks overview, bills, journaling streak, and planning prompts.',
+      legacyTools.getWeeklyReview,
+      ['weekly', 'review', 'planning', 'summary']
+    ),
+    wrapLegacyTool(
+      'getMotivation',
+      'Get Motivation',
+      'Get motivational content: an inspiring quote, encouragement message, or helpful reminder.',
+      legacyTools.getMotivation,
+      ['motivation', 'quote', 'inspiration', 'encouragement']
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -402,7 +514,20 @@ const informationTools: ToolDefinition[] = [
   ...getSportsToolDefinitions(),
   ...getTrafficToolDefinitions(),
   ...getNutritionToolDefinitions(),
-  // Apple WeatherKit removed - using Google Weather API only
+  ...getSearchToolDefinitions(),
+  ...getDailyBriefingToolDefinitions(),
+  // "Better Than Human" tools - superhuman environmental awareness
+  ...getEnvironmentalToolDefinitions(),
+  // "Better Than Human" tools - personalized zero-param tools
+  ...getPreferencesToolDefinitions(),
+  // "Better Than Human" tools - proactive intelligence (reach out BEFORE you ask)
+  ...getProactiveToolDefinitions(),
+  // "Better Than Human" tools - enhanced briefing with full integration
+  ...getEnhancedBriefingToolDefinitions(),
+  // "Better Than Human" tools - cross-domain connections (weather→habits, news→mood, traffic→productivity)
+  ...getCrossDomainToolDefinitions(),
+  // "Better Than Human" tools - relationship intelligence (birthdays, "friend's team won!", contact reminders)
+  ...getRelationshipToolDefinitions(),
 ];
 
 // ============================================================================
@@ -420,6 +545,14 @@ export {
   getWeatherToolDefinitions,
   getTrafficToolDefinitions,
   getNutritionToolDefinitions,
+  getSearchToolDefinitions,
+  getDailyBriefingToolDefinitions,
+  getEnvironmentalToolDefinitions,
+  getPreferencesToolDefinitions,
+  getProactiveToolDefinitions,
+  getEnhancedBriefingToolDefinitions,
+  getCrossDomainToolDefinitions,
+  getRelationshipToolDefinitions,
 };
 
 export default getToolDefinitions;

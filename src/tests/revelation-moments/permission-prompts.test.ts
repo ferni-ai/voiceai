@@ -170,8 +170,10 @@ describe('Real-World Permission Scenarios', () => {
     const prompt = getPromptForCapability('pattern', 0.4);
     if (prompt) {
       // Prompts include many variations for asking permission to surface patterns
-      // Examples: "I notice...", "I can say more about this. Interested?", "Should I dig into this?"
-      expect(prompt).toMatch(/notice|pattern|seeing|share|look|something|underneath|deeper|go|more|interested|say|dig/i);
+      // Examples: "I notice...", "I can say more about this. Interested?", "Should I dig into this?", "I see a thread..."
+      expect(prompt).toMatch(
+        /notice|pattern|seeing|share|look|something|underneath|deeper|go|more|interested|say|dig|thread|pull|see|running|want/i
+      );
     }
   });
 
@@ -180,7 +182,9 @@ describe('Real-World Permission Scenarios', () => {
     if (prompt) {
       // Prompts include many variations for asking permission to challenge
       // Some prompts are softer like "share something real" or "Is that okay?"
-      expect(prompt).toMatch(/push|challenge|honest|direct|devil|ready|say|vulnerable|going|share|real|okay/i);
+      expect(prompt).toMatch(
+        /push|challenge|honest|direct|devil|ready|say|vulnerable|going|share|real|okay/i
+      );
     }
   });
 
@@ -189,7 +193,9 @@ describe('Real-World Permission Scenarios', () => {
     if (prompt) {
       // Prompts include many variations like "Want to look at it?", "Should I dig into this?",
       // "I can say more about this. Interested?"
-      expect(prompt).toMatch(/notice|share|deeper|observation|look|here|want|point|showing|dig|more|interested|say/i);
+      expect(prompt).toMatch(
+        /notice|share|deeper|observation|look|here|want|point|showing|dig|more|interested|say/i
+      );
     }
   });
 });

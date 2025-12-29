@@ -16,6 +16,19 @@
  * - We don't bypass the LLM's judgment entirely
  *
  * @module SemanticIntentGuidance
+ *
+ * @status DISABLED
+ * REASON: The isTeamMemberUnlocked() function signature changed.
+ * It now requires (memberId, userProfile, tier) but this file calls it
+ * with (userId, targetPersona). Needs refactoring to:
+ * 1. Get userProfile from services or input.userData
+ * 2. Get tier from subscription status
+ * 3. Pass correct parameters to isTeamMemberUnlocked
+ *
+ * To re-enable:
+ * 1. Fix the isTeamMemberUnlocked calls in buildSemanticIntentContext
+ * 2. Rename file to remove .disabled extension
+ * 3. Add to builder-imports.ts and loader.ts BUILDER_MANIFEST
  */
 
 import {

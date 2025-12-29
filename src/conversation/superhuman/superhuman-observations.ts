@@ -380,7 +380,7 @@ export class SuperhumanObservationsEngine {
     patternCounts: [string, number][];
   } {
     return {
-      observations: JSON.parse(JSON.stringify(Array.from(this.observations.values()))),
+      observations: structuredClone(Array.from(this.observations.values())),
       patternCounts: Array.from(this.patternCounts.entries()),
     };
   }

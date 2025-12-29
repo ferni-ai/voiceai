@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Window Avatar — Refined Harmony</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ferni: #4a6741;
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
+      --cream: #F5F1E8;
+      --ink: #2C2520;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: var(--ink);
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--ferni);
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: #5C544A;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    
+    .research-note {
+      max-width: 600px;
+      margin: 16px auto 0;
+      padding: 12px 20px;
+      background: rgba(74, 103, 65, 0.08);
+      border-radius: 12px;
+      font-size: 0.8rem;
+      color: #5C544A;
+      line-height: 1.5;
+    }
+    
+    .research-note strong {
+      color: var(--ferni);
+    }
+    
+    .demo-area {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    
+    .main-demo {
+      background: rgba(255,253,251,0.95);
+      border-radius: 32px;
+      padding: 40px;
+      margin-bottom: 32px;
+      box-shadow: 0 8px 40px rgba(44,37,32,0.06);
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      background: rgba(44,37,32,0.06);
+      color: var(--ink);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .btn:hover, .btn.active {
+      background: var(--ferni);
+      color: white;
+      transform: translateY(-2px);
+    }
+    
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 280px;
+    }
+    
+    /* ============================================
+       REFINED WINDOW AVATAR
+       
+       Based on research:
+       1. Upper lid dominates (~66% of movement)
+       2. Lower lid provides subtle support
+       3. Eyes stay constant in shape
+       4. Speaking = body rhythm + breath
+       5. All THREE elements in harmony
+       ============================================ */
+    
+    .window-avatar {
+      --size: 200px;
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+    }
+    
+    /* The window frame - clips everything */
+    .window-frame {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--cream);
+    }
+    
+    /* The green orb - this IS Ferni's body */
+    .orb {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at 40% 35%, var(--ferni-light) 0%, var(--ferni) 35%, var(--ferni-dark) 100%);
+      border-radius: 50%;
+      transform-origin: center 75%;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    /* Subtle highlight */
+    .orb::before {
+      content: '';
+      position: absolute;
+      width: 22%;
+      height: 14%;
+      top: 18%;
+      left: 24%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.2) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    
+    /* Eyes - CONSTANT shape, just positioned */
+    .eyes {
+      position: absolute;
+      top: 38%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 1;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .eye {
+      width: 16px;
+      height: 22px;
+      background: linear-gradient(180deg, #ffffff 0%, #f5f1e8 100%);
+      border-radius: 50%;
+      position: relative;
+      box-shadow: 
+        inset 0 2px 3px rgba(255,255,255,0.9),
+        0 2px 5px rgba(0,0,0,0.12);
+      /* Eyes DON'T transform! They stay constant. */
+    }
+    
+    /* Tiny sparkle */
+    .eye::after {
+      content: '';
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: white;
+      border-radius: 50%;
+      top: 20%;
+      left: 25%;
+      box-shadow: 0 0 4px rgba(255,255,255,0.8);
+    }
+    
+    /* ============================================
+       THE LIDS - Subtle curves (matching real Ferni)
+       
+       Based on actual Ferni implementation:
+       - neutral: Q 50,-10 (control point just -10!)
+       - happy: Q 50,25 
+       - sleepy: Q 50,55
+       
+       These are SUBTLE curves, not massive coverage!
+       ============================================ */
+    
+    .lid {
+      position: absolute;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    .lid-top {
+      top: 0;
+      height: 45%;
+    }
+    
+    .lid-bottom {
+      bottom: 0;
+      height: 45%;
+    }
+    
+    .lid svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    
+    .lid-shape {
+      fill: var(--cream);
+      transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    /* ============================================
+       EXPRESSIONS - Subtle, harmonious
+       
+       Key research findings:
+       - Upper lid does ~66% of movement
+       - Lower lid provides gentle support
+       - Eyes position can shift slightly
+       - Body (orb) tilts/squashes for major emotions
+       ============================================ */
+    
+    /* NEUTRAL - Relaxed, present
+       Upper lid: barely there (control point -8)
+       Lower lid: just touching bottom (control point 108)
+    */
+    .window-avatar[data-mood="neutral"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z");
+    }
+    .window-avatar[data-mood="neutral"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z");
+    }
+    
+    /* HAPPY - Warm, squinty smile
+       Upper lid: comes down more (the smile squint) - PRIMARY movement
+       Lower lid: rises slightly (support)
+       Body: subtle squash
+    */
+    .window-avatar[data-mood="happy"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 55 Q 100 42 0 55 Z");
+    }
+    .window-avatar[data-mood="happy"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 38 Q 100 48 0 38 Z");
+    }
+    .window-avatar[data-mood="happy"] .orb {
+      transform: scaleY(0.97) scaleX(1.02) translateY(2px);
+    }
+    .window-avatar[data-mood="happy"] .eyes {
+      transform: translateX(-50%) translateY(3px);
+    }
+    
+    /* SURPRISED - Wide open
+       Upper lid: pulls UP (away) - PRIMARY
+       Lower lid: drops slightly (support)
+       Body: slight stretch
+    */
+    .window-avatar[data-mood="surprised"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 35 Q 100 30 0 35 Z");
+    }
+    .window-avatar[data-mood="surprised"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 52 Q 100 58 0 52 Z");
+    }
+    .window-avatar[data-mood="surprised"] .orb {
+      transform: scaleY(1.03) scaleX(0.98) translateY(-3px);
+    }
+    .window-avatar[data-mood="surprised"] .eyes {
+      transform: translateX(-50%) translateY(-2px);
+    }
+    
+    /* CURIOUS - Asymmetric, engaged
+       Upper lid: asymmetric (one side lower) - PRIMARY
+       Lower lid: barely changes
+       Body: slight tilt
+    */
+    .window-avatar[data-mood="curious"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 48 Q 120 55 40 42 Q 0 38 0 45 Z");
+    }
+    .window-avatar[data-mood="curious"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 47 Q 100 50 0 47 Z");
+    }
+    .window-avatar[data-mood="curious"] .orb {
+      transform: rotate(4deg) translateX(2px);
+    }
+    .window-avatar[data-mood="curious"] .eyes {
+      transform: translateX(-50%) translateX(2px);
+    }
+    
+    /* THINKING - Eyes drift, subtle squint
+       Upper lid: slight curve down - PRIMARY
+       Lower lid: barely rises
+       Eyes: drift up-left (secondary action)
+    */
+    .window-avatar[data-mood="thinking"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 50 Q 100 44 0 50 Z");
+    }
+    .window-avatar[data-mood="thinking"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 46 Q 100 50 0 46 Z");
+    }
+    .window-avatar[data-mood="thinking"] .orb {
+      transform: rotate(-3deg);
+    }
+    .window-avatar[data-mood="thinking"] .eyes {
+      transform: translateX(-50%) translate(-5px, -4px);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+    }
+    
+    /* SLEEPY - Heavy lids closing in
+       Upper lid: comes down significantly - PRIMARY (66%)
+       Lower lid: rises somewhat (33% support)
+       Body: sinks slightly
+    */
+    .window-avatar[data-mood="sleepy"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 62 Q 100 52 0 62 Z");
+    }
+    .window-avatar[data-mood="sleepy"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 35 Q 100 42 0 35 Z");
+    }
+    .window-avatar[data-mood="sleepy"] .orb {
+      transform: translateY(4px) scaleY(0.98);
+    }
+    .window-avatar[data-mood="sleepy"] .eyes {
+      transform: translateX(-50%) translateY(4px);
+    }
+    
+    /* SAD - Droopy upper, soft expression
+       Upper lid: droops (especially outer corners) - PRIMARY
+       Lower lid: soft rise
+       Body: sinks
+    */
+    .window-avatar[data-mood="sad"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 56 Q 100 48 0 56 Z");
+    }
+    .window-avatar[data-mood="sad"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 42 Q 100 48 0 42 Z");
+    }
+    .window-avatar[data-mood="sad"] .orb {
+      transform: translateY(5px) scaleY(0.97);
+    }
+    .window-avatar[data-mood="sad"] .eyes {
+      transform: translateX(-50%) translateY(3px);
+    }
+    
+    /* LISTENING - Attentive, open, slight lean
+       Upper lid: slightly up (alert) - PRIMARY
+       Lower lid: neutral
+       Body: slight lean forward
+    */
+    .window-avatar[data-mood="listening"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 42 Q 100 36 0 42 Z");
+    }
+    .window-avatar[data-mood="listening"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 48 Q 100 52 0 48 Z");
+    }
+    .window-avatar[data-mood="listening"] .orb {
+      transform: translateY(-2px) rotate(2deg);
+      animation: listenBreathe 3s ease-in-out infinite;
+    }
+    
+    @keyframes listenBreathe {
+      0%, 100% { transform: translateY(-2px) rotate(2deg) scale(1); }
+      50% { transform: translateY(-3px) rotate(2deg) scale(1.008); }
+    }
+    
+    /* ============================================
+       SPEAKING - The refined approach
+       
+       Research insight: Without a mouth, speaking is
+       expressed through BODY RHYTHM, not facial features.
+       
+       - Body (orb) has subtle breath/pulse with speech
+       - Upper lid: very subtle movement (engagement)
+       - Lower lid: minimal (support only)
+       - It's about PRESENCE, not mouth movement
+       ============================================ */
+    .window-avatar[data-mood="speaking"] .orb {
+      animation: speakBreath 0.4s ease-in-out infinite;
+    }
+    .window-avatar[data-mood="speaking"] .lid-top .lid-shape {
+      d: path("M 0 0 L 200 0 L 200 46 Q 100 40 0 46 Z");
+      animation: speakTopLid 0.4s ease-in-out infinite;
+    }
+    .window-avatar[data-mood="speaking"] .lid-bottom .lid-shape {
+      d: path("M 0 90 L 200 90 L 200 46 Q 100 50 0 46 Z");
+      animation: speakBottomLid 0.4s ease-in-out infinite;
+    }
+    .window-avatar[data-mood="speaking"] .eyes {
+      animation: speakEyes 0.4s ease-in-out infinite;
+    }
+    
+    /* Body: breath-like expansion (the main speaking indicator) */
+    @keyframes speakBreath {
+      0%, 100% { 
+        transform: scaleY(0.99) scaleX(1.005); 
+      }
+      50% { 
+        transform: scaleY(1.01) scaleX(0.995) translateY(-1px); 
+      }
+    }
+    
+    /* Upper lid: very subtle engagement (2-3px movement) */
+    @keyframes speakTopLid {
+      0%, 100% { 
+        d: path("M 0 0 L 200 0 L 200 46 Q 100 40 0 46 Z");
+      }
+      50% { 
+        d: path("M 0 0 L 200 0 L 200 44 Q 100 38 0 44 Z");
+      }
+    }
+    
+    /* Lower lid: minimal support (1-2px movement) */
+    @keyframes speakBottomLid {
+      0%, 100% { 
+        d: path("M 0 90 L 200 90 L 200 46 Q 100 50 0 46 Z");
+      }
+      50% { 
+        d: path("M 0 90 L 200 90 L 200 47 Q 100 51 0 47 Z");
+      }
+    }
+    
+    /* Eyes: subtle vertical movement with body */
+    @keyframes speakEyes {
+      0%, 100% { 
+        transform: translateX(-50%) translateY(0); 
+      }
+      50% { 
+        transform: translateX(-50%) translateY(-1px); 
+      }
+    }
+    
+    /* ============================================
+       GALLERY
+       ============================================ */
+    
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    
+    .gallery-card {
+      background: rgba(255,253,251,0.95);
+      border-radius: 16px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 3px 12px rgba(44,37,32,0.05);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .gallery-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(44,37,32,0.1);
+    }
+    
+    .gallery-card h3 {
+      font-size: 0.75rem;
+      margin-top: 8px;
+      margin-bottom: 2px;
+    }
+    
+    .gallery-card p {
+      font-size: 0.65rem;
+      color: #756A5E;
+      font-weight: 500;
+    }
+    
+    .mini-avatar {
+      --size: 70px;
+    }
+    
+    /* Key insights */
+    .insights {
+      margin-top: 32px;
+      padding: 24px;
+      background: rgba(74, 103, 65, 0.08);
+      border-radius: 16px;
+    }
+    
+    .insights h2 {
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--ferni);
+    }
+    
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    
+    .insight-card {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(44,37,32,0.04);
+    }
+    
+    .insight-card h3 {
+      font-size: 0.85rem;
+      color: var(--ferni);
+      margin-bottom: 6px;
+    }
+    
+    .insight-card p {
+      font-size: 0.8rem;
+      color: #5C544A;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Window Avatar — Refined Harmony</h1>
+    <p class="subtitle">Top lid + Bottom lid + Eyes = Three elements in subtle harmony</p>
+    <div class="research-note">
+      <strong>Research-backed:</strong> Upper lid does ~66% of movement. Lower lid provides subtle support. 
+      Eyes stay constant in shape. Speaking = body rhythm (breath), not facial features.
+    </div>
+  </header>
+
+  <div class="demo-area">
+    <div class="main-demo">
+      <div class="controls">
+        <button class="btn active" data-mood="neutral">Neutral</button>
+        <button class="btn" data-mood="happy">Happy</button>
+        <button class="btn" data-mood="surprised">Surprised</button>
+        <button class="btn" data-mood="curious">Curious</button>
+        <button class="btn" data-mood="thinking">Thinking</button>
+        <button class="btn" data-mood="sleepy">Sleepy</button>
+        <button class="btn" data-mood="sad">Sad</button>
+        <button class="btn" data-mood="speaking">Speaking</button>
+        <button class="btn" data-mood="listening">Listening</button>
+      </div>
+      
+      <div class="avatar-stage">
+        <div class="window-avatar" data-mood="neutral" id="mainAvatar">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes">
+              <div class="eye"></div>
+              <div class="eye"></div>
+            </div>
+            <div class="lid lid-top">
+              <svg viewBox="0 0 200 90" preserveAspectRatio="none">
+                <path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/>
+              </svg>
+            </div>
+            <div class="lid lid-bottom">
+              <svg viewBox="0 0 200 90" preserveAspectRatio="none">
+                <path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gallery -->
+    <div class="gallery">
+      <div class="gallery-card" data-set="neutral">
+        <div class="window-avatar mini-avatar" data-mood="neutral">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Neutral</h3>
+        <p>Present</p>
+      </div>
+      
+      <div class="gallery-card" data-set="happy">
+        <div class="window-avatar mini-avatar" data-mood="happy">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Happy</h3>
+        <p>Upper squints</p>
+      </div>
+      
+      <div class="gallery-card" data-set="surprised">
+        <div class="window-avatar mini-avatar" data-mood="surprised">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Surprised</h3>
+        <p>Upper pulls up</p>
+      </div>
+      
+      <div class="gallery-card" data-set="curious">
+        <div class="window-avatar mini-avatar" data-mood="curious">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Curious</h3>
+        <p>Asymmetric</p>
+      </div>
+      
+      <div class="gallery-card" data-set="thinking">
+        <div class="window-avatar mini-avatar" data-mood="thinking">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Thinking</h3>
+        <p>Eyes drift</p>
+      </div>
+      
+      <div class="gallery-card" data-set="sleepy">
+        <div class="window-avatar mini-avatar" data-mood="sleepy">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Sleepy</h3>
+        <p>Upper 66%</p>
+      </div>
+      
+      <div class="gallery-card" data-set="sad">
+        <div class="window-avatar mini-avatar" data-mood="sad">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Sad</h3>
+        <p>Droopy</p>
+      </div>
+      
+      <div class="gallery-card" data-set="speaking">
+        <div class="window-avatar mini-avatar" data-mood="speaking">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Speaking</h3>
+        <p>Body breath</p>
+      </div>
+      
+      <div class="gallery-card" data-set="listening">
+        <div class="window-avatar mini-avatar" data-mood="listening">
+          <div class="window-frame">
+            <div class="orb"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="lid lid-top"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 0 L 200 0 L 200 45 Q 100 38 0 45 Z"/></svg></div>
+            <div class="lid lid-bottom"><svg viewBox="0 0 200 90" preserveAspectRatio="none"><path class="lid-shape" d="M 0 90 L 200 90 L 200 45 Q 100 52 0 45 Z"/></svg></div>
+          </div>
+        </div>
+        <h3>Listening</h3>
+        <p>Attentive</p>
+      </div>
+    </div>
+
+    <!-- Key Insights -->
+    <div class="insights">
+      <h2>Key Insights from Animation Research</h2>
+      <div class="insights-grid">
+        <div class="insight-card">
+          <h3>Upper Lid Dominates (~66%)</h3>
+          <p>The upper lid does most of the expressive work. It comes down for happy squints, pulls up for surprise, droops for sad. This matches human eyelid behavior.</p>
+        </div>
+        <div class="insight-card">
+          <h3>Lower Lid = Subtle Support</h3>
+          <p>The lower lid provides gentle reinforcement - rising slightly during engagement or sleepiness. It NEVER does as much work as the upper lid.</p>
+        </div>
+        <div class="insight-card">
+          <h3>Eyes Stay Constant</h3>
+          <p>The eye shape doesn't change. Expression is created by what the LIDS reveal or conceal. Eyes can shift position (thinking, curious) but not shape.</p>
+        </div>
+        <div class="insight-card">
+          <h3>Speaking = Body Rhythm</h3>
+          <p>Without a mouth, speaking is expressed through BODY movement - breath-like expansion/contraction. The lids provide very subtle engagement cues.</p>
+        </div>
+        <div class="insight-card">
+          <h3>Three Elements in Harmony</h3>
+          <p>Top lid + Bottom lid + Eyes all work together. Each has a role but none dominates. The orb (body) provides grounding with squash/stretch.</p>
+        </div>
+        <div class="insight-card">
+          <h3>Subtle is Better</h3>
+          <p>Real Ferni uses control points of -10 to +55 on a 100-unit viewbox. That's SUBTLE. Massive lid coverage looks wrong - it's about nuanced curves.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const avatar = document.getElementById('mainAvatar');
+    const buttons = document.querySelectorAll('.btn');
+    const cards = document.querySelectorAll('.gallery-card');
+    
+    function setMood(mood) {
+      avatar.dataset.mood = mood;
+      buttons.forEach(b => b.classList.toggle('active', b.dataset.mood === mood));
+    }
+    
+    buttons.forEach(btn => btn.addEventListener('click', () => setMood(btn.dataset.mood)));
+    cards.forEach(card => card.addEventListener('click', () => setMood(card.dataset.set)));
+  </script>
+</body>
+</html>

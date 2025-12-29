@@ -408,6 +408,7 @@ export async function parallelLimit<T>(
 
   for (let index = 0; index < tasks.length; index++) {
     const task = tasks[index];
+    if (!task) continue; // Guard for noUncheckedIndexedAccess
     const currentIndex = index; // Capture for closure
 
     // Create a tracked promise that removes itself from the set when done

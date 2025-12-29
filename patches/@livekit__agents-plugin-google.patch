@@ -18,3 +18,19 @@ diff --git a/dist/beta/realtime/realtime_api.js b/dist/beta/realtime/realtime_ap
        });
      }
      turns.push({
+@@ -355,7 +359,10 @@
+       if (!fut.done) {
+         fut.reject(new Error("generateReply timed out waiting for generation_created event."));
+         if (this.pendingGenerationFut === fut) {
+           this.pendingGenerationFut = void 0;
+         }
+       }
+-    }, 5e3);
++    }, 15e3);
++    // PATCHED: Increased timeout from 5s to 15s to give Gemini more time during:
++    // 1. Cold starts / initial connection
++    // 2. High load periods
++    // 3. Complex context processing
+     fut.await.finally(() => clearTimeout(timeoutHandle));
+     return fut.await;
+   }

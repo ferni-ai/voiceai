@@ -101,6 +101,8 @@ const uncertaintyRecords: UncertaintyRecord[] = [];
 
 // Firestore reference (lazy loaded)
 let db: FirebaseFirestore.Firestore | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirebaseFirestore.Firestore | null> | null = null;
 
 const COGNITIVE_COLLECTION = 'user_cognitive_profiles';
 const KNOWLEDGE_COLLECTION = 'user_knowledge_states';
@@ -111,7 +113,13 @@ const UNCERTAINTY_COLLECTION = 'uncertainty_validation';
  */
 async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -125,6 +133,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
       { error },
       'Firestore not available for cognitive persistence, using in-memory only'
     );
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

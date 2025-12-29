@@ -12,6 +12,7 @@ import type {
   EmotionEvent,
   EngagementTriggerEvent,
   ExpressionEvent,
+  ExpressionUpdateEvent,
   MoodEvent,
   MusicEvent,
   WrapUpEvent,
@@ -22,6 +23,7 @@ import {
   isEmotionMessage,
   isEngagementTriggerMessage,
   isExpressionMessage,
+  isExpressionUpdateMessage,
   isMoodMessage,
   isMusicMessage,
   isWrapUpMessage,
@@ -47,7 +49,10 @@ import { soundUI } from '../ui/sound.ui.js';
 import { waveformUI } from '../ui/waveform.ui.js';
 import { createLogger } from '../utils/logger.js';
 // 🎬 Ferni Expressions - Character-level avatar expressions
-import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
+// 🎭 Luxo Expressions - 100+ expression system from design tokens
+import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
+import type { ExpressionId } from '../config/expressions.generated.js';
 // 🎚️ Music Audio Controller - Real-time ducking
 import { getMusicAudioController } from '../services/music-audio.controller.js';
 // Connection service - for music track expectation
@@ -149,6 +154,12 @@ export function handleDataMessage(message: DataMessage): void {
   // Try to process as expression (emoji morph)
   if (isExpressionMessage(message)) {
     handleExpression(message);
+    return;
+  }
+
+  // 🎭 Try to process as Luxo expression update (100+ expressions)
+  if (isExpressionUpdateMessage(message)) {
+    handleExpressionUpdate(message);
     return;
   }
 
@@ -953,9 +964,14 @@ function handleAnticipationSignal(event: AnticipationSignalEvent): void {
   const { playMicroExpression } = ferni;
 
   // Trigger anticipation through the Ferni EQ system
+  // Map emotion trajectory to tone - default to 'flat' if trajectory is not provided
+  const toneFromTrajectory: 'rising' | 'falling' | 'flat' =
+    emotionTrajectory === 'rising' ? 'rising' :
+    emotionTrajectory === 'falling' ? 'falling' : 'flat';
+
   ferni.anticipateEmotion({
     transcript: '', // No transcript needed - we have direct emotion prediction
-    tone: predictedEmotion as 'positive' | 'negative' | 'neutral' | 'excited' | 'sad',
+    tone: toneFromTrajectory,
     energy: urgency === 'high' ? 0.9 : urgency === 'low' ? 0.3 : 0.6,
   });
 
@@ -1557,6 +1573,61 @@ export function handleExpression(event: ExpressionEvent): void {
   }
 }
 
+// ============================================================================
+// LUXO EXPRESSION UPDATE HANDLER (100+ Expression System)
+// ============================================================================
+
+/**
+ * Handle expression update events from the backend.
+ *
+ * This directly sets Luxo expressions from the 100+ expression system defined
+ * in design-system/tokens/expressions.json. Unlike emoji-based expressions,
+ * these use the full expression ID (e.g., 'joyful', 'contemplating', 'supportive').
+ *
+ * ARCHITECTURE:
+ * - Backend dispatches: { type: 'expression_update', expression: 'joyful', ... }
+ * - Frontend receives and sets via luxoExpressions.setExpression()
+ * - CSS rules defined in expressions.generated.css apply the transforms
+ *
+ * @see design-system/tokens/expressions.json - Source of truth for 100+ expressions
+ * @see apps/web/src/ui/luxo-expressions.ui.ts - Expression controller
+ * @see apps/web/src/config/expressions.generated.css - CSS rules
+ */
+export function handleExpressionUpdate(event: ExpressionUpdateEvent): void {
+  const { expression, duration = 300, hold = 0 } = event;
+
+  log.info('🎭 Expression update received:', { expression, duration, hold });
+
+  // Validate the expression exists in the Luxo system
+  if (!luxoExpressions.hasExpression(expression)) {
+    log.warn('Unknown Luxo expression:', expression);
+    // Fall back to legacy system if expression not found
+    // Type cast is intentional - legacy system will handle unknown expressions gracefully
+    ferniExpressions.setExpression(expression as EmotionalExpression, duration, hold);
+    return;
+  }
+
+  // Set the expression using the Luxo system
+  luxoExpressions.setExpression(expression as ExpressionId, {
+    duration,
+    hold,
+  });
+
+  // Dispatch custom event for other systems to react
+  window.dispatchEvent(
+    new CustomEvent('ferni:expression-update', {
+      detail: {
+        expression,
+        duration,
+        hold,
+        timestamp: event.timestamp,
+      },
+    })
+  );
+
+  log.debug('🎭 Luxo expression set:', expression);
+}
+
 /**
  * Handle persona mood events from the humanizing system.
  * Creates subtle UI changes to reflect the AI's "emotional" state.
@@ -1634,6 +1705,15 @@ function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreac
       playMicroExpression('concern_flash');
       ferniExpressions.setExpression('holdingSpace', 500, 2500);
     }, 300);
+    
+    // 🤲 Sidekick: Check if this is a birthday or anniversary reminder
+    const contextLower = (outreach.context || '').toLowerCase();
+    const messageLower = (outreach.message || '').toLowerCase();
+    if (contextLower.includes('birthday') || messageLower.includes('birthday')) {
+      document.dispatchEvent(new CustomEvent('ferni:birthday-reminder'));
+    } else if (contextLower.includes('anniversary') || messageLower.includes('anniversary')) {
+      document.dispatchEvent(new CustomEvent('ferni:anniversary-reminder'));
+    }
   } else if (outreach.type === 'celebration' || outreach.type === 'growth_reflection') {
     // Something good happened - celebrate!
     setTimeout(() => {
@@ -1676,6 +1756,11 @@ export function handleMusic(event: MusicEvent): void {
     connectionService.expectMusicTrack();
     getMusicAudioController().unduckFromBackend();
   }
+
+  // 🤲 Sidekick: Dispatch music state event for avatar sidekick
+  document.dispatchEvent(new CustomEvent('ferni:music-state', {
+    detail: { state: event.state, isAmbient: event.isAmbient, trackName: event.trackName }
+  }));
 
   // Handle each state with direct UI calls (no async import - more reliable)
   if (event.state === 'playing') {

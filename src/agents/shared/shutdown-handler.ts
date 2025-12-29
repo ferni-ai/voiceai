@@ -14,6 +14,7 @@
 
 import { diag } from '../../services/diagnostic-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 
 // Track if we're already shutting down to prevent double-shutdown
 let isShuttingDown = false;
@@ -470,7 +471,7 @@ export function registerShutdownSignalHandlers(): void {
   let gcAttemptCount = 0;
   const MAX_GC_ATTEMPTS_BEFORE_RESTART = 3;
 
-  setInterval(() => {
+  registerInterval('shutdown-memory-monitor', () => {
     const memUsage = process.memoryUsage();
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memUsage.heapTotal / 1024 / 1024;

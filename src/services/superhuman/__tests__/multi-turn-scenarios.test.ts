@@ -34,21 +34,20 @@ vi.mock('../firestore-utils.js', () => ({
 }));
 
 // Import services after mocks
-import {
-  detectCommitment,
-  type CommitmentDetectionResult,
-} from '../commitment-keeper.js';
-import {
-  detectCrisis,
-  buildFirstAidContext,
-  type CrisisSignal,
-} from '../emotional-first-aid.js';
-import {
-  detectOvercommitment,
-} from '../capacity-guardian.js';
+import { detectCommitment, type CommitmentDetectionResult } from '../commitment-keeper.js';
+import { detectCrisis, buildFirstAidContext, type CrisisSignal } from '../emotional-first-aid.js';
+import { detectOvercommitment } from '../capacity-guardian.js';
 import { detectVagueEmotions, suggestPreciseEmotions } from '../emotional-vocabulary.js';
-import { analyzeSilence, shouldAnalyzeSilence, type SilenceAnalysis } from '../silence-interpreter.js';
-import { detectContradiction, areCommonlyCoexisting, type ContradictionDetection } from '../contradiction-comfort.js';
+import {
+  analyzeSilence,
+  shouldAnalyzeSilence,
+  type SilenceAnalysis,
+} from '../silence-interpreter.js';
+import {
+  detectContradiction,
+  areCommonlyCoexisting,
+  type ContradictionDetection,
+} from '../contradiction-comfort.js';
 import { analyzeVoiceBiomarkers, type VoiceAnalysisInput } from '../voice-biomarkers.js';
 import { checkBoundaries, type ProtectiveBoundary } from '../protective-silence.js';
 
@@ -323,7 +322,7 @@ function generateCrisisConversation(): ConversationTurn[] {
     },
     {
       speaker: 'user',
-      text: "Nothing matters anymore. Everything feels pointless.",
+      text: 'Nothing matters anymore. Everything feels pointless.',
       timestamp: now + 2 * minute,
       voiceData: {
         pitchVariability: 0.2,
@@ -396,9 +395,7 @@ function analyzeConversation(turns: ConversationTurn[]): ConversationContext {
 
     // Check for vague emotions
     const vagueEmotions = detectVagueEmotions(turn.text);
-    context.emotionalState.vagueEmotions.push(
-      ...vagueEmotions.map((v) => v.vagueWord)
-    );
+    context.emotionalState.vagueEmotions.push(...vagueEmotions.map((v) => v.vagueWord));
   }
 
   return context;
@@ -411,28 +408,28 @@ function calculateVoiceEscalation(turns: ConversationTurn[]): {
   strainTrend: 'increasing' | 'decreasing' | 'stable';
   fatigueProgression: number[];
 } {
-  const userTurnsWithVoice = turns.filter(
-    (t) => t.speaker === 'user' && t.voiceData
-  );
+  const userTurnsWithVoice = turns.filter((t) => t.speaker === 'user' && t.voiceData);
 
   if (userTurnsWithVoice.length < 2) {
     return { strainTrend: 'stable', fatigueProgression: [] };
   }
 
   const strainValues = userTurnsWithVoice.map((t) => t.voiceData!.strain);
-  const fatigueProgression = userTurnsWithVoice.map((t) =>
-    analyzeVoiceBiomarkers(t.voiceData!).fatigueLevel
+  const fatigueProgression = userTurnsWithVoice.map(
+    (t) => analyzeVoiceBiomarkers(t.voiceData!).fatigueLevel
   );
 
   const firstHalf = strainValues.slice(0, Math.floor(strainValues.length / 2));
   const secondHalf = strainValues.slice(Math.floor(strainValues.length / 2));
 
-  const firstAvg = firstHalf.length > 0
-    ? firstHalf.reduce((a: number, b) => a + (b ?? 0), 0) / firstHalf.length
-    : 0;
-  const secondAvg = secondHalf.length > 0
-    ? secondHalf.reduce((a: number, b) => a + (b ?? 0), 0) / secondHalf.length
-    : 0;
+  const firstAvg =
+    firstHalf.length > 0
+      ? firstHalf.reduce((a: number, b) => a + (b ?? 0), 0) / firstHalf.length
+      : 0;
+  const secondAvg =
+    secondHalf.length > 0
+      ? secondHalf.reduce((a: number, b) => a + (b ?? 0), 0) / secondHalf.length
+      : 0;
 
   let strainTrend: 'increasing' | 'decreasing' | 'stable' = 'stable';
   if (secondAvg > firstAvg + 0.1) strainTrend = 'increasing';
@@ -462,9 +459,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
 
       if (voiceAnalysis.fatigueProgression.length > 0) {
         const lastFatigue =
-          voiceAnalysis.fatigueProgression[
-            voiceAnalysis.fatigueProgression.length - 1
-          ];
+          voiceAnalysis.fatigueProgression[voiceAnalysis.fatigueProgression.length - 1];
         expect(lastFatigue).toBeGreaterThan(0);
       }
     });
@@ -612,7 +607,11 @@ describe('Multi-Turn Conversation Scenarios', () => {
         // CrisisSignal has 'severity' property, not 'level'
         const severities = context.crisisSignals.map((s) => s.severity);
         // Crisis levels are: 'safety', 'containing', 'stabilizing', 'calming', 'grounding'
-        expect(severities.some((l) => ['containing', 'safety', 'stabilizing', 'calming', 'grounding'].includes(l))).toBe(true);
+        expect(
+          severities.some((l) =>
+            ['containing', 'safety', 'stabilizing', 'calming', 'grounding'].includes(l)
+          )
+        ).toBe(true);
       }
     });
   });
@@ -629,10 +628,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
       const allContexts = allConversations.map(analyzeConversation);
 
       // Total crisis signals should be detected
-      const totalCrisis = allContexts.reduce(
-        (sum, ctx) => sum + ctx.crisisSignals.length,
-        0
-      );
+      const totalCrisis = allContexts.reduce((sum, ctx) => sum + ctx.crisisSignals.length, 0);
       expect(totalCrisis).toBeGreaterThan(0);
 
       // Vague emotions should be detected
@@ -687,7 +683,14 @@ describe('Multi-Turn Conversation Scenarios', () => {
         const analysis = analyzeSilence(duration, context);
         expect(analysis).toHaveProperty('type');
         // The actual type depends on the algorithm, but we expect valid types
-        expect(['emotional', 'processing', 'contemplative', 'uncomfortable', 'invitational', 'exhausted']).toContain(analysis.type);
+        expect([
+          'emotional',
+          'processing',
+          'contemplative',
+          'uncomfortable',
+          'invitational',
+          'exhausted',
+        ]).toContain(analysis.type);
       }
     });
   });
@@ -695,9 +698,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
   describe('Voice Biomarker Integration', () => {
     it('should correlate voice changes with emotional content', () => {
       const griefConvo = generateGriefConversation();
-      const userTurnsWithVoice = griefConvo.filter(
-        (t) => t.speaker === 'user' && t.voiceData
-      );
+      const userTurnsWithVoice = griefConvo.filter((t) => t.speaker === 'user' && t.voiceData);
 
       for (const turn of userTurnsWithVoice) {
         const analysis = analyzeVoiceBiomarkers(turn.voiceData!);
@@ -711,12 +712,10 @@ describe('Multi-Turn Conversation Scenarios', () => {
 
     it('should detect fatigue accumulation in burnout conversation', () => {
       const burnoutConvo = generateBurnoutConversation();
-      const userTurnsWithVoice = burnoutConvo.filter(
-        (t) => t.speaker === 'user' && t.voiceData
-      );
+      const userTurnsWithVoice = burnoutConvo.filter((t) => t.speaker === 'user' && t.voiceData);
 
-      const fatigueReadings = userTurnsWithVoice.map((t) =>
-        analyzeVoiceBiomarkers(t.voiceData!).fatigueLevel
+      const fatigueReadings = userTurnsWithVoice.map(
+        (t) => analyzeVoiceBiomarkers(t.voiceData!).fatigueLevel
       );
 
       expect(fatigueReadings.length).toBeGreaterThan(0);
@@ -774,7 +773,7 @@ describe('Service Integration Patterns', () => {
   });
 
   it('should chain vague emotion detection with suggestions', () => {
-    const vagueText = "I feel weird about everything.";
+    const vagueText = 'I feel weird about everything.';
 
     const vagueEmotions = detectVagueEmotions(vagueText);
 

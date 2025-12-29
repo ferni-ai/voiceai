@@ -18,8 +18,31 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  analyzeTurnBoundary,
+  hasDisfluencies,
+  countWordsRust,
+  isTurnAnalysisAvailable,
+  isFluencyAnalysisAvailable,
+  isTokenCountingAvailable,
+} from '../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'HumanTurnIntelligence' });
+
+// Check Rust availability at module load - will be used for fast path
+const RUST_TURN_AVAILABLE = isTurnAnalysisAvailable();
+const RUST_FLUENCY_AVAILABLE = isFluencyAnalysisAvailable();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
+if (RUST_TURN_AVAILABLE) {
+  log.info('🦀 Rust turn analysis enabled (Aho-Corasick O(n) matching)');
+}
+if (RUST_FLUENCY_AVAILABLE) {
+  log.info('🦀 Rust fluency analysis enabled (disfluency detection)');
+}
+if (RUST_COUNTING_AVAILABLE) {
+  log.info('🦀 Rust token counting enabled (byte-level counting)');
+}
 
 // ============================================================================
 // TYPES
@@ -224,23 +247,39 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   const transcript = context.transcript.trim();
 
   // =========================================================================
-  // SIGNAL DETECTION
+  // SIGNAL DETECTION (Rust-accelerated when available)
   // =========================================================================
 
-  // Check for hesitation (thinking sounds)
-  const isHesitating = HESITATION_MARKERS.some((pattern) => pattern.test(transcript));
+  let isHesitating: boolean;
+  let hasContinuationMarker: boolean;
+  let hasCompletionMarker: boolean;
+  let wordCount: number;
 
-  // Check for continuation signals (and, but, so...)
-  const hasContinuationMarker = CONTINUATION_MARKERS.some((pattern) => pattern.test(transcript));
+  // Use Rust for O(n) multi-pattern matching vs O(n*m) JS regex loops
+  if (RUST_TURN_AVAILABLE && RUST_FLUENCY_AVAILABLE && RUST_COUNTING_AVAILABLE) {
+    // 🦀 FAST PATH: Single Rust call scans all patterns at once
+    const turnAnalysis = analyzeTurnBoundary(transcript);
 
-  // Check for completion signals (punctuation, closing phrases)
-  const hasCompletionMarker = COMPLETION_MARKERS.some((pattern) => pattern.test(transcript));
+    // Map Rust results to our signal categories
+    hasContinuationMarker = turnAnalysis.likelyContinuing || turnAnalysis.continuationCount > 0;
+    hasCompletionMarker = turnAnalysis.likelyTurnComplete || turnAnalysis.turnFinalCount > 0;
 
-  // Check for urgency
+    // Check for hesitation using fluency analysis (detects um, uh, er, etc.)
+    isHesitating = hasDisfluencies(transcript);
+
+    // Fast word count
+    wordCount = countWordsRust(transcript);
+  } else {
+    // 🐢 SLOW PATH: JS regex fallback (10+ pattern tests)
+    isHesitating = HESITATION_MARKERS.some((pattern) => pattern.test(transcript));
+    hasContinuationMarker = CONTINUATION_MARKERS.some((pattern) => pattern.test(transcript));
+    hasCompletionMarker = COMPLETION_MARKERS.some((pattern) => pattern.test(transcript));
+    wordCount = transcript.split(/\s+/).filter((w) => w.length > 0).length;
+  }
+
+  // Check for urgency (not in Rust yet - few patterns, fast in JS)
   const isUrgent = URGENCY_MARKERS.some((pattern) => pattern.test(transcript));
 
-  // Word count analysis
-  const wordCount = transcript.split(/\s+/).filter((w) => w.length > 0).length;
   const isSentenceLengthNormal = wordCount >= state.avgSentenceLength * 0.5;
 
   // Emotional state analysis

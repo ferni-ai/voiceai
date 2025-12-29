@@ -103,6 +103,12 @@ class SkyCheckService {
       
       if (result.ok) {
         log.info('Sky check recorded', { weather: weather.primary, energy: weather.energy });
+        
+        // 🤲 Sidekick: Dispatch sky check event for avatar sidekick
+        document.dispatchEvent(new CustomEvent('ferni:sky-check', {
+          detail: { weather: weather.primary, energy: weather.energy }
+        }));
+        
         this.callbacks.onSkyCheckRecorded?.(entry);
         return entry;
       } else {

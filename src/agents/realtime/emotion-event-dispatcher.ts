@@ -446,6 +446,287 @@ export async function dispatchHolisticEvents(
 }
 
 // ============================================================================
+// EXPRESSION UPDATE DISPATCH (Luxo 100+ Expression System)
+// ============================================================================
+
+/**
+ * Luxo expression IDs available for dispatch.
+ * These map directly to design-system/tokens/expressions.json
+ *
+ * @see design-system/tokens/expressions.json for full list
+ * @see apps/web/src/ui/luxo-expressions.ui.ts for frontend handler
+ */
+export type LuxoExpressionId =
+  // Core
+  | 'neutral'
+  | 'listening'
+  | 'speaking'
+  // Happy family
+  | 'happy'
+  | 'joyful'
+  | 'delighted'
+  | 'amused'
+  | 'pleased'
+  | 'content'
+  | 'excited'
+  | 'grateful'
+  | 'proud'
+  // Warmth family
+  | 'warm'
+  | 'caring'
+  | 'loving'
+  | 'tender'
+  | 'supportive'
+  | 'compassionate'
+  | 'empathetic'
+  | 'nurturing'
+  // Thinking family
+  | 'thinking'
+  | 'pondering'
+  | 'contemplating'
+  | 'focused'
+  | 'processing'
+  | 'reflecting'
+  | 'analyzing'
+  // Presence family
+  | 'present'
+  | 'grounded'
+  | 'calm'
+  | 'serene'
+  | 'peaceful'
+  // Coaching family
+  | 'encouraging'
+  | 'cheering'
+  | 'guiding'
+  | 'wise'
+  | 'knowing'
+  // Concern family
+  | 'concerned'
+  | 'worried'
+  | 'sympathetic'
+  | 'understanding'
+  | 'comforting'
+  // Playful family
+  | 'playful'
+  | 'mischievous'
+  // Listening family
+  | 'interested'
+  // Other common expressions
+  | 'curious'
+  | 'surprised'
+  | 'attentive'
+  | 'determined'
+  | 'confident';
+
+/**
+ * Expression update payload for frontend
+ */
+export interface ExpressionUpdatePayload {
+  type: 'expression_update';
+  expression: LuxoExpressionId;
+  intensity?: number;
+  duration?: number;
+  hold?: number;
+  timestamp: number;
+}
+
+/**
+ * Map emotional states to appropriate Luxo expressions.
+ *
+ * This is the core mapping that converts backend emotional analysis
+ * to specific avatar expressions from the 100+ expression system.
+ */
+const EMOTION_TO_EXPRESSION: Record<string, LuxoExpressionId[]> = {
+  // Positive emotions
+  happy: ['happy', 'joyful', 'pleased'],
+  excited: ['excited', 'delighted', 'joyful'],
+  grateful: ['grateful', 'warm', 'tender'],
+  loving: ['loving', 'tender', 'warm'],
+  hopeful: ['encouraging', 'warm', 'supportive'],
+  proud: ['proud', 'confident', 'pleased'],
+  curious: ['curious', 'attentive', 'interested'],
+  amused: ['amused', 'playful', 'delighted'],
+
+  // Contemplative states
+  thoughtful: ['contemplating', 'reflecting', 'pondering'],
+  processing: ['processing', 'thinking', 'focused'],
+  calm: ['calm', 'serene', 'peaceful'],
+
+  // Concern/distress states (respond with empathy)
+  sad: ['concerned', 'sympathetic', 'comforting'],
+  anxious: ['supportive', 'calm', 'grounded'],
+  stressed: ['understanding', 'supportive', 'calm'],
+  frustrated: ['understanding', 'calm', 'supportive'],
+  overwhelmed: ['comforting', 'supportive', 'calm'],
+  fearful: ['comforting', 'supportive', 'warm'],
+  lonely: ['warm', 'compassionate', 'nurturing'],
+
+  // Neutral states
+  neutral: ['neutral', 'present', 'listening'],
+};
+
+/**
+ * Map concern levels to appropriate expressions
+ */
+const CONCERN_LEVEL_TO_EXPRESSION: Record<string, LuxoExpressionId> = {
+  crisis: 'comforting',
+  elevated: 'concerned',
+  moderate: 'sympathetic',
+  mild: 'attentive',
+  none: 'present',
+};
+
+/**
+ * Get appropriate expression for emotional state.
+ *
+ * @param emotion - Primary emotion detected
+ * @param intensity - Emotion intensity (0-1)
+ * @returns Expression ID to use
+ */
+function getExpressionForEmotion(
+  emotion: string,
+  intensity: number
+): LuxoExpressionId {
+  const candidates = EMOTION_TO_EXPRESSION[emotion] || ['neutral'];
+
+  // Select expression based on intensity
+  // Higher intensity = more expressive variant
+  const index = Math.min(
+    Math.floor(intensity * candidates.length),
+    candidates.length - 1
+  );
+
+  return candidates[index];
+}
+
+/**
+ * Options for dispatching expression updates
+ */
+export interface ExpressionDispatchOptions {
+  expression?: LuxoExpressionId;
+  emotion?: string;
+  intensity?: number;
+  duration?: number;
+  hold?: number;
+  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
+}
+
+/**
+ * Dispatch an expression update to the frontend.
+ *
+ * This is the MAIN function for setting avatar expressions from the backend.
+ * It sends an `expression_update` message to the frontend which sets the
+ * Luxo expression directly.
+ *
+ * USAGE:
+ * ```typescript
+ * // Direct expression
+ * await dispatchExpressionUpdate(
+ *   { expression: 'joyful', duration: 400 },
+ *   sendDataMessage
+ * );
+ *
+ * // From detected emotion
+ * await dispatchExpressionUpdate(
+ *   { emotion: 'happy', intensity: 0.8 },
+ *   sendDataMessage
+ * );
+ *
+ * // From concern level
+ * await dispatchExpressionUpdate(
+ *   { concernLevel: 'elevated' },
+ *   sendDataMessage
+ * );
+ * ```
+ *
+ * @param options - Expression options
+ * @param sendDataMessage - Function to send data message to frontend
+ */
+export async function dispatchExpressionUpdate(
+  options: ExpressionDispatchOptions,
+  sendDataMessage: SendDataMessageFn
+): Promise<void> {
+  const {
+    expression,
+    emotion,
+    intensity = 0.7,
+    duration = 300,
+    hold = 0,
+    concernLevel,
+  } = options;
+
+  // Determine expression to use
+  let expressionToUse: LuxoExpressionId;
+
+  if (expression) {
+    // Direct expression specified
+    expressionToUse = expression;
+  } else if (concernLevel && concernLevel !== 'none') {
+    // Map concern level to expression
+    expressionToUse = CONCERN_LEVEL_TO_EXPRESSION[concernLevel];
+  } else if (emotion) {
+    // Map emotion to expression
+    expressionToUse = getExpressionForEmotion(emotion, intensity);
+  } else {
+    // Default to neutral
+    expressionToUse = 'neutral';
+  }
+
+  try {
+    await sendDataMessage('expression_update', {
+      expression: expressionToUse,
+      intensity,
+      duration,
+      hold,
+      timestamp: Date.now(),
+    });
+
+    log.debug(
+      { expression: expressionToUse, intensity, duration },
+      '🎭 Expression update dispatched to frontend'
+    );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Expression update dispatch failed');
+  }
+}
+
+/**
+ * Dispatch expression based on emotional state (convenience function).
+ *
+ * Combines humanization signal + expression update for complete
+ * avatar emotional response.
+ *
+ * @param options - Emotion dispatch options
+ * @param sendDataMessage - Function to send data message to frontend
+ */
+export async function dispatchEmotionWithExpression(
+  options: EmotionDispatchOptions,
+  sendDataMessage: SendDataMessageFn
+): Promise<void> {
+  // First dispatch humanization signals
+  await dispatchEmotionEvents(options, sendDataMessage);
+
+  // Then dispatch corresponding expression update
+  const { emotionalState } = options;
+  const { primary, intensity, distressLevel } = emotionalState;
+
+  // If distressed, use concern-based expression
+  if (distressLevel > 0.3) {
+    const concernLevel = getConcernLevel(distressLevel);
+    await dispatchExpressionUpdate(
+      { concernLevel, intensity: distressLevel, duration: 400 },
+      sendDataMessage
+    );
+  } else {
+    // Use emotion-based expression
+    await dispatchExpressionUpdate(
+      { emotion: primary, intensity, duration: 300 },
+      sendDataMessage
+    );
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 

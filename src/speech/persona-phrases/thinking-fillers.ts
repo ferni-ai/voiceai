@@ -41,52 +41,56 @@ import { normalizePersonaId, addPersonaAliases } from './helpers.js';
 /**
  * @deprecated Use getContextAwareThinkingFiller() instead
  * @internal Used only as fallback when ProcessingIntelligence fails
+ *
+ * UPDATED Dec 29 2024: Reduced break durations from 200-350ms to 100-150ms
+ * for faster perceived response. Total filler time now ~200-300ms instead of ~500ms.
+ * This is closer to natural human "thinking sounds" timing.
  */
 const THINKING_FILLERS: Record<string, string[]> = {
   // PHILOSOPHY: These are CONVERSATIONAL, not meta about thinking.
   // They should feel like natural conversation continuation, not "AI is loading..."
   ferni: [
-    // Natural conversational acknowledgments
-    `${breakTag('200ms')}Yeah...${breakTag('300ms')}`,
-    `${breakTag('200ms')}So...${breakTag('300ms')}`,
-    `${breakTag('250ms')}Okay...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Right...${breakTag('300ms')}`,
-    `${breakTag('250ms')}Mm.${breakTag('300ms')}`,
+    // Natural conversational acknowledgments - faster breaks for responsiveness
+    `${breakTag('100ms')}Yeah...${breakTag('150ms')}`,
+    `${breakTag('100ms')}So...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Okay...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Right...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Mm.${breakTag('150ms')}`,
   ],
   'nayan-patel': [
-    // Wise, unhurried presence
-    `${breakTag('350ms')}Mm.${breakTag('400ms')}`,
-    `${breakTag('300ms')}Yes...${breakTag('400ms')}`,
-    `${breakTag('350ms')}...${breakTag('500ms')}`,
-    `${breakTag('300ms')}Indeed.${breakTag('400ms')}`,
+    // Wise, unhurried presence - slightly longer but still responsive
+    `${breakTag('150ms')}Mm.${breakTag('200ms')}`,
+    `${breakTag('150ms')}Yes...${breakTag('200ms')}`,
+    `${breakTag('150ms')}...${breakTag('250ms')}`,
+    `${breakTag('150ms')}Indeed.${breakTag('200ms')}`,
   ],
   'peter-john': [
     // Engaged, curious
-    `${breakTag('200ms')}Oh!${breakTag('300ms')}`,
-    `${breakTag('200ms')}Interesting.${breakTag('300ms')}`,
-    `${breakTag('200ms')}Hm.${breakTag('250ms')}`,
-    `${breakTag('200ms')}So...${breakTag('300ms')}`,
+    `${breakTag('100ms')}Oh!${breakTag('150ms')}`,
+    `${breakTag('100ms')}Interesting.${breakTag('150ms')}`,
+    `${breakTag('100ms')}Hm.${breakTag('150ms')}`,
+    `${breakTag('100ms')}So...${breakTag('150ms')}`,
   ],
   'maya-santos': [
     // Warm, present
-    `${breakTag('250ms')}Yeah...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Okay so...${breakTag('300ms')}`,
-    `${breakTag('250ms')}Right...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Mm.${breakTag('300ms')}`,
+    `${breakTag('100ms')}Yeah...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Okay so...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Right...${breakTag('150ms')}`,
+    `${breakTag('100ms')}Mm.${breakTag('150ms')}`,
   ],
   'jordan-taylor': [
-    // Enthusiastic, energetic
-    `${breakTag('150ms')}Ooh!${breakTag('250ms')}`,
-    `${breakTag('150ms')}Oh!${breakTag('250ms')}`,
-    `${breakTag('200ms')}Yeah!${breakTag('300ms')}`,
-    `${breakTag('200ms')}Okay so...${breakTag('300ms')}`,
+    // Enthusiastic, energetic - fastest
+    `${breakTag('50ms')}Ooh!${breakTag('100ms')}`,
+    `${breakTag('50ms')}Oh!${breakTag('100ms')}`,
+    `${breakTag('75ms')}Yeah!${breakTag('125ms')}`,
+    `${breakTag('75ms')}Okay so...${breakTag('125ms')}`,
   ],
   'alex-chen': [
-    // Efficient, direct
-    `${breakTag('150ms')}Mm.${breakTag('250ms')}`,
-    `${breakTag('150ms')}Right...${breakTag('250ms')}`,
-    `${breakTag('200ms')}Yeah...${breakTag('300ms')}`,
-    `${breakTag('150ms')}So...${breakTag('250ms')}`,
+    // Efficient, direct - fast
+    `${breakTag('75ms')}Mm.${breakTag('125ms')}`,
+    `${breakTag('75ms')}Right...${breakTag('125ms')}`,
+    `${breakTag('100ms')}Yeah...${breakTag('150ms')}`,
+    `${breakTag('75ms')}So...${breakTag('125ms')}`,
   ],
 };
 

@@ -588,6 +588,13 @@ export type {
   CalendarProvider,
 } from './calendar-selection.ui.js';
 
+// Team Observations Panel - Cross-persona coordination visibility
+export {
+  show as showTeamObservations,
+  hide as hideTeamObservations,
+  refresh as refreshTeamObservations,
+} from './team-observations-panel.ui.js';
+
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';
 export type { ControlCallbacks } from './controls.ui.js';

@@ -752,6 +752,101 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
         return;
       }
 
+      // Native Rust module health check - Monitor native vs JS fallback ratio
+      // Shows which Rust accelerated functions are being used and performance gains
+      if (url === '/health/native') {
+        try {
+          // Import native module metrics
+          const [perfModule, fftModule] = await Promise.all([
+            import('../../memory/rust-accelerator.js').catch(() => null),
+            import('../../speech/fft-analyzer/native-fft.js').catch(() => null),
+          ]);
+
+          // Collect metrics from both modules
+          const nativeStatus: Record<string, unknown> = {
+            service: serviceName,
+            status: 'ok',
+            modules: {},
+          };
+
+          // @ferni/perf metrics
+          if (perfModule) {
+            // Check all available native functions from rust-accelerator
+            const batchToolScoring = perfModule.isBatchToolScoringNativeAvailable?.() ?? false;
+            const injectionDedup = perfModule.isInjectionDeduplicationNativeAvailable?.() ?? false;
+            const messageAnalysis = perfModule.isMessageAnalysisNativeAvailable?.() ?? false;
+            const emotionalState = perfModule.isEmotionalStateNativeAvailable?.() ?? false;
+            const conversationDynamics = perfModule.isConversationDynamicsNativeAvailable?.() ?? false;
+
+            // Consider native available if ANY function is available
+            const isPerfNative = batchToolScoring || injectionDedup || messageAnalysis || emotionalState || conversationDynamics;
+
+            nativeStatus.modules = {
+              ...nativeStatus.modules as object,
+              'rust-perf': {
+                available: isPerfNative,
+                functions: {
+                  batchToolScoring,
+                  injectionDeduplication: injectionDedup,
+                  messageAnalysis,
+                  emotionalState,
+                  conversationDynamics,
+                },
+              },
+            };
+          }
+
+          // @ferni/audio (FFT) metrics
+          if (fftModule) {
+            const fftInfo = fftModule.getNativeFftInfo?.();
+            const fftMetrics = fftModule.getFftMetrics?.();
+
+            nativeStatus.modules = {
+              ...nativeStatus.modules as object,
+              'rust-audio': {
+                available: fftModule.isNativeFftAvailable?.() ?? false,
+                loadError: fftModule.getNativeFftLoadError?.() ?? null,
+                libraryInfo: fftInfo ?? null,
+                metrics: fftMetrics ? {
+                  calls: fftMetrics.calls,
+                  totalSamples: fftMetrics.totalSamples,
+                  totalTimeMs: fftMetrics.totalTimeMs?.toFixed(3),
+                  avgTimeMs: fftMetrics.avgTimeMs?.toFixed(3),
+                } : null,
+              },
+            };
+          }
+
+          // Calculate overall status
+          const modules = nativeStatus.modules as Record<string, { available: boolean }>;
+          const perfAvailable = modules['rust-perf']?.available ?? false;
+          const audioAvailable = modules['rust-audio']?.available ?? false;
+
+          if (perfAvailable && audioAvailable) {
+            nativeStatus.status = 'fully_native';
+          } else if (perfAvailable || audioAvailable) {
+            nativeStatus.status = 'partially_native';
+          } else {
+            nativeStatus.status = 'js_fallback';
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            ...nativeStatus,
+            timestamp: new Date().toISOString(),
+          }, null, 2));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'error',
+            error: 'Could not get native module metrics',
+            message: String(err),
+            timestamp: new Date().toISOString(),
+          }));
+        }
+        return;
+      }
+
       // Gemini health check - Monitor LLM reliability and leakage rates
       // Use this to monitor Gemini function calling health and decide if
       // you need to switch to OpenAI Realtime

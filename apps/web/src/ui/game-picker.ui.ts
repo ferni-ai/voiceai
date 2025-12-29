@@ -789,6 +789,18 @@ class GamePickerUI {
       
       log.info({ gameId }, '🎮 Game start request sent successfully');
       
+      // 🤲 Sidekick: Dispatch game started event for avatar sidekick
+      document.dispatchEvent(new CustomEvent('ferni:game-started', {
+        detail: { gameId, gameType: actualGameType, gameName: game.name, category: game.category }
+      }));
+      
+      // 🤲 Sidekick: For reflection games, also dispatch meditation event
+      if (game.category === 'reflection') {
+        document.dispatchEvent(new CustomEvent('ferni:meditation-started', {
+          detail: { gameId, gameName: game.name }
+        }));
+      }
+      
       // Close picker and show success
       this.hide();
       this.showSuccess(`Starting ${game.name}...`);

@@ -11,12 +11,33 @@
  * - Recovery score integration for gentle/energetic approach
  *
  * @see ./types.ts - Type definitions
+ * @see ./token-persistence.ts - Token storage
+ * @see ./insights.ts - Insight generation
  * @module services/biometrics
  */
 
-import { getStore } from '../../memory/store-factory.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
+
+// Re-export extracted modules
+export * from './token-persistence.js';
+export {
+  generateBiometricInsight as generateInsight,
+  generateSuperhumanMoment as generateSuperhumanMomentFromSnapshot,
+} from './insights.js';
+
+// Import token persistence (used internally)
+import {
+  persistTokens,
+  loadTokens,
+  clearPersistedTokens,
+} from './token-persistence.js';
+
+// Import insight helpers (used internally in public API wrappers)
+import {
+  generateBiometricInsight as generateInsightFromSnapshot,
+  generateSuperhumanMoment as generateSuperhumanMomentFromSnapshot,
+} from './insights.js';
 
 // Circuit breakers for biometric platform APIs
 const terraCircuitBreaker = getCircuitBreaker('terra-biometrics', {
@@ -67,95 +88,7 @@ const log = createLogger({ module: 'Biometrics' });
 
 const userBiometrics = new Map<string, UserBiometrics>();
 
-// ============================================================================
-// TOKEN PERSISTENCE
-// ============================================================================
-
-/**
- * Save biometric tokens to persistent storage (user profile)
- */
-async function persistTokens(userId: string, data: UserBiometrics): Promise<void> {
-  try {
-    const store = await getStore();
-    const profile = await store.getOrCreateProfile(userId);
-
-    const tokensToSave: PersistedBiometricTokens = {
-      platform: data.platform,
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-      tokenExpiry: data.tokenExpiry.toISOString(),
-      lastSync: data.lastSync.toISOString(),
-    };
-
-    // Store tokens in user profile (extends profile with biometricTokens field)
-    const updatedProfile = {
-      ...profile,
-      biometricTokens: tokensToSave,
-    } as typeof profile & { biometricTokens: PersistedBiometricTokens };
-
-    await store.saveProfile(updatedProfile);
-    log.debug({ userId, platform: data.platform }, 'Biometric tokens persisted');
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to persist biometric tokens');
-  }
-}
-
-/**
- * Load biometric tokens from persistent storage
- */
-async function loadTokens(userId: string): Promise<UserBiometrics | null> {
-  try {
-    const store = await getStore();
-    const profile = await store.getProfile(userId);
-
-    if (!profile) return null;
-
-    // Type assertion to access biometricTokens field
-    const tokens = (profile as { biometricTokens?: PersistedBiometricTokens }).biometricTokens;
-
-    if (!tokens) return null;
-
-    // Reconstruct UserBiometrics from persisted data
-    const userBio: UserBiometrics = {
-      platform: tokens.platform,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      tokenExpiry: new Date(tokens.tokenExpiry),
-      lastSync: new Date(tokens.lastSync),
-      snapshot: null,
-      history: [],
-      eventCallbacks: new Set(),
-    };
-
-    log.debug({ userId, platform: tokens.platform }, 'Biometric tokens loaded from storage');
-    return userBio;
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to load biometric tokens');
-    return null;
-  }
-}
-
-/**
- * Clear persisted tokens for a user
- */
-async function clearPersistedTokens(userId: string): Promise<void> {
-  try {
-    const store = await getStore();
-    const profile = await store.getProfile(userId);
-
-    if (profile) {
-      // Remove biometricTokens field
-      const updatedProfile = { ...profile } as typeof profile & {
-        biometricTokens?: PersistedBiometricTokens;
-      };
-      delete updatedProfile.biometricTokens;
-      await store.saveProfile(updatedProfile);
-      log.debug({ userId }, 'Biometric tokens cleared from storage');
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to clear biometric tokens');
-  }
-}
+// Token persistence is in ./token-persistence.ts
 
 /**
  * Ensure user biometrics are loaded (from memory cache or storage)
@@ -1376,7 +1309,8 @@ export function disconnectBiometrics(userId: string): void {
 }
 
 // ============================================================================
-// CONTEXT BUILDER HELPERS
+// CONTEXT BUILDER HELPERS (wrapper functions for userId-based API)
+// Core insight logic is in ./insights.ts
 // ============================================================================
 
 /**
@@ -1385,51 +1319,7 @@ export function disconnectBiometrics(userId: string): void {
  */
 export function generateBiometricInsight(userId: string): BiometricInsight | null {
   const snapshot = getCurrentBiometrics(userId);
-  if (!snapshot) return null;
-
-  // Priority: stress > sleep > recovery > activity
-  if (snapshot.stressLevel === 'elevated' || snapshot.stressLevel === 'high') {
-    const hrvDrop = snapshot.hrv?.deviationPercent
-      ? `HRV dropped ${Math.abs(snapshot.hrv.deviationPercent)}%`
-      : 'elevated stress markers';
-
-    return {
-      type: 'stress',
-      insight: `User's biometrics show ${snapshot.stressLevel} stress (${hrvDrop}). Approach gently.`,
-      suggestion:
-        'Consider offering a grounding exercise or acknowledging they might be having a rough day.',
-      confidence: 0.8,
-    };
-  }
-
-  if (snapshot.sleep && snapshot.sleep.qualityScore < 60) {
-    return {
-      type: 'sleep',
-      insight: `User had poor sleep (${snapshot.sleep.qualityScore}% quality, ${snapshot.sleep.duration.toFixed(1)}h). They may be tired.`,
-      suggestion: 'Be understanding if they seem off. Might mention sleep or ask how they slept.',
-      confidence: 0.85,
-    };
-  }
-
-  if (snapshot.recovery && snapshot.recovery.score < 50) {
-    return {
-      type: 'recovery',
-      insight: `User's recovery score is low (${snapshot.recovery.score}%). Their body is still recovering.`,
-      suggestion: "Encourage rest and self-care. Don't push hard goals today.",
-      confidence: 0.75,
-    };
-  }
-
-  if (snapshot.activity && snapshot.activity.hoursSinceActivity > 4) {
-    return {
-      type: 'activity',
-      insight: `User has been sedentary for ${snapshot.activity.hoursSinceActivity} hours.`,
-      suggestion: 'Consider suggesting a stretch break or short walk.',
-      confidence: 0.7,
-    };
-  }
-
-  return null;
+  return generateInsightFromSnapshot(snapshot);
 }
 
 /**
@@ -1437,39 +1327,7 @@ export function generateBiometricInsight(userId: string): BiometricInsight | nul
  */
 export function generateSuperhumanMoment(userId: string): string | null {
   const snapshot = getCurrentBiometrics(userId);
-  if (!snapshot) return null;
-
-  const moments: string[] = [];
-
-  // HRV correlation with stress
-  if (snapshot.hrv && snapshot.hrv.deviationPercent <= -20) {
-    moments.push(
-      `Your HRV dropped ${Math.abs(snapshot.hrv.deviationPercent)}% - rough day? Let's take it easy.`
-    );
-  }
-
-  // Sleep affecting mood
-  if (snapshot.sleep && snapshot.sleep.qualityScore < 50) {
-    moments.push(`Your sleep has been off - that might be affecting how you're feeling today.`);
-  }
-
-  // Sedentary during stress
-  if (
-    snapshot.activity &&
-    snapshot.activity.hoursSinceActivity > 3 &&
-    (snapshot.stressLevel === 'high' || snapshot.stressLevel === 'elevated')
-  ) {
-    moments.push(
-      `You've been sitting for ${snapshot.activity.hoursSinceActivity} hours during a stressful time - want a 2-minute stretch?`
-    );
-  }
-
-  // Low recovery
-  if (snapshot.recovery && snapshot.recovery.score < 40) {
-    moments.push(`Your body's still recovering - let's be gentle with ourselves today.`);
-  }
-
-  return moments.length > 0 ? moments[Math.floor(Math.random() * moments.length)] : null;
+  return generateSuperhumanMomentFromSnapshot(snapshot);
 }
 
 export default {

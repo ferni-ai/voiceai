@@ -18,8 +18,10 @@
 import { getLogger } from '../utils/safe-logger.js';
 import type { MemoryItem } from './advanced-retrieval.js';
 import { embedCached } from './embedding-cache.js';
-import { cosineSimilarity, embed } from './embeddings.js';
+import { embed } from './embeddings.js';
 import { type MemoryError, type Result, err, isOk, memoryError, ok } from './result.js';
+// Centralized cosine similarity - uses SIMD-ready implementation from rust-accelerator
+import { cosineSimilarity, findSimilarPairs } from './rust-accelerator.js';
 import type { VectorDocument } from './vector-store-interface.js';
 
 const log = getLogger();
@@ -290,30 +292,52 @@ export class MemoryDeduplicator {
 
   /**
    * Find all near-duplicates in a set of memories
+   *
+   * Uses SIMD-accelerated findSimilarPairs for O(n²) pairwise comparison,
+   * then builds clusters with same greedy semantics as original algorithm.
    */
   async findDuplicateClusters(memories: MemoryItem[]): Promise<Map<string, string[]>> {
     const clusters = new Map<string, string[]>();
     const processed = new Set<string>();
 
-    for (let i = 0; i < memories.length; i++) {
-      if (processed.has(memories[i].id)) continue;
+    // Filter to memories that have embeddings
+    const memoriesWithEmbeddings = memories.filter((m) => m.embedding != null);
 
-      const cluster: string[] = [memories[i].id];
-      processed.add(memories[i].id);
+    if (memoriesWithEmbeddings.length < 2) {
+      return clusters;
+    }
 
-      for (let j = i + 1; j < memories.length; j++) {
-        if (processed.has(memories[j].id)) continue;
+    // Extract embeddings array for batch comparison
+    const embeddings = memoriesWithEmbeddings.map((m) => m.embedding!);
 
-        const embedding1 = memories[i].embedding;
-        const embedding2 = memories[j].embedding;
+    // Get all similar pairs using SIMD-accelerated function
+    // findSimilarPairs guarantees firstIdx < secondIdx
+    const similarPairs = findSimilarPairs(embeddings, this.config.mergeThreshold);
 
-        if (embedding1 && embedding2) {
-          const similarity = cosineSimilarity(embedding1, embedding2);
+    // Build adjacency map: index → list of similar indices (j > i only)
+    const adjacencyFromLower = new Map<number, number[]>();
+    for (const pair of similarPairs) {
+      if (!adjacencyFromLower.has(pair.firstIdx)) {
+        adjacencyFromLower.set(pair.firstIdx, []);
+      }
+      adjacencyFromLower.get(pair.firstIdx)!.push(pair.secondIdx);
+    }
 
-          if (similarity >= this.config.mergeThreshold) {
-            cluster.push(memories[j].id);
-            processed.add(memories[j].id);
-          }
+    // Greedy clustering (same semantics as original O(n²) loop)
+    for (let i = 0; i < memoriesWithEmbeddings.length; i++) {
+      const memory = memoriesWithEmbeddings[i];
+      if (processed.has(memory.id)) continue;
+
+      const cluster: string[] = [memory.id];
+      processed.add(memory.id);
+
+      // Add similar memories that come after this one in index order
+      const similar = adjacencyFromLower.get(i) || [];
+      for (const j of similar) {
+        const similarMemory = memoriesWithEmbeddings[j];
+        if (!processed.has(similarMemory.id)) {
+          cluster.push(similarMemory.id);
+          processed.add(similarMemory.id);
         }
       }
 

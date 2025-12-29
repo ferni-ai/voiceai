@@ -9,6 +9,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
   syncReminderToCalendar,
   syncScheduledTextToCalendar,
@@ -760,26 +761,31 @@ export function startReminderScheduler(intervalMs = 60000): void {
   getLogger().info({ intervalMs }, '🕐 Starting reminder scheduler');
   cleanupCounter = 0;
 
-  schedulerInterval = setInterval(() => {
-    void (async () => {
-      const dueReminders = getDueReminders();
+  registerInterval(
+    'reminder-scheduler',
+    () => {
+      void (async () => {
+        const dueReminders = getDueReminders();
 
-      if (dueReminders.length > 0) {
-        getLogger().info({ count: dueReminders.length }, '📬 Processing due reminders');
+        if (dueReminders.length > 0) {
+          getLogger().info({ count: dueReminders.length }, '📬 Processing due reminders');
 
-        for (const reminder of dueReminders) {
-          await deliverReminder(reminder);
+          for (const reminder of dueReminders) {
+            await deliverReminder(reminder);
+          }
         }
-      }
 
-      // Periodic cleanup to prevent memory leaks
-      cleanupCounter++;
-      if (cleanupCounter >= CLEANUP_EVERY_N_INTERVALS) {
-        cleanupCounter = 0;
-        cleanupOldReminders();
-      }
-    })();
-  }, intervalMs);
+        // Periodic cleanup to prevent memory leaks
+        cleanupCounter++;
+        if (cleanupCounter >= CLEANUP_EVERY_N_INTERVALS) {
+          cleanupCounter = 0;
+          cleanupOldReminders();
+        }
+      })();
+    },
+    intervalMs
+  );
+  schedulerInterval = 1 as unknown as ReturnType<typeof setInterval>; // Marker
 }
 
 /**
@@ -787,7 +793,7 @@ export function startReminderScheduler(intervalMs = 60000): void {
  */
 export function stopReminderScheduler(): void {
   if (schedulerInterval) {
-    clearInterval(schedulerInterval);
+    clearNamedInterval('reminder-scheduler');
     schedulerInterval = null;
     getLogger().info('🛑 Reminder scheduler stopped');
   }

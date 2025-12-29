@@ -514,6 +514,15 @@ export function getDaysRemaining(): number {
 export function recordConversation(): JourneyMilestone[] {
   journeyProgress.conversationCount++;
   saveProgress();
+  
+  // 🤲 Sidekick: Dispatch progress tracked event for avatar sidekick
+  document.dispatchEvent(new CustomEvent('ferni:progress-tracked', {
+    detail: { 
+      conversationCount: journeyProgress.conversationCount,
+      weeksTogetherCount: journeyProgress.weeksTogetherCount
+    }
+  }));
+  
   return checkForNewMilestones();
 }
 

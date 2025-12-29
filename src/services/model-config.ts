@@ -115,19 +115,68 @@ export interface ModelConfigStore {
 }
 
 // ============================================================================
-// DEFAULTS
+// ENVIRONMENT CONFIGURATION - imports from gemini-config.ts (SINGLE SOURCE OF TRUTH)
 // ============================================================================
 
 /**
- * Default Gemini configuration
+ * All LLM configuration comes from gemini-config.ts which reads from .env
+ * This file re-exports for backward compatibility
+ */
+
+// Import everything from centralized gemini-config.ts
+import {
+  USE_VERTEX_AI,
+  GOOGLE_CLOUD_PROJECT,
+  GOOGLE_CLOUD_LOCATION,
+  GEMINI_API_KEY,
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE,
+  GEMINI_MAX_OUTPUT_TOKENS,
+  GEMINI_LANGUAGE,
+  LLM_TIMEOUT_MS,
+  LLM_SHORT_TIMEOUT_MS,
+  getGeminiClient,
+  isGeminiConfigured,
+  getDefaultModel as getDefaultModelFromConfig,
+  getLLMTimeout,
+  getShortLLMTimeout,
+} from '../config/gemini-config.js';
+
+// Re-export for external use
+export {
+  USE_VERTEX_AI,
+  GOOGLE_CLOUD_PROJECT,
+  GOOGLE_CLOUD_LOCATION,
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE,
+  GEMINI_MAX_OUTPUT_TOKENS,
+  GEMINI_LANGUAGE,
+  LLM_TIMEOUT_MS,
+  LLM_SHORT_TIMEOUT_MS,
+  isGeminiConfigured,
+  getDefaultModelFromConfig,
+  getLLMTimeout,
+  getShortLLMTimeout,
+};
+
+// Re-export with aliases
+export { GEMINI_API_KEY as GOOGLE_API_KEY };
+export { getGeminiClient as createGeminiClient };
+
+// ============================================================================
+// DEFAULTS (read from env)
+// ============================================================================
+
+/**
+ * Default Gemini configuration - reads from .env
  */
 export const DEFAULT_GEMINI_CONFIG: GeminiModelConfig = {
-  model: 'gemini-2.0-flash-exp',
-  temperature: 0.8,
+  model: GEMINI_MODEL,
+  temperature: GEMINI_TEMPERATURE,
   topK: undefined, // Let Gemini use its default
   topP: undefined, // Let Gemini use its default
-  maxOutputTokens: undefined,
-  language: 'en-US',
+  maxOutputTokens: GEMINI_MAX_OUTPUT_TOKENS,
+  language: GEMINI_LANGUAGE,
 };
 
 /**
@@ -541,9 +590,13 @@ export function getModelForPersona(personaId?: string): string {
   return getDefaultModel();
 }
 
+// getLLMTimeout and getShortLLMTimeout are now re-exported from gemini-config.ts
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
+
+// Note: All imports from gemini-config.js are at the top of the file
 
 export const modelConfig = {
   getDefault: getDefaultGeminiConfig,
@@ -568,6 +621,17 @@ export const modelConfig = {
   // Convenience helpers
   getDefaultModel,
   getModelForPersona,
+  // Gemini client factory (from gemini-config.ts - SINGLE SOURCE OF TRUTH)
+  createGeminiClient: getGeminiClient,
+  getLLMTimeout,
+  getShortLLMTimeout,
+  // Environment exports (from gemini-config.ts)
+  USE_VERTEX_AI,
+  GOOGLE_CLOUD_PROJECT,
+  GOOGLE_CLOUD_LOCATION,
+  GOOGLE_API_KEY: GEMINI_API_KEY,
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE,
 };
 
 export default modelConfig;

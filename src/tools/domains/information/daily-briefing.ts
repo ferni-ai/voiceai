@@ -11,10 +11,10 @@
  */
 
 import { llm } from '@livekit/agents';
-import { createLogger } from '../../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
-const log = createLogger({ module: 'tools:daily-briefing' });
+const log = getLogger();
 
 // Import from other tools to aggregate data
 // Note: In production, these would be services

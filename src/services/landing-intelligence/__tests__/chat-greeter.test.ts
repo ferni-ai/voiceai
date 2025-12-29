@@ -109,7 +109,8 @@ describe('ChatGreeter', () => {
           createContext({ isReturning: true, visitCount: 3 })
         );
 
-        expect(greeting).toMatch(/back|again|return/i);
+        // Returning visitor greetings include variations like "Good to see you"
+        expect(greeting).toMatch(/back|again|return|see you|good to see/i);
       });
     });
 

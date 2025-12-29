@@ -128,10 +128,18 @@ export interface ValidationResult {
 const DRAFTS_COLLECTION = 'message_drafts';
 
 let db: FirestoreType | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -142,6 +150,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available for message validation');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }
@@ -758,7 +767,7 @@ async function persistDraft(draft: MessageDraft): Promise<void> {
 
   try {
     // Remove undefined values for Firestore compatibility
-    const cleanDraft = JSON.parse(JSON.stringify(draft));
+    const cleanDraft = structuredClone(draft);
     await firestore.collection(DRAFTS_COLLECTION).doc(draft.id).set(cleanForFirestore(cleanDraft));
   } catch (error) {
     log.error({ error: String(error), draftId: draft.id }, 'Failed to persist draft');

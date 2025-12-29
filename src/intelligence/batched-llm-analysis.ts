@@ -296,27 +296,31 @@ class BatchedLLMAnalyzer {
 
     // Try to use the existing LLM infrastructure
     try {
-      // Dynamic import to avoid circular dependencies
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      // Use centralized Gemini config
+      const { getGeminiClient, isGeminiConfigured } = await import('../config/gemini-config.js');
 
-      // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-      if (!apiKey) {
-        throw new Error('No Google API key configured');
+      if (!isGeminiConfigured()) {
+        throw new Error(
+          'Gemini not configured - check USE_VERTEX_AI and GOOGLE_CLOUD_PROJECT in .env'
+        );
       }
 
-      const genai = new GoogleGenerativeAI(apiKey);
-      const model = genai.getGenerativeModel({ model: getDefaultModel() });
+      const genai = await getGeminiClient();
+      if (!genai) {
+        throw new Error('Failed to initialize Gemini client');
+      }
 
-      const response = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: `${ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}` }] }],
-        generationConfig: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (genai as any).models.generateContent({
+        model: getDefaultModel(),
+        contents: `${ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`,
+        config: {
           temperature: 0.1, // Low temperature for consistent analysis
           maxOutputTokens: 1000,
         },
       });
 
-      const text = response.response.text() || '';
+      const text = response.text ?? '';
 
       // Parse JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);

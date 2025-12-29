@@ -1,0 +1,32 @@
+[package]
+name = "ferni-audio"
+version = "0.1.0"
+edition = "2021"
+description = "Zero-allocation real-time audio processing for Ferni voice agent"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# NAPI-RS for Node.js bindings
+napi = { version = "2", features = ["napi9"] }
+napi-derive = "2"
+
+# Ring buffer for zero-allocation streaming
+ringbuf = "0.4"
+
+# Error handling
+thiserror = "1.0"
+
+# Global state management
+lazy_static = "1.5"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort"

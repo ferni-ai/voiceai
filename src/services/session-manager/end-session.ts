@@ -283,6 +283,17 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
       },
       'Applied learning to user profile'
     );
+
+    // 🧠 FINAL PERSISTENCE: Save social graph and clear rate limits
+    // "Better than Human" - Never lose learned data
+    try {
+      const { persistSocialGraph, clearRateLimits } = await import('../realtime-persistence.js');
+      await persistSocialGraph(validatedUserId);
+      clearRateLimits(validatedUserId);
+      log.debug({ userId: validatedUserId }, '📇 Final social graph persistence completed');
+    } catch (persistError) {
+      log.warn({ error: String(persistError) }, 'Failed to persist social graph on session end');
+    }
   } catch (error) {
     log.warn(`Failed to save conversation summary/learning: ${error}`);
   }

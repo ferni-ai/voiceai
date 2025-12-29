@@ -211,6 +211,68 @@ async function buildNayanWisdomInsightsContext(
       briefingLines.push('\n' + superhumanContext);
     }
 
+    // 🤝 TEAM HUDDLE: Record Nayan's observations for cross-persona intelligence
+    try {
+      const { nayan: nayanObserver, recordConcern } = await import(
+        '../../../../services/cross-persona/observation-recorder.js'
+      );
+
+      // Record life synthesis insights
+      if (briefing.lifeSynthesis.lifeChapter) {
+        nayanObserver.insight(
+          userId,
+          `Current life chapter: ${briefing.lifeSynthesis.lifeChapter}`,
+          0.75,
+          ['life-stage', 'wisdom', 'narrative']
+        );
+      }
+
+      // Record values alignment patterns (check for conflict areas)
+      if (briefing.valuesAlignment && briefing.valuesAlignment.conflictAreas.length > 0) {
+        recordConcern(
+          userId,
+          'nayan',
+          `Values conflict detected: ${briefing.valuesAlignment.conflictAreas.slice(0, 2).join(', ')}`,
+          0.7,
+          ['values', 'alignment', 'purpose', 'conflict']
+        );
+      }
+
+      // Record inner peace patterns
+      if (briefing.wisdomMetrics.innerPeaceIndex < 0.4) {
+        recordConcern(
+          userId,
+          'nayan',
+          `Inner peace index low (${Math.round(briefing.wisdomMetrics.innerPeaceIndex * 100)}%)`,
+          0.65,
+          ['peace', 'wellbeing', 'stress', 'wisdom']
+        );
+      }
+
+      // Record existential theme if present
+      if (briefing.existentialContext?.currentExistentialTheme) {
+        nayanObserver.pattern(
+          userId,
+          `Existential theme: ${briefing.existentialContext.currentExistentialTheme}`,
+          0.7,
+          ['existential', 'meaning', 'purpose']
+        );
+      }
+
+      // Record meaning-seeking patterns
+      if (briefing.existentialContext?.meaningSeekingIntensity === 'high') {
+        nayanObserver.insight(
+          userId,
+          'High meaning-seeking intensity detected',
+          0.7,
+          ['meaning', 'purpose', 'search']
+        );
+      }
+    } catch (err) {
+      // Non-critical - don't block if observation recording fails
+      log.debug({ error: String(err) }, 'Failed to record Nayan observations (non-blocking)');
+    }
+
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

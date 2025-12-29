@@ -154,7 +154,10 @@ function calculateHybridConfidence(
   // Masking phrases with ANY negative voice signal = high confidence
   const textLower = userText.toLowerCase();
   const hasMaskingPhrase = MASKING_PHRASES.some((p) => textLower.includes(p));
-  if (hasMaskingPhrase && (voiceEmotion.stressLevel > 0.3 || isNegativeEmotion(voiceEmotion.primary))) {
+  if (
+    hasMaskingPhrase &&
+    (voiceEmotion.stressLevel > 0.3 || isNegativeEmotion(voiceEmotion.primary))
+  ) {
     boost += 0.2;
     textSignals.push('masking_phrase_detected');
   }
@@ -246,7 +249,8 @@ export function detectMismatch(
       type: 'masking_negative',
       interpretation: `User says they're okay but voice reveals ${voicePrimary} emotion`,
       suggestedApproach: 'Acknowledge without pushing. Let them know you notice and care.',
-      shouldSurface: effectiveConfidence > 0.5 && (voiceEmotion.stressLevel > 0.25 || hybrid.boosted),
+      shouldSurface:
+        effectiveConfidence > 0.5 && (voiceEmotion.stressLevel > 0.25 || hybrid.boosted),
       surfacePhrase: generateSurfacePhrase('masking_negative', voicePrimary),
     };
   }
@@ -328,7 +332,7 @@ export function detectMismatch(
       voiceEmotion: voicePrimary,
       type: 'incongruent',
       interpretation: `Multiple distress signals detected (${hybrid.textSignals.join(', ')})`,
-      suggestedApproach: 'Be attentive - there may be more going on than they\'re sharing',
+      suggestedApproach: "Be attentive - there may be more going on than they're sharing",
       shouldSurface: effectiveConfidence > 0.45,
       surfacePhrase: generateSurfacePhrase('incongruent', voicePrimary),
     };

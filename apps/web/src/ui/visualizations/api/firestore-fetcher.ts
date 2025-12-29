@@ -205,6 +205,7 @@ async function fetchBurnoutGauge(
 
     const readings = snapshot.docs.map((doc) => doc.data());
     const latest = readings[0];
+    if (!latest) return undefined; // Guard for noUncheckedIndexedAccess
 
     // Calculate capacity from various factors
     const emotional = latest.emotional ?? latest.emotionalCapacity ?? 60;
@@ -274,13 +275,15 @@ async function fetchLifeTimeline(
     // Sort by start date ascending for timeline display
     chapters.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
-    const currentChapter = chapters.find((c) => c.isActive) || chapters[chapters.length - 1];
+    const lastChapter = chapters[chapters.length - 1];
+    const currentChapter = chapters.find((c) => c.isActive) ?? lastChapter;
+    if (!currentChapter) return undefined; // Guard for noUncheckedIndexedAccess
 
     return {
       chapters,
       currentChapter,
       totalChapters: chapters.length,
-      narrativeSummary: currentChapter?.summary,
+      narrativeSummary: currentChapter.summary,
     };
   } catch {
     return undefined;
@@ -314,7 +317,8 @@ async function fetchGrowthRadar(
     snapshot.docs.forEach((doc) => {
       const data = doc.data();
       const category = data.category?.toLowerCase() || 'emotional';
-      const dimension = dimensionMap[category] || dimensionMap.emotional;
+      const dimension = dimensionMap[category] ?? dimensionMap.emotional;
+      if (!dimension) return; // Guard for noUncheckedIndexedAccess
 
       dimension.values.push(data.strength ?? data.score ?? 0.5);
       dimension.trends.push(data.trend || 'stable');
@@ -331,7 +335,8 @@ async function fetchGrowthRadar(
     if (dimensions.length === 0) return undefined;
 
     const overallGrowth = dimensions.reduce((sum, d) => sum + d.value, 0) / dimensions.length;
-    const lowestDimension = dimensions.sort((a, b) => a.value - b.value)[0];
+    const sortedDimensions = [...dimensions].sort((a, b) => a.value - b.value);
+    const lowestDimension = sortedDimensions[0]; // Safe: we already checked length > 0
 
     return {
       dimensions,
@@ -357,7 +362,9 @@ async function fetchEmotionalArcs(
     const snapshot = await getDocs(q);
     if (snapshot.empty) return undefined;
 
-    const data = snapshot.docs[0].data();
+    const firstDoc = snapshot.docs[0];
+    if (!firstDoc) return undefined; // Guard for noUncheckedIndexedAccess
+    const data = firstDoc.data();
 
     const phases: EmotionalArcPhase[] = (data.phases || []).map((p: Record<string, unknown>, i: number, arr: unknown[]) => ({
       name: (p.name as string) || `Phase ${i + 1}`,
@@ -416,11 +423,12 @@ async function fetchPredictions(
       };
     });
 
-    if (predictions.length === 0) return undefined;
+    const primaryPrediction = predictions[0];
+    if (!primaryPrediction) return undefined; // Guard for noUncheckedIndexedAccess
 
     return {
       predictions,
-      primaryPrediction: predictions[0],
+      primaryPrediction,
       accuracy: 0.75, // Historical accuracy - would need actual tracking
     };
   } catch {
@@ -539,7 +547,9 @@ async function fetchEnergyRings(
     const snapshot = await getDocs(q);
     if (snapshot.empty) return undefined;
 
-    const data = snapshot.docs[0].data();
+    const firstDoc = snapshot.docs[0];
+    if (!firstDoc) return undefined; // Guard for noUncheckedIndexedAccess
+    const data = firstDoc.data();
 
     const emotional = Math.round(data.emotional ?? data.emotionalCapacity ?? 60);
     const mental = Math.round(data.mental ?? data.mentalCapacity ?? 60);
@@ -562,28 +572,35 @@ async function fetchEnergyRings(
 // ============================================================================
 
 /**
+ * Helper to extract date part from ISO string
+ */
+function getDatePart(isoString: string): string {
+  return isoString.split('T')[0] ?? isoString.substring(0, 10);
+}
+
+/**
  * Convert Firestore Timestamp or date to ISO date string (YYYY-MM-DD).
  */
 function toISODate(value: unknown): string {
-  if (!value) return new Date().toISOString().split('T')[0];
+  if (!value) return getDatePart(new Date().toISOString());
 
   if (value instanceof Timestamp) {
-    return value.toDate().toISOString().split('T')[0];
+    return getDatePart(value.toDate().toISOString());
   }
 
   if (typeof value === 'object' && value !== null && 'seconds' in value) {
-    return new Date((value as { seconds: number }).seconds * 1000).toISOString().split('T')[0];
+    return getDatePart(new Date((value as { seconds: number }).seconds * 1000).toISOString());
   }
 
   if (typeof value === 'string') {
-    return new Date(value).toISOString().split('T')[0];
+    return getDatePart(new Date(value).toISOString());
   }
 
   if (typeof value === 'number') {
-    return new Date(value).toISOString().split('T')[0];
+    return getDatePart(new Date(value).toISOString());
   }
 
-  return new Date().toISOString().split('T')[0];
+  return getDatePart(new Date().toISOString());
 }
 
 /**

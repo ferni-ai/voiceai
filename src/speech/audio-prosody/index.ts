@@ -88,3 +88,43 @@ export {
   type PartialProsodyFeatures,
   type RealTimeAnalyzerConfig,
 } from './real-time-analyzer.js';
+
+// ============================================================================
+// NATIVE ANALYZER (Rust-accelerated, zero-allocation)
+// ============================================================================
+
+export {
+  // Availability checks
+  isNativeAudioAvailable,
+  getNativeLibraryInfo,
+  getNativeLoadError,
+
+  // Direct native processor API
+  createNativeProcessor,
+  getOrCreateNativeProcessor,
+  processNativeFrame,
+  getNativeFullFeatures,
+  resetNativeProcessor,
+  removeNativeProcessor,
+  getActiveNativeProcessorCount,
+  clearAllNativeProcessors,
+
+  // Standalone utilities (with JS fallback)
+  convertI16ToF32,
+  computeEnergyDb,
+  isSpeechNative,
+
+  // Unified analyzer (auto-fallback to JS)
+  createUnifiedAnalyzer,
+  getSessionUnifiedAnalyzer,
+  resetSessionUnifiedAnalyzer,
+  getActiveUnifiedAnalyzerCount,
+  clearAllUnifiedAnalyzers,
+
+  // Types
+  type NativeProsodyResult,
+  type NativeFullProsodyFeatures,
+  type NativeProcessorStats,
+  type NativeLibraryInfo,
+  type UnifiedAudioAnalyzer,
+} from './native-analyzer.js';

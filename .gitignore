@@ -104,3 +104,4 @@ apps/marketplace-agents/agents/
 
 # Prevent accidental direct gcloud deploys - use npm run deploy instead
 # This comment reminds developers to use the deploy script
+apps/ios-native/.build/

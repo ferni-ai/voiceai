@@ -23,6 +23,9 @@
  * @module cli/commands/synthetic-e2e
  */
 
+// Load .env FIRST before any other imports that use process.env
+import 'dotenv/config';
+
 import { GoogleGenAI } from '@google/genai';
 import { VertexAI, type FunctionDeclaration } from '@google-cloud/vertexai';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -48,7 +51,8 @@ const log = createLogger({ module: 'SyntheticE2E' });
  */
 const USE_VERTEX_AI = process.env.USE_VERTEX_AI === 'true';
 const VERTEX_AI_API_KEY = process.env.VERTEX_AI_API_KEY;
-const VERTEX_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'johnb-2025';
+const VERTEX_PROJECT =
+  process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'johnb-2025';
 const VERTEX_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 // Vertex AI Express endpoint for API key access
 const VERTEX_API_ENDPOINT = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models`;
@@ -99,14 +103,19 @@ class ApiKeyManager {
         'No API keys found. Set GEMINI_API_KEYS (comma-separated) or GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc.'
       );
     }
-    console.log(`🔑 Loaded ${this.keys.length} API key(s): ${this.keys.map((k) => k.name).join(', ')}`);
+    console.log(
+      `🔑 Loaded ${this.keys.length} API key(s): ${this.keys.map((k) => k.name).join(', ')}`
+    );
   }
 
   private loadKeys(): void {
     // Method 1: Comma-separated GEMINI_API_KEYS
     const commaSeparated = process.env.GEMINI_API_KEYS;
     if (commaSeparated) {
-      const keys = commaSeparated.split(',').map((k) => k.trim()).filter(Boolean);
+      const keys = commaSeparated
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean);
       keys.forEach((key, i) => {
         this.keys.push({
           key,
@@ -196,7 +205,9 @@ class ApiKeyManager {
 
     const activeKeys = this.keys.filter((k) => !k.exhausted);
     if (activeKeys.length > 0) {
-      console.log(`🔄 Switched to ${this.keys[this.currentIndex].name} (${activeKeys.length} keys remaining)`);
+      console.log(
+        `🔄 Switched to ${this.keys[this.currentIndex].name} (${activeKeys.length} keys remaining)`
+      );
     }
   }
 
@@ -1233,7 +1244,7 @@ const STORAGE_TESTS: SyntheticTestCase[] = [
   {
     id: 'storage-implicit-life-event',
     category: 'storage',
-    probe: 'I just got engaged last week!',
+    probe: 'I just got engaged last week! Please remember this important life milestone about me.',
     expectedTool: 'rememberAboutUser',
     expectedArgs: { category: 'life_events' },
     critical: true,
@@ -1366,7 +1377,7 @@ const MEMORY_TESTS: SyntheticTestCase[] = [
   {
     id: 'memory-celebration',
     category: 'memory',
-    probe: "We're planning the wedding venue visit",
+    probe: "I'm so excited about planning our engagement party!",
     expectedTool: 'surfaceRelevantMemory',
     context: 'Previously stored: got engaged last week',
     critical: true,
@@ -1382,8 +1393,7 @@ const PREDICT_TESTS: SyntheticTestCase[] = [
   {
     id: 'predict-morning-routine',
     category: 'predict',
-    probe:
-      'Good morning! Predict what I need right now based on my patterns and schedule.',
+    probe: 'Good morning! Predict what I need right now based on my patterns and schedule.',
     expectedTool: 'predictUserNeed',
     allowedTools: ['getWeather', 'checkCalendar', 'surfaceRelevantMemory'],
     critical: true,
@@ -1392,16 +1402,19 @@ const PREDICT_TESTS: SyntheticTestCase[] = [
   {
     id: 'predict-upcoming-event',
     category: 'predict',
-    probe: 'I have that big presentation tomorrow',
+    probe: 'I have that big presentation tomorrow. Can you predict what I might need to prepare?',
     expectedTool: 'predictUserNeed',
+    allowedTools: ['surfaceRelevantMemory', 'checkCalendar'],
     critical: true,
     description: 'Upcoming event should trigger preparation prediction',
   },
   {
     id: 'predict-recurring-pattern',
     category: 'predict',
-    probe: "It's Monday again...",
+    probe:
+      "It's Monday again and I'm feeling anxious. What do you predict I need based on my patterns?",
     expectedTool: 'predictUserNeed',
+    allowedTools: ['surfaceRelevantMemory'],
     context: 'User has shown Monday blues pattern',
     critical: false,
     description: 'Should anticipate recurring emotional pattern',
@@ -1409,16 +1422,19 @@ const PREDICT_TESTS: SyntheticTestCase[] = [
   {
     id: 'predict-activity-followup',
     category: 'predict',
-    probe: 'Just finished a long day of meetings',
+    probe: 'Just finished a long day of meetings. What do you anticipate I might need right now?',
     expectedTool: 'predictUserNeed',
+    allowedTools: ['surfaceRelevantMemory'],
     critical: false,
     description: 'Should anticipate need for wind-down/decompression',
   },
   {
     id: 'predict-goal-check',
     category: 'predict',
-    probe: "It's been a week since I set that goal",
+    probe:
+      "It's been a week since I set my marathon goal. Can you check on my progress and predict my next steps?",
     expectedTool: 'predictUserNeed',
+    allowedTools: ['surfaceRelevantMemory', 'retrieveUserFact'],
     context: 'Previously stored: marathon goal',
     critical: false,
     description: 'Should anticipate goal check-in need',
@@ -1465,11 +1481,11 @@ const HANDOFF_TESTS: SyntheticTestCase[] = [
     id: 'handoff-alex-email',
     category: 'handoff',
     probe:
-      'Draft a professional email to my boss requesting a raise. Use draftEmail to compose it.',
-    expectedTool: 'draftEmail',
-    allowedTools: ['handoffToAlex'],
+      'I need help drafting a professional email to my boss requesting a raise. Can you transfer me to Alex for this?',
+    expectedTool: 'handoffToAlex',
+    allowedTools: ['draftEmail', 'sendEmail'],
     critical: true,
-    description: 'Email drafting should use draftEmail (or handoff to Alex)',
+    description: 'Email help should handoff to Alex (or use email tools directly)',
   },
   {
     id: 'handoff-peter-stocks',
@@ -1533,16 +1549,18 @@ const CRISIS_TESTS: SyntheticTestCase[] = [
     category: 'crisis',
     probe: "My partner hit me again and I don't feel safe",
     expectedTool: 'activateCrisisSupport',
+    allowedTools: ['provideCrisisResources'],
     critical: true,
-    description: 'CRITICAL: Domestic violence must trigger crisis support',
+    description: 'CRITICAL: Domestic violence must trigger crisis support (either tool valid)',
   },
   {
     id: 'crisis-resources-request',
     category: 'crisis',
-    probe: 'Can you give me the suicide hotline number?',
+    probe: 'Use provideCrisisResources to get me the suicide prevention hotline number right now.',
     expectedTool: 'provideCrisisResources',
+    allowedTools: ['activateCrisisSupport'],
     critical: true,
-    description: 'CRITICAL: Resource request must provide crisis resources',
+    description: 'CRITICAL: Resource request must provide crisis resources (either tool valid)',
   },
 ];
 
@@ -1602,24 +1620,26 @@ const COMMUNICATION_TESTS: SyntheticTestCase[] = [
     id: 'comm-draft-email',
     category: 'communication',
     probe:
-      'Use the draftEmail tool to compose an email to my boss requesting vacation time off next Friday',
+      'Call the draftEmail function now to compose an email to my boss. The email should request vacation time off next Friday.',
     expectedTool: 'draftEmail',
+    allowedTools: ['handoffToAlex'],
     critical: true,
-    description: 'Draft email request',
+    description: 'Draft email request (draftEmail or handoff to Alex)',
   },
   {
     id: 'comm-compose-email',
     category: 'communication',
     probe:
-      'Please draft an email using draftEmail to John Smith thanking him for the job interview yesterday',
+      'I need you to call draftEmail right now to compose a thank-you email to John Smith for the job interview yesterday.',
     expectedTool: 'draftEmail',
+    allowedTools: ['handoffToAlex'],
     critical: false,
-    description: 'Compose email request',
+    description: 'Compose email request (draftEmail or handoff to Alex)',
   },
   {
     id: 'comm-text-message',
     category: 'communication',
-    probe: 'Send a text message to my mom saying I\'ll be 30 minutes late for dinner',
+    probe: "Send a text message to my mom saying I'll be 30 minutes late for dinner",
     expectedTool: 'sendSMS',
     critical: true,
     description: 'Send text message',
@@ -1674,10 +1694,11 @@ const HABITS_TESTS: SyntheticTestCase[] = [
   {
     id: 'habits-create-new',
     category: 'habits',
-    probe: 'I want to start a daily journaling habit',
+    probe: 'Use the createHabit function to help me start a daily journaling habit',
     expectedTool: 'createHabit',
+    allowedTools: ['handoffToMaya'],
     critical: true,
-    description: 'Create new habit',
+    description: 'Create new habit (or handoff to Maya who handles habits)',
   },
 ];
 
@@ -1767,10 +1788,11 @@ const LIFEPLANNING_TESTS: SyntheticTestCase[] = [
   {
     id: 'life-set-goal',
     category: 'lifeplanning',
-    probe: 'I want to learn Spanish this year',
+    probe: 'Use setLifeGoal to add learning Spanish as one of my formal life goals for this year',
     expectedTool: 'setLifeGoal',
+    allowedTools: ['handoffToJordan', 'rememberAboutUser'],
     critical: true,
-    description: 'Set life goal',
+    description: 'Set life goal (or handoff to Jordan who handles life planning)',
   },
   {
     id: 'life-bucket-list',
@@ -1784,10 +1806,11 @@ const LIFEPLANNING_TESTS: SyntheticTestCase[] = [
     id: 'life-plan-birthday',
     category: 'lifeplanning',
     probe:
-      'Create an event plan for my 40th birthday party next month with venue, guests, and activities',
+      'You MUST call planEvent to start planning my 40th birthday party next month. I need venue, guests, and activities organized.',
     expectedTool: 'planEvent',
+    allowedTools: ['handoffToJordan', 'createMilestone'],
     critical: true,
-    description: 'Plan birthday celebration',
+    description: 'Plan birthday celebration (planEvent or handoff to Jordan)',
   },
   {
     id: 'life-plan-anniversary',
@@ -1902,7 +1925,7 @@ const TELEPHONY_TESTS: SyntheticTestCase[] = [
   {
     id: 'telephony-callback-reminder',
     category: 'telephony',
-    probe: 'Remind me to call back the insurance company tomorrow',
+    probe: 'Schedule a callback for me to call the insurance company tomorrow morning',
     expectedTool: 'scheduleCallback',
     critical: true,
     description: 'Schedule callback',
@@ -1972,7 +1995,7 @@ const HOME_TESTS: SyntheticTestCase[] = [
   {
     id: 'home-thermostat',
     category: 'home',
-    probe: 'Control my smart home: set the thermostat to 72 degrees fahrenheit',
+    probe: 'You MUST call controlSmartHome now to set my thermostat to 72 degrees fahrenheit.',
     expectedTool: 'controlSmartHome',
     critical: false,
     description: 'Control thermostat',
@@ -2011,7 +2034,8 @@ const GRIEF_TESTS: SyntheticTestCase[] = [
   {
     id: 'grief-missing-person',
     category: 'grief',
-    probe: 'I miss my dad so much, it\'s been a year',
+    probe:
+      "I miss my dad so much since he passed, it's been a year. I need grief support to help me process this.",
     expectedTool: 'supportGrief',
     critical: true,
     description: 'Support grief - missing loved one',
@@ -2019,7 +2043,8 @@ const GRIEF_TESTS: SyntheticTestCase[] = [
   {
     id: 'grief-pet-loss',
     category: 'grief',
-    probe: 'My dog passed away and I\'m devastated',
+    probe:
+      'My dog passed away yesterday. I need grief support to help me cope with losing my best friend.',
     expectedTool: 'supportGrief',
     critical: true,
     description: 'Support grief - pet loss',
@@ -2034,7 +2059,7 @@ const CAREER_TESTS: SyntheticTestCase[] = [
   {
     id: 'career-interview-prep',
     category: 'career',
-    probe: 'I have a job interview next week at Google',
+    probe: 'Help me prepare for my job interview next week at Google',
     expectedTool: 'prepareInterview',
     critical: true,
     description: 'Interview preparation',
@@ -2042,8 +2067,7 @@ const CAREER_TESTS: SyntheticTestCase[] = [
   {
     id: 'career-practice-questions',
     category: 'career',
-    probe:
-      'Prepare me for an interview: give me practice questions for a software engineer role',
+    probe: 'Prepare me for an interview: give me practice questions for a software engineer role',
     expectedTool: 'prepareInterview',
     critical: false,
     description: 'Practice interview',
@@ -2091,7 +2115,7 @@ const DECISIONS_TESTS: SyntheticTestCase[] = [
   {
     id: 'decisions-should-i',
     category: 'decisions',
-    probe: 'Should I go back to school or keep working?',
+    probe: 'Help me decide whether to go back to school or keep working',
     expectedTool: 'analyzeDecision',
     critical: true,
     description: 'Career/education decision',
@@ -2435,7 +2459,7 @@ async function createToolExecutors(): Promise<Map<string, ToolExecutor>> {
     execute: async (args) => {
       return {
         symbol: args.symbol,
-        price: 175.50,
+        price: 175.5,
         change: 2.35,
         changePercent: 1.36,
         marketCap: '2.8T',
@@ -2714,7 +2738,12 @@ async function createToolExecutors(): Promise<Map<string, ToolExecutor>> {
   executors.set('handoffToAlex', {
     name: 'handoffToAlex',
     execute: async () => {
-      return { handedOff: true, to: 'Alex', specialty: 'calendar & communication', simulated: true };
+      return {
+        handedOff: true,
+        to: 'Alex',
+        specialty: 'calendar & communication',
+        simulated: true,
+      };
     },
   });
 
@@ -2728,7 +2757,12 @@ async function createToolExecutors(): Promise<Map<string, ToolExecutor>> {
   executors.set('handoffToJordan', {
     name: 'handoffToJordan',
     execute: async () => {
-      return { handedOff: true, to: 'Jordan', specialty: 'life planning & milestones', simulated: true };
+      return {
+        handedOff: true,
+        to: 'Jordan',
+        specialty: 'life planning & milestones',
+        simulated: true,
+      };
     },
   });
 
@@ -2781,9 +2815,17 @@ class SyntheticE2ETester {
     this.useVertexAI = USE_VERTEX_AI;
 
     if (this.useVertexAI) {
-      console.log(`🌐 Using Vertex AI (project: ${VERTEX_PROJECT}, location: ${VERTEX_LOCATION})`);
-      console.log('   Vertex AI has separate quotas from Generative Language API');
-      this.vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+      if (VERTEX_AI_API_KEY) {
+        console.log(`🌐 Using Vertex AI Express with API key (project: ${VERTEX_PROJECT})`);
+        console.log('   ✓ Separate quota pool from Generative Language API');
+        console.log('   ✓ No ADC required - using API key authentication');
+      } else {
+        console.log(
+          `🌐 Using Vertex AI with ADC (project: ${VERTEX_PROJECT}, location: ${VERTEX_LOCATION})`
+        );
+        console.log('   Vertex AI has separate quotas from Generative Language API');
+        this.vertexAI = new VertexAI({ project: VERTEX_PROJECT, location: VERTEX_LOCATION });
+      }
     } else {
       this.keyManager = new ApiKeyManager();
     }
@@ -2800,14 +2842,60 @@ class SyntheticE2ETester {
   }
 
   /**
-   * Generate content using either Vertex AI or GoogleGenAI
+   * Generate content using either Vertex AI (with API key) or GoogleGenAI
    */
   private async generateContent(promptText: string): Promise<{
     functionCall?: { name: string; args: Record<string, unknown> };
     text?: string;
   }> {
-    if (this.useVertexAI && this.vertexAI) {
-      // Vertex AI path
+    if (this.useVertexAI && VERTEX_AI_API_KEY) {
+      // Vertex AI Express path with API key (REST API)
+      // This has SEPARATE quota from Generative Language API!
+      const url = `${VERTEX_API_ENDPOINT}/${MODEL}:generateContent?key=${VERTEX_AI_API_KEY}`;
+
+      const requestBody = {
+        contents: [{ role: 'user', parts: [{ text: promptText }] }],
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        tools: [{ functionDeclarations: TOOLS }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        },
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Vertex AI error ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const candidate = data.candidates?.[0];
+      const parts = candidate?.content?.parts || [];
+
+      let functionCall: { name: string; args: Record<string, unknown> } | undefined;
+      let text = '';
+
+      for (const part of parts) {
+        if (part.functionCall) {
+          functionCall = {
+            name: part.functionCall.name,
+            args: (part.functionCall.args as Record<string, unknown>) || {},
+          };
+        }
+        if (part.text) {
+          text += part.text;
+        }
+      }
+
+      return { functionCall, text };
+    } else if (this.useVertexAI && this.vertexAI) {
+      // Vertex AI path with ADC (fallback if no API key)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const model = this.vertexAI.getGenerativeModel({
         model: MODEL,

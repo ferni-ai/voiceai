@@ -8,7 +8,9 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
+import { embed, embedBatch } from './embeddings.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { topKSimilar } from './rust-accelerator.js';
 import type {
   VectorStoreContract,
   VectorDocument,
@@ -151,6 +153,8 @@ export class VectorStore implements VectorStoreContract {
 
   /**
    * Semantic search for similar documents
+   *
+   * Uses SIMD-accelerated topKSimilar for batch similarity + ranking.
    */
   async search(
     query: string,
@@ -181,21 +185,23 @@ export class VectorStore implements VectorStoreContract {
       return [];
     }
 
-    // Calculate similarities
-    const results: VectorSearchResult[] = filteredDocs.map(({ doc, embedding }) => ({
-      document: doc,
-      score: cosineSimilarity(queryEmbedding, embedding),
-    }));
+    // Extract embeddings for batch comparison
+    const candidateEmbeddings = filteredDocs.map(({ embedding }) => embedding);
 
-    // Sort by score and filter by minimum
-    return results
-      .filter((r) => r.score >= minScore)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    // Use SIMD-accelerated top-K search (computes all similarities + sorts + filters in one pass)
+    const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
+
+    // Map indices back to documents
+    return topKResult.indices.map((idx, i) => ({
+      document: filteredDocs[idx].doc,
+      score: topKResult.similarities[i],
+    }));
   }
 
   /**
    * Search by embedding directly (for pre-computed queries)
+   *
+   * Uses SIMD-accelerated topKSimilar for batch similarity + ranking.
    */
   searchByEmbedding(
     queryEmbedding: number[],
@@ -223,17 +229,17 @@ export class VectorStore implements VectorStoreContract {
       return [];
     }
 
-    // Calculate similarities
-    const results: VectorSearchResult[] = filteredDocs.map(({ doc, embedding }) => ({
-      document: doc,
-      score: cosineSimilarity(queryEmbedding, embedding),
-    }));
+    // Extract embeddings for batch comparison
+    const candidateEmbeddings = filteredDocs.map(({ embedding }) => embedding);
 
-    // Sort by score and filter by minimum
-    return results
-      .filter((r) => r.score >= minScore)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    // Use SIMD-accelerated top-K search (computes all similarities + sorts + filters in one pass)
+    const topKResult = topKSimilar(queryEmbedding, candidateEmbeddings, topK, minScore);
+
+    // Map indices back to documents
+    return topKResult.indices.map((idx, i) => ({
+      document: filteredDocs[idx].doc,
+      score: topKResult.similarities[i],
+    }));
   }
 
   /**

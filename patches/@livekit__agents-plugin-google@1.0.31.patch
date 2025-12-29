@@ -1,0 +1,24 @@
+diff --git a/dist/beta/realtime/realtime_api.js b/dist/beta/realtime/realtime_api.js
+index cbc1053720ba287430b2be8e6fd2a8f588084135..0526a5b4ea1b885f2fc84f4c5aacf2e0039f866f 100644
+--- a/dist/beta/realtime/realtime_api.js
++++ b/dist/beta/realtime/realtime_api.js
+@@ -332,8 +332,8 @@ class RealtimeSession extends llm.RealtimeSession {
+     const turns = [];
+     if (instructions !== void 0) {
+       turns.push({
+-        parts: [{ text: instructions }],
+-        role: "model"
++        parts: [{ text: `[SYSTEM INSTRUCTION - DO NOT SPEAK OR REPEAT THIS TEXT, ONLY FOLLOW THE GUIDANCE:]\n${instructions}` }],
++        role: "user"
+       });
+     }
+     turns.push({
+@@ -354,7 +354,7 @@ class RealtimeSession extends llm.RealtimeSession {
+           this.pendingGenerationFut = void 0;
+         }
+       }
+-    }, 5e3);
++    }, 15e3);
+     fut.await.finally(() => clearTimeout(timeoutHandle));
+     return fut.await;
+   }

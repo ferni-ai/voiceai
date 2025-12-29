@@ -196,8 +196,8 @@ describe('Better Than Human Benchmark', () => {
           { text: "I promise I'll call mom tomorrow", expected: true },
           { text: "I'll definitely finish the report by Friday", expected: true },
           { text: "I'm going to start exercising next week", expected: true },
-          { text: "I need to remember to...", expected: true },
-          { text: "The weather is nice today", expected: false },
+          { text: 'I need to remember to...', expected: true },
+          { text: 'The weather is nice today', expected: false },
         ];
 
         for (const { text, expected } of commitments) {
@@ -227,11 +227,11 @@ describe('Better Than Human Benchmark', () => {
     describe('3. Life Narrative', () => {
       it('should detect chapter moments', () => {
         const chapterMoments = [
-          { text: "I just got engaged!", expected: true },
-          { text: "I started a new job today", expected: true },
+          { text: 'I just got engaged!', expected: true },
+          { text: 'I started a new job today', expected: true },
           { text: "We're having a baby", expected: true },
           { text: "I'm moving to a new city", expected: true },
-          { text: "I need to buy groceries", expected: false },
+          { text: 'I need to buy groceries', expected: false },
         ];
 
         for (const { text, expected } of chapterMoments) {
@@ -250,10 +250,10 @@ describe('Better Than Human Benchmark', () => {
     describe('4. Values Alignment', () => {
       it('should detect value mentions', () => {
         const values = [
-          { text: "Family is the most important thing to me", expected: 'family' },
-          { text: "I value my independence", expected: 'autonomy' },
-          { text: "Helping others gives me purpose", expected: 'service' },
-          { text: "I need more creativity in my life", expected: 'creativity' },
+          { text: 'Family is the most important thing to me', expected: 'family' },
+          { text: 'I value my independence', expected: 'autonomy' },
+          { text: 'Helping others gives me purpose', expected: 'service' },
+          { text: 'I need more creativity in my life', expected: 'creativity' },
         ];
 
         for (const { text } of values) {
@@ -265,10 +265,17 @@ describe('Better Than Human Benchmark', () => {
       it('should detect value conflicts', () => {
         // detectConflict takes (transcript, userValues[])
         const userValues = [
-          { id: 'v1', userId: TEST_USER, category: 'family', value: 'quality time', strength: 0.8, createdAt: Date.now() },
+          {
+            id: 'v1',
+            userId: TEST_USER,
+            category: 'family',
+            value: 'quality time',
+            strength: 0.8,
+            createdAt: Date.now(),
+          },
         ];
 
-        const text = "I want to spend more time with family but my job demands so much";
+        const text = 'I want to spend more time with family but my job demands so much';
         const result = detectConflict(text, userValues as any);
         // Result is null if no conflict detected, or conflict info if detected
         expect(result === null || typeof result === 'object').toBe(true);
@@ -283,7 +290,7 @@ describe('Better Than Human Benchmark', () => {
     describe('5. Emotional First Aid', () => {
       // Already comprehensively tested in safety-critical.test.ts
       it('should detect crisis signals', () => {
-        expect(detectCrisis("I want to die")).not.toBeNull();
+        expect(detectCrisis('I want to die')).not.toBeNull();
         expect(detectCrisis("I'm having a panic attack")).not.toBeNull();
         expect(detectCrisis("I'm doing great")).toBeNull();
       });
@@ -301,10 +308,10 @@ describe('Better Than Human Benchmark', () => {
     describe('6. Relationship Network', () => {
       it('should extract person mentions', () => {
         const mentions = [
-          { text: "I talked to my sister Sarah yesterday", expected: ['Sarah'] },
-          { text: "My friend Mike helped me move", expected: ['Mike'] },
-          { text: "Mom called this morning", expected: ['Mom'] },
-          { text: "The weather is nice", expected: [] },
+          { text: 'I talked to my sister Sarah yesterday', expected: ['Sarah'] },
+          { text: 'My friend Mike helped me move', expected: ['Mike'] },
+          { text: 'Mom called this morning', expected: ['Mom'] },
+          { text: 'The weather is nice', expected: [] },
         ];
 
         for (const { text, expected } of mentions) {
@@ -315,9 +322,9 @@ describe('Better Than Human Benchmark', () => {
 
       it('should analyze sentiment toward relationships', () => {
         const sentiments = [
-          { text: "I love spending time with Sarah", expected: 'positive' },
-          { text: "Mike really frustrated me today", expected: 'negative' },
-          { text: "I saw John at the store", expected: 'neutral' },
+          { text: 'I love spending time with Sarah', expected: 'positive' },
+          { text: 'Mike really frustrated me today', expected: 'negative' },
+          { text: 'I saw John at the store', expected: 'neutral' },
         ];
 
         for (const { text } of sentiments) {
@@ -340,8 +347,8 @@ describe('Better Than Human Benchmark', () => {
       });
 
       it('should detect overcommitment', () => {
-        expect(detectOvercommitment("I have so much to do")).toBe(true);
-        expect(detectOvercommitment("Having a relaxing day")).toBe(false);
+        expect(detectOvercommitment('I have so much to do')).toBe(true);
+        expect(detectOvercommitment('Having a relaxing day')).toBe(false);
       });
 
       it('should assess burnout risk', async () => {
@@ -356,9 +363,9 @@ describe('Better Than Human Benchmark', () => {
       it('should detect dream mentions', () => {
         const dreams = [
           { text: "I've always wanted to learn piano", expected: true },
-          { text: "My dream is to travel the world", expected: true },
-          { text: "I hope to write a book someday", expected: true },
-          { text: "I need to buy milk", expected: false },
+          { text: 'My dream is to travel the world', expected: true },
+          { text: 'I hope to write a book someday', expected: true },
+          { text: 'I need to buy milk', expected: false },
         ];
 
         for (const { text, expected } of dreams) {
@@ -401,9 +408,9 @@ describe('Better Than Human Benchmark', () => {
 
       it('should detect seasonal patterns', () => {
         const patterns = [
-          "Winter always makes me feel down",
-          "I love spring energy",
-          "Fall is my most productive season",
+          'Winter always makes me feel down',
+          'I love spring energy',
+          'Fall is my most productive season',
         ];
 
         for (const text of patterns) {
@@ -427,9 +434,9 @@ describe('Better Than Human Benchmark', () => {
     describe('11. Silence Interpreter', () => {
       it('should determine if silence should be analyzed', () => {
         // Threshold is 1000ms (1 second) - any silence >= 1s should be analyzed
-        expect(shouldAnalyzeSilence(500)).toBe(false);  // Too short
-        expect(shouldAnalyzeSilence(1000)).toBe(true);  // Threshold
-        expect(shouldAnalyzeSilence(2000)).toBe(true);  // Worth analyzing
+        expect(shouldAnalyzeSilence(500)).toBe(false); // Too short
+        expect(shouldAnalyzeSilence(1000)).toBe(true); // Threshold
+        expect(shouldAnalyzeSilence(2000)).toBe(true); // Worth analyzing
         expect(shouldAnalyzeSilence(10000)).toBe(true); // Long silence
       });
 
@@ -454,7 +461,14 @@ describe('Better Than Human Benchmark', () => {
 
       it('should get response phrases for silence types', () => {
         // Valid SilenceType values defined in SILENCE_RESPONSES
-        const validTypes = ['processing', 'emotional', 'uncomfortable', 'invitational', 'exhausted', 'contemplative'] as const;
+        const validTypes = [
+          'processing',
+          'emotional',
+          'uncomfortable',
+          'invitational',
+          'exhausted',
+          'contemplative',
+        ] as const;
         for (const type of validTypes) {
           const phrase = getResponsePhrase(type);
           expect(typeof phrase).toBe('string');
@@ -478,11 +492,11 @@ describe('Better Than Human Benchmark', () => {
 
       it('should validate commonly coexisting emotions', () => {
         // Test with actual patterns defined in CONTRADICTION_PATTERNS
-        expect(areCommonlyCoexisting('excited', 'sad')).toBe(true);   // Defined pattern
-        expect(areCommonlyCoexisting('happy', 'sad')).toBe(true);     // Defined pattern
-        expect(areCommonlyCoexisting('love', 'angry')).toBe(true);    // Defined pattern
+        expect(areCommonlyCoexisting('excited', 'sad')).toBe(true); // Defined pattern
+        expect(areCommonlyCoexisting('happy', 'sad')).toBe(true); // Defined pattern
+        expect(areCommonlyCoexisting('love', 'angry')).toBe(true); // Defined pattern
         expect(areCommonlyCoexisting('relieved', 'guilty')).toBe(true); // Defined pattern
-        expect(areCommonlyCoexisting('xyz', 'abc')).toBe(false);      // Not a pattern
+        expect(areCommonlyCoexisting('xyz', 'abc')).toBe(false); // Not a pattern
       });
 
       it('should get validation phrases', () => {
@@ -719,15 +733,17 @@ describe('Better Than Human Benchmark', () => {
     describe('20. Protective Silence', () => {
       // Already comprehensively tested in safety-critical.test.ts
       it('should check boundaries', () => {
-        const result = checkBoundaries("How is your divorce?", [{
-          userId: TEST_USER,
-          topic: 'divorce',
-          severity: 'never',
-          category: 'relationship',
-          triggerKeywords: ['divorce'],
-          createdAt: Date.now(),
-          source: 'user_stated',
-        }]);
+        const result = checkBoundaries('How is your divorce?', [
+          {
+            userId: TEST_USER,
+            topic: 'divorce',
+            severity: 'never',
+            category: 'relationship',
+            triggerKeywords: ['divorce'],
+            createdAt: Date.now(),
+            source: 'user_stated',
+          },
+        ]);
 
         expect(result.isSafe).toBe(false);
         expect(result.matchedBoundaries.length).toBeGreaterThan(0);
@@ -799,7 +815,7 @@ describe('Better Than Human Benchmark', () => {
 
     describe('23. Emotional Vocabulary', () => {
       it('should detect vague emotions', () => {
-        const vagueEmotions = detectVagueEmotions("I feel bad about it");
+        const vagueEmotions = detectVagueEmotions('I feel bad about it');
         expect(vagueEmotions.length).toBeGreaterThan(0);
         // VagueEmotionMapping has vagueWord, not vague
         expect(vagueEmotions[0]).toHaveProperty('vagueWord');
@@ -911,7 +927,8 @@ describe('Better Than Human Benchmark', () => {
 
   describe('Integrated Context Building', () => {
     it('should build complete superhuman context', async () => {
-      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } = await import('../index.js');
+      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } =
+        await import('../index.js');
 
       const context = await buildSuperhumanContext(TEST_USER, {
         currentTranscript: "I'm feeling a bit overwhelmed with work",
@@ -950,12 +967,13 @@ describe('Better Than Human Benchmark', () => {
     });
 
     it('should prioritize crisis context when present', async () => {
-      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } = await import('../index.js');
+      const { buildSuperhumanContext, formatSuperhumanContextForPrompt } =
+        await import('../index.js');
 
       const context = await buildSuperhumanContext(TEST_USER, {
         crisisSignal: {
           type: 'text',
-          signal: "I want to die",
+          signal: 'I want to die',
         },
       });
 

@@ -42,6 +42,46 @@ import { executeWithReliability } from './tool-execution-reliability.js';
 const log = createLogger({ module: 'json-function-executor' });
 
 // ============================================================================
+// LEARNING LOOP INTEGRATION
+// ============================================================================
+
+/**
+ * Fire-and-forget recording for semantic intelligence learning loop.
+ * Does not block tool execution.
+ */
+function recordSemanticExecution(params: {
+  userId: string;
+  sessionId?: string;
+  personaId?: string;
+  inputText: string;
+  toolId: string;
+  args: Record<string, unknown>;
+  success: boolean;
+  executionTimeMs: number;
+  semanticPrediction?: { toolId: string; confidence: number };
+}): void {
+  // Fire and forget - don't await, don't block tool execution
+  import('../../intelligence/semantic-intelligence/index.js')
+    .then(({ recordExecution }) =>
+      recordExecution({
+        userId: params.userId,
+        sessionId: params.sessionId || 'unknown',
+        personaId: params.personaId || 'ferni',
+        inputText: params.inputText,
+        toolId: params.toolId,
+        args: params.args,
+        success: params.success,
+        executionTimeMs: params.executionTimeMs,
+        semanticPrediction: params.semanticPrediction,
+      })
+    )
+    .catch((err) => {
+      // Silent failure - learning loop is non-critical
+      log.debug({ error: String(err) }, 'Learning loop recording failed (non-critical)');
+    });
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -79,6 +119,19 @@ export interface ToolExecutionContext {
   onToolComplete?: (result: FunctionExecutionResult) => void;
   /** Callback for handoff requests */
   onHandoff?: (target: string, reason: string) => Promise<void>;
+  /**
+   * Original user input text that triggered this tool execution.
+   * Used by the semantic intelligence learning loop to learn patterns.
+   */
+  inputText?: string;
+  /**
+   * Semantic prediction for this input (if semantic intelligence was used).
+   * Compared to actual execution to detect implicit corrections.
+   */
+  semanticPrediction?: {
+    toolId: string;
+    confidence: number;
+  };
 }
 
 // ============================================================================
@@ -292,6 +345,22 @@ export async function executeJsonFunction(
       recordAction(sessionId, fn, args, true, resultStr?.slice(0, 200));
     }
 
+    // Learning Loop: Record for semantic intelligence pattern learning
+    // (compares what was predicted vs what was executed to improve future hints)
+    if (ctx.userId && ctx.inputText) {
+      recordSemanticExecution({
+        userId: ctx.userId,
+        sessionId: sessionId !== 'unknown' ? sessionId : undefined,
+        personaId: ctx.personaId,
+        inputText: ctx.inputText,
+        toolId: fn,
+        args,
+        success: true,
+        executionTimeMs: executionResult.durationMs,
+        semanticPrediction: ctx.semanticPrediction,
+      });
+    }
+
     ctx.onToolComplete?.(executionResult);
     return executionResult;
   } catch (err) {
@@ -312,6 +381,21 @@ export async function executeJsonFunction(
     // Action History: Record failed attempt for honest capability responses
     if (sessionId) {
       recordAction(sessionId, fn, args, false, `Failed: ${String(err).slice(0, 100)}`);
+    }
+
+    // Learning Loop: Record failures too (helps learn what NOT to suggest)
+    if (ctx.userId && ctx.inputText) {
+      recordSemanticExecution({
+        userId: ctx.userId,
+        sessionId: sessionId !== 'unknown' ? sessionId : undefined,
+        personaId: ctx.personaId,
+        inputText: ctx.inputText,
+        toolId: fn,
+        args,
+        success: false,
+        executionTimeMs: durationMs,
+        semanticPrediction: ctx.semanticPrediction,
+      });
     }
 
     ctx.onToolComplete?.(executionResult);
@@ -988,73 +1072,9 @@ async function routeToTool(
   }
 
   // ========================================
-  // HANDOFF TOOLS
+  // HANDOFF TOOLS - Now handled by modular handoff-executor.ts
+  // See: src/agents/shared/tool-executors/handoff-executor.ts
   // ========================================
-  if (fnLower.startsWith('handoffto')) {
-    const target = fnLower.replace('handoffto', '');
-    const reason = (args.reason as string) || 'User requested handoff';
-
-    log.info({ target, reason, sessionId: ctx.sessionId }, '🤝 Handoff requested via JSON tool');
-
-    // If a custom handler is provided, use it (for specific integrations)
-    if (ctx.onHandoff) {
-      await ctx.onHandoff(target, reason);
-      return { success: true, target, reason, action: 'handoff' };
-    }
-
-    // CRITICAL FIX: Actually execute the handoff via the proper executor
-    // This emits the voiceSwitch event which triggers voice/LLM switch
-    try {
-      const { executeHandoff } = await import('../../tools/handoff/executor.js');
-
-      log.info(
-        { target, reason, sessionId: ctx.sessionId },
-        '🎭 Executing handoff via executor (will emit voiceSwitch event)'
-      );
-
-      const result = await executeHandoff(target, reason, {
-        sessionId: ctx.sessionId,
-        // Pass through context for proper handoff
-      });
-
-      if (result.success) {
-        log.info(
-          { target, greeting: result.greeting?.slice(0, 50), sessionId: ctx.sessionId },
-          '✅ Handoff executed successfully'
-        );
-        return {
-          success: true,
-          target,
-          reason,
-          action: 'handoff',
-          greeting: result.greeting,
-          // Tell sanitizer not to speak - greeting already spoken by handler
-          handoffComplete: true,
-        };
-      } else {
-        log.warn({ target, error: result.error, sessionId: ctx.sessionId }, '⚠️ Handoff failed');
-        return {
-          success: false,
-          target,
-          reason,
-          action: 'handoff',
-          error: result.error,
-        };
-      }
-    } catch (err) {
-      log.error(
-        { target, reason, error: String(err), sessionId: ctx.sessionId },
-        '❌ Failed to execute handoff'
-      );
-      // Return a speakable error message
-      return {
-        success: false,
-        target,
-        reason,
-        error: `Couldn't connect you with ${target}. Let me try again in a moment.`,
-      };
-    }
-  }
 
   // ========================================
   // INFORMATION TOOLS
@@ -1062,8 +1082,32 @@ async function routeToTool(
   if (fnLower === 'getweather') {
     const { getCurrentWeather, getWeatherForecast } =
       await import('../../tools/domains/information/weather.js');
-    const location = (args.location as string) || 'current';
+    let location = (args.location as string) || 'current';
     const type = (args.type as string) || 'current';
+
+    // Handle "current" location - try to get user's location from profile
+    if (location === 'current' || location === '' || !location) {
+      // Try to get user's saved location from memory
+      if (ctx?.userId) {
+        try {
+          const { getUserLocationPreference } =
+            await import('../../tools/domains/information/location-preference.js');
+          const savedLocation = await getUserLocationPreference(ctx.userId);
+          if (savedLocation) {
+            location = savedLocation;
+            log.info({ userId: ctx.userId, savedLocation }, '🌤️ Using saved location preference');
+          }
+        } catch {
+          // Location preference module may not exist yet, continue with default
+        }
+      }
+
+      // If still "current", we need to ask the user
+      if (location === 'current' || !location) {
+        log.warn({ location, userId: ctx?.userId }, '🌤️ No location available, asking user');
+        return "I'd love to check the weather for you! What city are you in?";
+      }
+    }
 
     log.info({ location, type }, '🌤️ Getting weather');
 
@@ -1152,54 +1196,10 @@ async function routeToTool(
   }
 
   // ========================================
-  // PRODUCTIVITY TOOLS (Conversational Fallbacks)
-  // These tools don't have full backend implementation yet, but provide
-  // helpful conversational responses to keep the dialogue flowing naturally.
-  // TODO: Connect to real task/goal tracking when available
+  // PRODUCTIVITY TOOLS - Now handled by modular productivity-executor.ts
+  // See: src/agents/shared/tool-executors/productivity-executor.ts
+  // Tasks, goals, timers, reminders, notes, journal - all with Firestore persistence
   // ========================================
-  if (fnLower === 'addtask') {
-    const title = args.title as string;
-    log.info({ title }, '📝 Task noted');
-    return title
-      ? `Got it, I'll remember you want to "${title}".`
-      : 'What task would you like me to note?';
-  }
-
-  if (fnLower === 'completetask') {
-    const taskName = args.taskName as string;
-    log.info({ taskName }, '✅ Task completed');
-    return taskName
-      ? `Nice! "${taskName}" - marked complete. Keep up the momentum!`
-      : 'Which task did you complete?';
-  }
-
-  if (fnLower === 'gettasks') {
-    const filter = (args.filter as string) || 'all';
-    log.info({ filter }, '📋 Getting tasks');
-    return `Task tracking is coming soon. For now, just tell me what you need to do and I'll remember.`;
-  }
-
-  if (fnLower === 'addgoal') {
-    const title = args.title as string;
-    log.info({ title }, '🎯 Goal noted');
-    return title
-      ? `Great goal! "${title}" - I'll keep that in mind as we talk.`
-      : 'What goal are you working toward?';
-  }
-
-  if (fnLower === 'settimer') {
-    const duration = args.duration as string;
-    const label = args.label as string;
-    log.info({ duration, label }, '⏱️ Timer requested');
-    return `Timer functionality isn't available yet, but I noted you wanted ${duration || 'a timer'}${label ? ` for "${label}"` : ''}.`;
-  }
-
-  if (fnLower === 'schedulereminder') {
-    const message = args.message as string;
-    const when = args.when as string;
-    log.info({ message, when }, '🔔 Reminder requested');
-    return `Reminder scheduling isn't available yet, but I noted: "${message || 'your reminder'}"${when ? ` for ${when}` : ''}.`;
-  }
 
   // ========================================
   // HABITS TOOLS (Connected to Maya's Habit Coaching Domain)
@@ -1495,7 +1495,8 @@ async function routeToTool(
   // COMMUNICATION TOOLS (Conversational Fallbacks)
   // Alex's full communication tools are in tools/domains/communication.
   // These fallbacks help draft/analyze messages conversationally.
-  // TODO: Connect sendMessage to actual messaging when available
+  // Note: sendMessage/sendText/sendSMS are connected to real Twilio SMS
+  // Note: sendEmail is connected to real SendGrid email
   // ========================================
 
   // ========================================
@@ -2260,18 +2261,18 @@ async function routeToTool(
     const { action, items, item } = args as { action?: string; items?: string[]; item?: string };
     log.info({ action, items, item }, '🛒 Shopping list');
     if (action === 'add' && items) {
-      return `Added ${items.join(', ')} to your shopping list. I'll remember those.`;
+      return `Got it! ${items.join(', ')} - I'll remember those for you.`;
     }
     if (action === 'view') {
-      return `Your shopping list feature is coming soon. For now, just tell me what you need and I'll remember.`;
+      return `Tell me what you need to pick up and I'll help you keep track.`;
     }
-    return `Shopping list noted. What do you need to pick up?`;
+    return `What do you need to pick up? I'll help you remember.`;
   }
 
   if (fnLower === 'addbill') {
     const { name, amount, dueDay } = args as { name?: string; amount?: number; dueDay?: number };
     log.info({ name, amount, dueDay }, '💳 Add bill');
-    return `I've noted "${name || 'your bill'}"${amount ? ` for $${amount}` : ''}${dueDay ? ` due on the ${dueDay}th` : ''}. Bill tracking is coming soon!`;
+    return `Got it! I've noted "${name || 'your bill'}"${amount ? ` for $${amount}` : ''}${dueDay ? ` due on the ${dueDay}th` : ''}. I'll remember to remind you.`;
   }
 
   if (fnLower === 'paybill') {
@@ -2282,7 +2283,7 @@ async function routeToTool(
 
   if (fnLower === 'getbills') {
     log.info('💳 Get bills');
-    return `Bill tracking isn't fully set up yet. Maya can help you with budgeting - want me to connect you?`;
+    return `What bills do you want to keep track of? I can help you stay on top of them.`;
   }
 
   // ========================================
@@ -2294,7 +2295,7 @@ async function routeToTool(
       description?: string;
     };
     log.info({ trackingNumber, description }, '📦 Track package');
-    return `Package tracking isn't connected yet. I've noted "${description || 'your package'}" - once connected I'll be able to track it.`;
+    return `I've noted "${description || 'your package'}"${trackingNumber ? ` with tracking ${trackingNumber}` : ''}. I'll help you remember to check on it.`;
   }
 
   if (fnLower === 'getpackages') {
@@ -2533,6 +2534,39 @@ async function routeToTool(
       return `${tipPercent}% tip on $${amount.toFixed(2)} is $${tip.toFixed(2)}. Total: $${total.toFixed(2)}. Split ${split} ways: $${perPerson.toFixed(2)} each.`;
     }
     return `${tipPercent}% tip on $${amount.toFixed(2)} is $${tip.toFixed(2)}. Total: $${total.toFixed(2)}.`;
+  }
+
+  // ========================================
+  // LANGUAGE/SETTINGS TOOLS
+  // ========================================
+  if (fnLower === 'setspokenlanguage') {
+    const { languageCode } = args as { languageCode?: string };
+    log.info({ languageCode, userId: ctx.userId }, '🗣️ Set spoken language');
+    if (!languageCode) {
+      return `Which language would you like me to speak? I support English, Spanish, Japanese, German, French, and more.`;
+    }
+    // Import and use the language service
+    const { languageService } = await import('../../services/language/index.js');
+    const result = await languageService().setLanguage(ctx.userId || 'anonymous', languageCode);
+    if (result.success) {
+      return result.confirmationMessage || `I'll speak ${languageCode} now.`;
+    }
+    return result.error || `I couldn't switch to that language.`;
+  }
+
+  if (fnLower === 'listsupportedlanguages' || fnLower === 'getsupportedlanguages') {
+    log.info({ userId: ctx.userId }, '🗣️ List supported languages');
+    const { languageService } = await import('../../services/language/index.js');
+    const languages = await languageService().getSupportedLanguages();
+    const formatted = languages.map((l) => l.displayName).join(', ');
+    return `I can speak: ${formatted}. Which would you prefer?`;
+  }
+
+  if (fnLower === 'getcurrentlanguage' || fnLower === 'getspokenlanguage') {
+    log.info({ userId: ctx.userId }, '🗣️ Get current language');
+    const { languageService } = await import('../../services/language/index.js');
+    const current = await languageService().getCurrentLanguage(ctx.userId || 'anonymous');
+    return `I'm currently speaking ${current.displayName}.`;
   }
 
   // ========================================

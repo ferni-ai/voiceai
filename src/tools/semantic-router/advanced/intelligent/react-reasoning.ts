@@ -17,6 +17,11 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import {
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE_LOW,
+  LLM_SHORT_TIMEOUT_MS,
+} from '../../../../config/gemini-config.js';
 
 const log = createLogger({ module: 'react-reasoning' });
 
@@ -33,8 +38,8 @@ export interface ReActConfig {
   temperature: number;
   /** Timeout for each reasoning step */
   stepTimeoutMs: number;
-  /** Model to use for reasoning */
-  model: 'gemini-2.0-flash' | 'gpt-4o-mini' | 'claude-3-haiku';
+  /** Model to use for reasoning (from .env) */
+  model: string;
 }
 
 export interface ReasoningStep {
@@ -97,9 +102,9 @@ export interface ToolDescription {
 const DEFAULT_CONFIG: ReActConfig = {
   maxSteps: 5,
   verbose: true,
-  temperature: 0.3,
-  stepTimeoutMs: 2000,
-  model: 'gemini-2.0-flash',
+  temperature: GEMINI_TEMPERATURE_LOW,
+  stepTimeoutMs: LLM_SHORT_TIMEOUT_MS,
+  model: GEMINI_MODEL,
 };
 
 // ============================================================================

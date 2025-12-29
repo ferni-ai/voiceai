@@ -103,7 +103,8 @@ export type ToolDomain =
   | 'breakup-recovery' // Divorce recovery, rebuilding after breakup
   | 'scheduling' // Scheduled messages, calls, emails
   | 'concierge' // AI-powered outreach: hotel quotes, restaurant reservations, appointments
-  | 'travel'; // Travel planning, flights, hotels, trip suggestions
+  | 'travel' // Travel planning, flights, hotels, trip suggestions
+  | 'settings'; // User preferences: language, voice, session settings
 
 /**
  * All available tool domains
@@ -192,6 +193,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'scheduling',
   'concierge',
   'travel',
+  'settings',
 ] as const;
 
 // ============================================================================
@@ -298,6 +300,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   scheduling: 'communication', // Scheduled messages, calls, emails
   concierge: 'communication', // AI-powered outreach: hotels, restaurants, appointments
   travel: 'lifestyle', // Travel planning, flights, hotels
+  settings: 'core', // User preferences: language, voice, session settings
 };
 
 // ============================================================================

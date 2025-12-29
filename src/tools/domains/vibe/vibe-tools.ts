@@ -226,7 +226,7 @@ const adjustLightsDef: ToolDefinition = {
             newBrightness = 50;
         }
 
-        const result = await setLights(newBrightness);
+        const result = await setLights(ctx.userId, newBrightness);
 
         if (!result.success) {
           return `Couldn't adjust the lights. ${result.message}`;

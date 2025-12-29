@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 import { sendError, sendJsonResponse, parseRequestBody } from './helpers.js';
 import { requireAuth, type AuthContext } from './auth-middleware.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -126,8 +127,8 @@ function cleanExpiredSessions(): void {
   }
 }
 
-// Clean expired sessions every 5 minutes
-setInterval(cleanExpiredSessions, 5 * 60 * 1000);
+// Clean expired sessions every 5 minutes (managed interval for proper shutdown)
+registerInterval('widget-session-cleanup', cleanExpiredSessions, 5 * 60 * 1000);
 
 // ============================================================================
 // ROUTE HANDLER

@@ -52,6 +52,7 @@ import { speculateTTS } from '../shared/performance/speculative-tts.js';
 import {
   dispatchEmotionEvents,
   dispatchHolisticEvents,
+  dispatchExpressionUpdate,
 } from '../realtime/emotion-event-dispatcher.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
@@ -420,6 +421,32 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const adaptiveTimeouts = getAdaptiveTimeouts(services.sessionId);
 
     // ================================================================
+    // EARLY RECEIPT ACKNOWLEDGMENT: "Better than Human" instant presence
+    // Fire an immediate brief acknowledgment (100-200ms) to show we heard.
+    // This is BEFORE the thinking filler (600ms) - just shows presence.
+    // Only on turns 2+ to avoid awkward double-greeting.
+    // ================================================================
+    const EARLY_RECEIPT_ENABLED = true;
+    const EARLY_RECEIPT_DELAY_MS = 150; // Fire at 150ms after user stops speaking
+    let spokeEarlyReceipt = false;
+
+    if (EARLY_RECEIPT_ENABLED && turnNumber >= 2 && currentSession) {
+      setTimeout(() => {
+        // Only speak if we haven't already started the full response
+        if (!spokeEarlyReceipt && currentSession) {
+          spokeEarlyReceipt = true;
+          // Ultra-brief receipt sound - just "Mm" with minimal breaks
+          const receiptSound = '<break time="50ms"/>Mm.<break time="50ms"/>';
+          currentSession.say(receiptSound, { allowInterruptions: true });
+          diag.filler('Spoke early receipt acknowledgment', {
+            personaId: persona.id,
+            elapsedMs: EARLY_RECEIPT_DELAY_MS,
+          });
+        }
+      }, EARLY_RECEIPT_DELAY_MS);
+    }
+
+    // ================================================================
     // DEAD AIR FIX: Adaptive filler injection
     // Uses session-specific timing instead of static 4s timeout
     // ================================================================
@@ -505,6 +532,21 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
         sendDataMessage
       ).catch((e) => {
         diag.debug('Emotion dispatch failed (non-critical)', { error: String(e) });
+      });
+
+      // ================================================================
+      // 🎭 LUXO EXPRESSIONS: Send specific expression update to frontend
+      // Maps detected emotion to one of 100 Luxo-style avatar expressions.
+      // This enables richer, more nuanced avatar reactions than basic moods.
+      // ================================================================
+      void dispatchExpressionUpdate(
+        {
+          emotion: result.emotional.primary || 'neutral',
+          intensity: result.emotional.intensity ?? 0.5,
+        },
+        sendDataMessage
+      ).catch((e) => {
+        diag.debug('Expression dispatch failed (non-critical)', { error: String(e) });
       });
     }
 

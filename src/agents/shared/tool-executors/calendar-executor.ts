@@ -27,7 +27,16 @@ const HANDLED_TOOLS = [
   'sendmeetinginvite',
   'getupcomingappointments',
   'checkavailability',
+  // Aliases from function-calling-base.md
+  'getcalendar',
+  'getevents',
 ] as const;
+
+/** Map aliases to canonical tool names */
+const TOOL_ALIASES: Record<string, string> = {
+  getcalendar: 'getcalendartoday',
+  getevents: 'getcalendartoday',
+};
 
 /**
  * Execute calendar-related tools
@@ -37,10 +46,16 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
 
   if (!HANDLED_TOOLS.includes(fnLower as (typeof HANDLED_TOOLS)[number])) {
     return null;
+  }
+
+  // Resolve aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug({ original: fnLower, resolved: TOOL_ALIASES[fnLower] }, '🔀 Resolving tool alias');
+    fnLower = TOOL_ALIASES[fnLower];
   }
 
   // ========================================

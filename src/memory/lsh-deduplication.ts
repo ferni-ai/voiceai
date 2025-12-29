@@ -7,10 +7,19 @@
  * Philosophy: Fast is better than perfect. Near-duplicates are good enough.
  *
  * Performance: 100 memories → 4,950 comparisons → ~100 hash lookups
+ *
+ * Native acceleration:
+ * - Uses rust-accelerator for xxHash-based MinHash when available (10-20x faster)
+ * - Falls back to MD5-based JS implementation when Rust module unavailable
  */
 
 import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  isRustAvailable,
+  findDuplicatesLsh as findDuplicatesLshNative,
+  type DuplicatePair as NativeDuplicatePair,
+} from './rust-accelerator.js';
 
 const log = getLogger();
 
@@ -278,12 +287,53 @@ export class LSHIndex<T extends { id: string; content: string }> {
 /**
  * Find duplicates in a list of items using LSH
  * Drop-in replacement for O(n²) comparison
+ *
+ * Uses native Rust implementation when available for 10-20x speedup.
+ * Falls back to JS implementation when native module unavailable.
  */
 export function findDuplicatesLSH<T extends { id: string; content: string }>(
   items: T[],
   config: Partial<LSHConfig> = {}
 ): Array<DuplicatePair<T>> {
   const startTime = Date.now();
+  const mergedConfig = { ...DEFAULT_CONFIG, ...config };
+
+  // Try native Rust path for better performance
+  if (isRustAvailable() && items.length >= 5) {
+    try {
+      const texts = items.map((item) => item.content);
+      const nativeResults: NativeDuplicatePair[] = findDuplicatesLshNative(
+        texts,
+        mergedConfig.threshold,
+        mergedConfig.numHashes,
+        mergedConfig.numBands
+      );
+
+      // Convert native results (indices) back to item pairs
+      const duplicates: Array<DuplicatePair<T>> = nativeResults.map((pair) => ({
+        first: items[pair.firstIdx],
+        second: items[pair.secondIdx],
+        similarity: pair.similarity,
+      }));
+
+      const elapsed = Date.now() - startTime;
+      log.debug(
+        {
+          itemCount: items.length,
+          duplicatesFound: duplicates.length,
+          elapsedMs: elapsed,
+          native: true,
+        },
+        'LSH deduplication complete (native)'
+      );
+
+      return duplicates;
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Native LSH failed, falling back to JS');
+    }
+  }
+
+  // JS fallback
   const index = new LSHIndex<T>(config);
 
   index.addAll(items);
@@ -298,8 +348,9 @@ export function findDuplicatesLSH<T extends { id: string; content: string }>(
       duplicatesFound: duplicates.length,
       elapsedMs: elapsed,
       avgBucketSize: stats.avgBucketSize.toFixed(2),
+      native: false,
     },
-    'LSH deduplication complete'
+    'LSH deduplication complete (JS fallback)'
   );
 
   return duplicates;
@@ -322,4 +373,12 @@ export function exactJaccardSimilarity(text1: string, text2: string): number {
 
   const union = shingles1.size + shingles2.size - intersection;
   return union > 0 ? intersection / union : 0;
+}
+
+/**
+ * Check if native LSH acceleration is available.
+ * When true, `findDuplicatesLSH` uses Rust xxHash for 10-20x speedup.
+ */
+export function isNativeLshAvailable(): boolean {
+  return isRustAvailable();
 }

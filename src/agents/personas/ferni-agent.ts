@@ -103,6 +103,9 @@ import { definitions as proactiveToolDefs } from '../../tools/domains/proactive/
 // Crisis tools - emergency support
 import { definitions as crisisToolDefs } from '../../tools/domains/crisis/index.js';
 
+// Human transfer tools - professional referral, warm handoff
+import { definitions as humanTransferToolDefs } from '../../tools/domains/human-transfer/index.js';
+
 // Habits tools - goal setting, tracking
 import { definitions as habitsToolDefs } from '../../tools/domains/habits/index.js';
 
@@ -258,7 +261,13 @@ function buildCrisisTools(agentId: string): ToolSet {
   const ctx = createToolContext(agentId);
   const tools: Record<string, unknown> = {};
 
+  // Crisis support tools (grounding, resources, safety planning)
   for (const def of crisisToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  // Human transfer tools (professional referral, warm handoff)
+  for (const def of humanTransferToolDefs) {
     tools[def.id] = def.create(ctx);
   }
 

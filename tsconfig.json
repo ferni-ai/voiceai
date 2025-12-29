@@ -39,7 +39,7 @@
     "exactOptionalPropertyTypes": false,     // TODO: Re-enable after fixing all undefined vs optional issues
     "noImplicitReturns": true,               // All code paths must return
     "noFallthroughCasesInSwitch": true,      // No fallthrough in switch
-    "noUncheckedIndexedAccess": false,       // TODO: Re-enable after fixing array index access
+    "noUncheckedIndexedAccess": false,       // TODO: Re-enable incrementally (6,500+ fixes needed - see scripts/fix-unchecked-index.ts)
     "noImplicitOverride": false,             // TODO: Re-enable after adding override keywords
     "noPropertyAccessFromIndexSignature": false, // TODO: Re-enable after fixing process.env usage
     

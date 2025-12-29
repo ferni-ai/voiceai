@@ -163,6 +163,8 @@ function saveLocalContacts(contacts: Map<string, Contact>): void {
 }
 
 let useLocalFallback = false;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<FirestoreType | null> | null = null;
 
 /**
  * Initialize Firestore connection
@@ -170,7 +172,13 @@ let useLocalFallback = false;
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
   if (useLocalFallback) return null;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeFirestore();
+  return dbInitPromise;
+}
+
+async function initializeFirestore(): Promise<FirestoreType | null> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
@@ -182,6 +190,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
   } catch (error) {
     getLogger().info({ error }, '📁 Firestore not available, using local JSON file for contacts');
     useLocalFallback = true;
+    dbInitPromise = null;
     return null;
   }
 }

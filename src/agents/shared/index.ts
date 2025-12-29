@@ -126,3 +126,30 @@ export { hasSsmlTags, sanitizeUserName } from './helpers.js';
 
 // Performance Optimizations
 export * from './performance/index.js';
+
+// Native JSON Parser (Rust simd-json acceleration for TTS stream)
+export {
+  // Core functions
+  extractFunctionCalls,
+  likelyContainsFunctionCall,
+  parseFunctionCall,
+  isValidJson,
+  // Tool registration
+  clearToolNames,
+  getToolCount,
+  isKnownTool,
+  registerToolName,
+  registerToolNames,
+  // Native availability check
+  getNativeJsonInfo,
+  getNativeJsonLoadError,
+  isNativeJsonParserAvailable,
+  // Metrics
+  getJsonParserMetrics,
+  logJsonParserStatus,
+  resetJsonParserMetrics,
+  // Types
+  type NativeJsonLibraryInfo,
+  type ParsedFunctionCall,
+  type ScanResult,
+} from './native-json-parser.js';

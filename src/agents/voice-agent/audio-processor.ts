@@ -16,6 +16,14 @@ import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import { getEmotionalArcTracker } from '../../conversation/index.js';
 import { getSessionAudioProsodyAnalyzer, getRealTimeAnalyzer } from '../../speech/audio-prosody.js';
+// Native Rust audio processing (zero-allocation)
+import {
+  isNativeAudioAvailable,
+  convertI16ToF32,
+  getSessionUnifiedAnalyzer,
+  resetSessionUnifiedAnalyzer,
+  type UnifiedAudioAnalyzer,
+} from '../../speech/audio-prosody/native-analyzer.js';
 import { getBreathPauseDetector } from '../../speech/live-backchanneling/index.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import { getEmotionModulation } from '../../speech/emotion-matching.js';
@@ -44,6 +52,8 @@ import {
   dispatchSpeechPause,
   dispatchBreathDetected,
 } from '../realtime/speech-state-dispatcher.js';
+// GC pressure baseline metrics (for Rust migration validation)
+import { gcTrackStart, gcTrackEnd, GC_METRICS } from '../../utils/performance-metrics.js';
 
 // ============================================================================
 // TYPES
@@ -90,15 +100,24 @@ export async function processAudioStream(
   // Real-time prosody analyzer (streaming - analyzes each chunk for anticipation)
   let realTimeAnalyzer: ReturnType<typeof getRealTimeAnalyzer> | null = null;
 
+  // Native Rust audio analyzer (zero-allocation, reduces GC pressure)
+  const nativeAudioEnabled =
+    isExperimentalEnabled('nativeAudioProcessing') && isNativeAudioAvailable();
+  let nativeAnalyzer: UnifiedAudioAnalyzer | null = null;
+
   // Gemini multimodal emotion analysis
   const geminiEmotionEnabled = isExperimentalEnabled('geminiEmotionAnalysis');
   let geminiEmotionStream: Awaited<ReturnType<typeof startEmotionStream>> | null = null;
   let geminiSessionId: string | null = null;
 
+  // Frame counter for GC pressure sampling
+  let frameCount = 0;
+
   try {
     while (true) {
       const { value: frame, done } = await reader.read();
       if (done) break;
+      frameCount++;
 
       if (frame && frame.data && frame.data.length > 0) {
         // Initialize prosody analyzer lazily
@@ -115,18 +134,50 @@ export async function processAudioStream(
         // Process each audio chunk to detect emotional signals DURING speech
         // =========================================================================
         if (isOrchestratorEnabled() && sessionId) {
-          if (!realTimeAnalyzer) {
+          // Initialize analyzer (native or JS fallback)
+          if (nativeAudioEnabled && !nativeAnalyzer) {
+            try {
+              nativeAnalyzer = await getSessionUnifiedAnalyzer(sessionId, frame.sampleRate);
+              if (nativeAnalyzer?.isNative) {
+                logger.debug({ sessionId }, '🦀 Native audio analyzer initialized');
+              } else {
+                logger.debug({ sessionId }, 'Using JS audio analyzer (native unavailable)');
+              }
+            } catch (err) {
+              logger.warn(
+                { error: String(err), sessionId },
+                'Native audio analyzer failed to initialize, using JS fallback'
+              );
+              // nativeAnalyzer remains null, will fall back to realTimeAnalyzer below
+            }
+          }
+          if (!nativeAnalyzer && !realTimeAnalyzer) {
             realTimeAnalyzer = getRealTimeAnalyzer(sessionId);
           }
 
-          // Convert Int16Array to Float32Array for real-time analyzer
-          const float32Samples = new Float32Array(frame.data.length);
-          for (let i = 0; i < frame.data.length; i++) {
-            float32Samples[i] = frame.data[i] / 32768.0;
-          }
+          // Convert Int16 to Float32 - use native when available (zero-allocation)
+          const int16Data = frame.data as unknown as Int16Array;
+
+          // GC pressure sampling: Track every 50th frame (~1/sec) to measure allocation baseline
+          const shouldTrackGc = !nativeAudioEnabled && frameCount % 50 === 0;
+          const gcTracker = shouldTrackGc ? gcTrackStart(GC_METRICS.AUDIO_INT16_TO_F32) : null;
+
+          const float32Samples = nativeAudioEnabled
+            ? convertI16ToF32(int16Data)
+            : (() => {
+                const arr = new Float32Array(frame.data.length);
+                for (let i = 0; i < frame.data.length; i++) {
+                  arr[i] = frame.data[i] / 32768.0;
+                }
+                return arr;
+              })();
+
+          if (gcTracker) gcTrackEnd(gcTracker);
 
           // Process chunk and get partial prosody features
-          const partialProsody = realTimeAnalyzer.processChunk(float32Samples);
+          const partialProsody = nativeAnalyzer
+            ? nativeAnalyzer.processFrame(int16Data, Date.now())
+            : realTimeAnalyzer?.processChunk(float32Samples);
           if (partialProsody) {
             // Feed partial prosody to anticipation pipeline if speech detected
             if (partialProsody.isSpeech && userData) {
@@ -176,14 +227,19 @@ export async function processAudioStream(
           geminiEmotionStream.sendAudio(audioBuffer);
         }
 
-        // Feed to speaker change detector
+        // Feed to speaker change detector - use native conversion when available (zero-allocation)
         if (sessionId) {
           try {
             const detector = getSpeakerChangeDetector(sessionId);
-            const audioData = new Float32Array(frame.data.length);
-            for (let i = 0; i < frame.data.length; i++) {
-              audioData[i] = frame.data[i] / 32768.0;
-            }
+            const audioData = nativeAudioEnabled
+              ? convertI16ToF32(frame.data as unknown as Int16Array)
+              : (() => {
+                  const arr = new Float32Array(frame.data.length);
+                  for (let i = 0; i < frame.data.length; i++) {
+                    arr[i] = frame.data[i] / 32768.0;
+                  }
+                  return arr;
+                })();
             detector.feedAudio(audioData);
           } catch {
             // Detector not initialized
@@ -213,7 +269,10 @@ export async function processAudioStream(
             // so avatar can show micro-nod during the pause (empathetic listening)
             if (!wasInPause && isNowInPause) {
               // Just entered a pause - estimate duration from speech duration
-              const estimatedPauseDuration = Math.max(200, Math.min(1500, currentSpeechDurationMs * 0.1));
+              const estimatedPauseDuration = Math.max(
+                200,
+                Math.min(1500, currentSpeechDurationMs * 0.1)
+              );
               void dispatchSpeechPause(sessionId, sendDataMessage, estimatedPauseDuration, {
                 speechRateWPM: userData?.voiceEmotion?.prosody?.speechRate,
                 emotion: userData?.voiceEmotion?.primary,
@@ -239,6 +298,12 @@ export async function processAudioStream(
         clearGeminiSession(geminiSessionId);
       }
       logger.debug('Gemini emotion stream stopped');
+    }
+
+    // Cleanup native audio analyzer (returns buffers to pool)
+    if (nativeAnalyzer && sessionId) {
+      resetSessionUnifiedAnalyzer(sessionId);
+      logger.debug('Native audio analyzer reset');
     }
 
     // Analyze final prosody results

@@ -378,6 +378,51 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
     );
   }
 
+  // ============================================================================
+  // CRISIS HISTORY FACTORS (Better Than Human Integration)
+  // Users who had recent crisis are at elevated burnout risk
+  // ============================================================================
+  try {
+    const { hadRecentCrisis } = await import('../human-transfer/index.js');
+    const { hasCrisis, lastCrisis } = await hadRecentCrisis(userId, 14);
+
+    if (hasCrisis && lastCrisis) {
+      const daysSince = Math.floor(
+        (Date.now() - new Date(lastCrisis.timestamp).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Recent crisis is a significant burnout risk factor
+      if (daysSince <= 3) {
+        riskScore += 25;
+        factors.push({
+          factor: 'Recent Crisis',
+          weight: 0.25,
+          description: `Crisis event ${daysSince} day(s) ago - recovery is essential`,
+        });
+      } else if (daysSince <= 7) {
+        riskScore += 15;
+        factors.push({
+          factor: 'Crisis Recovery Period',
+          weight: 0.15,
+          description: `Crisis event last week - still in recovery window`,
+        });
+      }
+
+      // Suicidal ideation or self-harm flags extra caution
+      if (lastCrisis.escalationType === 'crisis_immediate') {
+        riskScore += 10;
+        factors.push({
+          factor: 'High-Severity Crisis History',
+          weight: 0.1,
+          description: 'Extra care needed - be gentle with new commitments',
+        });
+      }
+    }
+  } catch (error) {
+    // Crisis history is optional - don't fail burnout assessment
+    log.debug({ error: String(error) }, 'Crisis history unavailable for burnout assessment');
+  }
+
   // Determine risk level
   let risk: BurnoutRisk;
   if (riskScore >= 70) risk = 'critical';

@@ -4,14 +4,22 @@
  * Handles smart home tools: setLights, getHomeStatus, setThermostat,
  * lockDoors, controlDevice
  *
- * Note: These are conversational fallbacks. Full smart home integration
- * requires connecting to Home Assistant, Google Home, or Apple HomeKit.
+ * NOW CONNECTED TO REAL SMART HOME SERVICE!
+ * Uses user credentials from Firestore to control actual devices.
  *
  * @module agents/shared/tool-executors/home-executor
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import {
+  getAllDevices,
+  controlDevice,
+  activateScene,
+  setLightsForVibe,
+  type SmartDevice,
+} from '../../../tools/domains/smart-home/smart-home.js';
+import { hasAnySmartHomeIntegration } from '../../../services/smart-home/user-credentials.js';
 
 const log = createLogger({ module: 'HomeExecutor' });
 
@@ -28,13 +36,19 @@ const HANDLED_TOOLS = [
   'turnoff',
   'armsecurity',
   'disarmsecurity',
+  'controllight',
+  'listdevices',
 ] as const;
 
 /**
- * Execute smart home tools
- *
- * Note: Smart home integration is not yet implemented. These are conversational
- * fallbacks that acknowledge the request and suggest connecting smart home devices.
+ * Get a helpful message when no smart home is configured
+ */
+function getSetupMessage(): string {
+  return "You haven't connected any smart home devices yet. Go to Settings → Your Home to connect your lights, thermostat, or speakers.";
+}
+
+/**
+ * Execute smart home tools using the real smart-home service
  */
 async function execute(
   fn: string,
@@ -47,44 +61,122 @@ async function execute(
     return null;
   }
 
+  const userId = ctx.userId;
+
+  // Need userId for smart home operations
+  if (!userId) {
+    return 'I need to know who you are to control your smart home. Please sign in first.';
+  }
+
+  // Check if user has any smart home configured
+  const hasSmartHome = await hasAnySmartHomeIntegration(userId);
+
   // ========================================
-  // SET LIGHTS
+  // SET LIGHTS / CONTROL LIGHT
   // ========================================
-  if (fnLower === 'setlights') {
-    const room = args.room as string;
-    const brightness = args.brightness as number;
-    const color = args.color as string;
+  if (fnLower === 'setlights' || fnLower === 'controllight') {
+    const room = (args.room as string) || '';
+    const brightness = args.brightness as number | undefined;
     const state = args.state as string; // on/off
+    const action = args.action as string; // on/off/toggle
 
-    log.info({ room, brightness, color, state, userId: ctx.userId }, '💡 Setting lights');
+    log.info({ room, brightness, state, action, userId }, '💡 Setting lights');
 
-    // Conversational fallback - no smart home integration yet
-    if (state === 'off') {
-      return room
-        ? `I'd turn off the ${room} lights, but I'm not connected to your smart home yet.`
-        : "I can't control lights without a smart home connection.";
+    if (!hasSmartHome) {
+      return getSetupMessage();
     }
 
-    let response = "I'd set the ";
-    response += room ? `${room} lights` : 'lights';
+    // Determine what action to take
+    let controlAction: 'on' | 'off' | 'set' | 'toggle' = 'on';
+    if (state === 'off' || action === 'off') {
+      controlAction = 'off';
+    } else if (action === 'toggle') {
+      controlAction = 'toggle';
+    } else if (brightness !== undefined) {
+      controlAction = 'set';
+    }
+
+    // If room is specified, control that specific room/device
+    if (room) {
+      const result = await controlDevice(room, controlAction, brightness, userId);
+      return result;
+    }
+
+    // If no room specified and brightness given, set all lights
     if (brightness !== undefined) {
-      response += ` to ${brightness}%`;
+      const result = await setLightsForVibe(userId, brightness);
+      if (result.success) {
+        return `💡 Set ${result.devices.length} light${result.devices.length === 1 ? '' : 's'} to ${brightness}%`;
+      } else {
+        return "Couldn't adjust the lights. They might be offline.";
+      }
     }
-    if (color) {
-      response += ` with ${color} color`;
-    }
-    response +=
-      ", but I'm not connected to your smart home yet. Would you like to connect your devices?";
 
-    return response;
+    // Generic on/off for all lights
+    const devices = await getAllDevices(userId);
+    const lights = devices.filter((d) => d.type === 'light');
+    
+    if (lights.length === 0) {
+      return 'No lights found. Make sure they are connected in Settings → Your Home.';
+    }
+
+    const results = await Promise.all(
+      lights.map((light) => controlDevice(light.id, controlAction, undefined, userId))
+    );
+
+    const successCount = results.filter((r) => !r.includes('trouble')).length;
+    return controlAction === 'off'
+      ? `💡 Turned off ${successCount} light${successCount === 1 ? '' : 's'}`
+      : `💡 Turned on ${successCount} light${successCount === 1 ? '' : 's'}`;
   }
 
   // ========================================
-  // GET HOME STATUS
+  // GET HOME STATUS / GET DEVICES / LIST DEVICES
   // ========================================
-  if (fnLower === 'gethomestatus') {
-    log.info({ userId: ctx.userId }, '🏠 Getting home status');
-    return "I can't check your home status without a smart home connection. Would you like to set up a connection?";
+  if (fnLower === 'gethomestatus' || fnLower === 'getdevices' || fnLower === 'listdevices') {
+    log.info({ userId }, '🏠 Getting home status');
+
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
+
+    const devices = await getAllDevices(userId);
+
+    if (devices.length === 0) {
+      return 'No devices found. Your smart home devices might be offline.';
+    }
+
+    // Group by type
+    const byType = devices.reduce(
+      (acc, d) => {
+        acc[d.type] = acc[d.type] || [];
+        acc[d.type].push(d);
+        return acc;
+      },
+      {} as Record<string, SmartDevice[]>
+    );
+
+    let response = '🏠 **Your Smart Home**\n\n';
+
+    for (const [deviceType, deviceList] of Object.entries(byType)) {
+      const emoji =
+        deviceType === 'light'
+          ? '💡'
+          : deviceType === 'thermostat'
+            ? '🌡️'
+            : deviceType === 'lock'
+              ? '🔒'
+              : deviceType === 'speaker'
+                ? '🔊'
+                : '📱';
+      response += `**${emoji} ${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}s**\n`;
+      deviceList.forEach((d) => {
+        response += `• ${d.name}: ${d.state}${d.room ? ` (${d.room})` : ''}\n`;
+      });
+      response += '\n';
+    }
+
+    return response;
   }
 
   // ========================================
@@ -94,50 +186,78 @@ async function execute(
     const temperature = args.temperature as number;
     const mode = args.mode as string; // heat/cool/auto
 
-    log.info({ temperature, mode, userId: ctx.userId }, '🌡️ Setting thermostat');
+    log.info({ temperature, mode, userId }, '🌡️ Setting thermostat');
+
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
 
     if (!temperature && !mode) {
       return 'What temperature would you like?';
     }
 
-    return `I'd set the thermostat to ${temperature ? `${temperature}°F` : mode}, but I'm not connected to your smart home.`;
+    // Find thermostat device
+    const result = await controlDevice('thermostat', 'set', temperature, userId);
+    return result;
   }
 
   // ========================================
   // LOCK/UNLOCK DOORS
   // ========================================
   if (fnLower === 'lockdoors') {
-    const door = args.door as string; // specific door or 'all'
+    const door = (args.door as string) || 'all';
     const action = args.action as string; // lock/unlock
 
-    log.info({ door, action, userId: ctx.userId }, '🔒 Locking doors');
+    log.info({ door, action, userId }, '🔒 Controlling locks');
 
-    return `I can't control your locks without a smart home connection. Would you like to set one up?`;
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
+
+    const controlAction = action === 'unlock' ? 'off' : 'on';
+
+    if (door === 'all') {
+      const devices = await getAllDevices(userId);
+      const locks = devices.filter((d) => d.type === 'lock');
+
+      if (locks.length === 0) {
+        return 'No smart locks found.';
+      }
+
+      const results = await Promise.all(
+        locks.map((lock) => controlDevice(lock.id, controlAction, undefined, userId))
+      );
+
+      const successCount = results.filter((r) => !r.includes('trouble')).length;
+      return action === 'unlock'
+        ? `🔓 Unlocked ${successCount} lock${successCount === 1 ? '' : 's'}`
+        : `🔒 Locked ${successCount} lock${successCount === 1 ? '' : 's'}`;
+    }
+
+    const result = await controlDevice(door, controlAction, undefined, userId);
+    return result;
   }
 
   // ========================================
-  // CONTROL DEVICE
+  // CONTROL DEVICE / TURN ON / TURN OFF
   // ========================================
   if (fnLower === 'controldevice' || fnLower === 'turnon' || fnLower === 'turnoff') {
     const device = args.device as string;
     const action =
-      fnLower === 'turnon' ? 'on' : fnLower === 'turnoff' ? 'off' : (args.action as string);
+      fnLower === 'turnon' ? 'on' : fnLower === 'turnoff' ? 'off' : (args.action as 'on' | 'off' | 'toggle');
 
-    log.info({ device, action, userId: ctx.userId }, '🔌 Controlling device');
+    log.info({ device, action, userId }, '🔌 Controlling device');
+
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
 
     if (!device) {
       return 'Which device would you like to control?';
     }
 
-    return `I can't control ${device} without a smart home connection.`;
-  }
-
-  // ========================================
-  // GET DEVICES
-  // ========================================
-  if (fnLower === 'getdevices') {
-    log.info({ userId: ctx.userId }, '📱 Getting devices');
-    return 'No smart home devices connected. Would you like to set up a connection?';
+    const result = await controlDevice(device, action || 'toggle', undefined, userId);
+    return result;
   }
 
   // ========================================
@@ -146,13 +266,18 @@ async function execute(
   if (fnLower === 'setscene') {
     const scene = args.scene as string;
 
-    log.info({ scene, userId: ctx.userId }, '🎬 Setting scene');
+    log.info({ scene, userId }, '🎬 Setting scene');
+
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
 
     if (!scene) {
       return 'Which scene would you like to activate?';
     }
 
-    return `I can't activate "${scene}" without a smart home connection.`;
+    const result = await activateScene(scene, userId);
+    return result;
   }
 
   // ========================================
@@ -162,9 +287,15 @@ async function execute(
     const mode = args.mode as string; // away/stay/night
     const action = fnLower === 'armsecurity' ? 'arm' : 'disarm';
 
-    log.info({ action, mode, userId: ctx.userId }, '🛡️ Security control');
+    log.info({ action, mode, userId }, '🛡️ Security control');
 
-    return `I can't control security without a smart home connection.`;
+    if (!hasSmartHome) {
+      return getSetupMessage();
+    }
+
+    // Security systems typically integrate through Home Assistant
+    // For now, return a helpful message
+    return `Security system control requires Home Assistant integration. Connect it in Settings → Your Home.`;
   }
 
   return null;

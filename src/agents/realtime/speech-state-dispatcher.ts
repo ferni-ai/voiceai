@@ -118,9 +118,7 @@ function classifyPause(durationMs: number, speechRateWPM?: number): SpeechStateE
  * Determine nod type based on pause type and duration
  * Longer/more significant pauses get more visible nods
  */
-function getNodType(
-  pauseType: SpeechStateEvent['pauseType']
-): SpeechStateEvent['nodType'] {
+function getNodType(pauseType: SpeechStateEvent['pauseType']): SpeechStateEvent['nodType'] {
   switch (pauseType) {
     case 'breath':
       return 'micro'; // Barely perceptible - 1.5px
@@ -284,7 +282,7 @@ export async function dispatchSpeechEnd(
   const tracker = getTracker(sessionId);
   const now = Date.now();
 
-  const totalDurationMs = options?.totalDurationMs || (now - tracker.lastSpeechStart);
+  const totalDurationMs = options?.totalDurationMs || now - tracker.lastSpeechStart;
 
   tracker.isSpeaking = false;
 
@@ -310,7 +308,12 @@ export async function dispatchSpeechEnd(
     }
 
     log.debug(
-      { sessionId, totalDurationMs, pauseCount: tracker.pauseCount, breathRate: tracker.breathRateEstimate },
+      {
+        sessionId,
+        totalDurationMs,
+        pauseCount: tracker.pauseCount,
+        breathRate: tracker.breathRateEstimate,
+      },
       '🎭 Speech end dispatched'
     );
   } catch (error) {

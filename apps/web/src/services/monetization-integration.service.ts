@@ -263,6 +263,11 @@ export function recordGoalAchieved(): void {
   try {
     const newMilestones = growthJourneyService.recordGoalAchieved();
 
+    // 🤲 Sidekick: Dispatch goal achieved event for avatar sidekick
+    document.dispatchEvent(new CustomEvent('ferni:goal-achieved', {
+      detail: { newMilestonesCount: newMilestones.length }
+    }));
+
     if (newMilestones.length > 0) {
       document.dispatchEvent(
         new CustomEvent('ferni:milestones-ready', {

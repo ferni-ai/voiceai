@@ -46,7 +46,9 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     defaultSpeed: 0.95,
     defaultVolume: 1.0,
     laughterFrequency: 0.15,
-    nonverbals: ['[laughter]', '<break time="400ms"/>'],
+    // NOTE: Only actual sounds go here - NOT SSML tags like <break>!
+    // <break> tags are formatting instructions, not nonverbal sounds.
+    nonverbals: ['[laughter]', 'Mmm.'],
   },
   'peter-john': {
     defaultEmotion: 'enthusiastic',
@@ -79,7 +81,8 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     defaultSpeed: 0.95, // Per manifest
     defaultVolume: 1.0,
     laughterFrequency: 0.1, // Occasional warmth
-    nonverbals: ['[dry chuckle]', 'Okay.', 'Hey.', 'Breathe.', '<break time="200ms"/>'],
+    // NOTE: Only actual sounds go here - NOT SSML tags like <break>!
+    nonverbals: ['[dry chuckle]', 'Okay.', 'Hey.', 'Breathe.'],
   },
   'maya-santos': {
     defaultEmotion: 'affectionate',
@@ -97,7 +100,8 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     defaultSpeed: 0.95,
     defaultVolume: 1.0,
     laughterFrequency: 0.18, // More frequent laughter - per manifest
-    nonverbals: ['[laughter]', 'Hey.', 'Oh!', 'Wait—', '<break time="300ms"/>'],
+    // NOTE: Only actual sounds go here - NOT SSML tags like <break>!
+    nonverbals: ['[laughter]', 'Hey.', 'Oh!', 'Wait—', 'Nice!'],
   },
   'jordan-taylor': {
     defaultEmotion: 'excited',
@@ -121,7 +125,9 @@ export const PERSONA_EMOTION_PROFILES: Record<string, PersonaEmotionProfile> = {
     defaultSpeed: 0.85,
     defaultVolume: 0.92,
     laughterFrequency: 0.06,
-    nonverbals: ['[thoughtful pause]', '[soft hmm]', '<break time="600ms"/>'],
+    // NOTE: Only actual sounds go here - NOT SSML tags like <break>!
+    // Nayan is more contemplative, so uses softer nonverbals
+    nonverbals: ['Hmm.', 'Mmm.', 'Ah.'],
   },
 };
 

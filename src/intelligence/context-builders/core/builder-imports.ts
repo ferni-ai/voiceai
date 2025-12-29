@@ -43,6 +43,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'thinking-of-you': () => import('../thinking-of-you.js'), // Proactive callbacks and follow-ups
 
   // PERSONA (in personas/)
+  'twin-profile-context': () => import('../twin-profile-context.js'), // Digital Twin profile for personalization
   'persona-identity': () => import('../personas/persona-identity.js'),
   'persona-quirks': () => import('../personas/persona-quirks.js'),
   'persona-playful': () => import('../personas/persona-playful.js'),

@@ -10,17 +10,20 @@
  * These are NOT for main conversation - that goes through the realtime model.
  * These are for background analysis that enhances the agent's understanding.
  *
+ * Uses Vertex AI (enterprise tier) for higher quotas than consumer Google AI API.
+ *
  * @module services/llm-utils
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
+import { getDefaultModel } from '../config/gemini-config.js';
 
 // ============================================================================
 // CIRCUIT BREAKERS
 // ============================================================================
 
-const googleAICircuitBreaker = getCircuitBreaker('google-ai', {
+const vertexAICircuitBreaker = getCircuitBreaker('vertex-ai', {
   failureThreshold: 3,
   resetTimeout: 30000, // 30 seconds
   successThreshold: 2,
@@ -36,7 +39,7 @@ const openAICircuitBreaker = getCircuitBreaker('openai', {
 // TYPES
 // ============================================================================
 
-export type LLMProvider = 'google' | 'openai' | 'anthropic';
+export type LLMProvider = 'vertex' | 'openai' | 'anthropic';
 
 export interface LLMCallOptions {
   maxTokens?: number;
@@ -45,47 +48,81 @@ export interface LLMCallOptions {
 }
 
 // ============================================================================
-// GOOGLE AI (Primary)
+// VERTEX AI (Primary) - Enterprise tier with higher quotas
 // ============================================================================
 
-let googleAIClient: unknown = null;
+interface VertexAIClient {
+  getGenerativeModel: (config: { model: string }) => {
+    generateContent: (params: {
+      contents: Array<{ role: string; parts: Array<{ text: string }> }>;
+      generationConfig?: { maxOutputTokens?: number; temperature?: number };
+    }) => Promise<{
+      response: {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
+    }>;
+  };
+}
 
-async function getGoogleAIClient(): Promise<unknown> {
-  if (googleAIClient) return googleAIClient;
+let vertexAIClient: VertexAIClient | null = null;
+// FIX: Use Promise-based singleton to prevent race condition
+// When multiple callers invoke getVertexAIClient() concurrently,
+// they all wait for the same initialization promise instead of each starting their own
+let vertexAIClientInitPromise: Promise<VertexAIClient | null> | null = null;
 
+async function getVertexAIClient(): Promise<VertexAIClient | null> {
+  // Fast path: return cached client
+  if (vertexAIClient) return vertexAIClient;
+
+  // If initialization is already in progress, wait for it
+  if (vertexAIClientInitPromise) {
+    return vertexAIClientInitPromise;
+  }
+
+  // Start initialization and store the promise so concurrent callers can wait
+  vertexAIClientInitPromise = initializeVertexAIClient();
+  return vertexAIClientInitPromise;
+}
+
+async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
   try {
-    const { GoogleGenAI } = await import('@google/genai');
-    const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
+    const { VertexAI } = await import('@google-cloud/vertexai');
 
-    if (!apiKey) {
-      getLogger().warn('No Google AI API key found (checked GOOGLE_AI_API_KEY and GOOGLE_API_KEY)');
-      return null;
-    }
+    // Use GCP project from environment (same as Firestore)
+    const projectId =
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      process.env.GCLOUD_PROJECT ||
+      process.env.GCP_PROJECT_ID ||
+      'johnb-2025';
+    const location = process.env.VERTEX_AI_LOCATION || 'us-central1';
 
-    getLogger().info('Initializing Google AI client...');
-    googleAIClient = new GoogleGenAI({ apiKey });
-    getLogger().info('Google AI client initialized successfully');
-    return googleAIClient;
+    getLogger().info({ projectId, location }, 'Initializing Vertex AI client...');
+    vertexAIClient = new VertexAI({ project: projectId, location }) as unknown as VertexAIClient;
+    getLogger().info('Vertex AI client initialized successfully (enterprise quotas)');
+    return vertexAIClient;
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to initialize Google AI client');
+    getLogger().warn({ error: String(error) }, 'Failed to initialize Vertex AI client');
+    // Clear promise so retry is possible
+    vertexAIClientInitPromise = null;
     return null;
   }
 }
 
 /**
- * Call Google AI (Gemini) for supplementary analysis
+ * Call Vertex AI (Gemini) for supplementary analysis
+ * Uses enterprise tier with much higher quotas than consumer API
  */
-async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
+async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
   // Check circuit breaker first
-  if (!googleAICircuitBreaker.canRequest()) {
-    getLogger().warn('Google AI circuit breaker is open, skipping request');
+  if (!vertexAICircuitBreaker.canRequest()) {
+    getLogger().warn('Vertex AI circuit breaker is open, skipping request');
     return null;
   }
 
   try {
-    const client = await getGoogleAIClient();
+    const client = await getVertexAIClient();
     if (!client) {
-      getLogger().warn('Google AI client is null - API key missing or initialization failed');
+      getLogger().warn('Vertex AI client is null - initialization failed');
       return null;
     }
 
@@ -97,27 +134,21 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await googleAICircuitBreaker.execute(async () => {
-        // Use genai.models.generateContent API
-        const result = await (
-          client as {
-            models: {
-              generateContent: (params: {
-                model: string;
-                contents: string;
-                config: { maxOutputTokens: number; temperature: number };
-              }) => Promise<{ text: string }>;
-            };
-          }
-        ).models.generateContent({
-          model: 'gemini-2.0-flash-exp',
-          contents: prompt,
-          config: {
+      const response = await vertexAICircuitBreaker.execute(async () => {
+        // Use Vertex AI SDK - model from centralized config
+        const model = client.getGenerativeModel({ model: getDefaultModel() });
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
             maxOutputTokens: maxTokens,
             temperature,
           },
         });
-        return result?.text?.trim() || null;
+
+        // Extract text from Vertex AI response
+        const candidate = result.response?.candidates?.[0];
+        const text = candidate?.content?.parts?.[0]?.text;
+        return text?.trim() || null;
       });
 
       clearTimeout(timeoutId);
@@ -129,13 +160,13 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
         return null;
       }
       if (error instanceof CircuitOpenError) {
-        getLogger().debug('Google AI circuit breaker opened');
+        getLogger().debug('Vertex AI circuit breaker opened');
         return null;
       }
       throw error;
     }
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Google AI call failed');
+    getLogger().warn({ error: String(error) }, 'Vertex AI call failed');
     return null;
   }
 }
@@ -145,21 +176,37 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
 // ============================================================================
 
 let openAIClient: unknown = null;
+// FIX: Use Promise-based singleton to prevent race condition (same pattern as Vertex AI)
+let openAIClientInitPromise: Promise<unknown> | null = null;
 
 async function getOpenAIClient(): Promise<unknown> {
+  // Fast path: return cached client
   if (openAIClient) return openAIClient;
 
+  // If initialization is already in progress, wait for it
+  if (openAIClientInitPromise) {
+    return openAIClientInitPromise;
+  }
+
+  // Start initialization and store the promise
+  openAIClientInitPromise = initializeOpenAIClient();
+  return openAIClientInitPromise;
+}
+
+async function initializeOpenAIClient(): Promise<unknown> {
   try {
     const OpenAI = (await import('openai')).default;
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
+      openAIClientInitPromise = null;
       return null;
     }
 
     openAIClient = new OpenAI({ apiKey });
     return openAIClient;
   } catch {
+    openAIClientInitPromise = null;
     return null;
   }
 }
@@ -223,7 +270,7 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
 /**
  * Make a supplementary LLM call with automatic fallback
  *
- * Priority: Google AI → OpenAI → null
+ * Priority: Vertex AI (enterprise tier) → OpenAI → null
  *
  * Use this for:
  * - Emotion inference when keyword detection is uncertain
@@ -236,9 +283,9 @@ export async function callLLM(
   prompt: string,
   options: LLMCallOptions = {}
 ): Promise<string | null> {
-  // Try Google AI first (faster, cheaper)
-  const googleResult = await callGoogleAI(prompt, options);
-  if (googleResult) return googleResult;
+  // Try Vertex AI first (enterprise tier with higher quotas)
+  const vertexResult = await callVertexAI(prompt, options);
+  if (vertexResult) return vertexResult;
 
   // Fall back to OpenAI
   const openAIResult = await callOpenAI(prompt, options);
@@ -316,34 +363,34 @@ let initialized = false;
 
 /**
  * Initialize LLM utilities
- * Checks for available API keys and initializes clients
+ * Checks for available clients and initializes them
  */
 export async function initializeLLMUtils(): Promise<{
-  googleAI: boolean;
+  vertexAI: boolean;
   openAI: boolean;
 }> {
   if (initialized) {
     return {
-      googleAI: googleAIClient !== null,
+      vertexAI: vertexAIClient !== null,
       openAI: openAIClient !== null,
     };
   }
 
-  const googleAI = (await getGoogleAIClient()) !== null;
+  const vertexAI = (await getVertexAIClient()) !== null;
   const openAI = (await getOpenAIClient()) !== null;
 
   initialized = true;
 
   getLogger().info(
     {
-      googleAI,
+      vertexAI,
       openAI,
-      anyAvailable: googleAI || openAI,
+      anyAvailable: vertexAI || openAI,
     },
-    'LLM utilities initialized'
+    'LLM utilities initialized (using Vertex AI enterprise tier)'
   );
 
-  return { googleAI, openAI };
+  return { vertexAI, openAI };
 }
 
 export default {

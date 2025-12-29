@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maya Santos - Expression Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Theme */
+      --bg-primary: #faf8f5;
+      --bg-elevated: #fffdfb;
+      --text-primary: #2c2520;
+      --text-secondary: #5c544a;
+      --text-muted: #756a5e;
+
+      /* Maya's Colors - Dusty Terracotta */
+      --persona-start: #b88a7a;
+      --persona-end: #a67a6a;
+      --persona-glow: rgba(166, 122, 106, 0.5);
+
+      /* Pixar Animation System */
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-spring-heavy: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+      /* Maya's Timing: 1.1x (warm, nurturing - slightly slower) */
+      --timing-multiplier: 1.1;
+      --base-duration: 0.35s;
+      --scaled-duration: calc(var(--base-duration) * var(--timing-multiplier));
+
+      /* Glow Colors */
+      --glow-terracotta: rgba(166, 122, 106, 0.5);
+      --glow-golden: rgba(196, 162, 101, 0.5);
+      --glow-warm: rgba(184, 138, 122, 0.5);
+      --glow-protective: rgba(138, 99, 90, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    .brand-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(250, 248, 245, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-nav a {
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      transition: color 0.2s ease;
+    }
+
+    .brand-nav a:hover { color: var(--text-primary); }
+
+    .brand-nav .home-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .brand-nav .nav-links { display: flex; gap: 20px; }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 100px 40px 40px;
+      background: linear-gradient(135deg, rgba(166, 122, 106, 0.1) 0%, transparent 100%);
+    }
+
+    .header h1 {
+      font-size: 48px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header .role {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .header .quote {
+      font-style: italic;
+      color: var(--persona-end);
+      font-size: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Timing Badge */
+    .timing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(166, 122, 106, 0.15);
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-top: 20px;
+    }
+
+    .timing-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    /* Avatar Stage */
+    .avatar-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 60px;
+      padding: 60px;
+      background: var(--bg-elevated);
+      border-radius: 32px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+
+    .avatar-glow {
+      position: absolute;
+      inset: -30px;
+      border-radius: 50%;
+      background: var(--glow-coral);
+      filter: blur(30px);
+      opacity: 0.6;
+      transition: all 0.5s var(--ease-gentle);
+    }
+
+    .main-avatar {
+      width: 200px;
+      height: 200px;
+      position: relative;
+    }
+
+    /* Pixar Animations - Maya's 1.1x timing */
+    @keyframes breathing {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    @keyframes gazeDrift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(0.8px, -0.4px); }
+      50% { transform: translate(-0.4px, 0.4px); }
+      75% { transform: translate(0.4px, 0px); }
+    }
+
+    @keyframes comfortPulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    .avatar-body {
+      animation: breathing 4.4s ease-in-out infinite; /* 4s * 1.1 */
+      transform-origin: center center;
+    }
+
+    .eyes-group {
+      animation: gazeDrift 8.8s ease-in-out infinite; /* 8s * 1.1 */
+    }
+
+    /* Comfort Pulse - Maya's Signature */
+    .comfort-ring {
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      border: 2px solid var(--persona-start);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .comfort-ring.active {
+      animation: comfortPulse 1.1s var(--ease-gentle) forwards;
+    }
+
+    .comfort-ring.ring-2 { animation-delay: 0.22s; }
+    .comfort-ring.ring-3 { animation-delay: 0.44s; }
+
+    /* Stage Controls */
+    .stage-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .current-expression {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .expression-trigger {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 250px;
+    }
+
+    .micro-demo {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .micro-btn {
+      padding: 8px 14px;
+      border: 1px solid rgba(166, 122, 106, 0.3);
+      background: var(--bg-elevated);
+      border-radius: 100px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+
+    .micro-btn:hover {
+      border-color: var(--persona-start);
+      color: var(--persona-end);
+    }
+
+    /* Expression Grid */
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .expression-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .expression-btn {
+      padding: 14px 18px;
+      border: 2px solid rgba(166, 122, 106, 0.2);
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.3s var(--ease-spring);
+    }
+
+    .expression-btn:hover {
+      border-color: var(--persona-start);
+      transform: translateY(-2px);
+    }
+
+    .expression-btn.active {
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      border-color: transparent;
+      color: white;
+    }
+
+    /* Animation Profile */
+    .profile-section {
+      background: linear-gradient(135deg, rgba(166, 122, 106, 0.08) 0%, transparent 100%);
+      padding: 32px;
+      border-radius: 20px;
+      margin-bottom: 40px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 24px;
+    }
+
+    .profile-item {
+      text-align: center;
+    }
+
+    .profile-value {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .profile-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    /* Traits */
+    .traits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .trait-card {
+      background: var(--bg-elevated);
+      padding: 28px;
+      border-radius: 16px;
+      border-left: 4px solid var(--persona-start);
+    }
+
+    .trait-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--persona-end);
+      margin-bottom: 10px;
+    }
+
+    .trait-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .avatar-stage {
+        flex-direction: column;
+        padding: 40px 20px;
+      }
+      .stage-controls {
+        align-items: center;
+        text-align: center;
+      }
+      .container { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="brand-nav">
+    <a href="../../index.html" class="home-link">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+      Brand Library
+    </a>
+    <div class="nav-links">
+      <a href="../ferni/expressions.html">Ferni</a>
+      <a href="../peter/expressions.html">Peter</a>
+      <a href="../jordan/expressions.html">Jordan</a>
+      <a href="../alex/expressions.html">Alex</a>
+      <a href="../nayan/expressions.html">Nayan</a>
+      <a href="../../expressions/gallery.html">All Expressions</a>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>Maya Santos</h1>
+    <p class="role">The Habits Coach</p>
+    <p class="quote">"You don't rise to the level of your goals - you fall to the level of your systems."</p>
+    <div class="timing-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      1.1x Timing - Warm, nurturing flow
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Avatar Stage -->
+    <div class="avatar-stage">
+      <div class="avatar-container" id="avatarContainer">
+        <div class="avatar-glow" id="avatarGlow"></div>
+        <div class="comfort-ring ring-1" id="comfortRing1"></div>
+        <div class="comfort-ring ring-2" id="comfortRing2"></div>
+        <div class="comfort-ring ring-3" id="comfortRing3"></div>
+        <svg class="main-avatar" viewBox="0 0 200 200" id="mainAvatar">
+          <defs>
+            <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#b88a7a"/>
+              <stop offset="100%" stop-color="#a67a6a"/>
+            </linearGradient>
+            <clipPath id="eyeClipLeft">
+              <ellipse cx="70" cy="90" rx="20" ry="18"/>
+            </clipPath>
+            <clipPath id="eyeClipRight">
+              <ellipse cx="130" cy="90" rx="20" ry="18"/>
+            </clipPath>
+          </defs>
+
+          <!-- Body -->
+          <g class="avatar-body">
+            <circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/>
+          </g>
+
+          <!-- Eyes Group -->
+          <g class="eyes-group" id="eyesGroup">
+            <!-- Left Eye -->
+            <g clip-path="url(#eyeClipLeft)">
+              <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
+              <circle cx="70" cy="92" r="10" fill="#2c2520" id="pupilLeft"/>
+              <circle cx="73" cy="88" r="3" fill="white" opacity="0.8"/>
+            </g>
+            <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
+
+            <!-- Right Eye -->
+            <g clip-path="url(#eyeClipRight)">
+              <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
+              <circle cx="130" cy="92" r="10" fill="#2c2520" id="pupilRight"/>
+              <circle cx="133" cy="88" r="3" fill="white" opacity="0.8"/>
+            </g>
+            <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
+          </g>
+
+          <!-- Smile -->
+          <path d="M 75,130 Q 100,150 125,130" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.9" id="smile"/>
+        </svg>
+      </div>
+
+      <div class="stage-controls">
+        <div class="current-expression" id="currentExpression">Neutral</div>
+        <div class="expression-trigger" id="expressionTrigger">Warm, present, ready to support your journey.</div>
+        <div class="micro-demo">
+          <button class="micro-btn" data-micro="comfort">Comfort Pulse</button>
+          <button class="micro-btn" data-micro="recognition">Recognition 88ms</button>
+          <button class="micro-btn" data-micro="warmth">Warmth 110ms</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Profile -->
+    <div class="profile-section">
+      <h3 class="section-title">Animation Profile</h3>
+      <div class="profile-grid">
+        <div class="profile-item">
+          <div class="profile-value">1.1x</div>
+          <div class="profile-label">Timing Multiplier</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">Gentle</div>
+          <div class="profile-label">Easing Curve</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">Coral</div>
+          <div class="profile-label">Primary Glow</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-value">3 Rings</div>
+          <div class="profile-label">Signature Effect</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expressions -->
+    <h3 class="section-title">Maya's Expressions</h3>
+    <div class="expression-grid" id="expressionGrid">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Traits -->
+    <h3 class="section-title">Character Traits</h3>
+    <div class="traits-grid">
+      <div class="trait-card">
+        <h3>Signature Move</h3>
+        <p>Comfort Pulse - three expanding rings of warmth when celebrating even the tiniest win. Because every step counts.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Core Philosophy</h3>
+        <p>"What's the smallest version of this we could try?" Start so small it's almost silly. Build gradually.</p>
+      </div>
+      <div class="trait-card">
+        <h3>Superpower</h3>
+        <p>Remembers every habit attempt, every slip, every comeback. Sees patterns across weeks and months that humans would miss.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Maya's expressions - nurturing, celebratory, patient
+    const EXPRESSIONS = [
+      { name: 'Neutral', trigger: 'Warm, present, ready to support', lid: 'M 50,72 Q 70,72 90,72', glow: 'terracotta' },
+      { name: 'Celebrating', trigger: 'Any win, no matter how small', lid: 'M 50,82 Q 70,88 90,82', glow: 'golden', signature: true },
+      { name: 'Encouraging', trigger: 'User needs gentle push', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm' },
+      { name: 'Patient', trigger: 'Waiting, no judgment', lid: 'M 50,74 Q 70,74 90,74', glow: 'terracotta' },
+      { name: 'Listening', trigger: 'User sharing struggles', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective' },
+      { name: 'Proud', trigger: 'Recognizing user growth', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden' },
+      { name: 'Concerned', trigger: 'Detecting slip patterns', lid: 'M 50,70 Q 70,66 90,70', glow: 'protective' },
+      { name: 'Understanding', trigger: 'Holding space for setbacks', lid: 'M 50,74 Q 70,72 90,74', glow: 'terracotta' },
+      { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'warm' },
+      { name: 'Curious', trigger: 'Learning about habits', lid: 'M 50,70 Q 70,66 90,70', glow: 'terracotta' },
+      { name: 'Holding', trigger: 'User in difficulty', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective' },
+      { name: 'Playful', trigger: 'Habit streak celebration', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm' }
+    ];
+
+    const GLOW_COLORS = {
+      terracotta: 'rgba(166, 122, 106, 0.5)',
+      golden: 'rgba(196, 162, 101, 0.5)',
+      warm: 'rgba(184, 138, 122, 0.5)',
+      protective: 'rgba(138, 99, 90, 0.5)'
+    };
+
+    // DOM refs
+    const avatarGlow = document.getElementById('avatarGlow');
+    const lidLeft = document.getElementById('lidLeft');
+    const lidRight = document.getElementById('lidRight');
+    const currentExpressionEl = document.getElementById('currentExpression');
+    const expressionTriggerEl = document.getElementById('expressionTrigger');
+    const expressionGrid = document.getElementById('expressionGrid');
+    const comfortRings = [
+      document.getElementById('comfortRing1'),
+      document.getElementById('comfortRing2'),
+      document.getElementById('comfortRing3')
+    ];
+
+    // Build expression buttons
+    function buildExpressionGrid() {
+      EXPRESSIONS.forEach((expr, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'expression-btn' + (i === 0 ? ' active' : '');
+        btn.textContent = expr.name;
+        btn.addEventListener('click', () => setExpression(expr, btn));
+        expressionGrid.appendChild(btn);
+      });
+    }
+
+    // Set expression
+    function setExpression(expr, btn) {
+      // Update buttons
+      document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      // Update lid positions (scaled for main avatar coordinates)
+      lidLeft.setAttribute('d', expr.lid);
+      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+
+      // Update glow
+      avatarGlow.style.background = GLOW_COLORS[expr.glow];
+
+      // Update text
+      currentExpressionEl.textContent = expr.name;
+      expressionTriggerEl.textContent = expr.trigger;
+
+      // Play signature animation for Celebrating
+      if (expr.signature) {
+        playComfortPulse();
+      }
+    }
+
+    // Play comfort pulse (Maya's signature)
+    function playComfortPulse() {
+      comfortRings.forEach(ring => {
+        ring.classList.remove('active');
+        void ring.offsetWidth; // Trigger reflow
+        ring.classList.add('active');
+      });
+
+      // Remove class after animation
+      setTimeout(() => {
+        comfortRings.forEach(ring => ring.classList.remove('active'));
+      }, 1200);
+    }
+
+    // Micro-expression handlers
+    document.querySelectorAll('.micro-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.micro;
+        if (type === 'comfort') {
+          playComfortPulse();
+        } else if (type === 'recognition') {
+          playMicroExpression('M 50,78 Q 70,82 90,78', 'golden', 88);
+        } else if (type === 'warmth') {
+          playMicroExpression('M 50,80 Q 70,84 90,80', 'warm', 110);
+        }
+      });
+    });
+
+    // Play micro-expression
+    function playMicroExpression(lid, glow, duration) {
+      const currentLid = lidLeft.getAttribute('d');
+      const currentGlow = avatarGlow.style.background;
+
+      lidLeft.setAttribute('d', lid);
+      lidRight.setAttribute('d', lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[glow];
+      avatarGlow.style.opacity = '0.9';
+
+      setTimeout(() => {
+        lidLeft.setAttribute('d', currentLid);
+        lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+        avatarGlow.style.background = currentGlow;
+        avatarGlow.style.opacity = '0.6';
+      }, duration);
+    }
+
+    // Initialize
+    buildExpressionGrid();
+  </script>
+</body>
+</html>

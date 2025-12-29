@@ -28,6 +28,17 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 
+// BTH Validation Telemetry
+import {
+  instrumentCommitmentDetection,
+  instrumentCrisisDetection,
+  instrumentSubtextDetection,
+  instrumentPatternSurfacing,
+  instrumentVoiceBiomarkers,
+  instrumentEmotionalVocabulary,
+  trackCapabilityOutcome,
+} from '../../services/bth-validation/instrumentation.js';
+
 // Silence Interpreter
 import {
   analyzeSilence,
@@ -82,6 +93,13 @@ import {
   buildAmbientContext,
   type AmbientContext,
 } from '../../services/trust-systems/ambient-context.js';
+
+// Resonance Check (Voice-Enabled Feedback)
+import { generateResonanceCheck } from '../../speech/llm-backchannel.js';
+import {
+  trackCapabilityEffectiveness,
+  type SuperhumanCapability,
+} from '../../conversation/superhuman/analytics.js';
 
 // ============================================================================
 // V2 "BETTER THAN HUMAN" IMPORTS (Dec 2025)
@@ -509,6 +527,17 @@ export async function processTranscriptForBetterThanHuman(
         vulnerabilityResult.suggestedAcknowledgment
       );
 
+      // BTH Validation: Track crisis/vulnerability detection
+      // High vulnerability levels map to crisis detection capability
+      if (vulnerabilityResult.vulnerabilityLevel >= 0.7) {
+        instrumentCrisisDetection(ctx.userId, ctx.sessionId, input.transcript, {
+          detected: true,
+          severity: vulnerabilityResult.vulnerabilityLevel >= 0.9 ? 'high' : 'medium',
+          signals: [vulnerabilityResult.topic || 'vulnerability_share'],
+          confidence: vulnerabilityResult.vulnerabilityLevel,
+        });
+      }
+
       diag.state('💎 First-time vulnerability detected', {
         category: vulnerabilityResult.topic,
         level: vulnerabilityResult.vulnerabilityLevel,
@@ -533,6 +562,14 @@ export async function processTranscriptForBetterThanHuman(
         emotions: [...contradictionResult.emotions],
       };
 
+      // BTH Validation: Track subtext detection (emotional contradictions)
+      instrumentSubtextDetection(ctx.userId, ctx.sessionId, input.transcript, {
+        detected: true,
+        subtext: `Feeling both ${contradictionResult.emotions.join(' and ')}`,
+        emotionalUndercurrent: 'emotional_contradiction',
+        confidence: 0.8,
+      });
+
       // Record the contradiction for learning (use validation phrase from result)
       recordContradiction(
         ctx.userId,
@@ -550,6 +587,15 @@ export async function processTranscriptForBetterThanHuman(
     const patternInsight = getPatternToSurface(ctx.userId);
     if (patternInsight) {
       result.patterns = { insights: [patternInsight.insight] };
+
+      // BTH Validation: Track pattern surfacing
+      instrumentPatternSurfacing(ctx.userId, ctx.sessionId, {
+        patternType: patternInsight.type,
+        description: patternInsight.insight,
+        confidence: 0.75,
+        surfacedToUser: true,
+      });
+
       diag.state('🪞 Pattern insight available', {
         type: patternInsight.type,
         insight: patternInsight.insight.slice(0, 50),
@@ -674,6 +720,18 @@ export async function processVoiceBiomarkers(
     // Store reading for trend analysis
     await storeBiomarkerReading(userId, sessionId, biomarkers, input);
 
+    // BTH Validation: Track voice biomarker analysis
+    // Map VoiceBiomarkers to the BTH instrumentation shape
+    const concernLevel = Math.max(biomarkers.fatigueLevel, biomarkers.illnessRisk);
+    if (concernLevel > 0.4) {
+      instrumentVoiceBiomarkers(userId, sessionId, {
+        strain: biomarkers.fatigueLevel,
+        speechRate: input.speechRate,
+        pauseFrequency: biomarkers.fatigueLevel > 0.7 ? 0.8 : 0.3,
+        overallConcern: concernLevel,
+      });
+    }
+
     // Check if stress is rising
     if (biomarkers.stressTrajectory === 'rising' || biomarkers.fatigueLevel > 0.7) {
       diag.state('🩺 Voice biomarkers indicate concern', {
@@ -707,10 +765,19 @@ export async function recordConversationMood(
     | 'exhausted'
     | 'hopeful',
   intensity: number,
-  context?: string
+  context?: string,
+  sessionId?: string
 ): Promise<void> {
   try {
     await recordMoodEntry(userId, mood, intensity, context);
+
+    // BTH Validation: Track emotional vocabulary usage
+    if (sessionId) {
+      // Track when user expresses nuanced emotions
+      const suggestedVocabulary = intensity > 0.7 ? ['nuanced_emotion', mood] : [mood];
+      instrumentEmotionalVocabulary(userId, sessionId, context || mood, suggestedVocabulary);
+    }
+
     diag.state('😊 Mood recorded', { mood, intensity });
   } catch (error) {
     log.debug({ error }, 'Mood recording failed');
@@ -975,7 +1042,8 @@ export function detectSharedMoment(
 export async function processCommitmentDetection(
   userId: string,
   transcript: string,
-  topic?: string
+  topic?: string,
+  sessionId?: string
 ): Promise<CommitmentDetectionResult | null> {
   if (!userId || !transcript) return null;
 
@@ -996,6 +1064,11 @@ export async function processCommitmentDetection(
       };
       await saveCommitment(fullCommitment);
 
+      // BTH Validation: Track commitment detection
+      if (sessionId) {
+        instrumentCommitmentDetection(userId, sessionId, transcript, result);
+      }
+
       diag.state('📝 Commitment detected', {
         type: result.commitment.type,
         summary: result.commitment.summary?.slice(0, 50),
@@ -1013,9 +1086,7 @@ export async function processCommitmentDetection(
 /**
  * Get follow-ups that should be surfaced this session
  */
-export async function getCommitmentFollowUps(
-  userId: string
-): Promise<CommitmentFollowUp[]> {
+export async function getCommitmentFollowUps(userId: string): Promise<CommitmentFollowUp[]> {
   try {
     return await getFollowUpsForUser(userId);
   } catch (error) {
@@ -1368,16 +1439,23 @@ export async function processOriginal10ForTurn(
 
   try {
     // Run all detections in parallel for performance
-    const [commitmentRes, energyRes, valuesRes, dreamRes, narrativeRes, relationshipRes, seasonalRes] =
-      await Promise.allSettled([
-        processCommitmentDetection(userId, transcript, options?.topic),
-        processEnergyDetection(userId, sessionId, transcript, options?.voiceSignals),
-        processValuesDetection(userId, transcript, options?.topic),
-        processDreamDetection(userId, transcript),
-        processNarrativeMoment(userId, transcript, options?.emotion),
-        processRelationshipMention(userId, transcript, options?.emotion),
-        processSeasonalAwareness(userId, transcript),
-      ]);
+    const [
+      commitmentRes,
+      energyRes,
+      valuesRes,
+      dreamRes,
+      narrativeRes,
+      relationshipRes,
+      seasonalRes,
+    ] = await Promise.allSettled([
+      processCommitmentDetection(userId, transcript, options?.topic, sessionId),
+      processEnergyDetection(userId, sessionId, transcript, options?.voiceSignals),
+      processValuesDetection(userId, transcript, options?.topic),
+      processDreamDetection(userId, transcript),
+      processNarrativeMoment(userId, transcript, options?.emotion),
+      processRelationshipMention(userId, transcript, options?.emotion),
+      processSeasonalAwareness(userId, transcript),
+    ]);
 
     // Extract successful results
     if (commitmentRes.status === 'fulfilled' && commitmentRes.value) {
@@ -1413,12 +1491,6 @@ export async function processOriginal10ForTurn(
 // RESONANCE CHECK INTEGRATION (Voice-Enabled Feedback)
 // ============================================================================
 
-import { generateResonanceCheck } from '../../speech/llm-backchannel.js';
-import {
-  trackCapabilityEffectiveness,
-  type SuperhumanCapability,
-} from '../../conversation/superhuman/analytics.js';
-
 /**
  * Session-scoped resonance check queue
  * Tracks which superhuman capabilities have been surfaced and need feedback
@@ -1432,6 +1504,80 @@ interface ResonanceQueueItem {
 }
 
 const resonanceQueues = new Map<string, ResonanceQueueItem[]>();
+
+/**
+ * Tracks which capability is awaiting a user response after "Does that track?"
+ * Key: sessionId, Value: { capability, turnAsked, userId }
+ */
+interface PendingResonanceResponse {
+  capability: SuperhumanCapability;
+  turnAsked: number;
+  insight: string;
+}
+
+const pendingResponseChecks = new Map<string, PendingResonanceResponse>();
+
+/**
+ * Get the pending resonance response for a session (if any)
+ * Returns the capability we asked about and clears it
+ */
+export function getPendingResonanceCheck(sessionId: string): PendingResonanceResponse | null {
+  const pending = pendingResponseChecks.get(sessionId);
+  if (pending) {
+    pendingResponseChecks.delete(sessionId);
+    return pending;
+  }
+  return null;
+}
+
+/**
+ * Check if there's a pending resonance response and process the user's transcript
+ * This is called at the START of each turn to see if the user is responding to "Does that track?"
+ */
+export function processUserResponseForResonance(
+  sessionId: string,
+  userId: string,
+  userTranscript: string,
+  currentTurn: number
+): {
+  processed: boolean;
+  capability?: SuperhumanCapability;
+  reaction?: 'positive' | 'neutral' | 'negative';
+} {
+  const pending = pendingResponseChecks.get(sessionId);
+
+  // Only process if there was a pending check from the previous turn
+  if (!pending || currentTurn !== pending.turnAsked + 1) {
+    return { processed: false };
+  }
+
+  // Clear the pending check
+  pendingResponseChecks.delete(sessionId);
+
+  // Classify the user's response
+  const reaction = classifyResonanceResponse(userTranscript);
+
+  // Record the response
+  recordResonanceResponse(
+    sessionId,
+    userId,
+    pending.capability,
+    reaction,
+    reaction === 'positive' // Assume positive = engagement increase
+  );
+
+  log.info(
+    {
+      sessionId,
+      capability: pending.capability,
+      reaction,
+      transcript: userTranscript.slice(0, 50),
+    },
+    '📊 Resonance response recorded'
+  );
+
+  return { processed: true, capability: pending.capability, reaction };
+}
 
 /**
  * Queue a resonance check after a superhuman insight is surfaced
@@ -1482,9 +1628,7 @@ export function getNextResonanceCheck(
   }
 
   // Find oldest unchecked item that's at least 1 turn old
-  const readyItem = queue.find(
-    (item) => !item.checked && currentTurn > item.turnNumber
-  );
+  const readyItem = queue.find((item) => !item.checked && currentTurn > item.turnNumber);
 
   if (!readyItem) {
     return { shouldCheck: false };
@@ -1500,6 +1644,19 @@ export function getNextResonanceCheck(
 
   if (result.shouldTrigger) {
     readyItem.checked = true;
+
+    // Store that we're awaiting a response for this capability
+    pendingResponseChecks.set(sessionId, {
+      capability: readyItem.capability,
+      turnAsked: currentTurn,
+      insight: readyItem.insight,
+    });
+
+    log.debug(
+      { sessionId, capability: readyItem.capability, turnAsked: currentTurn },
+      'Set pending resonance response'
+    );
+
     return {
       shouldCheck: true,
       instructions: result.instructions,
@@ -1530,10 +1687,7 @@ export function recordResonanceResponse(
     engagementIncrease,
   });
 
-  log.info(
-    { sessionId, capability, reaction, engagementIncrease },
-    'Recorded resonance response'
-  );
+  log.info({ sessionId, capability, reaction, engagementIncrease }, 'Recorded resonance response');
 
   diag.state('📊 Resonance feedback recorded', {
     capability,
@@ -1585,6 +1739,7 @@ export function classifyResonanceResponse(transcript: string): 'positive' | 'neu
  */
 export function cleanupResonanceQueue(sessionId: string): void {
   resonanceQueues.delete(sessionId);
+  pendingResponseChecks.delete(sessionId);
   log.debug({ sessionId }, 'Cleaned up resonance queue');
 }
 
@@ -1670,4 +1825,13 @@ export const betterThanHumanIntegration = {
 
   // Inside Jokes
   detectSharedMoment,
+
+  // === Resonance Check (Voice-Enabled Feedback) ===
+  queueResonanceCheck,
+  getNextResonanceCheck,
+  recordResonanceResponse,
+  classifyResonanceResponse,
+  cleanupResonanceQueue,
+  getPendingResonanceCheck,
+  processUserResponseForResonance,
 };

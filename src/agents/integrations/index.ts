@@ -71,3 +71,28 @@ export {
   type TurnObservation,
   type PredictiveIntelligenceResult,
 } from './predictive-intelligence-integration.js';
+
+// Speech Orchestrator Integration
+export {
+  enableSpeechOrchestrator,
+  disableSpeechOrchestrator,
+  isOrchestratorEnabled,
+  initializeSpeechOrchestrator,
+  cleanupSpeechOrchestrator,
+  humanizeWithOrchestrator,
+  processAnticipation,
+  getMicroReaction,
+  getBackchannelDecision,
+  signalNewTurn,
+  type OrchestratorHumanizeContext,
+  type OrchestratorResult,
+  type AnticipationInput,
+} from './speech-orchestrator-integration.js';
+
+// Live Backchanneling Integration
+export {
+  initializeLiveBackchanneling,
+  type LiveBackchannelConfig,
+  type LiveBackchannelState,
+  type LiveBackchannelIntegration,
+} from './live-backchanneling-integration.js';

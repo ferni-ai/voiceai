@@ -34,6 +34,8 @@ targets:
         type: group
       - path: FerniVoice
         type: group
+      - path: FerniCarPlay
+        type: group
     dependencies:
       - package: LiveKit
         product: LiveKit
@@ -45,6 +47,9 @@ targets:
         product: FirebaseCore
       - target: FerniWidgets
         embed: true
+      - target: FerniShareExtension
+        embed: true
+      - framework: CarPlay.framework
     resources:
       - path: FerniVoice/Assets.xcassets
       - path: FerniVoice/LaunchScreen.storyboard
@@ -59,6 +64,14 @@ targets:
           - audio
           - voip
           - fetch
+          - processing
+        # CarPlay scene configuration
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneConfigurationName: CarPlay Configuration
+                UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).FerniCarPlaySceneDelegate
         # Core permissions
         NSMicrophoneUsageDescription: Ferni needs microphone access for voice conversations with your AI team.
         # HealthKit - wellness insights
@@ -196,6 +209,29 @@ targets:
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
+  # MARK: - Share Extension
+
+  FerniShareExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: FerniShareExtension
+        type: group
+    info:
+      path: FerniShareExtension/Info.plist
+    entitlements:
+      path: FerniShareExtension/FerniShareExtension.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.share
+        INFOPLIST_FILE: FerniShareExtension/Info.plist
+        SWIFT_EMIT_LOC_STRINGS: YES
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        GENERATE_INFOPLIST_FILE: NO
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "1.0.0"
+
 schemes:
   FerniVoice:
     build:
@@ -236,6 +272,20 @@ schemes:
         FerniWatchWidgets: all
     run:
       config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+  FerniShareExtension:
+    build:
+      targets:
+        FerniShareExtension: all
+    run:
+      config: Debug
+      askForAppToLaunch: true
     profile:
       config: Release
     analyze:

@@ -134,10 +134,17 @@ function isEngagementRelevant(input: ContextBuilderInput): boolean {
 
 /**
  * Fast-path: Detect if team/handoff is relevant
+ *
+ * PROACTIVE CROSS-PERSONA: Now also triggers for topics where other personas
+ * have relevant insights, enabling the "six minds working together" promise.
  */
 function isTeamRelevant(input: ContextBuilderInput): boolean {
   const text = input.userText?.toLowerCase() || '';
-  return (
+  const topics = input.analysis?.topics?.detected || [];
+  const turnCount = input.userData?.turnCount || 1;
+
+  // Explicit handoff requests
+  if (
     text.includes('talk to') ||
     text.includes('switch to') ||
     text.includes('peter') ||
@@ -146,7 +153,68 @@ function isTeamRelevant(input: ContextBuilderInput): boolean {
     text.includes('jordan') ||
     text.includes('nayan') ||
     input.analysis?.intent?.primary === 'handoff_request'
+  ) {
+    return true;
+  }
+
+  // PROACTIVE: Topics where cross-persona insights are valuable
+  // Peter's domain: finance, stocks, money, investing, budget
+  // Maya's domain: habits, routines, productivity, self-care, wellness
+  // Jordan's domain: goals, milestones, planning, career, future
+  // Alex's domain: relationships, communication, calendar, meetings
+  // Nayan's domain: meaning, purpose, values, life, wisdom
+  const crossDomainTopics = [
+    // Peter-relevant
+    'money',
+    'budget',
+    'spending',
+    'savings',
+    'invest',
+    'financial',
+    'stock',
+    // Maya-relevant
+    'habit',
+    'routine',
+    'productivity',
+    'exercise',
+    'sleep',
+    'wellness',
+    'health',
+    // Jordan-relevant
+    'goal',
+    'plan',
+    'career',
+    'future',
+    'milestone',
+    'dream',
+    'aspiration',
+    // Alex-relevant
+    'relationship',
+    'friend',
+    'family',
+    'meeting',
+    'schedule',
+    'calendar',
+    'communicate',
+    // Nayan-relevant
+    'meaning',
+    'purpose',
+    'value',
+    'life',
+    'wisdom',
+    'philosophy',
+    'spiritual',
+  ];
+
+  const hasRelevantTopic = crossDomainTopics.some(
+    (topic) => text.includes(topic) || topics.some((t) => t.toLowerCase().includes(topic))
   );
+
+  // PROACTIVE: Load team insights periodically every 5 turns
+  // This allows personas to proactively share relevant insights
+  const periodicTeamCheck = turnCount > 0 && turnCount % 5 === 0;
+
+  return hasRelevantTopic || periodicTeamCheck;
 }
 
 // ============================================================================

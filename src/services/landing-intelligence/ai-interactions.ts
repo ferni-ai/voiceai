@@ -16,53 +16,26 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'LandingAIInteractions' });
 
 // ============================================================================
-// DYNAMIC GEMINI SDK LOADING (Optional dependency)
+// GEMINI CONFIG (uses centralized config)
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let GoogleGenerativeAI: any;
-let sdkLoaded = false;
-let sdkLoadPromise: Promise<boolean> | null = null;
-
-async function loadGeminiSDK(): Promise<boolean> {
-  if (sdkLoaded) return !!GoogleGenerativeAI;
-  if (sdkLoadPromise) return sdkLoadPromise;
-
-  sdkLoadPromise = (async () => {
-    try {
-      // Use Function constructor to avoid TypeScript static analysis
-      const importFn = new Function('specifier', 'return import(specifier)');
-      const module = await importFn('@google/generative-ai');
-      GoogleGenerativeAI = module.GoogleGenerativeAI;
-      sdkLoaded = true;
-      return true;
-    } catch {
-      log.warn('Gemini SDK not available - AI features will use fallbacks');
-      sdkLoaded = true;
-      return false;
-    }
-  })();
-
-  return sdkLoadPromise;
-}
+import {
+  getGeminiClient,
+  isGeminiConfigured,
+  getDefaultModel,
+} from '../../config/gemini-config.js';
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURATION (model name from gemini-config.ts)
 // ============================================================================
 
-// Use gemini-1.5-flash-latest for availability
-const MODEL_NAME = 'gemini-1.5-flash-latest';
+// Model name comes from centralized config (GEMINI_MODEL env var)
+const MODEL_NAME = getDefaultModel();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getGenAI(): Promise<any | null> {
-  const loaded = await loadGeminiSDK();
-  if (!loaded || !GoogleGenerativeAI) return null;
-
-  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) return null;
-
-  return new GoogleGenerativeAI(apiKey);
+  if (!isGeminiConfigured()) return null;
+  return getGeminiClient();
 }
 
 // Rate limiting for demo chat (per visitor)

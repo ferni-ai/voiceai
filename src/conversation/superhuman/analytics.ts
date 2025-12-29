@@ -104,7 +104,25 @@ export interface CapabilityStats {
 }
 
 // ============================================================================
-// IN-MEMORY STORAGE (For development - production should use proper analytics)
+// PERSISTENCE LAYER
+// ============================================================================
+
+import {
+  persistUsageEvent,
+  persistEffectivenessEvent,
+  getPersistedCapabilityStats,
+  getTopCapabilities as getTopCapabilitiesFromDb,
+  getUserFeedbackHistory,
+  getEffectivenessTrend,
+  updateAggregates,
+} from './analytics-persistence.js';
+
+// Re-export persistence functions for external use
+export { getUserFeedbackHistory, getEffectivenessTrend, updateAggregates };
+
+// ============================================================================
+// IN-MEMORY STORAGE (Backup + Fast Access)
+// Falls back to Firestore for durability
 // ============================================================================
 
 const usageEvents: CapabilityUsageEvent[] = [];
@@ -128,6 +146,7 @@ function pruneEvents(): void {
 
 /**
  * Track when a capability is used
+ * Persists to both in-memory (fast) and Firestore (durable)
  */
 export function trackCapabilityUsage(event: Omit<CapabilityUsageEvent, 'timestamp'>): void {
   const fullEvent: CapabilityUsageEvent = {
@@ -135,8 +154,14 @@ export function trackCapabilityUsage(event: Omit<CapabilityUsageEvent, 'timestam
     timestamp: new Date(),
   };
 
+  // In-memory for fast access
   usageEvents.push(fullEvent);
   pruneEvents();
+
+  // Persist to Firestore (fire-and-forget, don't block)
+  persistUsageEvent(fullEvent).catch((e) => {
+    logger.debug({ error: String(e) }, 'Failed to persist usage event');
+  });
 
   logger.debug(
     {
@@ -151,17 +176,25 @@ export function trackCapabilityUsage(event: Omit<CapabilityUsageEvent, 'timestam
 
 /**
  * Track user reaction to a capability
+ * Persists to both in-memory (fast) and Firestore (durable)
  */
 export function trackCapabilityEffectiveness(
-  event: Omit<CapabilityEffectivenessEvent, 'timestamp'>
+  event: Omit<CapabilityEffectivenessEvent, 'timestamp'>,
+  context?: { insight?: string; userTranscript?: string }
 ): void {
   const fullEvent: CapabilityEffectivenessEvent = {
     ...event,
     timestamp: new Date(),
   };
 
+  // In-memory for fast access
   effectivenessEvents.push(fullEvent);
   pruneEvents();
+
+  // Persist to Firestore (fire-and-forget, don't block)
+  persistEffectivenessEvent(fullEvent, context).catch((e) => {
+    logger.debug({ error: String(e) }, 'Failed to persist effectiveness event');
+  });
 
   logger.debug(
     {

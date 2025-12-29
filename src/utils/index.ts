@@ -183,9 +183,22 @@ export {
   clearAllMetrics,
   logMetricsSummary,
   METRICS,
+  // GC pressure metrics (for Rust migration baseline)
+  gcTrackStart,
+  gcTrackEnd,
+  gcTrackAsync,
+  gcTrackSync,
+  getGcPressureSummary,
+  getAllGcPressureSummaries,
+  logGcPressureSummary,
+  clearGcMetrics,
+  GC_METRICS,
   type MetricSample,
   type MetricSummary,
   type MetricName,
+  type GcSample,
+  type GcPressureSummary,
+  type GcMetricName,
 } from './performance-metrics.js';
 
 // ============================================================================

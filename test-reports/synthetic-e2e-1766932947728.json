@@ -1,0 +1,913 @@
+{
+  "timestamp": "2025-12-28T14:42:27.726Z",
+  "environment": "local",
+  "summary": {
+    "total": 35,
+    "passed": 27,
+    "failed": 8,
+    "byCategory": {
+      "weather": {
+        "passed": 4,
+        "failed": 0
+      },
+      "music": {
+        "passed": 4,
+        "failed": 0
+      },
+      "storage": {
+        "passed": 7,
+        "failed": 0
+      },
+      "retrieve": {
+        "passed": 4,
+        "failed": 1
+      },
+      "memory": {
+        "passed": 0,
+        "failed": 4
+      },
+      "predict": {
+        "passed": 4,
+        "failed": 1
+      },
+      "backchannel": {
+        "passed": 1,
+        "failed": 2
+      },
+      "handoff": {
+        "passed": 3,
+        "failed": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "testId": "weather-explicit-city",
+      "category": "weather",
+      "passed": true,
+      "routing": {
+        "expectedTool": "getWeather",
+        "actualTool": "getWeather",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "location": "San Francisco",
+          "temperature": 42,
+          "unit": "F",
+          "humidity": 83,
+          "windSpeed": 2,
+          "condition": "Mainly clear",
+          "source": "open-meteo"
+        },
+        "validation": {
+          "valid": true,
+          "message": "Weather data valid",
+          "details": {
+            "location": "San Francisco",
+            "temperature": 42,
+            "unit": "F",
+            "humidity": 83,
+            "windSpeed": 2,
+            "condition": "Mainly clear",
+            "source": "open-meteo"
+          }
+        },
+        "durationMs": 6918
+      },
+      "latencyMs": 647
+    },
+    {
+      "testId": "weather-national-park",
+      "category": "weather",
+      "passed": true,
+      "routing": {
+        "expectedTool": "getWeather",
+        "actualTool": "getWeather",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "location": "Zion Lodge",
+          "temperature": 37,
+          "unit": "F",
+          "humidity": 54,
+          "windSpeed": 11,
+          "condition": "Clear sky",
+          "source": "open-meteo"
+        },
+        "validation": {
+          "valid": true,
+          "message": "Temperature 37°F is reasonable",
+          "details": {
+            "temperature": 37
+          }
+        },
+        "durationMs": 9964
+      },
+      "latencyMs": 2869
+    },
+    {
+      "testId": "weather-implicit",
+      "category": "weather",
+      "passed": true,
+      "routing": {
+        "expectedTool": "getWeather",
+        "actualTool": "getWeather",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "location": "Chicago",
+          "temperature": 52,
+          "unit": "F",
+          "humidity": 97,
+          "windSpeed": 8,
+          "condition": "Slight rain",
+          "source": "open-meteo"
+        },
+        "validation": null,
+        "durationMs": 368
+      },
+      "latencyMs": 535
+    },
+    {
+      "testId": "weather-planning",
+      "category": "weather",
+      "passed": true,
+      "routing": {
+        "expectedTool": "getWeather",
+        "actualTool": "getWeather",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "location": "Denver",
+          "temperature": 12,
+          "unit": "F",
+          "humidity": 80,
+          "windSpeed": 11,
+          "condition": "Mainly clear",
+          "source": "open-meteo"
+        },
+        "validation": null,
+        "durationMs": 1558
+      },
+      "latencyMs": 5641
+    },
+    {
+      "testId": "music-explicit-genre",
+      "category": "music",
+      "passed": true,
+      "routing": {
+        "expectedTool": "playMusic",
+        "actualTool": "playMusic",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "status": "playing",
+          "query": "jazz music",
+          "message": "Now playing: jazz music",
+          "simulated": true
+        },
+        "validation": {
+          "valid": true,
+          "message": "Music may not have started",
+          "details": {
+            "status": "playing",
+            "query": "jazz music",
+            "message": "Now playing: jazz music",
+            "simulated": true
+          }
+        },
+        "durationMs": 0
+      },
+      "latencyMs": 4484
+    },
+    {
+      "testId": "music-explicit-artist",
+      "category": "music",
+      "passed": true,
+      "routing": {
+        "expectedTool": "playMusic",
+        "actualTool": "playMusic",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "status": "playing",
+          "query": "Taylor Swift",
+          "message": "Now playing: Taylor Swift",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5918
+    },
+    {
+      "testId": "music-mood",
+      "category": "music",
+      "passed": true,
+      "routing": {
+        "expectedTool": "playMusic",
+        "actualTool": "playMusic",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "status": "playing",
+          "query": "relaxing music",
+          "message": "Now playing: relaxing music",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6071
+    },
+    {
+      "testId": "music-specific-song",
+      "category": "music",
+      "passed": true,
+      "routing": {
+        "expectedTool": "playMusic",
+        "actualTool": "playMusic",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "status": "playing",
+          "query": "Bohemian Rhapsody by Queen",
+          "message": "Now playing: Bohemian Rhapsody by Queen",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5941
+    },
+    {
+      "testId": "storage-explicit-preference",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "I love hiking",
+          "category": "preferences",
+          "importance": "medium",
+          "timestamp": "2025-12-28T14:39:51.947Z",
+          "totalMemories": 1,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 2
+      },
+      "latencyMs": 6197
+    },
+    {
+      "testId": "storage-explicit-goal",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "My goal is to run a marathon this year",
+          "category": "goals",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:39:58.814Z",
+          "totalMemories": 2,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6865
+    },
+    {
+      "testId": "storage-implicit-life-event",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "Got engaged last week",
+          "category": "life_events",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:40:03.878Z",
+          "totalMemories": 3,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5064
+    },
+    {
+      "testId": "storage-implicit-job",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "Got a promotion",
+          "category": "life_events",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:40:09.801Z",
+          "totalMemories": 4,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5923
+    },
+    {
+      "testId": "storage-implicit-preference",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "Loves coffee and needs it to start the day",
+          "category": "preferences",
+          "importance": "medium",
+          "timestamp": "2025-12-28T14:40:15.930Z",
+          "totalMemories": 5,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6129
+    },
+    {
+      "testId": "storage-relationship",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "Sarah is the user's sister and best friend. They talk every day.",
+          "category": "relationships",
+          "importance": "medium",
+          "timestamp": "2025-12-28T14:40:21.930Z",
+          "totalMemories": 6,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6000
+    },
+    {
+      "testId": "storage-challenge",
+      "category": "storage",
+      "passed": true,
+      "routing": {
+        "expectedTool": "rememberAboutUser",
+        "actualTool": "rememberAboutUser",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "struggling with insomnia",
+          "category": "challenges",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:40:27.849Z",
+          "totalMemories": 7,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5919
+    },
+    {
+      "testId": "retrieve-explicit-what-remember",
+      "category": "retrieve",
+      "passed": true,
+      "routing": {
+        "expectedTool": "recallFromMemory",
+        "actualTool": "recallFromMemory",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "found": true,
+          "query": "user",
+          "category": "all",
+          "memories": [
+            {
+              "fact": "Sarah is the user's sister and best friend. They talk every day.",
+              "category": "relationships",
+              "importance": "medium",
+              "timestamp": "2025-12-28T14:40:21.930Z"
+            }
+          ],
+          "totalSearched": 7,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6492
+    },
+    {
+      "testId": "retrieve-explicit-reference",
+      "category": "retrieve",
+      "passed": true,
+      "routing": {
+        "expectedTool": "recallFromMemory",
+        "actualTool": "recallFromMemory",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "found": true,
+          "query": "sister",
+          "category": "all",
+          "memories": [
+            {
+              "fact": "Sarah is the user's sister and best friend. They talk every day.",
+              "category": "relationships",
+              "importance": "medium",
+              "timestamp": "2025-12-28T14:40:21.930Z"
+            }
+          ],
+          "totalSearched": 7,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5435
+    },
+    {
+      "testId": "retrieve-goal-progress",
+      "category": "retrieve",
+      "passed": false,
+      "routing": {
+        "expectedTool": "recallFromMemory",
+        "actualTool": "handoffToMaya",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "latencyMs": 6007
+    },
+    {
+      "testId": "retrieve-preference-check",
+      "category": "retrieve",
+      "passed": true,
+      "routing": {
+        "expectedTool": "recallFromMemory",
+        "actualTool": "recallFromMemory",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "found": false,
+          "query": "favorite things to do",
+          "category": "preferences",
+          "memories": [],
+          "totalSearched": 7,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6075
+    },
+    {
+      "testId": "retrieve-recent-events",
+      "category": "retrieve",
+      "passed": true,
+      "routing": {
+        "expectedTool": "recallFromMemory",
+        "actualTool": "recallFromMemory",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "found": false,
+          "query": "big things",
+          "category": "life_events",
+          "memories": [],
+          "totalSearched": 7,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5954
+    },
+    {
+      "testId": "memory-context-surface",
+      "category": "memory",
+      "passed": false,
+      "routing": {
+        "expectedTool": "surfaceRelevantMemory",
+        "actualTool": "rememberAboutUser",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "User is seeing their sister this weekend",
+          "category": "life_events",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:41:03.901Z",
+          "totalMemories": 8,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6089
+    },
+    {
+      "testId": "memory-goal-connection",
+      "category": "memory",
+      "passed": false,
+      "routing": {
+        "expectedTool": "surfaceRelevantMemory",
+        "actualTool": "rememberAboutUser",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "User went for a 5k run this morning",
+          "category": "life_events",
+          "importance": "medium",
+          "timestamp": "2025-12-28T14:41:10.005Z",
+          "totalMemories": 9,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6104
+    },
+    {
+      "testId": "memory-challenge-empathy",
+      "category": "memory",
+      "passed": false,
+      "routing": {
+        "expectedTool": "surfaceRelevantMemory",
+        "actualTool": "rememberAboutUser",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "User was up most of the night",
+          "category": "life_events",
+          "importance": "high",
+          "timestamp": "2025-12-28T14:41:15.842Z",
+          "totalMemories": 10,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5837
+    },
+    {
+      "testId": "memory-celebration",
+      "category": "memory",
+      "passed": false,
+      "routing": {
+        "expectedTool": "surfaceRelevantMemory",
+        "actualTool": "predictUserNeed",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "Planning wedding venue visit",
+          "prediction": "Information about weather at the venue location",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:41:21.842Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6000
+    },
+    {
+      "testId": "predict-morning-routine",
+      "category": "predict",
+      "passed": true,
+      "routing": {
+        "expectedTool": "predictUserNeed",
+        "actualTool": "predictUserNeed",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "User just woke up",
+          "prediction": "Get weather for the user's location",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:41:27.994Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6152
+    },
+    {
+      "testId": "predict-upcoming-event",
+      "category": "predict",
+      "passed": true,
+      "routing": {
+        "expectedTool": "predictUserNeed",
+        "actualTool": "predictUserNeed",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "User has a big presentation tomorrow",
+          "prediction": "Help user prepare for the presentation",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:41:33.993Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5999
+    },
+    {
+      "testId": "predict-recurring-pattern",
+      "category": "predict",
+      "passed": true,
+      "routing": {
+        "expectedTool": "predictUserNeed",
+        "actualTool": "predictUserNeed",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "It's Monday",
+          "prediction": "Check weather and schedule for the week.",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:41:39.865Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5872
+    },
+    {
+      "testId": "predict-activity-followup",
+      "category": "predict",
+      "passed": true,
+      "routing": {
+        "expectedTool": "predictUserNeed",
+        "actualTool": "predictUserNeed",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "User finished a long day of meetings",
+          "prediction": "User might want to relax and listen to music.",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:41:45.975Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 6110
+    },
+    {
+      "testId": "predict-goal-check",
+      "category": "predict",
+      "passed": false,
+      "routing": {
+        "expectedTool": "predictUserNeed",
+        "actualTool": "recallFromMemory",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "found": true,
+          "query": "goal",
+          "category": "goals",
+          "memories": [
+            {
+              "fact": "My goal is to run a marathon this year",
+              "category": "goals",
+              "importance": "high",
+              "timestamp": "2025-12-28T14:39:58.814Z"
+            }
+          ],
+          "totalSearched": 10,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5894
+    },
+    {
+      "testId": "backchannel-greeting",
+      "category": "backchannel",
+      "passed": true,
+      "routing": {
+        "expectedTool": "(none)",
+        "actualTool": null,
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "latencyMs": 6505
+    },
+    {
+      "testId": "backchannel-emotional",
+      "category": "backchannel",
+      "passed": false,
+      "routing": {
+        "expectedTool": "(none)",
+        "actualTool": "predictUserNeed",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "predicted": true,
+          "context": "User is feeling down after a hard day.",
+          "prediction": "Offer to play music to help lift their spirits.",
+          "confidence": "medium",
+          "timestamp": "2025-12-28T14:42:04.284Z",
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5910
+    },
+    {
+      "testId": "backchannel-story",
+      "category": "backchannel",
+      "passed": false,
+      "routing": {
+        "expectedTool": "(none)",
+        "actualTool": "rememberAboutUser",
+        "correct": false,
+        "spokeInsteadOfCalling": false
+      },
+      "execution": {
+        "called": true,
+        "result": {
+          "stored": true,
+          "fact": "Went to the beach and had a great time",
+          "category": "life_events",
+          "importance": "medium",
+          "timestamp": "2025-12-28T14:42:09.870Z",
+          "totalMemories": 11,
+          "simulated": true
+        },
+        "validation": null,
+        "durationMs": 0
+      },
+      "latencyMs": 5586
+    },
+    {
+      "testId": "handoff-maya-habits",
+      "category": "handoff",
+      "passed": true,
+      "routing": {
+        "expectedTool": "handoffToMaya",
+        "actualTool": "handoffToMaya",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "latencyMs": 5843
+    },
+    {
+      "testId": "handoff-alex-email",
+      "category": "handoff",
+      "passed": true,
+      "routing": {
+        "expectedTool": "handoffToAlex",
+        "actualTool": "handoffToAlex",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "latencyMs": 6077
+    },
+    {
+      "testId": "handoff-peter-stocks",
+      "category": "handoff",
+      "passed": true,
+      "routing": {
+        "expectedTool": "handoffToPeter",
+        "actualTool": "handoffToPeter",
+        "correct": true,
+        "spokeInsteadOfCalling": false
+      },
+      "latencyMs": 5936
+    }
+  ],
+  "recommendations": [
+    "💬 Backchannel tests failing - LLM is calling tools when it should just respond"
+  ]
+}

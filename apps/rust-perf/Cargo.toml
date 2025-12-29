@@ -22,6 +22,43 @@ xxhash-rust = { version = "0.8", features = ["xxh3"] }
 # Error handling
 thiserror = "1.0"
 
+# SIMD operations (runtime feature detection for cross-platform)
+wide = "0.7"
+
+# Heap-allocated ring buffer for audio processing
+ringbuf = "0.4"
+
+# Regex for pattern matching in tool scoring
+regex = "1.10"
+
+# SIMD-accelerated JSON parsing (2-5x faster than serde_json)
+simd-json = "0.14"
+
+# Serde for JSON serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# memchr for fast byte searching
+memchr = "2.7"
+
+# Lazy static for cached patterns
+lazy_static = "1.5"
+
+# Aho-Corasick for multi-pattern matching (O(n) for all patterns)
+aho-corasick = "1.1"
+
+# FFT for audio analysis (SIMD-accelerated)
+rustfft = "6.2"
+
+# SHA256 for embedding cache hashing
+sha2 = "0.10"
+
+# LRU cache for embedding cache
+lru = "0.12"
+
+# Generic array for FFT
+num-complex = "0.4"
+
 [build-dependencies]
 napi-build = "2"
 

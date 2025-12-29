@@ -11,6 +11,8 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { SemanticToolDefinition, EmbeddingProvider, EmbeddingVector } from '../types.js';
 import { getExampleText, getKeywordWord, getKeywordWeight } from '../types.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { cosineSimilarity } from '../../../memory/rust-accelerator.js';
 
 const log = createLogger({ module: 'SemanticRouter.Multilingual' });
 
@@ -313,26 +315,7 @@ export async function routeHybrid(
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Cosine similarity between two vectors
- * Handles both Float32Array and number[] types
- */
-function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
-  if (a.length !== b.length) return 0;
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-  return magnitude === 0 ? 0 : dotProduct / magnitude;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated)
 
 /**
  * Simple keyword matching (uses loaded locale triggers)

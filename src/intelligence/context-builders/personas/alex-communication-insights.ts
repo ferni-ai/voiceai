@@ -1276,6 +1276,58 @@ async function buildAlexCommunicationInsightsContext(
       formattedSections.push('\n' + superhumanContext);
     }
 
+    // 🤝 TEAM HUDDLE: Record Alex's observations for cross-persona intelligence
+    try {
+      const { alex: alexObserver } = await import(
+        '../../../services/cross-persona/observation-recorder.js'
+      );
+
+      // Record stress-related concerns from user state
+      if (briefing.userState.stressLevel === 'high') {
+        alexObserver.concern(
+          userId,
+          `High stress level detected: ${briefing.userState.stressSignals.join(', ')}`,
+          0.85,
+          ['stress', 'communication', 'boundaries']
+        );
+      }
+
+      // Record upcoming priority concerns (overloaded schedule)
+      if (briefing.upcomingPriorities.length > 5) {
+        alexObserver.concern(
+          userId,
+          `${briefing.upcomingPriorities.length} upcoming priorities - may be overloaded`,
+          0.7,
+          ['schedule', 'priorities', 'overload']
+        );
+      }
+
+      // Record coaching opportunities
+      if (briefing.coachingOpportunities.length > 0) {
+        alexObserver.opportunity(
+          userId,
+          briefing.coachingOpportunities[0],
+          0.7,
+          undefined,
+          ['communication', 'coaching']
+        );
+      }
+
+      // Record proactive triggers
+      if (briefing.proactiveTriggers?.length > 0) {
+        const topTrigger = briefing.proactiveTriggers[0];
+        alexObserver.pattern(
+          userId,
+          topTrigger.message || 'Communication pattern detected',
+          0.65,
+          ['communication', 'patterns']
+        );
+      }
+    } catch (err) {
+      // Non-critical - don't block if observation recording fails
+      log.debug({ error: String(err) }, 'Failed to record Alex observations (non-blocking)');
+    }
+
     const content = formattedSections.join('\n');
 
     if (isHandoff) {

@@ -10,8 +10,12 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getCachedEmbedding, cacheEmbedding } from './registry.js';
 import type { EmbeddingProvider, EmbeddingVector } from './types.js';
+// Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
+import { cosineSimilarity } from '../../memory/rust-accelerator.js';
 
 export type { EmbeddingVector };
+// Re-export for backwards compatibility with existing consumers
+export { cosineSimilarity };
 
 const log = createLogger({ module: 'semantic-router:embeddings' });
 
@@ -402,24 +406,4 @@ export async function getEmbeddings(texts: string[]): Promise<EmbeddingVector[]>
   return getDefaultProvider().embedBatch(texts);
 }
 
-/**
- * Calculate cosine similarity between two vectors
- */
-export function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
-  if (a.length !== b.length) {
-    throw new Error(`Vector dimension mismatch: ${a.length} vs ${b.length}`);
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-  return magnitude === 0 ? 0 : dotProduct / magnitude;
-}
+// Note: cosineSimilarity is imported from rust-accelerator.js and re-exported above

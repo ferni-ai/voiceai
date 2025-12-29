@@ -276,12 +276,15 @@ interface SerializedQualityMetrics extends Omit<QualityMetrics, 'recordedAt'> {
 // ============================================================================
 
 let db: Firestore | null = null;
+// FIX: Promise-based singleton to prevent race condition
+let dbInitPromise: Promise<Firestore | null> | null = null;
 
 /**
  * Configure the Firestore instance (call once at startup)
  */
 export function configureFirestoreExtended(firestore: Firestore): void {
   db = firestore;
+  dbInitPromise = null; // Reset promise when configured
 }
 
 /**
@@ -289,13 +292,20 @@ export function configureFirestoreExtended(firestore: Firestore): void {
  */
 async function getDb(): Promise<Firestore | null> {
   if (db) return db;
+  if (dbInitPromise) return dbInitPromise;
 
+  dbInitPromise = initializeDb();
+  return dbInitPromise;
+}
+
+async function initializeDb(): Promise<Firestore | null> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     db = getFirestore() as unknown as Firestore;
     return db;
   } catch {
     log.debug('Firestore not available');
+    dbInitPromise = null; // Allow retry
     return null;
   }
 }

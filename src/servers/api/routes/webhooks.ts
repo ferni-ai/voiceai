@@ -255,7 +255,7 @@ export async function handleWebhookRoutes(
   // ============================================================================
   const webhookIdMatch = pathname.match(/^\/api\/webhooks\/([a-f0-9-]+)$/);
   if (webhookIdMatch && req.method === 'GET') {
-    const webhookId = webhookIdMatch[1];
+    const webhookId = webhookIdMatch[1] ?? '';
     const result = await getWebhook(userId, webhookId);
 
     if (!result.success) {
@@ -272,7 +272,7 @@ export async function handleWebhookRoutes(
   // PUT /api/webhooks/:id
   // ============================================================================
   if (webhookIdMatch && req.method === 'PUT') {
-    const webhookId = webhookIdMatch[1];
+    const webhookId = webhookIdMatch[1] ?? '';
     const body = await parseBody<{
       name?: string;
       url?: string;
@@ -314,7 +314,7 @@ export async function handleWebhookRoutes(
   // DELETE /api/webhooks/:id
   // ============================================================================
   if (webhookIdMatch && req.method === 'DELETE') {
-    const webhookId = webhookIdMatch[1];
+    const webhookId = webhookIdMatch[1] ?? '';
     const result = await deleteWebhook(userId, webhookId);
 
     if (!result.success) {
@@ -337,7 +337,7 @@ export async function handleWebhookRoutes(
   // ============================================================================
   const testMatch = pathname.match(/^\/api\/webhooks\/([a-f0-9-]+)\/test$/);
   if (testMatch && req.method === 'POST') {
-    const webhookId = testMatch[1];
+    const webhookId = testMatch[1] ?? '';
     const webhookResult = await getWebhook(userId, webhookId);
 
     if (!webhookResult.success || !webhookResult.data) {
@@ -397,7 +397,7 @@ export async function handleWebhookRoutes(
   // ============================================================================
   const tokenMatch = pathname.match(/^\/api\/webhooks\/siri-tokens\/([a-f0-9-]+)$/);
   if (tokenMatch && req.method === 'DELETE') {
-    const tokenId = tokenMatch[1];
+    const tokenId = tokenMatch[1] ?? '';
     const result = await deleteSiriToken(userId, tokenId);
 
     if (!result.success) {

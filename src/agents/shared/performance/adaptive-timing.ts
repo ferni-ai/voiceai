@@ -40,7 +40,7 @@ export const LATENCY_TARGETS = {
   NEEDS_FILLER: 1800, // Was 2500 - inject filler earlier
 
   /** Hard limit before giving up on rich context */
-  HARD_LIMIT: 6000, // Was 8000 - fail faster
+  HARD_LIMIT: 4000, // Was 6000 - fail even faster for Better than Human latency
 } as const;
 
 /**
@@ -48,20 +48,21 @@ export const LATENCY_TARGETS = {
  *
  * UPDATED Dec 2024: More aggressive filler for conversational feel
  * UPDATED Dec 25 2024: Further lowered thresholds for "Better than Human"
+ * UPDATED Dec 29 2024: Even more aggressive - 600ms feels like human pausing to think
  * Research: Human turn-taking gaps are 200-500ms, anything >1s feels slow
  */
 export const FILLER_STRATEGY = {
   /** Never inject filler below this latency */
-  MIN_LATENCY_FOR_FILLER: 800, // Was 1000 - consider filler even earlier
+  MIN_LATENCY_FOR_FILLER: 600, // Was 800 - inject filler earlier for conversational feel
 
   /** Always inject filler above this latency */
-  GUARANTEED_FILLER_LATENCY: 1500, // Was 2000 - always filler if this slow
+  GUARANTEED_FILLER_LATENCY: 1200, // Was 1500 - guarantee filler at 1.2s
 
   /** Buffer time to add to average latency for filler timing */
-  FILLER_BUFFER_MS: 300, // Was 400 - tighter buffer for faster response
+  FILLER_BUFFER_MS: 200, // Was 300 - tighter buffer for more responsive filler
 
   /** Minimum time between fillers */
-  FILLER_COOLDOWN_MS: 6000, // Was 8000 - allow more frequent (but not spammy)
+  FILLER_COOLDOWN_MS: 5000, // Was 6000 - allow more frequent filler when needed
 } as const;
 
 // ============================================================================

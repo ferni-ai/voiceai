@@ -291,27 +291,27 @@ function createSvgIcon(pathData: string): SVGSVGElement {
     } else if (trimmed.startsWith('circle:')) {
       const params = trimmed.replace('circle:', '').split(',');
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', params[0]);
-      circle.setAttribute('cy', params[1]);
-      circle.setAttribute('r', params[2]);
+      circle.setAttribute('cx', params[0] ?? '0');
+      circle.setAttribute('cy', params[1] ?? '0');
+      circle.setAttribute('r', params[2] ?? '0');
       svg.appendChild(circle);
     } else if (trimmed.startsWith('rect:')) {
       const params = trimmed.replace('rect:', '').split(',');
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', params[0]);
-      rect.setAttribute('y', params[1]);
-      rect.setAttribute('width', params[2]);
-      rect.setAttribute('height', params[3]);
+      rect.setAttribute('x', params[0] ?? '0');
+      rect.setAttribute('y', params[1] ?? '0');
+      rect.setAttribute('width', params[2] ?? '0');
+      rect.setAttribute('height', params[3] ?? '0');
       if (params[4]) rect.setAttribute('rx', params[4]);
       if (params[5]) rect.setAttribute('ry', params[5]);
       svg.appendChild(rect);
     } else if (trimmed.startsWith('line:')) {
       const params = trimmed.replace('line:', '').split(',');
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', params[0]);
-      line.setAttribute('y1', params[1]);
-      line.setAttribute('x2', params[2]);
-      line.setAttribute('y2', params[3]);
+      line.setAttribute('x1', params[0] ?? '0');
+      line.setAttribute('y1', params[1] ?? '0');
+      line.setAttribute('x2', params[2] ?? '0');
+      line.setAttribute('y2', params[3] ?? '0');
       svg.appendChild(line);
     } else if (trimmed.startsWith('polyline:')) {
       const points = trimmed.replace('polyline:', '');

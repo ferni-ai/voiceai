@@ -157,6 +157,12 @@ export function initPresenceUI(): void {
   startBlinking();
   startMicroIdleMovements();
   
+  // 🔊 NEW: Initialize three-layer speaking system (body, halo, lid)
+  import('./speaking-system.ui.js').then(m => {
+    m.speakingSystem.init();
+    log.debug('🔊 Three-layer speaking system initialized');
+  });
+  
   // 🚀 Ferni EQ: Listen for breath sync events
   document.addEventListener('ferni:breath-sync', handleBreathSync as EventListener);
   log.debug('🚀 Ferni EQ breath sync listener initialized');
@@ -751,6 +757,12 @@ export function setVoiceVolume(volume: number): void {
   if (isSpeaking && voicePulseFrame === null && voicePulseEnabled) {
     startVoicePulse();
   }
+  
+  // 🔊 NEW: Update unified speaking system with volume
+  // This drives the three-layer animation (body, halo, lid)
+  if (isSpeaking) {
+    import('./speaking-system.ui.js').then(m => m.speakingSystem.updateVolume(currentVoiceVolume));
+  }
 }
 
 /**
@@ -878,8 +890,12 @@ export function setSpeaking(speaking: boolean): void {
     // 🔊 Start/stop voice pulse animation (bass speaker effect)
     if (speaking) {
       startVoicePulse();
+      // 🔊 NEW: Start unified speaking system (body + halo + lid)
+      import('./speaking-system.ui.js').then(m => m.speakingSystem.start());
     } else {
       stopVoicePulse();
+      // 🔊 NEW: Stop unified speaking system
+      import('./speaking-system.ui.js').then(m => m.speakingSystem.stop());
     }
     
     // 🎬 Zen blink when stopping speaking (natural pause moment)

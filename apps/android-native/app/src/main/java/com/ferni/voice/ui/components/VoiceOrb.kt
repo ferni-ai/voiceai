@@ -24,8 +24,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.offset
+import com.ferni.voice.betterthanuman.AnticipatedEmotion
 import com.ferni.voice.betterthanuman.BetterThanHumanState
+import com.ferni.voice.betterthanuman.ConcernLevel
 import com.ferni.voice.betterthanuman.LampReaction
+import com.ferni.voice.betterthanuman.MicroExpressionType
 import com.ferni.voice.models.Persona
 import com.ferni.voice.models.VoiceState
 import com.ferni.voice.ui.animations.BodyValues
@@ -33,24 +37,44 @@ import com.ferni.voice.ui.animations.PixarTiming
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
 
 /**
- * 7-layer Pixar-quality voice avatar orb.
+ * Three-Layer Speaking System Configuration
+ * @see design-system/tokens/animation.json -> speakingSystem
+ */
+private data class SpeakingSystemConfig(
+    val bodyMaxScaleY: Float = 1.08f,
+    val bodyMinScaleX: Float = 0.97f,
+    val bodySquashRatio: Float = 0.4f,
+    val haloMaxScale: Float = 1.015f,
+    val haloWaveCount: Int = 2,
+    val eyeSquintMax: Float = 0.15f
+)
+
+/**
+ * 7-layer Pixar-quality voice avatar orb with Three-Layer Speaking System.
  * Port of PixarVoiceOrb.swift from iOS.
  *
  * Architecture:
  * ```
  * PixarVoiceOrb
  * ├── GlowHalo (behind - 4-ring breathing halo with heartbeat)
+ * │   └── 🔊 NEW: Speaking halo waves (sound emanating)
  * ├── SoulShimmer (behind body)
  * ├── SoulWarmth (behind body)
  * ├── AvatarBody (middle - orb with Lamp transforms)
- * │   └── Core gradient circle with squash/stretch
+ * │   └── 🔊 Enhanced: Voice-reactive squash/stretch
  * ├── WaveRing (audio-reactive)
  * ├── MemorySpark (on top)
  * └── Initials (top - persona letters)
  * ```
+ *
+ * Three-Layer Speaking System (design-system/brand/SPEAKING-SYSTEM.md):
+ * 1. Body Pulse (PRIMARY) - Squash/stretch with voice volume
+ * 2. Halo Pulse (AMBIENT) - Sound waves emanating  
+ * 3. Lid Mouth (DETAIL) - Eye squint for articulation
  *
  * CRITICAL: Uses continuous timer animation - NEVER restarts on state changes.
  */
@@ -63,6 +87,28 @@ fun VoiceOrb(
     betterThanHumanState: BetterThanHumanState = BetterThanHumanState(),
     audioLevel: Float = 0f
 ) {
+    // 🔊 THREE-LAYER SPEAKING SYSTEM CONFIG
+    // @see design-system/tokens/animation.json -> speakingSystem
+    val speakingConfig = remember {
+        SpeakingSystemConfig(
+            bodyMaxScaleY = 1.08f,
+            bodyMinScaleX = 0.97f,
+            bodySquashRatio = 0.4f,
+            haloMaxScale = 1.015f,
+            haloWaveCount = 2,
+            eyeSquintMax = 0.15f
+        )
+    }
+    
+    // Smooth the audio level for speaking animations
+    var smoothedAudioLevel by remember { mutableFloatStateOf(0f) }
+    val isSpeaking = voiceState is VoiceState.Speaking
+    
+    LaunchedEffect(audioLevel, isSpeaking) {
+        val targetLevel = if (isSpeaking) audioLevel else 0f
+        val smoothingFactor = if (targetLevel > smoothedAudioLevel) 0.25f else 0.08f
+        smoothedAudioLevel += (targetLevel - smoothedAudioLevel) * smoothingFactor
+    }
     // Continuous animation time (in seconds) - NEVER restarts
     var time by remember { mutableFloatStateOf(0f) }
 
@@ -78,12 +124,24 @@ fun VoiceOrb(
     // Get combined transform from BetterThanHumanState
     val combinedTransform = betterThanHumanState.combinedTransform
 
-    // Final lamp transforms = breathing + reaction + other emotional states
-    val lampScaleX = breathScaleX * combinedTransform.scale
-    val lampScaleY = breathScaleY * combinedTransform.scale
+    // 🔊 THREE-LAYER SPEAKING SYSTEM - Layer 1: Body Pulse
+    // Apply voice-reactive squash/stretch when speaking
+    // Fast attack, slow release for organic "bass speaker" feel
+    val speakingStretch = smoothedAudioLevel * (speakingConfig.bodyMaxScaleY - 1f)
+    val speakingSquash = speakingStretch * speakingConfig.bodySquashRatio
+    
+    // Final lamp transforms = breathing + speaking + reaction + emotional states
+    val lampScaleX = (breathScaleX - speakingSquash) * combinedTransform.scale
+    val lampScaleY = (breathScaleY + speakingStretch) * combinedTransform.scale
     val lampOffsetX = combinedTransform.translateX
     val lampOffsetY = breathOffsetY + combinedTransform.translateY
     val lampRotation = breathRotation + combinedTransform.rotate
+    
+    // 🔊 Layer 2: Halo pulse values (for speaking waves)
+    val haloSpeakingScale = 1f + smoothedAudioLevel * (speakingConfig.haloMaxScale - 1f)
+    
+    // 🔊 Layer 3: Eye squint (articulation detail)
+    val eyeSquintFactor = 1f - (smoothedAudioLevel * speakingConfig.eyeSquintMax)
 
     // Soul effects from emotional state
     val warmthOpacity = combinedTransform.warmth
@@ -144,12 +202,15 @@ fun VoiceOrb(
         contentAlignment = Alignment.Center
     ) {
         // Layer 1: Glow Halo (behind everything)
+        // 🔊 Enhanced with speaking waves (Layer 2 of Speaking System)
         GlowHalo(
             persona = persona,
             size = size,
             isActive = voiceState.isActive,
             time = time,
             activeIntensity = activeIntensity,
+            speakingScale = haloSpeakingScale,
+            speakingAudioLevel = smoothedAudioLevel,
             modifier = Modifier.size(frameSize)
         )
 
@@ -206,13 +267,11 @@ fun VoiceOrb(
             )
         }
 
-        // Layer 7: Persona initials with Lamp transforms
-        Text(
-            text = persona.initials,
-            fontSize = (size.value * 0.38f).sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White.copy(alpha = 0.95f),
+        // Layer 7: Magical Pixar Eyes (THE SOUL!)
+        // Eyes with Lamp transforms applied
+        Box(
             modifier = Modifier
+                .size(size)
                 .graphicsLayer {
                     this.scaleX = lampScaleX
                     this.scaleY = lampScaleY
@@ -220,13 +279,84 @@ fun VoiceOrb(
                     this.translationY = lampOffsetY.dp.toPx()
                     this.rotationZ = lampRotation
                 }
-        )
+        ) {
+            AnimatedMagicalEyes(
+                orbSize = size,
+                personaColor = persona.primaryColor,
+                emotionHint = mapVoiceStateToEyeEmotion(voiceState, betterThanHumanState),
+                isActive = voiceState.isActive,
+                modifier = Modifier.align(Alignment.Center)
+            )
+
+            // Layer 8: Persona initial below eyes (smaller, like a name badge)
+            Text(
+                text = persona.initials,
+                fontSize = (size.value * 0.25f).sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .offset(y = (size.value * 0.18f).dp) // Below the eyes
+            )
+        }
+    }
+}
+
+/**
+ * Map voice state and Better Than Human state to eye emotion.
+ */
+private fun mapVoiceStateToEyeEmotion(
+    voiceState: VoiceState,
+    betterThanHumanState: BetterThanHumanState
+): EyeEmotion {
+    // Priority 1: Anticipated emotion from Better Than Human
+    betterThanHumanState.anticipatedEmotion?.let { anticipated ->
+        return when (anticipated) {
+            AnticipatedEmotion.EXCITED -> EyeEmotion.EXCITED
+            AnticipatedEmotion.WARM -> EyeEmotion.HAPPY
+            AnticipatedEmotion.CURIOUS -> EyeEmotion.CURIOUS
+            AnticipatedEmotion.REFLECTIVE -> EyeEmotion.THINKING
+            AnticipatedEmotion.VULNERABLE, 
+            AnticipatedEmotion.UNCERTAIN,
+            AnticipatedEmotion.CONCERNED -> EyeEmotion.EMPATHETIC
+            AnticipatedEmotion.ATTENTIVE -> EyeEmotion.LISTENING
+            AnticipatedEmotion.NOSTALGIC -> EyeEmotion.REMEMBERING
+        }
+    }
+
+    // Priority 2: Micro-expression active
+    betterThanHumanState.microExpression?.let { micro ->
+        return when (micro) {
+            MicroExpressionType.RECOGNITION -> EyeEmotion.REMEMBERING
+            MicroExpressionType.CONCERN -> EyeEmotion.EMPATHETIC
+            MicroExpressionType.DELIGHT -> EyeEmotion.HAPPY
+            MicroExpressionType.WARMTH -> EyeEmotion.CONNECTED
+            MicroExpressionType.INTEREST -> EyeEmotion.CURIOUS
+        }
+    }
+
+    // Priority 3: Concern level
+    if (betterThanHumanState.concernLevel != ConcernLevel.NONE) {
+        return EyeEmotion.EMPATHETIC
+    }
+
+    // Priority 4: Voice state
+    return when (voiceState) {
+        is VoiceState.Speaking -> EyeEmotion.ENCOURAGING
+        is VoiceState.Listening -> EyeEmotion.LISTENING
+        is VoiceState.Thinking -> EyeEmotion.THINKING
+        is VoiceState.Connected -> EyeEmotion.GREETING
+        is VoiceState.Connecting -> EyeEmotion.CURIOUS
+        is VoiceState.Disconnected -> EyeEmotion.NEUTRAL
+        is VoiceState.Error -> EyeEmotion.EMPATHETIC
     }
 }
 
 /**
  * Layer 1: 4-ring glow halo with heartbeat pattern.
  * The heartbeat "lub-dub" pattern makes the avatar feel alive!
+ * 
+ * 🔊 Enhanced: Speaking System Layer 2 - Halo waves emanating with voice
  */
 @Composable
 private fun GlowHalo(
@@ -235,11 +365,37 @@ private fun GlowHalo(
     isActive: Boolean,
     time: Float,
     activeIntensity: Float,
+    speakingScale: Float = 1f,
+    speakingAudioLevel: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
         val center = Offset(this.size.width / 2, this.size.height / 2)
         val baseRadius = size.toPx() / 2
+
+        // 🔊 SPEAKING SYSTEM LAYER 2: Halo waves (sound emanating)
+        // Only visible when speaking (audio level > 0)
+        if (speakingAudioLevel > 0.05f) {
+            // Wave 1 (closest to ring)
+            val wave1Scale = speakingScale + speakingAudioLevel * 0.04f
+            val wave1Opacity = speakingAudioLevel * 0.3f * 0.5f // 50% decay
+            drawCircle(
+                color = persona.glowColor.copy(alpha = wave1Opacity),
+                radius = baseRadius * 1.25f * wave1Scale,
+                center = center,
+                style = Stroke(width = 1.dp.toPx())
+            )
+            
+            // Wave 2 (furthest from ring)
+            val wave2Scale = speakingScale + speakingAudioLevel * 0.08f
+            val wave2Opacity = speakingAudioLevel * 0.3f * 0.25f // 75% decay
+            drawCircle(
+                color = persona.glowColor.copy(alpha = wave2Opacity),
+                radius = baseRadius * 1.35f * wave2Scale,
+                center = center,
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
 
         // --- Layer 1: Outer ambient glow (8s slow breathing) ---
         val outerBreathPhase = sin(time * PI * 2 / PixarTiming.HALO_OUTER_CYCLE).toFloat()

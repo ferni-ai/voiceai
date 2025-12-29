@@ -712,6 +712,11 @@ class RelationshipStageService {
   recordInsight(): void {
     this.data.metrics.insightsShared++;
     this.save();
+    
+    // 🤲 Sidekick: Dispatch insights generated event for avatar sidekick
+    document.dispatchEvent(new CustomEvent('ferni:insights-generated', {
+      detail: { totalInsights: this.data.metrics.insightsShared }
+    }));
   }
 
   /**

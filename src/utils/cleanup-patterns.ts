@@ -159,6 +159,7 @@ export class CleanupManager {
     );
     if (index !== -1) {
       const item = this.items[index];
+      if (!item) return false; // Guard for noUncheckedIndexedAccess
       if (item.type === 'timer') {
         clearTimeout(item.id);
       } else if (item.type === 'interval') {
@@ -180,6 +181,7 @@ export class CleanupManager {
     // Process in reverse order (LIFO)
     for (let i = this.items.length - 1; i >= 0; i--) {
       const item = this.items[i];
+      if (!item) continue; // Guard for noUncheckedIndexedAccess
       try {
         switch (item.type) {
           case 'listener':

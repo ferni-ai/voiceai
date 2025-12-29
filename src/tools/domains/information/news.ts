@@ -97,8 +97,16 @@ function detectHeadlineWeight(headline: string): 'heavy' | 'light' | 'surprising
  * - Natural transitions between stories
  * - Emotional awareness in delivery
  * - Not robotic/uniform pacing
+ *
+ * @param headlines - Array of headline strings
+ * @param intro - Introduction phrase
+ * @param isStale - If true, adds a disclaimer about data freshness
  */
-function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): string {
+function formatNewsWithSSML(
+  headlines: (string | undefined)[],
+  intro: string,
+  isStale = false
+): string {
   // Filter out undefined headlines
   const validHeadlines = headlines.filter(
     (h): h is string => h !== undefined && h !== null && h.trim().length > 0
@@ -110,8 +118,11 @@ function formatNewsWithSSML(headlines: (string | undefined)[], intro: string): s
 
   const parts: string[] = [];
 
+  // Add stale data disclaimer if using cached data
+  const staleDisclaimer = isStale ? ' from a little while ago' : '';
+
   // Warm intro with natural pace
-  parts.push(`<speed ratio="0.95"/>${intro}`);
+  parts.push(`<speed ratio="0.95"/>${intro}${staleDisclaimer}`);
   parts.push('<break time="350ms"/>');
 
   validHeadlines.forEach((headline, index) => {
@@ -355,7 +366,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
         { topic, freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
         '🔍 [DIAG] Returning stale cache as fallback'
       );
-      return formatNewsWithSSML(cached.data, `Here's what I found recently about ${topic}`);
+      return formatNewsWithSSML(cached.data, `Here's what I found about ${topic}`, true);
     }
 
     // Final fallback: general news
@@ -373,7 +384,7 @@ export async function searchNewsByTopic(topic: string): Promise<string> {
 
     // Return stale cache if available
     if (cached) {
-      return formatNewsWithSSML(cached.data, `Here's what I found recently about ${topic}`);
+      return formatNewsWithSSML(cached.data, `Here's what I found about ${topic}`, true);
     }
 
     return `I'm having trouble getting news about "${topic}" right now. Try again in a moment?`;
@@ -450,7 +461,7 @@ export async function getFinancialNews(
       { freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
       '📰 [DIAG] Returning stale cache'
     );
-    return formatNewsWithSSML(cached.data, "Here's the recent market news");
+    return formatNewsWithSSML(cached.data, "Here's what's moving in the markets", true);
   }
 
   // No data available
@@ -597,7 +608,7 @@ export async function getGeneralNews(): Promise<string> {
         { freshness: cached.freshness, cacheAge: Date.now() - cached.timestamp },
         '📰 [DIAG] Returning stale cache'
       );
-      return formatNewsWithSSML(cached.data, "Here's the recent news");
+      return formatNewsWithSSML(cached.data, "Here's the news", true);
     }
 
     logger.warn(
@@ -613,7 +624,7 @@ export async function getGeneralNews(): Promise<string> {
 
     // Return stale cache if available
     if (cached) {
-      return formatNewsWithSSML(cached.data, "Here's the recent news");
+      return formatNewsWithSSML(cached.data, "Here's the news", true);
     }
 
     return "I couldn't fetch the latest news right now. Check back later.";
@@ -721,7 +732,7 @@ export function createNewsTools() {
     }),
 
     getStockNews: llm.tool({
-      description: getToolDescription('getFinancialNews'),
+      description: getToolDescription('getStockNews'),
       parameters: z.object({
         symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, TSLA)'),
       }),
@@ -732,7 +743,7 @@ export function createNewsTools() {
     }),
 
     getGeneralNews: llm.tool({
-      description: getToolDescription('getStockNews'),
+      description: getToolDescription('getGeneralNews'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting general news');
@@ -741,7 +752,7 @@ export function createNewsTools() {
     }),
 
     getTechNews: llm.tool({
-      description: getToolDescription('getGeneralNews'),
+      description: getToolDescription('getTechNews'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting tech news');

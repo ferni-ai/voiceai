@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-26T01:01:27.094Z
+ * Build: 2025-12-29T19:28:21.946Z
  */
 
 /* ========================================
@@ -2901,6 +2901,221 @@
   .toast-container:hover .toast { transition: none; }
 }
 
+
+/* ========================================
+   MOTION TOKENS (FERNI ALIVE)
+   Breathing, blinking, gaze, speaking animations
+   ======================================== */
+:root {
+  /* Motion Easings - from ferni-alive.html */
+  --motion-ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --motion-ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+  --motion-ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --motion-ease-sharp: cubic-bezier(0.4, 0.0, 0.6, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --motion-ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
+  --motion-ease-spring-gentle: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --motion-ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --motion-ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+  --motion-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --motion-ease-elastic: cubic-bezier(0.5, 1.8, 0.5, 0.8);
+
+  /* Motion Durations */
+  --motion-duration-instant: 40ms;
+  --motion-duration-micro: 80ms;
+  --motion-duration-quick: 100ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 250ms;
+  --motion-duration-slow: 400ms;
+  --motion-duration-moderate: 450ms;
+  --motion-duration-deliberate: 600ms;
+  --motion-duration-dramatic: 800ms;
+  --motion-duration-celebration: 1000ms;
+  --motion-duration-glacial: 1500ms;
+
+  /* Breath Cycles */
+  --breath-idle-duration: 4000ms;
+  --breath-idle-scale-y: 1.018;
+  --breath-idle-scale-x: 0.994;
+  --breath-calm-duration: 5000ms;
+  --breath-calm-scale-y: 1.02;
+  --breath-calm-scale-x: 0.99;
+  --breath-excited-duration: 2500ms;
+  --breath-excited-scale-y: 1.025;
+  --breath-excited-scale-x: 0.985;
+  --breath-speaking-duration: 1800ms;
+  --breath-speaking-scale-y: 1.03;
+  --breath-speaking-scale-x: 0.98;
+  --breath-ring-delay: 300ms;
+
+  /* Blink Timing */
+  --blink-duration: 150ms;
+  --blink-interval-min: 3000ms;
+  --blink-interval-max: 7000ms;
+  --blink-lid-transition: 350ms;
+
+  /* Gaze Drift */
+  --gaze-drift-cycle: 8000ms;
+  --gaze-eyes-transition: 800ms;
+
+  /* Speaking Animation */
+  --speak-pulse-duration: 450ms;
+  --speak-sparkle-rotate: 600ms;
+
+  /* Glow Properties */
+  --glow-idle-blur: 20px;
+  --glow-idle-spread: 8px;
+  --glow-idle-opacity: 0.4;
+  --glow-idle-pulse: 4000ms;
+  --glow-active-blur: 30px;
+  --glow-active-spread: 12px;
+  --glow-active-opacity: 0.6;
+  --glow-active-pulse: 2000ms;
+  --glow-excited-blur: 40px;
+  --glow-excited-spread: 16px;
+  --glow-excited-opacity: 0.8;
+  --glow-excited-pulse: 1500ms;
+  --glow-calm-blur: 25px;
+  --glow-calm-spread: 10px;
+  --glow-calm-opacity: 0.35;
+  --glow-calm-pulse: 5000ms;
+  --glow-concern-blur: 22px;
+  --glow-concern-spread: 8px;
+  --glow-concern-opacity: 0.5;
+  --glow-concern-pulse: 3000ms;
+
+  /* Micro-Expression Durations */
+  --micro-recognition: 80ms;
+  --micro-concern-flash: 60ms;
+  --micro-delight-flash: 100ms;
+  --micro-warmth-pulse: 120ms;
+  --micro-interest-flash: 70ms;
+}
+
+/* Persona Timing Modifiers */
+[data-persona="ferni"] {
+  --persona-timing-multiplier: 1;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+[data-persona="jack"] {
+  --persona-timing-multiplier: 1.2;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+[data-persona="peter"] {
+  --persona-timing-multiplier: 0.85;
+  --persona-easing-preference: var(--motion-ease-spring);
+}
+[data-persona="alex"] {
+  --persona-timing-multiplier: 1;
+  --persona-easing-preference: var(--motion-ease-standard);
+}
+[data-persona="maya"] {
+  --persona-timing-multiplier: 0.95;
+  --persona-easing-preference: var(--motion-ease-standard);
+}
+[data-persona="jordan"] {
+  --persona-timing-multiplier: 0.8;
+  --persona-easing-preference: var(--motion-ease-spring);
+}
+[data-persona="nayan"] {
+  --persona-timing-multiplier: 1.1;
+  --persona-easing-preference: var(--motion-ease-gentle);
+}
+
+/* Animation Layer Priorities (for JS orchestration) */
+:root {
+  --layer-breathing-priority: 1;
+  --layer-breathing-cycle: 4000ms;
+  --layer-blinking-priority: 2;
+  --layer-gaze-drift-priority: 3;
+  --layer-gaze-drift-cycle: 8000ms;
+  --layer-anticipation-priority: 4;
+  --layer-expression-priority: 5;
+  --layer-speaking-priority: 6;
+}
+
+/* ========================================
+   GLOW COLORS (EMOTIONAL STATES)
+   Avatar emotional glow colors
+   ======================================== */
+:root {
+  /* Emotional Glow Colors */
+  --glow-color-neutral: #f5f5f5;
+  --glow-color-joy: #ffd700;
+  --glow-color-concern: #daa520;
+  --glow-color-excitement: #ff6b6b;
+  --glow-color-calm: #87ceeb;
+  --glow-color-empathy: #ffb6c1;
+  --glow-color-focus: #4fc3f7;
+  --glow-color-celebration: #ffc107;
+  --glow-color-wisdom: #b8956a;
+  --glow-color-love: #ff69b4;
+  --glow-color-protective: #deb887;
+
+  /* Glow Intensity Levels */
+  --glow-intensity-subtle-opacity: 0.3;
+  --glow-intensity-subtle-blur: 15px;
+  --glow-intensity-subtle-spread: 5px;
+  --glow-intensity-normal-opacity: 0.5;
+  --glow-intensity-normal-blur: 25px;
+  --glow-intensity-normal-spread: 10px;
+  --glow-intensity-strong-opacity: 0.7;
+  --glow-intensity-strong-blur: 35px;
+  --glow-intensity-strong-spread: 15px;
+  --glow-intensity-intense-opacity: 0.9;
+  --glow-intensity-intense-blur: 45px;
+  --glow-intensity-intense-spread: 20px;
+}
+
+/* Emotional Glow Gradient Classes */
+.glow-gradient-joyful-celebration {
+  --glow-gradient: linear-gradient(135deg, #ffd700, #ffc107);
+  box-shadow: 0 0 30px #ffd70040, 0 0 60px #ffc10730;
+}
+.glow-gradient-calm-focus {
+  --glow-gradient: linear-gradient(135deg, #87ceeb, #4fc3f7);
+  box-shadow: 0 0 30px #87ceeb40, 0 0 60px #4fc3f730;
+}
+.glow-gradient-warm-empathy {
+  --glow-gradient: linear-gradient(135deg, #ffb6c1, #deb887);
+  box-shadow: 0 0 30px #ffb6c140, 0 0 60px #deb88730;
+}
+.glow-gradient-excited-joy {
+  --glow-gradient: linear-gradient(135deg, #ff6b6b, #ffd700);
+  box-shadow: 0 0 30px #ff6b6b40, 0 0 60px #ffd70030;
+}
+.glow-gradient-wisdom-calm {
+  --glow-gradient: linear-gradient(135deg, #b8956a, #87ceeb);
+  box-shadow: 0 0 30px #b8956a40, 0 0 60px #87ceeb30;
+}
+
+/* Persona Glow Modifiers */
+[data-persona="ferni"] {
+  --persona-glow-hue-shift: 0deg;
+  --persona-glow-saturation: 1;
+}
+[data-persona="maya"] {
+  --persona-glow-hue-shift: -10deg;
+  --persona-glow-saturation: 0.95;
+}
+[data-persona="peter"] {
+  --persona-glow-hue-shift: 15deg;
+  --persona-glow-saturation: 1.1;
+}
+[data-persona="jordan"] {
+  --persona-glow-hue-shift: 5deg;
+  --persona-glow-saturation: 1.15;
+}
+[data-persona="alex"] {
+  --persona-glow-hue-shift: -5deg;
+  --persona-glow-saturation: 0.9;
+}
+[data-persona="nayan"] {
+  --persona-glow-hue-shift: 10deg;
+  --persona-glow-saturation: 0.85;
+}
 
 /* ========================================
    ACCESSIBILITY - HIGH CONTRAST MODE

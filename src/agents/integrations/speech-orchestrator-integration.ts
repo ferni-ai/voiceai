@@ -6,9 +6,9 @@
  *
  * @module agents/integrations/speech-orchestrator-integration
  *
- * @note STATUS: IMPLEMENTED BUT NOT INTEGRATED
- * This integration is complete but not yet wired into the voice agent.
- * To integrate: export from index.ts and enable via enableSpeechOrchestrator().
+ * @note STATUS: INTEGRATED ✅
+ * This integration is wired into the voice agent via session-init-handler.ts.
+ * It's enabled on session start via enableSpeechOrchestrator() and exports are in index.ts.
  */
 
 import { createLogger } from '../../utils/safe-logger.js';

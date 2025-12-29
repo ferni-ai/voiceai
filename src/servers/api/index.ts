@@ -40,6 +40,7 @@ import {
   handleWebhookRoutes,
   handleSpotifyRoomsRoutes,
   handleEcobeeRoutes,
+  handleSmartHomeRoutes,
   handleVibeRoutes,
   handleEightSleepRoutes,
   handleOuraRoutes,
@@ -156,6 +157,11 @@ import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.j
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
+import {
+  handleTwilioRoutes,
+  initializeTwilioStreamBridge,
+  attachTwilioStreamBridgeToServer,
+} from '../../api/twilio-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -310,6 +316,11 @@ const server = http.createServer(async (req, res) => {
   // Ecobee thermostat routes
   if (pathname.startsWith('/api/ecobee')) {
     if (await handleEcobeeRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Smart home routes (Hue, LIFX)
+  if (pathname.startsWith('/api/smart-home')) {
+    if (await handleSmartHomeRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Vibe routes (unified environment control)
@@ -767,6 +778,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Twilio routes (two-way conversational calls)
+    if (pathname.startsWith('/api/twilio')) {
+      const handled = await handleTwilioRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Proactive tool suggestions routes
     if (pathname.startsWith('/api/proactive')) {
       const handled = await handleProactiveRoutes(req, res, pathname);
@@ -916,6 +933,13 @@ const server = http.createServer(async (req, res) => {
     // Intelligence routes (Better Than Human)
     if (pathname.startsWith('/api/intelligence')) {
       const handled = await handleIntelligenceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Session context routes (Voice ↔ App sync - Better Than Human)
+    if (pathname.startsWith('/api/context')) {
+      const { handleSessionContextRoute } = await import('../../api/routes/session-context.js');
+      const handled = await handleSessionContextRoute(req, res, body);
       if (handled) return;
     }
 
@@ -1186,6 +1210,25 @@ server.listen(PORT, '0.0.0.0', async () => {
     log.info('💭 Proactive outreach scheduler started');
   } catch (error) {
     log.warn({ error: String(error) }, 'Proactive scheduler failed to start (non-blocking)');
+  }
+
+  // Initialize Twilio Stream Bridge for two-way conversational calls
+  // In production (Cloud Run), attach to the main HTTP server on /stream path
+  // In development, use a separate port if TWILIO_STREAM_PORT is set
+  try {
+    const twilioStreamPort = process.env.TWILIO_STREAM_PORT;
+
+    if (twilioStreamPort) {
+      // Development mode: Use separate port
+      initializeTwilioStreamBridge(parseInt(twilioStreamPort, 10));
+      log.info({ port: twilioStreamPort }, '📞 Twilio Stream Bridge initialized (standalone)');
+    } else {
+      // Production mode: Attach to main HTTP server
+      attachTwilioStreamBridgeToServer(server, '/stream');
+      log.info({ path: '/stream' }, '📞 Twilio Stream Bridge initialized (attached)');
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Twilio Stream Bridge failed to start (non-blocking)');
   }
 });
 

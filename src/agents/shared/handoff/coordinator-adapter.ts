@@ -56,6 +56,9 @@ import { getNextMessageSeqSync } from './session-state.js';
 // ⚡ Conversational cache for instant handoff banter
 import { getCachedAudioForPersona } from '../conversational-audio-cache.js';
 
+// Team Huddle for cross-persona intelligence (Better Than Human)
+import { generateTeamHuddle, type TeamHuddleSummary, type TeamRecommendation } from '../../../services/cross-persona/team-huddle.js';
+
 const log = getLogger();
 
 // ============================================================================
@@ -443,6 +446,9 @@ export class CoordinatorAdapter {
    * Uses safeGenerateReply with ACTUAL SPEECH (not meta-instructions).
    * generateReply adds text as role:"model" - the model thinks IT said it and continues.
    * So we pass the greeting phrase directly, and model naturally greets.
+   *
+   * NEW: Integrates Team Huddle for intelligent, context-aware greetings.
+   * The arriving persona receives a brief from the team about what's relevant.
    */
   private async handleArrivingWelcome(toPersonaId: string, context: BanterContext): Promise<void> {
     // Use previousAgent from context (passed from coordinator) - NOT from services.handoffState
@@ -454,12 +460,24 @@ export class CoordinatorAdapter {
     log.info({ toPersonaId, fromPersonaId }, '🔄 Circuit breaker reset for new persona');
 
     try {
+      // Get Team Huddle context for intelligent handoff (non-blocking)
+      const teamContext = await this.getTeamHuddleContextForHandoff(toPersonaId, context);
+
       // Get the banter phrase (actual speech, not meta-instructions)
       const greetingPhrase = getArrivingBanter(toPersonaId, fromPersonaId);
 
-      // Get greeting phrase - use specific banter if available, otherwise use generic fallback
+      // Build greeting - incorporate team context if available and relevant
       const displayName = getPersonaDisplayName(toPersonaId);
-      const finalGreeting = greetingPhrase || `Hey! ${displayName} here. How can I help?`;
+      let finalGreeting = greetingPhrase || `Hey! ${displayName} here. How can I help?`;
+
+      // If team huddle has a high-priority recommendation for this persona, weave it in
+      if (teamContext?.enhancedGreeting) {
+        finalGreeting = teamContext.enhancedGreeting;
+        log.info(
+          { toPersonaId, hasTeamContext: true },
+          '🤝 Using Team Huddle enhanced greeting'
+        );
+      }
 
       log.info(
         {
@@ -578,6 +596,95 @@ Preferred pace: ${cognitive.pace || 'moderate'}.`;
       return undefined;
     } catch {
       return undefined;
+    }
+  }
+
+  /**
+   * Get Team Huddle context for intelligent handoff greetings.
+   *
+   * This provides the arriving persona with:
+   * - What the team has noticed about this user
+   * - Any high-priority recommendations
+   * - An enhanced greeting if relevant team insights exist
+   *
+   * This is the "Better than Human" feature - human support networks don't coordinate,
+   * but Ferni's team does. The arriving persona knows what's been happening.
+   */
+  private async getTeamHuddleContextForHandoff(
+    toPersonaId: string,
+    context: BanterContext
+  ): Promise<{ enhancedGreeting?: string; teamBrief?: string } | null> {
+    try {
+      // Get user ID from services
+      const userId = this.services.userId || this.services.userProfile?.id;
+      if (!userId) {
+        log.debug({ toPersonaId }, 'No userId available for Team Huddle');
+        return null;
+      }
+
+      // Generate Team Huddle (quick, cached data)
+      const huddle = await generateTeamHuddle(userId);
+      if (!huddle || huddle.observations.length === 0) {
+        return null;
+      }
+
+      // Find recommendations relevant to this persona
+      const relevantRec = huddle.recommendations.find(
+        (rec: TeamRecommendation) =>
+          rec.targetPersona === toPersonaId &&
+          (rec.priority === 'high' || rec.priority === 'urgent')
+      );
+
+      // Find any observations from other personas that this one should know about
+      const otherObservations = huddle.observations.filter(
+        (obs) => obs.personaId !== toPersonaId && obs.confidence > 0.6
+      );
+
+      // Build enhanced greeting if there's relevant context
+      if (relevantRec || otherObservations.length > 0) {
+        const displayName = getPersonaDisplayName(toPersonaId);
+        const shortName = displayName.split(' ')[0] || displayName;
+
+        let enhancedGreeting = `Hey! ${shortName} here.`;
+
+        // Add team context naturally
+        if (relevantRec?.shouldMentionTeam) {
+          enhancedGreeting += ` The team mentioned something I wanted to follow up on.`;
+        } else if (otherObservations.length > 0) {
+          // Pick the most recent relevant observation
+          const recentObs = otherObservations[otherObservations.length - 1];
+          const obsPersonaName = getPersonaDisplayName(recentObs.personaId).split(' ')[0];
+          if (recentObs.observationType === 'concern') {
+            enhancedGreeting += ` ${obsPersonaName} shared some thoughts with me.`;
+          } else if (recentObs.observationType === 'opportunity') {
+            enhancedGreeting += ` ${obsPersonaName} mentioned something I'm excited to explore with you.`;
+          }
+        }
+
+        enhancedGreeting += ` How can I help?`;
+
+        // Build team brief for logging
+        const teamBrief = `[Team Huddle] ${huddle.synthesis}`;
+
+        log.info(
+          {
+            toPersonaId,
+            userId,
+            observationCount: huddle.observations.length,
+            hasRelevantRec: !!relevantRec,
+            wellbeing: huddle.userStateAssessment.wellbeing,
+          },
+          '🤝 Team Huddle context built for handoff'
+        );
+
+        return { enhancedGreeting, teamBrief };
+      }
+
+      return null;
+    } catch (err) {
+      // Non-blocking - if Team Huddle fails, continue without it
+      log.debug({ error: String(err), toPersonaId }, 'Team Huddle context not available');
+      return null;
     }
   }
 }

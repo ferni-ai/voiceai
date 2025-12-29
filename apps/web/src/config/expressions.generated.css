@@ -1,0 +1,3486 @@
+/**
+ * Expression Styles - Auto-Generated
+ *
+ * 🎭 AUTO-GENERATED FROM design-system/tokens/expressions.json
+ * Do not edit directly - run: pnpm build:expressions
+ * Generated: 2025-12-29T19:28:22.490Z
+ *
+ * 100 Luxo-style expression rules.
+ * CSS transforms only - no pupils, opaque eyes with shape transforms.
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES
+   ============================================================================ */
+
+:root {
+  --expr-neutral-eye-scale-y: 1;
+  --expr-neutral-eye-scale-x: 1;
+  --expr-neutral-lid-top-curve: -10;
+  --expr-neutral-lid-bottom-curve: 10;
+  --expr-neutral-presence-opacity: 0.3;
+  --expr-neutral-presence-stroke: 1.5;
+
+  --expr-listening-eye-scale-y: 1.08;
+  --expr-listening-eye-scale-x: 1;
+  --expr-listening-lid-top-curve: 5;
+  --expr-listening-lid-bottom-curve: 10;
+  --expr-listening-presence-opacity: 0.4;
+  --expr-listening-presence-stroke: 1.5;
+
+  --expr-speaking-eye-scale-y: 0.88;
+  --expr-speaking-eye-scale-x: 1.02;
+  --expr-speaking-lid-top-curve: 15;
+  --expr-speaking-lid-bottom-curve: 10;
+  --expr-speaking-presence-opacity: 0.3;
+  --expr-speaking-presence-stroke: 1.5;
+
+  --expr-happy-eye-scale-y: 0.8;
+  --expr-happy-eye-scale-x: 1.06;
+  --expr-happy-lid-top-curve: 25;
+  --expr-happy-lid-bottom-curve: -15;
+  --expr-happy-presence-opacity: 0.35;
+  --expr-happy-presence-stroke: 1.5;
+
+  --expr-joyful-eye-scale-y: 0.7;
+  --expr-joyful-eye-scale-x: 1.12;
+  --expr-joyful-lid-top-curve: 35;
+  --expr-joyful-lid-bottom-curve: -25;
+  --expr-joyful-presence-opacity: 0.5;
+  --expr-joyful-presence-stroke: 2;
+
+  --expr-delighted-eye-scale-y: 0.6;
+  --expr-delighted-eye-scale-x: 1.15;
+  --expr-delighted-lid-top-curve: 42;
+  --expr-delighted-lid-bottom-curve: -28;
+  --expr-delighted-presence-opacity: 0.6;
+  --expr-delighted-presence-stroke: 2.5;
+
+  --expr-amused-eye-scale-y: 0.78;
+  --expr-amused-eye-scale-x: 1.06;
+  --expr-amused-lid-top-curve: 26;
+  --expr-amused-lid-bottom-curve: 10;
+  --expr-amused-presence-opacity: 0.35;
+  --expr-amused-presence-stroke: 1.5;
+
+  --expr-pleased-eye-scale-y: 0.82;
+  --expr-pleased-eye-scale-x: 1.04;
+  --expr-pleased-lid-top-curve: 22;
+  --expr-pleased-lid-bottom-curve: 10;
+  --expr-pleased-presence-opacity: 0.35;
+  --expr-pleased-presence-stroke: 1.5;
+
+  --expr-content-eye-scale-y: 0.85;
+  --expr-content-eye-scale-x: 1.02;
+  --expr-content-lid-top-curve: 18;
+  --expr-content-lid-bottom-curve: 10;
+  --expr-content-presence-opacity: 0.25;
+  --expr-content-presence-stroke: 1.5;
+
+  --expr-excited-eye-scale-y: 1.15;
+  --expr-excited-eye-scale-x: 1.08;
+  --expr-excited-lid-top-curve: -12;
+  --expr-excited-lid-bottom-curve: 10;
+  --expr-excited-presence-opacity: 0.6;
+  --expr-excited-presence-stroke: 2.5;
+
+  --expr-grateful-eye-scale-y: 0.72;
+  --expr-grateful-eye-scale-x: 1.08;
+  --expr-grateful-lid-top-curve: 32;
+  --expr-grateful-lid-bottom-curve: -15;
+  --expr-grateful-presence-opacity: 0.4;
+  --expr-grateful-presence-stroke: 1.5;
+
+  --expr-proud-eye-scale-y: 0.88;
+  --expr-proud-eye-scale-x: 1.04;
+  --expr-proud-lid-top-curve: 15;
+  --expr-proud-lid-bottom-curve: 10;
+  --expr-proud-presence-opacity: 0.45;
+  --expr-proud-presence-stroke: 2;
+
+  --expr-warm-eye-scale-y: 0.9;
+  --expr-warm-eye-scale-x: 1.03;
+  --expr-warm-lid-top-curve: 18;
+  --expr-warm-lid-bottom-curve: -10;
+  --expr-warm-presence-opacity: 0.38;
+  --expr-warm-presence-stroke: 1.5;
+
+  --expr-caring-eye-scale-y: 0.88;
+  --expr-caring-eye-scale-x: 1.02;
+  --expr-caring-lid-top-curve: 20;
+  --expr-caring-lid-bottom-curve: -8;
+  --expr-caring-presence-opacity: 0.4;
+  --expr-caring-presence-stroke: 1.8;
+
+  --expr-loving-eye-scale-y: 0.75;
+  --expr-loving-eye-scale-x: 1.08;
+  --expr-loving-lid-top-curve: 30;
+  --expr-loving-lid-bottom-curve: -18;
+  --expr-loving-presence-opacity: 0.55;
+  --expr-loving-presence-stroke: 2.5;
+
+  --expr-tender-eye-scale-y: 0.82;
+  --expr-tender-eye-scale-x: 1.04;
+  --expr-tender-lid-top-curve: 24;
+  --expr-tender-lid-bottom-curve: -10;
+  --expr-tender-presence-opacity: 0.38;
+  --expr-tender-presence-stroke: 1.8;
+
+  --expr-supportive-eye-scale-y: 0.92;
+  --expr-supportive-eye-scale-x: 1.01;
+  --expr-supportive-lid-top-curve: 15;
+  --expr-supportive-lid-bottom-curve: 10;
+  --expr-supportive-presence-opacity: 0.42;
+  --expr-supportive-presence-stroke: 1.6;
+
+  --expr-compassionate-eye-scale-y: 0.88;
+  --expr-compassionate-eye-scale-x: 1.03;
+  --expr-compassionate-lid-top-curve: 20;
+  --expr-compassionate-lid-bottom-curve: -8;
+  --expr-compassionate-presence-opacity: 0.4;
+  --expr-compassionate-presence-stroke: 1.5;
+
+  --expr-empathetic-eye-scale-y: 0.9;
+  --expr-empathetic-eye-scale-x: 1.02;
+  --expr-empathetic-lid-top-curve: 18;
+  --expr-empathetic-lid-bottom-curve: 10;
+  --expr-empathetic-presence-opacity: 0.38;
+  --expr-empathetic-presence-stroke: 1.6;
+
+  --expr-nurturing-eye-scale-y: 0.8;
+  --expr-nurturing-eye-scale-x: 1.06;
+  --expr-nurturing-lid-top-curve: 26;
+  --expr-nurturing-lid-bottom-curve: -12;
+  --expr-nurturing-presence-opacity: 0.48;
+  --expr-nurturing-presence-stroke: 2;
+
+  --expr-playful-eye-scale-y: 0.92;
+  --expr-playful-eye-scale-x: 1.06;
+  --expr-playful-lid-top-curve: 14;
+  --expr-playful-lid-bottom-curve: 10;
+  --expr-playful-presence-opacity: 0.35;
+  --expr-playful-presence-stroke: 1.5;
+
+  --expr-mischievous-eye-scale-y: 0.85;
+  --expr-mischievous-eye-scale-x: 1.05;
+  --expr-mischievous-lid-top-curve: 20;
+  --expr-mischievous-lid-bottom-curve: 10;
+  --expr-mischievous-presence-opacity: 0.35;
+  --expr-mischievous-presence-stroke: 1.5;
+
+  --expr-cheeky-eye-scale-y: 0.82;
+  --expr-cheeky-eye-scale-x: 1.06;
+  --expr-cheeky-lid-top-curve: 24;
+  --expr-cheeky-lid-bottom-curve: 10;
+  --expr-cheeky-presence-opacity: 0.35;
+  --expr-cheeky-presence-stroke: 1.5;
+
+  --expr-silly-eye-scale-y: 0.78;
+  --expr-silly-eye-scale-x: 1.12;
+  --expr-silly-lid-top-curve: 30;
+  --expr-silly-lid-bottom-curve: 10;
+  --expr-silly-presence-opacity: 0.35;
+  --expr-silly-presence-stroke: 1.5;
+
+  --expr-winking-eye-scale-y: 1;
+  --expr-winking-eye-scale-x: 1;
+  --expr-winking-lid-top-curve: 12;
+  --expr-winking-lid-bottom-curve: 10;
+  --expr-winking-presence-opacity: 0.35;
+  --expr-winking-presence-stroke: 1.5;
+
+  --expr-teasing-eye-scale-y: 0.88;
+  --expr-teasing-eye-scale-x: 1.04;
+  --expr-teasing-lid-top-curve: 16;
+  --expr-teasing-lid-bottom-curve: 10;
+  --expr-teasing-presence-opacity: 0.35;
+  --expr-teasing-presence-stroke: 1.5;
+
+  --expr-surprised-eye-scale-y: 1.15;
+  --expr-surprised-eye-scale-x: 1.05;
+  --expr-surprised-lid-top-curve: -15;
+  --expr-surprised-lid-bottom-curve: 15;
+  --expr-surprised-presence-opacity: 0.4;
+  --expr-surprised-presence-stroke: 1.5;
+
+  --expr-shocked-eye-scale-y: 1.35;
+  --expr-shocked-eye-scale-x: 1.15;
+  --expr-shocked-lid-top-curve: -35;
+  --expr-shocked-lid-bottom-curve: 25;
+  --expr-shocked-presence-opacity: 0.7;
+  --expr-shocked-presence-stroke: 3;
+
+  --expr-amazed-eye-scale-y: 1.25;
+  --expr-amazed-eye-scale-x: 1.1;
+  --expr-amazed-lid-top-curve: -28;
+  --expr-amazed-lid-bottom-curve: 10;
+  --expr-amazed-presence-opacity: 0.55;
+  --expr-amazed-presence-stroke: 2;
+
+  --expr-intrigued-eye-scale-y: 1.1;
+  --expr-intrigued-eye-scale-x: 1.03;
+  --expr-intrigued-lid-top-curve: -12;
+  --expr-intrigued-lid-bottom-curve: 10;
+  --expr-intrigued-presence-opacity: 0.35;
+  --expr-intrigued-presence-stroke: 1.5;
+
+  --expr-astonished-eye-scale-y: 1.28;
+  --expr-astonished-eye-scale-x: 1.1;
+  --expr-astonished-lid-top-curve: -30;
+  --expr-astonished-lid-bottom-curve: 10;
+  --expr-astonished-presence-opacity: 0.5;
+  --expr-astonished-presence-stroke: 2;
+
+  --expr-curious-eye-scale-y: 1.08;
+  --expr-curious-eye-scale-x: 1;
+  --expr-curious-lid-top-curve: -8;
+  --expr-curious-lid-bottom-curve: 10;
+  --expr-curious-presence-opacity: 0.35;
+  --expr-curious-presence-stroke: 1.5;
+
+  --expr-thinking-eye-scale-y: 0.95;
+  --expr-thinking-eye-scale-x: 1;
+  --expr-thinking-lid-top-curve: 15;
+  --expr-thinking-lid-bottom-curve: 10;
+  --expr-thinking-presence-opacity: 0.3;
+  --expr-thinking-presence-stroke: 1.5;
+
+  --expr-pondering-eye-scale-y: 0.88;
+  --expr-pondering-eye-scale-x: 0.96;
+  --expr-pondering-lid-top-curve: 18;
+  --expr-pondering-lid-bottom-curve: 10;
+  --expr-pondering-presence-opacity: 0.28;
+  --expr-pondering-presence-stroke: 1.5;
+
+  --expr-contemplating-eye-scale-y: 0.9;
+  --expr-contemplating-eye-scale-x: 0.98;
+  --expr-contemplating-lid-top-curve: 16;
+  --expr-contemplating-lid-bottom-curve: 10;
+  --expr-contemplating-presence-opacity: 0.3;
+  --expr-contemplating-presence-stroke: 1.5;
+
+  --expr-focused-eye-scale-y: 0.94;
+  --expr-focused-eye-scale-x: 0.95;
+  --expr-focused-lid-top-curve: 12;
+  --expr-focused-lid-bottom-curve: 10;
+  --expr-focused-presence-opacity: 0.25;
+  --expr-focused-presence-stroke: 1.2;
+
+  --expr-processing-eye-scale-y: 0.86;
+  --expr-processing-eye-scale-x: 0.97;
+  --expr-processing-lid-top-curve: 14;
+  --expr-processing-lid-bottom-curve: 10;
+  --expr-processing-presence-opacity: 0.32;
+  --expr-processing-presence-stroke: 1.5;
+
+  --expr-reflecting-eye-scale-y: 0.82;
+  --expr-reflecting-eye-scale-x: 1.02;
+  --expr-reflecting-lid-top-curve: 22;
+  --expr-reflecting-lid-bottom-curve: 10;
+  --expr-reflecting-presence-opacity: 0.28;
+  --expr-reflecting-presence-stroke: 1.5;
+
+  --expr-analyzing-eye-scale-y: 0.92;
+  --expr-analyzing-eye-scale-x: 0.94;
+  --expr-analyzing-lid-top-curve: 12;
+  --expr-analyzing-lid-bottom-curve: 10;
+  --expr-analyzing-presence-opacity: 0.3;
+  --expr-analyzing-presence-stroke: 1.3;
+
+  --expr-attentive-eye-scale-y: 1.1;
+  --expr-attentive-eye-scale-x: 1.02;
+  --expr-attentive-lid-top-curve: 2;
+  --expr-attentive-lid-bottom-curve: 10;
+  --expr-attentive-presence-opacity: 0.45;
+  --expr-attentive-presence-stroke: 2;
+
+  --expr-engaged-eye-scale-y: 1.06;
+  --expr-engaged-eye-scale-x: 1;
+  --expr-engaged-lid-top-curve: 5;
+  --expr-engaged-lid-bottom-curve: 10;
+  --expr-engaged-presence-opacity: 0.4;
+  --expr-engaged-presence-stroke: 1.5;
+
+  --expr-interested-eye-scale-y: 1.04;
+  --expr-interested-eye-scale-x: 1;
+  --expr-interested-lid-top-curve: 6;
+  --expr-interested-lid-bottom-curve: 10;
+  --expr-interested-presence-opacity: 0.38;
+  --expr-interested-presence-stroke: 1.5;
+
+  --expr-absorbing-eye-scale-y: 1.05;
+  --expr-absorbing-eye-scale-x: 1;
+  --expr-absorbing-lid-top-curve: 4;
+  --expr-absorbing-lid-bottom-curve: 10;
+  --expr-absorbing-presence-opacity: 0.42;
+  --expr-absorbing-presence-stroke: 1.5;
+
+  --expr-receptive-eye-scale-y: 1.02;
+  --expr-receptive-eye-scale-x: 1.01;
+  --expr-receptive-lid-top-curve: 8;
+  --expr-receptive-lid-bottom-curve: 10;
+  --expr-receptive-presence-opacity: 0.35;
+  --expr-receptive-presence-stroke: 1.5;
+
+  --expr-present-eye-scale-y: 1;
+  --expr-present-eye-scale-x: 1;
+  --expr-present-lid-top-curve: -5;
+  --expr-present-lid-bottom-curve: 10;
+  --expr-present-presence-opacity: 0.35;
+  --expr-present-presence-stroke: 1.5;
+
+  --expr-grounded-eye-scale-y: 0.98;
+  --expr-grounded-eye-scale-x: 1;
+  --expr-grounded-lid-top-curve: 5;
+  --expr-grounded-lid-bottom-curve: 10;
+  --expr-grounded-presence-opacity: 0.38;
+  --expr-grounded-presence-stroke: 2.5;
+
+  --expr-calm-eye-scale-y: 0.95;
+  --expr-calm-eye-scale-x: 1;
+  --expr-calm-lid-top-curve: 10;
+  --expr-calm-lid-bottom-curve: 10;
+  --expr-calm-presence-opacity: 0.32;
+  --expr-calm-presence-stroke: 1.5;
+
+  --expr-serene-eye-scale-y: 0.92;
+  --expr-serene-eye-scale-x: 1;
+  --expr-serene-lid-top-curve: 14;
+  --expr-serene-lid-bottom-curve: 10;
+  --expr-serene-presence-opacity: 0.3;
+  --expr-serene-presence-stroke: 1.5;
+
+  --expr-peaceful-eye-scale-y: 0.88;
+  --expr-peaceful-eye-scale-x: 1;
+  --expr-peaceful-lid-top-curve: 18;
+  --expr-peaceful-lid-bottom-curve: -5;
+  --expr-peaceful-presence-opacity: 0.28;
+  --expr-peaceful-presence-stroke: 1.5;
+
+  --expr-encouraging-eye-scale-y: 0.92;
+  --expr-encouraging-eye-scale-x: 1.02;
+  --expr-encouraging-lid-top-curve: 15;
+  --expr-encouraging-lid-bottom-curve: 10;
+  --expr-encouraging-presence-opacity: 0.4;
+  --expr-encouraging-presence-stroke: 2;
+
+  --expr-cheering-eye-scale-y: 0.8;
+  --expr-cheering-eye-scale-x: 1.06;
+  --expr-cheering-lid-top-curve: 25;
+  --expr-cheering-lid-bottom-curve: 10;
+  --expr-cheering-presence-opacity: 0.55;
+  --expr-cheering-presence-stroke: 2;
+
+  --expr-guiding-eye-scale-y: 0.96;
+  --expr-guiding-eye-scale-x: 1;
+  --expr-guiding-lid-top-curve: 10;
+  --expr-guiding-lid-bottom-curve: 10;
+  --expr-guiding-presence-opacity: 0.38;
+  --expr-guiding-presence-stroke: 1.5;
+
+  --expr-wise-eye-scale-y: 0.9;
+  --expr-wise-eye-scale-x: 1;
+  --expr-wise-lid-top-curve: 16;
+  --expr-wise-lid-bottom-curve: 10;
+  --expr-wise-presence-opacity: 0.35;
+  --expr-wise-presence-stroke: 2.5;
+
+  --expr-knowing-eye-scale-y: 0.88;
+  --expr-knowing-eye-scale-x: 1.01;
+  --expr-knowing-lid-top-curve: 18;
+  --expr-knowing-lid-bottom-curve: 10;
+  --expr-knowing-presence-opacity: 0.32;
+  --expr-knowing-presence-stroke: 1.5;
+
+  --expr-sleepy-eye-scale-y: 0.5;
+  --expr-sleepy-eye-scale-x: 1;
+  --expr-sleepy-lid-top-curve: 55;
+  --expr-sleepy-lid-bottom-curve: -30;
+  --expr-sleepy-presence-opacity: 0.2;
+  --expr-sleepy-presence-stroke: 1.5;
+
+  --expr-drowsy-eye-scale-y: 0.5;
+  --expr-drowsy-eye-scale-x: 1;
+  --expr-drowsy-lid-top-curve: 52;
+  --expr-drowsy-lid-bottom-curve: -25;
+  --expr-drowsy-presence-opacity: 0.2;
+  --expr-drowsy-presence-stroke: 1.5;
+
+  --expr-exhausted-eye-scale-y: 0.35;
+  --expr-exhausted-eye-scale-x: 1;
+  --expr-exhausted-lid-top-curve: 68;
+  --expr-exhausted-lid-bottom-curve: -38;
+  --expr-exhausted-presence-opacity: 0.15;
+  --expr-exhausted-presence-stroke: 1;
+
+  --expr-yawning-eye-scale-y: 0.2;
+  --expr-yawning-eye-scale-x: 1;
+  --expr-yawning-lid-top-curve: 78;
+  --expr-yawning-lid-bottom-curve: -45;
+  --expr-yawning-presence-opacity: 0.18;
+  --expr-yawning-presence-stroke: 1.5;
+
+  --expr-resting-eye-scale-y: 0.6;
+  --expr-resting-eye-scale-x: 1;
+  --expr-resting-lid-top-curve: 45;
+  --expr-resting-lid-bottom-curve: 10;
+  --expr-resting-presence-opacity: 0.22;
+  --expr-resting-presence-stroke: 1.5;
+
+  --expr-blissful-eye-scale-y: 0.55;
+  --expr-blissful-eye-scale-x: 1.04;
+  --expr-blissful-lid-top-curve: 50;
+  --expr-blissful-lid-bottom-curve: -18;
+  --expr-blissful-presence-opacity: 0.28;
+  --expr-blissful-presence-stroke: 2;
+
+  --expr-concerned-eye-scale-y: 1.02;
+  --expr-concerned-eye-scale-x: 1;
+  --expr-concerned-lid-top-curve: 8;
+  --expr-concerned-lid-bottom-curve: 10;
+  --expr-concerned-presence-opacity: 0.35;
+  --expr-concerned-presence-stroke: 1.5;
+
+  --expr-worried-eye-scale-y: 1.05;
+  --expr-worried-eye-scale-x: 1;
+  --expr-worried-lid-top-curve: 5;
+  --expr-worried-lid-bottom-curve: 10;
+  --expr-worried-presence-opacity: 0.38;
+  --expr-worried-presence-stroke: 1.5;
+
+  --expr-sympathetic-eye-scale-y: 0.95;
+  --expr-sympathetic-eye-scale-x: 1;
+  --expr-sympathetic-lid-top-curve: 12;
+  --expr-sympathetic-lid-bottom-curve: 10;
+  --expr-sympathetic-presence-opacity: 0.32;
+  --expr-sympathetic-presence-stroke: 1.5;
+
+  --expr-understanding-eye-scale-y: 0.92;
+  --expr-understanding-eye-scale-x: 1;
+  --expr-understanding-lid-top-curve: 14;
+  --expr-understanding-lid-bottom-curve: 10;
+  --expr-understanding-presence-opacity: 0.35;
+  --expr-understanding-presence-stroke: 1.5;
+
+  --expr-comforting-eye-scale-y: 0.9;
+  --expr-comforting-eye-scale-x: 1.02;
+  --expr-comforting-lid-top-curve: 16;
+  --expr-comforting-lid-bottom-curve: 10;
+  --expr-comforting-presence-opacity: 0.4;
+  --expr-comforting-presence-stroke: 2.5;
+
+  --expr-sad-eye-scale-y: 0.85;
+  --expr-sad-eye-scale-x: 1;
+  --expr-sad-lid-top-curve: 20;
+  --expr-sad-lid-bottom-curve: 10;
+  --expr-sad-presence-opacity: 0.2;
+  --expr-sad-presence-stroke: 1.5;
+
+  --expr-crying-eye-scale-y: 0.4;
+  --expr-crying-eye-scale-x: 1.1;
+  --expr-crying-lid-top-curve: 55;
+  --expr-crying-lid-bottom-curve: -25;
+  --expr-crying-presence-opacity: 0.15;
+  --expr-crying-presence-stroke: 1.5;
+
+  --expr-melancholy-eye-scale-y: 0.8;
+  --expr-melancholy-eye-scale-x: 1;
+  --expr-melancholy-lid-top-curve: 25;
+  --expr-melancholy-lid-bottom-curve: 10;
+  --expr-melancholy-presence-opacity: 0.22;
+  --expr-melancholy-presence-stroke: 1.5;
+
+  --expr-disappointed-eye-scale-y: 0.75;
+  --expr-disappointed-eye-scale-x: 1;
+  --expr-disappointed-lid-top-curve: 30;
+  --expr-disappointed-lid-bottom-curve: 10;
+  --expr-disappointed-presence-opacity: 0.18;
+  --expr-disappointed-presence-stroke: 1.5;
+
+  --expr-dejected-eye-scale-y: 0.65;
+  --expr-dejected-eye-scale-x: 1;
+  --expr-dejected-lid-top-curve: 40;
+  --expr-dejected-lid-bottom-curve: 10;
+  --expr-dejected-presence-opacity: 0.12;
+  --expr-dejected-presence-stroke: 1;
+
+  --expr-frustrated-eye-scale-y: 0.7;
+  --expr-frustrated-eye-scale-x: 1.05;
+  --expr-frustrated-lid-top-curve: 15;
+  --expr-frustrated-lid-bottom-curve: 10;
+  --expr-frustrated-presence-opacity: 0.35;
+  --expr-frustrated-presence-stroke: 1.5;
+
+  --expr-annoyed-eye-scale-y: 0.75;
+  --expr-annoyed-eye-scale-x: 1;
+  --expr-annoyed-lid-top-curve: 18;
+  --expr-annoyed-lid-bottom-curve: 10;
+  --expr-annoyed-presence-opacity: 0.3;
+  --expr-annoyed-presence-stroke: 1.5;
+
+  --expr-irritated-eye-scale-y: 0.68;
+  --expr-irritated-eye-scale-x: 1.04;
+  --expr-irritated-lid-top-curve: 22;
+  --expr-irritated-lid-bottom-curve: 10;
+  --expr-irritated-presence-opacity: 0.4;
+  --expr-irritated-presence-stroke: 1.5;
+
+  --expr-exasperated-eye-scale-y: 0.6;
+  --expr-exasperated-eye-scale-x: 1;
+  --expr-exasperated-lid-top-curve: 35;
+  --expr-exasperated-lid-bottom-curve: 10;
+  --expr-exasperated-presence-opacity: 0.3;
+  --expr-exasperated-presence-stroke: 1.5;
+
+  --expr-eyeroll-eye-scale-y: 0.85;
+  --expr-eyeroll-eye-scale-x: 1;
+  --expr-eyeroll-lid-top-curve: 12;
+  --expr-eyeroll-lid-bottom-curve: 10;
+  --expr-eyeroll-presence-opacity: 0.3;
+  --expr-eyeroll-presence-stroke: 1.5;
+
+  --expr-confused-eye-scale-y: 1.02;
+  --expr-confused-eye-scale-x: 1;
+  --expr-confused-lid-top-curve: 5;
+  --expr-confused-lid-bottom-curve: 10;
+  --expr-confused-presence-opacity: 0.3;
+  --expr-confused-presence-stroke: 1.5;
+
+  --expr-skeptical-eye-scale-y: 0.8;
+  --expr-skeptical-eye-scale-x: 1;
+  --expr-skeptical-lid-top-curve: 20;
+  --expr-skeptical-lid-bottom-curve: 10;
+  --expr-skeptical-presence-opacity: 0.3;
+  --expr-skeptical-presence-stroke: 1.5;
+
+  --expr-puzzled-eye-scale-y: 1.05;
+  --expr-puzzled-eye-scale-x: 1;
+  --expr-puzzled-lid-top-curve: 3;
+  --expr-puzzled-lid-bottom-curve: 10;
+  --expr-puzzled-presence-opacity: 0.32;
+  --expr-puzzled-presence-stroke: 1.5;
+
+  --expr-perplexed-eye-scale-y: 0.9;
+  --expr-perplexed-eye-scale-x: 1;
+  --expr-perplexed-lid-top-curve: 10;
+  --expr-perplexed-lid-bottom-curve: 10;
+  --expr-perplexed-presence-opacity: 0.28;
+  --expr-perplexed-presence-stroke: 1.5;
+
+  --expr-bewildered-eye-scale-y: 1.1;
+  --expr-bewildered-eye-scale-x: 1.05;
+  --expr-bewildered-lid-top-curve: -2;
+  --expr-bewildered-lid-bottom-curve: 10;
+  --expr-bewildered-presence-opacity: 0.35;
+  --expr-bewildered-presence-stroke: 1.5;
+
+  --expr-nervous-eye-scale-y: 1.08;
+  --expr-nervous-eye-scale-x: 1;
+  --expr-nervous-lid-top-curve: 2;
+  --expr-nervous-lid-bottom-curve: 10;
+  --expr-nervous-presence-opacity: 0.35;
+  --expr-nervous-presence-stroke: 1.5;
+
+  --expr-anxious-eye-scale-y: 1.12;
+  --expr-anxious-eye-scale-x: 1;
+  --expr-anxious-lid-top-curve: 0;
+  --expr-anxious-lid-bottom-curve: 10;
+  --expr-anxious-presence-opacity: 0.4;
+  --expr-anxious-presence-stroke: 1.5;
+
+  --expr-scared-eye-scale-y: 1.2;
+  --expr-scared-eye-scale-x: 1.1;
+  --expr-scared-lid-top-curve: -5;
+  --expr-scared-lid-bottom-curve: 5;
+  --expr-scared-presence-opacity: 0.45;
+  --expr-scared-presence-stroke: 1.5;
+
+  --expr-fearful-eye-scale-y: 1.25;
+  --expr-fearful-eye-scale-x: 1.15;
+  --expr-fearful-lid-top-curve: -8;
+  --expr-fearful-lid-bottom-curve: 10;
+  --expr-fearful-presence-opacity: 0.5;
+  --expr-fearful-presence-stroke: 1.5;
+
+  --expr-uneasy-eye-scale-y: 1.04;
+  --expr-uneasy-eye-scale-x: 1;
+  --expr-uneasy-lid-top-curve: 4;
+  --expr-uneasy-lid-bottom-curve: 10;
+  --expr-uneasy-presence-opacity: 0.32;
+  --expr-uneasy-presence-stroke: 1.5;
+
+  --expr-embarrassed-eye-scale-y: 1.15;
+  --expr-embarrassed-eye-scale-x: 1.08;
+  --expr-embarrassed-lid-top-curve: -3;
+  --expr-embarrassed-lid-bottom-curve: 10;
+  --expr-embarrassed-presence-opacity: 0.45;
+  --expr-embarrassed-presence-stroke: 1.5;
+
+  --expr-awkward-eye-scale-y: 0.9;
+  --expr-awkward-eye-scale-x: 1.05;
+  --expr-awkward-lid-top-curve: 12;
+  --expr-awkward-lid-bottom-curve: 10;
+  --expr-awkward-presence-opacity: 0.35;
+  --expr-awkward-presence-stroke: 1.5;
+
+  --expr-cringing-eye-scale-y: 0.5;
+  --expr-cringing-eye-scale-x: 1.1;
+  --expr-cringing-lid-top-curve: 45;
+  --expr-cringing-lid-bottom-curve: -20;
+  --expr-cringing-presence-opacity: 0.35;
+  --expr-cringing-presence-stroke: 1.5;
+
+  --expr-sheepish-eye-scale-y: 0.85;
+  --expr-sheepish-eye-scale-x: 1;
+  --expr-sheepish-lid-top-curve: 18;
+  --expr-sheepish-lid-bottom-curve: 10;
+  --expr-sheepish-presence-opacity: 0.3;
+  --expr-sheepish-presence-stroke: 1.5;
+
+  --expr-flustered-eye-scale-y: 1.05;
+  --expr-flustered-eye-scale-x: 1;
+  --expr-flustered-lid-top-curve: 5;
+  --expr-flustered-lid-bottom-curve: 10;
+  --expr-flustered-presence-opacity: 0.5;
+  --expr-flustered-presence-stroke: 1.5;
+
+  --expr-confident-eye-scale-y: 0.88;
+  --expr-confident-eye-scale-x: 1.02;
+  --expr-confident-lid-top-curve: 14;
+  --expr-confident-lid-bottom-curve: 10;
+  --expr-confident-presence-opacity: 0.4;
+  --expr-confident-presence-stroke: 2.5;
+
+  --expr-smirking-eye-scale-y: 0.82;
+  --expr-smirking-eye-scale-x: 1;
+  --expr-smirking-lid-top-curve: 20;
+  --expr-smirking-lid-bottom-curve: 10;
+  --expr-smirking-presence-opacity: 0.35;
+  --expr-smirking-presence-stroke: 1.5;
+
+  --expr-cool-eye-scale-y: 0.7;
+  --expr-cool-eye-scale-x: 1.05;
+  --expr-cool-lid-top-curve: 28;
+  --expr-cool-lid-bottom-curve: 10;
+  --expr-cool-presence-opacity: 0.35;
+  --expr-cool-presence-stroke: 1.5;
+
+  --expr-sassy-eye-scale-y: 0.78;
+  --expr-sassy-eye-scale-x: 1;
+  --expr-sassy-lid-top-curve: 24;
+  --expr-sassy-lid-bottom-curve: 10;
+  --expr-sassy-presence-opacity: 0.35;
+  --expr-sassy-presence-stroke: 1.5;
+
+  --expr-smug-eye-scale-y: 0.72;
+  --expr-smug-eye-scale-x: 1.04;
+  --expr-smug-lid-top-curve: 30;
+  --expr-smug-lid-bottom-curve: 10;
+  --expr-smug-presence-opacity: 0.42;
+  --expr-smug-presence-stroke: 2.5;
+
+  --expr-determined-eye-scale-y: 0.85;
+  --expr-determined-eye-scale-x: 1.04;
+  --expr-determined-lid-top-curve: 16;
+  --expr-determined-lid-bottom-curve: 10;
+  --expr-determined-presence-opacity: 0.5;
+  --expr-determined-presence-stroke: 2.8;
+
+  --expr-fierce-eye-scale-y: 0.75;
+  --expr-fierce-eye-scale-x: 1.08;
+  --expr-fierce-lid-top-curve: 22;
+  --expr-fierce-lid-bottom-curve: 10;
+  --expr-fierce-presence-opacity: 0.55;
+  --expr-fierce-presence-stroke: 1.5;
+
+  --expr-intense-eye-scale-y: 0.92;
+  --expr-intense-eye-scale-x: 1.05;
+  --expr-intense-lid-top-curve: 10;
+  --expr-intense-lid-bottom-curve: 10;
+  --expr-intense-presence-opacity: 0.48;
+  --expr-intense-presence-stroke: 2.5;
+
+  --expr-resolute-eye-scale-y: 0.88;
+  --expr-resolute-eye-scale-x: 1.02;
+  --expr-resolute-lid-top-curve: 14;
+  --expr-resolute-lid-bottom-curve: 10;
+  --expr-resolute-presence-opacity: 0.45;
+  --expr-resolute-presence-stroke: 2.8;
+
+  --expr-passionate-eye-scale-y: 0.9;
+  --expr-passionate-eye-scale-x: 1.04;
+  --expr-passionate-lid-top-curve: 12;
+  --expr-passionate-lid-bottom-curve: 10;
+  --expr-passionate-presence-opacity: 0.5;
+  --expr-passionate-presence-stroke: 2;
+
+}
+
+/* ============================================================================
+   EXPRESSION RULES
+   ============================================================================ */
+
+/* Expression: neutral (core) */
+.ferni-avatar[data-expression="neutral"] {
+}
+
+.ferni-avatar[data-expression="neutral"] .lid-top {
+  d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="neutral"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: listening (core) */
+.ferni-avatar[data-expression="listening"] {
+  transform: translateY(-2px);
+}
+
+.ferni-avatar[data-expression="listening"] .eye-white {
+  transform: scaleY(1.08) scaleX(1);
+}
+
+.ferni-avatar[data-expression="listening"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="listening"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="listening"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: speaking (core) */
+.ferni-avatar[data-expression="speaking"] {
+  animation: speakPulse 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="speaking"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="speaking"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="speaking"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: happy (happy) */
+.ferni-avatar[data-expression="happy"] {
+}
+
+.ferni-avatar[data-expression="happy"] .eye-white {
+  transform: scaleY(0.8) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="happy"] .lid-top {
+  d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="happy"] .lid-bottom {
+  d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="happy"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="happy"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: joyful (happy) */
+.ferni-avatar[data-expression="joyful"] {
+  transform: translateY(-4px) scale(1.03);
+}
+
+.ferni-avatar[data-expression="joyful"] .eye-white {
+  transform: scaleY(0.7) scaleX(1.12);
+}
+
+.ferni-avatar[data-expression="joyful"] .lid-top {
+  d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="joyful"] .lid-bottom {
+  d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="joyful"] .smile-crease {
+  opacity: 1;
+  stroke-width: 1.5;
+}
+
+.ferni-avatar[data-expression="joyful"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 2;
+  transform: scale(1.02);
+}
+
+/* Expression: delighted (happy) */
+.ferni-avatar[data-expression="delighted"] {
+  transform: translateY(-6px) scale(1.05) rotate(-2deg);
+  animation: delightedBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="delighted"] .eye-white {
+  transform: scaleY(0.6) scaleX(1.15);
+}
+
+.ferni-avatar[data-expression="delighted"] .lid-top {
+  d: path("M 0,0 Q 50,42 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="delighted"] .lid-bottom {
+  d: path("M 0,100 Q 50,72 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="delighted"] .smile-crease {
+  opacity: 1;
+  stroke-width: 2;
+}
+
+.ferni-avatar[data-expression="delighted"] .presence-ring {
+  opacity: 0.6;
+  stroke-width: 2.5;
+}
+
+.ferni-avatar[data-expression="delighted"] .sparkle-effects {
+  opacity: 1;
+  animation: sparkleFloat 2s ease-in-out infinite;
+}
+
+/* Expression: amused (happy) */
+.ferni-avatar[data-expression="amused"] {
+  transform: rotate(1.5deg);
+}
+
+.ferni-avatar[data-expression="amused"] .eye-white {
+  transform: scaleY(0.78) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="amused"] .eye-left .eye-white {
+  transform: scaleY(0.75) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="amused"] .lid-top {
+  d: path("M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="amused"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="amused"] .smile-crease {
+  opacity: 0.7;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="amused"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: pleased (happy) */
+.ferni-avatar[data-expression="pleased"] {
+  transform: translateY(-2px);
+}
+
+.ferni-avatar[data-expression="pleased"] .eye-white {
+  transform: scaleY(0.82) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="pleased"] .lid-top {
+  d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="pleased"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="pleased"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="pleased"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: content (happy) */
+.ferni-avatar[data-expression="content"] {
+  transform: scale(0.99);
+}
+
+.ferni-avatar[data-expression="content"] .eye-white {
+  transform: scaleY(0.85) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="content"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="content"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="content"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="content"] .presence-ring {
+  opacity: 0.25;
+  stroke-width: 1.5;
+}
+
+/* Expression: excited (happy) */
+.ferni-avatar[data-expression="excited"] {
+  transform: scale(1.06);
+  animation: excitedBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="excited"] .eye-white {
+  transform: scaleY(1.15) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="excited"] .lid-top {
+  d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="excited"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="excited"] .smile-crease {
+  opacity: 0.8;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="excited"] .presence-ring {
+  opacity: 0.6;
+  stroke-width: 2.5;
+}
+
+.ferni-avatar[data-expression="excited"] .sparkle-effects {
+  opacity: 1;
+  animation: sparkleFloat 2s ease-in-out infinite;
+}
+
+/* Expression: grateful (happy) */
+.ferni-avatar[data-expression="grateful"] {
+  transform: translateY(-3px) rotate(-1deg);
+}
+
+.ferni-avatar[data-expression="grateful"] .eye-white {
+  transform: scaleY(0.72) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="grateful"] .lid-top {
+  d: path("M 0,0 Q 50,32 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="grateful"] .lid-bottom {
+  d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="grateful"] .smile-crease {
+  opacity: 0.9;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="grateful"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: proud (happy) */
+.ferni-avatar[data-expression="proud"] {
+  transform: translateY(-5px) scale(1.04);
+}
+
+.ferni-avatar[data-expression="proud"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="proud"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="proud"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="proud"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="proud"] .presence-ring {
+  opacity: 0.45;
+  stroke-width: 2;
+}
+
+/* Expression: warm (warmth) */
+.ferni-avatar[data-expression="warm"] {
+}
+
+.ferni-avatar[data-expression="warm"] .eye-white {
+  transform: scaleY(0.9) scaleX(1.03);
+}
+
+.ferni-avatar[data-expression="warm"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="warm"] .lid-bottom {
+  d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="warm"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="warm"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.5;
+}
+
+/* Expression: caring (warmth) */
+.ferni-avatar[data-expression="caring"] {
+  transform: translateY(-2px) rotate(-1deg);
+  animation: warmPulse 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="caring"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="caring"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="caring"] .lid-bottom {
+  d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="caring"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="caring"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.8;
+}
+
+/* Expression: loving (warmth) */
+.ferni-avatar[data-expression="loving"] {
+  transform: translateY(-4px) scale(1.02);
+  animation: lovingGlow 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="loving"] .eye-white {
+  transform: scaleY(0.75) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="loving"] .lid-top {
+  d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="loving"] .lid-bottom {
+  d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="loving"] .smile-crease {
+  opacity: 1;
+  stroke-width: 1.5;
+}
+
+.ferni-avatar[data-expression="loving"] .presence-ring {
+  opacity: 0.55;
+  stroke-width: 2.5;
+}
+
+/* Expression: tender (warmth) */
+.ferni-avatar[data-expression="tender"] {
+  transform: translateY(-2px) rotate(-0.5deg);
+}
+
+.ferni-avatar[data-expression="tender"] .eye-white {
+  transform: scaleY(0.82) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="tender"] .lid-top {
+  d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="tender"] .lid-bottom {
+  d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="tender"] .smile-crease {
+  opacity: 0.8;
+  stroke-width: 1.2;
+}
+
+.ferni-avatar[data-expression="tender"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.8;
+}
+
+/* Expression: supportive (warmth) */
+.ferni-avatar[data-expression="supportive"] {
+  transform: translateY(-1px);
+}
+
+.ferni-avatar[data-expression="supportive"] .eye-white {
+  transform: scaleY(0.92) scaleX(1.01);
+}
+
+.ferni-avatar[data-expression="supportive"] .eyes-group {
+  transform: translate(-1px, 0px);
+}
+
+.ferni-avatar[data-expression="supportive"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="supportive"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="supportive"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="supportive"] .presence-ring {
+  opacity: 0.42;
+  stroke-width: 1.6;
+}
+
+/* Expression: compassionate (warmth) */
+.ferni-avatar[data-expression="compassionate"] {
+  transform: translateY(-2px) rotate(-1.5deg);
+  animation: warmPulse 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="compassionate"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.03);
+}
+
+.ferni-avatar[data-expression="compassionate"] .eye-left .eye-white {
+  transform: scaleY(0.86) scaleX(1.03);
+}
+
+.ferni-avatar[data-expression="compassionate"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="compassionate"] .lid-bottom {
+  d: path("M 0,100 Q 50,92 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="compassionate"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="compassionate"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: empathetic (warmth) */
+.ferni-avatar[data-expression="empathetic"] {
+  transform: rotate(-2deg) translateY(-1px);
+  animation: empathyMirror 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="empathetic"] .eye-white {
+  transform: scaleY(0.9) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="empathetic"] .eye-left .eye-white {
+  transform: scaleY(0.88) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="empathetic"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="empathetic"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="empathetic"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="empathetic"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.6;
+}
+
+/* Expression: nurturing (warmth) */
+.ferni-avatar[data-expression="nurturing"] {
+  transform: translateY(-3px) scale(1.01);
+  animation: nurturingSwell 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="nurturing"] .eye-white {
+  transform: scaleY(0.8) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="nurturing"] .lid-top {
+  d: path("M 0,0 Q 50,26 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="nurturing"] .lid-bottom {
+  d: path("M 0,100 Q 50,88 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="nurturing"] .smile-crease {
+  opacity: 0.85;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="nurturing"] .presence-ring {
+  opacity: 0.48;
+  stroke-width: 2;
+}
+
+/* Expression: playful (playful) */
+.ferni-avatar[data-expression="playful"] {
+  transform: rotate(2deg) translateY(-2px);
+  animation: playfulSway 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="playful"] .eye-white {
+  transform: scaleY(0.92) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="playful"] .eye-left .eye-white {
+  transform: scaleY(0.88) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="playful"] .eyes-group {
+  transform: translate(2px, 0px);
+}
+
+.ferni-avatar[data-expression="playful"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="playful"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="playful"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="playful"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: mischievous (playful) */
+.ferni-avatar[data-expression="mischievous"] {
+  transform: rotate(4deg) translateX(3px);
+}
+
+.ferni-avatar[data-expression="mischievous"] .eye-white {
+  transform: scaleY(0.85) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="mischievous"] .eye-left .eye-white {
+  transform: scaleY(0.8) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="mischievous"] .eyes-group {
+  transform: translate(3px, -1px);
+}
+
+.ferni-avatar[data-expression="mischievous"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="mischievous"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="mischievous"] .smile-crease {
+  opacity: 0.7;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="mischievous"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: cheeky (playful) */
+.ferni-avatar[data-expression="cheeky"] {
+  transform: rotate(3deg) translateY(-2px);
+}
+
+.ferni-avatar[data-expression="cheeky"] .eye-white {
+  transform: scaleY(0.82) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="cheeky"] .lid-top {
+  d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="cheeky"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="cheeky"] .smile-crease {
+  opacity: 0.8;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="cheeky"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: silly (playful) */
+.ferni-avatar[data-expression="silly"] {
+  transform: rotate(-4deg) scaleX(1.03) translateY(-3px);
+  animation: sillyWobble 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="silly"] .eye-white {
+  transform: scaleY(0.78) scaleX(1.12);
+}
+
+.ferni-avatar[data-expression="silly"] .eye-left .eye-white {
+  transform: scaleY(0.72) scaleX(1.12);
+}
+
+.ferni-avatar[data-expression="silly"] .lid-top {
+  d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="silly"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="silly"] .smile-crease {
+  opacity: 1;
+  stroke-width: 1.5;
+}
+
+.ferni-avatar[data-expression="silly"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: winking (playful) */
+.ferni-avatar[data-expression="winking"] {
+  transform: rotate(2deg) translateY(-2px);
+  animation: winkBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="winking"] .eye-left .eye-white {
+  transform: scaleY(0.08) scaleX(1.2);
+}
+
+.ferni-avatar[data-expression="winking"] .eye-right .eye-white {
+  transform: scaleY(1.05) scaleX(1);
+}
+
+.ferni-avatar[data-expression="winking"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="winking"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="winking"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="winking"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: teasing (playful) */
+.ferni-avatar[data-expression="teasing"] {
+  transform: rotate(2.5deg) translateX(2px);
+}
+
+.ferni-avatar[data-expression="teasing"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="teasing"] .eye-left .eye-white {
+  transform: scaleY(0.82) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="teasing"] .eyes-group {
+  transform: translate(2px, -0.5px);
+}
+
+.ferni-avatar[data-expression="teasing"] .lid-top {
+  d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="teasing"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="teasing"] .smile-crease {
+  opacity: 0.55;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="teasing"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: surprised (surprised) */
+.ferni-avatar[data-expression="surprised"] {
+  transform: scaleY(1.02) scaleX(0.99);
+}
+
+.ferni-avatar[data-expression="surprised"] .eye-white {
+  transform: scaleY(1.15) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="surprised"] .lid-top {
+  d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="surprised"] .lid-bottom {
+  d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="surprised"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: shocked (surprised) */
+.ferni-avatar[data-expression="shocked"] {
+  transform: scaleY(1.08) scaleX(0.94) translateY(-8px);
+  animation: shockPop 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="shocked"] .eye-white {
+  transform: scaleY(1.35) scaleX(1.15);
+}
+
+.ferni-avatar[data-expression="shocked"] .lid-top {
+  d: path("M 0,0 Q 50,-35 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="shocked"] .lid-bottom {
+  d: path("M 0,100 Q 50,125 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="shocked"] .presence-ring {
+  opacity: 0.7;
+  stroke-width: 3;
+}
+
+/* Expression: amazed (surprised) */
+.ferni-avatar[data-expression="amazed"] {
+  transform: translateY(-6px) scale(1.04);
+  animation: amazedFloat 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="amazed"] .eye-white {
+  transform: scaleY(1.25) scaleX(1.1);
+}
+
+.ferni-avatar[data-expression="amazed"] .lid-top {
+  d: path("M 0,0 Q 50,-28 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="amazed"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="amazed"] .presence-ring {
+  opacity: 0.55;
+  stroke-width: 2;
+}
+
+.ferni-avatar[data-expression="amazed"] .sparkle-effects {
+  opacity: 1;
+  animation: sparkleFloat 2s ease-in-out infinite;
+}
+
+/* Expression: intrigued (surprised) */
+.ferni-avatar[data-expression="intrigued"] {
+  transform: rotate(3deg) translateY(-2px);
+}
+
+.ferni-avatar[data-expression="intrigued"] .eye-white {
+  transform: scaleY(1.1) scaleX(1.03);
+}
+
+.ferni-avatar[data-expression="intrigued"] .eye-right .eye-white {
+  transform: scaleY(1.15) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="intrigued"] .eyes-group {
+  transform: translate(2px, -2px);
+}
+
+.ferni-avatar[data-expression="intrigued"] .lid-top {
+  d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="intrigued"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="intrigued"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: astonished (surprised) */
+.ferni-avatar[data-expression="astonished"] {
+  transform: scaleY(1.06) scaleX(0.95) translateY(-5px);
+  animation: astonishedPop 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="astonished"] .eye-white {
+  transform: scaleY(1.28) scaleX(1.1);
+}
+
+.ferni-avatar[data-expression="astonished"] .lid-top {
+  d: path("M 0,0 Q 50,-30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="astonished"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="astonished"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 2;
+}
+
+/* Expression: curious (surprised) */
+.ferni-avatar[data-expression="curious"] {
+  transform: rotate(4deg) translateY(-3px);
+  animation: curiousTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="curious"] .eye-white {
+  transform: scaleY(1.08) scaleX(1);
+}
+
+.ferni-avatar[data-expression="curious"] .eye-right .eye-white {
+  transform: scaleY(1.12) scaleX(1);
+}
+
+.ferni-avatar[data-expression="curious"] .eyes-group {
+  transform: translate(3px, -2px);
+}
+
+.ferni-avatar[data-expression="curious"] .lid-top {
+  d: path("M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="curious"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="curious"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: thinking (thinking) */
+.ferni-avatar[data-expression="thinking"] {
+  transform: rotate(1.5deg);
+}
+
+.ferni-avatar[data-expression="thinking"] .eye-white {
+  transform: scaleY(0.95) scaleX(1);
+}
+
+.ferni-avatar[data-expression="thinking"] .eyes-group {
+  transform: translate(2px, -2px);
+}
+
+.ferni-avatar[data-expression="thinking"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="thinking"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: pondering (thinking) */
+.ferni-avatar[data-expression="pondering"] {
+  transform: rotate(3deg) translateY(-2px);
+  animation: ponderDrift 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="pondering"] .eye-white {
+  transform: scaleY(0.88) scaleX(0.96);
+}
+
+.ferni-avatar[data-expression="pondering"] .eyes-group {
+  transform: translate(4px, -3px);
+}
+
+.ferni-avatar[data-expression="pondering"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="pondering"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="pondering"] .presence-ring {
+  opacity: 0.28;
+  stroke-width: 1.5;
+}
+
+/* Expression: contemplating (thinking) */
+.ferni-avatar[data-expression="contemplating"] {
+  transform: rotate(1.5deg) translateY(-1px);
+  animation: contemplateSway 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="contemplating"] .eye-white {
+  transform: scaleY(0.9) scaleX(0.98);
+}
+
+.ferni-avatar[data-expression="contemplating"] .eyes-group {
+  transform: translate(3px, -2px);
+}
+
+.ferni-avatar[data-expression="contemplating"] .lid-top {
+  d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="contemplating"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: focused (thinking) */
+.ferni-avatar[data-expression="focused"] {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.ferni-avatar[data-expression="focused"] .eye-white {
+  transform: scaleY(0.94) scaleX(0.95);
+}
+
+.ferni-avatar[data-expression="focused"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="focused"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="focused"] .presence-ring {
+  opacity: 0.25;
+  stroke-width: 1.2;
+}
+
+/* Expression: processing (thinking) */
+.ferni-avatar[data-expression="processing"] {
+  animation: processingBody 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="processing"] .eye-white {
+  transform: scaleY(0.86) scaleX(0.97);
+}
+
+.ferni-avatar[data-expression="processing"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="processing"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="processing"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: reflecting (thinking) */
+.ferni-avatar[data-expression="reflecting"] {
+  transform: rotate(-2deg) translateY(-1px);
+  animation: reflectingSway 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="reflecting"] .eye-white {
+  transform: scaleY(0.82) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="reflecting"] .eyes-group {
+  transform: translate(-2px, 2px);
+}
+
+.ferni-avatar[data-expression="reflecting"] .lid-top {
+  d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="reflecting"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="reflecting"] .presence-ring {
+  opacity: 0.28;
+  stroke-width: 1.5;
+}
+
+/* Expression: analyzing (thinking) */
+.ferni-avatar[data-expression="analyzing"] {
+  transform: translateY(-1px);
+  animation: analyzingScan 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="analyzing"] .eye-white {
+  transform: scaleY(0.92) scaleX(0.94);
+}
+
+.ferni-avatar[data-expression="analyzing"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="analyzing"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="analyzing"] .presence-ring {
+  opacity: 0.3;
+  stroke-width: 1.3;
+}
+
+/* Expression: attentive (listening) */
+.ferni-avatar[data-expression="attentive"] {
+  transform: translateY(-2px) rotate(1deg);
+  animation: attentiveLean 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="attentive"] .eye-white {
+  transform: scaleY(1.1) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="attentive"] .eye-right .eye-white {
+  transform: scaleY(1.12) scaleX(1);
+}
+
+.ferni-avatar[data-expression="attentive"] .eyes-group {
+  transform: translate(0px, -1px);
+}
+
+.ferni-avatar[data-expression="attentive"] .lid-top {
+  d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="attentive"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="attentive"] .presence-ring {
+  opacity: 0.45;
+  stroke-width: 2;
+}
+
+/* Expression: engaged (listening) */
+.ferni-avatar[data-expression="engaged"] {
+  transform: translateY(-1px) scaleY(1.01);
+  animation: engagedNod 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="engaged"] .eye-white {
+  transform: scaleY(1.06) scaleX(1);
+}
+
+.ferni-avatar[data-expression="engaged"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="engaged"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="engaged"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: interested (listening) */
+.ferni-avatar[data-expression="interested"] {
+  transform: rotate(2deg);
+  animation: interestedTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="interested"] .eye-white {
+  transform: scaleY(1.04) scaleX(1);
+}
+
+.ferni-avatar[data-expression="interested"] .eye-left .eye-white {
+  transform: scaleY(1.06) scaleX(1);
+}
+
+.ferni-avatar[data-expression="interested"] .eyes-group {
+  transform: translate(1px, -0.5px);
+}
+
+.ferni-avatar[data-expression="interested"] .lid-top {
+  d: path("M 0,0 Q 50,6 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="interested"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="interested"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.5;
+}
+
+/* Expression: absorbing (listening) */
+.ferni-avatar[data-expression="absorbing"] {
+  transform: scaleY(1.01);
+  animation: absorbingBreathe 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="absorbing"] .eye-white {
+  transform: scaleY(1.05) scaleX(1);
+}
+
+.ferni-avatar[data-expression="absorbing"] .lid-top {
+  d: path("M 0,0 Q 50,4 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="absorbing"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="absorbing"] .presence-ring {
+  opacity: 0.42;
+  stroke-width: 1.5;
+}
+
+/* Expression: receptive (listening) */
+.ferni-avatar[data-expression="receptive"] {
+  transform: translateY(-0.5px);
+  animation: receptiveOpen 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="receptive"] .eye-white {
+  transform: scaleY(1.02) scaleX(1.01);
+}
+
+.ferni-avatar[data-expression="receptive"] .lid-top {
+  d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="receptive"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="receptive"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: present (presence) */
+.ferni-avatar[data-expression="present"] {
+  animation: presentBreathe 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="present"] .lid-top {
+  d: path("M 0,0 Q 50,-5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="present"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="present"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: grounded (presence) */
+.ferni-avatar[data-expression="grounded"] {
+  transform: translateY(1px);
+  animation: groundedSettle 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="grounded"] .eye-white {
+  transform: scaleY(0.98) scaleX(1);
+}
+
+.ferni-avatar[data-expression="grounded"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="grounded"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="grounded"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 2.5;
+}
+
+/* Expression: calm (presence) */
+.ferni-avatar[data-expression="calm"] {
+  animation: calmFloat 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="calm"] .eye-white {
+  transform: scaleY(0.95) scaleX(1);
+}
+
+.ferni-avatar[data-expression="calm"] .lid-top {
+  d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="calm"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="calm"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: serene (presence) */
+.ferni-avatar[data-expression="serene"] {
+  animation: sereneFloat 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="serene"] .eye-white {
+  transform: scaleY(0.92) scaleX(1);
+}
+
+.ferni-avatar[data-expression="serene"] .eye-left .eye-white {
+  transform: scaleY(0.9) scaleX(1);
+}
+
+.ferni-avatar[data-expression="serene"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="serene"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="serene"] .smile-crease {
+  opacity: 0.3;
+  stroke-width: undefined;
+}
+
+/* Expression: peaceful (presence) */
+.ferni-avatar[data-expression="peaceful"] {
+  animation: peacefulDrift 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="peaceful"] .eye-white {
+  transform: scaleY(0.88) scaleX(1);
+}
+
+.ferni-avatar[data-expression="peaceful"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="peaceful"] .lid-bottom {
+  d: path("M 0,100 Q 50,95 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="peaceful"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="peaceful"] .presence-ring {
+  opacity: 0.28;
+  stroke-width: 1.5;
+}
+
+/* Expression: encouraging (coaching) */
+.ferni-avatar[data-expression="encouraging"] {
+  transform: translateY(-1px);
+  animation: encouragingBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="encouraging"] .eye-white {
+  transform: scaleY(0.92) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="encouraging"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="encouraging"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="encouraging"] .smile-crease {
+  opacity: 0.45;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="encouraging"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 2;
+}
+
+/* Expression: cheering (coaching) */
+.ferni-avatar[data-expression="cheering"] {
+  transform: translateY(-2px) scaleY(1.02);
+  animation: cheeringBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="cheering"] .eye-white {
+  transform: scaleY(0.8) scaleX(1.06);
+}
+
+.ferni-avatar[data-expression="cheering"] .lid-top {
+  d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="cheering"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="cheering"] .smile-crease {
+  opacity: 0.7;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="cheering"] .presence-ring {
+  opacity: 0.55;
+  stroke-width: 2;
+}
+
+.ferni-avatar[data-expression="cheering"] .sparkle-effects {
+  opacity: 1;
+  animation: sparkleFloat 2s ease-in-out infinite;
+}
+
+/* Expression: guiding (coaching) */
+.ferni-avatar[data-expression="guiding"] {
+  transform: rotate(1deg);
+  animation: guidingLean 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="guiding"] .eye-white {
+  transform: scaleY(0.96) scaleX(1);
+}
+
+.ferni-avatar[data-expression="guiding"] .eye-right .eye-white {
+  transform: scaleY(0.98) scaleX(1);
+}
+
+.ferni-avatar[data-expression="guiding"] .eyes-group {
+  transform: translate(0.5px, -0.5px);
+}
+
+.ferni-avatar[data-expression="guiding"] .lid-top {
+  d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="guiding"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="guiding"] .smile-crease {
+  opacity: 0.35;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="guiding"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.5;
+}
+
+/* Expression: wise (coaching) */
+.ferni-avatar[data-expression="wise"] {
+  transform: rotate(-0.5deg);
+  animation: wiseTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="wise"] .eye-white {
+  transform: scaleY(0.9) scaleX(1);
+}
+
+.ferni-avatar[data-expression="wise"] .eye-left .eye-white {
+  transform: scaleY(0.88) scaleX(1);
+}
+
+.ferni-avatar[data-expression="wise"] .lid-top {
+  d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="wise"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="wise"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="wise"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 2.5;
+}
+
+/* Expression: knowing (coaching) */
+.ferni-avatar[data-expression="knowing"] {
+  animation: knowingNod 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="knowing"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.01);
+}
+
+.ferni-avatar[data-expression="knowing"] .eye-right .eye-white {
+  transform: scaleY(0.86) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="knowing"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="knowing"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="knowing"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="knowing"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: sleepy (tired) */
+.ferni-avatar[data-expression="sleepy"] {
+  transform: scaleY(0.99);
+}
+
+.ferni-avatar[data-expression="sleepy"] .eye-white {
+  transform: scaleY(0.5) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sleepy"] .lid-top {
+  d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="sleepy"] .lid-bottom {
+  d: path("M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="sleepy"] .presence-ring {
+  opacity: 0.2;
+  stroke-width: 1.5;
+}
+
+/* Expression: drowsy (tired) */
+.ferni-avatar[data-expression="drowsy"] {
+  transform: scaleY(0.98) translateY(2px);
+}
+
+.ferni-avatar[data-expression="drowsy"] .eye-white {
+  transform: scaleY(0.5) scaleX(1);
+}
+
+.ferni-avatar[data-expression="drowsy"] .lid-top {
+  d: path("M 0,0 Q 50,52 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="drowsy"] .lid-bottom {
+  d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="drowsy"] .presence-ring {
+  opacity: 0.2;
+  stroke-width: 1.5;
+}
+
+/* Expression: exhausted (tired) */
+.ferni-avatar[data-expression="exhausted"] {
+  transform: scaleY(0.97) rotate(-2deg) translateY(3px);
+  animation: exhaustedSlump 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="exhausted"] .eye-white {
+  transform: scaleY(0.35) scaleX(1);
+}
+
+.ferni-avatar[data-expression="exhausted"] .eye-left .eye-white {
+  transform: scaleY(0.3) scaleX(1);
+}
+
+.ferni-avatar[data-expression="exhausted"] .eyes-group {
+  transform: translate(0px, 2px);
+}
+
+.ferni-avatar[data-expression="exhausted"] .lid-top {
+  d: path("M 0,0 Q 50,68 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="exhausted"] .lid-bottom {
+  d: path("M 0,100 Q 50,62 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="exhausted"] .presence-ring {
+  opacity: 0.15;
+  stroke-width: 1;
+}
+
+/* Expression: yawning (tired) */
+.ferni-avatar[data-expression="yawning"] {
+  transform: scaleY(1.04) scaleX(0.97);
+  animation: yawnStretch 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="yawning"] .eye-white {
+  transform: scaleY(0.2) scaleX(1);
+}
+
+.ferni-avatar[data-expression="yawning"] .lid-top {
+  d: path("M 0,0 Q 50,78 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="yawning"] .lid-bottom {
+  d: path("M 0,100 Q 50,55 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="yawning"] .presence-ring {
+  opacity: 0.18;
+  stroke-width: 1.5;
+}
+
+/* Expression: resting (tired) */
+.ferni-avatar[data-expression="resting"] {
+  transform: scaleY(0.99) translateY(1px);
+  animation: restingFloat 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="resting"] .eye-white {
+  transform: scaleY(0.6) scaleX(1);
+}
+
+.ferni-avatar[data-expression="resting"] .lid-top {
+  d: path("M 0,0 Q 50,45 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="resting"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="resting"] .presence-ring {
+  opacity: 0.22;
+  stroke-width: 1.5;
+}
+
+/* Expression: blissful (tired) */
+.ferni-avatar[data-expression="blissful"] {
+  transform: translateY(-1px);
+  animation: blissfulFloat 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="blissful"] .eye-white {
+  transform: scaleY(0.55) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="blissful"] .lid-top {
+  d: path("M 0,0 Q 50,50 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="blissful"] .lid-bottom {
+  d: path("M 0,100 Q 50,82 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="blissful"] .smile-crease {
+  opacity: 0.7;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="blissful"] .presence-ring {
+  opacity: 0.28;
+  stroke-width: 2;
+}
+
+/* Expression: concerned (concern) */
+.ferni-avatar[data-expression="concerned"] {
+  transform: rotate(-1deg);
+  animation: concernedTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="concerned"] .eye-white {
+  transform: scaleY(1.02) scaleX(1);
+}
+
+.ferni-avatar[data-expression="concerned"] .eye-left .eye-white {
+  transform: scaleY(1.04) scaleX(1);
+}
+
+.ferni-avatar[data-expression="concerned"] .lid-top {
+  d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="concerned"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="concerned"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: worried (concern) */
+.ferni-avatar[data-expression="worried"] {
+  transform: rotate(-1.5deg) translateY(1px);
+  animation: worriedFidget 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="worried"] .eye-white {
+  transform: scaleY(1.05) scaleX(1);
+}
+
+.ferni-avatar[data-expression="worried"] .eye-right .eye-white {
+  transform: scaleY(1.08) scaleX(1);
+}
+
+.ferni-avatar[data-expression="worried"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="worried"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="worried"] .presence-ring {
+  opacity: 0.38;
+  stroke-width: 1.5;
+}
+
+/* Expression: sympathetic (concern) */
+.ferni-avatar[data-expression="sympathetic"] {
+  transform: rotate(-0.5deg);
+  animation: sympatheticLean 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="sympathetic"] .eye-white {
+  transform: scaleY(0.95) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sympathetic"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="sympathetic"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="sympathetic"] .smile-crease {
+  opacity: 0.3;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="sympathetic"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: understanding (concern) */
+.ferni-avatar[data-expression="understanding"] {
+  animation: understandingNod 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="understanding"] .eye-white {
+  transform: scaleY(0.92) scaleX(1);
+}
+
+.ferni-avatar[data-expression="understanding"] .eye-left .eye-white {
+  transform: scaleY(0.9) scaleX(1);
+}
+
+.ferni-avatar[data-expression="understanding"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="understanding"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="understanding"] .smile-crease {
+  opacity: 0.35;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="understanding"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: comforting (concern) */
+.ferni-avatar[data-expression="comforting"] {
+  transform: translateY(-0.5px);
+  animation: comfortingWarmth 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="comforting"] .eye-white {
+  transform: scaleY(0.9) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="comforting"] .lid-top {
+  d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="comforting"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="comforting"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="comforting"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 2.5;
+}
+
+/* Expression: sad (sad) */
+.ferni-avatar[data-expression="sad"] {
+  transform: translateY(2px) scaleY(0.98);
+  animation: sadDroop 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="sad"] .eye-white {
+  transform: scaleY(0.85) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sad"] .eye-left .eye-white {
+  transform: scaleY(0.82) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sad"] .eyes-group {
+  transform: translate(0px, 2px);
+}
+
+.ferni-avatar[data-expression="sad"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="sad"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="sad"] .presence-ring {
+  opacity: 0.2;
+  stroke-width: 1.5;
+}
+
+/* Expression: crying (sad) */
+.ferni-avatar[data-expression="crying"] {
+  transform: translateY(3px) scaleY(0.96);
+  animation: cryingShake 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="crying"] .eye-white {
+  transform: scaleY(0.4) scaleX(1.1);
+}
+
+.ferni-avatar[data-expression="crying"] .lid-top {
+  d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="crying"] .lid-bottom {
+  d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="crying"] .presence-ring {
+  opacity: 0.15;
+  stroke-width: 1.5;
+}
+
+/* Expression: melancholy (sad) */
+.ferni-avatar[data-expression="melancholy"] {
+  transform: translateY(1px) rotate(-1deg);
+  animation: melancholyDrift 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="melancholy"] .eye-white {
+  transform: scaleY(0.8) scaleX(1);
+}
+
+.ferni-avatar[data-expression="melancholy"] .lid-top {
+  d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="melancholy"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="melancholy"] .presence-ring {
+  opacity: 0.22;
+  stroke-width: 1.5;
+}
+
+/* Expression: disappointed (sad) */
+.ferni-avatar[data-expression="disappointed"] {
+  transform: translateY(1.5px) scaleY(0.98);
+  animation: disappointedSink 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="disappointed"] .eye-white {
+  transform: scaleY(0.75) scaleX(1);
+}
+
+.ferni-avatar[data-expression="disappointed"] .eyes-group {
+  transform: translate(0px, 1px);
+}
+
+.ferni-avatar[data-expression="disappointed"] .lid-top {
+  d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="disappointed"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="disappointed"] .presence-ring {
+  opacity: 0.18;
+  stroke-width: 1.5;
+}
+
+/* Expression: dejected (sad) */
+.ferni-avatar[data-expression="dejected"] {
+  transform: translateY(3px) scaleY(0.95) rotate(-2deg);
+  animation: dejectedSlump 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="dejected"] .eye-white {
+  transform: scaleY(0.65) scaleX(1);
+}
+
+.ferni-avatar[data-expression="dejected"] .eye-left .eye-white {
+  transform: scaleY(0.6) scaleX(1);
+}
+
+.ferni-avatar[data-expression="dejected"] .eyes-group {
+  transform: translate(-1px, 2px);
+}
+
+.ferni-avatar[data-expression="dejected"] .lid-top {
+  d: path("M 0,0 Q 50,40 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="dejected"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="dejected"] .presence-ring {
+  opacity: 0.12;
+  stroke-width: 1;
+}
+
+/* Expression: frustrated (frustrated) */
+.ferni-avatar[data-expression="frustrated"] {
+  transform: scaleY(0.97) scaleX(1.02);
+  animation: frustratedTense 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="frustrated"] .eye-white {
+  transform: scaleY(0.7) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="frustrated"] .lid-top {
+  d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="frustrated"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="frustrated"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: annoyed (frustrated) */
+.ferni-avatar[data-expression="annoyed"] {
+  transform: rotate(-1deg);
+  animation: annoyedTwitch 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="annoyed"] .eye-white {
+  transform: scaleY(0.75) scaleX(1);
+}
+
+.ferni-avatar[data-expression="annoyed"] .eye-right .eye-white {
+  transform: scaleY(0.7) scaleX(1);
+}
+
+.ferni-avatar[data-expression="annoyed"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="annoyed"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: irritated (frustrated) */
+.ferni-avatar[data-expression="irritated"] {
+  transform: scaleY(0.98);
+  animation: irritatedJitter 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="irritated"] .eye-white {
+  transform: scaleY(0.68) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="irritated"] .lid-top {
+  d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="irritated"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="irritated"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: exasperated (frustrated) */
+.ferni-avatar[data-expression="exasperated"] {
+  transform: rotate(2deg) translateY(-2px);
+  animation: exasperatedSigh 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="exasperated"] .eye-white {
+  transform: scaleY(0.6) scaleX(1);
+}
+
+.ferni-avatar[data-expression="exasperated"] .eyes-group {
+  transform: translate(0px, -1px);
+}
+
+.ferni-avatar[data-expression="exasperated"] .lid-top {
+  d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="exasperated"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: eyeroll (frustrated) */
+.ferni-avatar[data-expression="eyeroll"] {
+  animation: eyerollGaze 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="eyeroll"] .eye-white {
+  transform: scaleY(0.85) scaleX(1);
+}
+
+.ferni-avatar[data-expression="eyeroll"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="eyeroll"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: confused (confused) */
+.ferni-avatar[data-expression="confused"] {
+  transform: rotate(3deg);
+  animation: confusedTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="confused"] .eye-white {
+  transform: scaleY(1.02) scaleX(1);
+}
+
+.ferni-avatar[data-expression="confused"] .eye-left .eye-white {
+  transform: scaleY(0.95) scaleX(1);
+}
+
+.ferni-avatar[data-expression="confused"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="confused"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: skeptical (confused) */
+.ferni-avatar[data-expression="skeptical"] {
+  transform: rotate(-2deg);
+  animation: skepticalSquint 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="skeptical"] .eye-white {
+  transform: scaleY(0.8) scaleX(1);
+}
+
+.ferni-avatar[data-expression="skeptical"] .eye-right .eye-white {
+  transform: scaleY(0.65) scaleX(1);
+}
+
+.ferni-avatar[data-expression="skeptical"] .eyes-group {
+  transform: translate(1px, 0px);
+}
+
+.ferni-avatar[data-expression="skeptical"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="skeptical"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+/* Expression: puzzled (confused) */
+.ferni-avatar[data-expression="puzzled"] {
+  transform: rotate(4deg) translateY(-1px);
+  animation: puzzledBob 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="puzzled"] .eye-white {
+  transform: scaleY(1.05) scaleX(1);
+}
+
+.ferni-avatar[data-expression="puzzled"] .eye-left .eye-white {
+  transform: scaleY(0.98) scaleX(1);
+}
+
+.ferni-avatar[data-expression="puzzled"] .lid-top {
+  d: path("M 0,0 Q 50,3 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="puzzled"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="puzzled"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: perplexed (confused) */
+.ferni-avatar[data-expression="perplexed"] {
+  transform: rotate(-3deg) scaleY(0.99);
+  animation: perplexedWobble 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="perplexed"] .eye-white {
+  transform: scaleY(0.9) scaleX(1);
+}
+
+.ferni-avatar[data-expression="perplexed"] .eye-left .eye-white {
+  transform: scaleY(1) scaleX(1);
+}
+
+.ferni-avatar[data-expression="perplexed"] .lid-top {
+  d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="perplexed"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="perplexed"] .presence-ring {
+  opacity: 0.28;
+  stroke-width: 1.5;
+}
+
+/* Expression: bewildered (confused) */
+.ferni-avatar[data-expression="bewildered"] {
+  transform: rotate(5deg) translateY(-2px);
+  animation: bewilderedSpin 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="bewildered"] .eye-white {
+  transform: scaleY(1.1) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="bewildered"] .lid-top {
+  d: path("M 0,0 Q 50,-2 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="bewildered"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="bewildered"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: nervous (nervous) */
+.ferni-avatar[data-expression="nervous"] {
+  animation: nervousShake 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="nervous"] .eye-white {
+  transform: scaleY(1.08) scaleX(1);
+}
+
+.ferni-avatar[data-expression="nervous"] .lid-top {
+  d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="nervous"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="nervous"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: anxious (nervous) */
+.ferni-avatar[data-expression="anxious"] {
+  transform: scaleY(0.99);
+  animation: anxiousTremble 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="anxious"] .eye-white {
+  transform: scaleY(1.12) scaleX(1);
+}
+
+.ferni-avatar[data-expression="anxious"] .eye-left .eye-white {
+  transform: scaleY(1.08) scaleX(1);
+}
+
+.ferni-avatar[data-expression="anxious"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="anxious"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 1.5;
+}
+
+/* Expression: scared (nervous) */
+.ferni-avatar[data-expression="scared"] {
+  transform: scaleY(0.97) translateY(1px);
+  animation: scaredRecoil 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="scared"] .eye-white {
+  transform: scaleY(1.2) scaleX(1.1);
+}
+
+.ferni-avatar[data-expression="scared"] .lid-top {
+  d: path("M 0,0 Q 50,-5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="scared"] .lid-bottom {
+  d: path("M 0,100 Q 50,105 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="scared"] .presence-ring {
+  opacity: 0.45;
+  stroke-width: 1.5;
+}
+
+/* Expression: fearful (nervous) */
+.ferni-avatar[data-expression="fearful"] {
+  transform: scaleY(0.95) scaleX(0.98);
+  animation: fearfulCower 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="fearful"] .eye-white {
+  transform: scaleY(1.25) scaleX(1.15);
+}
+
+.ferni-avatar[data-expression="fearful"] .eyes-group {
+  transform: translate(0px, -1px);
+}
+
+.ferni-avatar[data-expression="fearful"] .lid-top {
+  d: path("M 0,0 Q 50,-8 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="fearful"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="fearful"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 1.5;
+}
+
+/* Expression: uneasy (nervous) */
+.ferni-avatar[data-expression="uneasy"] {
+  transform: rotate(-1deg);
+  animation: uneasyShift 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="uneasy"] .eye-white {
+  transform: scaleY(1.04) scaleX(1);
+}
+
+.ferni-avatar[data-expression="uneasy"] .eye-right .eye-white {
+  transform: scaleY(1) scaleX(1);
+}
+
+.ferni-avatar[data-expression="uneasy"] .lid-top {
+  d: path("M 0,0 Q 50,4 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="uneasy"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="uneasy"] .presence-ring {
+  opacity: 0.32;
+  stroke-width: 1.5;
+}
+
+/* Expression: embarrassed (embarrassed) */
+.ferni-avatar[data-expression="embarrassed"] {
+  transform: scaleY(0.97) scaleX(0.99);
+  animation: embarrassedShrink 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="embarrassed"] .eye-white {
+  transform: scaleY(1.15) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="embarrassed"] .eyes-group {
+  transform: translate(0px, -0.5px);
+}
+
+.ferni-avatar[data-expression="embarrassed"] .lid-top {
+  d: path("M 0,0 Q 50,-3 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="embarrassed"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="embarrassed"] .presence-ring {
+  opacity: 0.45;
+  stroke-width: 1.5;
+}
+
+/* Expression: awkward (embarrassed) */
+.ferni-avatar[data-expression="awkward"] {
+  transform: rotate(2deg) scaleY(0.98);
+  animation: awkwardSquirm 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="awkward"] .eye-white {
+  transform: scaleY(0.9) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="awkward"] .eye-left .eye-white {
+  transform: scaleY(0.85) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="awkward"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="awkward"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="awkward"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: cringing (embarrassed) */
+.ferni-avatar[data-expression="cringing"] {
+  transform: scaleY(0.95) scaleX(1.02);
+  animation: cringingSqueeze 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="cringing"] .eye-white {
+  transform: scaleY(0.5) scaleX(1.1);
+}
+
+.ferni-avatar[data-expression="cringing"] .lid-top {
+  d: path("M 0,0 Q 50,45 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="cringing"] .lid-bottom {
+  d: path("M 0,100 Q 50,80 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="cringing"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: sheepish (embarrassed) */
+.ferni-avatar[data-expression="sheepish"] {
+  transform: rotate(-2deg) translateY(1px);
+  animation: sheepishLean 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="sheepish"] .eye-white {
+  transform: scaleY(0.85) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sheepish"] .eyes-group {
+  transform: translate(-1px, 0px);
+}
+
+.ferni-avatar[data-expression="sheepish"] .lid-top {
+  d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="sheepish"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="sheepish"] .smile-crease {
+  opacity: 0.25;
+  stroke-width: undefined;
+}
+
+/* Expression: flustered (embarrassed) */
+.ferni-avatar[data-expression="flustered"] {
+  animation: flusteredBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="flustered"] .eye-white {
+  transform: scaleY(1.05) scaleX(1);
+}
+
+.ferni-avatar[data-expression="flustered"] .eye-left .eye-white {
+  transform: scaleY(1.1) scaleX(1);
+}
+
+.ferni-avatar[data-expression="flustered"] .lid-top {
+  d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="flustered"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="flustered"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 1.5;
+}
+
+/* Expression: confident (cool) */
+.ferni-avatar[data-expression="confident"] {
+  transform: translateY(-1px);
+  animation: confidentStance 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="confident"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="confident"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="confident"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="confident"] .smile-crease {
+  opacity: 0.5;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="confident"] .presence-ring {
+  opacity: 0.4;
+  stroke-width: 2.5;
+}
+
+/* Expression: smirking (cool) */
+.ferni-avatar[data-expression="smirking"] {
+  transform: rotate(2deg);
+  animation: smirkingTilt 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="smirking"] .eye-white {
+  transform: scaleY(0.82) scaleX(1);
+}
+
+.ferni-avatar[data-expression="smirking"] .eye-right .eye-white {
+  transform: scaleY(0.75) scaleX(1);
+}
+
+.ferni-avatar[data-expression="smirking"] .eyes-group {
+  transform: translate(1px, 0px);
+}
+
+.ferni-avatar[data-expression="smirking"] .lid-top {
+  d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="smirking"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="smirking"] .smile-crease {
+  opacity: 0.6;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="smirking"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: cool (cool) */
+.ferni-avatar[data-expression="cool"] {
+  transform: translateY(-1px) rotate(-1deg);
+  animation: coolLean 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="cool"] .eye-white {
+  transform: scaleY(0.7) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="cool"] .lid-top {
+  d: path("M 0,0 Q 50,28 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="cool"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="cool"] .smile-crease {
+  opacity: 0.4;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="cool"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: sassy (cool) */
+.ferni-avatar[data-expression="sassy"] {
+  transform: rotate(3deg) translateY(-1px);
+  animation: sassyBounce 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="sassy"] .eye-white {
+  transform: scaleY(0.78) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sassy"] .eye-left .eye-white {
+  transform: scaleY(0.72) scaleX(1);
+}
+
+.ferni-avatar[data-expression="sassy"] .lid-top {
+  d: path("M 0,0 Q 50,24 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="sassy"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="sassy"] .smile-crease {
+  opacity: 0.65;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="sassy"] .presence-ring {
+  opacity: 0.35;
+  stroke-width: 1.5;
+}
+
+/* Expression: smug (cool) */
+.ferni-avatar[data-expression="smug"] {
+  transform: rotate(-1deg) scaleY(1.01);
+  animation: smugSettle 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="smug"] .eye-white {
+  transform: scaleY(0.72) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="smug"] .lid-top {
+  d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="smug"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="smug"] .smile-crease {
+  opacity: 0.7;
+  stroke-width: 1.3;
+}
+
+.ferni-avatar[data-expression="smug"] .presence-ring {
+  opacity: 0.42;
+  stroke-width: 2.5;
+}
+
+/* Expression: determined (intense) */
+.ferni-avatar[data-expression="determined"] {
+  transform: scaleY(1.02) translateY(-1px);
+  animation: determinedStance 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="determined"] .eye-white {
+  transform: scaleY(0.85) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="determined"] .eyes-group {
+  transform: translate(0px, -0.5px);
+}
+
+.ferni-avatar[data-expression="determined"] .lid-top {
+  d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="determined"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="determined"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 2.8;
+}
+
+/* Expression: fierce (intense) */
+.ferni-avatar[data-expression="fierce"] {
+  transform: scaleY(0.98) scaleX(1.02);
+  animation: fierceIntensity 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="fierce"] .eye-white {
+  transform: scaleY(0.75) scaleX(1.08);
+}
+
+.ferni-avatar[data-expression="fierce"] .lid-top {
+  d: path("M 0,0 Q 50,22 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="fierce"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="fierce"] .presence-ring {
+  opacity: 0.55;
+  stroke-width: 1.5;
+}
+
+/* Expression: intense (intense) */
+.ferni-avatar[data-expression="intense"] {
+  transform: scaleY(1.01);
+  animation: intenseStare 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="intense"] .eye-white {
+  transform: scaleY(0.92) scaleX(1.05);
+}
+
+.ferni-avatar[data-expression="intense"] .lid-top {
+  d: path("M 0,0 Q 50,10 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="intense"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="intense"] .presence-ring {
+  opacity: 0.48;
+  stroke-width: 2.5;
+}
+
+/* Expression: resolute (intense) */
+.ferni-avatar[data-expression="resolute"] {
+  transform: translateY(-0.5px);
+  animation: resoluteStand 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="resolute"] .eye-white {
+  transform: scaleY(0.88) scaleX(1.02);
+}
+
+.ferni-avatar[data-expression="resolute"] .lid-top {
+  d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="resolute"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="resolute"] .smile-crease {
+  opacity: 0.35;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="resolute"] .presence-ring {
+  opacity: 0.45;
+  stroke-width: 2.8;
+}
+
+/* Expression: passionate (intense) */
+.ferni-avatar[data-expression="passionate"] {
+  transform: scaleY(1.02) translateY(-2px);
+  animation: passionatePulse 0.5s var(--ease-spring, cubic-bezier(0.5, 1.5, 0.5, 1));
+}
+
+.ferni-avatar[data-expression="passionate"] .eye-white {
+  transform: scaleY(0.9) scaleX(1.04);
+}
+
+.ferni-avatar[data-expression="passionate"] .lid-top {
+  d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z");
+}
+
+.ferni-avatar[data-expression="passionate"] .lid-bottom {
+  d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z");
+}
+
+.ferni-avatar[data-expression="passionate"] .smile-crease {
+  opacity: 0.55;
+  stroke-width: undefined;
+}
+
+.ferni-avatar[data-expression="passionate"] .presence-ring {
+  opacity: 0.5;
+  stroke-width: 2;
+}
+
+
+
+/* ============================================================================
+   EXPRESSION ANIMATIONS
+   ============================================================================ */
+
+@keyframes joyfulBounce {
+  0%, 100% { transform: translateY(-4px) scale(1.03); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+@keyframes delightedBounce {
+  0% { transform: translateY(-6px) scale(1.05) rotate(-2deg); }
+  25% { transform: translateY(-10px) scale(1.08) rotate(0deg); }
+  50% { transform: translateY(-6px) scale(1.05) rotate(2deg); }
+  75% { transform: translateY(-10px) scale(1.08) rotate(0deg); }
+  100% { transform: translateY(-6px) scale(1.05) rotate(-2deg); }
+}
+
+@keyframes excitedPulse {
+  0%, 100% { transform: translateY(-8px) scale(1.08); }
+  50% { transform: translateY(-12px) scale(1.12); }
+}
+
+@keyframes speakPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { transform: rotate(2deg); }
+  50% { transform: rotate(-2deg); }
+}
+
+@keyframes nervousShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+@keyframes sadDroop {
+  0%, 100% { transform: translateY(2px) rotate(-2deg); }
+  50% { transform: translateY(3px) rotate(-2deg); }
+}
+
+@keyframes sleepyBob {
+  0%, 100% { transform: translateY(6px) rotate(3deg); }
+  50% { transform: translateY(8px) rotate(4deg); }
+}
+
+@keyframes yawnStretch {
+  0% { transform: translateY(6px) scale(1); }
+  50% { transform: translateY(8px) scale(1.02, 0.98); }
+  100% { transform: translateY(6px) scale(1); }
+}
+
+@keyframes crazyWiggle {
+  0%, 100% { transform: scale(1.1) rotate(-5deg); }
+  25% { transform: scale(1.1) rotate(5deg); }
+  50% { transform: scale(1.1) rotate(-3deg); }
+  75% { transform: scale(1.1) rotate(3deg); }
+}
+
+@keyframes mischievousWiggle {
+  0%, 100% { transform: translateY(-2px) rotate(2deg); }
+  50% { transform: translateY(-2px) rotate(-2deg); }
+}
+
+@keyframes sillyBounce {
+  0%, 100% { transform: translateY(-3px) rotate(-3deg); }
+  33% { transform: translateY(-6px) rotate(3deg); }
+  66% { transform: translateY(-3px) rotate(-3deg); }
+}
+
+@keyframes sparkleFloat {
+  0%, 100% {
+    opacity: 0.8;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.1);
+  }
+}
+
+@keyframes winkBlink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+@keyframes eyerollArc {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-3px); }
+  50% { transform: translateY(-5px) translateX(2px); }
+  75% { transform: translateY(-3px); }
+}
+
+@keyframes determinedSquint {
+  0%, 100% { transform: scaleY(0.65) scaleX(1.1); }
+  50% { transform: scaleY(0.62) scaleX(1.12); }
+}
+
+@keyframes fierceIntensify {
+  0%, 100% { transform: scaleY(0.55) scaleX(1.12); }
+  50% { transform: scaleY(0.5) scaleX(1.15); }
+}
+

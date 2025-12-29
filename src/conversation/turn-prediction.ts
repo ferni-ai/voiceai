@@ -17,6 +17,21 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  analyzeTurnBoundary,
+  countWordsRust,
+  isTurnAnalysisAvailable,
+  isTokenCountingAvailable,
+} from '../memory/rust-accelerator.js';
+
+// Check Rust availability at module load
+const RUST_TURN_AVAILABLE = isTurnAnalysisAvailable();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
+const log = getLogger();
+if (RUST_TURN_AVAILABLE) {
+  log.info('🦀 Turn prediction using Rust Aho-Corasick (38+ phrases → O(n) scan)');
+}
 
 // ============================================================================
 // TYPES
@@ -185,8 +200,12 @@ export function analyzeTranscriptCompleteness(transcript: string): SentenceCompl
     };
   }
 
+  // Get word count (Rust or JS fallback)
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(trimmed)
+    : trimmed.split(/\s+/).length;
+
   // Very short (< 3 words) - probably incomplete
-  const wordCount = trimmed.split(/\s+/).length;
   if (wordCount < 3) {
     return {
       isComplete: false,
@@ -224,27 +243,54 @@ export function analyzeTranscriptCompleteness(transcript: string): SentenceCompl
     };
   }
 
-  // Check for turn-final phrases
-  for (const phrase of TURN_FINAL_PHRASES) {
-    if (lower.endsWith(phrase) || lower.endsWith(phrase.replace('?', ''))) {
+  // 🦀 FAST PATH: Use Rust Aho-Corasick for O(n) multi-pattern matching
+  // Instead of 38 + 21 = 59 separate string comparisons, scan ALL patterns at once
+  if (RUST_TURN_AVAILABLE) {
+    const turnAnalysis = analyzeTurnBoundary(lower);
+
+    // Check for turn-final phrases (38+ patterns matched in one pass)
+    if (turnAnalysis.turnFinalCount > 0 || turnAnalysis.likelyTurnComplete) {
       return {
         isComplete: true,
         confidence: 0.85,
         endingType: 'turn_final_phrase',
-        reason: `Turn-final phrase: "${phrase}"`,
+        reason: `Turn-final phrase detected (Rust: ${turnAnalysis.turnFinalCount} matches)`,
       };
     }
-  }
 
-  // Check for continuation phrases at end (NOT complete)
-  for (const phrase of CONTINUATION_PHRASES) {
-    if (lower.endsWith(phrase) || lower.endsWith(`${phrase},`)) {
+    // Check for continuation phrases (21+ patterns matched in one pass)
+    if (turnAnalysis.continuationCount > 0 || turnAnalysis.likelyContinuing) {
       return {
         isComplete: false,
         confidence: 0.8,
         endingType: 'incomplete',
-        reason: `Continuation phrase: "${phrase}"`,
+        reason: `Continuation phrase detected (Rust: ${turnAnalysis.continuationCount} matches)`,
       };
+    }
+  } else {
+    // 🐢 SLOW PATH: JS fallback (59 separate string comparisons)
+    // Check for turn-final phrases
+    for (const phrase of TURN_FINAL_PHRASES) {
+      if (lower.endsWith(phrase) || lower.endsWith(phrase.replace('?', ''))) {
+        return {
+          isComplete: true,
+          confidence: 0.85,
+          endingType: 'turn_final_phrase',
+          reason: `Turn-final phrase: "${phrase}"`,
+        };
+      }
+    }
+
+    // Check for continuation phrases at end (NOT complete)
+    for (const phrase of CONTINUATION_PHRASES) {
+      if (lower.endsWith(phrase) || lower.endsWith(`${phrase},`)) {
+        return {
+          isComplete: false,
+          confidence: 0.8,
+          endingType: 'incomplete',
+          reason: `Continuation phrase: "${phrase}"`,
+        };
+      }
     }
   }
 

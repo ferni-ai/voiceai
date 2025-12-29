@@ -178,15 +178,25 @@ let genAI: GoogleGenerativeAI | null = null;
 async function initializeGemini(): Promise<void> {
   if (genAI) return;
 
-  // Prefer GEMINI_API_KEY for LLM, fallback to GOOGLE_API_KEY
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY or GOOGLE_API_KEY required for Smart Runbooks');
+  // Use centralized Gemini config
+  const { getGeminiClient, isGeminiConfigured, getDefaultModel } =
+    await import('../config/gemini-config.js');
+  cachedModelName = getDefaultModel(); // Cache the model name
+
+  if (!isGeminiConfigured()) {
+    throw new Error('Gemini not configured - check USE_VERTEX_AI and GOOGLE_CLOUD_PROJECT in .env');
   }
 
-  const { GoogleGenerativeAI } = await import('@google/generative-ai');
-  genAI = new GoogleGenerativeAI(apiKey);
+  // Cast from unknown to GoogleGenerativeAI (centralized config returns unknown for flexibility)
+  const client = await getGeminiClient();
+  if (!client) {
+    throw new Error('Failed to initialize Gemini client');
+  }
+  genAI = client as GoogleGenerativeAI;
 }
+
+// Cache the model name
+let cachedModelName = 'gemini-2.0-flash-exp';
 
 function findMatchingPattern(incident: IncidentContext): IncidentPattern | undefined {
   const searchText = `${incident.title} ${incident.description}`.toLowerCase();
@@ -301,7 +311,7 @@ export async function generateRunbook(
     const prompt = buildPrompt(incident, knownPattern);
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: cachedModelName, // From centralized config
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.3, // Lower temperature for more consistent output
@@ -349,7 +359,7 @@ export async function generateRunbook(
         : [],
       estimatedResolutionMinutes: Number(parsed.estimatedResolutionMinutes) || 30,
       confidence: Number(parsed.confidence) || 0.7,
-      model: 'gemini-2.0-flash',
+      model: cachedModelName, // From centralized config
       promptVersion: '1.0',
     };
 

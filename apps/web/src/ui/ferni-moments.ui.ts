@@ -34,6 +34,7 @@ import { DURATION } from '../config/animation-constants.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { avatarSidekicks } from './avatar-sidekicks.ui.js';
 import { morphIconToText, morphTextToIcon, setExpression } from './ferni-expressions.ui.js';
 
 const log = createLogger('FerniMoments');
@@ -538,7 +539,9 @@ export function getTimeOfDayMoment(): MomentType | null {
 }
 
 /**
- * Play time-appropriate moment.
+ * Play time-appropriate moment (full morph animation over avatar).
+ * For a softer alternative, use avatarSidekicks.timeOfDay() instead
+ * which shows icons beside the avatar.
  */
 export function playTimeOfDayMoment(): void {
   const moment = getTimeOfDayMoment();
@@ -1117,10 +1120,10 @@ function startTimeAwareness(): void {
       lastTimeCheck = timeSlot;
       // Only auto-play on significant transitions
       if (timeSlot === 'morning' || timeSlot === 'evening' || timeSlot === 'lateNight') {
-        // Subtle moment on time transition
+        // Use sidekicks for a subtle, non-intrusive moment beside the avatar
+        // instead of the dramatic center morph animation
         trackedTimeout(() => {
-          const moment = getTimeOfDayMoment();
-          if (moment) playMoment(moment);
+          avatarSidekicks.timeOfDay();
         }, 2000); // Delay so it doesn't feel jarring
       }
     }

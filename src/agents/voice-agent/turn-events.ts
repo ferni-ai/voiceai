@@ -14,7 +14,7 @@
  */
 
 import { log, type llm } from '@livekit/agents';
-import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
+import { dispatchEmotionEvents, dispatchExpressionUpdate } from '../realtime/emotion-event-dispatcher.js';
 import {
   dispatchBehaviorEvents,
   type BehaviorDetectionContext,
@@ -117,6 +117,16 @@ export async function dispatchTurnEmotionEvents(ctx: EventDispatchContext): Prom
       },
       ctx.sendDataMessage
     );
+
+    // Also dispatch Luxo expression update for richer avatar reactions
+    await dispatchExpressionUpdate(
+      {
+        emotion: ctx.emotionalResult.primary || 'neutral',
+        intensity: ctx.emotionalResult.intensity ?? 0.5,
+      },
+      ctx.sendDataMessage
+    );
+
     return 1;
   } catch (eqError) {
     logger.debug({ error: String(eqError) }, 'Emotion event dispatch (non-critical)');

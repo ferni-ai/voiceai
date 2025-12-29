@@ -154,7 +154,8 @@
           <div class="avatar-container entrance-avatar" data-emotion="neutral">
             <div id="avatarRing"></div>
             <div id="coachAvatar">
-              <!-- Ferni: Simple opaque white eyes (no pupils, no sparkles) -->
+              <!-- Ferni: Simple opaque white eyes (no pupils, no sparkles)
+                   Sized to match iOS: eyeWidth ~22% of avatar, eyeHeight slightly taller -->
               <svg id="avatarEyes" class="avatar-eyes" viewBox="0 0 100 100" aria-hidden="true">
                 <defs>
                   <linearGradient id="eyeFillMain" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -162,10 +163,10 @@
                     <stop offset="100%" stop-color="#f0f0f0"/>
                   </linearGradient>
                 </defs>
-                <!-- Left eye - clean white ellipse -->
-                <ellipse class="eye-main eye-left" cx="36" cy="47" rx="8" ry="10" fill="url(#eyeFillMain)"/>
-                <!-- Right eye - clean white ellipse -->
-                <ellipse class="eye-main eye-right" cx="64" cy="47" rx="8" ry="10" fill="url(#eyeFillMain)"/>
+                <!-- Left eye - iOS spacing: 18% from center = cx at 32 -->
+                <ellipse class="eye-main eye-left" cx="32" cy="50" rx="11" ry="14" fill="url(#eyeFillMain)"/>
+                <!-- Right eye - iOS spacing: 18% from center = cx at 68 -->
+                <ellipse class="eye-main eye-right" cx="68" cy="50" rx="11" ry="14" fill="url(#eyeFillMain)"/>
               </svg>
               <!-- Other personas: Text initials -->
               <span id="avatarText"></span>

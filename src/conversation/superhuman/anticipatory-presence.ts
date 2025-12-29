@@ -510,7 +510,7 @@ export class AnticipatoryPresenceEngine {
    * Export profile for persistence
    */
   export(): UserPatternProfile {
-    return JSON.parse(JSON.stringify(this.profile));
+    return structuredClone(this.profile);
   }
 
   /**

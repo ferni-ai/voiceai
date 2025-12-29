@@ -8,6 +8,17 @@
 
 import { createLogger } from '../utils/logger.js';
 import { isDemoDataEnabled } from '../services/engagement-demo-data.js';
+import type { ScreenName } from '../services/app-context-tracking.service.js';
+
+// 🧠 Better Than Human: Track screen view for Voice ↔ App Sync
+async function trackScreen(screen: ScreenName): Promise<void> {
+  try {
+    const { trackScreenView } = await import('../services/app-context-tracking.service.js');
+    trackScreenView(screen);
+  } catch {
+    // Non-critical
+  }
+}
 import { getConversationHistoryUI } from '../ui/conversation-history.ui.js';
 import { getAnalyticsDashboardUI } from '../ui/analytics-dashboard.ui.js';
 import { getCognitiveInsightsUI } from '../ui/cognitive-insights.ui.js';
@@ -34,6 +45,7 @@ const log = createLogger('PanelMethods');
  * Fetches real data from API, falls back to demo data in development.
  */
 export async function showConversationHistory(): Promise<void> {
+  void trackScreen('journal');
   // Try to fetch real data from API
   try {
     const response = await fetch('/api/conversations');
@@ -115,6 +127,7 @@ export async function showConversationHistory(): Promise<void> {
  * Shows loading state, fetches real data from API, falls back to demo data in development.
  */
 export async function showAnalyticsDashboard(): Promise<void> {
+  void trackScreen('insights');
   // Show loading state immediately
   getAnalyticsDashboardUI().showLoading();
 
@@ -219,6 +232,7 @@ export async function deleteMemory(memoryId: string): Promise<void> {
  * Fetches real data from API, falls back to demo data in development.
  */
 export async function showCognitiveInsights(): Promise<void> {
+  void trackScreen('cognitive-insights');
   // Set up callbacks for user actions
   getCognitiveInsightsUI().setCallbacks({
     onDeleteMemory: async (memoryId: string) => {
@@ -315,6 +329,7 @@ function getDemoCognitiveData() {
  * Fetches real data from API, falls back to demo data in development.
  */
 export async function showPredictionTracker(): Promise<void> {
+  void trackScreen('predictions');
   // Try to fetch real data from API
   try {
     const response = await fetch('/api/predictions');
@@ -381,6 +396,7 @@ export async function showPredictionTracker(): Promise<void> {
  * Fetches categories from backend, sets up callbacks for export/delete.
  */
 export async function showDataExport(): Promise<void> {
+  void trackScreen('settings');
   const { dataExportService } = await import('../services/data-export.service.js');
   const { toast } = await import('../ui/toast.ui.js');
 
@@ -447,6 +463,7 @@ export async function showDataExport(): Promise<void> {
  * Starts a new huddle via API, or shows demo data in development.
  */
 export async function showTeamHuddle(topic?: string): Promise<void> {
+  void trackScreen('team');
   const userId = localStorage.getItem('ferni_user_id');
   
   // Try to start a new huddle via API
@@ -505,6 +522,7 @@ export async function showTeamHuddle(topic?: string): Promise<void> {
  * For new users, shows aspirational demo data with a warm banner.
  */
 export async function showYourStoryDashboard(): Promise<void> {
+  void trackScreen('your-story');
   const dashboard = getYourStoryUI();
   dashboard.showLoading();
 

@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 import type { MarketplaceId, PermissionScope, TrustLevel, UserId } from '../schema/types.js';
 
 const log = getLogger().child({ module: 'marketplace-auth' });
@@ -111,8 +112,8 @@ export function cleanupRateLimits(): void {
   }
 }
 
-// Run cleanup every 5 minutes
-setInterval(cleanupRateLimits, 5 * 60_000);
+// Run cleanup every 5 minutes (managed interval for proper shutdown)
+registerInterval('marketplace-ratelimit-cleanup', cleanupRateLimits, 5 * 60_000);
 
 // ============================================================================
 // AUTHORIZATION CHECKS

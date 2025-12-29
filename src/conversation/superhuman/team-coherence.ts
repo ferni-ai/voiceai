@@ -358,7 +358,7 @@ export class TeamCoherenceEngine {
     personaTopicHistory: [string, string[]][];
   } {
     return {
-      handoffNotes: JSON.parse(JSON.stringify(this.coherence.handoffNotes)),
+      handoffNotes: structuredClone(this.coherence.handoffNotes),
       sharedObservations: [...this.coherence.sharedObservations],
       sharedPreferences: Array.from(this.coherence.sharedPreferences.entries()),
       personaTopicHistory: Array.from(this.coherence.personaTopicHistory.entries()),

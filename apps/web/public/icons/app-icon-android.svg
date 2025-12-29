@@ -1,27 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Ferni Android App Icon - Eyes -->
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Android Adaptive Icon - Foreground -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3a5731"/>
-    </linearGradient>
-    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#f0f0f0"/>
+    <linearGradient id="androidGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
     </linearGradient>
   </defs>
-
-  <!-- Rounded square background -->
-  <rect width="512" height="512" rx="96" fill="url(#orbGradient)"/>
-
-  <!-- Left eye -->
-  <ellipse cx="185" cy="240" rx="50" ry="66" fill="url(#eyeFill)"/>
-  <circle cx="173" cy="213" r="13" fill="white"/>
-  <circle cx="183" cy="223" r="5" fill="white" opacity="0.7"/>
-
-  <!-- Right eye -->
-  <ellipse cx="327" cy="240" rx="50" ry="66" fill="url(#eyeFill)"/>
-  <circle cx="315" cy="213" r="13" fill="white"/>
-  <circle cx="325" cy="223" r="5" fill="white" opacity="0.7"/>
+  
+  <!-- Transparent background for adaptive icon -->
+  <rect width="512" height="512" fill="transparent"/>
+  
+  <!-- Icon shape (centered for safe zone) -->
+  <rect x="72" y="72" width="368" height="368" rx="80" fill="url(#androidGradient)"/>
+  
+  <!-- FE Monogram -->
+  <text x="256" y="300" 
+        font-family="'Plus Jakarta Sans', 'Roboto', sans-serif" 
+        font-size="180" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle">FE</text>
 </svg>

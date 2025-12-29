@@ -390,7 +390,7 @@ export async function handleAgentRoutes(
       return true;
     }
 
-    const agentId = pathname.split('/')[3];
+    const agentId = pathname.split('/')[3] ?? '';
 
     try {
       const body = await parseJsonBody(req);
@@ -410,7 +410,7 @@ export async function handleAgentRoutes(
       if (enabled) {
         config.disabledAgents = config.disabledAgents.filter((id) => id !== agentId);
       } else {
-        if (!config.disabledAgents.includes(agentId)) {
+        if (agentId && !config.disabledAgents.includes(agentId)) {
           config.disabledAgents.push(agentId);
         }
       }

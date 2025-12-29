@@ -154,11 +154,11 @@ class MetricStore {
     return {
       count,
       sum: sorted.reduce((a, b) => a + b, 0),
-      min: sorted[0],
-      max: sorted[count - 1],
-      p50: sorted[Math.floor(count * 0.5)],
-      p90: sorted[Math.floor(count * 0.9)],
-      p99: sorted[Math.floor(count * 0.99)],
+      min: sorted[0] ?? 0,
+      max: sorted[count - 1] ?? 0,
+      p50: sorted[Math.floor(count * 0.5)] ?? 0,
+      p90: sorted[Math.floor(count * 0.9)] ?? 0,
+      p99: sorted[Math.floor(count * 0.99)] ?? 0,
     };
   }
 
@@ -169,7 +169,7 @@ class MetricStore {
     const counters: CounterMetric[] = [];
     for (const [key, data] of this.counters) {
       counters.push({
-        name: key.split('{')[0],
+        name: key.split('{')[0] ?? key,
         value: data.value,
         labels: data.labels,
         timestamp: now,
@@ -179,7 +179,7 @@ class MetricStore {
     const gauges: GaugeMetric[] = [];
     for (const [key, data] of this.gauges) {
       gauges.push({
-        name: key.split('{')[0],
+        name: key.split('{')[0] ?? key,
         value: data.value,
         labels: data.labels,
         timestamp: now,
@@ -188,10 +188,11 @@ class MetricStore {
 
     const histograms: HistogramMetric[] = [];
     for (const [key, data] of this.histograms) {
-      const stats = this.getHistogramStats(key.split('{')[0], data.labels);
+      const metricName = key.split('{')[0] ?? key;
+      const stats = this.getHistogramStats(metricName, data.labels);
       if (stats) {
         histograms.push({
-          name: key.split('{')[0],
+          name: metricName,
           ...stats,
           labels: data.labels,
           timestamp: now,

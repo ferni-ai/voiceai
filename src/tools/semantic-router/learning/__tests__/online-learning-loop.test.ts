@@ -9,14 +9,38 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger first
-vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger with inline factory (vi.mock is hoisted, so external vars don't exist yet)
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const logger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
+  };
+  return {
+    createLogger: () => logger,
+    getLogger: () => logger,
+  };
+});
+
+// Mock rust-accelerator (imported by online-learning-loop)
+vi.mock('../../../../memory/rust-accelerator.js', () => ({
+  batchCosineSimilarityOptimized: vi
+    .fn()
+    .mockImplementation((query: number[], candidates: number[][]) => {
+      // Simple JS implementation for testing
+      return candidates.map((candidate) => {
+        let dot = 0;
+        let normQ = 0;
+        let normC = 0;
+        for (let i = 0; i < query.length; i++) {
+          dot += query[i] * candidate[i];
+          normQ += query[i] * query[i];
+          normC += candidate[i] * candidate[i];
+        }
+        return dot / (Math.sqrt(normQ) * Math.sqrt(normC) || 1);
+      });
+    }),
 }));
 
 // Mock embedding provider with inline functions

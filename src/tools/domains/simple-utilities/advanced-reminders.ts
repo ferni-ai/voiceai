@@ -357,13 +357,25 @@ const recurringReminderDef: ToolDefinition = {
         // Calculate next occurrence
         const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime);
 
+        // Get user's timezone preference, defaulting to America/New_York
+        let userTimezone = 'America/New_York';
+        try {
+          const store = await import('../../../memory/index.js').then((m) => m.getDefaultStore());
+          const profile = await store.getProfile(ctx.userId || 'anon');
+          if (profile?.contactInfo?.timezone) {
+            userTimezone = profile.contactInfo.timezone;
+          }
+        } catch {
+          // Fallback to default timezone
+        }
+
         const reminder: RecurringReminder = {
           id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           userId: ctx.userId || 'anon',
           message,
           pattern: recurrencePattern,
           time: parsedTime,
-          timezone: 'America/New_York', // TODO: Get from user preferences
+          timezone: userTimezone,
           active: true,
           nextOccurrence,
           createdAt: Date.now(),

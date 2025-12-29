@@ -17,7 +17,9 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getEmbedding, cosineSimilarity } from '../embedding-providers.js';
+import { getEmbedding } from '../embedding-providers.js';
+// Rust-accelerated batch operations for online learning
+import { batchCosineSimilarityOptimized } from '../../../memory/rust-accelerator.js';
 import type { EmbeddingVector } from '../types.js';
 import { getToolEmbeddingIndex } from '../persistence/index.js';
 import { getToolRegistry } from '../registry.js';
@@ -531,7 +533,10 @@ export class OnlineLearningEngine {
 
   private avgSimilarity(embedding: EmbeddingVector, examples: LearningExample[]): number {
     if (examples.length === 0) return 0;
-    const sims = examples.map((ex) => cosineSimilarity(embedding, ex.queryEmbedding));
+    // Batch compute all similarities at once (SIMD-accelerated for 5+ examples)
+    const exampleVectors = examples.map((ex) => Array.from(ex.queryEmbedding));
+    const queryArray = Array.from(embedding);
+    const sims = batchCosineSimilarityOptimized(queryArray, exampleVectors);
     return sims.reduce((a, b) => a + b, 0) / sims.length;
   }
 

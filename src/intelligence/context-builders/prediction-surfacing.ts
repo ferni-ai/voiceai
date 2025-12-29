@@ -144,11 +144,87 @@ async function collectTriggers(
   const { generatePredictions, getDayPatterns } =
     await import('../../services/superhuman/predictive-coaching.js');
 
-  // Get active predictions
+  // Get active predictions from rule-based system
   const predictions: PredictionData[] = await generatePredictions(userId);
   const dayPatterns: DayPatternData[] = await getDayPatterns(userId);
 
-  // Session start surfacing
+  // ============================================================================
+  // ML PREDICTIONS (from TRUE Predictive Intelligence)
+  // ============================================================================
+  try {
+    const { getAllPredictions, predictNextStates, extractStatesFromTurn } =
+      await import('../predictive/index.js');
+
+    // Get ML-fused predictions (burnout risk, needs support, etc.)
+    const mlPredictions = await getAllPredictions(userId, {
+      currentEmotion: emotion?.primary,
+    });
+
+    // Check burnout risk
+    const burnoutRisk = mlPredictions.get('burnout_risk');
+    if (burnoutRisk && burnoutRisk.confidence > 0.6) {
+      triggers.push({
+        type: 'detected_stress',
+        urgency: 'immediate',
+        content: `ML: Burnout risk detected (${(burnoutRisk.confidence * 100).toFixed(0)}% confidence). ${burnoutRisk.explanation}. Consider protective intervention.`,
+      });
+    }
+
+    // Check if they need support now
+    const needsSupport = mlPredictions.get('needs_support_now');
+    if (needsSupport && needsSupport.confidence > 0.65) {
+      triggers.push({
+        type: 'detected_stress',
+        urgency: 'when_natural',
+        content: `ML: User may need extra support (${(needsSupport.confidence * 100).toFixed(0)}%). ${needsSupport.explanation}`,
+      });
+    }
+
+    // Check if ready for challenge (positive signal)
+    const readyForChallenge = mlPredictions.get('ready_for_challenge');
+    if (readyForChallenge && readyForChallenge.confidence > 0.7) {
+      triggers.push({
+        type: 'known_trigger',
+        urgency: 'if_relevant',
+        content: `ML: User seems ready for growth challenge. ${readyForChallenge.explanation}`,
+      });
+    }
+
+    // Markov sequence prediction (if we have current emotion)
+    if (emotion?.primary) {
+      const emotionMap: Record<string, string> = {
+        anxious: 'emotion:anxious',
+        stressed: 'emotion:stressed',
+        calm: 'emotion:calm',
+        happy: 'emotion:happy',
+        sad: 'emotion:sad',
+        frustrated: 'emotion:frustrated',
+        excited: 'emotion:excited',
+        overwhelmed: 'emotion:overwhelmed',
+        neutral: 'emotion:neutral',
+      };
+
+      const currentState = emotionMap[emotion.primary.toLowerCase()];
+      if (currentState) {
+        const sequencePred = predictNextStates(userId, currentState as never);
+        if (sequencePred.predictions.length > 0 && sequencePred.isReliable) {
+          const top = sequencePred.predictions[0];
+          if (top.confidence === 'high' || top.confidence === 'very_high') {
+            triggers.push({
+              type: 'known_trigger',
+              urgency: 'if_relevant',
+              content: `Behavioral prediction: From ${emotion.primary}, they often move to ${top.state.replace('emotion:', '')}. ${top.reasoning}`,
+            });
+          }
+        }
+      }
+    }
+  } catch (mlError) {
+    // ML predictions are non-critical
+    log.debug({ error: String(mlError) }, 'ML predictions unavailable (non-fatal)');
+  }
+
+  // Session start surfacing (rule-based)
   if (turnCount <= 2 && predictions.length > 0) {
     const top = predictions[0];
     triggers.push({
@@ -175,7 +251,7 @@ async function collectTriggers(
     }
   }
 
-  // Detected stress
+  // Detected stress (rule-based)
   if (emotion?.primary && ['stressed', 'anxious', 'overwhelmed'].includes(emotion.primary)) {
     const stressPreds = predictions.filter(
       (p) =>

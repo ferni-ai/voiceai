@@ -60,6 +60,9 @@ export type {
   ProfessionalEntry,
 } from './types.js';
 
+// Import for internal use
+import type { CrisisSignals } from './types.js';
+
 // Re-export classifiers
 export {
   detectCrisisSignals,
@@ -241,13 +244,32 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 // LOGGING AND ANALYTICS
 // ============================================================================
 
+import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+
 /**
- * Log transfer event for analytics
+ * Crisis event record stored in Firestore
+ */
+interface CrisisEventRecord {
+  userId: string;
+  timestamp: string;
+  escalationType: EscalationType;
+  urgency: string;
+  reason: string;
+  transferSuccess?: boolean;
+  channel?: string;
+  resources?: string[];
+  sessionId?: string;
+}
+
+/**
+ * Log transfer event for analytics and safety audit trail
+ * SAFETY-CRITICAL: This creates an audit trail for crisis escalations
  */
 export async function logTransferEvent(
   userId: string,
   decision: EscalationDecision,
-  result: TransferResult
+  result: TransferResult,
+  sessionId?: string
 ): Promise<void> {
   log.info(
     {
@@ -260,8 +282,149 @@ export async function logTransferEvent(
     '📊 Transfer event logged'
   );
 
-  // Future: Store in Firestore for analytics
-  // await storeTransferRecord(userId, decision, result);
+  // Store in Firestore for safety audit trail
+  try {
+    const db = getFirestoreDb();
+    if (!db) {
+      log.warn('Firestore not available for crisis logging');
+      return;
+    }
+
+    const record: CrisisEventRecord = {
+      userId,
+      timestamp: new Date().toISOString(),
+      escalationType: decision.type,
+      urgency: decision.urgency,
+      reason: decision.reason,
+      transferSuccess: result.success,
+      channel: result.channel,
+      resources: result.resources?.map((s: { name: string }) => s.name),
+      sessionId,
+    };
+
+    // Store in user's crisis history
+    await db.collection('bogle_users').doc(userId).collection('crisis_history').add(record);
+
+    log.info({ userId }, '🗄️ Crisis event stored in Firestore');
+  } catch (error) {
+    // Log error but don't fail - crisis support should never break
+    log.error({ error: String(error), userId }, '❌ Failed to store crisis event');
+  }
+}
+
+/**
+ * Log crisis signal detection (even without transfer)
+ * Used for tracking escalation patterns over time
+ * Accepts CrisisSignals type returned by detectCrisisSignals()
+ */
+export async function logCrisisSignal(
+  userId: string,
+  signals: CrisisSignals,
+  transcript?: string,
+  sessionId?: string
+): Promise<void> {
+  // Only log if any crisis signals detected (severity > 0 or explicit flags)
+  const hasSignals =
+    signals.suicidalIdeation ||
+    signals.selfHarmIndicators ||
+    signals.domesticViolence ||
+    signals.dangerToOthers ||
+    signals.severity > 0;
+
+  if (!hasSignals) {
+    return;
+  }
+
+  log.warn(
+    {
+      userId,
+      suicidalIdeation: signals.suicidalIdeation,
+      selfHarmIndicators: signals.selfHarmIndicators,
+      domesticViolence: signals.domesticViolence,
+      dangerToOthers: signals.dangerToOthers,
+      severity: signals.severity,
+    },
+    '🚨 Crisis signal detected'
+  );
+
+  try {
+    const db = getFirestoreDb();
+    if (!db) return;
+
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('crisis_signals')
+      .add({
+        timestamp: new Date().toISOString(),
+        signals: {
+          suicidalIdeation: signals.suicidalIdeation,
+          selfHarmIndicators: signals.selfHarmIndicators,
+          traumaIndicators: signals.traumaIndicators,
+          persistentDepression: signals.persistentDepression,
+          anxietyDisorder: signals.anxietyDisorder,
+          dangerToOthers: signals.dangerToOthers,
+          domesticViolence: signals.domesticViolence,
+          severity: signals.severity,
+        },
+        // Store truncated transcript for context (privacy-conscious)
+        transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
+        sessionId,
+      });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to log crisis signal');
+  }
+}
+
+/**
+ * Get user's crisis history (for cross-session awareness)
+ * SAFETY-CRITICAL: Used for proactive check-ins
+ */
+export async function getCrisisHistory(
+  userId: string,
+  limitDays: number = 30
+): Promise<CrisisEventRecord[]> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) return [];
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - limitDays);
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('crisis_history')
+      .where('timestamp', '>=', cutoffDate.toISOString())
+      .orderBy('timestamp', 'desc')
+      .limit(10)
+      .get();
+
+    return snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as CrisisEventRecord
+    );
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to get crisis history');
+    return [];
+  }
+}
+
+/**
+ * Check if user had recent crisis (for proactive check-in)
+ * BETTER-THAN-HUMAN: Remember past crises and check in
+ */
+export async function hadRecentCrisis(
+  userId: string,
+  withinDays: number = 7
+): Promise<{ hasCrisis: boolean; lastCrisis?: CrisisEventRecord }> {
+  const history = await getCrisisHistory(userId, withinDays);
+  if (history.length === 0) {
+    return { hasCrisis: false };
+  }
+  return {
+    hasCrisis: true,
+    lastCrisis: history[0],
+  };
 }
 
 export default humanTransfer;

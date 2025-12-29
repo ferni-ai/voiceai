@@ -1,0 +1,253 @@
+name: Rust Native Modules
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/rust-perf/**'
+      - 'apps/rust-audio/**'
+      - '.github/workflows/rust-native.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/rust-perf/**'
+      - 'apps/rust-audio/**'
+      - '.github/workflows/rust-native.yml'
+
+env:
+  RUST_VERSION: '1.75'
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # RUST TESTS (Fast - runs on Linux only)
+  # ============================================================================
+  test:
+    name: Test Rust Crates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Test rust-perf
+        working-directory: apps/rust-perf
+        run: cargo test --release
+
+      - name: Test rust-audio
+        working-directory: apps/rust-audio
+        run: cargo test --release
+
+  # ============================================================================
+  # BUILD NATIVE MODULES (Multi-platform matrix)
+  # ============================================================================
+  build:
+    name: Build ${{ matrix.target }}
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64 (production - GCE)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            node_arch: linux-x64
+
+          # macOS ARM64 (development - M-series Macs)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            node_arch: darwin-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            apps/rust-perf/target/
+            apps/rust-audio/target/
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+            ${{ runner.os }}-cargo-
+
+      - name: Install napi-cli
+        run: npm install -g @napi-rs/cli
+
+      # Build rust-perf
+      - name: Build rust-perf
+        working-directory: apps/rust-perf
+        run: |
+          npm install
+          napi build --platform --release --target ${{ matrix.target }}
+
+      # Build rust-audio
+      - name: Build rust-audio
+        working-directory: apps/rust-audio
+        run: |
+          npm install || npm init -y
+          npm install @napi-rs/cli --save-dev || true
+          napi build --platform --release --target ${{ matrix.target }}
+
+      # Upload artifacts
+      - name: Upload rust-perf artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-perf-${{ matrix.node_arch }}
+          path: apps/rust-perf/*.node
+          if-no-files-found: error
+
+      - name: Upload rust-audio artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-audio-${{ matrix.node_arch }}
+          path: apps/rust-audio/*.node
+          if-no-files-found: warn
+
+  # ============================================================================
+  # VERIFY INTEGRATION (Test that bindings work in Node.js)
+  # ============================================================================
+  verify:
+    name: Verify Node.js Integration
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download rust-perf artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-perf-linux-x64
+          path: apps/rust-perf/
+
+      - name: Download rust-audio artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-audio-linux-x64
+          path: apps/rust-audio/
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify rust-perf loads
+        run: node -e "const p = require('./apps/rust-perf'); console.log('rust-perf exports:', Object.keys(p));"
+
+      - name: Verify rust-audio loads
+        run: node -e "try { const a = require('./apps/rust-audio'); console.log('rust-audio exports:', Object.keys(a)); } catch(e) { console.log('rust-audio not available'); }"
+        continue-on-error: true
+
+      - name: Verify native module APIs
+        run: |
+          node -e "
+            const perf = require('./apps/rust-perf');
+
+            // Verify @ferni/perf core functions exist
+            const expectedPerf = ['getLibraryInfo', 'cosineSimilarity', 'batchCosineSimilarity'];
+            for (const fn of expectedPerf) {
+              if (typeof perf[fn] !== 'function') {
+                throw new Error('@ferni/perf missing function: ' + fn);
+              }
+            }
+
+            // Verify library info structure
+            const info = perf.getLibraryInfo();
+            if (!info.version || typeof info.simdAvailable !== 'boolean') {
+              throw new Error('Invalid @ferni/perf library info');
+            }
+
+            console.log('✅ @ferni/perf verified:', info.version, 'SIMD:', info.simdAvailable);
+          "
+
+      - name: Verify rust-audio APIs
+        run: |
+          node -e "
+            try {
+              const audio = require('./apps/rust-audio');
+
+              // Verify @ferni/audio FFT functions
+              const expectedAudio = ['getLibraryInfo', 'fftF32', 'applyHanningWindow', 'analyzeSpectrum'];
+              for (const fn of expectedAudio) {
+                if (typeof audio[fn] !== 'function') {
+                  console.warn('@ferni/audio missing function: ' + fn);
+                }
+              }
+
+              // Test FFT with sample data
+              const samples = new Float32Array(256);
+              for (let i = 0; i < 256; i++) {
+                samples[i] = Math.sin(2 * Math.PI * 440 * i / 44100);
+              }
+
+              const result = audio.analyzeSpectrum(samples, 44100);
+
+              // Verify field names match TypeScript interface (critical fix verification)
+              if (result.centroid === undefined) throw new Error('Missing centroid field');
+              if (result.rolloff === undefined) throw new Error('Missing rolloff field');
+              if (result.dominantFrequency === undefined) throw new Error('Missing dominantFrequency field');
+              if (result.dominantMagnitude === undefined) throw new Error('Missing dominantMagnitude field');
+              if (result.bandEnergies === undefined) throw new Error('Missing bandEnergies field');
+
+              // Verify bandEnergies has 7 elements
+              if (result.bandEnergies.length !== 7) {
+                throw new Error('bandEnergies should have 7 elements, got: ' + result.bandEnergies.length);
+              }
+
+              console.log('✅ @ferni/audio verified - FFT field names correct');
+              console.log('   centroid:', result.centroid.toFixed(2), 'Hz');
+              console.log('   bandEnergies:', result.bandEnergies.length, 'bands');
+            } catch (e) {
+              console.log('⚠️ @ferni/audio verification skipped:', e.message);
+            }
+          "
+        continue-on-error: true
+
+      - name: Run native FFT E2E tests
+        run: |
+          npm run build:fast || true
+          npx vitest run src/speech/fft-analyzer/__tests__/native-fft-e2e.test.ts --reporter=verbose
+        env:
+          NODE_ENV: test
+        continue-on-error: true

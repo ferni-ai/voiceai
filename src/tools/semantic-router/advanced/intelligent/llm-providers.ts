@@ -14,14 +14,16 @@
  * @module semantic-router/advanced/intelligent/llm-providers
  */
 
+import {
+  GEMINI_MAX_OUTPUT_TOKENS,
+  GEMINI_MODEL,
+  GEMINI_TEMPERATURE_LOW,
+  LLM_TIMEOUT_MS,
+} from '../../../../config/gemini-config.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
+import type { GoalPlannerLLMProvider, ToolDefinition as PlannerTool } from './goal-planner.js';
 import type { LLMProvider as FallbackLLMProvider, ToolCandidate } from './llm-fallback.js';
 import type { ReActLLMProvider, ToolDescription as ReActTool } from './react-reasoning.js';
-import type {
-  GoalPlannerLLMProvider,
-  ToolDefinition as PlannerTool,
-  PlanStep,
-} from './goal-planner.js';
 
 const log = createLogger({ module: 'intelligent-llm-providers' });
 
@@ -85,11 +87,11 @@ export interface LLMPlanResult {
 export interface UnifiedLLMProvider
   extends FallbackLLMProvider, ReActLLMProvider, GoalPlannerLLMProvider {
   /** Select the best tool for a user input */
-  selectTool(input: string, candidates: ToolCandidate[]): Promise<LLMToolSelectionResult>;
+  selectTool: (input: string, candidates: ToolCandidate[]) => Promise<LLMToolSelectionResult>;
   /** Perform ReAct reasoning to select and explain tool choice */
-  reason(input: string, tools: ReActTool[]): Promise<LLMReActResult>;
+  reason: (input: string, tools: ReActTool[]) => Promise<LLMReActResult>;
   /** Create a multi-step plan for complex requests (returns null if planning fails) */
-  createPlan(goal: string, tools: PlannerTool[]): Promise<LLMPlanResult | null>;
+  createPlan: (goal: string, tools: PlannerTool[]) => Promise<LLMPlanResult | null>;
 }
 
 // ============================================================================
@@ -172,11 +174,11 @@ Respond in JSON:
 export function createGeminiProvider(config: LLMProviderConfig): UnifiedLLMProvider {
   const {
     apiKey,
-    model = 'gemini-2.0-flash-exp',
-    temperature = 0.3,
-    maxTokens = 1024,
-    timeoutMs = 5000,
-  } = config;
+    model = GEMINI_MODEL,
+    temperature = GEMINI_TEMPERATURE_LOW, // Low temp for routing/classification
+    maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
+    timeoutMs = LLM_TIMEOUT_MS,
+  } = config; // All defaults from centralized gemini-config.ts
 
   async function callGemini(prompt: string): Promise<string> {
     const startTime = performance.now();
@@ -342,10 +344,10 @@ export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvi
   const {
     apiKey,
     model = 'gpt-4o-mini',
-    temperature = 0.3,
-    maxTokens = 1024,
-    timeoutMs = 5000,
-  } = config;
+    temperature = GEMINI_TEMPERATURE_LOW, // Use same temp default for consistency
+    maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
+    timeoutMs = LLM_TIMEOUT_MS,
+  } = config; // Defaults from centralized gemini-config.ts
 
   async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
     const startTime = performance.now();
@@ -390,7 +392,7 @@ export function createOpenAIProvider(config: LLMProviderConfig): UnifiedLLMProvi
   return {
     // Base LLM interface
     model,
-    generate: (prompt: string) => callOpenAI(OPENAI_SYSTEM_PROMPT, prompt),
+    generate: async (prompt: string) => callOpenAI(OPENAI_SYSTEM_PROMPT, prompt),
 
     async selectTool(input: string, candidates: ToolCandidate[]) {
       const toolsText = candidates.map((t) => `- ${t.toolId}: ${t.description}`).join('\n');
@@ -510,10 +512,10 @@ export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvi
   const {
     apiKey,
     model = 'claude-3-haiku-20240307',
-    temperature = 0.3,
-    maxTokens = 1024,
-    timeoutMs = 5000,
-  } = config;
+    temperature = GEMINI_TEMPERATURE_LOW, // Use same temp default for consistency
+    maxTokens = GEMINI_MAX_OUTPUT_TOKENS,
+    timeoutMs = LLM_TIMEOUT_MS,
+  } = config; // Defaults from centralized gemini-config.ts
 
   async function callClaude(prompt: string): Promise<string> {
     const startTime = performance.now();
@@ -529,7 +531,7 @@ export function createClaudeProvider(config: LLMProviderConfig): UnifiedLLMProvi
         body: JSON.stringify({
           model,
           max_tokens: maxTokens,
-          messages: [{ role: 'user', content: prompt + '\n\nRespond with valid JSON only.' }],
+          messages: [{ role: 'user', content: `${prompt}\n\nRespond with valid JSON only.` }],
         }),
         signal: AbortSignal.timeout(timeoutMs),
       });

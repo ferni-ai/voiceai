@@ -498,7 +498,7 @@ export class EmotionalMemoryEngine {
    * Export bond for persistence
    */
   export(): EmotionalBond {
-    return JSON.parse(JSON.stringify(this.bond));
+    return structuredClone(this.bond);
   }
 
   /**

@@ -27,6 +27,9 @@ import { homeExecutor } from './home-executor.js';
 import { schedulingExecutor } from './scheduling-executor.js';
 import { conciergeExecutor } from './concierge-executor.js';
 import { telephonyExecutor } from './telephony-executor.js';
+import { reflectionGamesExecutor } from './reflection-games-executor.js';
+import { researchExecutor } from './research-executor.js';
+import { handoffExecutor } from './handoff-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -49,8 +52,10 @@ const DOMAIN_EXECUTORS: DomainExecutor[] = [
   schedulingExecutor,
   conciergeExecutor,
   telephonyExecutor,
+  reflectionGamesExecutor,
+  researchExecutor,
+  handoffExecutor,
   // TODO: Add more executors:
-  // - handoffExecutor
   // - engagementExecutor
   // - shoppingExecutor
   // - travelExecutor
@@ -159,3 +164,6 @@ export { homeExecutor } from './home-executor.js';
 export { schedulingExecutor } from './scheduling-executor.js';
 export { conciergeExecutor } from './concierge-executor.js';
 export { telephonyExecutor } from './telephony-executor.js';
+export { reflectionGamesExecutor } from './reflection-games-executor.js';
+export { researchExecutor } from './research-executor.js';
+export { handoffExecutor } from './handoff-executor.js';

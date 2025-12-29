@@ -277,7 +277,7 @@ export async function handleVisualMemoryRoutes(
   // ============================================================================
   const memoryIdMatch = pathname.match(/^\/api\/visual-memory\/([a-zA-Z0-9_-]+)$/);
   if (memoryIdMatch && req.method === 'GET') {
-    const memoryId = memoryIdMatch[1];
+    const memoryId = memoryIdMatch[1] ?? '';
 
     try {
       const memory = await visualMemory.get(userId, memoryId);
@@ -300,7 +300,7 @@ export async function handleVisualMemoryRoutes(
   // DELETE /api/visual-memory/:id - Delete a visual memory
   // ============================================================================
   if (memoryIdMatch && req.method === 'DELETE') {
-    const memoryId = memoryIdMatch[1];
+    const memoryId = memoryIdMatch[1] ?? '';
 
     try {
       await visualMemory.delete(userId, memoryId);

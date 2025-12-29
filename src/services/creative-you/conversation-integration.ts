@@ -13,6 +13,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 import type { ConversationState } from '../../intelligence/conversation-state.js';
 import type { TopicExtractionResult } from '../../intelligence/topic-tracker.js';
 import { createIntelligentCurator, type IntelligentRecommendation } from './intelligent-curator.js';
@@ -82,12 +83,7 @@ function cleanupStaleCache(): void {
 }
 
 // Start cache cleanup interval (runs every 30 minutes)
-const cacheCleanupInterval = setInterval(cleanupStaleCache, 30 * 60 * 1000);
-
-// Prevent interval from keeping process alive
-if (cacheCleanupInterval.unref) {
-  cacheCleanupInterval.unref();
-}
+registerInterval('creative-you-cache-cleanup', cleanupStaleCache, 30 * 60 * 1000);
 
 /**
  * Record topics from a conversation (persists to Firestore)

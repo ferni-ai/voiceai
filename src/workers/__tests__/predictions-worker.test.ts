@@ -89,7 +89,7 @@ describe('PredictionsWorker', () => {
       const predictions = await generatePredictions('test-user');
 
       expect(predictions).toHaveLength(1);
-      expect(predictions[0].prediction).toContain('anxiety');
+      expect(predictions[0]?.prediction).toContain('anxiety');
     });
 
     it('should handle conversation:end events', async () => {
@@ -123,8 +123,8 @@ describe('PredictionsWorker', () => {
       const patterns = await loadUserPatterns('test-user');
 
       expect(patterns).toHaveLength(1);
-      expect(patterns[0].type).toBe('temporal');
-      expect(patterns[0].trigger).toBe('Sunday evening');
+      expect(patterns[0]?.type).toBe('temporal');
+      expect(patterns[0]?.trigger).toBe('Sunday evening');
     });
 
     it('should clear cache when pattern updated', async () => {

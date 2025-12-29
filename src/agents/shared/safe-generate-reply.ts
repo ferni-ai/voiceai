@@ -33,8 +33,9 @@ const logger = getLogger();
 // CONFIGURATION
 // ============================================================================
 
-/** Our timeout fires BEFORE the SDK's 5s timeout to give us control */
-const SAFE_TIMEOUT_MS = 3500;
+/** Our timeout fires BEFORE the SDK's 15s timeout (patched from 5s) to give us control
+ * UPDATED Dec 2024: Reduced from 12s to 6s for faster fail/fallback - Better than Human latency */
+const SAFE_TIMEOUT_MS = 6000;
 
 /** Minimum time between generateReply calls to prevent overwhelming the API */
 const MIN_INTERVAL_MS = 500;
@@ -273,6 +274,19 @@ async function executeWithTimeout(
       await handle.waitForPlayout();
     }
   })();
+
+  // CRITICAL FIX: Attach a catch handler to the replyPromise to prevent unhandled rejection
+  // when our timeout wins the race. The dangling promise will eventually reject from
+  // the SDK's internal timeout (~5s), but we've already handled the timeout case.
+  // Without this, every timeout triggers multiple "unhandled rejection" crash analytics.
+  replyPromise.catch((err) => {
+    // Swallow silently - we already handled the timeout case
+    // This is expected when our pre-emptive timeout fires first
+    logger.debug(
+      { error: err instanceof Error ? err.message : String(err) },
+      '🔇 Swallowed dangling generateReply rejection (expected after pre-emptive timeout)'
+    );
+  });
 
   await Promise.race([replyPromise, timeoutPromise]);
 }

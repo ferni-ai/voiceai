@@ -224,12 +224,12 @@ export async function handleVibeRoutes(
 
     // If explicitly turning off
     if (body.on === false) {
-      const result = await setLights(0);
+      const result = await setLights(userId, 0);
       sendJson(res, 200, result);
       return true;
     }
 
-    const result = await setLights(body.brightness, body.colorTemp);
+    const result = await setLights(userId, body.brightness, body.colorTemp);
     sendJson(res, result.success ? 200 : 500, result);
     return true;
   }

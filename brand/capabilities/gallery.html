@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Superhuman Capabilities</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf8f5;
+      --bg-elevated: #fffdfb;
+      --text-primary: #2c2520;
+      --text-secondary: #5c544a;
+      --text-muted: #756a5e;
+      --accent: #3D5A45;
+      --ferni: #4a6741;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(74, 103, 65, 0.1);
+      padding: 8px 20px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ferni);
+      margin-bottom: 32px;
+    }
+
+    .hero-badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--ferni);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    h1 {
+      font-size: 72px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 24px;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .hero-subtitle {
+      font-size: 24px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 48px;
+      font-weight: 400;
+    }
+
+    .promise-grid {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .promise-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    .promise-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 80px 40px;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-label {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ferni);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 32px;
+    }
+
+    .capability-card {
+      background: var(--bg-elevated);
+      border-radius: 24px;
+      padding: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .capability-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--ferni) 0%, rgba(74, 103, 65, 0.3) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .capability-card:hover {
+      transform: translateY(-12px);
+      box-shadow: 0 30px 80px rgba(44, 37, 32, 0.12);
+    }
+
+    .capability-card:hover::before {
+      opacity: 1;
+    }
+
+    .capability-number {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ferni);
+      margin-bottom: 20px;
+      opacity: 0.6;
+    }
+
+    .capability-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, rgba(74, 103, 65, 0.05) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 24px;
+    }
+
+    .capability-name {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .capability-tagline {
+      font-size: 16px;
+      color: var(--ferni);
+      font-weight: 500;
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+
+    .capability-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+
+    .capability-comparison {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+    }
+
+    .comparison-item {
+      flex: 1;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .comparison-human {
+      background: rgba(44, 37, 32, 0.05);
+    }
+
+    .comparison-ferni {
+      background: rgba(74, 103, 65, 0.1);
+    }
+
+    .comparison-label {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .comparison-text {
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .comparison-ferni .comparison-text {
+      color: var(--ferni);
+      font-weight: 500;
+    }
+
+    /* Featured Capability */
+    .featured-capability {
+      background: linear-gradient(135deg, var(--ferni) 0%, #3d5a35 100%);
+      color: white;
+      padding: 80px;
+      border-radius: 32px;
+      margin-bottom: 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .featured-content h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .featured-tagline {
+      font-size: 24px;
+      opacity: 0.9;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .featured-description {
+      font-size: 18px;
+      opacity: 0.85;
+      line-height: 1.7;
+    }
+
+    .featured-visual {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .example-quote {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 24px;
+      border-radius: 16px;
+      font-size: 16px;
+      line-height: 1.6;
+      border-left: 4px solid rgba(255, 255, 255, 0.5);
+    }
+
+    /* Stats Section */
+    .stats-section {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      margin: 80px 0;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 32px;
+    }
+
+    .stat-number {
+      font-size: 56px;
+      font-weight: 800;
+      color: var(--ferni);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* New Capabilities Section */
+    .new-section {
+      background: linear-gradient(180deg, rgba(74, 103, 65, 0.05) 0%, transparent 100%);
+      padding: 80px 0;
+      margin: 80px 0;
+    }
+
+    .new-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Footer CTA */
+    .footer-cta {
+      text-align: center;
+      padding: 80px 40px;
+      background: var(--bg-elevated);
+    }
+
+    .footer-cta h2 {
+      font-size: 40px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .footer-cta p {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto 32px;
+    }
+
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ferni);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 100px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(74, 103, 65, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .featured-capability {
+        grid-template-columns: 1fr;
+        padding: 48px;
+      }
+
+      .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 40px;
+      }
+
+      .hero-subtitle {
+        font-size: 18px;
+      }
+
+      .capability-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-section {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .stat-number {
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Brand Navigation -->
+  <nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(250, 248, 245, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(44, 37, 32, 0.08); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
+    <a href="../index.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); font-weight: 600; font-size: 14px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Brand Library
+    </a>
+    <div style="display: flex; gap: 20px; font-size: 13px;">
+      <a href="../marketing/introducing-ferni.html" style="color: var(--text-secondary); text-decoration: none;">Intro</a>
+      <a href="../motion/demo.html" style="color: var(--text-secondary); text-decoration: none;">Motion</a>
+      <a href="../characters/ferni/expressions.html" style="color: var(--text-secondary); text-decoration: none;">Expressions</a>
+    </div>
+  </nav>
+
+  <section class="hero" style="padding-top: 120px;">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        19 Superhuman Capabilities
+      </div>
+      <h1>Better Than Human</h1>
+      <p class="hero-subtitle">This isn't arrogance—it's the truth. We offer what humans can't consistently provide.</p>
+
+      <div class="promise-grid">
+        <div class="promise-item">
+          <div class="promise-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+            </svg>
+          </div>
+          <span>Perfect memory</span>
+        </div>
+        <div class="promise-item">
+          <div class="promise-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </div>
+          <span>Constant presence</span>
+        </div>
+        <div class="promise-item">
+          <div class="promise-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <span>Zero judgment</span>
+        </div>
+        <div class="promise-item">
+          <div class="promise-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span>Six perspectives</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-number">19</div>
+        <div class="stat-label">Superhuman capabilities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">6</div>
+        <div class="stat-label">Specialist personas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Always present</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">∞</div>
+        <div class="stat-label">Patience</div>
+      </div>
+    </div>
+
+    <!-- Featured: Commitment Keeper -->
+    <div class="featured-capability">
+      <div class="featured-content">
+        <h2>Commitment Keeper</h2>
+        <p class="featured-tagline">"Friends forget. Ferni doesn't."</p>
+        <p class="featured-description">
+          Your best friend has their own life. They forget promises, miss follow-ups, lose track of what you said you'd do. Ferni tracks every intention, promise, and decision—circling back at the perfect moment.
+        </p>
+      </div>
+      <div class="featured-visual">
+        <div class="example-quote">
+          "Remember three weeks ago you said you'd have that hard conversation with your sister? How did it go?"
+        </div>
+        <div class="example-quote">
+          "You mentioned wanting to start journaling again. That was two months ago. Still interested?"
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-label">The Original 10</div>
+      <h2 class="section-title">Core Superhuman Services</h2>
+      <p class="section-subtitle">These capabilities go beyond what any human friend can consistently provide.</p>
+    </div>
+
+    <div class="capability-grid">
+      <div class="capability-card">
+        <div class="capability-number">01</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Commitment Keeper</h3>
+        <p class="capability-tagline">"Friends forget. Ferni doesn't."</p>
+        <p class="capability-description">Tracks every intention, promise, and decision. Never lets anything slip through the cracks.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Friends forget promises</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Perfect accountability</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">02</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Predictive Coaching</h3>
+        <p class="capability-tagline">"Saw this coming before you did."</p>
+        <p class="capability-description">Analyzes patterns across conversations, detects early warning signs, anticipates struggles before they become crises.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Can't see patterns objectively</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Pattern recognition across time</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">03</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Life Narrative</h3>
+        <p class="capability-tagline">"Your story, coherently told."</p>
+        <p class="capability-description">Builds a coherent story of your journey—connecting themes, surfacing growth, reminding you where you've been.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Hard to maintain perspective</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Narrates your growth</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">04</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Values Alignment</h3>
+        <p class="capability-tagline">"Gentle truth about who you're becoming."</p>
+        <p class="capability-description">Detects when your actions drift from your stated values. Gently surfaces the gap without judgment.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Friends avoid confrontation</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Loving honesty</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">05</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Emotional First Aid</h3>
+        <p class="capability-tagline">"First response, every time."</p>
+        <p class="capability-description">Rapid-response protocols for emotional crises. Grounding techniques, presence, immediate warmth—any hour.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Takes time to respond</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">2am warmth = noon warmth</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">06</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4"/><path d="m8.5 16.5-2-2"/><path d="m17.5 14.5-2 2"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Relationship Network</h3>
+        <p class="capability-tagline">"All your people, remembered."</p>
+        <p class="capability-description">Maps your relationship network. Tracks sentiment, remembers details, surfaces connections you might miss.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Can't track everyone</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Full relationship map</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">07</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Capacity Guardian</h3>
+        <p class="capability-tagline">"Burnout prevention, not recovery."</p>
+        <p class="capability-description">Monitors energy levels, workload, stress indicators. Intervenes before the crash.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Often too late</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Early warning system</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">08</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Dream Keeper</h3>
+        <p class="capability-tagline">"Your dreams, protected."</p>
+        <p class="capability-description">Guards your long-term goals. Surfaces them at the right moments. Doesn't let the urgent overwhelm the important.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Dreams get buried</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Aspiration guardian</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">09</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Relationship Milestones</h3>
+        <p class="capability-tagline">"Every moment matters."</p>
+        <p class="capability-description">Celebrates the journey. Tracks meaningful dates. Marks progress in the relationship with Ferni itself.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Forgets anniversaries</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Never forgets a milestone</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="capability-card">
+        <div class="capability-number">10</div>
+        <div class="capability-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <h3 class="capability-name">Seasonal Awareness</h3>
+        <p class="capability-tagline">"Attuned to your rhythm."</p>
+        <p class="capability-description">Connects to seasonal patterns. Knows when you typically struggle, when you thrive, when change is coming.</p>
+        <div class="capability-comparison">
+          <div class="comparison-item comparison-human">
+            <div class="comparison-label">Human</div>
+            <div class="comparison-text">Doesn't track cycles</div>
+          </div>
+          <div class="comparison-item comparison-ferni">
+            <div class="comparison-label">Ferni</div>
+            <div class="comparison-text">Seasonal wisdom</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="new-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="new-badge">New • December 2024</div>
+        <h2 class="section-title" style="margin-top: 20px;">The New 9</h2>
+        <p class="section-subtitle">Expanded capabilities that go even deeper into what makes Ferni superhuman.</p>
+      </div>
+
+      <div class="capability-grid">
+        <div class="capability-card">
+          <div class="capability-number">11</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Silence Interpreter</h3>
+          <p class="capability-tagline">"What your silence is saying."</p>
+          <p class="capability-description">Classifies silence types—processing, emotional, exhausted. Responds appropriately to each.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">12</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20c0-5.5 2.5-10 0-10s0-4.5 0-10"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="12" cy="17" r="1.5"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Contradiction Comfort</h3>
+          <p class="capability-tagline">"It's okay to feel both."</p>
+          <p class="capability-description">Validates mixed emotions without trying to fix them. Holds complexity without simplifying.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">13</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Perfect Timing</h3>
+          <p class="capability-tagline">"Right message, right moment."</p>
+          <p class="capability-description">Detects receptivity. Learns when you're open, when you're defensive, when the moment is right.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">14</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M9 9h6"/><path d="M9 15h6"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Pattern Mirror</h3>
+          <p class="capability-tagline">"What you can't see about yourself."</p>
+          <p class="capability-description">Surfaces patterns you can't see. Shows you what's energizing, what's draining, what keeps coming up.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">15</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Future Self Letters</h3>
+          <p class="capability-tagline">"A letter from who you're becoming."</p>
+          <p class="capability-description">Generates letters from your future self—based on your values, goals, and growth trajectory.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">16</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">First-Time Vulnerability</h3>
+          <p class="capability-tagline">"I know that was hard to share."</p>
+          <p class="capability-description">Detects when someone shares something for the first time. Marks the moment with appropriate weight.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">17</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Linguistic Mirroring</h3>
+          <p class="capability-tagline">"In your words, not mine."</p>
+          <p class="capability-description">Learns your emotion vocabulary. Uses your words for your feelings, not generic labels.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">18</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Ambient Context</h3>
+          <p class="capability-tagline">"I can hear what's happening."</p>
+          <p class="capability-description">Understands environment from audio cues—traffic noise, crying babies, office sounds, silence.</p>
+        </div>
+
+        <div class="capability-card">
+          <div class="capability-number">19</div>
+          <div class="capability-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a4 4 0 0 0-4 4c0 1.5.8 2.7 2 3.4V11H8a4 4 0 0 0-4 4c0 2.2 1.8 4 4 4h8c2.2 0 4-1.8 4-4a4 4 0 0 0-4-4h-2V9.4c1.2-.7 2-1.9 2-3.4a4 4 0 0 0-4-4z"/>
+              <circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>
+            </svg>
+          </div>
+          <h3 class="capability-name">Protective Memory</h3>
+          <p class="capability-tagline">"Learning from what didn't work."</p>
+          <p class="capability-description">Tracks what didn't land. Learns from missteps. Adjusts approach based on what works for you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="footer-cta">
+    <h2>Ready to experience superhuman support?</h2>
+    <p>Finally, someone who actually listens. Someone who remembers. Someone who's always here.</p>
+    <a href="#" class="cta-button">
+      Meet Ferni
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </section>
+
+  <script>
+    // Animate cards on scroll
+    const cards = document.querySelectorAll('.capability-card');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, index * 50);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    cards.forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      observer.observe(card);
+    });
+  </script>
+</body>
+</html>

@@ -16,7 +16,8 @@
  */
 
 import { embedCached } from '../memory/embedding-cache.js';
-import { cosineSimilarity } from '../memory/embeddings.js';
+// Rust-accelerated batch operations for semantic search (SIMD-accelerated for 5+ embeddings)
+import { batchCosineSimilarityOptimized } from '../memory/rust-accelerator.js';
 import { isOk } from '../memory/result.js';
 import type { SharedStory } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -171,8 +172,8 @@ export async function findRelevantMomentSemantic(
   const stageOrder: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted'];
   const stageIndex = stageOrder.indexOf(options.relationshipStage);
 
-  // Score all moments by semantic similarity
-  const scored: Array<{ moment: PersonalMoment; similarity: number }> = [];
+  // Filter eligible moments first (by relationship stage and cooldown)
+  const eligibleMoments: Array<{ moment: PersonalMoment; embedding: number[] }> = [];
 
   for (const { moment, embedding } of embeddedMoments) {
     // Check relationship stage access
@@ -198,11 +199,24 @@ export async function findRelevantMomentSemantic(
       }
     }
 
-    // Calculate semantic similarity
-    const similarity = cosineSimilarity(userEmbedding, embedding);
+    eligibleMoments.push({ moment, embedding });
+  }
 
+  if (eligibleMoments.length === 0) {
+    return null;
+  }
+
+  // Batch compute all similarities at once (SIMD-accelerated for 5+ moments)
+  const momentVectors = eligibleMoments.map((m) => Array.from(m.embedding));
+  const queryArray = Array.from(userEmbedding);
+  const similarities = batchCosineSimilarityOptimized(queryArray, momentVectors);
+
+  // Build scored results with similarity threshold
+  const scored: Array<{ moment: PersonalMoment; similarity: number }> = [];
+  for (let i = 0; i < eligibleMoments.length; i++) {
+    const similarity = similarities[i];
     if (similarity >= minSimilarity) {
-      scored.push({ moment, similarity });
+      scored.push({ moment: eligibleMoments[i].moment, similarity });
     }
   }
 
@@ -214,6 +228,9 @@ export async function findRelevantMomentSemantic(
   scored.sort((a, b) => b.similarity - a.similarity);
 
   const best = scored[0];
+  if (!best) {
+    return null;
+  }
 
   // Build result
   const result: RelevanceMatch = {
@@ -221,7 +238,7 @@ export async function findRelevantMomentSemantic(
     relevanceScore: best.similarity,
     reason: `Semantic similarity: ${(best.similarity * 100).toFixed(1)}%`,
     suggestedTransition:
-      best.moment.transitions[Math.floor(Math.random() * best.moment.transitions.length)],
+      best.moment.transitions[Math.floor(Math.random() * best.moment.transitions.length)] ?? '',
     previouslyShared: options.sharedStories?.some((s) => s.storyId === best.moment.id) ?? false,
   };
 

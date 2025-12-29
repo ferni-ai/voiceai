@@ -1211,6 +1211,18 @@ export {
   type LifeRhythmOutreachResult,
 } from './life-rhythm-outreach.js';
 
+// 🔔 Pattern-Based Proactive Outreach (Better Than Human)
+export {
+  schedulePatternOutreach,
+  schedulePatternOutreachAsync,
+  scheduleSundayAnxietyFollowUp,
+  scheduleWorkStressFollowUp,
+  scheduleRelationshipCheckIn,
+  PATTERN_OUTREACH_MAP,
+  type PatternTrigger,
+  type PatternOutreachContext,
+} from './pattern-outreach-integration.js';
+
 // ============================================================================
 // DEFAULT EXPORT
 // ============================================================================

@@ -346,7 +346,8 @@ export async function getSemanticSimilarity(
   const { embed } = await import('../../memory/embeddings.js');
   const triggerEmbedding = await embed(triggerText);
 
-  const { cosineSimilarity } = await import('../../memory/embeddings.js');
+  // Use SIMD-accelerated cosine similarity from rust-accelerator
+  const { cosineSimilarity } = await import('../../memory/rust-accelerator.js');
   return cosineSimilarity(userEmbedding, triggerEmbedding);
 }
 

@@ -12,12 +12,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  embed,
-  embedBatch,
-  getEmbeddingProvider,
-  cosineSimilarity,
-} from '../../memory/embeddings.js';
+import { embed, embedBatch, getEmbeddingProvider } from '../../memory/embeddings.js';
+// Rust-accelerated batch operations for trigger matching (SIMD-accelerated for 5+ triggers)
+import { batchCosineSimilarityOptimized } from '../../memory/rust-accelerator.js';
 import type {
   ProactiveTrigger,
   EmbeddedTrigger,
@@ -316,19 +313,31 @@ export class TriggerEmbeddingService {
     // Generate embedding for user text
     const userEmbedding = await this.embedUserText(userText);
 
-    // Calculate similarities
-    const results: Array<{ trigger: EmbeddedTrigger; similarity: number }> = [];
-
+    // Filter triggers first (by persona and category)
+    const filteredTriggers: EmbeddedTrigger[] = [];
     for (const trigger of this.embeddedTriggers.values()) {
       // Filter by persona if specified
       if (personaId && trigger.personaId !== personaId) continue;
       // Filter by category if specified
       if (category && trigger.category !== category) continue;
+      filteredTriggers.push(trigger);
+    }
 
-      const similarity = cosineSimilarity(userEmbedding, trigger.embedding);
+    if (filteredTriggers.length === 0) {
+      return [];
+    }
 
+    // Batch compute all similarities at once (SIMD-accelerated for 5+ triggers)
+    const triggerVectors = filteredTriggers.map((t) => Array.from(t.embedding));
+    const queryArray = Array.from(userEmbedding);
+    const similarities = batchCosineSimilarityOptimized(queryArray, triggerVectors);
+
+    // Build results with similarity threshold
+    const results: Array<{ trigger: EmbeddedTrigger; similarity: number }> = [];
+    for (let i = 0; i < filteredTriggers.length; i++) {
+      const similarity = similarities[i];
       if (similarity >= minSimilarity) {
-        results.push({ trigger, similarity });
+        results.push({ trigger: filteredTriggers[i], similarity });
       }
     }
 

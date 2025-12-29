@@ -150,6 +150,11 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     } else {
       toast.success('Entry saved!');
     }
+    
+    // 🤲 Sidekick: Dispatch journal entry event for avatar sidekick
+    document.dispatchEvent(new CustomEvent('ferni:journal-entry', {
+      detail: { mood, hasTranscript: !transcriptionFailed, durationSeconds: recordingDuration }
+    }));
   } catch (error) {
     log.error('Failed to save entry:', error);
     toast.error("Couldn't save entry. Try again?");

@@ -860,7 +860,10 @@ export function createMusicTools() {
           );
           return result;
         } catch (error) {
-          log.error({ query, error: String(error), stack: (error as Error).stack?.slice(0, 300) }, '🎵 [DIAG] playMusic EXCEPTION');
+          log.error(
+            { query, error: String(error), stack: (error as Error).stack?.slice(0, 300) },
+            '🎵 [DIAG] playMusic EXCEPTION'
+          );
           // 🚨 IMPROVED: Clear error that helps LLM understand the issue
           // Check if music system is working at all
           const postErrorAvailability = isMusicAvailable();

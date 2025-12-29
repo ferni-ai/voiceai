@@ -93,6 +93,8 @@ export default [
         WebSocket: 'readonly',
         // Firebase/Firestore types
         FirebaseFirestore: 'readonly',
+        // Node.js 17+ globals
+        structuredClone: 'readonly',
       },
     },
     plugins: {
@@ -341,6 +343,17 @@ export default [
             message: 'Avoid deep relative imports to services. Use absolute imports.',
           },
         ],
+      }],
+
+      // ========================================================================
+      // 🚀 PERFORMANCE PATTERNS (from PERFORMANCE-AUDIT-DEC-2024.md)
+      // ========================================================================
+
+      // Warn on raw setInterval (should use registerInterval from utils/interval-manager.js)
+      // This prevents memory leaks from untracked intervals
+      'no-restricted-globals': ['warn', {
+        name: 'setInterval',
+        message: '⏱️ Use registerInterval() from utils/interval-manager.js instead of raw setInterval. This prevents memory leaks.',
       }],
     },
   },

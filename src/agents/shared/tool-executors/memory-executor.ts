@@ -15,13 +15,25 @@ const log = createLogger({ module: 'MemoryExecutor' });
 
 /** Tools handled by this executor */
 const HANDLED_TOOLS = [
+  // Primary tool names
   'rememberaboutuser',
   'recallfrommemory',
   'updatememory',
   'forgetmemory',
   'getrelationshipsummary',
   'reinforcememory',
+  // Aliases from function-calling-base.md prompt
+  'savememory', // alias for rememberaboutuser
+  'searchmemories', // alias for recallfrommemory
+  'remembername', // alias for rememberaboutuser
 ] as const;
+
+/** Map aliases to canonical tool names */
+const TOOL_ALIASES: Record<string, string> = {
+  savememory: 'rememberaboutuser',
+  searchmemories: 'recallfrommemory',
+  remembername: 'rememberaboutuser',
+};
 
 /**
  * Execute memory-related tools
@@ -31,10 +43,16 @@ async function execute(
   args: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<unknown | null> {
-  const fnLower = fn.toLowerCase();
+  let fnLower = fn.toLowerCase();
 
   if (!HANDLED_TOOLS.includes(fnLower as (typeof HANDLED_TOOLS)[number])) {
     return null;
+  }
+
+  // Resolve aliases to canonical tool names
+  if (TOOL_ALIASES[fnLower]) {
+    log.debug({ original: fnLower, resolved: TOOL_ALIASES[fnLower] }, '🔀 Resolving tool alias');
+    fnLower = TOOL_ALIASES[fnLower];
   }
 
   // ========================================

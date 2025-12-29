@@ -47,7 +47,10 @@ export function validateEmail(email: string): { valid: boolean; error?: string }
  */
 export function sanitizeEmailForLog(email: string): string {
   if (!email || !email.includes('@')) return '[invalid]';
-  const [local, domain] = email.split('@');
+  const parts = email.split('@');
+  const local = parts[0];
+  const domain = parts[1];
+  if (!local || !domain) return '[invalid]';
   const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***';
   return `${maskedLocal}@${domain}`;
 }

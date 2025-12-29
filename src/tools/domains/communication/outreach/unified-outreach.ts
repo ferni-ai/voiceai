@@ -390,7 +390,12 @@ async function executeOutreach(
           type: 'call',
           direction: 'outbound',
           summary: `Calling to: ${purpose}`,
-        }).catch(() => {}); // Non-fatal
+        }).catch((err) =>
+          log.debug(
+            { error: String(err), contactId: contact.id },
+            'Failed to record call interaction (non-fatal)'
+          )
+        );
 
         return {
           success: true,
@@ -433,7 +438,12 @@ async function executeOutreach(
           type: 'call',
           direction: 'outbound',
           summary: `Voice message: ${purpose}`,
-        }).catch(() => {});
+        }).catch((err) =>
+          log.debug(
+            { error: String(err), contactId: contact.id },
+            'Failed to record voice message interaction (non-fatal)'
+          )
+        );
 
         return {
           success: true,
@@ -480,7 +490,12 @@ async function executeOutreach(
           type: 'text',
           direction: 'outbound',
           summary: `Text: ${purpose}`,
-        }).catch(() => {});
+        }).catch((err) =>
+          log.debug(
+            { error: String(err), contactId: contact.id },
+            'Failed to record text interaction (non-fatal)'
+          )
+        );
 
         return {
           success: true,
@@ -530,7 +545,12 @@ async function executeOutreach(
           type: 'email',
           direction: 'outbound',
           summary: `Email: ${purpose}`,
-        }).catch(() => {});
+        }).catch((err) =>
+          log.debug(
+            { error: String(err), contactId: contact.id },
+            'Failed to record email interaction (non-fatal)'
+          )
+        );
 
         return {
           success: true,

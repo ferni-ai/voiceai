@@ -3082,6 +3082,53 @@ body {
   transition: all var(--transition-slow);
 }
 
+/* ========================================================================
+   🔊 THREE-LAYER SPEAKING SYSTEM - Halo Wave Effects
+   "Sound waves emanating" - secondary rings that pulse with voice
+   Body pulse handled in JS, this is the AMBIENT layer (Layer 2)
+   @see design-system/brand/SPEAKING-SYSTEM.md
+   ======================================================================== */
+
+/* Container for secondary halo waves */
+.speaking-halo-waves {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0; /* Behind avatar ring */
+}
+
+/* Individual wave rings - appear when speaking */
+.speaking-halo-wave {
+  position: absolute;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--persona-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 80ms ease-out, opacity 80ms ease-out;
+}
+
+/* Wave 1 - closest to ring */
+.speaking-halo-wave-1 {
+  inset: -16px;
+}
+
+/* Wave 2 - furthest from ring */
+.speaking-halo-wave-2 {
+  inset: -22px;
+}
+
+/* Speaking state enhances ring visibility */
+#coach.is-speaking #avatarRing {
+  opacity: 0.5;
+}
+
+/* Reduced motion: disable wave animations */
+@media (prefers-reduced-motion: reduce) {
+  .speaking-halo-wave {
+    display: none;
+  }
+}
+
 /* Connected: subtle border accent, no harsh glow */
 #coach.is-connected #avatarRing {
   opacity: 0.35;
@@ -3090,10 +3137,11 @@ body {
 }
 
 /* Connected: Avatar grows for presence - feels like Ferni "waking up"
-   This applies globally; mobile breakpoints may override with larger sizes */
+   This applies globally; mobile breakpoints may override with larger sizes
+   Growth: 120px → 160px (33% increase) for noticeable "wake up" effect */
 #coach.is-connected .avatar-container {
-  width: min(150px, 100%);
-  height: 150px;
+  width: min(160px, 100%);
+  height: 160px;
 }
 
 /* Human-like breathing - natural rhythm, not mechanical pulse
@@ -11804,6 +11852,12 @@ body.ambient-aurora {
     width: min(120px, 100%);
     height: 120px;
   }
+  
+  /* Connected state - grow on very small phones too */
+  #coach.is-connected .avatar-container {
+    width: min(140px, 100%);
+    height: 140px;
+  }
 
   #avatarRing {
     inset: -10px;
@@ -12048,6 +12102,12 @@ body.ambient-aurora {
     width: min(80px, 14vh);
     height: min(80px, 14vh);
   }
+  
+  /* Connected state - grow even in short viewports */
+  #coach.is-connected .avatar-container {
+    width: min(100px, 18vh);
+    height: min(100px, 18vh);
+  }
 
   #avatarRing {
     inset: -6px;
@@ -12120,6 +12180,12 @@ body.ambient-aurora {
   .avatar-container {
     width: min(60px, 12vh);
     height: min(60px, 12vh);
+  }
+  
+  /* Connected state - subtle grow even in extreme compression */
+  #coach.is-connected .avatar-container {
+    width: min(72px, 14vh);
+    height: min(72px, 14vh);
   }
 
   #avatarRing {

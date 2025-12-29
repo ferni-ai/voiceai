@@ -78,6 +78,7 @@ export {
   createSanitizerTransformStream,
   createSanitizerWithMusicFallback,
   stripGuidanceBlocks,
+  containsGuidanceBlocks,
   createGuidanceStripStream,
   type AnyTransformStream,
 } from './streams/index.js';

@@ -92,21 +92,26 @@ export function createCartesiaTTS(voiceId: string, options?: Partial<TTSOptions>
  * @param config - Voice configuration
  * @returns Cartesia TTS instance
  */
-export function createTTSFromConfig(personaName: string, config: VoiceConfig): cartesia.TTS {
+export function createTTSFromConfig(
+  personaName: string,
+  config: VoiceConfig,
+  options?: { language?: string }
+): cartesia.TTS {
   const voiceId = config.voiceId || DEFAULT_VOICE_IDS.FERNI;
   const model = config.model || CARTESIA_MODEL;
+  const language = options?.language || 'en';
 
-  // Check for prewarmed instance
-  if (_prewarmState && _prewarmState.voiceId === voiceId) {
+  // Check for prewarmed instance (only if language matches default)
+  if (_prewarmState && _prewarmState.voiceId === voiceId && language === 'en') {
     _log(`Using prewarmed TTS for ${personaName} ✅`);
     const tts = _prewarmState.instance as cartesia.TTS;
     _prewarmState = null; // One-time use
     return tts;
   }
 
-  _log(`Creating TTS for ${personaName}`, { voice: voiceId.slice(0, 8), model });
+  _log(`Creating TTS for ${personaName}`, { voice: voiceId.slice(0, 8), model, language });
 
-  return createCartesiaTTS(voiceId, { model });
+  return createCartesiaTTS(voiceId, { model, language });
 }
 
 // ============================================================================

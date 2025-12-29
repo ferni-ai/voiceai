@@ -68,6 +68,7 @@ import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
 import { handleDashboardMetricsRoutes } from '../../api/dashboard-metrics-routes.js';
 import { handleDORARoutes } from '../../api/dora-routes.js';
 import { handleObservabilityRoutes } from '../../api/observability-routes.js';
+import { handleBTHAnalyticsRoutes } from '../../api/bth-analytics-routes.js';
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
@@ -138,6 +139,7 @@ import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
 import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
+import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 
 // =============================================================================
 // Route Registry
@@ -509,6 +511,12 @@ export const routes: RouteDefinition[] = [
     description: 'Observability',
   },
   {
+    prefix: '/api/admin/bth-analytics',
+    handler: handleBTHAnalyticsRoutes,
+    category: 'admin',
+    description: 'Better Than Human capability effectiveness analytics',
+  },
+  {
     prefix: '/api/debug',
     handler: handleDebugRoutes,
     category: 'admin',
@@ -639,6 +647,12 @@ export const routes: RouteDefinition[] = [
     handler: handleTrustJourneyRoutes,
     category: 'api',
     description: 'Trust journey',
+  },
+  {
+    prefix: '/api/twin',
+    handler: handleTwinProfileRoutes,
+    category: 'api',
+    description: 'Digital Twin profile management',
   },
   {
     prefix: '/api/relationship',

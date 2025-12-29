@@ -32,6 +32,10 @@ const insights = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/insight
 const physics = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/physics.json'), 'utf8'));
 const predictive = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/predictive.json'), 'utf8'));
 
+// Motion & Glow token files (Ferni Alive animation system)
+const motion = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/motion.json'), 'utf8'));
+const glowColors = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/glow-colors.json'), 'utf8'));
+
 // ============================================================================
 // CSS GENERATION HELPERS
 // ============================================================================
@@ -2381,6 +2385,217 @@ function generateEffectsCSS(effects) {
 }
 
 // ============================================================================
+// MOTION TOKENS CSS GENERATION (Ferni Alive Animation System)
+// ============================================================================
+
+function generateMotionCSS(motion) {
+  const lines = [];
+
+  lines.push(':root {');
+
+  // Easings from motion.json
+  lines.push('  /* Motion Easings - from ferni-alive.html */');
+  if (motion.easing) {
+    for (const [key, data] of Object.entries(motion.easing)) {
+      if (key.startsWith('_')) continue; // Skip comments
+      if (typeof data === 'object' && data.value) {
+        lines.push(`  --motion-ease-${camelToKebab(key)}: ${data.value};`);
+      }
+    }
+  }
+  lines.push('');
+
+  // Durations from motion.json
+  lines.push('  /* Motion Durations */');
+  if (motion.duration) {
+    for (const [key, data] of Object.entries(motion.duration)) {
+      if (key.startsWith('_')) continue;
+      if (typeof data === 'object' && data.value !== undefined) {
+        lines.push(`  --motion-duration-${camelToKebab(key)}: ${data.value}${data.unit || 'ms'};`);
+      }
+    }
+  }
+  lines.push('');
+
+  // Breath cycle durations
+  lines.push('  /* Breath Cycles */');
+  if (motion.breathCycles) {
+    for (const [key, data] of Object.entries(motion.breathCycles)) {
+      if (key.startsWith('_')) continue;
+      if (typeof data === 'object' && data.duration !== undefined) {
+        lines.push(`  --breath-${camelToKebab(key)}-duration: ${data.duration}ms;`);
+        if (data.expansion) {
+          lines.push(`  --breath-${camelToKebab(key)}-scale-y: ${data.expansion.scaleY};`);
+          lines.push(`  --breath-${camelToKebab(key)}-scale-x: ${data.expansion.scaleX};`);
+        }
+      } else if (typeof data === 'object' && data.value !== undefined) {
+        lines.push(`  --breath-${camelToKebab(key)}: ${data.value}${data.unit || 'ms'};`);
+      }
+    }
+  }
+  lines.push('');
+
+  // Blink timing
+  lines.push('  /* Blink Timing */');
+  if (motion.blinkTiming) {
+    const bt = motion.blinkTiming;
+    if (bt.duration) lines.push(`  --blink-duration: ${bt.duration.value}${bt.duration.unit || 'ms'};`);
+    if (bt.intervalRange) {
+      lines.push(`  --blink-interval-min: ${bt.intervalRange.min}${bt.intervalRange.unit || 'ms'};`);
+      lines.push(`  --blink-interval-max: ${bt.intervalRange.max}${bt.intervalRange.unit || 'ms'};`);
+    }
+    if (bt.lidTransition) lines.push(`  --blink-lid-transition: ${bt.lidTransition.duration}${bt.lidTransition.unit || 'ms'};`);
+  }
+  lines.push('');
+
+  // Gaze drift
+  lines.push('  /* Gaze Drift */');
+  if (motion.gazeDrift) {
+    const gd = motion.gazeDrift;
+    if (gd.cycle) lines.push(`  --gaze-drift-cycle: ${gd.cycle.value}${gd.cycle.unit || 'ms'};`);
+    if (gd.eyesGroupTransition) lines.push(`  --gaze-eyes-transition: ${gd.eyesGroupTransition.duration}${gd.eyesGroupTransition.unit || 'ms'};`);
+  }
+  lines.push('');
+
+  // Speaking animation
+  lines.push('  /* Speaking Animation */');
+  if (motion.speakingAnimation) {
+    const sa = motion.speakingAnimation;
+    if (sa.pulseDuration) lines.push(`  --speak-pulse-duration: ${sa.pulseDuration.value}${sa.pulseDuration.unit || 'ms'};`);
+    if (sa.sparkle) lines.push(`  --speak-sparkle-rotate: ${sa.sparkle.rotateDuration}${sa.sparkle.unit || 'ms'};`);
+  }
+  lines.push('');
+
+  // Glow properties
+  lines.push('  /* Glow Properties */');
+  if (motion.glowProperties) {
+    for (const [key, data] of Object.entries(motion.glowProperties)) {
+      if (key.startsWith('_')) continue;
+      if (typeof data === 'object') {
+        lines.push(`  --glow-${camelToKebab(key)}-blur: ${data.blur}px;`);
+        lines.push(`  --glow-${camelToKebab(key)}-spread: ${data.spread}px;`);
+        lines.push(`  --glow-${camelToKebab(key)}-opacity: ${data.opacity};`);
+        lines.push(`  --glow-${camelToKebab(key)}-pulse: ${data.pulseDuration}ms;`);
+      }
+    }
+  }
+  lines.push('');
+
+  // Micro-expressions (for JS consumption as CSS vars)
+  lines.push('  /* Micro-Expression Durations */');
+  if (motion.ferniEQ && motion.ferniEQ.microExpressions) {
+    for (const [key, data] of Object.entries(motion.ferniEQ.microExpressions)) {
+      if (key.startsWith('_') || key === 'description') continue;
+      if (typeof data === 'object' && data.value !== undefined) {
+        lines.push(`  --micro-${camelToKebab(key)}: ${data.value}${data.unit || 'ms'};`);
+      }
+    }
+  }
+
+  lines.push('}');
+  lines.push('');
+
+  // Persona timing modifiers
+  lines.push('/* Persona Timing Modifiers */');
+  if (motion.personaModifiers) {
+    for (const [personaId, data] of Object.entries(motion.personaModifiers)) {
+      if (typeof data === 'object' && data.timingMultiplier !== undefined) {
+        lines.push(`[data-persona="${personaId}"] {`);
+        lines.push(`  --persona-timing-multiplier: ${data.timingMultiplier};`);
+        lines.push(`  --persona-easing-preference: var(--motion-ease-${camelToKebab(data.easingPreference || 'gentle')});`);
+        lines.push('}');
+      }
+    }
+  }
+  lines.push('');
+
+  // Animation layers info (as CSS custom properties for JS)
+  lines.push('/* Animation Layer Priorities (for JS orchestration) */');
+  lines.push(':root {');
+  if (motion.animationLayers) {
+    for (const [layerName, data] of Object.entries(motion.animationLayers)) {
+      if (layerName.startsWith('_')) continue;
+      if (typeof data === 'object' && data.priority !== undefined) {
+        lines.push(`  --layer-${camelToKebab(layerName)}-priority: ${data.priority};`);
+        if (data.cycle) lines.push(`  --layer-${camelToKebab(layerName)}-cycle: ${data.cycle}ms;`);
+      }
+    }
+  }
+  lines.push('}');
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// GLOW COLORS CSS GENERATION (Emotional Glow States)
+// ============================================================================
+
+function generateGlowColorsCSS(glowColors) {
+  const lines = [];
+
+  lines.push(':root {');
+
+  // Emotional glow colors
+  lines.push('  /* Emotional Glow Colors */');
+  if (glowColors.glowColors) {
+    for (const [emotion, data] of Object.entries(glowColors.glowColors)) {
+      if (emotion.startsWith('_')) continue;
+      if (typeof data === 'object' && data.value) {
+        lines.push(`  --glow-color-${camelToKebab(emotion)}: ${data.value};`);
+      }
+    }
+  }
+  lines.push('');
+
+  // Glow intensity levels
+  lines.push('  /* Glow Intensity Levels */');
+  if (glowColors.glowIntensity) {
+    for (const [level, data] of Object.entries(glowColors.glowIntensity)) {
+      if (level.startsWith('_')) continue;
+      if (typeof data === 'object') {
+        lines.push(`  --glow-intensity-${level}-opacity: ${data.opacity};`);
+        lines.push(`  --glow-intensity-${level}-blur: ${data.blur}px;`);
+        lines.push(`  --glow-intensity-${level}-spread: ${data.spread}px;`);
+      }
+    }
+  }
+
+  lines.push('}');
+  lines.push('');
+
+  // Glow gradient classes
+  lines.push('/* Emotional Glow Gradient Classes */');
+  if (glowColors.glowGradients) {
+    for (const [gradientName, data] of Object.entries(glowColors.glowGradients)) {
+      if (gradientName.startsWith('_')) continue;
+      if (typeof data === 'object' && data.colors && data.colors.length >= 2) {
+        lines.push(`.glow-gradient-${camelToKebab(gradientName)} {`);
+        lines.push(`  --glow-gradient: linear-gradient(135deg, ${data.colors.join(', ')});`);
+        lines.push(`  box-shadow: 0 0 30px ${data.colors[0]}40, 0 0 60px ${data.colors[1]}30;`);
+        lines.push('}');
+      }
+    }
+  }
+  lines.push('');
+
+  // Persona glow modifiers
+  lines.push('/* Persona Glow Modifiers */');
+  if (glowColors.personaGlowModifiers) {
+    for (const [personaId, data] of Object.entries(glowColors.personaGlowModifiers)) {
+      if (personaId.startsWith('_')) continue;
+      if (typeof data === 'object') {
+        lines.push(`[data-persona="${personaId}"] {`);
+        lines.push(`  --persona-glow-hue-shift: ${data.baseHue}deg;`);
+        lines.push(`  --persona-glow-saturation: ${data.saturationMultiplier};`);
+        lines.push('}');
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // HIGH CONTRAST CSS GENERATION
 // ============================================================================
 
@@ -2606,6 +2821,22 @@ function build() {
   output.push('   EFFECTS & MAGICAL UTILITIES');
   output.push('   ======================================== */');
   output.push(generateEffectsCSS(effects));
+  output.push('');
+
+  // Motion Tokens (Ferni Alive Animation System)
+  output.push('/* ========================================');
+  output.push('   MOTION TOKENS (FERNI ALIVE)');
+  output.push('   Breathing, blinking, gaze, speaking animations');
+  output.push('   ======================================== */');
+  output.push(generateMotionCSS(motion));
+  output.push('');
+
+  // Glow Colors (Emotional States)
+  output.push('/* ========================================');
+  output.push('   GLOW COLORS (EMOTIONAL STATES)');
+  output.push('   Avatar emotional glow colors');
+  output.push('   ======================================== */');
+  output.push(generateGlowColorsCSS(glowColors));
 
   // Accessibility - High Contrast Mode
   output.push('');

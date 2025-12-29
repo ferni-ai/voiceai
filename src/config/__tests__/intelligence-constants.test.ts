@@ -115,7 +115,11 @@ describe('Intelligence Constants', () => {
       expect(milestones).toEqual([6, 12, 24, 36, 48, 60]);
 
       for (let i = 1; i < milestones.length; i++) {
-        expect(milestones[i]).toBeGreaterThan(milestones[i - 1]);
+        const current = milestones[i];
+        const previous = milestones[i - 1];
+        if (current !== undefined && previous !== undefined) {
+          expect(current).toBeGreaterThan(previous);
+        }
       }
     });
   });

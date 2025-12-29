@@ -162,7 +162,11 @@ export class PipelineOptimizer {
         const startTime = Date.now();
         this.totalRequests++;
 
-        const scoringResults = await getScoringWorker().scoreAll(request.query, embeddings[i], 5);
+        // Use Rust-accelerated scoring when available
+        const scoringWorker = getScoringWorker();
+        const scoringResults = scoringWorker.isRustAccelerationAvailable()
+          ? scoringWorker.scoreAllRustAccelerated(request.query, embeddings[i], 5)
+          : await scoringWorker.scoreAll(request.query, embeddings[i], 5);
 
         const latencyMs = Date.now() - startTime;
         this.recordLatency(latencyMs);
@@ -221,10 +225,15 @@ export class PipelineOptimizer {
     // Pre-compute embeddings
     getEmbeddingWorker().prewarm(queries);
 
-    // Pre-score top queries
+    // Pre-score top queries (using Rust-accelerated path when available)
+    const scoringWorker = getScoringWorker();
     for (const query of queries.slice(0, 20)) {
       const embedding = await getEmbeddingWorker().getEmbedding(query, 'low');
-      await getScoringWorker().scoreAll(query, embedding, 3);
+      if (scoringWorker.isRustAccelerationAvailable()) {
+        scoringWorker.scoreAllRustAccelerated(query, embedding, 3);
+      } else {
+        await scoringWorker.scoreAll(query, embedding, 3);
+      }
     }
 
     log.info('Pipeline warmup complete');
@@ -270,9 +279,12 @@ export class PipelineOptimizer {
       };
     }
 
-    // Wait for embedding and do full scoring
+    // Wait for embedding and do full scoring (using Rust-accelerated path when available)
     const embedding = await embeddingPromise;
-    const fullResults = await getScoringWorker().scoreAll(request.query, embedding, 5);
+    const scoringWorker = getScoringWorker();
+    const fullResults = scoringWorker.isRustAccelerationAvailable()
+      ? scoringWorker.scoreAllRustAccelerated(request.query, embedding, 5)
+      : await scoringWorker.scoreAll(request.query, embedding, 5);
 
     if (fullResults.length > 0) {
       this.embeddingMatches++;

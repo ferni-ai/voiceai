@@ -22,6 +22,7 @@ import { TransformStream as NodeTransformStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
 import { finops } from '../../services/observability/finops.js';
+import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import {
   createStreamingTTSTransform,
@@ -29,6 +30,11 @@ import {
   getOptimizedStreamingConfig,
 } from './performance/streaming-tts-transform.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
+import {
+  applyPostTTSEnhancement,
+  PostTTSPresets,
+  type PostTTSConfig,
+} from './performance/post-tts-transform.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -67,6 +73,10 @@ export interface TtsWrapperOptions {
   isFirstTurn?: boolean;
   /** Enable cache-aware TTS that checks speculative cache before Cartesia (default: true) */
   enableCacheAwareTTS?: boolean;
+  /** Enable "Better Than Human" post-TTS audio enhancement (default: true) */
+  enablePostTTSEnhancement?: boolean;
+  /** Post-TTS enhancement config (uses betterThanHuman preset by default) */
+  postTTSConfig?: Partial<PostTTSConfig>;
 }
 
 // =============================================================================
@@ -120,6 +130,8 @@ export async function wrappedTtsNode(
     enableStreamingOptimization = isStreamingTTSEnabled(),
     isFirstTurn = false,
     enableCacheAwareTTS = process.env.CACHE_AWARE_TTS_ENABLED !== 'false',
+    enablePostTTSEnhancement = process.env.POST_TTS_ENHANCEMENT_ENABLED !== 'false',
+    postTTSConfig,
   } = options;
 
   // Extract session context
@@ -188,7 +200,7 @@ export async function wrappedTtsNode(
         // Estimate LLM output tokens (~4 chars per token)
         const estimatedOutputTokens = Math.ceil(totalCharacters / 4);
         finops.recordLLMCost({
-          model: 'gemini-2.0-flash-exp',
+          model: GEMINI_MODEL, // From centralized config
           inputTokens: 0,
           outputTokens: estimatedOutputTokens,
           userId,
@@ -232,6 +244,8 @@ export async function wrappedTtsNode(
   log.debug('Sanitizer, interrupt-awareness, cost tracking, and streaming optimization attached');
 
   // 6. Pass to TTS implementation (cache-aware or default)
+  let audioStream: NodeReadableStream<AudioFrame> | null;
+
   if (enableCacheAwareTTS) {
     // Use cache-aware TTS that checks speculative cache before Cartesia
     const cacheAwareTTS = createCacheAwareTTSNode({
@@ -246,12 +260,31 @@ export async function wrappedTtsNode(
       '🎯 Cache-aware TTS enabled - will check speculative cache'
     );
 
-    return cacheAwareTTS(agent, optimizedText, modelSettings);
+    audioStream = await cacheAwareTTS(agent, optimizedText, modelSettings);
+  } else {
+    // Fallback to default TTS implementation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    audioStream = await (voice.Agent.default as any).ttsNode(agent, optimizedText, modelSettings);
   }
 
-  // Fallback to default TTS implementation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (voice.Agent.default as any).ttsNode(agent, optimizedText, modelSettings);
+  // 7. Apply "Better Than Human" post-TTS enhancement (Rust-accelerated audio processing)
+  if (audioStream && enablePostTTSEnhancement) {
+    const enhancementConfig = {
+      ...PostTTSPresets.betterThanHuman,
+      ...postTTSConfig,
+      sessionId,
+      personaId,
+    };
+
+    log.debug(
+      { sessionId, personaId, config: enhancementConfig },
+      '🦀 Applying post-TTS "Better Than Human" audio enhancement'
+    );
+
+    return applyPostTTSEnhancement(audioStream, enhancementConfig);
+  }
+
+  return audioStream;
 }
 
 // =============================================================================
