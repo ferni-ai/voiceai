@@ -60,7 +60,8 @@ lru = "0.12"
 num-complex = "0.4"
 
 [build-dependencies]
-napi-build = "2"
+# Pinned to 2.1.0 - version 2.3.1 requires rustc 1.88 (doesn't exist)
+napi-build = "=2.1.0"
 
 [profile.release]
 lto = true
