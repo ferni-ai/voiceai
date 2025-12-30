@@ -22,6 +22,48 @@
 ARG NODE_VERSION=20
 
 # ============================================================================
+# Stage 0: Build Rust native modules (SIMD-accelerated audio processing)
+# ============================================================================
+FROM rust:1.75-slim AS rust-builder
+
+WORKDIR /rust
+
+# Install build dependencies for napi-rs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @napi-rs/cli
+
+# Copy rust-audio source
+COPY apps/rust-audio/Cargo.toml apps/rust-audio/Cargo.lock* ./rust-audio/
+COPY apps/rust-audio/src ./rust-audio/src
+COPY apps/rust-audio/build.rs ./rust-audio/
+COPY apps/rust-audio/benches ./rust-audio/benches
+
+# Build rust-audio native module for Linux x64
+WORKDIR /rust/rust-audio
+RUN cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node && \
+    echo "=== rust-audio native module built ==="
+
+# Copy rust-perf source (if it exists)
+WORKDIR /rust
+COPY apps/rust-perf/Cargo.toml apps/rust-perf/Cargo.lock* ./rust-perf/
+COPY apps/rust-perf/src ./rust-perf/src
+COPY apps/rust-perf/build.rs ./rust-perf/
+
+# Build rust-perf native module for Linux x64
+WORKDIR /rust/rust-perf
+RUN cargo build --release && \
+    napi build --platform --release && \
+    ls -la *.node && \
+    echo "=== rust-perf native module built ==="
+
+# ============================================================================
 # Stage 1: Build TypeScript with pnpm + esbuild
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS builder
@@ -153,6 +195,13 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy Rust native modules (SIMD-accelerated audio processing)
+# These provide zero-allocation real-time audio analysis
+COPY --from=rust-builder /rust/rust-audio/*.node ./apps/rust-audio/
+COPY apps/rust-audio/package.json apps/rust-audio/index.d.ts apps/rust-audio/index.js ./apps/rust-audio/
+COPY --from=rust-builder /rust/rust-perf/*.node ./apps/rust-perf/
+COPY apps/rust-perf/package.json apps/rust-perf/index.d.ts apps/rust-perf/index.js ./apps/rust-perf/
 
 # Copy persona bundles (JSON, MD files needed at runtime)
 COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
