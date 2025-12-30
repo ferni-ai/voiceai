@@ -47,6 +47,9 @@
     "test:pubsub:prod": "bash scripts/test-pubsub-e2e.sh --prod",
     "test:voice": "npx tsx apps/cli/src/commands/test/test-voice-e2e.ts",
     "test:voice:prod": "npx tsx apps/cli/src/commands/test/test-voice-e2e.ts --prod",
+    "test:models": "npx tsx scripts/test-gemini-models.ts",
+    "test:models:quick": "npx tsx scripts/test-gemini-models.ts --quick",
+    "test:generatereply": "npx tsx scripts/test-gemini-generatereply.ts",
     "test:storage": "npx tsx apps/cli/src/commands/test/test-storage.ts",
     "test:cli": "npx tsx apps/cli/src/commands/test/test.ts",
     "test:quick": "npx tsx apps/cli/src/commands/test/test.ts quick",
@@ -371,7 +374,8 @@
     "ci:cost-forecast": "npx tsx apps/cli/src/index.ts costs-ai forecast",
     "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
     "prepare": "husky || true",
-    "postinstall": "patch-package || true; bash scripts/apply-livekit-patch.sh || true; npx tsx apps/cli/src/commands/patch/livekit-timeout.ts || true"
+    "postinstall": "patch-package || true; bash scripts/apply-livekit-patch.sh || true; npx tsx apps/cli/src/commands/patch/livekit-timeout.ts || true",
+    "test:live": "npx tsx scripts/test-gemini-live-e2e.ts"
   },
   "keywords": [
     "livekit",
