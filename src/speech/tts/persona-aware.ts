@@ -113,7 +113,8 @@ export class PersonaAwareTTS extends tts.TTS {
     voiceConfig: PersonaVoiceConfig & { isLocalizedVoice?: boolean }
   ) {
     // Call parent with sample rate and channels
-    super(44100, 1, { streaming: true });
+    // IMPORTANT: Cartesia outputs at 24000 Hz - must match!
+    super(24000, 1, { streaming: true });
 
     this.personaName = personaName;
     this.voiceId = voiceConfig.voiceId || DEFAULT_VOICE_IDS.FERNI;

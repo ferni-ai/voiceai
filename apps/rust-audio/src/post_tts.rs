@@ -300,8 +300,10 @@ pub fn apply_soft_attack(samples: &mut [f32], attack_samples: usize) {
 
     for i in 0..attack_len {
         // Smooth fade-in curve (raised cosine)
+        // At t=0: cos(π) = -1, envelope = 0.5 * (1 - (-1)) = 1... wait, we want 0
+        // Fixed: use (1 - cos(πt))/2 which gives 0 at t=0, 1 at t=1
         let t = i as f32 / attack_len as f32;
-        let envelope = 0.5 * (1.0 - (PI * (1.0 - t)).cos());
+        let envelope = 0.5 * (1.0 - (PI * t).cos());
         samples[i] *= envelope;
     }
 }
@@ -496,13 +498,16 @@ pub fn enhance_tts_output(samples: &mut [f32], config: &PostTtsConfig) -> Enhanc
         return result;
     }
 
-    // 1. Soft attack at start (always applied for smooth starts)
-    apply_soft_attack(samples, config.soft_edge_samples);
+    // NOTE: Soft attack/release are NOW controlled by enable_soft_edges flag.
+    // Previously they were always applied, which caused choppy audio when
+    // processing streaming frames (every 20ms frame was faded in/out!).
+    //
+    // The TypeScript wrapper handles soft edges at utterance boundaries:
+    // - First frame of utterance: soft attack applied
+    // - Last frame of utterance: soft release applied
+    // - Middle frames: NO soft edges (config.enable_soft_edges = false)
 
-    // 2. Soft release at end (always applied for smooth endings)
-    apply_soft_release(samples, config.soft_edge_samples);
-
-    // 3. Breath injection at phrase boundaries
+    // 1. Breath injection at phrase boundaries
     if config.enable_breath {
         result.breaths_injected = inject_breaths(
             samples,

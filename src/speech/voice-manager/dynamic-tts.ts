@@ -32,7 +32,8 @@ export class DynamicTTS extends tts.TTS {
 
   constructor() {
     // Call parent with sample rate and channels
-    super(44100, 1, { streaming: true });
+    // IMPORTANT: Cartesia outputs at 24000 Hz - must match!
+    super(24000, 1, { streaming: true });
 
     // FIX BUG #voice-4 & #voice-5: Use ferni instead of legacy jack-b
     const personaIds: VoiceAgentId[] = [
