@@ -37,8 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y nodejs \
     && npm install -g @napi-rs/cli
 
-# Copy rust-audio source (skip Cargo.lock - version 4 incompatible with build env)
-COPY apps/rust-audio/Cargo.toml ./rust-audio/
+# Copy rust-audio source (include Cargo.lock for version pinning)
+COPY apps/rust-audio/Cargo.toml apps/rust-audio/Cargo.lock ./rust-audio/
 COPY apps/rust-audio/src ./rust-audio/src
 COPY apps/rust-audio/build.rs ./rust-audio/
 COPY apps/rust-audio/benches ./rust-audio/benches
