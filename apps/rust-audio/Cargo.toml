@@ -6,15 +6,18 @@ description = "Zero-allocation real-time audio processing for Ferni voice agent"
 license = "MIT"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# NAPI-RS for Node.js bindings
-napi = { version = "2", features = ["napi9"] }
-napi-derive = "2"
+# NAPI-RS for Node.js bindings (pinned for Rust 1.83 compatibility)
+napi = { version = "2.14.0", features = ["napi9"] }
+napi-derive = "2.14.0"
 
 # Ring buffer for zero-allocation streaming
 ringbuf = "0.4"
+
+# SIMD for fast audio conversion
+wide = "0.7"
 
 # Error handling
 thiserror = "1.0"
@@ -22,11 +25,24 @@ thiserror = "1.0"
 # Global state management
 lazy_static = "1.5"
 
+[dev-dependencies]
+# Criterion for stable Rust benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
 [build-dependencies]
-napi-build = "2"
+# Pinned to 2.1.0 because 2.3.1 requires rustc 1.88 (doesn't exist yet)
+napi-build = "2.1.0"
+
+[[bench]]
+name = "simd_benchmarks"
+harness = false
 
 [profile.release]
 lto = true
 opt-level = 3
 codegen-units = 1
 panic = "abort"
+
+[profile.bench]
+lto = true
+opt-level = 3
