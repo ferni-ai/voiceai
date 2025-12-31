@@ -59,9 +59,9 @@ function buildWatch(
 
   const primary = data.primaryPrediction;
 
-  // Header
+  // Header - story-driven title, no "AI" language
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Predict'));
+  header.appendChild(createElement('h3', '', 'Ahead'));
   header.appendChild(createElement('p', '', primary.timeframe));
   container.appendChild(header);
 
@@ -150,10 +150,10 @@ function buildMobile(
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
 
-  // Header
+  // Header - story-driven title, no "AI" language
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Predictions'));
-  header.appendChild(createElement('p', '', `${Math.round(data.accuracy * 100)}% historical accuracy`));
+  header.appendChild(createElement('h3', '', "Where You're Headed"));
+  header.appendChild(createElement('p', '', `${Math.round(data.accuracy * 100)}% track record`));
   container.appendChild(header);
 
   // Primary prediction card
@@ -321,7 +321,8 @@ function buildMobilePredictionCard(
 // ============================================================================
 
 /**
- * Build predictions for tablet with full chart.
+ * Build predictions for tablet - story-driven, dense with meaning.
+ * "Where You're Headed" - not "AI Predictions"
  */
 function buildTablet(
   container: HTMLElement,
@@ -330,200 +331,235 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
-  const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'AI Predictions'));
-  header.appendChild(
-    createElement('p', '', `${Math.round(data.accuracy * 100)}% historical accuracy`)
-  );
-  container.appendChild(header);
-
-  // Main content
-  const contentGrid = createFlexContainer('row', '24px');
-  setStyles(contentGrid, { padding: '16px' });
-
-  // Left: Chart area
-  const chartSection = createElement('div');
-  setStyles(chartSection, { flex: '2' });
-
-  // Build prediction chart
-  const svg = createSvgElement('svg');
-  svg.setAttribute('viewBox', '0 0 300 180');
-  setStyles(svg as unknown as HTMLElement, { width: '100%', maxWidth: '350px' });
-
-  // Draw chart background
-  const chartBg = createSvgElement('rect');
-  chartBg.setAttribute('x', '40');
-  chartBg.setAttribute('y', '20');
-  chartBg.setAttribute('width', '240');
-  chartBg.setAttribute('height', '130');
-  chartBg.setAttribute('fill', 'var(--color-background)');
-  chartBg.setAttribute('rx', '4');
-  svg.appendChild(chartBg);
-
-  // Grid lines
-  for (let i = 0; i <= 4; i++) {
-    const y = 20 + i * 32.5;
-    const line = createSvgElement('line');
-    line.setAttribute('x1', '40');
-    line.setAttribute('y1', String(y));
-    line.setAttribute('x2', '280');
-    line.setAttribute('y2', String(y));
-    line.setAttribute('stroke', 'var(--color-border-subtle)');
-    line.setAttribute('stroke-width', '1');
-    svg.appendChild(line);
-  }
-
-  // Draw predictions
-  const predictions = data.predictions.slice(0, 3);
-  const barWidth = 50;
-  const gap = 25;
-  const startX = 60;
-
-  predictions.forEach((pred, i) => {
-    const x = startX + i * (barWidth + gap);
-
-    // Current value bar
-    const currentHeight = (pred.currentValue / 100) * 100; // Assuming 0-100 scale
-    const currentBar = createSvgElement('rect');
-    currentBar.setAttribute('x', String(x));
-    currentBar.setAttribute('y', String(150 - currentHeight));
-    currentBar.setAttribute('width', String(barWidth / 2 - 2));
-    currentBar.setAttribute('height', String(currentHeight));
-    currentBar.setAttribute('fill', 'var(--color-text-muted)');
-    currentBar.setAttribute('rx', '2');
-    svg.appendChild(currentBar);
-
-    // Predicted value bar
-    const predHeight = (pred.predictedValue / 100) * 100;
-    const confidenceColor = getConfidenceColor(pred.confidence);
-    const predBar = createSvgElement('rect');
-    predBar.setAttribute('x', String(x + barWidth / 2));
-    predBar.setAttribute('y', String(150 - predHeight));
-    predBar.setAttribute('width', String(barWidth / 2 - 2));
-    predBar.setAttribute('height', String(predHeight));
-    predBar.setAttribute('fill', confidenceColor);
-    predBar.setAttribute('rx', '2');
-    svg.appendChild(predBar);
-
-    // Confidence interval
-    const conservativeY = 150 - (pred.scenarios.conservative / 100) * 100;
-    const optimisticY = 150 - (pred.scenarios.optimistic / 100) * 100;
-
-    const intervalLine = createSvgElement('line');
-    intervalLine.setAttribute('x1', String(x + barWidth * 0.75));
-    intervalLine.setAttribute('y1', String(conservativeY));
-    intervalLine.setAttribute('x2', String(x + barWidth * 0.75));
-    intervalLine.setAttribute('y2', String(optimisticY));
-    intervalLine.setAttribute('stroke', confidenceColor);
-    intervalLine.setAttribute('stroke-width', '2');
-    intervalLine.setAttribute('opacity', '0.5');
-    svg.appendChild(intervalLine);
-
-    // Metric label
-    const label = createSvgElement('text');
-    label.setAttribute('x', String(x + barWidth / 2));
-    label.setAttribute('y', '168');
-    label.setAttribute('text-anchor', 'middle');
-    label.setAttribute('font-size', '9');
-    label.setAttribute('fill', 'var(--color-text-secondary)');
-    label.textContent = truncate(pred.metric, 10);
-    svg.appendChild(label);
-  });
-
-  // Legend
-  const legendY = 10;
-  const legend1 = createSvgElement('text');
-  legend1.setAttribute('x', '50');
-  legend1.setAttribute('y', String(legendY));
-  legend1.setAttribute('font-size', '8');
-  legend1.setAttribute('fill', 'var(--color-text-muted)');
-  legend1.textContent = '■ Current';
-  svg.appendChild(legend1);
-
-  const legend2 = createSvgElement('text');
-  legend2.setAttribute('x', '100');
-  legend2.setAttribute('y', String(legendY));
-  legend2.setAttribute('font-size', '8');
-  legend2.setAttribute('fill', 'var(--color-accent)');
-  legend2.textContent = '■ Predicted';
-  svg.appendChild(legend2);
-
-  chartSection.appendChild(svg);
-  contentGrid.appendChild(chartSection);
-
-  // Right: Details
-  const detailsSection = createElement('div');
-  setStyles(detailsSection, { flex: '1' });
-
-  // Primary prediction panel
-  const primaryPanel = createElement('div');
-  setStyles(primaryPanel, {
-    padding: '16px',
-    background: 'var(--color-bg-elevated)',
-    borderRadius: '12px',
-    border: '1px solid var(--color-border-subtle)',
-    marginBottom: '12px',
+  // Apply container styles with generous padding
+  setStyles(container, {
+    padding: '1.5rem',
+    minHeight: '380px',
   });
 
   const primary = data.primaryPrediction;
   const primaryColor = getConfidenceColor(primary.confidence);
+  const changeAmount = primary.predictedValue - primary.currentValue;
+  const changePercent = Math.round((changeAmount / primary.currentValue) * 100);
+  const isPositiveChange = changeAmount > 0;
+  const accuracyPercent = Math.round(data.accuracy * 100);
 
-  const primaryLabel = createElement('div');
-  setStyles(primaryLabel, {
+  // Generate story-driven headline based on the data
+  const getStoryHeadline = (): string => {
+    if (primary.metric.toLowerCase().includes('wellbeing') || primary.metric.toLowerCase().includes('emotional')) {
+      if (isPositiveChange && changePercent >= 10) return 'Your path is brightening';
+      if (isPositiveChange) return 'Gentle progress ahead';
+      if (changePercent <= -10) return 'A season of growth through challenge';
+      return 'Steady as you go';
+    }
+    if (primary.metric.toLowerCase().includes('stress')) {
+      if (!isPositiveChange && changePercent <= -10) return 'Calmer days ahead';
+      if (!isPositiveChange) return 'Easing into balance';
+      return 'Building resilience';
+    }
+    if (isPositiveChange && changePercent >= 15) return 'Momentum building';
+    if (isPositiveChange) return 'Moving forward';
+    return 'A time for reflection';
+  };
+
+  // Header with story-driven title
+  const header = createElement('div');
+  setStyles(header, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '1.3125rem',
+    paddingBottom: '0.8125rem',
+    borderBottom: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+  });
+
+  const headerText = createElement('div');
+  const title = createElement('h3');
+  setStyles(title, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+    fontSize: '1.0625rem',
+    fontWeight: '600',
+    lineHeight: '1.3',
+    letterSpacing: '-0.01em',
+    color: 'var(--color-text-primary, #2C2520)',
+    margin: '0 0 0.25rem',
+  });
+  title.textContent = "Where You're Headed";
+
+  const subtitle = createElement('p');
+  setStyles(subtitle, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
     fontSize: '0.75rem',
+    fontWeight: '500',
+    color: 'var(--color-text-muted, #8a8279)',
+    margin: '0',
+    letterSpacing: '0.01em',
+  });
+  subtitle.textContent = getStoryHeadline();
+
+  headerText.appendChild(title);
+  headerText.appendChild(subtitle);
+  header.appendChild(headerText);
+
+  // Accuracy badge - builds trust
+  const accuracyBadge = createElement('div');
+  setStyles(accuracyBadge, {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    padding: '0.375rem 0.75rem',
+    background: accuracyPercent >= 80 
+      ? 'var(--color-semantic-success-tint, rgba(61, 122, 82, 0.08))'
+      : 'var(--color-accent-subtle, rgba(61, 90, 69, 0.08))',
+    borderRadius: 'var(--radius-full, 9999px)',
+    fontSize: '0.6875rem',
     fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
+    color: accuracyPercent >= 80 
+      ? 'var(--color-semantic-success, #3d7a52)'
+      : 'var(--color-accent, #3D5A45)',
+    letterSpacing: '0.02em',
+  });
+  accuracyBadge.textContent = `${accuracyPercent}% track record`;
+  header.appendChild(accuracyBadge);
+
+  container.appendChild(header);
+
+  // Main content - 2 column layout
+  const contentGrid = createElement('div');
+  setStyles(contentGrid, {
+    display: 'grid',
+    gridTemplateColumns: '1.2fr 1fr',
+    gap: '1.5rem',
+    alignItems: 'start',
+  });
+
+  // LEFT: Primary prediction with rich context
+  const primarySection = createElement('div');
+  setStyles(primarySection, {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  });
+
+  // Hero metric card
+  const heroCard = createElement('div');
+  setStyles(heroCard, {
+    padding: '1.25rem',
+    background: 'var(--color-bg-elevated, #FFFDFB)',
+    borderRadius: 'var(--radius-xl, 1.25rem)',
+    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+  });
+
+  // Metric name as eyebrow
+  const metricEyebrow = createElement('div');
+  setStyles(metricEyebrow, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.625rem',
+    fontWeight: '700',
+    color: 'var(--color-text-muted, #8a8279)',
+    marginBottom: '0.75rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.08em',
   });
-  primaryLabel.textContent = t('visualizations.primaryPrediction');
-  primaryPanel.appendChild(primaryLabel);
+  metricEyebrow.textContent = primary.metric.toUpperCase();
+  heroCard.appendChild(metricEyebrow);
 
-  const metricTitle = createElement('div');
-  setStyles(metricTitle, {
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: 'var(--color-text-primary)',
+  // Value transition (current → predicted)
+  const valueRow = createElement('div');
+  setStyles(valueRow, {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.75rem',
+    marginBottom: '1rem',
   });
-  metricTitle.textContent = primary.metric;
-  primaryPanel.appendChild(metricTitle);
 
-  const valueDisplay = createFlexContainer('row', '8px', 'flex-start', 'baseline');
-  setStyles(valueDisplay, { margin: '8px 0' });
-
-  const currentVal = createElement('span', '', formatValue(primary.currentValue));
-  setStyles(currentVal, { color: 'var(--color-text-muted)' });
-  valueDisplay.appendChild(currentVal);
-
-  valueDisplay.appendChild(createElement('span', '', '→'));
-
-  const predictedVal = createElement('span', '', formatValue(primary.predictedValue));
-  setStyles(predictedVal, {
+  const currentValSpan = createElement('span');
+  setStyles(currentValSpan, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
     fontSize: '1.5rem',
-    fontWeight: '600',
+    fontWeight: '500',
+    color: 'var(--color-text-muted, #8a8279)',
+  });
+  currentValSpan.textContent = formatValue(primary.currentValue);
+  valueRow.appendChild(currentValSpan);
+
+  const arrowSpan = createElement('span');
+  setStyles(arrowSpan, {
+    fontSize: '1.25rem',
+    color: 'var(--color-text-dimmed, #a89d90)',
+  });
+  arrowSpan.textContent = '→';
+  valueRow.appendChild(arrowSpan);
+
+  const predictedValSpan = createElement('span');
+  setStyles(predictedValSpan, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+    fontSize: '2.25rem',
+    fontWeight: '700',
+    color: primaryColor,
+    lineHeight: '1',
+  });
+  predictedValSpan.textContent = formatValue(primary.predictedValue);
+  valueRow.appendChild(predictedValSpan);
+
+  // Change indicator
+  if (changePercent !== 0) {
+    const changeSpan = createElement('span');
+    setStyles(changeSpan, {
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.875rem',
+      fontWeight: '600',
+      color: isPositiveChange 
+        ? 'var(--color-semantic-success, #3d7a52)' 
+        : 'var(--color-semantic-error, #b5453a)',
+      marginLeft: '0.25rem',
+    });
+    changeSpan.textContent = `${isPositiveChange ? '+' : ''}${changePercent}%`;
+    valueRow.appendChild(changeSpan);
+  }
+
+  heroCard.appendChild(valueRow);
+
+  // Confidence with visual bar
+  const confSection = createElement('div');
+  setStyles(confSection, { marginBottom: '1rem' });
+
+  const confHeader = createElement('div');
+  setStyles(confHeader, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '0.5rem',
+  });
+
+  const confLabel = createElement('span');
+  setStyles(confLabel, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.75rem',
+    color: 'var(--color-text-secondary, #5c544a)',
+  });
+  confLabel.textContent = 'Confidence';
+  confHeader.appendChild(confLabel);
+
+  const confValue = createElement('span');
+  setStyles(confValue, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+    fontSize: '0.875rem',
+    fontWeight: '700',
     color: primaryColor,
   });
-  valueDisplay.appendChild(predictedVal);
+  confValue.textContent = `${Math.round(primary.confidence * 100)}%`;
+  confHeader.appendChild(confValue);
 
-  primaryPanel.appendChild(valueDisplay);
-
-  // Confidence bar
-  const confRow = createFlexContainer('row', '8px', 'space-between');
-  confRow.appendChild(createElement('span', '', 'Confidence'));
-  const confValue = createElement('span', '', `${Math.round(primary.confidence * 100)}%`);
-  setStyles(confValue, { fontWeight: '600', color: primaryColor });
-  confRow.appendChild(confValue);
-  primaryPanel.appendChild(confRow);
+  confSection.appendChild(confHeader);
 
   const confBar = createElement('div');
   setStyles(confBar, {
-    height: '6px',
-    background: 'var(--color-border-subtle)',
-    borderRadius: '3px',
+    height: '8px',
+    background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.04))',
+    borderRadius: 'var(--radius-full, 9999px)',
     overflow: 'hidden',
-    marginTop: '4px',
   });
 
   const confFill = createElement('div');
@@ -531,60 +567,310 @@ function buildTablet(
     width: `${primary.confidence * 100}%`,
     height: '100%',
     background: primaryColor,
-    borderRadius: '3px',
+    borderRadius: 'var(--radius-full, 9999px)',
+    transition: 'width 0.6s ease-out',
   });
   confBar.appendChild(confFill);
-  primaryPanel.appendChild(confBar);
+  confSection.appendChild(confBar);
+  heroCard.appendChild(confSection);
 
-  const timeLabel = createElement('div');
-  setStyles(timeLabel, {
-    fontSize: '0.85rem',
-    color: 'var(--color-text-secondary)',
-    marginTop: '8px',
+  // Timeframe context
+  const timeContext = createElement('div');
+  setStyles(timeContext, {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.625rem 0.875rem',
+    background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.02))',
+    borderRadius: 'var(--radius-lg, 1rem)',
+    fontSize: '0.8125rem',
+    color: 'var(--color-text-secondary, #5c544a)',
   });
-  timeLabel.textContent = `Timeframe: ${primary.timeframe}`;
-  primaryPanel.appendChild(timeLabel);
+  timeContext.innerHTML = `<span style="opacity: 0.6">📅</span> Timeframe: <strong>${primary.timeframe}</strong>`;
+  heroCard.appendChild(timeContext);
 
-  detailsSection.appendChild(primaryPanel);
+  primarySection.appendChild(heroCard);
 
-  // Accuracy panel
-  const accuracyPanel = createElement('div');
-  setStyles(accuracyPanel, {
-    padding: '12px',
-    background: 'var(--color-background)',
-    borderRadius: '8px',
+  // Scenario range card
+  const scenarioCard = createElement('div');
+  setStyles(scenarioCard, {
+    padding: '1rem 1.125rem',
+    background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.015))',
+    borderRadius: 'var(--radius-lg, 1rem)',
   });
 
-  const accLabel = createElement('div');
-  setStyles(accLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '4px',
+  const scenarioTitle = createElement('div');
+  setStyles(scenarioTitle, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.6875rem',
+    fontWeight: '700',
+    color: 'var(--color-text-muted, #8a8279)',
+    marginBottom: '0.75rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.08em',
   });
-  accLabel.textContent = t('visualizations.historicalAccuracy');
-  accuracyPanel.appendChild(accLabel);
+  scenarioTitle.textContent = 'POSSIBLE RANGE';
+  scenarioCard.appendChild(scenarioTitle);
 
-  const accValue = createElement('div');
-  setStyles(accValue, {
-    fontSize: '1.2rem',
+  // Visual range bar
+  const rangeVisual = createElement('div');
+  setStyles(rangeVisual, {
+    position: 'relative',
+    height: '32px',
+    marginBottom: '0.5rem',
+  });
+
+  const rangeTrack = createElement('div');
+  setStyles(rangeTrack, {
+    position: 'absolute',
+    top: '50%',
+    left: '0',
+    right: '0',
+    height: '4px',
+    background: 'var(--color-border-subtle, rgba(44, 37, 32, 0.08))',
+    borderRadius: '2px',
+    transform: 'translateY(-50%)',
+  });
+  rangeVisual.appendChild(rangeTrack);
+
+  const maxRange = Math.max(primary.scenarios.optimistic, primary.predictedValue * 1.2);
+  const conservativePos = (primary.scenarios.conservative / maxRange) * 100;
+  const expectedPos = (primary.scenarios.expected / maxRange) * 100;
+  const optimisticPos = (primary.scenarios.optimistic / maxRange) * 100;
+
+  // Range highlight
+  const rangeHighlight = createElement('div');
+  setStyles(rangeHighlight, {
+    position: 'absolute',
+    top: '50%',
+    left: `${conservativePos}%`,
+    width: `${optimisticPos - conservativePos}%`,
+    height: '4px',
+    background: `linear-gradient(90deg, var(--color-text-muted) 0%, ${primaryColor} 50%, var(--color-semantic-success, #3d7a52) 100%)`,
+    borderRadius: '2px',
+    transform: 'translateY(-50%)',
+    opacity: '0.6',
+  });
+  rangeVisual.appendChild(rangeHighlight);
+
+  // Expected marker (prominent)
+  const expectedMarker = createElement('div');
+  setStyles(expectedMarker, {
+    position: 'absolute',
+    top: '50%',
+    left: `${expectedPos}%`,
+    width: '12px',
+    height: '12px',
+    background: primaryColor,
+    borderRadius: '50%',
+    transform: 'translate(-50%, -50%)',
+    border: '2px solid var(--color-bg-elevated, #FFFDFB)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+  });
+  rangeVisual.appendChild(expectedMarker);
+
+  scenarioCard.appendChild(rangeVisual);
+
+  // Labels row
+  const labelsRow = createElement('div');
+  setStyles(labelsRow, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.6875rem',
+  });
+
+  const scenarios = [
+    { label: 'Conservative', value: primary.scenarios.conservative, color: 'var(--color-text-muted)' },
+    { label: 'Expected', value: primary.scenarios.expected, color: primaryColor },
+    { label: 'Optimistic', value: primary.scenarios.optimistic, color: 'var(--color-semantic-success, #3d7a52)' },
+  ];
+
+  scenarios.forEach(s => {
+    const label = createElement('div');
+    setStyles(label, { textAlign: s.label === 'Expected' ? 'center' : s.label === 'Conservative' ? 'left' : 'right' });
+    label.innerHTML = `<span style="color: var(--color-text-muted); display: block">${s.label}</span><span style="font-weight: 600; color: ${s.color}">${formatValue(s.value)}</span>`;
+    labelsRow.appendChild(label);
+  });
+
+  scenarioCard.appendChild(labelsRow);
+  primarySection.appendChild(scenarioCard);
+  contentGrid.appendChild(primarySection);
+
+  // RIGHT: Other predictions + insights
+  const rightSection = createElement('div');
+  setStyles(rightSection, {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8125rem',
+  });
+
+  // Other predictions
+  const otherPredictions = data.predictions.filter(p => p.metric !== primary.metric).slice(0, 3);
+  
+  if (otherPredictions.length > 0) {
+    const othersCard = createElement('div');
+    setStyles(othersCard, {
+      padding: '1rem 1.125rem',
+      background: 'var(--color-bg-elevated, #FFFDFB)',
+      borderRadius: 'var(--radius-lg, 1rem)',
+      border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    });
+
+    const othersTitle = createElement('div');
+    setStyles(othersTitle, {
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.625rem',
+      fontWeight: '700',
+      color: 'var(--color-text-muted, #8a8279)',
+      marginBottom: '0.875rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+    });
+    othersTitle.textContent = 'ALSO TRACKING';
+    othersCard.appendChild(othersTitle);
+
+    otherPredictions.forEach((pred, index) => {
+      const predRow = createElement('div');
+      const predChange = pred.predictedValue - pred.currentValue;
+      const predChangePercent = Math.round((predChange / pred.currentValue) * 100);
+      const predPositive = predChange > 0;
+
+      setStyles(predRow, {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.625rem 0',
+        borderTop: index > 0 ? '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04))' : 'none',
+      });
+
+      const predLabel = createElement('div');
+      setStyles(predLabel, {
+        fontSize: '0.8125rem',
+        fontWeight: '500',
+        color: 'var(--color-text-primary, #2C2520)',
+      });
+      predLabel.textContent = pred.metric;
+
+      const predValues = createElement('div');
+      setStyles(predValues, {
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '0.375rem',
+      });
+
+      const predCurrent = createElement('span');
+      setStyles(predCurrent, {
+        fontSize: '0.75rem',
+        color: 'var(--color-text-muted)',
+      });
+      predCurrent.textContent = formatValue(pred.currentValue);
+
+      const predArrow = createElement('span');
+      setStyles(predArrow, {
+        fontSize: '0.625rem',
+        color: 'var(--color-text-dimmed)',
+      });
+      predArrow.textContent = '→';
+
+      const predFuture = createElement('span');
+      setStyles(predFuture, {
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        color: getConfidenceColor(pred.confidence),
+      });
+      predFuture.textContent = formatValue(pred.predictedValue);
+
+      if (predChangePercent !== 0) {
+        const predChangeBadge = createElement('span');
+        setStyles(predChangeBadge, {
+          fontSize: '0.6875rem',
+          fontWeight: '600',
+          color: predPositive 
+            ? 'var(--color-semantic-success, #3d7a52)' 
+            : 'var(--color-semantic-error, #b5453a)',
+          marginLeft: '0.25rem',
+        });
+        predChangeBadge.textContent = `${predPositive ? '+' : ''}${predChangePercent}%`;
+        predValues.appendChild(predCurrent);
+        predValues.appendChild(predArrow);
+        predValues.appendChild(predFuture);
+        predValues.appendChild(predChangeBadge);
+      } else {
+        predValues.appendChild(predCurrent);
+        predValues.appendChild(predArrow);
+        predValues.appendChild(predFuture);
+      }
+
+      predRow.appendChild(predLabel);
+      predRow.appendChild(predValues);
+      othersCard.appendChild(predRow);
+    });
+
+    rightSection.appendChild(othersCard);
+  }
+
+  // Insight card - what this means
+  const insightCard = createElement('div');
+  setStyles(insightCard, {
+    padding: '1rem 1.125rem',
+    background: 'var(--color-accent-subtle, rgba(61, 90, 69, 0.04))',
+    borderRadius: 'var(--radius-lg, 1rem)',
+    borderLeft: `3px solid ${primaryColor}`,
+  });
+
+  const insightTitle = createElement('div');
+  setStyles(insightTitle, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+    fontSize: '0.8125rem',
     fontWeight: '600',
-    color: data.accuracy >= 0.8 ? DEFAULT_COLORS.status.thriving : DEFAULT_COLORS.accent,
+    color: 'var(--color-text-primary, #2C2520)',
+    marginBottom: '0.5rem',
   });
-  accValue.textContent = `${Math.round(data.accuracy * 100)}%`;
-  accuracyPanel.appendChild(accValue);
+  insightTitle.textContent = 'What this means';
+  insightCard.appendChild(insightTitle);
 
-  detailsSection.appendChild(accuracyPanel);
-  contentGrid.appendChild(detailsSection);
+  const insightText = createElement('p');
+  setStyles(insightText, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.8125rem',
+    lineHeight: '1.5',
+    color: 'var(--color-text-secondary, #5c544a)',
+    margin: '0',
+  });
+  
+  // Generate contextual insight based on data
+  const getInsightText = (): string => {
+    if (accuracyPercent >= 85) {
+      if (isPositiveChange && changePercent >= 10) {
+        return `Based on patterns I've observed, you're building real momentum. Your ${primary.metric.toLowerCase()} has been trending upward consistently.`;
+      }
+      if (!isPositiveChange) {
+        return `This reflects what I'm seeing in our conversations. It might be a good time to focus on what's been weighing on you.`;
+      }
+      return `Your patterns are clear and consistent. Keep doing what's working—it shows in the numbers.`;
+    }
+    return `These patterns are still emerging. As we talk more, I'll understand your rhythms better.`;
+  };
+  
+  insightText.textContent = getInsightText();
+  insightCard.appendChild(insightText);
+  rightSection.appendChild(insightCard);
+
+  contentGrid.appendChild(rightSection);
   container.appendChild(contentGrid);
+
+  // Screen reader summary
+  container.appendChild(
+    createScreenReaderLabel(
+      `Where you're headed: ${primary.metric} predicted to change from ${primary.currentValue} to ${primary.predictedValue} over ${primary.timeframe}, with ${Math.round(primary.confidence * 100)}% confidence and ${accuracyPercent}% historical accuracy.`
+    )
+  );
 
   return {
     element: container,
     type: 'predictions',
     device: 'tablet',
-    ariaLabel: `${data.predictions.length} predictions with ${Math.round(data.accuracy * 100)}% accuracy, primary: ${data.primaryPrediction.metric}`,
+    ariaLabel: `${data.predictions.length} predictions, primary: ${primary.metric} expected to reach ${primary.predictedValue} with ${Math.round(primary.confidence * 100)}% confidence`,
   };
 }
 
