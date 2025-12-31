@@ -3,9 +3,17 @@
     <div class="footer-content">
       <div class="footer-brand">
         <a href="/" class="footer-logo">
+          <div class="footer-avatar">
+            <svg class="ferni-eyes-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/>
+              <circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/>
+              <ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/>
+              <circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/>
+            </svg>
+          </div>
           <span class="logo-text font-display font-bold text-xl">{{ site.name }}</span>
         </a>
-        <p class="footer-tagline">{{ site.tagline }}.</p>
+        <p class="footer-tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
       </div>
       
       <div class="footer-links">
@@ -16,15 +24,15 @@
           {% endfor %}
         </div>
         <div class="footer-column">
-          <h4>Connect</h4>
-          {% for link in site.navigation.footer.connect %}
+          <h4>Company</h4>
+          {% for link in site.navigation.footer.company %}
           <a href="{{ link.url }}">{{ link.title }}</a>
           {% endfor %}
         </div>
         <div class="footer-column">
-          <h4>Legal</h4>
-          {% for link in site.navigation.footer.legal %}
-          <a href="{{ link.url }}">{{ link.title }}</a>
+          <h4>Connect</h4>
+          {% for link in site.navigation.footer.connect %}
+          <a href="{{ link.url }}"{% if "http" in link.url or "tel:" in link.url %} target="_blank" rel="noopener"{% endif %}>{{ link.title }}</a>
           {% endfor %}
         </div>
       </div>
@@ -32,6 +40,11 @@
     
     <div class="footer-bottom">
       <p>© {{ "" | year }} {{ site.name }}. All rights reserved.</p>
+      <div class="footer-legal">
+        {% for link in site.navigation.footer.legal %}
+        <a href="{{ link.url }}">{{ link.title | replace(" Policy", "") | replace(" of Service", "") }}</a>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </footer>

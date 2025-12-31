@@ -225,45 +225,33 @@
 
   "navigation": {
     "main": [
-      { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
+      { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "Building", "url": "/building/", "i18nKey": "nav.building" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
-      { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
+      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" }
     ],
     "mobile": [
-      { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
+      { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "Building", "url": "/building/", "i18nKey": "nav.building" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
-      { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
+      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" },
+      { "title": "Support", "url": "/support/", "i18nKey": "nav.support" }
     ],
     "footer": {
       "product": [
-        { "title": "Features", "url": "/#features" },
         { "title": "Meet the Team", "url": "/team/" },
-        { "title": "Building Ferni", "url": "/building/" },
-        { "title": "Use Cases", "url": "/use-cases/" },
-        { "title": "Pricing", "url": "/pricing/" },
-        { "title": "Blog", "url": "/blog/" }
+        { "title": "Features", "url": "/features/" },
+        { "title": "Support", "url": "/support/" }
       ],
       "company": [
         { "title": "About", "url": "/about/" },
-        { "title": "Enterprise", "url": "/enterprise/" },
-        { "title": "Marketplace", "url": "/marketplace/" },
-        { "title": "Press", "url": "/press/" },
-        { "title": "Contact Us", "url": "/contact/" }
-      ],
-      "developers": [
-        { "title": "Documentation", "url": "/developers/" },
-        { "title": "API Reference", "url": "/developers/api/" },
-        { "title": "Examples", "url": "/developers/examples/" },
-        { "title": "Bundle System", "url": "/developers/bundles/" }
+        { "title": "Blog", "url": "/blog/" },
+        { "title": "Contact", "url": "/contact/" }
       ],
       "connect": [
         { "title": "Web App", "url": "https://app.ferni.ai" },
         { "title": "Call Ferni", "url": "tel:+14844813081" },
-        { "title": "FAQ", "url": "/#faq" }
+        { "title": "Twitter", "url": "https://twitter.com/ferniAI" }
       ],
       "legal": [
         { "title": "Privacy Policy", "url": "/privacy/" },
