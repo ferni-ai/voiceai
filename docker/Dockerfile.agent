@@ -54,6 +54,7 @@ RUN cargo build --release && \
 # Copy rust-perf source (if it exists)
 WORKDIR /rust
 COPY apps/rust-perf/Cargo.toml apps/rust-perf/Cargo.lock* ./rust-perf/
+COPY apps/rust-perf/package.json ./rust-perf/
 COPY apps/rust-perf/src ./rust-perf/src
 COPY apps/rust-perf/build.rs ./rust-perf/
 
