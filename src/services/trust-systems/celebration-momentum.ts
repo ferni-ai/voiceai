@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -256,6 +257,13 @@ export function recordWin(
 
   profile.wins.push(trackedWin);
   profile.totalWins++;
+
+  // Index to semantic memory
+  indexSmallWin(userId, {
+    id: trackedWin.id,
+    win: trackedWin.description,
+    effort: trackedWin.type,
+  });
 
   // Update counts
   const now = new Date();

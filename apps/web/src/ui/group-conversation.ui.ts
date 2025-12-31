@@ -13,6 +13,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('GroupConversationUI');
 
@@ -208,7 +209,7 @@ export class GroupConversationUI {
     this.renderParticipantGrid();
     
     // Celebration toast
-    toast.success(`${participant.name} joined!`);
+    toast.success(t('toasts.participantnameJoined'));
   }
 
   /**
@@ -217,7 +218,7 @@ export class GroupConversationUI {
   removeParticipant(participantId: string): void {
     const participant = this.participants.get(participantId);
     if (participant) {
-      toast.info(`${participant.name} left`);
+      toast.info(t('toasts.participantnameLeft'));
       this.participants.delete(participantId);
       this.renderParticipantGrid();
     }
@@ -282,7 +283,7 @@ export class GroupConversationUI {
         <header>
           <span class="eyebrow">TEAM ROUNDTABLE</span>
           <h2>Who should join?</h2>
-          <button class="close-btn" aria-label="Close">
+          <button class="close-btn" aria-label="${t('accessibility.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
@@ -359,13 +360,13 @@ export class GroupConversationUI {
 
       el.addEventListener('click', () => {
         if (el.classList.contains('locked')) {
-          toast.warning('Unlock this team member first');
+          toast.warning(t('toasts.unlockTeamMemberFirst'));
           return;
         }
 
         // Ferni can't be deselected
         if (personaId === 'ferni') {
-          toast.info('Ferni always joins the roundtable');
+          toast.info(t('toasts.ferniAlwaysJoins'));
           return;
         }
 
@@ -424,7 +425,7 @@ export class GroupConversationUI {
         <header>
           <span class="eyebrow">CONFERENCE CALL</span>
           <h2>Add someone to this conversation</h2>
-          <button class="close-btn" aria-label="Close">
+          <button class="close-btn" aria-label="${t('accessibility.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
@@ -506,7 +507,7 @@ export class GroupConversationUI {
       const relationship = relationshipInput.value.trim() || undefined;
 
       if (!name || !this.isValidPhoneNumber(phoneInput.value)) {
-        toast.warning('Enter a name and valid phone number');
+        toast.warning(t('toasts.enterNameAndPhone'));
         return;
       }
 

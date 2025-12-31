@@ -13,6 +13,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ConversationStartersUI');
 
@@ -556,7 +557,7 @@ function render(): void {
             ${lastContactText ? `<p class="cs-subtitle">Last talked ${lastContactText}</p>` : ''}
           </div>
         </div>
-        <button class="cs-close" aria-label="Close">${ICONS.close}</button>
+        <button class="cs-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -566,10 +567,10 @@ function render(): void {
     
     ${state.hasGenerated && state.starters.length > 0 ? `
       <div class="cs-footer">
-        <button aria-label="Refresh" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
+        <button aria-label="${t('accessibility.refresh')}" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
           ${ICONS.refresh} New ideas
         </button>
-        <button aria-label="Copy" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
+        <button aria-label="${t('accessibility.copy')}" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
           ${ICONS.copy} Copy opener
         </button>
       </div>
@@ -593,7 +594,7 @@ function renderContent(): string {
     return `
       <div class="cs-error">
         <p class="cs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="Refresh" class="cs-retry-btn" id="cs-retry">
+        <button aria-label="${t('accessibility.refresh')}" class="cs-retry-btn" id="cs-retry">
           ${ICONS.refresh} Try again
         </button>
       </div>
@@ -609,7 +610,7 @@ function renderContent(): string {
           Based on what you've talked about before, Ferni will suggest
           thoughtful ways to reconnect.
         </p>
-        <button aria-label="Get Ideas" class="cs-generate-btn" id="cs-generate">
+        <button aria-label="${t('accessibility.getIdeas')}" class="cs-generate-btn" id="cs-generate">
           ${ICONS.sparkles} Get Ideas
         </button>
       </div>
@@ -716,7 +717,7 @@ async function generateStarters(): Promise<void> {
     render();
 
     if (state.starters.length > 0) {
-      toast.success(`${state.starters.length} ideas ready!`);
+      toast.success(t('toasts.statestarterslengthIdeasReady'));
     }
   } catch (error) {
     log.error('Failed to generate conversation starters:', error);
@@ -740,7 +741,7 @@ async function generateStarters(): Promise<void> {
       
       render();
       log.debug('Using mock conversation starters');
-      toast.success(`${state.starters.length} ideas ready! (mock)`);
+      toast.success(t('toasts.statestarterslengthIdeasReadyMock'));
       return;
     }
     
@@ -755,14 +756,14 @@ function copySelectedStarter(): void {
 
   navigator.clipboard.writeText(state.selectedStarter.opener)
     .then(() => {
-      toast.success('Copied!');
+      toast.success(t('toasts.copied'));
       
       if (callbacks.onSelect) {
         callbacks.onSelect(state.selectedStarter!);
       }
     })
     .catch(() => {
-      toast.error('Could not copy');
+      toast.error(t('toasts.couldNotCopy'));
     });
 }
 
@@ -823,7 +824,7 @@ export function openConversationStarters(options: ConversationStartersOptions): 
   modalContainer.className = 'conversation-starters-overlay';
   modalContainer.innerHTML = `
     <div class="conversation-starters-backdrop"></div>
-    <div class="conversation-starters-modal" role="dialog" aria-modal="true" aria-label="Conversation starters">
+    <div class="conversation-starters-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.conversationStarters')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

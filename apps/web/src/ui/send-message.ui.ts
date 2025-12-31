@@ -10,6 +10,7 @@
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('SendMessageUI');
 
@@ -457,7 +458,7 @@ function render(): void {
           <div class="sm-eyebrow">Reach Out</div>
           <h2 class="sm-title">${escapeHtml(state.contactName)}</h2>
         </div>
-        <button class="sm-close" aria-label="Close">${ICONS.close}</button>
+        <button class="sm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -480,17 +481,17 @@ function renderChannelSelector(): string {
 
   return `
     <div class="sm-channels">
-      <button aria-label="More information" class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.phone}</span>
         <span class="sm-channel-label">Call</span>
         ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
       </button>
-      <button aria-label="More information" class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.message}</span>
         <span class="sm-channel-label">Text</span>
         ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
       </button>
-      <button aria-label="More information" class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.mail}</span>
         <span class="sm-channel-label">Email</span>
         ${!hasEmail ? '<span class="sm-no-info">No email</span>' : ''}
@@ -655,7 +656,7 @@ function initiateCall(): void {
   const phoneNumber = state.phone.replace(/[^0-9+]/g, '');
   window.open(`tel:${phoneNumber}`, '_self');
   
-  toast.info('Opening phone...');
+  toast.info(t('toasts.openingPhone'));
   
   setTimeout(() => {
     if (callbacks.onSent) {
@@ -674,7 +675,7 @@ function initiateText(): void {
   const smsUrl = `sms:${phoneNumber}${/iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?'}body=${encodedMessage}`;
   window.open(smsUrl, '_self');
   
-  toast.info('Opening messages...');
+  toast.info(t('toasts.openingMessages'));
   
   setTimeout(() => {
     if (callbacks.onSent) {
@@ -691,7 +692,7 @@ function initiateEmail(): void {
   const mailtoUrl = `mailto:${state.email}?subject=${subject}&body=${body}`;
   window.open(mailtoUrl, '_self');
   
-  toast.info('Opening email...');
+  toast.info(t('toasts.openingEmail'));
   
   setTimeout(() => {
     if (callbacks.onSent) {
@@ -740,7 +741,7 @@ export function openSendMessage(options: SendMessageOptions): void {
     defaultChannel = 'email';
   } else if (!options.phone && !options.email) {
     // No contact methods - shouldn't happen but handle gracefully
-    toast.warning('No contact info available');
+    toast.warning(t('toasts.noContactInfoAvailable'));
     return;
   }
 
@@ -765,7 +766,7 @@ export function openSendMessage(options: SendMessageOptions): void {
   modalContainer.className = 'send-message-overlay';
   modalContainer.innerHTML = `
     <div class="send-message-backdrop"></div>
-    <div class="send-message-modal" role="dialog" aria-modal="true" aria-label="Send message">
+    <div class="send-message-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.sendMessage')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

@@ -37,6 +37,35 @@ export {
   type ResponseGuidance,
 } from './unified/unified-analyzer.js';
 
+// ============================================================================
+// UNIFIED INTELLIGENCE API (Levels 2-5)
+// ============================================================================
+
+export {
+  // Session lifecycle
+  initIntelligenceSession,
+  cleanupIntelligence,
+  // Main API
+  getIntelligenceForTurn,
+  // Domain signals
+  recordDomainSignal,
+  // Insight tracking
+  markInsightSurfaced,
+  recordInsightReaction,
+  // Utility exports
+  getDomainSignals,
+  wasInsightSurfaced,
+  getInsightReaction,
+  // Types
+  type SurfaceMoment,
+  type DomainSignal,
+  type ImmediateContext,
+  type ContextWindow,
+  type CrossDomainCorrelation,
+  type ProactiveIntelligenceInsight,
+  type IntelligenceForTurnResult,
+} from './unified-intelligence-api.js';
+
 export {
   // THE superhuman signal
   VoiceTextMismatchDetector,

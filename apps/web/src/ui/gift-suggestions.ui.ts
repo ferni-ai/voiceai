@@ -13,6 +13,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockGiftSuggestions } from '../data/mock-contacts.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('GiftSuggestionsUI');
 
@@ -609,7 +610,7 @@ function render(): void {
             <h2 class="gs-title">For ${escapeHtml(state.contactName)}</h2>
           </div>
         </div>
-        <button class="gs-close" aria-label="Close">${ICONS.close}</button>
+        <button class="gs-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -639,7 +640,7 @@ function render(): void {
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
         <span class="gs-footer-hint">Tap a gift to record it</span>
-        <button aria-label="Refresh" class="gs-regenerate-btn" id="gs-regenerate">
+        <button aria-label="${t('accessibility.refresh')}" class="gs-regenerate-btn" id="gs-regenerate">
           ${ICONS.refresh} New ideas
         </button>
       </div>
@@ -663,7 +664,7 @@ function renderContent(): string {
     return `
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="Refresh" class="gs-retry-btn" id="gs-retry">
+        <button aria-label="${t('accessibility.refresh')}" class="gs-retry-btn" id="gs-retry">
           ${ICONS.refresh} Try again
         </button>
       </div>
@@ -679,7 +680,7 @@ function renderContent(): string {
           Based on ${escapeHtml(state.contactName)}'s interests and your relationship,
           Ferni will suggest thoughtful gift ideas.
         </p>
-        <button aria-label="Generate Ideas" class="gs-generate-btn" id="gs-generate">
+        <button aria-label="${t('accessibility.generateIdeas')}" class="gs-generate-btn" id="gs-generate">
           ${ICONS.sparkles} Generate Ideas
         </button>
       </div>
@@ -806,7 +807,7 @@ async function generateSuggestions(): Promise<void> {
     render();
 
     if (state.suggestions.length > 0) {
-      toast.success(`${state.suggestions.length} ideas found!`);
+      toast.success(t('toasts.statesuggestionslengthIdeasFound'));
     }
   } catch (error) {
     log.error('Failed to generate gift suggestions:', error);
@@ -826,7 +827,7 @@ async function generateSuggestions(): Promise<void> {
       state.isLoading = false;
       render();
       log.debug('Using mock gift suggestions');
-      toast.success(`${state.suggestions.length} ideas found! (mock)`);
+      toast.success(t('toasts.statesuggestionslengthIdeasFoundMock'));
       return;
     }
     
@@ -879,7 +880,7 @@ export function openGiftSuggestions(options: GiftSuggestionsOptions): void {
   modalContainer.className = 'gift-suggestions-overlay';
   modalContainer.innerHTML = `
     <div class="gift-suggestions-backdrop"></div>
-    <div class="gift-suggestions-modal" role="dialog" aria-modal="true" aria-label="Gift suggestions">
+    <div class="gift-suggestions-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.giftSuggestions')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

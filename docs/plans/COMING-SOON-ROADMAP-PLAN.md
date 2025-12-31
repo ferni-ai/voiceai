@@ -434,8 +434,8 @@ Display aggregate interest:
 
 ## 📚 Related Documents
 
-- `design-system/brand/FERNI-BRAND-GUIDELINES.md`
-- `design-system/brand/BETTER-THAN-HUMAN.md`
+- `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md`
 - `.cursorrules` - Brand language section
 - `apps/web/src/ui/settings-menu.ui.ts`
 

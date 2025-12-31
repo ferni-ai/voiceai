@@ -135,7 +135,7 @@ function loadNativeModule(): FerniPerfJsonModule | null {
 
   try {
     // Try to load the native module
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     nativeModule = require('@ferni/perf') as FerniPerfJsonModule;
 
     const info = nativeModule.getLibraryInfo();

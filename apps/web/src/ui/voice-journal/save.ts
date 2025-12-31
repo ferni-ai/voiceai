@@ -8,6 +8,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { addMemory, listMemories } from '../../services/custom-agent.service.js';
+import { t } from '../../i18n/index.js';
 import {
   getModal,
   getCurrentAgent,
@@ -50,7 +51,7 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
 
   try {
     // Show transcribing state
-    toast.info('Transcribing...');
+    toast.info(t('toasts.transcribing'));
 
     // Convert blob to base64 for API
     const audioBase64 = await blobToBase64(audioBlob);
@@ -91,7 +92,7 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
 
     // Notify user if transcription failed but we're still saving
     if (transcriptionFailed) {
-      toast.warning('Transcription unavailable. Saving audio only.');
+      toast.warning(t('toasts.transcriptionUnavailable'));
     }
 
     // Build entry content
@@ -146,9 +147,9 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
 
     // Show appropriate success message
     if (transcriptionFailed) {
-      toast.success('Audio saved!');
+      toast.success(t('toasts.audioSaved'));
     } else {
-      toast.success('Entry saved!');
+      toast.success(t('toasts.entrySaved'));
     }
     
     // 🤲 Sidekick: Dispatch journal entry event for avatar sidekick

@@ -29,6 +29,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 import { haptics } from '../utils/haptics.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('WinterSolstice');
 
@@ -459,7 +460,7 @@ class WinterSolsticeMomentUI {
         <p class="solstice-subtitle"></p>
         <div class="solstice-reflection"></div>
         <div class="solstice-promise"></div>
-        <button class="solstice-close" aria-label="Close">
+        <button class="solstice-close" aria-label="${t('accessibility.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
           </svg>
@@ -830,7 +831,7 @@ class WinterSolsticeMomentUI {
         <p class="subtitle">${content.subtitle}</p>
         <p class="reflection">${content.reflection}</p>
         <p class="promise">${content.promise}</p>
-        <button aria-label="Close" class="solstice-close-static">Close</button>
+        <button aria-label="${t('accessibility.close')}" class="solstice-close-static">Close</button>
       </div>
     `;
 

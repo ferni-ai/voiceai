@@ -36,6 +36,8 @@ targets:
         type: group
       - path: FerniCarPlay
         type: group
+      - path: Ferni
+        type: group
     dependencies:
       - package: LiveKit
         product: LiveKit
@@ -49,12 +51,13 @@ targets:
         embed: true
       - target: FerniShareExtension
         embed: true
-      - framework: CarPlay.framework
+      - sdk: CarPlay.framework
     resources:
       - path: FerniVoice/Assets.xcassets
       - path: FerniVoice/LaunchScreen.storyboard
       - path: FerniVoice/Preview Content
       - path: FerniVoice/GoogleService-Info.plist
+      - path: Ferni/Resources
     info:
       path: FerniVoice/Info.plist
       properties:

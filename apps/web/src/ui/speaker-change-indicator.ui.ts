@@ -335,10 +335,10 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
     </div>
     ${state === 'speaker_changed' ? `
       <div class="speaker-change-indicator__actions" role="button" tabindex="0">
-        <button aria-label="Yes, it's me" class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
+        <button aria-label="${t('accessibility.yesItSMe')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
           Yes, it's me
         </button>
-        <button aria-label="Someone new" class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
+        <button aria-label="${t('accessibility.someoneNew')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
           Someone new
         </button>
       </div>

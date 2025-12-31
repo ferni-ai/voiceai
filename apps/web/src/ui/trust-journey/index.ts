@@ -107,13 +107,13 @@ function createJourneyPanel(): void {
           <p class="trust-journey-subtitle">${t('trustJourney.subtitle')}</p>
         </div>
         <div class="trust-journey-actions" role="button" tabindex="0">
-          <button aria-label="Refresh" class="trust-journey-action-btn" data-action="refresh" title="${t('accessibility.refreshData')}">
+          <button aria-label="${t('accessibility.refresh')}" class="trust-journey-action-btn" data-action="refresh" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
-          <button aria-label="Download" class="trust-journey-action-btn" data-action="export" title="${t('accessibility.exportData')}">
+          <button aria-label="${t('accessibility.download')}" class="trust-journey-action-btn" data-action="export" title="${t('accessibility.exportData')}">
             ${ICONS.download}
           </button>
-          <button aria-label="Close" class="trust-journey-action-btn" data-action="close" title="${t('common.close')}">
+          <button aria-label="${t('accessibility.close')}" class="trust-journey-action-btn" data-action="close" title="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>

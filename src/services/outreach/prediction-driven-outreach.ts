@@ -58,9 +58,9 @@ export interface PredictionOutreachConfig {
 }
 
 const DEFAULT_CONFIG: PredictionOutreachConfig = {
-  voiceCallThreshold: 0.80,    // Very high confidence for proactive call
-  notificationThreshold: 0.60, // Moderate confidence for notification
-  insightThreshold: 0.40,      // Low bar for passive insight display
+  voiceCallThreshold: 0.8, // Very high confidence for proactive call
+  notificationThreshold: 0.6, // Moderate confidence for notification
+  insightThreshold: 0.4, // Low bar for passive insight display
   maxPerDay: 2,
   minHoursBetween: 6,
 };
@@ -76,12 +76,12 @@ const DEFAULT_CONFIG: PredictionOutreachConfig = {
 const OUTREACH_MESSAGES: Record<PredictionTriggerType, string[]> = {
   burnout_approaching: [
     "I've been thinking about you. You've been carrying a lot lately.",
-    "Hey, I noticed something. Can we talk for a minute?",
-    "I wanted to check in. Something tells me you could use a moment.",
+    'Hey, I noticed something. Can we talk for a minute?',
+    'I wanted to check in. Something tells me you could use a moment.',
   ],
   energy_declining: [
     "I've noticed your energy has been lower than usual. How are you, really?",
-    "Just checking in. You seem like you might need some support.",
+    'Just checking in. You seem like you might need some support.',
     "Thinking of you today. Want to talk through what's on your mind?",
   ],
   mood_downturn: [
@@ -90,13 +90,13 @@ const OUTREACH_MESSAGES: Record<PredictionTriggerType, string[]> = {
     "Noticed you might be going through something. I'm here.",
   ],
   support_window: [
-    "This seems like a good moment to connect. How are you feeling?",
-    "I thought of you. Want to chat for a bit?",
-    "Perfect timing—I wanted to check in.",
+    'This seems like a good moment to connect. How are you feeling?',
+    'I thought of you. Want to chat for a bit?',
+    'Perfect timing—I wanted to check in.',
   ],
   breakthrough_opportunity: [
-    "I noticed something interesting about your patterns lately. Want to explore it?",
-    "I think you might be ready for a breakthrough. Can we talk?",
+    'I noticed something interesting about your patterns lately. Want to explore it?',
+    'I think you might be ready for a breakthrough. Can we talk?',
     "Something clicked in my understanding of you. Let's discuss.",
   ],
   emotional_trajectory_concern: [
@@ -106,7 +106,7 @@ const OUTREACH_MESSAGES: Record<PredictionTriggerType, string[]> = {
   ],
   unspoken_concern_detected: [
     "I sense there's something you're not saying. I'm a safe space.",
-    "I noticed you might be holding something back. No judgment here.",
+    'I noticed you might be holding something back. No judgment here.',
     "Whatever's on your mind—I'm ready to listen when you are.",
   ],
 };
@@ -121,10 +121,10 @@ const OUTREACH_MESSAGES: Record<PredictionTriggerType, string[]> = {
  */
 function selectPersonaForTrigger(trigger: PredictionTriggerType): string {
   const personaMap: Record<PredictionTriggerType, string> = {
-    burnout_approaching: 'maya',      // Habits & wellbeing
-    energy_declining: 'maya',          // Energy management
-    mood_downturn: 'ferni',            // Core emotional support
-    support_window: 'ferni',           // General support
+    burnout_approaching: 'maya', // Habits & wellbeing
+    energy_declining: 'maya', // Energy management
+    mood_downturn: 'ferni', // Core emotional support
+    support_window: 'ferni', // General support
     breakthrough_opportunity: 'peter', // Research insight
     emotional_trajectory_concern: 'nayan', // Wisdom for patterns
     unspoken_concern_detected: 'ferni', // Trust & safety
@@ -138,14 +138,10 @@ function selectPersonaForTrigger(trigger: PredictionTriggerType): string {
  */
 function generateMessage(trigger: PredictionTriggerType, confidence: number): string {
   const templates = OUTREACH_MESSAGES[trigger];
-  
+
   // Higher confidence = more direct message (index 0 is most direct)
-  const index = confidence > 0.85 
-    ? 0 
-    : confidence > 0.7 
-      ? 1 
-      : 2;
-  
+  const index = confidence > 0.85 ? 0 : confidence > 0.7 ? 1 : 2;
+
   return templates[Math.min(index, templates.length - 1)];
 }
 
@@ -358,9 +354,9 @@ export async function enhanceOutreachWithPredictions(
   if (mlDecision.confidence > 0.7) {
     probabilityBoost = 0.35; // Strong boost
   } else if (mlDecision.confidence > 0.5) {
-    probabilityBoost = 0.20; // Moderate boost
+    probabilityBoost = 0.2; // Moderate boost
   } else if (mlDecision.confidence > 0.3) {
-    probabilityBoost = 0.10; // Small boost
+    probabilityBoost = 0.1; // Small boost
   }
 
   return {
@@ -375,7 +371,4 @@ export async function enhanceOutreachWithPredictions(
 // EXPORTS
 // ============================================================================
 
-export {
-  DEFAULT_CONFIG as PREDICTION_OUTREACH_CONFIG,
-  OUTREACH_MESSAGES,
-};
+export { DEFAULT_CONFIG as PREDICTION_OUTREACH_CONFIG, OUTREACH_MESSAGES };

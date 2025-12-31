@@ -108,7 +108,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const personaStart = Date.now();
-          const { warmCommonCaches } = await import('../shared/performance/edge-cache.js');
+          const { warmCommonCaches } = await import('../../services/cache/edge-cache.js');
           await warmCommonCaches();
 
           // Also warm the specific persona bundles (PARALLEL for performance)
@@ -271,7 +271,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
         try {
           const warmGreetingStart = Date.now();
           const { prewarmGreetingsForAllPersonas } = await import('../shared/warm-greeting.js');
-          await prewarmGreetingsForAllPersonas();
+          prewarmGreetingsForAllPersonas();
           log('✅ Warm greetings pre-generated', { durationMs: Date.now() - warmGreetingStart });
         } catch (e) {
           log('⚠️ Warm greeting prewarm failed (non-fatal)', { error: String(e) });
@@ -285,9 +285,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       (async () => {
         try {
           const audioPrewarmStart = Date.now();
-          const { prewarmGreetingAudio } = await import(
-            '../shared/performance/greeting-audio-prewarm.js'
-          );
+          const { prewarmGreetingAudio } =
+            await import('../shared/performance/greeting-audio-prewarm.js');
           const result = await prewarmGreetingAudio(false); // false = primary personas only
           log('✅ Greeting audio pre-rendered (instant first greeting)', {
             durationMs: Date.now() - audioPrewarmStart,
@@ -322,7 +321,35 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
 
     await Promise.all(tasks);
     const durationMs = Date.now() - warmupStart;
-    log('✅ Resource warmup complete', { durationMs });
+
+    // =========================================================================
+    // STARTUP SLA CHECK (added after Dec 2024 startup hang incident)
+    // =========================================================================
+    // Warmup should complete in <10 seconds. If it takes longer, something is
+    // blocking that needs investigation. This catches issues like:
+    // - Database queries iterating over large datasets
+    // - Network calls without timeouts
+    // - Synchronous operations that scale with data volume
+    // =========================================================================
+    const WARMUP_SLA_MS = 10000; // 10 second budget
+    const WARMUP_WARNING_MS = 5000; // Warn at 5 seconds
+
+    if (durationMs > WARMUP_SLA_MS) {
+      log('🚨 STARTUP SLA VIOLATION: Warmup took too long!', {
+        durationMs,
+        slaBudgetMs: WARMUP_SLA_MS,
+        overage: durationMs - WARMUP_SLA_MS,
+        action: 'Investigate which warmup task is blocking',
+      });
+    } else if (durationMs > WARMUP_WARNING_MS) {
+      log('⚠️ Warmup approaching SLA limit', {
+        durationMs,
+        slaBudgetMs: WARMUP_SLA_MS,
+        headroomMs: WARMUP_SLA_MS - durationMs,
+      });
+    } else {
+      log('✅ Resource warmup complete', { durationMs, slaBudgetMs: WARMUP_SLA_MS });
+    }
 
     return { vadLoaded, preloadedVAD, durationMs };
   } catch (e) {

@@ -163,7 +163,7 @@ class CalendarSelectionUI {
 
     this.wrapper.innerHTML = `
       <header class="calendar-selection__header">
-        <button class="calendar-selection__back" aria-label="Back">${ICONS.back}</button>
+        <button class="calendar-selection__back" aria-label="${t('accessibility.back')}">${ICONS.back}</button>
         <div class="calendar-selection__provider-icon">${PROVIDER_ICONS[this.currentProvider]}</div>
         <h2 class="calendar-selection__title">${providerName} Calendars</h2>
         <button class="calendar-selection__close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -186,7 +186,7 @@ class CalendarSelectionUI {
 
     this.wrapper.innerHTML = `
       <header class="calendar-selection__header">
-        <button class="calendar-selection__back" aria-label="Back">${ICONS.back}</button>
+        <button class="calendar-selection__back" aria-label="${t('accessibility.back')}">${ICONS.back}</button>
         <div class="calendar-selection__provider-icon">${PROVIDER_ICONS[this.currentProvider]}</div>
         <h2 class="calendar-selection__title">${providerName} Calendars</h2>
         <button class="calendar-selection__close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -212,10 +212,10 @@ class CalendarSelectionUI {
           </div>
 
           <div class="calendar-selection__actions" role="button" tabindex="0">
-            <button aria-label="Cancel" class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
+            <button aria-label="${t('accessibility.cancel')}" class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button aria-label="Save Selection" class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
+            <button aria-label="${t('accessibility.saveSelection')}" class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
               Save Selection
             </button>
           </div>
@@ -321,7 +321,7 @@ class CalendarSelectionUI {
     const saveBtn = this.wrapper?.querySelector('[data-action="save"]') as HTMLButtonElement;
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
+      saveBtn.textContent = t('calendar.saving');
     }
 
     try {
@@ -339,7 +339,7 @@ class CalendarSelectionUI {
       log.error('Failed to save calendar selection:', error);
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'Save Selection';
+        saveBtn.textContent = t('calendar.saveSelection');
       }
     } finally {
       this.isLoading = false;

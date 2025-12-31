@@ -18,6 +18,7 @@ import {
   type CalendarLoadFactors,
   type CalendarBurnoutFactor,
 } from '../calendar/calendar-load-service.js';
+import { onCapacityStateChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'capacity-guardian' });
 
@@ -228,6 +229,28 @@ export async function recordEnergyReading(
         .doc(fullReading.id)
         .set(cleanForFirestore(fullReading));
     }
+
+    // Index to semantic memory for cross-domain correlation
+    void onCapacityStateChange(
+      userId,
+      fullReading.id,
+      {
+        level:
+          fullReading.energyLevel === 'high'
+            ? 'thriving'
+            : fullReading.energyLevel === 'good'
+              ? 'good'
+              : fullReading.energyLevel === 'moderate'
+                ? 'moderate'
+                : fullReading.energyLevel === 'low'
+                  ? 'low'
+                  : 'depleted',
+        factors: fullReading.indicators,
+        recommendation: `Energy at ${fullReading.energyScore}% - ${fullReading.energyLevel}`,
+        timestamp: new Date(fullReading.timestamp).toISOString(),
+      },
+      'create'
+    );
 
     // Update cache
     const readings = energyCache.get(userId) || [];

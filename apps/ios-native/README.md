@@ -279,5 +279,5 @@ The iOS app is deployed via App Store Connect:
 ## 📚 Related Docs
 
 - `docs/audits/IOS-BETTER-THAN-HUMAN-AUDIT.md` - Feature audit
-- `design-system/brand/BETTER-THAN-HUMAN.md` - EQ guidelines
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md` - EQ guidelines
 - `apps/shared/` - Shared code between iOS/macOS

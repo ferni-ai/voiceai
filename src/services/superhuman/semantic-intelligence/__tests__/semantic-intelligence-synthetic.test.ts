@@ -43,14 +43,21 @@ const TEST_USER_ID = 'synthetic-semantic-test-user';
 // MOCK SETUP
 // ============================================================================
 
-vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 vi.mock('../../../../memory/embeddings.js', () => ({
   embed: vi.fn((text: string) => Promise.resolve(Array(1536).fill(0.1))),

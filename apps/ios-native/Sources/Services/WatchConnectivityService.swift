@@ -91,7 +91,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
     // MARK: - Send to Watch
     
     /// Send voice session state update to Watch
-    func sendVoiceStateUpdate(_ state: VoiceState) {
+    func sendVoiceStateUpdate(_ state: WatchVoiceState) {
         guard session.isReachable else {
             // Use application context for when watch isn't reachable
             updateApplicationContext(voiceState: state)
@@ -164,7 +164,7 @@ final class WatchConnectivityService: NSObject, ObservableObject {
     private var currentContext: [String: Any] = [:]
     
     private func updateApplicationContext(
-        voiceState: VoiceState? = nil,
+        voiceState: WatchVoiceState? = nil,
         personaId: String? = nil,
         personaName: String? = nil,
         additionalData: [String: Any]? = nil
@@ -382,8 +382,8 @@ extension WatchConnectivityService: WCSessionDelegate {
 
 // MARK: - Supporting Types
 
-/// Voice session state
-enum VoiceState: String {
+/// Voice session state for Watch communication (simplified, String-backed for serialization)
+enum WatchVoiceState: String {
     case disconnected
     case connecting
     case connected

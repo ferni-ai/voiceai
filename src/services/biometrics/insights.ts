@@ -13,7 +13,9 @@ import type { BiometricInsight, BiometricSnapshot } from './types.js';
  * Generate insight for context injection
  * "Better than Human" - notice what humans wouldn't
  */
-export function generateBiometricInsight(snapshot: BiometricSnapshot | null): BiometricInsight | null {
+export function generateBiometricInsight(
+  snapshot: BiometricSnapshot | null
+): BiometricInsight | null {
   if (!snapshot) return null;
 
   // Priority: stress > sleep > recovery > activity

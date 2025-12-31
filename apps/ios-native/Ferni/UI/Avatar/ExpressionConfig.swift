@@ -26,6 +26,20 @@ struct ExpressionConfig: Codable {
     let animation: String?
     let sparkle: Bool
 
+    // Eye scale properties (derived from web eyeWhite properties)
+    let eyeScaleY: CGFloat?
+    let eyeScaleX: CGFloat?
+
+    /// Computed eye scale with defaults
+    var effectiveEyeScaleY: CGFloat { eyeScaleY ?? 1.0 }
+    var effectiveEyeScaleX: CGFloat { eyeScaleX ?? 1.0 }
+
+    /// Whether eyes are squinted (scaleY < 0.85)
+    var isSquinted: Bool { effectiveEyeScaleY < 0.85 }
+
+    /// Whether eyes are wide (scaleY > 1.05)
+    var isWideEyed: Bool { effectiveEyeScaleY > 1.05 }
+
     /// Default neutral configuration
     static let neutral = ExpressionConfig(
         family: "core",
@@ -35,7 +49,9 @@ struct ExpressionConfig: Codable {
         bottomCurve: 0,
         asymmetry: 0,
         animation: nil,
-        sparkle: false
+        sparkle: false,
+        eyeScaleY: 1.0,
+        eyeScaleX: 1.0
     )
 }
 
@@ -237,6 +253,18 @@ enum AvatarExpression: String, CaseIterable, Codable {
     /// Expression family
     var family: String { config.family }
 
+    /// Eye vertical scale (1.0 = normal, < 1 = squinted, > 1 = wide)
+    var eyeScaleY: CGFloat { config.effectiveEyeScaleY }
+
+    /// Eye horizontal scale (1.0 = normal, > 1 = wider)
+    var eyeScaleX: CGFloat { config.effectiveEyeScaleX }
+
+    /// Whether eyes are squinted
+    var isSquinted: Bool { config.isSquinted }
+
+    /// Whether eyes are wide open
+    var isWideEyed: Bool { config.isWideEyed }
+
     // MARK: - Factory
 
     /// Create from string, falling back to neutral for unknown values
@@ -283,7 +311,9 @@ extension AvatarMood {
             bottomCurve: self.bottomCurve,
             asymmetry: self.asymmetry,
             animation: nil,
-            sparkle: false
+            sparkle: false,
+            eyeScaleY: nil,
+            eyeScaleX: nil
         )
     }
 }

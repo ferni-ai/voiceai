@@ -208,27 +208,27 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="trust-dashboard-tabs">
-        <button aria-label="Health" class="tab-btn active" data-tab="health">
+        <button aria-label="${t('accessibility.health')}" class="tab-btn active" data-tab="health">
           ${ICONS.heart}
           <span>Health</span>
         </button>
-        <button aria-label="Timeline" class="tab-btn" data-tab="timeline">
+        <button aria-label="${t('accessibility.timeline')}" class="tab-btn" data-tab="timeline">
           ${ICONS.timeline}
           <span>Timeline</span>
         </button>
-        <button aria-label="Events" class="tab-btn" data-tab="events">
+        <button aria-label="${t('accessibility.events')}" class="tab-btn" data-tab="events">
           ${ICONS.calendar}
           <span>Events</span>
         </button>
-        <button aria-label="Journal" class="tab-btn" data-tab="journal">
+        <button aria-label="${t('accessibility.journal')}" class="tab-btn" data-tab="journal">
           ${ICONS.journal}
           <span>Journal</span>
         </button>
-        <button aria-label="Media" class="tab-btn" data-tab="media">
+        <button aria-label="${t('accessibility.media')}" class="tab-btn" data-tab="media">
           ${ICONS.music}
           <span>Media</span>
         </button>
-        <button aria-label="Insights" class="tab-btn" data-tab="insights">
+        <button aria-label="${t('accessibility.insights')}" class="tab-btn" data-tab="insights">
           ${ICONS.chart}
           <span>Insights</span>
         </button>
@@ -242,7 +242,7 @@ function createDashboardHTML(): string {
       </main>
       
       <footer class="trust-dashboard-footer">
-        <button aria-label="Refresh" class="refresh-btn">
+        <button aria-label="${t('accessibility.refresh')}" class="refresh-btn">
           ${ICONS.refresh}
           <span>Refresh</span>
         </button>
@@ -434,7 +434,7 @@ function renderInsightsTab(data: InsightsData | null): string {
       <div class="insights-content">
         <p class="empty-state">Your first insights report will be ready after more conversations.</p>
         ${data?.isDue ? `
-          <button aria-label="Generate Report Now" class="generate-report-btn">Generate Report Now</button>
+          <button aria-label="${t('accessibility.generateReportNow')}" class="generate-report-btn">Generate Report Now</button>
         ` : ''}
       </div>
     `;
@@ -473,7 +473,7 @@ function renderInsightsTab(data: InsightsData | null): string {
       ` : ''}
       
       ${data.isDue ? `
-        <button aria-label="Generate New Report" class="generate-report-btn">Generate New Report</button>
+        <button aria-label="${t('accessibility.generateNewReport')}" class="generate-report-btn">Generate New Report</button>
       ` : ''}
     </div>
   `;

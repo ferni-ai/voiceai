@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { indexLifeChapter } from '../data-layer/integrations/index.js';
 
 const log = createLogger({ module: 'life-narrative' });
 
@@ -237,6 +238,23 @@ export async function saveChapter(chapter: LifeChapter): Promise<void> {
         .doc(chapter.id)
         .set(cleanForFirestore(chapter));
     }
+
+    // Index to semantic memory for contextual retrieval
+    indexLifeChapter(
+      chapter.userId,
+      {
+        id: chapter.id,
+        title: chapter.title,
+        summary: chapter.summary,
+        period: {
+          start: new Date(chapter.startDate).toISOString(),
+          end: chapter.endDate ? new Date(chapter.endDate).toISOString() : undefined,
+        },
+        themes: chapter.keyThemes,
+        significance: chapter.conversationCount,
+      },
+      'update'
+    );
 
     // Update cache
     const chapters = chapterCache.get(chapter.userId) || [];

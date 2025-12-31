@@ -9,6 +9,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { setEmotionalContext } from './emotional-springs.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('BreathingGuide');
 
@@ -382,7 +383,7 @@ export class BreathingGuide {
     this.instruction.className = 'ferni-breathing-instruction';
     this.instruction.setAttribute('aria-live', 'polite');
     if (this.options.showInstructions) {
-      this.instruction.textContent = 'Tap to begin';
+      this.instruction.textContent = t('breathing.tapToBegin');
       this.container.appendChild(this.instruction);
     }
 
@@ -407,14 +408,14 @@ export class BreathingGuide {
 
     const startBtn = document.createElement('button');
     startBtn.className = 'ferni-breathing-controls__button ferni-breathing-controls__button--primary';
-    startBtn.textContent = 'Start';
+    startBtn.textContent = t('common.start');
     startBtn.setAttribute('aria-label', 'Start breathing exercise');
     startBtn.addEventListener('click', () => this.toggle());
     controls.appendChild(startBtn);
 
     const patternBtn = document.createElement('button');
     patternBtn.className = 'ferni-breathing-controls__button ferni-breathing-controls__button--secondary';
-    patternBtn.textContent = 'Pattern';
+    patternBtn.textContent = t('breathing.pattern');
     patternBtn.setAttribute('aria-label', 'Change breathing pattern');
     patternBtn.addEventListener('click', () => this.cyclePattern());
     controls.appendChild(patternBtn);

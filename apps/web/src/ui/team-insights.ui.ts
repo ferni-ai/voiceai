@@ -21,6 +21,7 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('TeamInsightsUI');
 
@@ -409,10 +410,10 @@ function createPanel(): HTMLElement {
           </div>
         </div>
         <div class="team-insights-header-actions" role="button" tabindex="0">
-          <button class="team-insights-refresh" aria-label="Refresh insights">
+          <button class="team-insights-refresh" aria-label="${t('accessibility.refreshInsights')}">
             ${ICONS.refresh}
           </button>
-          <button class="team-insights-close" aria-label="Close panel">
+          <button class="team-insights-close" aria-label="${t('accessibility.closePanel')}">
             ${ICONS.close}
           </button>
         </div>
@@ -664,7 +665,7 @@ async function loadInsights(): Promise<void> {
 
 async function refreshInsights(): Promise<void> {
   await loadInsights();
-  toast.success('Insights updated!');
+  toast.success(t('toasts.insightsUpdated'));
 }
 
 // ============================================================================
@@ -683,7 +684,7 @@ export function showInsightNotification(insight: TeamInsight): void {
   updateTriggerBadge();
 
   // Show toast notification
-  toast.info(`${capitalize(insight.source)}: ${insight.summary}`);
+  toast.info(t('toasts.capitalizeinsightsourceInsightsummary'));
 
   log.info({ insightId: insight.id, source: insight.source }, 'Insight notification shown');
 }

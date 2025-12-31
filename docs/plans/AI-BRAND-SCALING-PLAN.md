@@ -118,8 +118,8 @@ interface BrandContext {
 // Load and merge all brand rules into queryable context
 async function loadBrandContext(): Promise<BrandContext> {
   // Parse markdown guidelines
-  const voiceGuide = await parseMarkdownRules('design-system/brand/BRAND-VOICE-GUIDE.md');
-  const betterThanHuman = await parseMarkdownRules('design-system/design-system/brand/BETTER-THAN-HUMAN.md');
+  const voiceGuide = await parseMarkdownRules('design-system/docs/brand/BRAND-VOICE-GUIDE.md');
+  const betterThanHuman = await parseMarkdownRules('design-system/design-system/docs/brand/BETTER-THAN-HUMAN.md');
 
   // Load JSON tokens
   const tokens = await loadDesignTokens('design-system/tokens/');

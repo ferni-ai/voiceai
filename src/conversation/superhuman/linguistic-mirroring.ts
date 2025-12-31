@@ -18,9 +18,12 @@
 
 import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/rng.js';
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
 
 const logger = createLogger({ module: 'LinguisticMirroring' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // CONSTANTS
@@ -222,8 +225,13 @@ export class LinguisticMirroringEngine {
     response: string,
     userMessage: string
   ): { matches: boolean; suggestion?: string } {
-    const userWordCount = userMessage.split(/\s+/).length;
-    const responseWordCount = response.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const userWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(userMessage)
+      : userMessage.split(/\s+/).length;
+    const responseWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(response)
+      : response.split(/\s+/).length;
 
     // If user is terse but response is long, suggest shortening
     if (this.profile.verbosityLevel === 'terse' && responseWordCount > userWordCount * 3) {
@@ -261,7 +269,10 @@ export class LinguisticMirroringEngine {
   }
 
   private learnVerbosity(message: string): void {
-    const wordCount = message.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
 
     // Running average
     this.profile.avgResponseLength =
@@ -367,7 +378,11 @@ export class LinguisticMirroringEngine {
     const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 0);
     if (sentences.length === 0) return;
 
-    const avgWordsPerSentence = message.split(/\s+/).length / sentences.length;
+    // 🦀 Rust-accelerated word counting
+    const msgWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
+    const avgWordsPerSentence = msgWordCount / sentences.length;
 
     // Check for complex constructions
     const complexIndicators = [

@@ -1676,7 +1676,7 @@ export function recordResonanceResponse(
   userId: string,
   capability: SuperhumanCapability,
   reaction: 'positive' | 'neutral' | 'negative',
-  engagementIncrease: boolean = false
+  engagementIncrease = false
 ): void {
   // Track in analytics
   trackCapabilityEffectiveness({

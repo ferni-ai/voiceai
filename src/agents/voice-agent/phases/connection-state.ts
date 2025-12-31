@@ -20,9 +20,9 @@ const log = createLogger({ module: 'connection-state' });
 // ============================================================================
 
 export interface Room {
-  on(event: string, handler: (...args: unknown[]) => void): void;
-  off(event: string, handler: (...args: unknown[]) => void): void;
-  once(event: string, handler: (...args: unknown[]) => void): void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  off: (event: string, handler: (...args: unknown[]) => void) => void;
+  once: (event: string, handler: (...args: unknown[]) => void) => void;
   remoteParticipants?: Map<string, unknown>;
 }
 
@@ -56,7 +56,7 @@ export interface ConnectionMonitorConfig {
  * @param config - Connection monitor configuration
  * @returns Promise that resolves with disconnect info when room disconnects
  */
-export function setupConnectionMonitoring(
+export async function setupConnectionMonitoring(
   config: ConnectionMonitorConfig
 ): Promise<DisconnectInfo> {
   const { room, sessionId, roomName, cleanupTracker, userId, personaId, sessionStartTime } = config;

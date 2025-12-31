@@ -11,7 +11,16 @@
  * @module livekit-phone-bridge
  */
 
-import { Room, RoomEvent, LocalAudioTrack, AudioSource, AudioFrame, TrackSource, TrackKind } from '@livekit/rtc-node';
+import {
+  Room,
+  RoomEvent,
+  LocalAudioTrack,
+  AudioSource,
+  AudioFrame,
+  TrackSource,
+  TrackKind,
+  TrackPublishOptions,
+} from '@livekit/rtc-node';
 import { AccessToken } from 'livekit-server-sdk';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { TwilioStreamBridge } from './twilio-stream-bridge.js';
@@ -95,11 +104,10 @@ export async function createPhoneBridgeParticipant(
     await room.connect(LIVEKIT_URL, await token.toJwt());
     log.info({ roomName, participantIdentity }, '✅ Phone bridge connected to room');
 
-    // Publish the audio track
-    await room.localParticipant?.publishTrack(track, {
-      name: 'phone-audio',
-      source: TrackSource.MICROPHONE, // Treat as microphone for proper routing
-    });
+    // Publish the audio track with options
+    const publishOptions = new TrackPublishOptions();
+    publishOptions.source = TrackSource.SOURCE_MICROPHONE;
+    await room.localParticipant?.publishTrack(track, publishOptions);
     log.info({ roomName }, '🎤 Phone audio track published');
 
     // Audio buffer for accumulating samples

@@ -16,6 +16,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('LogMomentUI');
 
@@ -644,7 +645,7 @@ function render(): void {
           <div class="lm-eyebrow">Log a Moment</div>
           <h2 class="lm-title">with ${escapeHtml(state.contactName)}</h2>
         </div>
-        <button class="lm-close" aria-label="Close">${ICONS.close}</button>
+        <button class="lm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -666,13 +667,13 @@ function render(): void {
       <div class="lm-section">
         <label class="lm-label">Who initiated?</label>
         <div class="lm-directions">
-          <button aria-label="Move up" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
+          <button aria-label="${t('accessibility.moveUp')}" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
             ${ICONS.arrowUp} You reached out
           </button>
-          <button aria-label="Move down" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
+          <button aria-label="${t('accessibility.moveDown')}" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
             ${ICONS.arrowDown} They reached out
           </button>
-          <button aria-label="Together" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
+          <button aria-label="${t('accessibility.together')}" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
             ${ICONS.arrowsUpDown} Together
           </button>
         </div>
@@ -699,7 +700,7 @@ function render(): void {
       
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
-        <button aria-label="Move down" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
+        <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
           More options ${ICONS.chevronDown}
         </button>
         
@@ -708,13 +709,13 @@ function render(): void {
           <div style="margin-bottom: var(--space-4, 1rem);">
             <label class="lm-label">How did it feel?</label>
             <div class="lm-sentiments">
-              <button aria-label="Great" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
+              <button aria-label="${t('accessibility.great')}" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
                 Great
               </button>
-              <button aria-label="Okay" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
+              <button aria-label="${t('accessibility.okay')}" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
                 Okay
               </button>
-              <button aria-label="Tough" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
+              <button aria-label="${t('accessibility.tough')}" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
                 Tough
               </button>
             </div>
@@ -736,8 +737,8 @@ function render(): void {
     </div>
     
     <div class="lm-footer">
-      <button aria-label="Cancel" class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
-      <button aria-label="Submit" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
+      <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Save Moment'}
       </button>
     </div>
@@ -865,7 +866,7 @@ async function handleSave(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success('Moment saved!');
+      toast.success(t('toasts.momentSaved'));
       
       if (callbacks.onSuccess) {
         callbacks.onSuccess(data);
@@ -880,7 +881,7 @@ async function handleSave(): Promise<void> {
     }
   } catch (error) {
     log.error('Failed to save moment:', error);
-    toast.error('Could not save moment');
+    toast.error(t('toasts.couldNotSaveMoment'));
     state.isSubmitting = false;
     render();
   }
@@ -937,7 +938,7 @@ export function openLogMoment(options: LogMomentOptions): void {
   modalContainer.className = 'log-moment-overlay';
   modalContainer.innerHTML = `
     <div class="log-moment-backdrop"></div>
-    <div class="log-moment-modal" role="dialog" aria-modal="true" aria-label="Log a moment">
+    <div class="log-moment-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.logAMoment')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

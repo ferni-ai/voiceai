@@ -15,6 +15,7 @@ import { DURATION } from '../config/animation-constants.js';
 import { ICONS } from './engagement-components.js';
 import type { PracticeBriefing } from '../services/practice-briefings.service.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('PracticeBriefingToast');
 
@@ -588,14 +589,14 @@ class PracticeBriefingToast {
 
     // Voice button only shown if TTS is available
     const voiceButtonHtml = isSpeechSynthesisAvailable() 
-      ? `<button class="practice-briefing-toast__voice-btn" aria-label="Read aloud" title="Read aloud">
+      ? `<button class="practice-briefing-toast__voice-btn" aria-label="${t('accessibility.readAloud')}" title="Read aloud">
           ${ICONS.volume ?? getSpeakerIcon()}
         </button>`
       : '';
 
     this.container.innerHTML = `
       ${voiceButtonHtml}
-      <button class="practice-briefing-toast__close" aria-label="Dismiss">
+      <button class="practice-briefing-toast__close" aria-label="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <div class="practice-briefing-toast__header">
@@ -613,10 +614,10 @@ class PracticeBriefingToast {
       <p class="practice-briefing-toast__encouragement">${escapeHtml(briefing.encouragement)}</p>
       ${tipsHtml}
       <div class="practice-briefing-toast__actions" role="button" tabindex="0">
-        <button aria-label="Dismiss" class="practice-briefing-toast__btn practice-briefing-toast__btn--secondary" type="button">
+        <button aria-label="${t('accessibility.dismiss')}" class="practice-briefing-toast__btn practice-briefing-toast__btn--secondary" type="button">
           Dismiss
         </button>
-        <button aria-label="Start Practice" class="practice-briefing-toast__btn practice-briefing-toast__btn--primary" type="button">
+        <button aria-label="${t('accessibility.startPractice')}" class="practice-briefing-toast__btn practice-briefing-toast__btn--primary" type="button">
           Start Practice
         </button>
       </div>

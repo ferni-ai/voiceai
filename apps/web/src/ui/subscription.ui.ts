@@ -246,7 +246,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
   const deviceId = appState.getState().deviceId;
 
   // Show loading state
-  toast.info('Just a moment...');
+  toast.info(t('toasts.justAMoment'));
 
   // Try to verify payment (with polling for webhook processing)
   const maxAttempts = 10;
@@ -331,7 +331,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
-        <button aria-label="Let's Talk" class="celebration-button" data-action="start" autofocus>
+        <button aria-label="${t('accessibility.letSTalk')}" class="celebration-button" data-action="start" autofocus>
           ${ICONS.heart}
           <span>Let's Talk</span>
         </button>
@@ -693,11 +693,11 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
-        <button aria-label="Become a Founding Member" class="limit-button limit-button--primary" data-action="upgrade">
+        <button aria-label="${t('accessibility.becomeAFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
           ${ICONS.heart}
           <span>Become a Founding Member</span>
         </button>
-        <button aria-label="Next" class="limit-button limit-button--secondary" data-action="close">
+        <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
           See you next time 💚
         </button>
       </div>
@@ -777,49 +777,49 @@ function getDefaultTiers(): SubscriptionTier[] {
   return [
     {
       id: 'free',
-      name: 'Community',
-      description: "Ferni is free. Really free. Talk whenever you need.",
-      price: 'Free forever',
+      name: t('subscriptionFeatures.community.name'),
+      description: t('subscriptionFeatures.community.description'),
+      price: t('subscriptionFeatures.community.price'),
       priceInSmallestUnit: 0,
       currency: 'USD',
       conversationsPerMonth: null, // Unlimited with Ferni!
       features: [
-        'Unlimited conversations with Ferni',
-        '7-minute heart-to-hearts',
-        'Full memory — I remember everything',
-        'Avatar & theme customization',
+        t('subscriptionFeatures.community.features.unlimitedFerni'),
+        t('subscriptionFeatures.community.features.heartToHearts'),
+        t('subscriptionFeatures.community.features.fullMemory'),
+        t('subscriptionFeatures.community.features.customization'),
       ],
     },
     {
       id: 'friend',
-      name: 'Founding Member',
-      description: 'Chip in $10/mo. Help keep Ferni free for everyone.',
+      name: t('subscriptionFeatures.friend.name'),
+      description: t('subscriptionFeatures.friend.description'),
       price: '$10',
       priceInSmallestUnit: 1000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Unlimited conversation time (our thank you)',
-        'Meet the whole team (Maya, Peter, Alex, Jordan)',
-        'Your name on the Founders Wall (optional)',
-        'Vote on what we build next',
+        t('subscriptionFeatures.friend.features.unlimitedTime'),
+        t('subscriptionFeatures.friend.features.meetTeam'),
+        t('subscriptionFeatures.friend.features.foundersWall'),
+        t('subscriptionFeatures.friend.features.voteOnFeatures'),
       ],
       popular: true,
     },
     {
       id: 'partner',
-      name: 'Founding Patron',
-      description: "Chip in $20/mo. You're shaping what we become.",
+      name: t('subscriptionFeatures.partner.name'),
+      description: t('subscriptionFeatures.partner.description'),
       price: '$20',
       priceInSmallestUnit: 2000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Everything in Founding Member, plus:',
-        'Full team access (including Nayan)',
-        'Early access to new features',
-        'Direct line to founders (monthly Q&A)',
-        'Family sharing — bring people you love',
+        t('subscriptionFeatures.partner.features.everythingInFriend'),
+        t('subscriptionFeatures.partner.features.fullTeam'),
+        t('subscriptionFeatures.partner.features.earlyAccess'),
+        t('subscriptionFeatures.partner.features.directLine'),
+        t('subscriptionFeatures.partner.features.familySharing'),
       ],
     },
   ];
@@ -897,7 +897,7 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
 }
 
 function showUpgradeError(): void {
-  toast.error('Something went sideways. Want to try again?');
+  toast.error(t('toasts.somethingWentSidewaysWantToTryAgain'));
   announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 
@@ -908,7 +908,7 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
   // SECURITY: Only allow dev upgrade in development environment
   if (!import.meta.env.DEV) {
     log.warn('Dev upgrade not available in production');
-    toast.error('This feature is only available in development');
+    toast.error(t('toasts.thisFeatureIsOnlyAvailableInDevelopment'));
     return;
   }
   
@@ -931,7 +931,7 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
       // Reload to show success
       window.location.href = window.location.origin + '?upgrade=success&tier=' + tier;
     } else {
-      toast.info('Stripe not configured. Using dev mode.');
+      toast.info(t('toasts.stripeDevMode'));
     }
   } catch (error) {
     log.error('Dev upgrade failed:', error);

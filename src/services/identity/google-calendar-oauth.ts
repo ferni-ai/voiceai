@@ -16,6 +16,7 @@ import crypto from 'node:crypto';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { getRateLimiter } from '../../tools/rate-limiter.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -427,9 +428,15 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 // ============================================================================
 
 /**
- * List user's calendars (with circuit breaker protection)
+ * List user's calendars (with rate limiting and circuit breaker protection)
  */
 export async function listCalendars(accessToken: string): Promise<CalendarListEntry[]> {
+  const rateLimiter = getRateLimiter('google-calendar');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn('Google Calendar API rate limited');
+    return [];
+  }
+
   return googleCalendarCircuitBreaker.execute(async () => {
     const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -446,13 +453,19 @@ export async function listCalendars(accessToken: string): Promise<CalendarListEn
 }
 
 /**
- * Create a calendar event (with circuit breaker protection)
+ * Create a calendar event (with rate limiting and circuit breaker protection)
  */
 export async function createEvent(
   accessToken: string,
   calendarId: string,
   event: CalendarEvent
 ): Promise<CalendarEvent> {
+  const rateLimiter = getRateLimiter('google-calendar');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn('Google Calendar API rate limited');
+    throw new Error('Rate limited - try again shortly');
+  }
+
   return googleCalendarCircuitBreaker.execute(async () => {
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
@@ -478,7 +491,7 @@ export async function createEvent(
 }
 
 /**
- * Update a calendar event
+ * Update a calendar event (with rate limiting)
  */
 export async function updateEvent(
   accessToken: string,
@@ -486,6 +499,12 @@ export async function updateEvent(
   eventId: string,
   event: Partial<CalendarEvent>
 ): Promise<CalendarEvent> {
+  const rateLimiter = getRateLimiter('google-calendar');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn('Google Calendar API rate limited');
+    throw new Error('Rate limited - try again shortly');
+  }
+
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
     {
@@ -507,13 +526,19 @@ export async function updateEvent(
 }
 
 /**
- * Delete a calendar event
+ * Delete a calendar event (with rate limiting)
  */
 export async function deleteEvent(
   accessToken: string,
   calendarId: string,
   eventId: string
 ): Promise<void> {
+  const rateLimiter = getRateLimiter('google-calendar');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn('Google Calendar API rate limited');
+    throw new Error('Rate limited - try again shortly');
+  }
+
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
     {
@@ -531,7 +556,7 @@ export async function deleteEvent(
 }
 
 /**
- * Get events in a time range
+ * Get events in a time range (with rate limiting)
  */
 export async function getEvents(
   accessToken: string,
@@ -540,6 +565,12 @@ export async function getEvents(
   timeMax: Date,
   maxResults = 50
 ): Promise<CalendarEvent[]> {
+  const rateLimiter = getRateLimiter('google-calendar');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn('Google Calendar API rate limited');
+    return [];
+  }
+
   const params = new URLSearchParams({
     timeMin: timeMin.toISOString(),
     timeMax: timeMax.toISOString(),

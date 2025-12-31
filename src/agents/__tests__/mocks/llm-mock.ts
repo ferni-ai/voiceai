@@ -126,7 +126,7 @@ export function createMockTimeoutStream(timeoutMs: number): AsyncGenerator<MockS
 export class MockLLMClient {
   private options: MockLLMOptions;
   private responseQueue: string[] = [];
-  private callHistory: { messages: MockChatMessage[]; response: string }[] = [];
+  private callHistory: Array<{ messages: MockChatMessage[]; response: string }> = [];
 
   constructor(options: MockLLMOptions = {}) {
     this.options = {
@@ -212,7 +212,7 @@ export class MockLLMClient {
   /**
    * Get call history for assertions
    */
-  getCallHistory(): { messages: MockChatMessage[]; response: string }[] {
+  getCallHistory(): Array<{ messages: MockChatMessage[]; response: string }> {
     return [...this.callHistory];
   }
 
@@ -350,7 +350,7 @@ export function setupGoogleGenAIMocks(client?: MockLLMClient): void {
       getGenerativeModel: vi.fn().mockReturnValue({
         generateContent: vi.fn().mockImplementation(async (prompt) => ({
           response: {
-            text: () => mockClient.generate([{ role: 'user', content: prompt }]),
+            text: async () => mockClient.generate([{ role: 'user', content: prompt }]),
           },
         })),
         generateContentStream: vi.fn().mockImplementation(async (prompt) => ({

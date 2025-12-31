@@ -38,6 +38,12 @@ import { getLogger } from '../utils/safe-logger.js';
 import { loadSilenceResponses, type SilenceResponses } from '../services/persona-content-loader.js';
 // Trait-based dynamic responses (usage-tracked, avoids repetition)
 import { getDynamicSilenceResponseByPersonaId } from './dynamic-responses.js';
+// Dynamic presence expressions (replaces static "sitting with" phrases)
+import {
+  generatePresenceExpression,
+  isSittingWithCliche,
+  type PresenceContext,
+} from '../conversation/superhuman/dynamic-presence.js';
 
 const log = getLogger();
 
@@ -189,17 +195,22 @@ const COMFORTABLE_PRESENCE = {
     '<emotion value="affectionate"/><break time="300ms"/>Still here with you.',
     '<break time="400ms"/>Whenever you\'re ready.',
     '<emotion value="affectionate"/><break time="400ms"/>I\'m listening. <break time="200ms"/>Even the silence.',
+    '<emotion value="affectionate"/><break time="300ms"/>Mm. <break time="200ms"/>',
+    '<break time="400ms"/>Yeah. <break time="200ms"/>I hear you.',
   ],
   afterHeavyTopic: [
     '<emotion value="affectionate"/><break time="500ms"/>That was a lot to share. <break time="300ms"/>Take all the time you need.',
-    '<emotion value="affectionate"/><break time="400ms"/>I hear you. <break time="300ms"/>Sometimes you just need to sit with it.',
+    '<emotion value="affectionate"/><break time="400ms"/>I hear you. <break time="300ms"/>There\'s no rush.',
     '<emotion value="affectionate"/><break time="500ms"/>It\'s okay. <break time="300ms"/>We don\'t have to talk.',
     '<emotion value="affectionate"/><break time="400ms"/>Thank you for trusting me with that. <break time="300ms"/>No pressure to say anything else.',
+    '<emotion value="affectionate"/><break time="500ms"/>That\'s heavy. <break time="300ms"/>I\'m here.',
+    '<emotion value="affectionate"/><break time="400ms"/>I felt that. <break time="200ms"/>',
   ],
   late_conversation: [
     '<emotion value="affectionate"/><break time="400ms"/>You know, I\'ve enjoyed this. <break time="200ms"/>Take your time.',
     '<emotion value="affectionate"/><break time="300ms"/>Been a good conversation. <break time="200ms"/>No need to rush.',
-    '<emotion value="affectionate"/><break time="400ms"/>Just sitting here with you. <break time="200ms"/>Nice.',
+    '<emotion value="affectionate"/><break time="400ms"/>This has been nice. <break time="200ms"/>',
+    '<emotion value="affectionate"/><break time="300ms"/>I\'m glad you called.',
   ],
 };
 
@@ -315,7 +326,7 @@ const THINKING_OUT_LOUD = {
   afterQuestion: [
     '<emotion value="curious"/><break time="500ms"/>Hmm. <break time="400ms"/>Good question. <break time="300ms"/>Let me actually think about that.',
     '<emotion value="thoughtful"/><break time="600ms"/>You know, <break time="300ms"/>I want to give that the thought it deserves.',
-    '<emotion value="curious"/><break time="500ms"/>That\'s not a simple one, is it? <break time="400ms"/>I\'m sitting with it.',
+    '<emotion value="curious"/><break time="500ms"/>That\'s not a simple one, is it? <break time="400ms"/>Let me think.',
   ],
   // Generic processing
   general: [
@@ -563,11 +574,15 @@ const SMART_FALLBACK_FRAGMENTS = {
       earlyMorning: ['morning brain is good for this.', 'early hours, huh?'],
       evening: ['end of day processing.', 'winding down but thinking hard.'],
     },
+    // HUMANIZATION FIX: Removed "I'm sitting with this" - became therapy-speak crutch
+    // These are more varied and contextual
     generic: [
-      "I'm sitting with this.",
-      'something in what you said...',
+      'something in that.',
       'the pause is part of it.',
       'not going anywhere.',
+      'hmm.',
+      'yeah.',
+      "I'm here.",
     ],
   },
   closers: {
@@ -686,10 +701,28 @@ function getTimeBasedReference(hour: number): string | null {
  * 2. Interpolating with real values (topic, name, time)
  * 3. Avoiding recently used phrases
  * 4. Assembling in different combinations
+ * 5. Using dynamic presence expressions (not static "sitting with")
  */
 function generateSmartFallback(context: SilenceContext, invitesReply: boolean): string {
   const sessionId = context.sessionId || 'default';
   const fragments = SMART_FALLBACK_FRAGMENTS;
+
+  // 40% chance: Use dynamic presence expression instead of fragment assembly
+  // This adds more variety and context-awareness
+  if (Math.random() < 0.4) {
+    const presenceContext: PresenceContext = {
+      lastUserMessage: context.lastUserMessage,
+      mentionedDetails: context.memorableMoments,
+      emotionalTone: context.recentEmotionalTone === 'heavy' ? 'heavy' : 'neutral',
+      turnCount: context.turnCount,
+      isLateNight: (context.currentHour ?? 0) >= 22 || (context.currentHour ?? 0) < 5,
+      topic: context.wasDiscussingTopic,
+      sessionId,
+    };
+    const dynamicPresence = generatePresenceExpression(presenceContext);
+    trackPhraseUsage(sessionId, dynamicPresence);
+    return dynamicPresence;
+  }
 
   // Pick opener (varies each time)
   const opener = randomFrom(fragments.openers);
@@ -720,7 +753,17 @@ function generateSmartFallback(context: SilenceContext, invitesReply: boolean): 
   const closer = randomFrom(closerOptions);
 
   // Assemble
-  const assembled = `${opener}${contextRef}${closer}`.trim();
+  let assembled = `${opener}${contextRef}${closer}`.trim();
+
+  // HUMANIZATION FIX: Check for "sitting with" cliche and replace if found
+  if (isSittingWithCliche(assembled)) {
+    const presenceContext: PresenceContext = {
+      lastUserMessage: context.lastUserMessage,
+      emotionalTone: context.recentEmotionalTone === 'heavy' ? 'heavy' : 'neutral',
+      sessionId,
+    };
+    assembled = generatePresenceExpression(presenceContext);
+  }
 
   // Track usage
   trackPhraseUsage(sessionId, assembled);
@@ -2184,6 +2227,10 @@ function buildLLMSilenceInstructionsInternal(
   // Get dynamic guidance templates if available
   const llmGuidance = dynamicContent?.llm_guidance;
 
+  // CRITICAL: Response guidance uses STRUCTURED COMMANDS only.
+  // NO conversational phrases that could be echoed as speech!
+  // Format: [TYPE] → [CONSTRAINTS]
+
   if (silenceDurationSeconds < firstThreshold || recentEmotionalTone === 'heavy') {
     // Short silence or heavy topic - just presence
     responseType = 'comfortable_presence';
@@ -2191,10 +2238,7 @@ function buildLLMSilenceInstructionsInternal(
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) ||
-      `Just be present. Maybe a soft acknowledgment, maybe nothing at all.
-If something feels right to say, say it. If not, that's okay too.
-Think: what would a close friend do right now? Probably just... be there.`;
+      ) || '[TYPE: soft_presence] → [MAX: 5 words OR silence]';
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold && hasTopicsToReference) {
     // Medium silence WITH something to reference - use memory callback
@@ -2203,10 +2247,7 @@ Think: what would a close friend do right now? Probably just... be there.`;
       llmGuidance?.memory_callback?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) ||
-      `Something they said is still with you. Let that show naturally.
-Not a summary, not checking in - more like "hmm, that thing about X still lands."
-You're thinking alongside them, not managing the conversation.`;
+      ) || '[TYPE: memory_reference] → [REF: something they shared] [NO: questions]';
     invitesReply = false;
   } else if (silenceDurationSeconds < secondThreshold) {
     // Medium silence but NO topics to reference - fall back to presence
@@ -2215,9 +2256,7 @@ You're thinking alongside them, not managing the conversation.`;
       llmGuidance?.presence?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) ||
-      `Just presence. You're here, they know it, that's enough.
-Could be a few words, could be nothing. Trust the moment.`;
+      ) || '[TYPE: presence] → [MAX: 8 words] [TONE: warm]';
     invitesReply = false;
   } else if (turnCount >= questionMinTurns) {
     // Longer silence, established conversation - thoughtful question
@@ -2226,11 +2265,7 @@ Could be a few words, could be nothing. Trust the moment.`;
       llmGuidance?.thoughtful_question?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) ||
-      `You've been listening. Now you're curious about something specific.
-Not a generic question - something that comes from what they actually shared.
-Ask because you genuinely want to know, not to fill silence.
-Could be about a detail they mentioned, a person in their story, what they're actually feeling.`;
+      ) || '[TYPE: curious_question] → [ABOUT: specific detail they shared] [NOT: generic]';
     invitesReply = true;
   } else {
     // Early conversation, long silence - gentle check-in
@@ -2239,10 +2274,7 @@ Could be about a detail they mentioned, a person in their story, what they're ac
       llmGuidance?.check_in?.instruction_template?.replace(
         '{duration}',
         String(Math.round(silenceDurationSeconds))
-      ) ||
-      `Check in naturally - like you'd notice a friend went quiet.
-Not "are you okay?" more like "what's going on in there?" or just curiosity about where their mind went.
-Open, warm, no pressure.`;
+      ) || '[TYPE: check_in] → [STYLE: curious not concerned] [MAX: 10 words]';
     invitesReply = true;
   }
 
@@ -2257,9 +2289,6 @@ Open, warm, no pressure.`;
       invitesReply: false,
     };
   }
-
-  // Build rich context for the LLM
-  const personaName = persona.name || 'Ferni';
 
   // Include actual conversation content, not just metadata
   const conversationContext: string[] = [];
@@ -2279,24 +2308,14 @@ Open, warm, no pressure.`;
     conversationContext.push(`Topic: ${wasDiscussingTopic}`);
   }
 
-  // Build natural instructions - NOT rigid/prescriptive
-  const naturalGuidance = `You're ${personaName}. It's been ${Math.round(silenceDurationSeconds)} seconds of quiet.
+  // Build STRUCTURED instructions that cannot be mistaken for speech
+  // Using [BRACKET] format that Gemini recognizes as meta-commands
+  const contextLine = conversationContext.length > 0 ? conversationContext.join(' | ') : '';
+  const hintsLine = contextHints.length > 0 ? contextHints.join('. ') : '';
 
-${conversationContext.length > 0 ? `WHAT YOU KNOW:\n${conversationContext.join('\n')}\n` : ''}
-${contextHints.length > 0 ? `Context: ${contextHints.join('. ')}\n` : ''}
-${timeHint ? `Time: ${timeHint}\n` : ''}
-
-HOW TO RESPOND:
+  const instructions = `[SITUATION: ${Math.round(silenceDurationSeconds)}s silence${contextLine ? ` | ${contextLine}` : ''}${hintsLine ? ` | ${hintsLine}` : ''}${timeHint ? ` | ${timeHint}` : ''}]
 ${responseGuidance}
-
-Be genuine - like a real friend who's comfortable with silence but also present.
-Don't be robotic or formulaic. Don't say "I'm here if you need me" type phrases.
-Respond naturally - could be a few words, could be a full thought. Whatever fits the moment.`;
-
-  // Just output plain text - no JSON wrapper needed
-  const instructions = `${naturalGuidance}
-
-Respond with ONLY your message as plain text. No JSON. No quotes. Just speak naturally.`;
+[OUTPUT: plain text only, no quotes, no meta-commentary]`;
 
   // Generate smart fallback instead of random static selection
   const smartFallback = getSmartFallbackWithRecency(context, invitesReply);

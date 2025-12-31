@@ -462,6 +462,237 @@ async function handleBatchTest(req: IncomingMessage, res: ServerResponse): Promi
 }
 
 // ============================================================================
+// GROUP OUTREACH TEST HANDLERS
+// ============================================================================
+
+interface GroupOutreachTestRequest {
+  /** User ID to test with */
+  userId: string;
+  /** Type of group outreach to test */
+  type: 'celebration' | 'support' | 'planning' | 'insight' | 'roundtable';
+  /** Topic or achievement to discuss */
+  topic?: string;
+  /** Preferred name for personalization */
+  preferredName?: string;
+  /** Personas to include (for roundtable) */
+  personas?: string[];
+}
+
+/**
+ * POST /api/synthetic-test/group-outreach
+ *
+ * Test group outreach functionality.
+ * Triggers different types of multi-persona outreach.
+ */
+async function handleGroupOutreachTest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    const body = (await parseBody(req)) as unknown as GroupOutreachTestRequest;
+
+    if (!body.userId) {
+      sendJson(res, 400, { error: 'Missing required field: userId' });
+      return;
+    }
+
+    if (!body.type) {
+      sendJson(res, 400, { error: 'Missing required field: type' });
+      return;
+    }
+
+    log.info({ userId: body.userId, type: body.type }, '🧪 [SYNTHETIC] Group outreach test starting');
+
+    // Import group outreach functions
+    const {
+      teamCelebrationOutreach,
+      fullTeamSupportOutreach,
+      mayaJordanPlanningOutreach,
+      peterFerniInsightOutreach,
+      initiateTeamRoundtableCall,
+    } = await import('../../../services/conversation-thread/group-outreach.js');
+
+    let result: { success: boolean; error?: string; threadId?: string; messagesSent?: number };
+
+    switch (body.type) {
+      case 'celebration':
+        result = await teamCelebrationOutreach(body.userId, {
+          achievement: body.topic || 'completing a test achievement',
+          preferredName: body.preferredName,
+        });
+        break;
+
+      case 'support':
+        result = await fullTeamSupportOutreach(body.userId, {
+          situation: body.topic || 'a test situation',
+          preferredName: body.preferredName,
+        });
+        break;
+
+      case 'planning':
+        result = await mayaJordanPlanningOutreach(body.userId, {
+          eventName: body.topic || 'a test event',
+          preferredName: body.preferredName,
+        });
+        break;
+
+      case 'insight':
+        result = await peterFerniInsightOutreach(body.userId, {
+          topic: body.topic || 'a test insight',
+          insight: 'a test insight pattern worth discussing',
+          preferredName: body.preferredName,
+        });
+        break;
+
+      case 'roundtable':
+        result = await initiateTeamRoundtableCall(body.userId, {
+          personas: (body.personas as Array<'ferni' | 'peter-john' | 'maya-habits' | 'jordan-milestones' | 'alex-comms' | 'nayan-wisdom'>) || ['ferni', 'maya-habits', 'jordan-milestones'],
+          topic: body.topic || 'team check-in',
+          reason: 'Synthetic test - team roundtable',
+          preferredName: body.preferredName,
+        });
+        break;
+
+      default:
+        sendJson(res, 400, { error: `Unknown type: ${body.type}` });
+        return;
+    }
+
+    log.info(
+      {
+        userId: body.userId,
+        type: body.type,
+        success: result.success,
+        durationMs: Date.now() - startTime,
+      },
+      '🧪 [SYNTHETIC] Group outreach test completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+      testType: body.type,
+      result,
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, '🧪 [SYNTHETIC] Group outreach test failed');
+    sendJson(res, 500, {
+      success: false,
+      error: String(error),
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+    });
+  }
+}
+
+/**
+ * POST /api/synthetic-test/thread-context
+ *
+ * Test thread context building.
+ * Creates a thread and builds agent context to verify LLM injection.
+ */
+async function handleThreadContextTest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    const body = (await parseBody(req)) as { userId: string; agentId?: string };
+
+    if (!body.userId) {
+      sendJson(res, 400, { error: 'Missing required field: userId' });
+      return;
+    }
+
+    const { getOrCreateThread, buildAgentContext } = await import('../../../services/conversation-thread/thread-manager.js');
+    type ValidPersonaId = 'ferni' | 'peter-john' | 'maya-habits' | 'jordan-milestones' | 'alex-comms' | 'nayan-wisdom';
+
+    // Create or get a test thread
+    // Signature: getOrCreateThread(userId, channel, agentId, options?)
+    const thread = await getOrCreateThread(body.userId, 'voice', 'ferni', {
+      triggerType: 'check_in',
+    });
+
+    // Build agent context
+    const context = await buildAgentContext(thread.id, (body.agentId || 'ferni') as ValidPersonaId, {
+      userInitiated: true,
+    });
+
+    sendJson(res, 200, {
+      success: true,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+      thread: {
+        id: thread.id,
+        currentOwnerId: thread.currentOwnerId,
+        messageCount: thread.messageCount,
+        status: thread.status,
+      },
+      context: {
+        hasContext: !!context.llmContext,
+        contextLength: context.llmContext?.length || 0,
+        preview: context.llmContext?.slice(0, 500) + (context.llmContext && context.llmContext.length > 500 ? '...' : ''),
+      },
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, '🧪 [SYNTHETIC] Thread context test failed');
+    sendJson(res, 500, {
+      success: false,
+      error: String(error),
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+    });
+  }
+}
+
+/**
+ * POST /api/synthetic-test/inbound-routing
+ *
+ * Test inbound routing logic.
+ * Simulates an inbound message and returns routing decision.
+ */
+async function handleInboundRoutingTest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const startTime = Date.now();
+
+  try {
+    const body = (await parseBody(req)) as {
+      userId: string;
+      channel: 'sms' | 'voice' | 'push' | 'in_app';
+      message: string;
+      metadata?: Record<string, unknown>;
+    };
+
+    if (!body.userId || !body.channel || !body.message) {
+      sendJson(res, 400, { error: 'Missing required fields: userId, channel, message' });
+      return;
+    }
+
+    const { routeInbound } = await import('../../../services/conversation-thread/inbound-router.js');
+
+    const routeDecision = await routeInbound(body.userId, body.channel, body.message, body.metadata);
+
+    sendJson(res, 200, {
+      success: true,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+      routing: {
+        agentId: routeDecision.agentId,
+        threadId: routeDecision.threadId,
+        confidence: routeDecision.confidence,
+        reason: routeDecision.reason,
+        acknowledgeOutreach: routeDecision.acknowledgeOutreach,
+      },
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, '🧪 [SYNTHETIC] Inbound routing test failed');
+    sendJson(res, 500, {
+      success: false,
+      error: String(error),
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
+    });
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -536,6 +767,31 @@ export async function handleSyntheticTestRoutes(
         return true;
       }
       await handleBatchTest(req, res);
+      return true;
+
+    // Group Outreach / Thread System Tests
+    case '/api/synthetic-test/group-outreach':
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return true;
+      }
+      await handleGroupOutreachTest(req, res);
+      return true;
+
+    case '/api/synthetic-test/thread-context':
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return true;
+      }
+      await handleThreadContextTest(req, res);
+      return true;
+
+    case '/api/synthetic-test/inbound-routing':
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return true;
+      }
+      await handleInboundRoutingTest(req, res);
       return true;
 
     default:

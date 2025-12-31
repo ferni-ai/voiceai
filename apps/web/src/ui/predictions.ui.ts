@@ -257,8 +257,8 @@ export class PredictionsUI {
           </div>
         </div>
         <footer class="prediction-resolution-modal__footer">
-          <button aria-label="Cancel" class="prediction-resolution-modal__cancel">Cancel</button>
-          <button aria-label="Save Result" class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
+          <button aria-label="${t('accessibility.cancel')}" class="prediction-resolution-modal__cancel">Cancel</button>
+          <button aria-label="${t('accessibility.saveResult')}" class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
         </footer>
       </div>
     `;
@@ -401,7 +401,7 @@ export class PredictionsUI {
       resultHtml = `
         <div class="prediction-card__pending">
           <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}</span>
-          <button aria-label="Record Actual" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
+          <button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
             Record Actual
           </button>
         </div>

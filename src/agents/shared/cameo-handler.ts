@@ -639,7 +639,7 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
 // UTILITY
 // ============================================================================
 
-function sleep(ms: number): Promise<void> {
+async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });

@@ -141,8 +141,7 @@ export const EMOTION_ARC_PATTERNS: EmotionArcPattern[] = [
   },
   // Wistful → acceptance
   {
-    pattern:
-      /\b(I (?:sometimes )?wish|if only|I miss)([^.!?]*?)(but (?:that's|it's|life))/gi,
+    pattern: /\b(I (?:sometimes )?wish|if only|I miss)([^.!?]*?)(but (?:that's|it's|life))/gi,
     replacement: '<emotion value="wistful"/>$1$2<emotion value="content"/>$3',
     name: 'wistful_to_acceptance',
   },
@@ -186,22 +185,19 @@ export const EMOTION_ARC_PATTERNS: EmotionArcPattern[] = [
 
   // Hesitation → determination
   {
-    pattern:
-      /\b(I wasn't sure|I was hesitant)([^.!?]*?)(but (?:I decided|I'm going to|I will))/gi,
+    pattern: /\b(I wasn't sure|I was hesitant)([^.!?]*?)(but (?:I decided|I'm going to|I will))/gi,
     replacement: '<emotion value="hesitant"/>$1$2<emotion value="determined"/>$3',
     name: 'hesitation_to_determination',
   },
   // Uncertainty → confidence
   {
-    pattern:
-      /\b(I didn't know if|I wasn't confident)([^.!?]*?)(but (?:now I|turns out I|I can))/gi,
+    pattern: /\b(I didn't know if|I wasn't confident)([^.!?]*?)(but (?:now I|turns out I|I can))/gi,
     replacement: '<emotion value="insecure"/>$1$2<emotion value="confident"/>$3',
     name: 'uncertainty_to_confidence',
   },
   // Pride with humility
   {
-    pattern:
-      /\b(I'm (?:really )?proud of)([^.!?]*?)((?:though|but) I (?:couldn't have|know I))/gi,
+    pattern: /\b(I'm (?:really )?proud of)([^.!?]*?)((?:though|but) I (?:couldn't have|know I))/gi,
     replacement: '<emotion value="proud"/>$1$2<emotion value="grateful"/>$3',
     name: 'pride_with_humility',
   },

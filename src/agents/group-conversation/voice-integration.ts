@@ -424,7 +424,7 @@ export class GroupVoiceIntegration {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(response));
 
-    this.config.room.localParticipant?.publishData(data, { reliable: true });
+    void this.config.room.localParticipant?.publishData(data, { reliable: true });
   }
 
   /**
@@ -439,7 +439,7 @@ export class GroupVoiceIntegration {
       })
     );
 
-    this.config.room.localParticipant?.publishData(data, { reliable: true });
+    void this.config.room.localParticipant?.publishData(data, { reliable: true });
   }
 }
 
@@ -456,7 +456,7 @@ function isGroupDataChannelMessage(data: unknown): data is GroupDataChannelMessa
   }
 
   const message = data as Record<string, unknown>;
-  const type = message.type;
+  const { type } = message;
 
   return (
     type === 'group_roundtable_start' ||

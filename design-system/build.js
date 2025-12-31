@@ -36,6 +36,9 @@ const predictive = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/predi
 const motion = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/motion.json'), 'utf8'));
 const glowColors = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/glow-colors.json'), 'utf8'));
 
+// Window Avatar token file (Scale variants, expressions, animation timing)
+const windowAvatar = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/window-avatar.json'), 'utf8'));
+
 // ============================================================================
 // CSS GENERATION HELPERS
 // ============================================================================
@@ -2596,6 +2599,558 @@ function generateGlowColorsCSS(glowColors) {
 }
 
 // ============================================================================
+// WINDOW AVATAR CSS GENERATION
+// ============================================================================
+
+/**
+ * Generate CSS for Window Avatar scale variants and expressions.
+ *
+ * The Window Avatar creates the illusion of Ferni peeking through the interface.
+ * At different scales:
+ * - tiny (24-32px): Only eyes visible (favicon, badge)
+ * - small (40-64px): Minimal expression with reduced lid visibility
+ * - medium (80-120px): Full expression range (main avatar)
+ * - large (160-240px): Maximum detail with enhanced expressions
+ */
+function generateWindowAvatarCSS(windowAvatar) {
+  const lines = [];
+  const wa = windowAvatar.windowAvatar;
+  if (!wa) return '';
+
+  // Base CSS variables for window avatar
+  lines.push(':root {');
+  lines.push('  /* Window Avatar - Default values */');
+
+  // Lid defaults
+  if (wa.lids) {
+    const topDefault = wa.lids.top?.default || {};
+    const bottomDefault = wa.lids.bottom?.default || {};
+    lines.push(`  --window-avatar-lid-top-cutoff: ${topDefault.cutoff || 0.12};`);
+    lines.push(`  --window-avatar-lid-top-curve: ${topDefault.curve || 0};`);
+    lines.push(`  --window-avatar-lid-bottom-cutoff: ${bottomDefault.cutoff || 0.12};`);
+    lines.push(`  --window-avatar-lid-bottom-curve: ${bottomDefault.curve || 0};`);
+
+    // Speaking animation range
+    if (wa.lids.bottom?.speaking) {
+      const speaking = wa.lids.bottom.speaking;
+      lines.push(`  --window-avatar-speak-min-cutoff: ${speaking.minCutoff || 0.10};`);
+      lines.push(`  --window-avatar-speak-max-cutoff: ${speaking.maxCutoff || 0.35};`);
+      lines.push(`  --window-avatar-speak-volume-scale: ${speaking.volumeScale || 0.25};`);
+    }
+  }
+  lines.push('');
+
+  // Animation timing
+  if (wa.animation) {
+    lines.push('  /* Window Avatar - Animation Timing */');
+    if (wa.animation.mouth?.duration) {
+      lines.push(`  --window-avatar-mouth-idle: ${wa.animation.mouth.duration.idle}ms;`);
+      lines.push(`  --window-avatar-mouth-speaking: ${wa.animation.mouth.duration.speaking}ms;`);
+      lines.push(`  --window-avatar-mouth-transition: ${wa.animation.mouth.duration.transition}ms;`);
+    }
+    if (wa.animation.mouth?.smoothing) {
+      lines.push(`  --window-avatar-mouth-attack: ${wa.animation.mouth.smoothing.attack};`);
+      lines.push(`  --window-avatar-mouth-release: ${wa.animation.mouth.smoothing.release};`);
+    }
+    if (wa.animation.brow?.duration) {
+      lines.push(`  --window-avatar-brow-raise: ${wa.animation.brow.duration.raise}ms;`);
+      lines.push(`  --window-avatar-brow-lower: ${wa.animation.brow.duration.lower}ms;`);
+      lines.push(`  --window-avatar-brow-transition: ${wa.animation.brow.duration.transition}ms;`);
+    }
+    if (wa.animation.expression?.transition) {
+      lines.push(`  --window-avatar-expression-transition: ${wa.animation.expression.transition.duration}ms;`);
+    }
+    if (wa.animation.expression?.microExpression) {
+      lines.push(`  --window-avatar-micro-expression: ${wa.animation.expression.microExpression.duration}ms;`);
+    }
+  }
+  lines.push('');
+
+  // Shape parameters
+  if (wa.shapes) {
+    lines.push('  /* Window Avatar - Shape Parameters */');
+    lines.push(`  --window-avatar-curve-tension: ${wa.shapes.curveTension?.default || 0.3};`);
+    lines.push(`  --window-avatar-curve-smooth: ${wa.shapes.curveTension?.smooth || 0.5};`);
+    lines.push(`  --window-avatar-curve-sharp: ${wa.shapes.curveTension?.sharp || 0.15};`);
+  }
+
+  lines.push('}');
+  lines.push('');
+
+  // Scale variant classes
+  lines.push('/* Window Avatar - Scale Variants */');
+  lines.push('/* Based on window-avatar.json scale definitions */');
+  lines.push('');
+
+  if (wa.scale) {
+    // Tiny scale (24-32px) - favicon, badge
+    if (wa.scale.tiny) {
+      const tiny = wa.scale.tiny;
+      lines.push('.window-avatar--tiny,');
+      lines.push('.ferni-avatar--tiny {');
+      lines.push('  --window-avatar-size: 28px;');
+      lines.push('  --window-avatar-lid-visible: 0;'); // Lids hidden at tiny size
+      lines.push('  --window-avatar-lid-scale: 0;');
+      lines.push('}');
+      lines.push('.window-avatar--tiny .lid,');
+      lines.push('.ferni-avatar--tiny .lid,');
+      lines.push('.window-avatar--tiny .lid-top,');
+      lines.push('.ferni-avatar--tiny .lid-top,');
+      lines.push('.window-avatar--tiny .lid-bottom,');
+      lines.push('.ferni-avatar--tiny .lid-bottom {');
+      lines.push('  display: none; /* Eyes only at tiny size */');
+      lines.push('}');
+      lines.push('');
+    }
+
+    // Small scale (40-64px) - nav, list items
+    if (wa.scale.small) {
+      const small = wa.scale.small;
+      lines.push('.window-avatar--small,');
+      lines.push('.ferni-avatar--small {');
+      lines.push('  --window-avatar-size: 52px;');
+      lines.push(`  --window-avatar-lid-scale: ${small.lidScale || 0.8};`);
+      lines.push('  --window-avatar-lid-visible: 1;');
+      lines.push('}');
+      lines.push('.window-avatar--small .lid-shape,');
+      lines.push('.ferni-avatar--small .lid-shape {');
+      lines.push('  /* Reduced lid expression at small size */');
+      lines.push('  transform: scaleY(0.8);');
+      lines.push('}');
+      lines.push('');
+    }
+
+    // Medium scale (80-120px) - main avatar (default)
+    if (wa.scale.medium) {
+      const medium = wa.scale.medium;
+      lines.push('.window-avatar--medium,');
+      lines.push('.ferni-avatar--medium,');
+      lines.push('.ferni-avatar { /* Default size */');
+      lines.push('  --window-avatar-size: 100px;');
+      lines.push(`  --window-avatar-lid-scale: ${medium.lidScale || 1.0};`);
+      lines.push('  --window-avatar-lid-visible: 1;');
+      lines.push('}');
+      lines.push('');
+    }
+
+    // Large scale (160-240px) - hero, onboarding
+    if (wa.scale.large) {
+      const large = wa.scale.large;
+      lines.push('.window-avatar--large,');
+      lines.push('.ferni-avatar--large {');
+      lines.push('  --window-avatar-size: 200px;');
+      lines.push(`  --window-avatar-lid-scale: ${large.lidScale || 1.2};`);
+      lines.push('  --window-avatar-lid-visible: 1;');
+      lines.push('}');
+      lines.push('.window-avatar--large .lid-shape,');
+      lines.push('.ferni-avatar--large .lid-shape {');
+      lines.push('  /* Enhanced expression at large size */');
+      lines.push('  transform: scaleY(1.2);');
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // Expression modifier classes (generated from top/bottom lid expressions)
+  lines.push('/* Window Avatar - Expression Classes */');
+  lines.push('/* Apply via data-expression attribute or class */');
+  lines.push('');
+
+  if (wa.lids?.top?.expressions) {
+    for (const [expression, values] of Object.entries(wa.lids.top.expressions)) {
+      const bottomValues = wa.lids?.bottom?.expressions?.[expression] || {};
+      const topCutoff = values.cutoff || 0.12;
+      const topCurve = values.curve || 0;
+      const topAsymmetry = values.asymmetry || 0;
+      const bottomCutoff = bottomValues.cutoff || 0.12;
+      const bottomCurve = bottomValues.curve || 0;
+      const bottomAsymmetry = bottomValues.asymmetry || 0;
+
+      lines.push(`.ferni-avatar[data-expression="${expression}"],`);
+      lines.push(`.window-avatar[data-expression="${expression}"],`);
+      lines.push(`.ferni-avatar--${expression} {`);
+      lines.push(`  --window-avatar-lid-top-cutoff: ${topCutoff};`);
+      lines.push(`  --window-avatar-lid-top-curve: ${topCurve};`);
+      lines.push(`  --window-avatar-lid-top-asymmetry: ${topAsymmetry};`);
+      lines.push(`  --window-avatar-lid-bottom-cutoff: ${bottomCutoff};`);
+      lines.push(`  --window-avatar-lid-bottom-curve: ${bottomCurve};`);
+      lines.push(`  --window-avatar-lid-bottom-asymmetry: ${bottomAsymmetry};`);
+      lines.push('}');
+      lines.push('');
+    }
+  }
+
+  // State transition classes
+  lines.push('/* Window Avatar - State Transitions */');
+  if (wa.stateTransitions) {
+    for (const [state, data] of Object.entries(wa.stateTransitions)) {
+      if (state === 'description' || typeof data !== 'object') continue;
+      if (data.top && data.bottom) {
+        lines.push(`.ferni-avatar[data-state="${state}"],`);
+        lines.push(`.window-avatar[data-state="${state}"] {`);
+        lines.push(`  --window-avatar-lid-top-cutoff: ${data.top.cutoff || 0.12};`);
+        lines.push(`  --window-avatar-lid-top-curve: ${data.top.curve || 0};`);
+        if (typeof data.bottom === 'object') {
+          lines.push(`  --window-avatar-lid-bottom-cutoff: ${data.bottom.cutoff || 0.12};`);
+          lines.push(`  --window-avatar-lid-bottom-curve: ${data.bottom.curve || 0};`);
+        }
+        lines.push('}');
+        lines.push('');
+      }
+    }
+  }
+
+  // Phoneme shapes for lip-sync (as CSS custom properties)
+  lines.push('/* Window Avatar - Phoneme Shapes for Lip Sync */');
+  lines.push(':root {');
+  if (wa.phonemes?.shapes) {
+    for (const [phoneme, shape] of Object.entries(wa.phonemes.shapes)) {
+      lines.push(`  --phoneme-${phoneme.toLowerCase()}-open: ${shape.open || 0};`);
+      lines.push(`  --phoneme-${phoneme.toLowerCase()}-width: ${shape.width || 1};`);
+      lines.push(`  --phoneme-${phoneme.toLowerCase()}-roundness: ${shape.roundness || 0};`);
+    }
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Brow animation keyframes and utility classes
+  lines.push('/* Window Avatar - Brow Animation Keyframes */');
+  lines.push('/* Brow = top lid - creates forehead/eyebrow expressions */');
+  lines.push('');
+
+  // Brow raise animation (surprised, curious, questioning)
+  const browRaiseDuration = wa.animation?.brow?.duration?.raise || 250;
+  const browLowerDuration = wa.animation?.brow?.duration?.lower || 400;
+  const browTransitionDuration = wa.animation?.brow?.duration?.transition || 350;
+
+  lines.push(`@keyframes browRaise {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.06;
+    transform: translateY(-3px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.08;
+    transform: translateY(-2px);
+  }
+}`);
+  lines.push('');
+
+  lines.push(`@keyframes browLower {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.18;
+    transform: translateY(2px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.16;
+    transform: translateY(1px);
+  }
+}`);
+  lines.push('');
+
+  lines.push(`@keyframes browFurrow {
+  0% {
+    --window-avatar-lid-top-curve: 0;
+    transform: scaleY(1);
+  }
+  50% {
+    --window-avatar-lid-top-curve: -0.12;
+    transform: scaleY(0.95);
+  }
+  100% {
+    --window-avatar-lid-top-curve: -0.08;
+    transform: scaleY(0.97);
+  }
+}`);
+  lines.push('');
+
+  lines.push(`@keyframes browQuirk {
+  0% {
+    --window-avatar-lid-top-asymmetry: 0;
+  }
+  30% {
+    --window-avatar-lid-top-asymmetry: 0.3;
+  }
+  70% {
+    --window-avatar-lid-top-asymmetry: 0.25;
+  }
+  100% {
+    --window-avatar-lid-top-asymmetry: 0.2;
+  }
+}`);
+  lines.push('');
+
+  // Brow animation utility classes
+  lines.push('/* Window Avatar - Brow Animation Utility Classes */');
+  lines.push(`
+.ferni-avatar--brow-raise .lid-top,
+.window-avatar--brow-raise .lid-top {
+  animation: browRaise ${browRaiseDuration}ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+.ferni-avatar--brow-lower .lid-top,
+.window-avatar--brow-lower .lid-top {
+  animation: browLower ${browLowerDuration}ms var(--motion-ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) forwards;
+}
+
+.ferni-avatar--brow-furrow .lid-top,
+.window-avatar--brow-furrow .lid-top {
+  animation: browFurrow ${browTransitionDuration}ms var(--motion-ease-soft, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.ferni-avatar--brow-quirk .lid-top,
+.window-avatar--brow-quirk .lid-top {
+  animation: browQuirk 300ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+/* Micro-expression brow flash - subliminal 40-150ms */
+.ferni-avatar--brow-flash .lid-top,
+.window-avatar--brow-flash .lid-top {
+  animation: browRaise ${wa.animation?.expression?.microExpression?.duration || 80}ms ease-out;
+}
+`);
+
+  // ==========================================================================
+  // NOTIFICATION BADGE CSS
+  // ==========================================================================
+
+  if (wa.notificationBadge) {
+    const badge = wa.notificationBadge;
+    lines.push('');
+    lines.push('/* Window Avatar - Notification Badge */');
+
+    // Badge keyframes
+    lines.push(`
+@keyframes badgeEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(4px);
+  }
+  60% {
+    transform: scale(1.15) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@keyframes badgeBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+`);
+
+    // Base badge styles
+    lines.push(`
+/* Base notification badge */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  line-height: 1;
+  z-index: 10;
+  transition: transform 200ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+              opacity 200ms ease-out;
+}
+
+/* Badge positioning */
+.ferni-avatar__badge--top-right,
+.window-avatar__badge--top-right {
+  top: ${badge.positioning?.topRight?.top || '-4px'};
+  right: ${badge.positioning?.topRight?.right || '-4px'};
+}
+
+.ferni-avatar__badge--top-left,
+.window-avatar__badge--top-left {
+  top: ${badge.positioning?.topLeft?.top || '-4px'};
+  left: ${badge.positioning?.topLeft?.left || '-4px'};
+}
+
+.ferni-avatar__badge--bottom-right,
+.window-avatar__badge--bottom-right {
+  bottom: ${badge.positioning?.bottomRight?.bottom || '-4px'};
+  right: ${badge.positioning?.bottomRight?.right || '-4px'};
+}
+
+.ferni-avatar__badge--bottom-left,
+.window-avatar__badge--bottom-left {
+  bottom: ${badge.positioning?.bottomLeft?.bottom || '-4px'};
+  left: ${badge.positioning?.bottomLeft?.left || '-4px'};
+}
+
+/* Badge sizes */
+.ferni-avatar__badge--dot,
+.window-avatar__badge--dot {
+  width: ${badge.sizes?.dot?.width || '8px'};
+  height: ${badge.sizes?.dot?.height || '8px'};
+  min-width: unset;
+  padding: 0;
+}
+
+.ferni-avatar__badge--small,
+.window-avatar__badge--small {
+  min-width: ${badge.sizes?.small?.minWidth || '16px'};
+  height: ${badge.sizes?.small?.height || '16px'};
+  font-size: ${badge.sizes?.small?.fontSize || '10px'};
+  padding: ${badge.sizes?.small?.padding || '0 4px'};
+}
+
+.ferni-avatar__badge,
+.window-avatar__badge {
+  min-width: ${badge.sizes?.default?.minWidth || '20px'};
+  height: ${badge.sizes?.default?.height || '20px'};
+  font-size: ${badge.sizes?.default?.fontSize || '11px'};
+  padding: ${badge.sizes?.default?.padding || '0 6px'};
+}
+
+/* Badge variants */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  background: ${badge.variants?.default?.background || 'var(--color-semantic-error)'};
+  color: ${badge.variants?.default?.color || 'white'};
+}
+
+.ferni-avatar__badge--subtle,
+.window-avatar__badge--subtle {
+  background: ${badge.variants?.subtle?.background || 'var(--color-bg-elevated)'};
+  border: ${badge.variants?.subtle?.border || '1px solid var(--color-border-medium)'};
+  color: ${badge.variants?.subtle?.color || 'var(--color-text-secondary)'};
+}
+
+.ferni-avatar__badge--success,
+.window-avatar__badge--success {
+  background: ${badge.variants?.success?.background || 'var(--color-semantic-success)'};
+  color: ${badge.variants?.success?.color || 'white'};
+}
+
+.ferni-avatar__badge--persona,
+.window-avatar__badge--persona {
+  background: ${badge.variants?.persona?.background || 'var(--persona-primary)'};
+  color: ${badge.variants?.persona?.color || 'white'};
+}
+
+/* Badge states */
+.ferni-avatar__badge--hidden,
+.window-avatar__badge--hidden {
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+.ferni-avatar__badge--visible,
+.window-avatar__badge--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Badge animations */
+.ferni-avatar__badge--animate-in,
+.window-avatar__badge--animate-in {
+  animation: badgeEntrance ${badge.animation?.entrance?.duration || '300ms'} ${badge.animation?.entrance?.easing || 'var(--ease-out-back)'} forwards;
+}
+
+.ferni-avatar__badge--pulse,
+.window-avatar__badge--pulse {
+  animation: badgePulse ${badge.animation?.pulse?.duration || '1.5s'} ease-in-out ${badge.animation?.pulse?.iteration || 'infinite'};
+}
+
+.ferni-avatar__badge--bounce,
+.window-avatar__badge--bounce {
+  animation: badgeBounce ${badge.animation?.bounce?.duration || '400ms'} ${badge.animation?.bounce?.easing || 'var(--ease-spring)'};
+}
+
+/* Container needs position relative for absolute badge positioning */
+.ferni-avatar--has-badge,
+.window-avatar--has-badge {
+  position: relative;
+}
+
+/* Scale-specific badge adjustments */
+.ferni-avatar--tiny .ferni-avatar__badge,
+.window-avatar--tiny .window-avatar__badge {
+  /* Smaller badge for tiny avatars */
+  min-width: 12px;
+  height: 12px;
+  font-size: 8px;
+  padding: 0 3px;
+  top: -2px;
+  right: -2px;
+}
+
+.ferni-avatar--tiny .ferni-avatar__badge--dot,
+.window-avatar--tiny .window-avatar__badge--dot {
+  width: 6px;
+  height: 6px;
+}
+
+.ferni-avatar--small .ferni-avatar__badge,
+.window-avatar--small .window-avatar__badge {
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  padding: 0 3px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge,
+.window-avatar--large .window-avatar__badge {
+  /* Larger badge for large avatars */
+  min-width: 24px;
+  height: 24px;
+  font-size: 13px;
+  padding: 0 8px;
+  top: -6px;
+  right: -6px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge--dot,
+.window-avatar--large .window-avatar__badge--dot {
+  width: 12px;
+  height: 12px;
+}
+`);
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // HIGH CONTRAST CSS GENERATION
 // ============================================================================
 
@@ -2837,6 +3392,14 @@ function build() {
   output.push('   Avatar emotional glow colors');
   output.push('   ======================================== */');
   output.push(generateGlowColorsCSS(glowColors));
+  output.push('');
+
+  // Window Avatar (Scale Variants, Expressions, Animation Timing)
+  output.push('/* ========================================');
+  output.push('   WINDOW AVATAR');
+  output.push('   Scale variants, expressions, phonemes');
+  output.push('   ======================================== */');
+  output.push(generateWindowAvatarCSS(windowAvatar));
 
   // Accessibility - High Contrast Mode
   output.push('');

@@ -91,7 +91,7 @@ describe('TeamHuddle', () => {
       const observations = getObservations(testUserId);
       expect(observations.length).toBe(3);
 
-      const personaIds = observations.map(o => o.personaId);
+      const personaIds = observations.map((o) => o.personaId);
       expect(personaIds).toContain('maya');
       expect(personaIds).toContain('peter');
       expect(personaIds).toContain('jordan');
@@ -273,18 +273,19 @@ describe('TeamHuddle', () => {
     });
 
     it('should generate synthesis for multiple observations', async () => {
+      // Use 'concern' and 'opportunity' types which the synthesizeInsights function counts
       recordObservation(testUserId, {
         personaId: 'maya',
-        observationType: 'pattern',
-        content: 'User exercises daily',
+        observationType: 'concern',
+        content: 'User stress levels elevated',
         confidence: 0.9,
-        domain: 'physical_activity',
+        domain: 'stress',
       });
 
       recordObservation(testUserId, {
         personaId: 'jordan',
-        observationType: 'milestone',
-        content: 'User achieved fitness goal',
+        observationType: 'opportunity',
+        content: 'User ready for goal celebration',
         confidence: 0.95,
         domain: 'achievements',
       });

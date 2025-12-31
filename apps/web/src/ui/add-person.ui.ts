@@ -819,7 +819,7 @@ export function openAddPerson(options?: AddPersonOptions): void {
   modalContainer.className = 'add-person-overlay';
   modalContainer.innerHTML = `
     <div class="add-person-backdrop"></div>
-    <div class="add-person-modal" role="dialog" aria-modal="true" aria-label="Add a person">
+    <div class="add-person-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.addAPerson')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

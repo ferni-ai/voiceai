@@ -34,6 +34,8 @@ struct SsmlPatterns {
     break_tag: Regex,
     emotion_tag: Regex,
     speed_tag: Regex,
+    volume_tag: Regex,
+    spell_tag: Regex,
     emphasis_tag: Regex,
     prosody_tag: Regex,
     phoneme_tag: Regex,
@@ -56,6 +58,9 @@ impl SsmlPatterns {
             break_tag: Regex::new(r#"<break\s+time=["']?(\d+(?:ms|s))["']?\s*/>"#).unwrap(),
             emotion_tag: Regex::new(r#"<emotion\s+value=["']?([^"'>\s]+)["']?\s*/>"#).unwrap(),
             speed_tag: Regex::new(r#"<speed\s+ratio=["']?([\d.]+)["']?\s*/>"#).unwrap(),
+            // Cartesia Sonic-3 specific tags
+            volume_tag: Regex::new(r#"<volume\s+ratio=["']?([\d.]+)["']?\s*/?>"#).unwrap(),
+            spell_tag: Regex::new(r#"<spell>([^<]*)</spell>"#).unwrap(),
             emphasis_tag: Regex::new(r#"<emphasis\s+level=["']?([^"'>\s]+)["']?>([^<]*)</emphasis>"#).unwrap(),
             prosody_tag: Regex::new(r#"<prosody\s+([^>]*)>([^<]*)</prosody>"#).unwrap(),
             phoneme_tag: Regex::new(r#"<phoneme\s+alphabet=["']?([^"'>\s]+)["']?\s+ph=["']?([^"']+)["']?>([^<]*)</phoneme>"#).unwrap(),
@@ -67,6 +72,9 @@ impl SsmlPatterns {
                 r#"<break\s"#,
                 r#"<emotion\s"#,
                 r#"<speed\s"#,
+                r#"<volume\s"#,
+                r#"<spell>"#,
+                r#"</spell>"#,
                 r#"<emphasis\s"#,
                 r#"<prosody\s"#,
                 r#"<phoneme\s"#,
@@ -83,6 +91,8 @@ pub enum SsmlTagType {
     Break,
     Emotion,
     Speed,
+    Volume,   // Cartesia Sonic-3 specific
+    Spell,    // Cartesia Sonic-3 specific
     Emphasis,
     Prosody,
     Phoneme,

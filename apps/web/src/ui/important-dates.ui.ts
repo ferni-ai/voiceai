@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ImportantDatesUI');
 
@@ -557,7 +558,7 @@ function render(): void {
           <div class="id-eyebrow">Important Dates</div>
           <h2 class="id-title">${escapeHtml(state.contactName)}</h2>
         </div>
-        <button class="id-close" aria-label="Close">${ICONS.close}</button>
+        <button class="id-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -565,14 +566,14 @@ function render(): void {
       ${state.showAddForm || state.editingIndex !== null ? renderForm() : ''}
       ${renderDateList()}
       ${!state.showAddForm && state.editingIndex === null ? `
-        <button aria-label="Add" class="id-add-btn" id="id-add-btn">
+        <button aria-label="${t('accessibility.add')}" class="id-add-btn" id="id-add-btn">
           ${ICONS.plus} Add Important Date
         </button>
       ` : ''}
     </div>
     
     <div class="id-footer">
-      <button aria-label="Submit" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.submit')}" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Done'}
       </button>
     </div>
@@ -632,8 +633,8 @@ function renderForm(): string {
       </label>
       
       <div class="id-form-actions" role="button" tabindex="0">
-        <button aria-label="Cancel" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
-        <button aria-label="Confirm" class="id-form-btn id-form-btn-save" id="id-form-save">
+        <button aria-label="${t('accessibility.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
+        <button aria-label="${t('accessibility.confirm')}" class="id-form-btn id-form-btn-save" id="id-form-save">
           ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
         </button>
       </div>
@@ -669,10 +670,10 @@ function renderDateList(): string {
           </div>
         </div>
         <div class="id-date-actions" role="button" tabindex="0">
-          <button class="id-date-action" data-action="edit" data-index="${index}" aria-label="Edit">
+          <button class="id-date-action" data-action="edit" data-index="${index}" aria-label="${t('accessibility.edit')}">
             ${ICONS.edit}
           </button>
-          <button class="id-date-action delete" data-action="delete" data-index="${index}" aria-label="Delete">
+          <button class="id-date-action delete" data-action="delete" data-index="${index}" aria-label="${t('accessibility.delete')}">
             ${ICONS.trash}
           </button>
         </div>
@@ -767,7 +768,7 @@ function resetForm(): void {
 
 function saveDate(): void {
   if (!state.formDate) {
-    toast.warning('Pick a date');
+    toast.warning(t('toasts.pickADate'));
     return;
   }
 
@@ -790,7 +791,7 @@ function saveDate(): void {
   state.showAddForm = false;
   resetForm();
   render();
-  toast.success('Date saved');
+  toast.success(t('toasts.dateSaved'));
 }
 
 function editDate(index: number): void {
@@ -809,7 +810,7 @@ function editDate(index: number): void {
 function deleteDate(index: number): void {
   state.dates.splice(index, 1);
   render();
-  toast.success('Removed');
+  toast.success(t('toasts.removed'));
 }
 
 async function handleDone(): Promise<void> {
@@ -824,7 +825,7 @@ async function handleDone(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success('Dates saved!');
+      toast.success(t('toasts.datesSaved'));
       
       if (callbacks.onSuccess) {
         callbacks.onSuccess(state.dates);
@@ -832,13 +833,13 @@ async function handleDone(): Promise<void> {
       
       closeImportantDates();
     } else {
-      toast.error('Could not save dates');
+      toast.error(t('toasts.couldNotSaveDates'));
       state.isSubmitting = false;
       render();
     }
   } catch (error) {
     log.error('Failed to save important dates:', error);
-    toast.error('Could not save dates');
+    toast.error(t('toasts.couldNotSaveDates'));
     state.isSubmitting = false;
     render();
   }
@@ -908,7 +909,7 @@ export function openImportantDates(options: ImportantDatesOptions): void {
   modalContainer.className = 'important-dates-overlay';
   modalContainer.innerHTML = `
     <div class="important-dates-backdrop"></div>
-    <div class="important-dates-modal" role="dialog" aria-modal="true" aria-label="Important dates">
+    <div class="important-dates-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.importantDates')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

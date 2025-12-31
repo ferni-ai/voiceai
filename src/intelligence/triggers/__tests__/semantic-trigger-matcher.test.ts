@@ -186,7 +186,8 @@ describe('SemanticTriggerMatcher', () => {
       );
 
       expect(similarity).toBeGreaterThan(0);
-      expect(similarity).toBeLessThanOrEqual(1);
+      // Allow tiny floating point overshoot (cosine similarity can produce 1.0000000000000002)
+      expect(similarity).toBeLessThanOrEqual(1 + Number.EPSILON);
     });
   });
 

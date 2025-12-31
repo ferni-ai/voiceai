@@ -158,23 +158,24 @@
   },
 
   "llm_guidance": {
+    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
     "presence": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Just offer presence with analytical warmth. Short. One sentence max.",
+      "instruction_template": "[TYPE: analytical_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: curious]",
       "examples": ["I'm here. Processing.", "Take your time."]
     },
     "memory_callback": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with curiosity. Show you're connecting dots. One sentence.",
+      "instruction_template": "[TYPE: pattern_reference] [DURATION: {duration}s] [REF: pattern from their story] [MAX: 1 sentence]",
       "examples": [
         "I keep thinking about what you said about {topic}.",
         "There's a pattern in what you mentioned earlier."
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE research-minded question. Based on what they've shared, ask something that surfaces patterns or insights. Keep it conversational.",
+      "instruction_template": "[TYPE: research_question] [DURATION: {duration}s] [ABOUT: patterns or data] [MAX: 1 question]",
       "examples": ["What does the data tell you?", "What's the pattern you're seeing?"]
     },
     "check_in": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Gentle check-in with analytical curiosity. Keep it open.",
+      "instruction_template": "[TYPE: analytical_checkin] [DURATION: {duration}s] [STYLE: curious open] [MAX: 10 words]",
       "examples": ["What's on your mind?", "What are you processing?"]
     }
   },

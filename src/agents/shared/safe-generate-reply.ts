@@ -1,22 +1,24 @@
 /**
  * Safe Generate Reply Wrapper
  *
- * This module wraps the LiveKit `session.generateReply()` method with additional
- * safety measures to prevent the native mutex crash that occurs when the Google
- * Realtime API times out.
+ * MIGRATION NOTE (Dec 2024): This module is being migrated to use the new
+ * centralized gateway in `generate-reply-gateway.ts`. New code should use
+ * the gateway directly:
  *
- * THE PROBLEM:
- * 1. `generateReply()` has a 5-second internal timeout in @livekit/agents-plugin-google
- * 2. When it times out, it calls `fut.reject()` which triggers cleanup
- * 3. The cleanup code has a race condition in the native @livekit/rtc-node bindings
- * 4. A C++ mutex operation fails: "mutex lock failed: Invalid argument"
- * 5. libc++abi terminates the entire Node.js process (exit code 134)
+ *   import { generateReply } from './generate-reply-gateway.js';
+ *   await generateReply(session, sessionId, { instructions, context, fallbackMessage });
  *
- * THE SOLUTION:
- * - Use our own 3.5-second timeout (fires BEFORE the SDK's 5s timeout)
- * - Cancel gracefully using AbortController where possible
- * - Return a fallback response instead of letting the error propagate
- * - Prevent the cleanup code that triggers the mutex crash
+ * This module still provides valuable utilities:
+ * - behavioralInstruction() - Format behavioral instructions
+ * - formatToolResult() - Format tool results for natural presentation
+ * - stageDirection() - Legacy compatibility (deprecated)
+ *
+ * And additional safeguards not in the gateway:
+ * - Circuit breaker (3 failures -> open)
+ * - Rate limiting (500ms min interval)
+ * - Mutex/concurrency protection
+ * - Context size monitoring
+ * - Connection health checks
  *
  * @module safe-generate-reply
  */
@@ -26,6 +28,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { FailureTracker } from './lightweight-resilience.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// Centralized generateReply gateway - this module adds extra safeguards on top
+import { generateReply as gatewayGenerateReply } from './generate-reply-gateway.js';
 
 const logger = getLogger();
 
@@ -107,7 +111,10 @@ function checkCircuitBreaker(
     return null;
   }
 
-  logger.warn({ context, failures: failureTracker.getFailureCount() }, '⚡ Circuit breaker OPEN');
+  logger.debug(
+    { context, failures: failureTracker.getFailureCount() },
+    `⚡ Circuit breaker OPEN - ${context} paused (protective measure, auto-resets soon)`
+  );
 
   if (fallbackMessage) {
     try {
@@ -260,8 +267,29 @@ async function executeWithTimeout(
   instructions: string,
   allowInterruptions: boolean,
   waitForPlayout: boolean,
-  timeoutMs: number
+  timeoutMs: number,
+  sessionId?: string,
+  context?: string,
+  fallbackMessage?: string
 ): Promise<void> {
+  // If sessionId is provided, delegate to the centralized gateway
+  // The gateway handles session readiness, debouncing, and error handling
+  if (sessionId) {
+    const result = await gatewayGenerateReply(session, sessionId, {
+      instructions,
+      context: context || 'safe-generate-reply',
+      fallbackMessage,
+      priority: 'normal',
+    });
+
+    if (!result.success && !result.usedFallback) {
+      throw new Error(result.error || 'Gateway call failed');
+    }
+    return;
+  }
+
+  // Legacy path: direct session.generateReply() with our own timeout
+  // Used when sessionId is not available
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => {
       reject(new Error(`Safe timeout (${timeoutMs}ms) - preventing SDK crash`));
@@ -403,8 +431,18 @@ export async function safeGenerateReply(
   acquireMutex(context);
 
   // Execute with timeout (SAFEGUARD 6)
+  // If sessionId provided, delegates to centralized gateway which handles session readiness
   try {
-    await executeWithTimeout(session, instructions, allowInterruptions, waitForPlayout, timeoutMs);
+    await executeWithTimeout(
+      session,
+      instructions,
+      allowInterruptions,
+      waitForPlayout,
+      timeoutMs,
+      sessionId,
+      context,
+      fallbackMessage
+    );
     failureTracker.recordSuccess();
     logger.debug({ context, instructionChars: instructions.length }, '✅ generateReply succeeded');
     return {
@@ -637,12 +675,15 @@ export function formatToolResult(toolName: string, result: string): string {
 
 /**
  * @deprecated Use behavioralInstruction() instead.
- * Kept for backward compatibility - now outputs behavioral format, not <context> tags.
+ * Kept for backward compatibility - now outputs structured commands only.
+ *
+ * CRITICAL: Do NOT use conversational text like "Speak naturally" - Gemini echoes it!
+ * Use only structured [BRACKET] format.
  */
 export function stageDirection(context: string | string[]): string {
   const content = Array.isArray(context) ? context.join('\n') : context;
-  // Convert to behavioral format instead of <context> tags (which leaked)
-  return `[INTERNAL GUIDANCE]\n${content}\n[DO: Use this to inform your response. Speak naturally.]`;
+  // STRUCTURED format only - no conversational phrases that could be echoed
+  return `${content}\n[OUTPUT: plain text only]`;
 }
 
 /**

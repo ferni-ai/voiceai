@@ -178,6 +178,60 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
             );
           }
 
+          // ================================================================
+          // 📰 FIX: Speak news/weather results directly for native function calling
+          // When Gemini uses native function calling, the SDK JSON.stringify()s the result
+          // which double-escapes SSML, confusing the LLM. We speak the result directly.
+          // ================================================================
+          if (isNewsOrWeather && !hasError && tool.result) {
+            const resultToSpeak =
+              typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result);
+
+            // Only speak if there's meaningful content (not empty or too short)
+            if (resultToSpeak && resultToSpeak.length > 20) {
+              logger.info(
+                {
+                  toolName,
+                  resultLength: resultToSpeak.length,
+                  sessionId,
+                },
+                '📰 News/weather tool result - speaking via safeGenerateReply'
+              );
+
+              // Fire-and-forget: speak the result via safeGenerateReply
+              fireAndForget(async () => {
+                try {
+                  const { safeGenerateReply, formatToolResult } = await import(
+                    '../shared/safe-generate-reply.js'
+                  );
+
+                  // Format the tool result with behavioral instructions
+                  const instructions = formatToolResult(toolName, resultToSpeak);
+
+                  await safeGenerateReply(session, {
+                    instructions,
+                    allowInterruptions: true,
+                    context: `native-tool-result-${toolName}`,
+                    waitForPlayout: true,
+                    timeoutMs: 6000,
+                    fallbackMessage: 'Let me share what I found...',
+                    sessionId,
+                  });
+
+                  logger.info(
+                    { toolName, sessionId },
+                    '📰 News/weather result spoken successfully'
+                  );
+                } catch (speakErr) {
+                  logger.warn(
+                    { toolName, error: String(speakErr), sessionId },
+                    '📰 Failed to speak news/weather result (will retry via LLM)'
+                  );
+                }
+              }, 'speak-news-result');
+            }
+          }
+
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
 

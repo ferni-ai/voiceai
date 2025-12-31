@@ -122,15 +122,31 @@ export async function persistExtractedDetails(
 
     const mergedDetails = [...existingDetails, ...newDetails].slice(-50); // Keep last 50
 
+    // CRITICAL FIX: If we extracted a user_name, also update profile.name!
+    // This ensures the primary name field gets set, not just extractedDetails
+    const userNameDetail = newDetails.find((d) => d.type === 'user_name');
+
     // Atomic update using a profile transformer
     // Type assertion needed because input type is more general than UserProfile's specific union
     type ProfileDetailType = NonNullable<
       Awaited<ReturnType<typeof store.getProfile>>
     >['extractedDetails'];
-    await store.atomicProfileUpdate(userId, (currentProfile) => ({
-      ...currentProfile,
-      extractedDetails: mergedDetails as ProfileDetailType,
-    }));
+    await store.atomicProfileUpdate(userId, (currentProfile) => {
+      const updates: Partial<typeof currentProfile> = {
+        extractedDetails: mergedDetails as ProfileDetailType,
+      };
+
+      // If we found user's name and profile doesn't have one, set it!
+      if (userNameDetail && !currentProfile.name) {
+        updates.name = userNameDetail.value;
+        log.info(
+          { userId, name: userNameDetail.value },
+          '🎉 Learned user name from conversation - updating profile!'
+        );
+      }
+
+      return { ...currentProfile, ...updates };
+    });
 
     return { newCount: newDetails.length, totalCount: mergedDetails.length };
   }, 'persistExtractedDetails');

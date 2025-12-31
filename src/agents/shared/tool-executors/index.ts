@@ -136,7 +136,7 @@ export function getAllModularTools(): string[] {
 export function getExecutorStats(): {
   domainCount: number;
   toolCount: number;
-  domains: { name: string; toolCount: number }[];
+  domains: Array<{ name: string; toolCount: number }>;
 } {
   const domains = DOMAIN_EXECUTORS.map((e) => ({
     name: e.domain,

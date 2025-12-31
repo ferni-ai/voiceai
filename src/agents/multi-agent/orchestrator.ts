@@ -227,9 +227,18 @@ export class AgentOrchestrator {
       // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
       // Handlers run in parallel with speech - user hears greeting while handlers wire
       if (agent.wireHandlers) {
-        void agent.wireHandlers().then(() => {
-          log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after greeting');
-        });
+        agent
+          .wireHandlers()
+          .then(() => {
+            log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after greeting');
+          })
+          .catch((err) => {
+            // 🐛 FIX: Don't swallow errors! Music handler won't work if this fails.
+            log.error(
+              { error: String(err), personaId: agent.personaId },
+              '🚨 CRITICAL: Deferred handler wiring FAILED! Music/tools may not work.'
+            );
+          });
       }
     } catch (err) {
       log.warn({ error: String(err), personaId: agent.personaId }, '🎭 Initial greeting failed');
@@ -712,7 +721,7 @@ export class AgentOrchestrator {
   /**
    * Wait for speech to complete (simple timeout-based).
    */
-  private waitForSpeechComplete(estimatedMs: number): Promise<void> {
+  private async waitForSpeechComplete(estimatedMs: number): Promise<void> {
     return new Promise<void>((resolve) => {
       setTimeout(resolve, estimatedMs);
     });

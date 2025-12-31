@@ -12,6 +12,7 @@
 import { getState as getNotificationState } from '../services/cross-team-notifications.service.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('InsightsDebugPanel');
 
@@ -299,7 +300,7 @@ function createPanel(): HTMLElement {
         <span>🔍</span>
         <span>Cross-Persona Insights</span>
       </div>
-      <button class="insights-debug-panel__close" aria-label="Close">&times;</button>
+      <button class="insights-debug-panel__close" aria-label="${t('accessibility.close')}">&times;</button>
     </div>
     <div class="insights-debug-panel__content">
       <div class="insights-debug-panel__section">
@@ -325,10 +326,10 @@ function createPanel(): HTMLElement {
       </div>
       
       <div class="insights-debug-panel__actions" role="button" tabindex="0">
-        <button aria-label="Refresh" class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
+        <button aria-label="${t('accessibility.refresh')}" class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
           Refresh
         </button>
-        <button aria-label="Clear Cache" class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
+        <button aria-label="${t('accessibility.clearCache')}" class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
           Clear Cache
         </button>
       </div>

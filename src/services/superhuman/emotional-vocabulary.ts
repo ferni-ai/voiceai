@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onEmotionalPatternChange } from '../data-layer/hooks/wisdom-hooks.js';
 
 const log = createLogger({ module: 'EmotionalVocabulary' });
 
@@ -317,11 +318,33 @@ export async function recordEmotionUsage(
   };
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('emotion_vocabulary')
       .add(cleanForFirestore(record));
+
+    // Index emotional vocabulary usage for pattern detection
+    const positiveCategories = ['joy', 'love', 'surprise'];
+    const negativeCategories = ['sadness', 'anger', 'fear', 'disgust'];
+    const impact = positiveCategories.includes(emotion.category)
+      ? 'positive'
+      : negativeCategories.includes(emotion.category)
+        ? 'negative'
+        : 'mixed';
+
+    void onEmotionalPatternChange(
+      userId,
+      docRef.id,
+      {
+        pattern: `Uses "${emotionWord}" to express ${emotion.category} emotions`,
+        triggers: context ? [context] : [],
+        frequency: 'occasional',
+        impact,
+        awareness: 'moderate',
+      },
+      'create'
+    );
 
     log.debug({ userId, emotionWord }, 'Recorded emotion usage');
   } catch (error) {

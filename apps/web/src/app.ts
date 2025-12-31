@@ -42,6 +42,7 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
+import { getLocation, updateFromBackend } from './services/geolocation.service.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
 
@@ -1024,6 +1025,10 @@ class VoiceAIApp {
     // Philosophy: "First conversation IS the onboarding"
     initModalCoordinator();
 
+    // 🆔 CRITICAL: Ensure user profile exists early for Better Than Human memory
+    // This creates the Firestore profile on first visit so we can start remembering immediately
+    this.ensureProfileExists();
+
     // Initialize audio service (non-blocking - loads sounds in background)
     try {
       audioService.initialize();
@@ -1044,6 +1049,20 @@ class VoiceAIApp {
       .catch((err) => {
         log.warn('Timezone detection failed:', err);
         // Continue anyway - default timezone will be used
+      });
+
+    // 📍 "Better than Human" - Initialize location awareness (non-blocking)
+    // Gets best-known location from localStorage/timezone - no permission prompt
+    void getLocation()
+      .then((loc) => {
+        if (loc.city) {
+          log.debug({ city: loc.city, source: loc.source }, '📍 Location loaded');
+        } else {
+          log.debug({ source: loc.source }, '📍 Location: no city yet (will detect from IP on connect)');
+        }
+      })
+      .catch((err) => {
+        log.debug('Location init skipped:', err);
       });
 
     // Initialize Spotify silently in the background
@@ -1095,6 +1114,39 @@ class VoiceAIApp {
     } catch (err) {
       log.warn('App context tracking init failed:', err);
       // Non-critical - continue without it
+    }
+  }
+
+  /**
+   * Ensure user profile exists in Firestore (early creation for Better Than Human memory)
+   * This creates the profile on first visit, BEFORE voice connection, so we can:
+   * 1. Start tracking identity immediately
+   * 2. Sync onboarding state across devices
+   * 3. Remember the user's name from wherever they enter it
+   */
+  private async ensureProfileExists(): Promise<void> {
+    try {
+      const { apiPost } = await import('./utils/api.js');
+      const { getDeviceId, getUserName } = await import('./state/app.state.js');
+
+      const deviceId = getDeviceId();
+      const userName = getUserName();
+
+      // Call the profile endpoint to ensure profile exists
+      const response = await apiPost<{ success: boolean; profile: unknown }>('/api/user/profile', {
+        deviceId,
+        name: userName || undefined, // Don't send null
+      });
+
+      if (response.ok && response.data) {
+        log.info('Profile ensured:', {
+          hasName: !!response.data.profile && typeof response.data.profile === 'object' && 'name' in response.data.profile,
+          deviceLinked: !!deviceId,
+        });
+      }
+    } catch (err) {
+      // Non-critical - profile will be created on voice connection
+      log.debug('Early profile creation skipped:', err);
     }
   }
 
@@ -1657,6 +1709,30 @@ class VoiceAIApp {
       }) as EventListener);
     });
 
+    // 📍 Location Prompt - "Better than Human" location awareness
+    // Listen for contextual location requests (e.g., when weather is mentioned)
+    this.safeInit('LocationPrompt', () => {
+      this.addTrackedListener(window, 'ferni:request-location', (async (e: CustomEvent) => {
+        const { context } = e.detail || {};
+        log.debug({ context }, '📍 Location request received');
+
+        try {
+          const { requestLocationWithWarmPrompt } = await import('./ui/location-prompt.ui.js');
+          const result = await requestLocationWithWarmPrompt(context || 'personalization');
+          
+          if (result.success && result.location?.city) {
+            log.info({ city: result.location.city }, '📍 Location obtained');
+            // Optionally notify the app that location is now available
+            window.dispatchEvent(new CustomEvent('ferni:location-updated', {
+              detail: { location: result.location }
+            }));
+          }
+        } catch (err) {
+          log.debug('📍 Location prompt dismissed or failed:', err);
+        }
+      }) as EventListener);
+    });
+
     // 🔊 Voice Enrollment UI - Learn user's voice
     this.safeInit('VoiceEnrollmentUI', () => initVoiceEnrollmentUI());
 
@@ -1742,6 +1818,12 @@ class VoiceAIApp {
             });
         },
         onFutureInsightsClick: () => futureInsightsUI.open(),
+        onDeepInsightsClick: () => {
+          // Open the Semantic Intelligence Panel (8-tab dashboard showing all superhuman insights)
+          import('./ui/semantic-intelligence-panel.ui.js').then(({ showSemanticIntelligencePanel }) => {
+            showSemanticIntelligencePanel();
+          });
+        },
         onShareFerniClick: () => referralUI.open(),
         onAccentSettingsClick: () => accentSettingsUI.open(),
         onWearableSettingsClick: () => void showWearableSettings(),
@@ -1886,6 +1968,16 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
       void showTeamHuddle();
     });
+    // 🔄 Persona Switch - connects dispatched events to actual handoff
+    // Multiple UI components dispatch this event (team-unlock-celebration, command-palette, etc.)
+    // but it wasn't triggering the voice agent handoff - this fixes that!
+    this.addTrackedListener(window, 'ferni:switch-persona', ((e: CustomEvent) => {
+      const personaId = e.detail?.personaId || e.detail?.persona;
+      if (personaId) {
+        log.info({ personaId }, '🔄 ferni:switch-persona event received, triggering selectPersona');
+        this.selectPersona(personaId as PersonaId);
+      }
+    }) as EventListener);
     // 🎙️ Group Conversations - imported UI opens team roundtable or adds participant
     this.addTrackedListener(window, 'ferni:start-roundtable', ((e: CustomEvent) => {
       // Import dynamically to avoid circular deps

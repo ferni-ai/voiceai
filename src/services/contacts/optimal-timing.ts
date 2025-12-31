@@ -17,6 +17,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onCommunicationPreferenceChange } from '../data-layer/hooks/contacts-hooks.js';
 
 const log = createLogger({ module: 'optimal-timing' });
 
@@ -359,6 +360,21 @@ async function saveTimingProfile(profile: ContactTimingProfile): Promise<void> {
       .collection('contact_timing')
       .doc(profile.contactId)
       .set(cleanForFirestore(profile));
+
+    // Index to semantic memory for timing search
+    void onCommunicationPreferenceChange(
+      profile.userId,
+      profile.contactId,
+      {
+        contactName: profile.contactId, // Will be resolved from contact data
+        preferredChannel: 'call', // Default for timing-based suggestions
+        bestTimes: profile.bestTimeSlot
+          ? `${profile.bestTimeSlot} on ${profile.bestDay || 'any day'}`
+          : undefined,
+        notes: `Learned from ${profile.totalAttempts} attempts with ${profile.totalResponses} responses`,
+      },
+      'update'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save timing profile');
   }

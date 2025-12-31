@@ -15,6 +15,7 @@ import {
   createFlexContainer,
   setStyles,
   createScreenReaderLabel,
+  getCssVar,
 } from '../utils/dom.js';
 import type {
   MoodCalendarData,
@@ -23,7 +24,8 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS
@@ -31,6 +33,23 @@ import { DEFAULT_COLORS } from '../types.js';
 
 const DAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAYS_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/**
+ * CSS variable references for mood colors.
+ * Used for DOM element styling (not SVG).
+ */
+const MOOD_CSS_VARS: Record<MoodType, string> = {
+  calm: 'var(--viz-mood-calm)',
+  joyful: 'var(--viz-mood-joyful)',
+  anxious: 'var(--viz-mood-anxious)',
+  tired: 'var(--viz-mood-tired)',
+  focused: 'var(--viz-mood-focused)',
+  reflective: 'var(--viz-mood-reflective)',
+  stressed: 'var(--viz-mood-stressed)',
+  energized: 'var(--viz-mood-energized)',
+  peaceful: 'var(--viz-mood-peaceful)',
+  uncertain: 'var(--viz-mood-uncertain)',
+};
 
 // ============================================================================
 // WATCH BUILDER
@@ -45,27 +64,32 @@ function buildWatch(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Mood'));
-  header.appendChild(createElement('p', '', 'This week'));
+  const title = createElement('h3', 'viz-header__title viz-header__title--compact', t('visualizations.moodCalendar.titleShort', 'Mood'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.moodCalendar.subtitleShort', 'This week'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
   // Mini 7-day heatmap
-  const heatmap = createFlexContainer('row', '3px', 'center');
-  setStyles(heatmap, { margin: '12px 0' });
+  const heatmap = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+  setStyles(heatmap, {
+    gap: 'var(--viz-space-2xs)',
+    margin: 'var(--viz-space-pause) 0',
+  });
 
   // Get last 7 entries or pad with empty
   const lastWeek = getLastNEntries(data.entries, 7);
 
   lastWeek.forEach((entry, i) => {
-    const cell = createElement('div');
+    const cell = createElement('div', 'viz-heatmap-cell');
     const isToday = i === lastWeek.length - 1;
     setStyles(cell, {
       width: '14px',
       height: '14px',
-      borderRadius: '3px',
-      background: entry ? DEFAULT_COLORS.moods[entry.mood] : 'rgba(44, 37, 32, 0.1)',
+      borderRadius: 'var(--viz-radius-xs)',
+      background: entry ? MOOD_CSS_VARS[entry.mood] : 'var(--viz-border-subtle)',
       opacity: isToday ? '1' : '0.6',
     });
     heatmap.appendChild(cell);
@@ -73,20 +97,24 @@ function buildWatch(
 
   container.appendChild(heatmap);
 
-  // Dominant mood metric
-  const metric = createElement('div');
-  setStyles(metric, {
-    textAlign: 'center',
-    fontSize: '1.1rem',
-    color: 'var(--color-accent)',
-    fontWeight: '600',
-  });
-  metric.textContent = capitalize(data.summary.dominantMood);
+  // Dominant mood metric with design system classes
+  const metric = createElement('div', 'viz-metric viz-metric--compact');
+  const metricValue = createElement('span', 'viz-metric__value viz-metric__value--accent');
+  metricValue.textContent = capitalize(data.summary.dominantMood);
+  metric.appendChild(metricValue);
   container.appendChild(metric);
 
-  // Summary
-  const summary = createElement('div', 'watch-metric', `${data.summary.calmDays} calm days`);
+  // Summary with design system class
+  const summary = createElement('div', 'viz-label');
+  summary.textContent = `${data.summary.calmDays} ${t('visualizations.moodCalendar.calmDays', 'calm days')}`;
   container.appendChild(summary);
+
+  // Screen reader label
+  container.appendChild(
+    createScreenReaderLabel(
+      `Mood calendar showing ${data.summary.dominantMood} as dominant mood with ${data.summary.calmDays} calm days`
+    )
+  );
 
   return {
     element: container,
@@ -111,28 +139,43 @@ function buildMobile(
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Mood Calendar'));
-  header.appendChild(createElement('p', '', 'Track your emotional rhythm'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.moodCalendar.title', 'Mood Calendar'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.moodCalendar.subtitle', 'Your emotional journey this month'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Today's mood card
-  const card1 = createElement('div', 'mobile-card');
+  // Today's mood card with glass styling
+  const card1 = createElement('div', 'viz-card viz-animate-slide');
   if (isAndroid) {
-    setStyles(card1, { borderLeft: '3px solid var(--color-accent)' });
+    card1.classList.add('viz-card--accent-primary');
   }
 
-  const cardHeader = createElement('div', 'mobile-card-header');
-  cardHeader.appendChild(createElement('span', 'mobile-card-title', 'Today'));
+  const cardHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
 
-  const badge = createElement('span', 'mobile-card-badge', capitalize(data.summary.dominantMood));
+  const todayTitle = createElement('span');
+  setStyles(todayTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  todayTitle.textContent = t('visualizations.moodCalendar.today', 'Today');
+  cardHeader.appendChild(todayTitle);
+
+  const badge = createElement('span', `viz-badge viz-badge--mood-${data.summary.dominantMood}`);
+  badge.textContent = capitalize(data.summary.dominantMood);
   cardHeader.appendChild(badge);
   card1.appendChild(cardHeader);
 
-  // Heatmap with day labels
-  const heatmapContainer = createFlexContainer('row', '4px');
-  setStyles(heatmapContainer, { margin: '12px 0' });
+  // Heatmap with day labels using design system spacing
+  const heatmapContainer = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(heatmapContainer, {
+    gap: 'var(--viz-space-2xs)',
+    margin: 'var(--viz-space-pause) 0',
+  });
 
   const lastWeek = getLastNEntries(data.entries, 7);
 
@@ -140,19 +183,19 @@ function buildMobile(
     const dayCol = createElement('div');
     setStyles(dayCol, { textAlign: 'center', flex: '1' });
 
-    const cell = createElement('div');
+    const cell = createElement('div', 'viz-heatmap-cell');
     const isToday = i === lastWeek.length - 1;
     setStyles(cell, {
       height: '20px',
-      borderRadius: '4px',
-      background: entry ? DEFAULT_COLORS.moods[entry.mood] : 'rgba(44, 37, 32, 0.1)',
-      marginBottom: '4px',
+      borderRadius: 'var(--viz-radius-sm)',
+      background: entry ? MOOD_CSS_VARS[entry.mood] : 'var(--viz-border-subtle)',
+      marginBottom: 'var(--viz-space-2xs)',
       opacity: isToday ? '1' : '0.6',
     });
     dayCol.appendChild(cell);
 
-    const label = createElement('span', '', DAYS_SHORT[i]);
-    setStyles(label, { fontSize: '0.65rem', color: 'var(--color-text-muted)' });
+    const label = createElement('span', 'viz-day-label');
+    label.textContent = DAYS_SHORT[i];
     dayCol.appendChild(label);
 
     heatmapContainer.appendChild(dayCol);
@@ -164,16 +207,25 @@ function buildMobile(
   // Pattern insight card
   const patternInsight = detectPattern(data.entries);
   if (patternInsight) {
-    const card2 = createElement('div', 'mobile-card');
+    const card2 = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
     if (isAndroid) {
-      setStyles(card2, { borderLeft: '3px solid var(--persona-maya)' });
+      card2.classList.add('viz-card--accent-emotional');
     }
 
-    const patternHeader = createElement('div', 'mobile-card-header');
-    patternHeader.appendChild(createElement('span', 'mobile-card-title', 'Pattern Detected'));
+    const patternHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+    const patternTitle = createElement('span');
+    setStyles(patternTitle, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    patternTitle.textContent = t('visualizations.moodCalendar.patternDetected', 'Pattern Detected');
+    patternHeader.appendChild(patternTitle);
     card2.appendChild(patternHeader);
 
-    const insight = createElement('p', 'mobile-insight', patternInsight);
+    const insight = createElement('p', 'viz-insight');
+    insight.textContent = patternInsight;
     card2.appendChild(insight);
     container.appendChild(card2);
   }
@@ -207,54 +259,50 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Mood Calendar'));
-  header.appendChild(createElement('p', '', 'Your emotional journey this month'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.moodCalendar.title', 'Mood Calendar'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.moodCalendar.subtitle', 'Your emotional journey this month'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Month grid
-  const grid = createElement('div', 'mood-grid');
+  // Month grid card with glass styling
+  const gridCard = createElement('div', 'viz-card viz-animate-slide');
+
+  const grid = createElement('div', 'viz-grid viz-grid--calendar');
   setStyles(grid, {
     display: 'grid',
     gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '4px',
-    padding: '16px',
-    background: 'var(--color-background)',
-    borderRadius: '12px',
+    gap: 'var(--viz-space-2xs)',
+    padding: 'var(--viz-space-pause)',
   });
 
-  // Day headers
+  // Day headers with design system styling
   DAYS_FULL.forEach((day) => {
-    const dayHeader = createElement('div', 'mood-day-header', day);
-    setStyles(dayHeader, {
-      textAlign: 'center',
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      color: 'var(--color-text-muted)',
-      padding: '8px 0',
-    });
+    const dayHeader = createElement('div', 'viz-day-label viz-day-label--header');
+    dayHeader.textContent = day;
     grid.appendChild(dayHeader);
   });
 
   // Calendar cells (last 28 days for simplicity)
   const last28 = getLastNEntries(data.entries, 28);
   last28.forEach((entry, i) => {
-    const cell = createElement('div', 'mood-cell');
+    const cell = createElement('div', 'viz-calendar-cell');
     const isToday = i === last28.length - 1;
 
     setStyles(cell, {
       aspectRatio: '1',
-      borderRadius: '8px',
-      background: entry ? DEFAULT_COLORS.moods[entry.mood] : 'rgba(44, 37, 32, 0.05)',
+      borderRadius: 'var(--viz-radius-sm)',
+      background: entry ? MOOD_CSS_VARS[entry.mood] : 'var(--viz-border-subtle)',
       opacity: entry ? (isToday ? '1' : '0.7') : '0.3',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '0.7rem',
-      color: entry ? 'white' : 'var(--color-text-muted)',
+      fontSize: 'var(--viz-text-xs)',
+      color: entry ? 'white' : CSS_COLOR_VARS.textMuted,
       cursor: entry ? 'pointer' : 'default',
-      transition: 'transform 150ms ease',
+      transition: 'transform var(--viz-duration-fast) var(--viz-ease-spring)',
     });
 
     if (entry) {
@@ -265,41 +313,46 @@ function buildTablet(
     grid.appendChild(cell);
   });
 
-  container.appendChild(grid);
+  gridCard.appendChild(grid);
+  container.appendChild(gridCard);
 
-  // Summary stats row
-  const statsRow = createFlexContainer('row', '16px', 'space-around');
-  setStyles(statsRow, { marginTop: '16px' });
+  // Summary stats row with glass card styling
+  const statsCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
+  const statsRow = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(statsRow, {
+    gap: 'var(--viz-space-pause)',
+    justifyContent: 'space-around',
+  });
 
   const stats = [
-    { label: 'Calm Days', value: data.summary.calmDays },
-    { label: 'Dominant', value: capitalize(data.summary.dominantMood) },
-    { label: 'Trend', value: capitalize(data.summary.trend) },
+    { label: t('visualizations.moodCalendar.calmDaysLabel', 'Calm Days'), value: data.summary.calmDays },
+    { label: t('visualizations.moodCalendar.dominant', 'Dominant'), value: capitalize(data.summary.dominantMood) },
+    { label: t('visualizations.moodCalendar.trend', 'Trend'), value: capitalize(data.summary.trend) },
   ];
 
   stats.forEach((stat) => {
-    const statBox = createElement('div');
-    setStyles(statBox, { textAlign: 'center' });
+    const statBox = createElement('div', 'viz-stat');
 
-    const value = createElement('div', '', String(stat.value));
-    setStyles(value, {
-      fontSize: '1.25rem',
-      fontWeight: '700',
-      color: 'var(--color-accent)',
-    });
+    const value = createElement('div', 'viz-stat__value');
+    value.textContent = String(stat.value);
     statBox.appendChild(value);
 
-    const label = createElement('div', '', stat.label);
-    setStyles(label, {
-      fontSize: '0.75rem',
-      color: 'var(--color-text-muted)',
-    });
+    const label = createElement('div', 'viz-stat__label');
+    label.textContent = stat.label;
     statBox.appendChild(label);
 
     statsRow.appendChild(statBox);
   });
 
-  container.appendChild(statsRow);
+  statsCard.appendChild(statsRow);
+  container.appendChild(statsCard);
+
+  // Screen reader summary
+  container.appendChild(
+    createScreenReaderLabel(
+      `Monthly mood calendar with ${data.summary.calmDays} calm days and ${data.summary.trend} trend`
+    )
+  );
 
   return {
     element: container,

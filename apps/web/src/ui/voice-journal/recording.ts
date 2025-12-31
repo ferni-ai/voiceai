@@ -8,6 +8,7 @@
 
 import { createLogger } from '../../utils/logger.js';
 import { soundUI } from '../sound.ui.js';
+import { t } from '../../i18n/index.js';
 import {
   getModal,
   isRecording,
@@ -111,7 +112,7 @@ export async function startRecording(): Promise<void> {
   } catch (error) {
     log.error('Failed to start recording:', error);
     const { toast } = await import('../toast.ui.js');
-    toast.error('Could not access microphone');
+    toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
 
@@ -144,10 +145,10 @@ export function updateRecordingUI(recording: boolean): void {
 
   if (recording) {
     btn?.classList.add('recording');
-    if (label) label.textContent = 'Stop Recording';
+    if (label) label.textContent = t('ui.recording.stopRecording');
   } else {
     btn?.classList.remove('recording');
-    if (label) label.textContent = 'Start Recording';
+    if (label) label.textContent = t('ui.recording.startRecording');
   }
 }
 

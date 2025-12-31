@@ -1,0 +1,102 @@
+<!-- Conversation River Visualization Component -->
+<!-- Topic flow over time like a river with tributaries -->
+
+<section id="conversation-river" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Topic Flow</p>
+    <h2 class="story-section-title">Conversation River</h2>
+    <p class="story-section-description">
+      Your conversations flow like a river - some topics are deep channels, others are seasonal tributaries that come and go.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        A friend remembers recent conversations. Ferni maps the entire river of your thoughts - seeing which topics swell and recede over months.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Your Conversation Streams</h3>
+        <p class="story-card-subtitle">Topic intensity over the past 6 months</p>
+      </div>
+    </div>
+
+    <div class="river-container">
+      <svg class="river-svg" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <!-- Brand Persona Colors: Peter (Work), Maya (Family), Ferni (Health), Nayan (Growth) -->
+          <linearGradient id="riverWork" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#3A6B73"/>
+            <stop offset="100%" stop-color="#2d545c"/>
+          </linearGradient>
+          <linearGradient id="riverFamily" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#A67A6A"/>
+            <stop offset="100%" stop-color="#8a6252"/>
+          </linearGradient>
+          <linearGradient id="riverHealth" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4A6741"/>
+            <stop offset="100%" stop-color="#3a5a35"/>
+          </linearGradient>
+          <linearGradient id="riverGrowth" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#B8956A"/>
+            <stop offset="100%" stop-color="#9a7a52"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Month labels -->
+        <text x="60" y="240" fill="var(--text-muted)" font-size="11">Jul</text>
+        <text x="180" y="240" fill="var(--text-muted)" font-size="11">Aug</text>
+        <text x="300" y="240" fill="var(--text-muted)" font-size="11">Sep</text>
+        <text x="420" y="240" fill="var(--text-muted)" font-size="11">Oct</text>
+        <text x="540" y="240" fill="var(--text-muted)" font-size="11">Nov</text>
+        <text x="660" y="240" fill="var(--text-muted)" font-size="11">Dec</text>
+
+        <!-- Work stream (blue) -->
+        <path class="river-stream" fill="url(#riverWork)"
+              d="M0,80 C80,75 120,60 200,50 C280,40 320,45 400,55 C480,65 520,80 600,85 C680,90 720,75 800,70
+                 L800,110 C720,115 680,130 600,125 C520,120 480,105 400,95 C320,85 280,80 200,90 C120,100 80,115 0,120 Z"/>
+
+        <!-- Family stream (warm) -->
+        <path class="river-stream" fill="url(#riverFamily)"
+              d="M0,120 C80,115 120,100 200,90 C280,80 320,85 400,95 C480,105 520,120 600,125 C680,130 720,115 800,110
+                 L800,145 C720,150 680,165 600,160 C520,155 480,140 400,130 C320,120 280,115 200,125 C120,135 80,150 0,155 Z"/>
+
+        <!-- Health stream (green) -->
+        <path class="river-stream" fill="url(#riverHealth)"
+              d="M0,155 C80,150 120,135 200,125 C280,115 320,120 400,130 C480,140 520,155 600,160 C680,165 720,150 800,145
+                 L800,175 C720,180 680,195 600,190 C520,185 480,170 400,160 C320,150 280,145 200,155 C120,165 80,180 0,185 Z"/>
+
+        <!-- Personal Growth stream (gold) -->
+        <path class="river-stream" fill="url(#riverGrowth)"
+              d="M0,185 C80,180 120,165 200,155 C280,145 320,150 400,160 C480,170 520,185 600,190 C680,195 720,180 800,175
+                 L800,200 C720,205 680,215 600,215 C520,215 480,200 400,195 C320,190 280,185 200,190 C120,195 80,205 0,210 Z"/>
+      </svg>
+    </div>
+
+    <div class="river-legend">
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: #3A6B73;"></div>
+        <span>Work</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: #A67A6A;"></div>
+        <span>Family</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: #4A6741;"></div>
+        <span>Health</span>
+      </div>
+      <div class="river-legend-item">
+        <div class="river-legend-dot" style="background: #B8956A;"></div>
+        <span>Growth</span>
+      </div>
+    </div>
+  </div>
+</section>

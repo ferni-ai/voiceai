@@ -119,7 +119,7 @@ export async function initializeMultiAgentSession(
 
   const startTime = Date.now();
 
-  // Get conversation manager (required for full handlers)
+  // Get conversation manager (required for full handlers including music)
   let conversationManager:
     | import('../../services/conversation-manager.js').ConversationManager
     | undefined;
@@ -130,7 +130,11 @@ export async function initializeMultiAgentSession(
       conversationManager.setPersonaId(initialPersonaId);
       log.debug({ sessionId }, '🎭 Conversation manager initialized');
     } catch (err) {
-      log.warn({ error: String(err) }, '⚠️ Could not initialize conversation manager');
+      // 🐛 FIX: Upgrade to error level - this breaks music and other critical handlers!
+      log.error(
+        { error: String(err), sessionId },
+        '🚨 CRITICAL: Could not initialize conversation manager! Music and other handlers will NOT work.'
+      );
     }
   }
 

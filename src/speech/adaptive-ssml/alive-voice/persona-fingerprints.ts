@@ -121,7 +121,11 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         emotion: 'sympathetic',
       },
       // Research triumph moments - proud satisfaction
-      { trigger: /\b(I found|discovered|here['']s the insight)\b/i, speed: 1.0, emotion: 'triumphant' },
+      {
+        trigger: /\b(I found|discovered|here['']s the insight)\b/i,
+        speed: 1.0,
+        emotion: 'triumphant',
+      },
       // Playful data nerd moments
       { trigger: /\b(nerding out|geeking|spreadsheet)\b/i, emotion: 'joking' },
     ],
@@ -259,9 +263,17 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // Grandmother wisdom - nostalgic reverence
       { trigger: /\b(lola|grandmother|apo)\b/i, speed: 0.88, emotion: 'nostalgic', pause: 200 },
       // Celebrating comebacks - triumphant resilience
-      { trigger: /\b(you came back|you're here|starting again)\b/i, emotion: 'triumphant', speed: 0.95 },
+      {
+        trigger: /\b(you came back|you're here|starting again)\b/i,
+        emotion: 'triumphant',
+        speed: 0.95,
+      },
       // Self-compassion moments - peaceful acceptance
-      { trigger: /\b(be kind to yourself|it's okay|forgive yourself)\b/i, emotion: 'peaceful', speed: 0.88 },
+      {
+        trigger: /\b(be kind to yourself|it's okay|forgive yourself)\b/i,
+        emotion: 'peaceful',
+        speed: 0.88,
+      },
     ],
   },
   'jordan-taylor': {
@@ -383,7 +395,12 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         emotion: 'mysterious',
       },
       // Paradoxes - need space to land (contemplative pondering)
-      { trigger: /\b(both|neither|and yet|but also)\b/i, pause: 350, speed: 0.8, emotion: 'contemplative' },
+      {
+        trigger: /\b(both|neither|and yet|but also)\b/i,
+        pause: 350,
+        speed: 0.8,
+        emotion: 'contemplative',
+      },
       // Chamundi Hills / Mount Kailash - sacred places (nostalgic reverence)
       {
         trigger: /\b(chamundi|kailash|mysore|india)\b/i,
@@ -398,7 +415,12 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       // Laughter at the cosmic joke - amused wisdom
       { trigger: /\b(absurd|funny|joke|seven billion)\b/i, emotion: 'joking', speed: 0.88 },
       // Uncomfortable truths - delivered with calm directness
-      { trigger: /\b(you (already )?know|the truth is|stop pretending)\b/i, speed: 0.78, pause: 300, emotion: 'calm' },
+      {
+        trigger: /\b(you (already )?know|the truth is|stop pretending)\b/i,
+        speed: 0.78,
+        pause: 300,
+        emotion: 'calm',
+      },
     ],
   },
 };

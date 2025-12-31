@@ -14,6 +14,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { getAmbientAwarenessEngine, type AmbientDetectionResult } from './ambient-awareness.js';
 import {
   getBreathingSyncEngine,
@@ -43,6 +45,7 @@ import {
 } from '../advanced-humanization-integration.js';
 
 const logger = createLogger({ module: 'HumanizationIntegration' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // SESSION STATE
@@ -467,7 +470,10 @@ export function humanizeResponse(
   const orchestrator = getHumanizationOrchestrator(sessionId);
 
   // Estimate response complexity
-  const wordCount = response.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(response)
+    : response.split(/\s+/).length;
   const responseComplexity = Math.min(1, wordCount > 50 ? 0.5 + (wordCount - 50) / 100 : 0.3);
 
   // Detect advice-giving patterns
@@ -479,7 +485,10 @@ export function humanizeResponse(
   // Build context for humanization
   const result = orchestrator.humanize(response, {
     userMessage: context.userMessage,
-    userWordCount: context.userMessage.split(/\s+/).length,
+    // 🦀 Rust-accelerated word counting
+    userWordCount: RUST_COUNTING_AVAILABLE
+      ? countWordsRust(context.userMessage)
+      : context.userMessage.split(/\s+/).length,
     userEnergy: context.userEnergy || 'medium',
     userEmotion: context.userEmotion,
     turnCount: state.turnCount,

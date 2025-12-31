@@ -69,6 +69,12 @@ class AudioService {
   private analyser: AnalyserNode | null = null;
   private animationFrame: number | null = null;
   private mediaSource: MediaElementAudioSourceNode | null = null;
+  /**
+   * FIX: Store MediaStreamSource to prevent garbage collection.
+   * Without this reference, the source gets GC'd and the analyser
+   * receives no audio data, causing all volume readings to be 0.
+   */
+  private mediaStreamSource: MediaStreamAudioSourceNode | null = null;
   private attachedElement: HTMLAudioElement | null = null;
   /** FIX BUG #59: Track currently playing handoff sound to prevent overlap */
   private currentHandoffSound: HTMLAudioElement | null = null;
@@ -320,8 +326,11 @@ class AudioService {
       // Create media stream source for VISUALIZATION ONLY
       // Audio playback is handled by the HTML audio element from track.attach()
       const stream = new MediaStream([track]);
-      const source = this.audioContext.createMediaStreamSource(stream);
-      source.connect(this.analyser);
+      // FIX: Store the source reference to prevent garbage collection!
+      // Without this, the MediaStreamSource gets GC'd and the analyser
+      // receives no audio data, causing all volume readings to be 0.
+      this.mediaStreamSource = this.audioContext.createMediaStreamSource(stream);
+      this.mediaStreamSource.connect(this.analyser);
 
       // DO NOT connect to destination - audio is already playing via track.attach()
       // Connecting here would cause DOUBLE playback and robotic/phaser sound!
@@ -408,7 +417,19 @@ class AudioService {
       this.animationFrame = null;
     }
     this.visualizationCallback = null;
-    // Note: Don't disconnect mediaSource - that would stop audio playback!
+    
+    // MediaStreamSource can be safely disconnected (doesn't affect playback)
+    // since audio plays through the HTML audio element, not Web Audio API
+    if (this.mediaStreamSource) {
+      try {
+        this.mediaStreamSource.disconnect();
+      } catch {
+        // Already disconnected - ignore
+      }
+      this.mediaStreamSource = null;
+    }
+    
+    // Note: Don't disconnect mediaSource (MediaElementSource) - that would stop audio playback!
     // The connection remains until the audio element is removed from DOM
   }
 

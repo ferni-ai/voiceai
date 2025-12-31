@@ -18,8 +18,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const logger = createLogger({ module: 'VocabularyMirroring' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -358,7 +361,8 @@ function updateStyleIndicators(profile: VocabProfile, message: string): void {
   const intensifierCount = (
     lower.match(/\b(super|literally|totally|absolutely|extremely|so|really|very)\b/gi) || []
   ).length;
-  const wordCount = message.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(message) : message.split(/\s+/).length;
   const intensityRatio = intensifierCount / wordCount;
 
   if (intensityRatio > 0.1) {

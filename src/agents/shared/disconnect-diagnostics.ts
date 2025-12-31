@@ -144,7 +144,7 @@ export const DISCONNECT_REASONS: Record<
 export function getInstanceId(): string {
   // Use combination of hostname and process ID for uniqueness
   const hostname = os.hostname();
-  const pid = process.pid;
+  const { pid } = process;
 
   // Also include container ID if running in Docker
   const containerId = process.env.HOSTNAME || '';

@@ -84,11 +84,11 @@ This document maps all humanization systems in Ferni, identifies gaps, and provi
 
 | System | Location | Status | Notes |
 |--------|----------|--------|-------|
-| **Micro-Expressions** | `design-system/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | 40-150ms subliminal |
-| **Active Listening** | `design-system/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Micro-nods during speech |
-| **Breath Sync** | `design-system/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Neural mirroring |
+| **Micro-Expressions** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | 40-150ms subliminal |
+| **Active Listening** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Micro-nods during speech |
+| **Breath Sync** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Neural mirroring |
 | **Energy Mirroring** | `intelligence/context-builders/emotional/energy-mirroring.ts` | ✅ Excellent | Full implementation |
-| **Concern Detection** | `design-system/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Distress signals |
+| **Concern Detection** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` | ✅ Spec'd | Distress signals |
 | **Voice Emotion Detection** | `speech/audio-prosody/` | ✅ Good | Pitch, rate, tremor analysis |
 
 **Verdict:** Level 2 is mostly implemented. Frontend EQ work needed for avatar.
@@ -461,7 +461,7 @@ AI: "[brief pause] ...yeah. [pause] That would frustrate me too."
 | File | Purpose |
 |------|---------|
 | `CORE-PRINCIPLES.md` | Philosophy |
-| `design-system/brand/BETTER-THAN-HUMAN.md` | EQ Spec |
+| `design-system/docs/brand/BETTER-THAN-HUMAN.md` | EQ Spec |
 | `intelligence/COLLECTIVE-LEARNING.md` | Learning Architecture |
 
 ### Context Builders

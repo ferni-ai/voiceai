@@ -4,62 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ferni - 60-Second Explainer Video Timeline</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
   <style>
-    /* Ferni Design Tokens - Zen Garden Theme */
-    :root {
-      /* Background */
-      --bg-primary: #F5F1E8;
-      --bg-secondary: #f5f2ed;
-      --bg-elevated: #FFFDFB;
-      --bg-surface: #faf8f4;
-
-      /* Text */
-      --text-primary: #2C2520;
-      --text-secondary: #5C544A;
-      --text-muted: #756A5E;
-      --text-inverse: #FFFDFB;
-
-      /* Accent */
-      --accent-primary: #3D5A45;
-      --accent-secondary: #C4A265;
-      --accent-hover: #4a6b52;
-
-      /* Persona Colors */
-      --persona-ferni: #4a6741;
-      --persona-maya: #a67a6a;
-      --persona-peter: #3a6b73;
-      --persona-jordan: #c4856a;
-      --persona-alex: #5a6b8a;
-      --persona-nayan: #b8956a;
-
-      /* Typography */
-      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-      --font-body: 'Inter', system-ui, sans-serif;
-      --font-accent: 'Sora', system-ui, sans-serif;
-
-      /* Border Radius */
-      --radius-sm: 4px;
-      --radius-md: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
-      --radius-2xl: 24px;
-
-      /* Shadows - Warm tones */
-      --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.04);
-      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.06);
-      --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.08);
-      --shadow-xl: 0 16px 48px rgba(44, 37, 32, 0.1);
-
-      /* Animation */
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --duration-fast: 150ms;
-      --duration-normal: 300ms;
-      --duration-slow: 500ms;
-    }
-
+    /* Page-specific styles - tokens from master-tokens.css */
     * {
       margin: 0;
       padding: 0;
@@ -68,17 +17,75 @@
 
     body {
       font-family: var(--font-body);
-      background: var(--bg-primary);
-      color: var(--text-primary);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
       min-height: 100vh;
-      line-height: 1.6;
+      line-height: var(--leading-relaxed);
+    }
+
+    /* Navigation */
+    .brand-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-8);
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-bottom: 1px solid var(--color-border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      text-decoration: none;
+      color: var(--color-text-primary);
+    }
+
+    .nav-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .nav-logo span {
+      font-family: var(--font-display);
+      font-weight: var(--font-semibold);
+      font-size: var(--text-lg);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: var(--space-8);
+      align-items: center;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      font-weight: var(--font-medium);
+      transition: color var(--duration-fast) var(--ease-out);
+    }
+
+    .nav-link:hover {
+      color: var(--color-ferni);
+    }
+
+    .nav-current {
+      color: var(--color-ferni);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
     }
 
     /* Header */
     .header {
-      background: var(--bg-elevated);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
-      padding: 24px 48px;
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid var(--color-border-subtle);
+      padding: var(--space-6) var(--space-12);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -87,14 +94,14 @@
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--space-3);
     }
 
     .logo-mark {
       width: 40px;
       height: 40px;
-      background: var(--persona-ferni);
-      border-radius: 50%;
+      background: var(--color-ferni);
+      border-radius: var(--radius-full);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -103,7 +110,7 @@
     .logo-mark svg {
       width: 24px;
       height: 24px;
-      stroke: var(--text-inverse);
+      stroke: white;
       fill: none;
       stroke-width: 1.5;
       stroke-linecap: round;
@@ -112,45 +119,45 @@
 
     .logo-text {
       font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 24px;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
+      font-weight: var(--font-bold);
+      font-size: var(--text-2xl);
+      color: var(--color-text-primary);
+      letter-spacing: var(--tracking-tight);
     }
 
     .header-meta {
-      font-family: var(--font-accent);
-      font-size: 14px;
-      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
     }
 
     /* Main Container */
     .container {
-      max-width: 1400px;
+      max-width: var(--container-xl);
       margin: 0 auto;
-      padding: 48px;
+      padding: var(--space-12);
     }
 
     /* Title Section */
     .title-section {
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: var(--space-12);
     }
 
     .title {
       font-family: var(--font-display);
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
+      font-size: clamp(var(--text-3xl), 5vw, var(--text-4xl));
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-3);
+      letter-spacing: var(--tracking-tight);
     }
 
     .subtitle {
-      font-family: var(--font-accent);
-      font-size: 18px;
-      color: var(--text-secondary);
-      font-weight: 400;
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      font-weight: var(--font-normal);
     }
 
     /* Playback Controls */
@@ -158,8 +165,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 24px;
-      margin-bottom: 40px;
+      gap: var(--space-6);
+      margin-bottom: var(--space-10);
     }
 
     .control-btn {
@@ -169,7 +176,7 @@
       width: 56px;
       height: 56px;
       border: none;
-      border-radius: 50%;
+      border-radius: var(--radius-full);
       cursor: pointer;
       transition: all var(--duration-normal) var(--ease-out);
     }
@@ -183,55 +190,55 @@
     }
 
     .play-btn {
-      background: var(--accent-primary);
+      background: var(--color-accent);
     }
 
     .play-btn svg {
-      stroke: var(--text-inverse);
+      stroke: white;
       fill: none;
     }
 
     .play-btn:hover {
-      background: var(--accent-hover);
+      background: var(--color-accent-hover);
       transform: scale(1.05);
     }
 
     .reset-btn {
-      background: var(--bg-elevated);
-      border: 1px solid rgba(44, 37, 32, 0.12);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-default);
     }
 
     .reset-btn svg {
-      stroke: var(--text-secondary);
+      stroke: var(--color-text-secondary);
       fill: none;
     }
 
     .reset-btn:hover {
-      background: var(--bg-surface);
-      border-color: rgba(44, 37, 32, 0.2);
+      background: var(--color-bg-secondary);
+      border-color: var(--color-border-strong);
     }
 
     .time-display {
-      font-family: var(--font-accent);
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
       min-width: 120px;
       text-align: center;
     }
 
     /* Progress Bar */
     .progress-container {
-      background: var(--bg-elevated);
+      background: var(--color-bg-elevated);
       border-radius: var(--radius-lg);
-      padding: 24px 32px;
-      margin-bottom: 48px;
+      padding: var(--space-6) var(--space-8);
+      margin-bottom: var(--space-12);
       box-shadow: var(--shadow-md);
     }
 
     .progress-bar {
       height: 8px;
-      background: rgba(44, 37, 32, 0.08);
+      background: var(--color-bg-tertiary);
       border-radius: var(--radius-sm);
       overflow: hidden;
       cursor: pointer;
@@ -239,7 +246,7 @@
 
     .progress-fill {
       height: 100%;
-      background: var(--accent-primary);
+      background: var(--color-accent);
       border-radius: var(--radius-sm);
       width: 0%;
       transition: width 100ms linear;
@@ -248,29 +255,29 @@
     .progress-markers {
       display: flex;
       justify-content: space-between;
-      margin-top: 12px;
-      padding: 0 4px;
+      margin-top: var(--space-3);
+      padding: 0 var(--space-1);
     }
 
     .marker {
-      font-family: var(--font-accent);
-      font-size: 12px;
-      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
     }
 
     /* Timeline Scenes */
     .timeline {
       display: grid;
-      gap: 24px;
+      gap: var(--space-6);
     }
 
     .scene {
-      background: var(--bg-elevated);
+      background: var(--color-bg-elevated);
       border-radius: var(--radius-xl);
-      padding: 32px;
+      padding: var(--space-8);
       display: grid;
       grid-template-columns: 100px 1fr 200px;
-      gap: 32px;
+      gap: var(--space-8);
       align-items: start;
       box-shadow: var(--shadow-sm);
       border: 1px solid transparent;
@@ -280,7 +287,7 @@
 
     .scene.active {
       opacity: 1;
-      border-color: var(--accent-primary);
+      border-color: var(--color-accent);
       box-shadow: var(--shadow-lg);
     }
 
@@ -293,17 +300,17 @@
     }
 
     .scene-range {
-      font-family: var(--font-accent);
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--accent-primary);
-      margin-bottom: 8px;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: var(--font-semibold);
+      color: var(--color-accent);
+      margin-bottom: var(--space-2);
     }
 
     .scene-duration {
       font-family: var(--font-body);
-      font-size: 12px;
-      color: var(--text-muted);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
     }
 
     .scene-content {
@@ -312,13 +319,13 @@
 
     .scene-title {
       font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 12px;
+      font-size: var(--text-xl);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-3);
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--space-3);
     }
 
     .scene-icon {
@@ -340,140 +347,140 @@
     }
 
     .scene-description {
-      font-size: 15px;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      margin-bottom: 16px;
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--space-4);
     }
 
     .scene-script {
-      background: var(--bg-surface);
+      background: var(--color-bg-secondary);
       border-radius: var(--radius-md);
-      padding: 16px 20px;
+      padding: var(--space-4) var(--space-5);
       font-family: var(--font-body);
-      font-size: 14px;
-      color: var(--text-primary);
+      font-size: var(--text-sm);
+      color: var(--color-text-primary);
       font-style: italic;
-      border-left: 3px solid var(--accent-secondary);
+      border-left: 3px solid var(--color-jordan);
     }
 
     .scene-visual {
-      background: var(--bg-surface);
+      background: var(--color-bg-secondary);
       border-radius: var(--radius-lg);
-      padding: 20px;
+      padding: var(--space-5);
       text-align: center;
     }
 
     .visual-label {
-      font-family: var(--font-accent);
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
+      letter-spacing: var(--tracking-wider);
+      margin-bottom: var(--space-3);
     }
 
     .visual-preview {
       width: 100%;
       aspect-ratio: 16/9;
-      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(44, 37, 32, 0.08);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .visual-preview svg {
       width: 32px;
       height: 32px;
-      stroke: var(--text-muted);
+      stroke: var(--color-text-muted);
       stroke-width: 1.5;
       fill: none;
     }
 
     /* Scene color accents */
     .scene[data-scene="hook"] .scene-icon {
-      background: rgba(44, 37, 32, 0.08);
+      background: var(--color-bg-tertiary);
     }
     .scene[data-scene="hook"] .scene-icon svg {
-      stroke: var(--text-primary);
+      stroke: var(--color-text-primary);
     }
 
     .scene[data-scene="intro"] .scene-icon {
-      background: rgba(74, 103, 65, 0.12);
+      background: var(--color-ferni-subtle);
     }
     .scene[data-scene="intro"] .scene-icon svg {
-      stroke: var(--persona-ferni);
+      stroke: var(--color-ferni);
     }
 
     .scene[data-scene="memory"] .scene-icon {
-      background: rgba(58, 107, 115, 0.12);
+      background: var(--color-peter-subtle);
     }
     .scene[data-scene="memory"] .scene-icon svg {
-      stroke: var(--persona-peter);
+      stroke: var(--color-peter);
     }
 
     .scene[data-scene="team"] .scene-icon {
-      background: rgba(196, 133, 106, 0.12);
+      background: var(--color-jordan-subtle);
     }
     .scene[data-scene="team"] .scene-icon svg {
-      stroke: var(--persona-jordan);
+      stroke: var(--color-jordan);
     }
 
     .scene[data-scene="promise"] .scene-icon {
-      background: rgba(166, 122, 106, 0.12);
+      background: var(--color-maya-subtle);
     }
     .scene[data-scene="promise"] .scene-icon svg {
-      stroke: var(--persona-maya);
+      stroke: var(--color-maya);
     }
 
     .scene[data-scene="cta"] .scene-icon {
-      background: rgba(61, 90, 69, 0.12);
+      background: var(--color-accent-subtle);
     }
     .scene[data-scene="cta"] .scene-icon svg {
-      stroke: var(--accent-primary);
+      stroke: var(--color-accent);
     }
 
     /* Production Notes */
     .production-notes {
-      margin-top: 64px;
+      margin-top: var(--space-16);
     }
 
     .notes-title {
       font-family: var(--font-display);
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 24px;
+      font-size: var(--text-2xl);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-6);
       text-align: center;
     }
 
     .notes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      gap: var(--space-6);
     }
 
     .note-card {
-      background: var(--bg-elevated);
+      background: var(--color-bg-elevated);
       border-radius: var(--radius-lg);
-      padding: 24px;
+      padding: var(--space-6);
       box-shadow: var(--shadow-sm);
     }
 
     .note-card-header {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
     }
 
     .note-card-icon {
       width: 36px;
       height: 36px;
-      background: rgba(61, 90, 69, 0.1);
+      background: var(--color-accent-subtle);
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
@@ -483,16 +490,16 @@
     .note-card-icon svg {
       width: 20px;
       height: 20px;
-      stroke: var(--accent-primary);
+      stroke: var(--color-accent);
       stroke-width: 1.5;
       fill: none;
     }
 
     .note-card-title {
       font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-size: var(--text-base);
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
     }
 
     .note-card-list {
@@ -500,13 +507,13 @@
     }
 
     .note-card-list li {
-      padding: 8px 0;
-      font-size: 14px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.06);
+      padding: var(--space-2) 0;
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      border-bottom: 1px solid var(--color-border-subtle);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--space-2);
     }
 
     .note-card-list li:last-child {
@@ -517,23 +524,23 @@
       content: '';
       width: 4px;
       height: 4px;
-      background: var(--accent-secondary);
-      border-radius: 50%;
+      background: var(--color-jordan);
+      border-radius: var(--radius-full);
       flex-shrink: 0;
     }
 
     /* Footer */
     .footer {
-      margin-top: 64px;
+      margin-top: var(--space-16);
       text-align: center;
-      padding: 32px;
-      border-top: 1px solid rgba(44, 37, 32, 0.08);
+      padding: var(--space-8);
+      border-top: 1px solid var(--color-border-subtle);
     }
 
     .footer-text {
-      font-family: var(--font-accent);
-      font-size: 14px;
-      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
       font-style: italic;
     }
 
@@ -545,37 +552,48 @@
     @media (max-width: 900px) {
       .scene {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: var(--space-5);
       }
       .scene-time {
         text-align: left;
       }
       .container {
-        padding: 24px;
+        padding: var(--space-6);
+      }
+      .header {
+        padding: var(--space-4) var(--space-6);
+      }
+      .brand-nav {
+        flex-direction: column;
+        gap: var(--space-4);
+      }
+      .nav-links {
+        gap: var(--space-4);
       }
     }
   </style>
 </head>
 <body>
   <!-- Brand Navigation -->
-  <nav style="position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: rgba(255, 253, 251, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(44, 37, 32, 0.08); z-index: 200;">
-    <a href="../brand-book.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-primary); font-family: var(--font-accent); font-weight: 500;">
-      <svg viewBox="0 0 100 100" style="width: 28px; height: 28px;">
-        <circle cx="50" cy="50" r="40" fill="var(--persona-ferni)"/>
+  <nav class="brand-nav" role="navigation" aria-label="Main navigation">
+    <a href="../index.html" class="nav-logo" aria-label="Ferni Brand Library Home">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="40" fill="var(--color-ferni)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
         <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
         <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
       </svg>
-      Brand Library
+      <span>Brand Library</span>
     </a>
-    <div style="display: flex; gap: 20px; font-size: 0.85rem;">
-      <a href="../expressions/gallery.html" style="color: var(--text-muted); text-decoration: none;">Expressions</a>
-      <a href="../motion/demo.html" style="color: var(--text-muted); text-decoration: none;">Motion</a>
-      <a href="persona-picker.html" style="color: var(--text-muted); text-decoration: none;">Team</a>
-      <span style="color: var(--accent-primary); font-weight: 500;">Video Timeline</span>
+    <div class="nav-links">
+      <a href="../expressions/gallery.html" class="nav-link">Expressions</a>
+      <a href="../motion/demo.html" class="nav-link">Motion</a>
+      <a href="persona-picker.html" class="nav-link">Team</a>
+      <span class="nav-current" aria-current="page">Video Timeline</span>
     </div>
   </nav>
 
-  <header class="header" style="margin-top: 50px;">
+  <header class="header">
     <div class="logo">
       <div class="logo-mark">
         <svg viewBox="0 0 24 24">
@@ -927,24 +945,24 @@
   </main>
 
   <script>
-    const TOTAL_DURATION = 60;
-    let currentTime = 0;
-    let isPlaying = false;
-    let animationFrame = null;
-    let lastTimestamp = null;
+    var TOTAL_DURATION = 60;
+    var currentTime = 0;
+    var isPlaying = false;
+    var animationFrame = null;
+    var lastTimestamp = null;
 
-    const playBtn = document.getElementById('playBtn');
-    const playIcon = document.getElementById('playIcon');
-    const pauseIcon = document.getElementById('pauseIcon');
-    const resetBtn = document.getElementById('resetBtn');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const progressFill = document.getElementById('progressFill');
-    const progressBar = document.getElementById('progressBar');
-    const scenes = document.querySelectorAll('.scene');
+    var playBtn = document.getElementById('playBtn');
+    var playIcon = document.getElementById('playIcon');
+    var pauseIcon = document.getElementById('pauseIcon');
+    var resetBtn = document.getElementById('resetBtn');
+    var timeDisplay = document.getElementById('timeDisplay');
+    var progressFill = document.getElementById('progressFill');
+    var progressBar = document.getElementById('progressBar');
+    var scenes = document.querySelectorAll('.scene');
 
     function formatTime(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
+      var mins = Math.floor(seconds / 60);
+      var secs = Math.floor(seconds % 60);
       return mins + ':' + (secs < 10 ? '0' : '') + secs;
     }
 
@@ -953,8 +971,8 @@
       progressFill.style.width = (currentTime / TOTAL_DURATION) * 100 + '%';
 
       scenes.forEach(function(scene) {
-        const start = parseFloat(scene.dataset.start);
-        const end = parseFloat(scene.dataset.end);
+        var start = parseFloat(scene.dataset.start);
+        var end = parseFloat(scene.dataset.end);
 
         scene.classList.remove('active', 'completed');
 

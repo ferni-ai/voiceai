@@ -1000,8 +1000,9 @@ export class MusicMemoryManager {
 
   /**
    * Record that user liked a track
+   * 🎵 Enhanced to track genres and mood-music correlations for personalization
    */
-  recordLikedTrack(artist: string, trackName: string, mood?: string): void {
+  recordLikedTrack(artist: string, trackName: string, mood?: string, genre?: string): void {
     if (!this.preferences.likedArtists.includes(artist)) {
       this.preferences.likedArtists.push(artist);
     }
@@ -1013,8 +1014,27 @@ export class MusicMemoryManager {
       timestamp: Date.now(),
     };
 
-    // Record mood preference
-    if (mood) {
+    // 🎵 Auto-learn genre preferences from track metadata
+    if (genre && !this.preferences.favoriteGenres.includes(genre)) {
+      this.preferences.favoriteGenres.push(genre);
+      // Keep only top 10 genres
+      if (this.preferences.favoriteGenres.length > 10) {
+        this.preferences.favoriteGenres = this.preferences.favoriteGenres.slice(-10);
+      }
+      log.debug('Learned genre preference', { genre, totalGenres: this.preferences.favoriteGenres.length });
+    }
+
+    // 🎵 Record mood-music correlation (mood -> genre association)
+    if (mood && genre) {
+      if (!this.preferences.moodPreferences[mood]) {
+        this.preferences.moodPreferences[mood] = [];
+      }
+      // Store genre (not just artist) for mood-music learning
+      if (!this.preferences.moodPreferences[mood].includes(genre)) {
+        this.preferences.moodPreferences[mood].push(genre);
+      }
+    } else if (mood) {
+      // Fallback: store artist if no genre available
       if (!this.preferences.moodPreferences[mood]) {
         this.preferences.moodPreferences[mood] = [];
       }
@@ -1031,7 +1051,7 @@ export class MusicMemoryManager {
       this.preferences.preferredMusicTimes.push(timeOfDay);
     }
 
-    log.debug('Recorded liked track', { artist, track: trackName, mood });
+    log.debug('Recorded liked track', { artist, track: trackName, mood, genre });
   }
 
   /**
@@ -1040,6 +1060,54 @@ export class MusicMemoryManager {
   recordSkippedTrack(artist: string): void {
     if (!this.preferences.dislikedArtists.includes(artist)) {
       this.preferences.dislikedArtists.push(artist);
+    }
+  }
+
+  /**
+   * 🎵 Record explicit music preference from conversation
+   * Called when user says things like "I love jazz" or "I don't like country"
+   */
+  recordExplicitPreference(params: {
+    type: 'like' | 'dislike';
+    category: 'genre' | 'artist';
+    value: string;
+  }): void {
+    const { type, category, value } = params;
+    const normalizedValue = value.toLowerCase().trim();
+    
+    if (type === 'like') {
+      if (category === 'genre') {
+        if (!this.preferences.favoriteGenres.includes(normalizedValue)) {
+          this.preferences.favoriteGenres.push(normalizedValue);
+          // Keep only top 15 genres
+          if (this.preferences.favoriteGenres.length > 15) {
+            this.preferences.favoriteGenres = this.preferences.favoriteGenres.slice(-15);
+          }
+        }
+      } else if (category === 'artist') {
+        if (!this.preferences.likedArtists.includes(value)) {
+          this.preferences.likedArtists.push(value);
+          // Keep only top 20 artists
+          if (this.preferences.likedArtists.length > 20) {
+            this.preferences.likedArtists = this.preferences.likedArtists.slice(-20);
+          }
+        }
+      }
+      log.debug('Recorded explicit like', { category, value });
+    } else {
+      // Dislike
+      if (category === 'artist') {
+        if (!this.preferences.dislikedArtists.includes(value)) {
+          this.preferences.dislikedArtists.push(value);
+        }
+      }
+      // Note: We don't track disliked genres separately, but we could remove them from favorites
+      if (category === 'genre' && this.preferences.favoriteGenres.includes(normalizedValue)) {
+        this.preferences.favoriteGenres = this.preferences.favoriteGenres.filter(
+          g => g !== normalizedValue
+        );
+      }
+      log.debug('Recorded explicit dislike', { category, value });
     }
   }
 
@@ -1129,6 +1197,72 @@ export class MusicMemoryManager {
    */
   getPreferences(): MusicPreferences {
     return { ...this.preferences };
+  }
+
+  /**
+   * 🎵 Get human-readable summary of music preferences
+   * For when users ask "What music do you remember I like?"
+   */
+  getPreferencesSummary(): string {
+    const parts: string[] = [];
+
+    // Favorite genres
+    if (this.preferences.favoriteGenres.length > 0) {
+      const genres = this.preferences.favoriteGenres.slice(-5); // Latest 5
+      if (genres.length === 1) {
+        parts.push(`you seem to enjoy ${genres[0]}`);
+      } else {
+        const last = genres.pop();
+        parts.push(`you seem to enjoy ${genres.join(', ')} and ${last}`);
+      }
+    }
+
+    // Favorite artists
+    if (this.preferences.likedArtists.length > 0) {
+      const artists = this.preferences.likedArtists.slice(-3); // Latest 3
+      if (artists.length === 1) {
+        parts.push(`you've enjoyed ${artists[0]}`);
+      } else {
+        const last = artists.pop();
+        parts.push(`you've enjoyed ${artists.join(', ')} and ${last}`);
+      }
+    }
+
+    // Disliked artists
+    if (this.preferences.dislikedArtists.length > 0) {
+      const dislikes = this.preferences.dislikedArtists.slice(-2);
+      if (dislikes.length === 1) {
+        parts.push(`${dislikes[0]} isn't really your thing`);
+      } else {
+        parts.push(`${dislikes.join(' and ')} aren't really your thing`);
+      }
+    }
+
+    // Mood preferences
+    const moodEntries = Object.entries(this.preferences.moodPreferences);
+    if (moodEntries.length > 0) {
+      const [mood, values] = moodEntries[moodEntries.length - 1];
+      if (values.length > 0) {
+        parts.push(`when you're feeling ${mood}, you like ${values[0]}`);
+      }
+    }
+
+    // Total tracks
+    if (this.preferences.totalTracksPlayed > 0) {
+      parts.push(`we've listened to ${this.preferences.totalTracksPlayed} tracks together`);
+    }
+
+    if (parts.length === 0) {
+      return "I haven't learned your music preferences yet. Play some music and I'll start learning what you like!";
+    }
+
+    // Combine into natural sentence
+    if (parts.length === 1) {
+      return `From our time together, ${parts[0]}.`;
+    } else {
+      const last = parts.pop();
+      return `From our time together, ${parts.join(', ')}, and ${last}.`;
+    }
   }
 }
 
@@ -1220,19 +1354,26 @@ export class DJEnhancementController {
 
   /**
    * Called when a track ends
+   * 🎵 Enhanced to pass genre and emotional context for preference learning
    */
-  onTrackEnd(track: MusicTrack, wasSkipped: boolean): void {
+  onTrackEnd(track: MusicTrack, wasSkipped: boolean, emotionalContext?: string): void {
     // Clean up timing callbacks
     if (this.trackTimingCleanup) {
       this.trackTimingCleanup();
       this.trackTimingCleanup = null;
     }
 
-    // Record to memory
+    // Record to memory with full context
     if (wasSkipped) {
       this.musicMemory.recordSkippedTrack(track.artist);
     } else {
-      this.musicMemory.recordLikedTrack(track.artist, track.name);
+      // 🎵 Pass genre and emotional context for mood-music learning
+      this.musicMemory.recordLikedTrack(
+        track.artist,
+        track.name,
+        emotionalContext, // mood at time of playback
+        track.genre // genre from iTunes/Spotify metadata
+      );
     }
   }
 
@@ -1272,6 +1413,25 @@ export class DJEnhancementController {
    */
   getMusicPreferences(): MusicPreferences {
     return this.musicMemory.getPreferences();
+  }
+
+  /**
+   * 🎵 Record explicit music preference from conversation
+   * Called when user says things like "I love jazz" or "I don't like country"
+   */
+  recordExplicitPreference(params: {
+    type: 'like' | 'dislike';
+    category: 'genre' | 'artist';
+    value: string;
+  }): void {
+    this.musicMemory.recordExplicitPreference(params);
+  }
+
+  /**
+   * 🎵 Get human-readable summary of learned music preferences
+   */
+  getPreferencesSummary(): string {
+    return this.musicMemory.getPreferencesSummary();
   }
 
   /**

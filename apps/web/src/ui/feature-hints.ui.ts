@@ -444,7 +444,7 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
       ${
         hint.ctaText
           ? `
-        <button aria-label="Go forward" class="hint-cta">
+        <button aria-label="${t('accessibility.goForward')}" class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
@@ -496,14 +496,14 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       ${
         hint.ctaText
           ? `
-        <button aria-label="Go forward" class="hint-cta">
+        <button aria-label="${t('accessibility.goForward')}" class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
       `
           : ''
       }
-      <button aria-label="Maybe later" class="hint-dismiss-text">Maybe later</button>
+      <button aria-label="${t('accessibility.maybeLater')}" class="hint-dismiss-text">Maybe later</button>
     </div>
   `;
 

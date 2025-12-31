@@ -487,7 +487,7 @@ All timers are properly cleared on:
 
 ## Related Documentation
 
-- `design-system/design-system/brand/BETTER-THAN-HUMAN.md` - Avatar emotion during music
+- `design-system/design-system/docs/brand/BETTER-THAN-HUMAN.md` - Avatar emotion during music
 - `docs/guides/RUNBOOK.md` - Deployment procedures
 - `CLAUDE.md` - Code quality standards
 

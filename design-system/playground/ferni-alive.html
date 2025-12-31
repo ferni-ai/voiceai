@@ -163,18 +163,25 @@
       transform: translateX(14px);
     }
     
-    /* Layers panel */
+    /* Layers panel - 8 layers in 4x2 grid */
     .layers {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
     }
     
     .layer-card {
       background: rgba(74, 103, 65, 0.04);
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 8px;
+      padding: 8px 4px;
       text-align: center;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-spring);
+    }
+
+    .layer-card:hover {
+      background: rgba(74, 103, 65, 0.1);
+      transform: translateY(-1px);
     }
     
     .layer-card.disabled {
@@ -182,20 +189,23 @@
     }
     
     .layer-icon {
-      font-size: 1.2rem;
-      margin-bottom: 4px;
+      font-size: 1rem;
+      margin-bottom: 2px;
+      line-height: 1;
     }
-    
+
     .layer-name {
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       font-weight: 700;
       color: var(--ferni);
+      line-height: 1.2;
     }
-    
+
     .layer-desc {
-      font-size: 0.5rem;
+      font-size: 0.45rem;
       color: var(--ink-light);
       margin-top: 2px;
+      line-height: 1.2;
     }
     
     /* ============================================
@@ -3084,6 +3094,186 @@
     }
 
     /* ============================================
+       LIFE ENHANCEMENT SYSTEM
+       Making Ferni feel truly alive - beyond static animation
+       ============================================ */
+
+    /* CURSOR TRACKING - Eyes follow the user's presence */
+    .ferni-avatar.tracking .eyes-group {
+      transition: transform 0.15s var(--ease-organic);
+    }
+
+    /* HOVER RESPONSE - Avatar "perks up" when user is present */
+    .ferni-avatar:hover {
+      transform: translateY(-2px);
+    }
+
+    .ferni-avatar:hover .presence-ring {
+      opacity: 0.45 !important;
+      stroke-width: 2 !important;
+      transition: all 0.3s var(--ease-spring);
+    }
+
+    .ferni-avatar:hover .eye-white {
+      transform: scaleY(1.04);
+      transition: transform 0.2s var(--ease-spring);
+    }
+
+    /* ALIVE STATE - Subtle organic micro-tremors */
+    .ferni-avatar.alive {
+      animation: alivePresence 12s ease-in-out infinite;
+    }
+
+    .ferni-avatar.alive .avatar-body {
+      animation: aliveBody 6s ease-in-out infinite, aliveTremor 0.3s ease-in-out infinite;
+    }
+
+    .ferni-avatar.alive .presence-ring {
+      animation: aliveRingPulse 4s ease-in-out infinite, aliveRingBreathe 2s ease-in-out infinite;
+    }
+
+    @keyframes alivePresence {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      25% { transform: translateY(-0.5px) rotate(0.1deg); }
+      50% { transform: translateY(0.3px) rotate(-0.1deg); }
+      75% { transform: translateY(-0.3px) rotate(0.05deg); }
+    }
+
+    @keyframes aliveBody {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scaleY(1.012) scaleX(0.996); }
+    }
+
+    @keyframes aliveTremor {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(0.15px, 0); }
+    }
+
+    @keyframes aliveRingPulse {
+      0%, 100% { opacity: 0.28; }
+      50% { opacity: 0.38; }
+    }
+
+    @keyframes aliveRingBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.006); }
+    }
+
+    /* HEARTBEAT - Subtle life pulse */
+    .ferni-avatar.heartbeat .avatar-body {
+      animation: heartbeatPulse 1.2s ease-in-out infinite;
+    }
+
+    .ferni-avatar.heartbeat .presence-ring {
+      animation: heartbeatRing 1.2s ease-in-out infinite;
+    }
+
+    @keyframes heartbeatPulse {
+      0%, 100% { transform: scale(1); }
+      15% { transform: scale(1.015); }
+      30% { transform: scale(1); }
+      45% { transform: scale(1.008); }
+      60% { transform: scale(1); }
+    }
+
+    @keyframes heartbeatRing {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      15% { opacity: 0.45; transform: scale(1.02); }
+      30% { opacity: 0.3; transform: scale(1); }
+      45% { opacity: 0.38; transform: scale(1.01); }
+      60% { opacity: 0.3; transform: scale(1); }
+    }
+
+    /* IDLE QUIRKS - Random personality animations */
+    .ferni-avatar.quirk-glance .eyes-group {
+      animation: quirkyGlance 0.6s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-settle .avatar-body {
+      animation: quirkySettle 0.8s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-brow .lid-top {
+      animation: quirkyBrow 0.5s var(--ease-spring);
+    }
+
+    .ferni-avatar.quirk-squint .eye-white {
+      animation: quirkySquint 0.4s var(--ease-spring);
+    }
+
+    @keyframes quirkyGlance {
+      0%, 100% { transform: translate(0, 0); }
+      30% { transform: translate(2px, -1px); }
+      60% { transform: translate(-1px, 0); }
+    }
+
+    @keyframes quirkySettle {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scaleY(0.98) scaleX(1.01); }
+    }
+
+    @keyframes quirkyBrow {
+      0%, 100% { d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"); }
+      50% { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+    }
+
+    @keyframes quirkySquint {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.9); }
+    }
+
+    /* DOUBLE BLINK - More natural blink pattern */
+    .ferni-avatar.double-blinking .eye-white {
+      animation: doubleBlink 0.35s ease-in-out;
+    }
+
+    @keyframes doubleBlink {
+      0%, 100% { transform: scaleY(1); }
+      20% { transform: scaleY(0.1); }
+      40% { transform: scaleY(0.9); }
+      60% { transform: scaleY(0.1); }
+      80% { transform: scaleY(1); }
+    }
+
+    /* ATTENTION GLOW - When avatar is "focused" on user */
+    .ferni-avatar.attention .presence-ring {
+      stroke: var(--ferni-light);
+      stroke-width: 2.5;
+      opacity: 0.5;
+      filter: drop-shadow(0 0 4px rgba(74, 103, 65, 0.3));
+      animation: attentionGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes attentionGlow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(74, 103, 65, 0.2)); opacity: 0.45; }
+      50% { filter: drop-shadow(0 0 8px rgba(74, 103, 65, 0.4)); opacity: 0.55; }
+    }
+
+    /* ACTIVE LISTENING - Micro-nods during "listening" mode */
+    .ferni-avatar.active-listening {
+      animation: activeListeningNod 2s ease-in-out infinite;
+    }
+
+    .ferni-avatar.active-listening .eyes-group {
+      animation: activeListeningTrack 3s ease-in-out infinite;
+    }
+
+    @keyframes activeListeningNod {
+      0%, 100% { transform: translateY(0) rotate(0); }
+      20% { transform: translateY(1px) rotate(0.5deg); }
+      40% { transform: translateY(-0.5px) rotate(-0.3deg); }
+      60% { transform: translateY(0.8px) rotate(0.4deg); }
+      80% { transform: translateY(-0.3px) rotate(-0.2deg); }
+    }
+
+    @keyframes activeListeningTrack {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(0.5px, -0.3px); }
+      50% { transform: translate(-0.3px, 0.2px); }
+      75% { transform: translate(0.4px, -0.2px); }
+    }
+
+    /* ============================================
        EXPRESSION GRID & CATEGORY TABS
        ============================================ */
 
@@ -3180,12 +3370,12 @@
 <body>
   <header>
     <h1>Ferni — Alive (Full Expression Bible)</h1>
-    <p class="subtitle">57 Expressions · Micro-Expressions · Better Than Pixar Lamp</p>
+    <p class="subtitle">92 Expressions · 8 Life Layers · Cursor Tracking · Micro-Expressions · Idle Quirks</p>
   </header>
 
   <div class="stage">
     <div class="avatar-stage">
-      <div class="ferni-avatar breathing gazing anticipation" data-mood="neutral" id="mainAvatar">
+      <div class="ferni-avatar breathing gazing anticipation alive tracking" data-mood="neutral" id="mainAvatar">
         <svg class="avatar-svg" viewBox="0 0 100 100">
           <defs>
             <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -3252,6 +3442,30 @@
           <div class="layer-name">Anticipation</div>
           <div class="layer-desc">Overshoot on transitions</div>
           <input type="checkbox" checked data-layer="anticipation" style="display:none">
+        </label>
+        <label class="layer-card" id="layerAlive">
+          <div class="layer-icon">💓</div>
+          <div class="layer-name">Alive</div>
+          <div class="layer-desc">Organic micro-tremors</div>
+          <input type="checkbox" checked data-layer="alive" style="display:none">
+        </label>
+        <label class="layer-card" id="layerTracking">
+          <div class="layer-icon">👁️‍🗨️</div>
+          <div class="layer-name">Tracking</div>
+          <div class="layer-desc">Eyes follow cursor</div>
+          <input type="checkbox" checked data-layer="tracking" style="display:none">
+        </label>
+        <label class="layer-card" id="layerQuirks">
+          <div class="layer-icon">🎭</div>
+          <div class="layer-name">Quirks</div>
+          <div class="layer-desc">Random personality</div>
+          <input type="checkbox" checked data-layer="quirks" style="display:none">
+        </label>
+        <label class="layer-card" id="layerActiveListening">
+          <div class="layer-icon">🎧</div>
+          <div class="layer-name">Active Listen</div>
+          <div class="layer-desc">Micro-nods when listening</div>
+          <input type="checkbox" checked data-layer="activeListening" style="display:none">
         </label>
       </div>
     </div>
@@ -3505,27 +3719,119 @@
 
   <script>
     const avatar = document.getElementById('mainAvatar');
+    const avatarStage = document.querySelector('.avatar-stage');
     const status = document.getElementById('status');
     const expressionGrid = document.getElementById('expressionGrid');
+    const eyesGroup = avatar.querySelector('.eyes-group');
 
-    // Layer toggles
+    // Layer toggles - extended with new life features
     const layers = {
       breathing: true,
       blink: true,
       gaze: true,
-      anticipation: true
+      anticipation: true,
+      alive: true,
+      tracking: true,
+      quirks: true,
+      activeListening: true
     };
 
     function updateLayers() {
       avatar.classList.toggle('breathing', layers.breathing);
       avatar.classList.toggle('gazing', layers.gaze);
       avatar.classList.toggle('anticipation', layers.anticipation);
+      avatar.classList.toggle('alive', layers.alive);
+      avatar.classList.toggle('tracking', layers.tracking);
 
       // Update layer cards
       document.getElementById('layerBreathing').classList.toggle('disabled', !layers.breathing);
       document.getElementById('layerBlink').classList.toggle('disabled', !layers.blink);
       document.getElementById('layerGaze').classList.toggle('disabled', !layers.gaze);
       document.getElementById('layerAnticipation').classList.toggle('disabled', !layers.anticipation);
+      document.getElementById('layerAlive').classList.toggle('disabled', !layers.alive);
+      document.getElementById('layerTracking').classList.toggle('disabled', !layers.tracking);
+      document.getElementById('layerQuirks').classList.toggle('disabled', !layers.quirks);
+      document.getElementById('layerActiveListening').classList.toggle('disabled', !layers.activeListening);
+
+      // Toggle active listening based on mood
+      updateActiveListening();
+    }
+
+    // ============================================
+    // CURSOR TRACKING - Eyes follow the mouse
+    // ============================================
+    function setupCursorTracking() {
+      avatarStage.addEventListener('mousemove', (e) => {
+        if (!layers.tracking) return;
+
+        const rect = avatar.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Calculate offset from center (clamped to subtle range)
+        const maxOffset = 3; // Maximum pixel offset
+        let offsetX = (e.clientX - centerX) / 50;
+        let offsetY = (e.clientY - centerY) / 50;
+
+        offsetX = Math.max(-maxOffset, Math.min(maxOffset, offsetX));
+        offsetY = Math.max(-maxOffset, Math.min(maxOffset, offsetY));
+
+        eyesGroup.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      });
+
+      avatarStage.addEventListener('mouseleave', () => {
+        eyesGroup.style.transform = '';
+      });
+    }
+
+    // ============================================
+    // IDLE QUIRKS - Random personality animations
+    // ============================================
+    const quirks = ['quirk-glance', 'quirk-settle', 'quirk-brow', 'quirk-squint'];
+    let quirksInterval;
+
+    function triggerRandomQuirk() {
+      if (!layers.quirks) return;
+
+      const quirk = quirks[Math.floor(Math.random() * quirks.length)];
+      avatar.classList.add(quirk);
+
+      // Remove after animation completes
+      setTimeout(() => {
+        avatar.classList.remove(quirk);
+      }, 800);
+    }
+
+    function scheduleQuirks() {
+      // Random quirk every 8-15 seconds
+      const delay = 8000 + Math.random() * 7000;
+      quirksInterval = setTimeout(() => {
+        triggerRandomQuirk();
+        scheduleQuirks();
+      }, delay);
+    }
+
+    // ============================================
+    // ACTIVE LISTENING - Micro-nods during listening
+    // ============================================
+    function updateActiveListening() {
+      const listeningMoods = ['listening', 'attentive', 'engaged', 'interested', 'absorbing', 'receptive'];
+      const currentMood = avatar.dataset.mood;
+
+      if (layers.activeListening && listeningMoods.includes(currentMood)) {
+        avatar.classList.add('active-listening');
+      } else {
+        avatar.classList.remove('active-listening');
+      }
+    }
+
+    // ============================================
+    // DOUBLE BLINK - More natural blink pattern
+    // ============================================
+    function triggerDoubleBlink() {
+      if (!layers.blink) return;
+      avatar.classList.add('double-blinking');
+      setTimeout(() => avatar.classList.remove('double-blinking'), 350);
     }
 
     // Layer card clicks
@@ -3567,6 +3873,7 @@
         btn.classList.add('active');
         avatar.dataset.mood = btn.dataset.mood;
         updateStatus();
+        updateActiveListening();
       });
     });
 
@@ -3579,13 +3886,19 @@
       status.textContent = `${mood.charAt(0).toUpperCase() + mood.slice(1)} · ${activeLayers || 'No layers'}`;
     }
 
-    // Blinking system
+    // Blinking system - Enhanced with occasional double blinks
     let blinkTimeout = null;
 
     function triggerBlink() {
       if (!layers.blink) return;
-      avatar.classList.add('blinking');
-      setTimeout(() => avatar.classList.remove('blinking'), 150);
+
+      // 20% chance of double blink for more natural feel
+      if (Math.random() < 0.2) {
+        triggerDoubleBlink();
+      } else {
+        avatar.classList.add('blinking');
+        setTimeout(() => avatar.classList.remove('blinking'), 150);
+      }
     }
 
     function scheduleBlink() {
@@ -3705,9 +4018,16 @@
       }
     });
 
-    // Initialize
+    // Initialize all life systems
     updateLayers();
     scheduleBlink();
+    scheduleQuirks();
+    setupCursorTracking();
+
+    // Show welcome micro-expression after short delay
+    setTimeout(() => {
+      triggerMicroExpression('recognition', 80);
+    }, 1000);
   </script>
 </body>
 </html>

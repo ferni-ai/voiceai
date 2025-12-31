@@ -67,10 +67,7 @@ After calling this tool, you should respond in the new language to confirm the s
           const languageCode = parseLanguageName(language);
 
           if (!languageCode) {
-            log.warn(
-              { userId: ctx.userId, language },
-              '🌍 Unrecognized language requested'
-            );
+            log.warn({ userId: ctx.userId, language }, '🌍 Unrecognized language requested');
             return `I'm not sure which language "${language}" refers to. I support languages like English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and many more. Could you try again?`;
           }
 
@@ -84,7 +81,10 @@ After calling this tool, you should respond in the new language to confirm the s
           if (ctx.userId) {
             // Fire and forget - don't block on persistence
             persistUserLanguagePreference(ctx.userId, languageCode).catch((err) => {
-              log.error({ error: String(err), userId: ctx.userId }, 'Failed to persist language preference');
+              log.error(
+                { error: String(err), userId: ctx.userId },
+                'Failed to persist language preference'
+              );
             });
           }
 
@@ -138,9 +138,7 @@ const listSupportedLanguagesDef: ToolDefinition = {
       parameters: z.object({}),
       execute: async () => {
         try {
-          const { getSupportedLanguagesList } = await import(
-            '../../../services/language/index.js'
-          );
+          const { getSupportedLanguagesList } = await import('../../../services/language/index.js');
 
           const languages = getSupportedLanguagesList();
 
@@ -150,10 +148,7 @@ const listSupportedLanguagesDef: ToolDefinition = {
 
           return `I can speak many languages! Here are the main ones: ${languageList}. Just say "speak to me in [language]" and I'll switch. For example, "speak to me in Spanish" or "switch to French".`;
         } catch (error) {
-          log.error(
-            { error: String(error), userId: ctx.userId },
-            '🌍 Failed to list languages'
-          );
+          log.error({ error: String(error), userId: ctx.userId }, '🌍 Failed to list languages');
           return `I can speak many languages including English, Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese, Hindi, and more. Just tell me which language you'd prefer!`;
         }
       },
@@ -182,9 +177,8 @@ const getCurrentLanguageDef: ToolDefinition = {
       parameters: z.object({}),
       execute: async () => {
         try {
-          const { getSessionLanguageState, getLanguageConfig } = await import(
-            '../../../services/language/index.js'
-          );
+          const { getSessionLanguageState, getLanguageConfig } =
+            await import('../../../services/language/index.js');
 
           const sessionId = ctx.userId || 'default';
           const state = getSessionLanguageState(sessionId);

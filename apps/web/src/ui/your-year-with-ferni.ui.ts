@@ -21,6 +21,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('YourYearWithFerni');
 
@@ -258,7 +259,7 @@ export class YourYearWithFerni {
     this.container.innerHTML = `
       <div class="your-year-backdrop"></div>
       <div class="your-year-modal" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
-        <button class="your-year-close" aria-label="Close year review">
+        <button class="your-year-close" aria-label="${t('accessibility.closeYearReview')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -291,7 +292,7 @@ export class YourYearWithFerni {
           <!-- Emotional Journey -->
           <section class="your-year-section" aria-labelledby="milestones-title">
             <h3 id="milestones-title" class="your-year-section-title">Emotional Milestones</h3>
-            <div class="your-year-timeline" role="list" aria-label="Emotional milestones timeline">
+            <div class="your-year-timeline" role="list" aria-label="${t('accessibility.emotionalMilestonesTimeline')}">
               ${this.renderTimeline()}
             </div>
           </section>
@@ -299,7 +300,7 @@ export class YourYearWithFerni {
           <!-- Team Unlocks -->
           <section class="your-year-section" aria-labelledby="team-title">
             <h3 id="team-title" class="your-year-section-title">Your Team</h3>
-            <div class="your-year-team" role="list" aria-label="Team members unlocked">
+            <div class="your-year-team" role="list" aria-label="${t('accessibility.teamMembersUnlocked')}">
               ${this.renderTeam()}
             </div>
           </section>
@@ -307,7 +308,7 @@ export class YourYearWithFerni {
           <!-- Dreams -->
           <section class="your-year-section" aria-labelledby="dreams-title">
             <h3 id="dreams-title" class="your-year-section-title">Dreams We're Guarding</h3>
-            <div class="your-year-dreams" role="list" aria-label="Your tracked dreams">
+            <div class="your-year-dreams" role="list" aria-label="${t('accessibility.yourTrackedDreams')}">
               ${this.renderDreams()}
             </div>
           </section>

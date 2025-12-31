@@ -1227,10 +1227,11 @@ export function generateContextAwareGreeting(personaId: string, ctx: GreetingCon
       return buildDynamicPeterGreeting(ctx);
     case 'nayan-patel':
       return buildDynamicNayanGreeting(ctx);
-    default:
+    default: {
       // For unknown personas, fall back to static list
       const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;
       return greetings[Math.floor(Math.random() * greetings.length)];
+    }
   }
 }
 
@@ -1319,10 +1320,11 @@ export function generateWarmGreeting(personaId: string, ctx?: GreetingContext): 
       return buildDynamicPeterGreeting(ctx);
     case 'nayan-patel':
       return buildDynamicNayanGreeting(ctx);
-    default:
+    default: {
       // Unknown persona - use humanized static fallback
       const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;
       return pick(greetings);
+    }
   }
 }
 

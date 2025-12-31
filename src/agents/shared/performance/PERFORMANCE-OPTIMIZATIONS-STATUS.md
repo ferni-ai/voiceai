@@ -93,10 +93,46 @@ that's what `turn-processor.ts` actually uses.
 ## What's NOT Done (Future Work)
 
 1. ~~**Raw audio injection**~~ - ✅ SOLVED by integrating with cache-aware-tts.ts!
-2. **Redis-backed tool cache** - Currently in-memory, could persist across restarts
+2. ~~**Redis-backed tool cache**~~ - ✅ IMPLEMENTED (Dec 29, 2024)
 3. **Predictive embedding precomputation** - Could cache tool embeddings
 4. **E2E performance tests** - Should measure actual latency improvement
-5. **Greeting audio unit tests** - Add tests for getPrewarmedGreetingAudio()
+5. ~~**Greeting audio unit tests**~~ - ✅ Added 8 tests for getPrewarmedGreetingAudio()
+
+---
+
+## Audit Fixes (Dec 29, 2024)
+
+| Issue Found | Fix Applied |
+|-------------|-------------|
+| `getPrewarmedGreetingAudio` imported but NOT called in cache-aware-tts.ts | ✅ Added cache check before speculative cache |
+| Music pattern regex didn't match "play some jazz music" | ✅ Fixed regex to include optional "some" and genre combinations |
+| TypeScript errors (9) in various files | ✅ All fixed (0 TS errors) |
+| Test failures for extended TTLs | ✅ Updated tests to match new TTL values |
+| FusedPrediction mock missing required fields | ✅ Added helper function with correct type |
+
+**All tests passing: 140/140**
+
+### Redis Tool Cache Details
+
+**Implementation:** `src/services/performance/tool-response-cache.ts`
+
+**Architecture:**
+- **L1 (Memory)**: In-process LRU cache for sub-millisecond access
+- **L2 (Redis)**: Persistence across restarts when `REDIS_URL` or `REDIS_HOST` is set
+
+**Key Features:**
+- Non-blocking Redis initialization (doesn't slow startup)
+- Fire-and-forget L2 writes (doesn't add latency)
+- Automatic fallback to memory-only when Redis unavailable
+- Async `getAsync()` for paths where Redis lookup is acceptable
+
+**Configuration:**
+```bash
+# Enable Redis L2 cache
+REDIS_URL=redis://your-redis-host:6379
+# or
+REDIS_HOST=your-redis-host
+```
 
 ---
 

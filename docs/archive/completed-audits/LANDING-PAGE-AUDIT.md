@@ -533,8 +533,8 @@ apps/web/firebase.json              # Add landing AI rewrites
 ## Appendix B: References
 
 - CORE-PRINCIPLES.md
-- design-system/brand/FERNI-BRAND-GUIDELINES.md
-- design-system/brand/FERNI-SCREEN-GUIDELINES.md
+- design-system/docs/brand/FERNI-BRAND-GUIDELINES.md
+- design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md
 - .cursorrules (deployment, code standards)
 
 ---

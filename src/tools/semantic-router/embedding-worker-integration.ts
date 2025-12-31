@@ -62,8 +62,8 @@ export async function queueEmbeddingForWorker(text: string): Promise<number[]> {
   // Feature flag check
   if (!isFeatureEnabled('embeddingWorkerIntegration')) {
     // Fall back to direct embedding
-    const { generateEmbedding } = await import('../../memory/embeddings.js');
-    return generateEmbedding(text);
+    const { embed } = await import('../../memory/embeddings.js');
+    return embed(text);
   }
 
   return new Promise<number[]>((resolve, reject) => {
@@ -133,10 +133,7 @@ function flushBatch(): void {
   });
 
   // Send to worker
-  log.debug(
-    { batchId, count: batch.texts.length },
-    'Flushing embedding batch to worker'
-  );
+  log.debug({ batchId, count: batch.texts.length }, 'Flushing embedding batch to worker');
 
   AsyncEvents.emit('embedding:batch-generate' as never, {
     texts: batch.texts,
@@ -178,10 +175,7 @@ function handleBatchComplete(data: {
     }
   });
 
-  log.debug(
-    { batchId, count: embeddings.length },
-    'Embedding batch completed'
-  );
+  log.debug({ batchId, count: embeddings.length }, 'Embedding batch completed');
 }
 
 // ============================================================================

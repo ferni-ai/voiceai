@@ -247,7 +247,7 @@ export function forecast(
 
   // Calculate forecast
   const hoursAhead = (targetTime.getTime() - now) / (1000 * 60 * 60);
-  const trendAdjustment = trend * Math.min(hoursAhead, 72) / 24; // Cap trend effect at 3 days
+  const trendAdjustment = (trend * Math.min(hoursAhead, 72)) / 24; // Cap trend effect at 3 days
   const predictedValue = Math.max(0, Math.min(1, (level + trendAdjustment) * seasonalAdj));
 
   // Calculate confidence interval
@@ -451,20 +451,28 @@ async function loadTimeSeriesProfileFromFirestore(userId: string): Promise<void>
         // Restore seasonality
         if (data.seasonality) {
           if (data.seasonality.mood) {
-            profile.seasonality.mood.dayOfWeek = data.seasonality.mood.dayOfWeek || createDefaultSeasonality().dayOfWeek;
-            profile.seasonality.mood.hourOfDay = data.seasonality.mood.hourOfDay || createDefaultSeasonality().hourOfDay;
+            profile.seasonality.mood.dayOfWeek =
+              data.seasonality.mood.dayOfWeek || createDefaultSeasonality().dayOfWeek;
+            profile.seasonality.mood.hourOfDay =
+              data.seasonality.mood.hourOfDay || createDefaultSeasonality().hourOfDay;
           }
           if (data.seasonality.energy) {
-            profile.seasonality.energy.dayOfWeek = data.seasonality.energy.dayOfWeek || createDefaultSeasonality().dayOfWeek;
-            profile.seasonality.energy.hourOfDay = data.seasonality.energy.hourOfDay || createDefaultSeasonality().hourOfDay;
+            profile.seasonality.energy.dayOfWeek =
+              data.seasonality.energy.dayOfWeek || createDefaultSeasonality().dayOfWeek;
+            profile.seasonality.energy.hourOfDay =
+              data.seasonality.energy.hourOfDay || createDefaultSeasonality().hourOfDay;
           }
           if (data.seasonality.engagement) {
-            profile.seasonality.engagement.dayOfWeek = data.seasonality.engagement.dayOfWeek || createDefaultSeasonality().dayOfWeek;
-            profile.seasonality.engagement.hourOfDay = data.seasonality.engagement.hourOfDay || createDefaultSeasonality().hourOfDay;
+            profile.seasonality.engagement.dayOfWeek =
+              data.seasonality.engagement.dayOfWeek || createDefaultSeasonality().dayOfWeek;
+            profile.seasonality.engagement.hourOfDay =
+              data.seasonality.engagement.hourOfDay || createDefaultSeasonality().hourOfDay;
           }
           if (data.seasonality.stress) {
-            profile.seasonality.stress.dayOfWeek = data.seasonality.stress.dayOfWeek || createDefaultSeasonality().dayOfWeek;
-            profile.seasonality.stress.hourOfDay = data.seasonality.stress.hourOfDay || createDefaultSeasonality().hourOfDay;
+            profile.seasonality.stress.dayOfWeek =
+              data.seasonality.stress.dayOfWeek || createDefaultSeasonality().dayOfWeek;
+            profile.seasonality.stress.hourOfDay =
+              data.seasonality.stress.hourOfDay || createDefaultSeasonality().hourOfDay;
           }
         }
 
@@ -627,7 +635,7 @@ function calculateSmoothedTrend(data: TimeSeriesPoint[]): { level: number; trend
 
   // JS fallback: Holt's linear exponential smoothing
   let level = data[0].value;
-  let trend = data.length > 1 ? (data[1].value - data[0].value) : 0;
+  let trend = data.length > 1 ? data[1].value - data[0].value : 0;
 
   for (let i = 1; i < data.length; i++) {
     const prevLevel = level;
@@ -644,9 +652,7 @@ function getSeasonalAdjustment(seasonality: SeasonalPattern, targetTime: Date): 
   const wom = Math.min(3, Math.floor((targetTime.getDate() - 1) / 7));
 
   // Combine seasonal factors (multiplicative)
-  return seasonality.dayOfWeek[dow] *
-         seasonality.hourOfDay[hod] *
-         seasonality.weekOfMonth[wom];
+  return seasonality.dayOfWeek[dow] * seasonality.hourOfDay[hod] * seasonality.weekOfMonth[wom];
 }
 
 function calculateForecastError(
@@ -699,7 +705,11 @@ function detectAnomaly(
     };
   }
 
-  return { detected: false, deviation: Math.abs(zScore), direction: zScore > 0 ? 'above' : 'below' };
+  return {
+    detected: false,
+    deviation: Math.abs(zScore),
+    direction: zScore > 0 ? 'above' : 'below',
+  };
 }
 
 function calculateLinearTrend(data: TimeSeriesPoint[]): number {
@@ -717,7 +727,10 @@ function calculateLinearTrend(data: TimeSeriesPoint[]): number {
 
   // JS fallback: Simple linear regression for trend
   const n = data.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumX2 = 0;
 
   for (let i = 0; i < n; i++) {
     sumX += i;

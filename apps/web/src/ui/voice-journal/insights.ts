@@ -10,6 +10,7 @@ import { getModal, getEntries } from './state.js';
 import { calculateStats } from './stats.js';
 import { getMoodIcon, getMoodLabel, getMoodScore } from './mood-icons.js';
 import type { CustomAgentMemory } from '../../services/custom-agent.service.js';
+import { t } from '../../i18n/index.js';
 
 // ============================================================================
 // MOOD TREND CALCULATION
@@ -171,7 +172,7 @@ export function renderInsights(): void {
         </div>
         <h3 class="insights-empty-title">More entries needed</h3>
         <p class="insights-empty-text">Record at least 3 journal entries to start seeing insights about your patterns.</p>
-        <button aria-label="Start journaling" class="insights-cta" data-action="go-to-record">
+        <button aria-label="${t('accessibility.startJournaling')}" class="insights-cta" data-action="go-to-record">
           Start journaling
         </button>
       </div>

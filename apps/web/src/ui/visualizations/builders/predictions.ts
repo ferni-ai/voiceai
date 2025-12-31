@@ -17,6 +17,7 @@ import {
   setStyles,
   createScreenReaderLabel,
   describeArc,
+  getCssVar,
 } from '../utils/dom.js';
 import type {
   PredictionsData,
@@ -24,16 +25,23 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
-// CONSTANTS
+// CONSTANTS - Using CSS Variables for brand consistency
 // ============================================================================
 
 const CONFIDENCE_COLORS = {
-  high: DEFAULT_COLORS.status.thriving,
-  medium: DEFAULT_COLORS.status.stretched,
-  low: DEFAULT_COLORS.status.depleted,
+  high: getCssVar('--color-semantic-success', '#27ae60'),
+  medium: getCssVar('--color-semantic-warning', '#f5a623'),
+  low: getCssVar('--color-semantic-error-light', '#e67e22'),
+};
+
+const CONFIDENCE_CSS_VARS = {
+  high: CSS_COLOR_VARS.statusThriving,
+  medium: CSS_COLOR_VARS.statusStretched,
+  low: CSS_COLOR_VARS.statusDepleted,
 };
 
 // ============================================================================
@@ -254,9 +262,9 @@ function buildMobilePredictionCard(
   );
 
   const scenarios = [
-    { label: 'Conservative', value: prediction.scenarios.conservative, color: '#9a8f85' },
-    { label: 'Expected', value: prediction.scenarios.expected, color: DEFAULT_COLORS.accent },
-    { label: 'Optimistic', value: prediction.scenarios.optimistic, color: '#27ae60' },
+    { label: 'Conservative', value: prediction.scenarios.conservative, color: getCssVar('--color-text-muted', '#9a8f85') },
+    { label: 'Expected', value: prediction.scenarios.expected, color: getCssVar('--color-accent', '#3D5A45') },
+    { label: 'Optimistic', value: prediction.scenarios.optimistic, color: getCssVar('--color-semantic-success', '#27ae60') },
   ];
 
   scenarios.forEach((scenario) => {
@@ -470,7 +478,7 @@ function buildTablet(
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   });
-  primaryLabel.textContent = 'Primary Prediction';
+  primaryLabel.textContent = t('visualizations.primaryPrediction');
   primaryPanel.appendChild(primaryLabel);
 
   const metricTitle = createElement('div');
@@ -556,7 +564,7 @@ function buildTablet(
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   });
-  accLabel.textContent = 'Historical Accuracy';
+  accLabel.textContent = t('visualizations.historicalAccuracy');
   accuracyPanel.appendChild(accLabel);
 
   const accValue = createElement('div');

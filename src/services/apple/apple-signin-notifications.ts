@@ -230,8 +230,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
   if (!db) return;
 
   try {
-    // Mark the account for deletion
-    // The actual deletion should be handled by a separate GDPR job
+    // Mark the account for deletion first (for audit trail)
     await db
       .collection('bogle_users')
       .doc(userId)
@@ -246,10 +245,57 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
         })
       );
 
-    log.warn({ userId }, 'Apple Account deleted - user scheduled for deletion');
+    log.warn({ userId }, 'Apple Account deleted - executing GDPR deletion');
 
-    // TODO: Trigger the actual GDPR deletion job
-    // await scheduleUserDeletion(userId, 'apple_account_deleted');
+    // Execute comprehensive GDPR deletion across all data stores
+    try {
+      const { getDataExportService } = await import('../data-export.js');
+      const dataExportService = getDataExportService();
+      await dataExportService.deleteAllData(userId);
+
+      // Also delete Firebase user account
+      try {
+        const { deleteFirebaseUser } = await import('../identity/firebase-auth.js');
+        await deleteFirebaseUser(userId);
+        log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
+      } catch (firebaseErr) {
+        log.warn(
+          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          'Firebase user deletion failed (non-fatal)'
+        );
+      }
+
+      // Mark deletion as complete
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .update(
+          cleanForFirestore({
+            deletionCompletedAt: new Date().toISOString(),
+            deletionStatus: 'completed',
+          })
+        );
+
+      log.info({ userId: `${userId.substring(0, 8)}...` }, 'GDPR deletion completed for Apple account');
+    } catch (deletionError) {
+      log.error(
+        { error: String(deletionError), userId: `${userId.substring(0, 8)}...` },
+        'GDPR deletion failed - manual cleanup required'
+      );
+
+      // Mark as failed for manual review
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .update(
+          cleanForFirestore({
+            deletionStatus: 'failed',
+            deletionError: String(deletionError),
+          })
+        );
+
+      throw deletionError;
+    }
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to handle account deletion');
     throw error;

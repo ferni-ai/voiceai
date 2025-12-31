@@ -272,6 +272,123 @@ interface SerializedQualityMetrics extends Omit<QualityMetrics, 'recordedAt'> {
 }
 
 // ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function isArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function isSerializedSession(data: unknown): data is SerializedSession {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.sessionId) &&
+    isString(data.userId) &&
+    isString(data.startedAt) &&
+    isString(data.lastActiveAt) &&
+    isString(data.personaId) &&
+    isString(data.connectionType) &&
+    isBoolean(data.isActive)
+  );
+}
+
+function isSerializedToolExecution(data: unknown): data is SerializedToolExecution {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.id) &&
+    isString(data.sessionId) &&
+    isString(data.toolId) &&
+    isString(data.toolName) &&
+    isObject(data.parameters) &&
+    isBoolean(data.success) &&
+    isNumber(data.durationMs) &&
+    isString(data.executedAt) &&
+    isString(data.personaId)
+  );
+}
+
+function isSerializedPersonaBond(data: unknown): data is SerializedPersonaBond {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.personaId) &&
+    isString(data.userId) &&
+    isNumber(data.totalConversations) &&
+    isNumber(data.totalDurationMinutes) &&
+    isString(data.firstConversation) &&
+    isString(data.lastConversation) &&
+    isNumber(data.trustLevel) &&
+    isArray(data.preferredTopics) &&
+    isArray(data.memorableExchanges)
+  );
+}
+
+function isSerializedVoiceProfile(data: unknown): data is SerializedVoiceProfile {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.userId) &&
+    isString(data.updatedAt) &&
+    isObject(data.characteristics) &&
+    isObject(data.preferences)
+  );
+}
+
+function isSerializedUserIntent(data: unknown): data is SerializedUserIntent {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.id) &&
+    isString(data.userId) &&
+    isString(data.sessionId) &&
+    isString(data.utterance) &&
+    isString(data.detectedIntent) &&
+    isNumber(data.confidence) &&
+    isBoolean(data.successful) &&
+    isString(data.timestamp)
+  );
+}
+
+function isSerializedCachedInsight(data: unknown): data is SerializedCachedInsight {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.cacheKey) &&
+    isString(data.userId) &&
+    isString(data.insightType) &&
+    isObject(data.data) &&
+    isString(data.computedAt) &&
+    isString(data.expiresAt) &&
+    isNumber(data.hitCount)
+  );
+}
+
+function isSerializedQualityMetrics(data: unknown): data is SerializedQualityMetrics {
+  if (!isObject(data)) return false;
+  return (
+    isString(data.sessionId) &&
+    isString(data.userId) &&
+    isString(data.recordedAt) &&
+    isObject(data.audioQuality) &&
+    isObject(data.conversationQuality) &&
+    isArray(data.toolsUsed) &&
+    isArray(data.errorsEncountered)
+  );
+}
+
+// ============================================================================
 // FIRESTORE INSTANCE
 // ============================================================================
 
@@ -355,7 +472,12 @@ export async function getSessionState(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as unknown as SerializedSession;
+    const data = doc.data();
+    if (!isSerializedSession(data)) {
+      log.warn({ userId, sessionId }, 'Invalid session data shape');
+      return null;
+    }
+
     return {
       ...data,
       startedAt: new Date(data.startedAt),
@@ -380,14 +502,20 @@ export async function getRecentSessions(userId: string, limit = 10): Promise<Ses
       .limit(limit)
       .get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as SerializedSession;
-      return {
-        ...data,
-        startedAt: new Date(data.startedAt),
-        lastActiveAt: new Date(data.lastActiveAt),
-      } as SessionState;
-    });
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!isSerializedSession(data)) {
+          log.warn({ userId, docId: doc.id }, 'Invalid session data shape, skipping');
+          return null;
+        }
+        return {
+          ...data,
+          startedAt: new Date(data.startedAt),
+          lastActiveAt: new Date(data.lastActiveAt),
+        } as SessionState;
+      })
+      .filter((s): s is SessionState => s !== null);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get recent sessions');
     return [];
@@ -441,13 +569,19 @@ export async function getToolExecutions(
 
     const snapshot = await query.get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as SerializedToolExecution;
-      return {
-        ...data,
-        executedAt: new Date(data.executedAt),
-      } as ToolExecution;
-    });
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!isSerializedToolExecution(data)) {
+          log.warn({ userId, docId: doc.id }, 'Invalid tool execution data shape, skipping');
+          return null;
+        }
+        return {
+          ...data,
+          executedAt: new Date(data.executedAt),
+        } as ToolExecution;
+      })
+      .filter((t): t is ToolExecution => t !== null);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get tool executions');
     return [];
@@ -503,7 +637,12 @@ export async function getPersonaBond(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as unknown as SerializedPersonaBond;
+    const data = doc.data();
+    if (!isSerializedPersonaBond(data)) {
+      log.warn({ userId, personaId }, 'Invalid persona bond data shape');
+      return null;
+    }
+
     return {
       ...data,
       firstConversation: new Date(data.firstConversation),
@@ -530,18 +669,24 @@ export async function getAllPersonaBonds(userId: string): Promise<PersonaBond[]>
       .collection('persona_bonds')
       .get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as SerializedPersonaBond;
-      return {
-        ...data,
-        firstConversation: new Date(data.firstConversation),
-        lastConversation: new Date(data.lastConversation),
-        memorableExchanges: data.memorableExchanges.map((e) => ({
-          ...e,
-          date: new Date(e.date),
-        })),
-      } as PersonaBond;
-    });
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!isSerializedPersonaBond(data)) {
+          log.warn({ userId, docId: doc.id }, 'Invalid persona bond data shape, skipping');
+          return null;
+        }
+        return {
+          ...data,
+          firstConversation: new Date(data.firstConversation),
+          lastConversation: new Date(data.lastConversation),
+          memorableExchanges: data.memorableExchanges.map((e) => ({
+            ...e,
+            date: new Date(e.date),
+          })),
+        } as PersonaBond;
+      })
+      .filter((b): b is PersonaBond => b !== null);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get persona bonds');
     return [];
@@ -589,7 +734,12 @@ export async function getVoiceProfile(userId: string): Promise<VoiceProfile | nu
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as unknown as SerializedVoiceProfile;
+    const data = doc.data();
+    if (!isSerializedVoiceProfile(data)) {
+      log.warn({ userId }, 'Invalid voice profile data shape');
+      return null;
+    }
+
     return {
       ...data,
       updatedAt: new Date(data.updatedAt),
@@ -640,13 +790,19 @@ export async function getRecentIntents(userId: string, limit = 50): Promise<User
       .limit(limit)
       .get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as SerializedUserIntent;
-      return {
-        ...data,
-        timestamp: new Date(data.timestamp),
-      } as UserIntent;
-    });
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!isSerializedUserIntent(data)) {
+          log.warn({ userId, docId: doc.id }, 'Invalid user intent data shape, skipping');
+          return null;
+        }
+        return {
+          ...data,
+          timestamp: new Date(data.timestamp),
+        } as UserIntent;
+      })
+      .filter((i): i is UserIntent => i !== null);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get recent intents');
     return [];
@@ -698,7 +854,12 @@ export async function getCachedInsight(
 
     if (!doc.exists) return null;
 
-    const data = doc.data() as unknown as SerializedCachedInsight;
+    const data = doc.data();
+    if (!isSerializedCachedInsight(data)) {
+      log.warn({ userId, cacheKey }, 'Invalid cached insight data shape');
+      return null;
+    }
+
     const insight: CachedInsight = {
       ...data,
       computedAt: new Date(data.computedAt),
@@ -769,13 +930,19 @@ export async function getQualityMetrics(
 
     const snapshot = await query.get();
 
-    return snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as SerializedQualityMetrics;
-      return {
-        ...data,
-        recordedAt: new Date(data.recordedAt),
-      } as QualityMetrics;
-    });
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data();
+        if (!isSerializedQualityMetrics(data)) {
+          log.warn({ userId, docId: doc.id }, 'Invalid quality metrics data shape, skipping');
+          return null;
+        }
+        return {
+          ...data,
+          recordedAt: new Date(data.recordedAt),
+        } as QualityMetrics;
+      })
+      .filter((q): q is QualityMetrics => q !== null);
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to get quality metrics');
     return [];

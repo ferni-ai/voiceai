@@ -361,11 +361,11 @@ export function setupTTSMocks(client?: MockTTSClient): void {
   // Mock Cartesia TTS
   vi.mock('../../speech/cartesia-tts.js', () => ({
     CartesiaTTS: vi.fn().mockImplementation(() => ({
-      synthesize: vi.fn().mockImplementation((text) => mockClient.synthesize(text)),
+      synthesize: vi.fn().mockImplementation(async (text) => mockClient.synthesize(text)),
       stream: vi.fn().mockImplementation((text) => mockClient.synthesizeStream(text)),
     })),
     getCartesiaTTS: vi.fn(() => ({
-      synthesize: vi.fn().mockImplementation((text) => mockClient.synthesize(text)),
+      synthesize: vi.fn().mockImplementation(async (text) => mockClient.synthesize(text)),
       stream: vi.fn().mockImplementation((text) => mockClient.synthesizeStream(text)),
     })),
   }));
@@ -373,7 +373,7 @@ export function setupTTSMocks(client?: MockTTSClient): void {
   // Mock lightweight TTS
   vi.mock('../shared/lightweight-tts.js', () => ({
     getLightweightTTS: vi.fn(() => ({
-      speak: vi.fn().mockImplementation((text) => mockClient.synthesize(text)),
+      speak: vi.fn().mockImplementation(async (text) => mockClient.synthesize(text)),
     })),
   }));
 }

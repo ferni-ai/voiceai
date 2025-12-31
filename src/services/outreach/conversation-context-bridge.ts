@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'ConversationContextBridge' });
 
@@ -31,7 +32,12 @@ export type OutreachType =
   | 'habit_support'
   | 'celebration'
   | 'hard_date'
-  | 'follow_up';
+  | 'follow_up'
+  // Group outreach types
+  | 'team_insight'
+  | 'collaborative_support'
+  | 'planning'
+  | 'milestone_approaching';
 
 export interface OutreachContext {
   /** Unique ID for this outreach */
@@ -45,7 +51,7 @@ export interface OutreachContext {
   /** The message that was sent */
   message: string;
   /** Channel used */
-  channel: 'sms' | 'push' | 'email' | 'voice_message';
+  channel: 'sms' | 'push' | 'email' | 'voice_message' | 'call';
   /** When it was sent */
   sentAt: Date;
   /** Why we reached out (for LLM context) */
@@ -93,6 +99,101 @@ export interface ConversationBridgeContext {
 const recentOutreach = new Map<string, OutreachContext>();
 const outreachResponses = new Map<string, OutreachResponse>();
 
+// 24-hour window for direct response context
+const DIRECT_RESPONSE_WINDOW = 24 * 60 * 60 * 1000;
+
+/**
+ * Load outreach context from Firestore for a user.
+ * Returns the most recent non-expired outreach if available.
+ */
+async function loadOutreachFromFirestore(userId: string): Promise<OutreachContext | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('outreach_context')
+      .orderBy('sentAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+
+    // Reconstruct the OutreachContext with Date object
+    const outreach: OutreachContext = {
+      outreachId: data.outreachId,
+      userId: data.userId,
+      type: data.type,
+      personaId: data.personaId,
+      message: data.message,
+      channel: data.channel,
+      sentAt: new Date(data.sentAt),
+      reason: data.reason,
+      mlConfidence: data.mlConfidence,
+      triggerDetails: data.triggerDetails,
+      predictedEmotionalState: data.predictedEmotionalState,
+      suggestedTopics: data.suggestedTopics,
+    };
+
+    // Check if still within the response window
+    const timeSinceOutreach = Date.now() - outreach.sentAt.getTime();
+    if (timeSinceOutreach > DIRECT_RESPONSE_WINDOW) {
+      // Expired - clean up Firestore
+      doc.ref.delete().catch(() => {});
+      return null;
+    }
+
+    return outreach;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to load outreach from Firestore');
+    return null;
+  }
+}
+
+/**
+ * Load outreach response from Firestore if available.
+ */
+async function loadOutreachResponseFromFirestore(
+  userId: string,
+  outreachId: string
+): Promise<OutreachResponse | null> {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  try {
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('outreach_context')
+      .doc(outreachId)
+      .get();
+
+    if (!doc.exists) return null;
+
+    const data = doc.data();
+    if (!data?.response) return null;
+
+    return {
+      outreachId: data.response.outreachId,
+      responseType: data.response.responseType,
+      respondedAt: new Date(data.response.respondedAt),
+      replyContent: data.response.replyContent,
+      startedVoiceCall: data.response.startedVoiceCall,
+    };
+  } catch (error) {
+    log.warn(
+      { error: String(error), userId, outreachId },
+      'Failed to load outreach response from Firestore'
+    );
+    return null;
+  }
+}
+
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -102,7 +203,7 @@ const outreachResponses = new Map<string, OutreachResponse>();
  * Call this whenever we send SMS, push, email, or voice message.
  */
 export async function storeOutreachContext(context: OutreachContext): Promise<void> {
-  // Store in memory (TODO: persist to Firestore)
+  // Store in memory for fast access
   recentOutreach.set(context.userId, context);
 
   log.info(
@@ -110,13 +211,26 @@ export async function storeOutreachContext(context: OutreachContext): Promise<vo
     '📨 Outreach context stored for conversation bridge'
   );
 
-  // In production, persist to Firestore:
-  // await getFirestoreDb()
-  //   .collection('bogle_users')
-  //   .doc(context.userId)
-  //   .collection('outreach_context')
-  //   .doc(context.outreachId)
-  //   .set(context);
+  // Persist to Firestore (fire-and-forget for non-blocking)
+  const db = getFirestoreDb();
+  if (db) {
+    db.collection('bogle_users')
+      .doc(context.userId)
+      .collection('outreach_context')
+      .doc(context.outreachId)
+      .set(
+        cleanForFirestore({
+          ...context,
+          sentAt: context.sentAt.toISOString(),
+        })
+      )
+      .catch((error) => {
+        log.warn(
+          { error: String(error), userId: context.userId },
+          'Failed to persist outreach context to Firestore'
+        );
+      });
+  }
 }
 
 /**
@@ -127,7 +241,17 @@ export async function recordOutreachResponse(
   responseType: 'reply' | 'tap' | 'call_back' | 'ignore',
   replyContent?: string
 ): Promise<void> {
-  const outreach = recentOutreach.get(userId);
+  // Try memory cache first
+  let outreach = recentOutreach.get(userId);
+
+  // If not in cache, try loading from Firestore
+  if (!outreach) {
+    outreach = (await loadOutreachFromFirestore(userId)) ?? undefined;
+    if (outreach) {
+      recentOutreach.set(userId, outreach);
+    }
+  }
+
   if (!outreach) {
     log.debug({ userId }, 'No recent outreach found for response');
     return;
@@ -147,6 +271,27 @@ export async function recordOutreachResponse(
     { userId, outreachId: outreach.outreachId, responseType },
     '📱 Outreach response recorded'
   );
+
+  // Persist response to Firestore (fire-and-forget)
+  const db = getFirestoreDb();
+  if (db) {
+    db.collection('bogle_users')
+      .doc(userId)
+      .collection('outreach_context')
+      .doc(outreach.outreachId)
+      .update({
+        response: cleanForFirestore({
+          ...response,
+          respondedAt: response.respondedAt.toISOString(),
+        }),
+      })
+      .catch((error) => {
+        log.warn(
+          { error: String(error), userId },
+          'Failed to persist outreach response to Firestore'
+        );
+      });
+  }
 }
 
 /**
@@ -156,24 +301,41 @@ export async function recordOutreachResponse(
 export async function getConversationBridgeContext(
   userId: string
 ): Promise<ConversationBridgeContext | null> {
-  const outreach = recentOutreach.get(userId);
+  // Try memory cache first
+  let outreach = recentOutreach.get(userId);
+
+  // If not in cache, try loading from Firestore
+  if (!outreach) {
+    outreach = (await loadOutreachFromFirestore(userId)) ?? undefined;
+    if (outreach) {
+      recentOutreach.set(userId, outreach);
+    }
+  }
+
   if (!outreach) {
     return null;
   }
 
   const timeSinceOutreach = Date.now() - outreach.sentAt.getTime();
-  const DIRECT_RESPONSE_WINDOW = 24 * 60 * 60 * 1000; // 24 hours
 
   // Only consider it a direct response if within 24 hours
   const isDirectResponse = timeSinceOutreach < DIRECT_RESPONSE_WINDOW;
 
   if (!isDirectResponse) {
-    // Clear stale context
+    // Clear stale context from cache and Firestore
     recentOutreach.delete(userId);
+    clearOutreachFromFirestore(userId, outreach.outreachId);
     return null;
   }
 
-  const response = outreachResponses.get(outreach.outreachId);
+  // Try to get response from cache, then Firestore
+  let response = outreachResponses.get(outreach.outreachId);
+  if (!response) {
+    response = (await loadOutreachResponseFromFirestore(userId, outreach.outreachId)) ?? undefined;
+    if (response) {
+      outreachResponses.set(outreach.outreachId, response);
+    }
+  }
 
   // Generate LLM context
   const llmContext = formatBridgeContextForLLM(outreach, response, timeSinceOutreach);
@@ -185,6 +347,26 @@ export async function getConversationBridgeContext(
     isDirectResponse,
     llmContext,
   };
+}
+
+/**
+ * Helper to delete outreach from Firestore (fire-and-forget).
+ */
+function clearOutreachFromFirestore(userId: string, outreachId: string): void {
+  const db = getFirestoreDb();
+  if (db) {
+    db.collection('bogle_users')
+      .doc(userId)
+      .collection('outreach_context')
+      .doc(outreachId)
+      .delete()
+      .catch((error) => {
+        log.debug(
+          { error: String(error), userId, outreachId },
+          'Failed to delete outreach from Firestore'
+        );
+      });
+  }
 }
 
 // ============================================================================
@@ -202,11 +384,7 @@ function formatBridgeContextForLLM(
 ): string {
   const hoursSince = Math.round(timeSinceOutreach / (1000 * 60 * 60));
   const timeDescription =
-    hoursSince < 1
-      ? 'just now'
-      : hoursSince === 1
-        ? 'an hour ago'
-        : `${hoursSince} hours ago`;
+    hoursSince < 1 ? 'just now' : hoursSince === 1 ? 'an hour ago' : `${hoursSince} hours ago`;
 
   const lines: string[] = [];
 
@@ -221,10 +399,14 @@ function formatBridgeContextForLLM(
   // Why we reached out
   lines.push(`Reason: ${outreach.reason}`);
   if (outreach.mlConfidence) {
-    lines.push(`This was based on ML predictions with ${(outreach.mlConfidence * 100).toFixed(0)}% confidence.`);
+    lines.push(
+      `This was based on ML predictions with ${(outreach.mlConfidence * 100).toFixed(0)}% confidence.`
+    );
   }
   if (outreach.predictedEmotionalState) {
-    lines.push(`At the time, we predicted they might be feeling: ${outreach.predictedEmotionalState}`);
+    lines.push(
+      `At the time, we predicted they might be feeling: ${outreach.predictedEmotionalState}`
+    );
   }
   lines.push('');
 
@@ -244,20 +426,28 @@ function formatBridgeContextForLLM(
   lines.push('GUIDANCE:');
   lines.push('- Acknowledge that you reached out, but naturally');
   lines.push('- Don\'t say "I sent you a message" - say "I was thinking about you"');
-  lines.push('- If they\'re calling back, express genuine warmth that they came');
+  lines.push("- If they're calling back, express genuine warmth that they came");
   lines.push('- Reference the reason for outreach if they bring it up');
   lines.push('- Let THEM lead the conversation direction');
   lines.push('');
 
   // Example opener based on context
   if (outreach.type === 'ml_prediction' && outreach.predictedEmotionalState) {
-    lines.push(`SUGGESTED OPENER: "I'm glad you called. I was thinking about you earlier. How are you feeling?"`);
+    lines.push(
+      `SUGGESTED OPENER: "I'm glad you called. I was thinking about you earlier. How are you feeling?"`
+    );
   } else if (outreach.type === 'thinking_of_you') {
-    lines.push(`SUGGESTED OPENER: "Hey, it's good to hear your voice. I was just thinking of you."`);
+    lines.push(
+      `SUGGESTED OPENER: "Hey, it's good to hear your voice. I was just thinking of you."`
+    );
   } else if (outreach.type === 'hard_date') {
-    lines.push(`SUGGESTED OPENER: "I remembered the date. I wanted to check in. How are you holding up?"`);
+    lines.push(
+      `SUGGESTED OPENER: "I remembered the date. I wanted to check in. How are you holding up?"`
+    );
   } else if (outreach.type === 'follow_up') {
-    lines.push(`SUGGESTED OPENER: "Thanks for coming back. I've been thinking about what we talked about."`);
+    lines.push(
+      `SUGGESTED OPENER: "Thanks for coming back. I've been thinking about what we talked about."`
+    );
   } else {
     lines.push(`SUGGESTED OPENER: "I'm glad you're here. I was hoping we'd talk."`);
   }
@@ -382,8 +572,13 @@ export async function handlePushNotificationTap(
 export function clearOutreachContext(userId: string): void {
   const outreach = recentOutreach.get(userId);
   if (outreach) {
+    // Clear from memory
     outreachResponses.delete(outreach.outreachId);
     recentOutreach.delete(userId);
+
+    // Clear from Firestore (fire-and-forget)
+    clearOutreachFromFirestore(userId, outreach.outreachId);
+
     log.debug({ userId }, 'Cleared outreach bridge context');
   }
 }
@@ -392,7 +587,4 @@ export function clearOutreachContext(userId: string): void {
 // EXPORTS
 // ============================================================================
 
-export {
-  formatBridgeContextForLLM,
-  detectCallIntent,
-};
+export { formatBridgeContextForLLM, detectCallIntent };

@@ -366,15 +366,18 @@ async function main() {
     log.info({ emotionCount: emotionCases.length }, '✅ Generated emotion test cases');
 
     // Summary
-    log.info({
-      outputDir,
-      files: [
-        'dailydialog.json',
-        'empathetic_dialogues.json',
-        'commitment-test-cases.json',
-        'emotion-test-cases.json',
-      ],
-    }, '📊 Summary - BTH baseline download complete');
+    log.info(
+      {
+        outputDir,
+        files: [
+          'dailydialog.json',
+          'empathetic_dialogues.json',
+          'commitment-test-cases.json',
+          'emotion-test-cases.json',
+        ],
+      },
+      '📊 Summary - BTH baseline download complete'
+    );
     log.info('✨ Done!');
   } catch (error) {
     log.error({ error: String(error) }, '❌ Download failed');

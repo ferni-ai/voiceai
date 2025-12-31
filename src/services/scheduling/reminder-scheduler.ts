@@ -8,22 +8,21 @@
  * Scheduling: In-memory polling (production would use Cloud Tasks/Scheduler)
  */
 
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import {
-  syncReminderToCalendar,
-  syncScheduledTextToCalendar,
-  syncScheduledEmailToCalendar,
-  syncScheduledCallToCalendar,
   removeCalendarSyncedItem,
+  syncReminderToCalendar,
+  syncScheduledCallToCalendar,
+  syncScheduledEmailToCalendar,
+  syncScheduledTextToCalendar,
 } from '../calendar/calendar-bridge.js';
 
-import { getFirestoreStore, type FirestoreStore } from '../../memory/firestore-store.js';
-import { InMemoryStore } from '../../memory/in-memory-store.js';
-import type { MemoryStore } from '../../memory/store.js';
+// Firestore access via superhuman firestore-utils for proper db instance
+import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onReminderChange } from '../data-layer/hooks/index.js';
 import { sendEmail, sendReminder as sendReminderSMS, sendSMS } from '../communication-service.js';
 import { recordOutcome } from '../contacts/optimal-timing.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -90,26 +89,6 @@ export interface VoiceMessage {
 const reminderStore = new Map<string, ScheduledReminder>();
 const voiceMessageStore = new Map<string, VoiceMessage>();
 
-/**
- * Get or initialize the Firestore store for reminders
- */
-let store: MemoryStore | null = null;
-
-async function getStore(): Promise<MemoryStore> {
-  if (!store) {
-    try {
-      store = getFirestoreStore();
-      await store.initialize();
-      getLogger().info('Using Firestore for reminder storage');
-    } catch (error) {
-      getLogger().warn({ error }, 'Firestore not available, using in-memory storage');
-      store = new InMemoryStore();
-      await store.initialize();
-    }
-  }
-  return store;
-}
-
 // ============================================================================
 // REMINDER CRUD OPERATIONS
 // ============================================================================
@@ -154,20 +133,47 @@ export async function createReminder(params: {
     personaId: params.personaId,
   };
 
-  // Store in memory map (also try Firestore)
+  // Store in memory map
   reminderStore.set(reminder.id, reminder);
 
-  // Try to persist to Firestore
+  // Persist to Firestore for cross-session durability
   try {
-    const firestoreStore = store as FirestoreStore;
-    if (firestoreStore && 'db' in firestoreStore) {
-      // Store in a reminders subcollection
-      const { Firestore } = await import('@google-cloud/firestore');
-      // We'll use a separate collection for reminders
-      getLogger().info({ reminderId: reminder.id }, 'Reminder saved to Firestore');
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (db) {
+      await db
+        .collection('bogle_users')
+        .doc(params.userId)
+        .collection('reminders')
+        .doc(reminder.id)
+        .set(
+          cleanForFirestore({
+            ...reminder,
+            scheduledFor: reminder.scheduledFor.toISOString(),
+            createdAt: reminder.createdAt.toISOString(),
+          })
+        );
+      getLogger().info(
+        { reminderId: reminder.id, userId: params.userId },
+        '📅 Reminder saved to Firestore'
+      );
+
+      // Index to semantic memory
+      void onReminderChange(params.userId, reminder.id, {
+        title: reminder.message,
+        description: reminder.context,
+        scheduledFor: reminder.scheduledFor.toISOString(),
+        recurrence: 'none',
+        priority: undefined,
+        status: reminder.status === 'pending' ? 'pending' : 'completed',
+      }, 'create');
     }
-  } catch {
+  } catch (error) {
     // Firestore not available, using in-memory only
+    getLogger().warn(
+      { error: String(error) },
+      'Firestore not available for reminders, using in-memory'
+    );
   }
 
   getLogger().info(
@@ -271,7 +277,7 @@ export async function createReminder(params: {
 }
 
 /**
- * Get all pending reminders for a user
+ * Get all pending reminders for a user (from memory and Firestore)
  */
 export function getPendingReminders(userId: string): ScheduledReminder[] {
   const reminders: ScheduledReminder[] = [];
@@ -281,6 +287,73 @@ export function getPendingReminders(userId: string): ScheduledReminder[] {
     }
   }
   return reminders.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
+}
+
+/**
+ * Load pending reminders from Firestore into memory (call on startup)
+ */
+export async function loadRemindersFromFirestore(userId?: string): Promise<number> {
+  try {
+    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+    const db = getFirestoreDb();
+    if (!db) return 0;
+
+    // If userId is provided, query only that user's reminders
+    // Otherwise, we can't query collectionGroup without proper indexes, so return 0
+    if (!userId) {
+      getLogger().debug('loadRemindersFromFirestore requires userId for scoped queries');
+      return 0;
+    }
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('reminders')
+      .where('status', '==', 'pending')
+      .get();
+
+    let loadedCount = 0;
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      const reminder: ScheduledReminder = {
+        id: doc.id,
+        userId: data.userId,
+        message: data.message,
+        subject: data.subject,
+        context: data.context,
+        scheduledFor: new Date(data.scheduledFor),
+        timezone: data.timezone || 'America/New_York',
+        deliveryMethod: data.deliveryMethod,
+        deliveryAddress: data.deliveryAddress,
+        contactId: data.contactId,
+        contactName: data.contactName,
+        isDirectToContact: data.isDirectToContact,
+        status: data.status,
+        attempts: data.attempts || 0,
+        lastAttempt: data.lastAttempt ? new Date(data.lastAttempt) : undefined,
+        error: data.error,
+        createdAt: new Date(data.createdAt),
+        createdBy: data.createdBy || 'ferni',
+        personaId: data.personaId,
+      };
+
+      // Only load if not already in memory and still pending
+      if (!reminderStore.has(reminder.id) && reminder.scheduledFor > new Date()) {
+        reminderStore.set(reminder.id, reminder);
+        loadedCount++;
+      }
+    }
+
+    if (loadedCount > 0) {
+      getLogger().info({ loadedCount, userId }, '📥 Loaded pending reminders from Firestore');
+    }
+
+    return loadedCount;
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Failed to load reminders from Firestore');
+    return 0;
+  }
 }
 
 /**
@@ -309,6 +382,25 @@ export async function cancelReminder(reminderId: string): Promise<boolean> {
     reminderStore.set(reminderId, reminder);
     getLogger().info({ reminderId }, '❌ Reminder cancelled');
 
+    // Also update in Firestore
+    try {
+      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+      const db = getFirestoreDb();
+      if (db) {
+        await db
+          .collection('bogle_users')
+          .doc(reminder.userId)
+          .collection('reminders')
+          .doc(reminderId)
+          .update({ status: 'cancelled' });
+      }
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), reminderId },
+        'Failed to update reminder status in Firestore'
+      );
+    }
+
     // Also remove from calendar
     try {
       await removeCalendarSyncedItem(reminder.userId, reminderId);
@@ -328,11 +420,11 @@ export async function cancelReminder(reminderId: string): Promise<boolean> {
 /**
  * Update reminder status after delivery attempt
  */
-function updateReminderStatus(
+async function updateReminderStatus(
   reminderId: string,
   status: 'delivered' | 'failed',
   error?: string
-): void {
+): Promise<void> {
   const reminder = reminderStore.get(reminderId);
   if (reminder) {
     reminder.status = status;
@@ -340,6 +432,32 @@ function updateReminderStatus(
     reminder.lastAttempt = new Date();
     if (error) reminder.error = error;
     reminderStore.set(reminderId, reminder);
+
+    // Also update in Firestore
+    try {
+      const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
+      const db = getFirestoreDb();
+      if (db) {
+        const updateData: Record<string, unknown> = {
+          status,
+          attempts: reminder.attempts,
+          lastAttempt: reminder.lastAttempt.toISOString(),
+        };
+        if (error) updateData.error = error;
+
+        await db
+          .collection('bogle_users')
+          .doc(reminder.userId)
+          .collection('reminders')
+          .doc(reminderId)
+          .update(updateData);
+      }
+    } catch (firestoreError) {
+      getLogger().warn(
+        { error: String(firestoreError), reminderId },
+        'Failed to update reminder status in Firestore'
+      );
+    }
   }
 }
 
@@ -531,7 +649,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         throw new Error(`Unknown delivery method: ${reminder.deliveryMethod}`);
     }
 
-    updateReminderStatus(reminder.id, 'delivered');
+    await updateReminderStatus(reminder.id, 'delivered');
     getLogger().info({ reminderId: reminder.id }, '✅ Reminder delivered');
 
     // Record outcome for ML timing learning (if this reminder is about a contact)
@@ -564,7 +682,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
     return true;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    updateReminderStatus(reminder.id, 'failed', errorMsg);
+    await updateReminderStatus(reminder.id, 'failed', errorMsg);
     getLogger().error({ reminderId: reminder.id, error: errorMsg }, '❌ Reminder delivery failed');
     return false;
   }
@@ -996,4 +1114,5 @@ export default {
   stopReminderScheduler,
   cleanupOldReminders,
   parseNaturalTime,
+  loadRemindersFromFirestore,
 };

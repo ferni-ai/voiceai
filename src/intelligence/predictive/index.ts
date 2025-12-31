@@ -316,7 +316,8 @@ export async function findBestOutreachTime(
 
   // Calculate combined scores and build results
   for (const [_, scores] of timeScores.entries()) {
-    const combinedScore = scores.moodScore * 0.3 + scores.energyScore * 0.3 + scores.learnedScore * 0.4;
+    const combinedScore =
+      scores.moodScore * 0.3 + scores.energyScore * 0.3 + scores.learnedScore * 0.4;
 
     const reasons: string[] = [];
     if (scores.moodScore > 0.6) reasons.push('predicted positive mood');

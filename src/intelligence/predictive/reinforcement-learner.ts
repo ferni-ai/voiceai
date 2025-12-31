@@ -199,10 +199,7 @@ export function trackPrediction(
  * @param predictionId - ID of the prediction
  * @param action - Action that was taken
  */
-export function recordAction(
-  predictionId: string,
-  action: TrackedPrediction['actionTaken']
-): void {
+export function recordAction(predictionId: string, action: TrackedPrediction['actionTaken']): void {
   for (const predictions of trackedPredictions.values()) {
     const pred = predictions.find((p) => p.id === predictionId);
     if (pred) {
@@ -224,11 +221,7 @@ export function recordAction(
  * @param outcome - What actually happened
  * @param feedback - Optional user feedback
  */
-export function recordOutcome(
-  predictionId: string,
-  outcome: OutcomeType,
-  feedback?: string
-): void {
+export function recordOutcome(predictionId: string, outcome: OutcomeType, feedback?: string): void {
   for (const [userId, predictions] of trackedPredictions.entries()) {
     const pred = predictions.find((p) => p.id === predictionId);
     if (pred) {
@@ -368,11 +361,7 @@ function updateLearningStats(
   stats.lastUpdated = Date.now();
 }
 
-function updateCalibration(
-  stats: LearningStats,
-  confidence: number,
-  wasPositive: boolean
-): void {
+function updateCalibration(stats: LearningStats, confidence: number, wasPositive: boolean): void {
   // Find the right bucket
   const bucketIndex = Math.floor(confidence / CONFIG.CONFIDENCE_BUCKET_WIDTH);
   const bucketStart = bucketIndex * CONFIG.CONFIDENCE_BUCKET_WIDTH;
@@ -553,21 +542,26 @@ export function cleanupOldPredictions(): void {
 /**
  * Get reinforcement learning data for persistence (called by persistence layer)
  */
-export function getReinforcementDataForPersistence(userId: string): ReinforcementPersistenceData | null {
+export function getReinforcementDataForPersistence(
+  userId: string
+): ReinforcementPersistenceData | null {
   const predictions = trackedPredictions.get(userId);
   const stats = learningStats.get(userId);
 
   if (!predictions && !stats) return null;
 
   // Convert predictions to storable format
-  const storedPredictions: Record<string, { 
-    prediction: string; 
-    confidence: number; 
-    timestamp: number; 
-    resolved: boolean;
-    outcome?: string;
-    actualHappened?: boolean;
-  }> = {};
+  const storedPredictions: Record<
+    string,
+    {
+      prediction: string;
+      confidence: number;
+      timestamp: number;
+      resolved: boolean;
+      outcome?: string;
+      actualHappened?: boolean;
+    }
+  > = {};
 
   if (predictions) {
     for (const pred of predictions) {
@@ -583,21 +577,25 @@ export function getReinforcementDataForPersistence(userId: string): Reinforcemen
   }
 
   // Extract calibration buckets
-  const calibration: ReinforcementPersistenceData['calibration'] = stats?.calibration?.map(bucket => ({
-    binStart: bucket.bucketStart,
-    binEnd: bucket.bucketEnd,
-    actualRate: bucket.actualPositive / Math.max(1, bucket.total),
-    count: bucket.total,
-  })) || [];
+  const calibration: ReinforcementPersistenceData['calibration'] =
+    stats?.calibration?.map((bucket) => ({
+      binStart: bucket.bucketStart,
+      binEnd: bucket.bucketEnd,
+      actualRate: bucket.actualPositive / Math.max(1, bucket.total),
+      count: bucket.total,
+    })) || [];
 
   // Extract signal accuracy
-  const signalAccuracy: Record<string, { 
-    signal: string; 
-    correctPredictions: number; 
-    totalPredictions: number; 
-    accuracy: number;
-  }> = {};
-  
+  const signalAccuracy: Record<
+    string,
+    {
+      signal: string;
+      correctPredictions: number;
+      totalPredictions: number;
+      accuracy: number;
+    }
+  > = {};
+
   if (stats?.signalAccuracy) {
     for (const [signal, data] of stats.signalAccuracy.entries()) {
       signalAccuracy[signal] = {
@@ -652,7 +650,7 @@ export async function loadReinforcementFromFirestore(userId: string): Promise<vo
 
       // Restore calibration buckets
       if (data.calibration) {
-        stats.calibration = data.calibration.map(bucket => ({
+        stats.calibration = data.calibration.map((bucket) => ({
           bucketStart: bucket.binStart,
           bucketEnd: bucket.binEnd,
           predictedPositive: bucket.count * bucket.actualRate,

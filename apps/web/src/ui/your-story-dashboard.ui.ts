@@ -16,6 +16,7 @@ import { prefersReducedMotion } from '../utils/accessibility.js';
 import { t } from '../i18n/index.js';
 import {
   createDeviceAdapter,
+  injectVisualizationStyles,
   type YourStoryData,
 } from './visualizations/index.js';
 import { DURATION, EASING } from './visualizations/utils/dom.js';
@@ -141,13 +142,62 @@ class YourStoryUI {
     const content = this.panel.querySelector('.your-story__content');
     if (content) {
       content.textContent = '';
-      const loading = el('div', 'your-story__loading');
-      const spinner = el('div', 'your-story__loading-spinner');
-      const text = el('p');
-      text.textContent = t('yourStory.loading') || 'Loading your story...';
-      loading.appendChild(spinner);
-      loading.appendChild(text);
-      content.appendChild(loading);
+
+      // Build skeleton loading state matching dashboard shape
+      const skeleton = el('div', 'your-story__skeleton');
+
+      // Skeleton header
+      const headerSkel = el('div', 'your-story__skeleton-header');
+
+      // Title skeleton
+      const titleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--title');
+      const subtitleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--subtitle');
+      headerSkel.appendChild(titleSkel);
+      headerSkel.appendChild(subtitleSkel);
+
+      // Stats skeleton (3 cards)
+      const statsSkel = el('div', 'your-story__skeleton-stats');
+      for (let i = 0; i < 3; i++) {
+        const statSkel = el('div', 'your-story__skeleton-stat');
+        statsSkel.appendChild(statSkel);
+      }
+      headerSkel.appendChild(statsSkel);
+
+      // Stage skeleton
+      const stageSkel = el('div', 'your-story__skeleton-stage');
+      const stageLineSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--short');
+      const stageBarSkel = el('div', 'your-story__skeleton-progress');
+      stageSkel.appendChild(stageLineSkel);
+      stageSkel.appendChild(stageBarSkel);
+      headerSkel.appendChild(stageSkel);
+
+      skeleton.appendChild(headerSkel);
+
+      // Section skeletons (3 sections)
+      for (let i = 0; i < 3; i++) {
+        const sectionSkel = el('div', 'your-story__skeleton-section');
+
+        // Section title
+        const sectionTitleSkel = el('div', 'your-story__skeleton-line your-story__skeleton-line--section-title');
+        sectionSkel.appendChild(sectionTitleSkel);
+
+        // Visualization cards (2x2 grid)
+        const vizGridSkel = el('div', 'your-story__skeleton-viz-grid');
+        for (let j = 0; j < 4; j++) {
+          const vizCardSkel = el('div', 'your-story__skeleton-viz-card');
+          vizGridSkel.appendChild(vizCardSkel);
+        }
+        sectionSkel.appendChild(vizGridSkel);
+
+        skeleton.appendChild(sectionSkel);
+      }
+
+      // Loading indicator text
+      const loadingText = el('div', 'your-story__loading-text');
+      loadingText.textContent = t('yourStory.loading') || 'Loading your story...';
+      skeleton.appendChild(loadingText);
+
+      content.appendChild(skeleton);
     }
 
     this.panel.classList.add('your-story--visible');
@@ -266,7 +316,7 @@ class YourStoryUI {
     }
     header.appendChild(stats);
 
-    // Stage
+    // Stage - Enhanced with progress percentage
     const stage = el('div', 'your-story__stage');
     const stageInfo = el('div', 'your-story__stage-info');
     const stageName = el('span', 'your-story__stage-name');
@@ -276,8 +326,11 @@ class YourStoryUI {
     stageInfo.appendChild(stageName);
     stageInfo.appendChild(stageTagline);
     const stageProgress = el('div', 'your-story__stage-progress');
+    // Add progress percentage as data attribute for CSS display
+    const progressPercent = Math.round(data.stage.progress * 100);
+    stageProgress.setAttribute('data-progress', `${progressPercent}%`);
     const stageBar = el('div', 'your-story__stage-bar');
-    stageBar.style.width = `${data.stage.progress * 100}%`;
+    stageBar.style.width = `${progressPercent}%`;
     stageProgress.appendChild(stageBar);
     stage.appendChild(stageInfo);
     stage.appendChild(stageProgress);
@@ -448,6 +501,9 @@ class YourStoryUI {
   }
 
   private injectStyles(): void {
+    // Inject shared visualization component styles
+    injectVisualizationStyles();
+
     if (document.getElementById('your-story-styles')) return;
 
     this.styleElement = document.createElement('style');
@@ -617,8 +673,23 @@ class YourStoryUI {
         transform: scale(0.98);
       }
 
+      /* Icon rotation on close hover */
+      .your-story__close:hover svg {
+        transform: rotate(90deg);
+      }
+
+      .your-story__close svg {
+        transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
       .your-story__close:active {
         transform: scale(0.94);
+      }
+
+      /* Focus ring for accessibility */
+      .your-story__close:focus-visible {
+        outline: 2px solid var(--color-accent, #3D5A45);
+        outline-offset: 2px;
       }
 
       .your-story__close:focus-visible {
@@ -632,54 +703,124 @@ class YourStoryUI {
       }
 
       /* ========================================================================
-         STATS ROW - Golden ratio spacing
+         STATS ROW - Glass cards with MA spacing
          ======================================================================== */
 
       .your-story__stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: clamp(1rem, 3vw, 1.618rem); /* 16px to 26px (golden lg) */
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.8125rem; /* MA: pause (13px) */
         margin-bottom: 1.3125rem; /* MA: rest (21px) */
         animation: your-story-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 100ms both;
       }
 
+      @media (max-width: 479px) {
+        .your-story__stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .your-story__stat:last-child {
+          grid-column: span 2;
+        }
+      }
+
       .your-story__stat {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.5rem; /* 8px - breath */
+        gap: 0.375rem; /* 6px */
+        padding: 0.8125rem; /* MA: pause (13px) */
         font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 0.8125rem; /* bodySmall */
-        color: var(--color-text-secondary, #5c544a);
+        
+        /* visionOS glass morphism */
+        background: var(--glass-thin-background, rgba(255, 255, 255, 0.7));
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-thin-border, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-lg, 1rem);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+        
+        /* Pixar-style hover transition */
+        transition: 
+          transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .your-story__stat:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+      }
+
+      /* Icon bounce on stat hover */
+      .your-story__stat:hover svg {
+        transform: scale(1.15) rotate(-5deg);
+      }
+
+      /* Focus ring for keyboard navigation */
+      .your-story__stat:focus-visible {
+        outline: 2px solid var(--color-accent, #3D5A45);
+        outline-offset: 2px;
       }
 
       .your-story__stat svg {
-        width: 1.125rem;
-        height: 1.125rem;
+        width: 1.25rem;
+        height: 1.25rem;
         color: var(--color-accent, #3D5A45);
-        opacity: 0.85;
+        opacity: 0.9;
+        transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .your-story__stat-value {
-        font-weight: 600;
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: 1.5rem; /* 24px - hero metric */
+        font-weight: 700;
+        line-height: 1;
         color: var(--color-text-primary, #2C2520);
-        margin-right: 0.25rem;
+        letter-spacing: -0.02em;
       }
 
       .your-story__stat-label {
+        font-size: 0.6875rem; /* 11px */
+        font-weight: 500;
         color: var(--color-text-muted, #8a8279);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       /* ========================================================================
-         STAGE CARD - Glass surface treatment
+         STAGE CARD - Enhanced timeline visual hierarchy
          ======================================================================== */
 
       .your-story__stage {
-        background: var(--color-bg-tertiary, #f9f8f6);
-        border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.04));
-        padding: 0.8125rem 1rem; /* pause (13px) vertical, md (16px) horizontal */
+        position: relative;
+        background: linear-gradient(
+          135deg,
+          var(--color-bg-tertiary, #f9f8f6) 0%,
+          var(--color-bg-elevated, #fffdfb) 100%
+        );
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        padding: 1rem 1.3125rem; /* md (16px) vertical, rest (21px) horizontal */
         border-radius: var(--radius-xl, 1.25rem);
         margin-bottom: 1.3125rem; /* MA: rest (21px) */
         animation: your-story-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 150ms both;
+        
+        /* Subtle shadow for depth */
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.02),
+          0 2px 8px rgba(0, 0, 0, 0.03),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        
+        /* Hover effect */
+        transition: 
+          box-shadow 200ms cubic-bezier(0.2, 0, 0.2, 1),
+          transform 200ms cubic-bezier(0.2, 0, 0.2, 1);
+      }
+
+      .your-story__stage:hover {
+        box-shadow:
+          0 2px 4px rgba(0, 0, 0, 0.03),
+          0 4px 16px rgba(0, 0, 0, 0.05),
+          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        transform: translateY(-1px);
       }
 
       .your-story__stage-info {
@@ -687,36 +828,104 @@ class YourStoryUI {
         justify-content: space-between;
         align-items: baseline;
         gap: 1rem;
-        margin-bottom: 0.5rem; /* breath */
+        margin-bottom: 0.625rem; /* 10px */
       }
 
       .your-story__stage-name {
-        font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 0.9375rem; /* body */
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: 1rem; /* 16px */
         font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        color: var(--color-accent, #3D5A45);
+        letter-spacing: -0.01em;
       }
 
       .your-story__stage-tagline {
         font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 0.75rem; /* caption */
+        font-size: 0.75rem; /* 12px caption */
         font-weight: 500;
+        font-style: italic;
         color: var(--color-text-muted, #8a8279);
         text-align: right;
       }
 
       .your-story__stage-progress {
-        height: 5px;
-        background: var(--color-border-subtle, #e5e2de);
-        border-radius: 2.5px;
-        overflow: hidden;
+        position: relative;
+        height: 6px;
+        background: linear-gradient(
+          90deg,
+          var(--color-border-subtle, #e5e2de) 0%,
+          var(--color-border-medium, #d8d4ce) 100%
+        );
+        border-radius: 3px;
+        overflow: visible;
+      }
+
+      /* Progress percentage indicator */
+      .your-story__stage-progress::after {
+        content: attr(data-progress);
+        position: absolute;
+        right: 0;
+        top: -1.25rem;
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: var(--color-text-muted, #8a8279);
+        letter-spacing: 0.02em;
       }
 
       .your-story__stage-bar {
         height: 100%;
-        background: linear-gradient(90deg, var(--color-accent, #3D5A45), var(--color-accent-hover, #4a6b52));
-        border-radius: 2.5px;
+        background: linear-gradient(
+          90deg,
+          var(--color-accent, #3D5A45) 0%,
+          var(--color-accent-hover, #4a6b52) 60%,
+          var(--color-accent-light, #5a7b5a) 100%
+        );
+        border-radius: 3px;
         transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: visible;
+        min-width: 6px; /* Minimum visible width */
+      }
+
+      /* Glowing dot at the end of progress bar */
+      .your-story__stage-bar::before {
+        content: '';
+        position: absolute;
+        right: -3px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 10px;
+        height: 10px;
+        background: var(--color-accent, #3D5A45);
+        border: 2px solid var(--color-bg-elevated, #fffdfb);
+        border-radius: 50%;
+        box-shadow: 0 0 6px rgba(61, 90, 69, 0.4);
+      }
+
+      /* Subtle shimmer effect on progress bar */
+      .your-story__stage-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.4) 50%,
+          transparent 100%
+        );
+        transform: translateX(-100%);
+        animation: your-story-shimmer 3s ease-in-out infinite;
+        animation-delay: 1.5s;
+        border-radius: 3px;
+      }
+
+      @keyframes your-story-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
       }
 
       /* ========================================================================
@@ -748,14 +957,27 @@ class YourStoryUI {
       }
 
       .your-story__milestone:hover {
-        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.12));
-        transform: scale(1.02);
+        background: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
+        transform: scale(1.04);
+        box-shadow: 0 2px 8px rgba(61, 90, 69, 0.15);
+      }
+
+      /* Icon pulse on milestone hover */
+      .your-story__milestone:hover svg {
+        transform: scale(1.1);
       }
 
       .your-story__milestone svg {
         width: 0.75rem;
         height: 0.75rem;
         opacity: 0.85;
+        transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      /* Focus ring for keyboard navigation */
+      .your-story__milestone:focus-visible {
+        outline: 2px solid var(--color-accent, #3D5A45);
+        outline-offset: 2px;
       }
 
       /* ========================================================================
@@ -795,27 +1017,91 @@ class YourStoryUI {
       }
 
       /* ========================================================================
-         SECTIONS - MA silence (34px) between sections
+         SECTIONS - MA silence (34px) between sections with subtle gradients
          ======================================================================== */
 
       .your-story__sections {
         display: flex;
         flex-direction: column;
-        gap: 2.625rem; /* ~42px - golden xl */
+        gap: 2.125rem; /* MA: silence (34px) */
       }
 
       .your-story__section {
+        position: relative;
+        padding: 1.3125rem; /* MA: rest (21px) */
+        border-radius: var(--radius-xl, 1.25rem);
+        
+        /* Subtle gradient background */
+        background: linear-gradient(
+          145deg,
+          var(--color-bg-elevated, rgba(255, 253, 251, 0.95)) 0%,
+          var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
+        );
+        
+        /* Layered shadows for depth */
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.7),
+          0 1px 2px rgba(44, 37, 32, 0.02),
+          0 4px 16px rgba(44, 37, 32, 0.04);
+        
+        /* Subtle border */
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        
+        /* Entrance animation */
         animation: your-story-slide-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        
+        /* Smooth hover transition */
+        transition:
+          box-shadow 300ms cubic-bezier(0.2, 0, 0.2, 1),
+          transform 300ms cubic-bezier(0.2, 0, 0.2, 1);
       }
 
-      .your-story__section:nth-child(1) { animation-delay: 300ms; }
-      .your-story__section:nth-child(2) { animation-delay: 400ms; }
-      .your-story__section:nth-child(3) { animation-delay: 500ms; }
+      /* Hover lift effect */
+      .your-story__section:hover {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.8),
+          0 2px 4px rgba(44, 37, 32, 0.03),
+          0 8px 24px rgba(44, 37, 32, 0.06);
+        transform: translateY(-1px);
+      }
+
+      /* Section 1 - Right Now - sage green accent */
+      .your-story__section:nth-child(1) {
+        animation-delay: 300ms;
+        background: linear-gradient(
+          145deg,
+          rgba(61, 90, 69, 0.025) 0%,
+          var(--color-bg-elevated, rgba(255, 253, 251, 0.95)) 40%,
+          var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
+        );
+      }
+
+      /* Section 2 - Your Growth - golden accent */
+      .your-story__section:nth-child(2) {
+        animation-delay: 400ms;
+        background: linear-gradient(
+          145deg,
+          rgba(184, 149, 106, 0.025) 0%,
+          var(--color-bg-elevated, rgba(255, 253, 251, 0.95)) 40%,
+          var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
+        );
+      }
+
+      /* Section 3 - Your World - teal accent */
+      .your-story__section:nth-child(3) {
+        animation-delay: 500ms;
+        background: linear-gradient(
+          145deg,
+          rgba(58, 107, 115, 0.025) 0%,
+          var(--color-bg-elevated, rgba(255, 253, 251, 0.95)) 40%,
+          var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
+        );
+      }
 
       /* Section title uses sectionTitle text style */
       .your-story__section-title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: 1.25rem; /* Between cardTitle and sectionTitle */
+        font-size: 1.125rem; /* 18px - more refined */
         font-weight: 600;
         line-height: 1.3;
         letter-spacing: -0.01em;
@@ -830,16 +1116,24 @@ class YourStoryUI {
         content: '';
         position: absolute;
         left: 0;
-        top: 0.25rem;
-        bottom: 0.25rem;
+        top: 0.125rem;
+        bottom: 0.125rem;
         width: 3px;
         background: var(--color-accent, #3D5A45);
         border-radius: 1.5px;
-        opacity: 0.6;
+      }
+
+      /* Section-specific accent bars */
+      .your-story__section:nth-child(2) .your-story__section-title::before {
+        background: var(--persona-nayan-primary, #b8956a);
+      }
+
+      .your-story__section:nth-child(3) .your-story__section-title::before {
+        background: var(--persona-peter-primary, #3a6b73);
       }
 
       /* ========================================================================
-         VISUALIZATION CONTAINERS - Golden ratio spacing
+         VISUALIZATION CONTAINERS - Responsive grid with proper stacking
          ======================================================================== */
 
       .your-story__hero-viz {
@@ -847,6 +1141,8 @@ class YourStoryUI {
         margin-bottom: 1.3125rem; /* rest (21px) */
         border-radius: var(--radius-xl, 1.25rem);
         overflow: hidden;
+        background: var(--color-bg-tertiary, #f9f8f6);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
       }
 
       .your-story__viz-row {
@@ -856,21 +1152,36 @@ class YourStoryUI {
         margin-bottom: 1rem;
       }
 
+      /* Hero spans full width on desktop grid */
+      .your-story__viz-row > .your-story__hero-viz {
+        grid-column: 1 / -1;
+      }
+
       .your-story__compact-viz {
         min-height: 180px;
         background: var(--color-bg-tertiary, #f9f8f6);
-        border: 1px solid var(--color-border-subtle, rgba(0, 0, 0, 0.03));
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
         border-radius: var(--radius-xl, 1.25rem);
         padding: 0.8125rem; /* pause (13px) */
         overflow: hidden;
+        
+        /* Smooth hover */
         transition:
           transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
-          box-shadow 200ms;
+          box-shadow 200ms cubic-bezier(0.2, 0, 0.2, 1);
       }
 
       .your-story__compact-viz:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.04),
+          0 8px 24px rgba(0, 0, 0, 0.06);
+      }
+
+      /* Ensure proper content flow within viz containers */
+      .your-story__compact-viz > * {
+        max-width: 100%;
+        overflow: hidden;
       }
 
       /* ========================================================================
@@ -890,9 +1201,236 @@ class YourStoryUI {
       }
 
       /* ========================================================================
-         LOADING STATE
+         LOADING STATE - Skeleton UI matching dashboard shape
          ======================================================================== */
 
+      @keyframes your-story-skeleton-pulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 0.7; }
+      }
+
+      @keyframes your-story-skeleton-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+
+      .your-story__skeleton {
+        display: flex;
+        flex-direction: column;
+        gap: 2.125rem; /* MA: silence (34px) */
+      }
+
+      .your-story__skeleton-header {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      /* Skeleton line - base */
+      .your-story__skeleton-line {
+        height: 0.875rem;
+        background: linear-gradient(
+          90deg,
+          var(--color-border-subtle, rgba(44, 37, 32, 0.08)) 0%,
+          var(--color-border-medium, rgba(44, 37, 32, 0.12)) 50%,
+          var(--color-border-subtle, rgba(44, 37, 32, 0.08)) 100%
+        );
+        border-radius: var(--radius-sm, 0.375rem);
+        animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .your-story__skeleton-line::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.3) 50%,
+          transparent 100%
+        );
+        animation: your-story-skeleton-shimmer 2s ease-in-out infinite;
+      }
+
+      .your-story__skeleton-line--title {
+        width: 60%;
+        height: 1.5rem;
+      }
+
+      .your-story__skeleton-line--subtitle {
+        width: 40%;
+        height: 0.75rem;
+        animation-delay: 0.1s;
+      }
+
+      .your-story__skeleton-line--short {
+        width: 50%;
+        height: 0.875rem;
+      }
+
+      .your-story__skeleton-line--section-title {
+        width: 35%;
+        height: 1.125rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Skeleton stats grid */
+      .your-story__skeleton-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.8125rem;
+        margin-top: 0.5rem;
+      }
+
+      .your-story__skeleton-stat {
+        height: 4.5rem;
+        background: linear-gradient(
+          135deg,
+          var(--color-bg-tertiary, rgba(44, 37, 32, 0.04)) 0%,
+          var(--color-bg-secondary, rgba(44, 37, 32, 0.06)) 100%
+        );
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .your-story__skeleton-stat::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          transparent 100%
+        );
+        animation: your-story-skeleton-shimmer 2s ease-in-out infinite;
+      }
+
+      .your-story__skeleton-stat:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .your-story__skeleton-stat:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      /* Skeleton stage */
+      .your-story__skeleton-stage {
+        padding: 1rem;
+        background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+      }
+
+      .your-story__skeleton-progress {
+        height: 6px;
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: 3px;
+        margin-top: 0.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .your-story__skeleton-progress::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--color-accent, #3D5A45) 0%,
+          rgba(61, 90, 69, 0.5) 100%
+        );
+        border-radius: 3px;
+        animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
+      }
+
+      /* Skeleton sections */
+      .your-story__skeleton-section {
+        padding: 1.3125rem;
+        background: linear-gradient(
+          145deg,
+          var(--color-bg-elevated, rgba(255, 253, 251, 0.95)) 0%,
+          var(--color-bg-secondary, rgba(250, 246, 240, 0.8)) 100%
+        );
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+      }
+
+      .your-story__skeleton-section:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .your-story__skeleton-section:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      /* Skeleton viz grid */
+      .your-story__skeleton-viz-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+
+      .your-story__skeleton-viz-card {
+        height: 140px;
+        background: linear-gradient(
+          135deg,
+          var(--color-bg-tertiary, rgba(44, 37, 32, 0.04)) 0%,
+          var(--color-bg-secondary, rgba(44, 37, 32, 0.06)) 100%
+        );
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
+        animation: your-story-skeleton-pulse 1.5s ease-in-out infinite;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .your-story__skeleton-viz-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          transparent 100%
+        );
+        animation: your-story-skeleton-shimmer 2s ease-in-out infinite;
+      }
+
+      .your-story__skeleton-viz-card:nth-child(1) { animation-delay: 0s; }
+      .your-story__skeleton-viz-card:nth-child(2) { animation-delay: 0.1s; }
+      .your-story__skeleton-viz-card:nth-child(3) { animation-delay: 0.2s; }
+      .your-story__skeleton-viz-card:nth-child(4) { animation-delay: 0.3s; }
+
+      /* Loading text */
+      .your-story__loading-text {
+        text-align: center;
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: 0.8125rem;
+        color: var(--color-text-muted, #8a8279);
+        margin-top: 1rem;
+      }
+
+      /* Fallback spinner (kept for backwards compatibility) */
       .your-story__loading {
         display: flex;
         flex-direction: column;
@@ -977,11 +1515,19 @@ class YourStoryUI {
         }
 
         .your-story__stats {
-          gap: 0.75rem 1.25rem;
+          gap: 0.5rem; /* MA: breath (8px) */
         }
 
         .your-story__stat {
-          font-size: 0.75rem;
+          padding: 0.5rem; /* MA: breath (8px) */
+        }
+
+        .your-story__stat-value {
+          font-size: 1.25rem; /* 20px on mobile */
+        }
+
+        .your-story__stat-label {
+          font-size: 0.625rem; /* 10px on mobile */
         }
 
         .your-story__viz-row {
@@ -990,7 +1536,80 @@ class YourStoryUI {
         }
 
         .your-story__section-title {
-          font-size: 1.125rem;
+          font-size: 1rem; /* 16px on mobile */
+        }
+
+        /* Section adjustments for mobile */
+        .your-story__sections {
+          gap: 1.3125rem; /* MA: rest (21px) on mobile */
+        }
+
+        .your-story__section {
+          padding: 0.8125rem; /* MA: pause (13px) on mobile */
+          border-radius: var(--radius-lg, 0.75rem);
+        }
+
+        .your-story__section:hover {
+          transform: none; /* No hover lift on mobile */
+        }
+
+        /* Hero viz - full width, reduced height on mobile */
+        .your-story__hero-viz {
+          min-height: 180px;
+          margin-bottom: 0.8125rem;
+        }
+
+        /* Compact viz - full width stack, reduced height */
+        .your-story__compact-viz {
+          min-height: 140px;
+          padding: 0.625rem;
+          border-radius: var(--radius-lg, 0.75rem);
+        }
+
+        .your-story__compact-viz:hover {
+          transform: none; /* No hover on touch devices */
+        }
+
+        /* Skeleton mobile adjustments */
+        .your-story__skeleton {
+          gap: 1.3125rem;
+        }
+
+        .your-story__skeleton-stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .your-story__skeleton-stat:last-child {
+          grid-column: span 2;
+        }
+
+        .your-story__skeleton-viz-grid {
+          grid-template-columns: 1fr;
+          gap: 0.625rem;
+        }
+
+        .your-story__skeleton-viz-card {
+          height: 100px;
+        }
+
+        .your-story__skeleton-section {
+          padding: 0.8125rem;
+        }
+      }
+
+      /* Small Tablet: 480px - 639px */
+      @media (min-width: 480px) and (max-width: 639px) {
+        .your-story__viz-row {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.625rem;
+        }
+
+        .your-story__stats {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .your-story__stat:last-child {
+          grid-column: auto;
         }
       }
 
@@ -1002,6 +1621,29 @@ class YourStoryUI {
 
         .your-story__content {
           padding: 2rem;
+        }
+
+        /* Sections get more breathing room on tablet */
+        .your-story__sections {
+          gap: 1.618rem; /* MA: between rest and silence */
+        }
+
+        .your-story__section {
+          padding: 1rem; /* MA: md (16px) */
+        }
+
+        /* 2-column grid maintained on tablet */
+        .your-story__viz-row {
+          gap: 0.8125rem; /* pause */
+        }
+
+        /* Hero viz fills full width */
+        .your-story__hero-viz {
+          min-height: 200px;
+        }
+
+        .your-story__compact-viz {
+          min-height: 160px;
         }
       }
 
@@ -1015,8 +1657,21 @@ class YourStoryUI {
           padding: 2.5rem 3rem;
         }
 
+        /* Full silence gap on desktop */
+        .your-story__sections {
+          gap: 2.125rem; /* MA: silence (34px) */
+        }
+
+        .your-story__section {
+          padding: 1.3125rem; /* MA: rest (21px) */
+        }
+
         .your-story__viz-row {
           gap: 1.3125rem; /* rest (21px) */
+        }
+
+        .your-story__hero-viz {
+          min-height: 240px;
         }
 
         .your-story__compact-viz {
@@ -1042,6 +1697,27 @@ class YourStoryUI {
           transform: none !important;
         }
 
+        /* Disable shimmer effect and glow */
+        .your-story__stage-bar::after {
+          animation: none !important;
+          display: none;
+        }
+
+        .your-story__stage-bar::before {
+          box-shadow: none;
+        }
+
+        .your-story__stage:hover {
+          transform: none;
+        }
+
+        /* Icons should still respond but instantly */
+        .your-story__stat svg,
+        .your-story__milestone svg,
+        .your-story__close svg {
+          transition: none !important;
+        }
+
         .your-story--visible .your-story__card {
           transform: none;
         }
@@ -1061,19 +1737,134 @@ class YourStoryUI {
         .your-story__stage-bar {
           transition: width 200ms linear;
         }
+
+        /* Skeleton reduced motion */
+        .your-story__skeleton-line,
+        .your-story__skeleton-stat,
+        .your-story__skeleton-viz-card,
+        .your-story__skeleton-progress::after {
+          animation: none !important;
+        }
+
+        .your-story__skeleton-line::after,
+        .your-story__skeleton-stat::after,
+        .your-story__skeleton-viz-card::after {
+          animation: none !important;
+        }
       }
 
       /* ========================================================================
-         DARK MODE SUPPORT (future-proofing)
+         DARK MODE SUPPORT
          ======================================================================== */
 
       @media (prefers-color-scheme: dark) {
+        .your-story__card {
+          background: rgba(44, 37, 32, 0.85);
+          border-color: rgba(255, 255, 255, 0.06);
+        }
+
         .your-story__card::before {
           background: linear-gradient(
             180deg,
             rgba(255, 255, 255, 0.03) 0%,
             transparent 100%
           );
+        }
+
+        /* Dark mode section gradients */
+        .your-story__section {
+          background: linear-gradient(
+            145deg,
+            rgba(44, 37, 32, 0.6) 0%,
+            rgba(55, 47, 42, 0.5) 100%
+          );
+          border-color: rgba(255, 255, 255, 0.06);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 1px 2px rgba(0, 0, 0, 0.1),
+            0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .your-story__section:hover {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 2px 4px rgba(0, 0, 0, 0.12),
+            0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .your-story__section:nth-child(1) {
+          background: linear-gradient(
+            145deg,
+            rgba(61, 90, 69, 0.08) 0%,
+            rgba(44, 37, 32, 0.6) 40%,
+            rgba(55, 47, 42, 0.5) 100%
+          );
+        }
+
+        .your-story__section:nth-child(2) {
+          background: linear-gradient(
+            145deg,
+            rgba(184, 149, 106, 0.08) 0%,
+            rgba(44, 37, 32, 0.6) 40%,
+            rgba(55, 47, 42, 0.5) 100%
+          );
+        }
+
+        .your-story__section:nth-child(3) {
+          background: linear-gradient(
+            145deg,
+            rgba(58, 107, 115, 0.08) 0%,
+            rgba(44, 37, 32, 0.6) 40%,
+            rgba(55, 47, 42, 0.5) 100%
+          );
+        }
+
+        /* Dark mode stat cards */
+        .your-story__stat {
+          background: rgba(255, 255, 255, 0.04);
+          border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .your-story__stat:hover {
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        /* Dark mode compact viz */
+        .your-story__compact-viz {
+          background: rgba(44, 37, 32, 0.5);
+          border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .your-story__compact-viz:hover {
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Dark mode stage card */
+        .your-story__stage {
+          background: linear-gradient(
+            135deg,
+            rgba(44, 37, 32, 0.7) 0%,
+            rgba(55, 47, 42, 0.6) 100%
+          );
+          border-color: rgba(255, 255, 255, 0.06);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .your-story__stage:hover {
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .your-story__stage-progress {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .your-story__stage-bar::before {
+          border-color: rgba(44, 37, 32, 0.9);
+          box-shadow: 0 0 8px rgba(61, 90, 69, 0.5);
         }
       }
 
@@ -1134,6 +1925,17 @@ class YourStoryUI {
         box-shadow:
           0 4px 16px rgba(0, 0, 0, 0.05),
           inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+      }
+
+      /* Subtle border glow on mobile card hover */
+      .your-story .mobile-card:hover {
+        border-color: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
+      }
+
+      /* Focus ring for keyboard navigation */
+      .your-story .mobile-card:focus-visible {
+        outline: 2px solid var(--color-accent, #3D5A45);
+        outline-offset: 2px;
       }
 
       /* MOBILE CARD HEADER */

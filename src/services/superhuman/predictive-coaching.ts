@@ -3,6 +3,19 @@
  *
  * What no human friend can do: See your struggle before you do.
  *
+ * SEMANTIC NOTE: Called "coaching" because it COACHES through prediction.
+ * The service anticipates struggles and surfaces insights at optimal moments -
+ * this is coaching behavior (proactive guidance), even though the mechanism
+ * is pattern recognition. Compare to a coach who studies your game film and
+ * predicts where you'll struggle before practice.
+ *
+ * Alternative names considered:
+ * - predictive-patterns.ts (describes mechanism, not purpose)
+ * - anticipatory-support.ts (too abstract)
+ * - predictive-coaching.ts (describes PURPOSE - coaching through prediction) ✓
+ *
+ * ---
+ *
  * Analyzes patterns across conversations to anticipate user needs
  * and proactively offer support before they ask.
  *
@@ -16,6 +29,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onPredictiveInsightChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'predictive-coaching' });
 
@@ -347,6 +361,21 @@ async function savePattern(userId: string, pattern: PatternObservation): Promise
     .doc(pattern.id)
     .set(cleanForFirestore(pattern));
 
+  // Index to semantic memory for cross-domain awareness
+  void onPredictiveInsightChange(
+    userId,
+    pattern.id,
+    {
+      prediction: pattern.type,
+      basis: pattern.trigger,
+      confidence:
+        pattern.observationCount >= 5 ? 'high' : pattern.observationCount >= 2 ? 'medium' : 'low',
+      timeframe: undefined,
+      actionSuggestion: pattern.outcome,
+    },
+    'update'
+  );
+
   // Invalidate Redis cache after write (will be refreshed on next read)
   await invalidateRedisCache(userId);
 }
@@ -468,10 +497,7 @@ export async function decayStalePatterns(userId: string): Promise<number> {
 /**
  * Confirm a prediction was accurate - boosts pattern confidence
  */
-export async function confirmPrediction(
-  userId: string,
-  patternId: string
-): Promise<void> {
+export async function confirmPrediction(userId: string, patternId: string): Promise<void> {
   try {
     const patterns = await loadUserPatterns(userId);
     const pattern = patterns.find((p) => p.id === patternId);
@@ -509,10 +535,7 @@ export async function confirmPrediction(
 /**
  * Invalidate a prediction - reduces pattern confidence
  */
-export async function invalidatePrediction(
-  userId: string,
-  patternId: string
-): Promise<void> {
+export async function invalidatePrediction(userId: string, patternId: string): Promise<void> {
   try {
     const patterns = await loadUserPatterns(userId);
     const pattern = patterns.find((p) => p.id === patternId);

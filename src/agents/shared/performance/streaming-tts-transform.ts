@@ -14,7 +14,10 @@
  * @module agents/shared/performance/streaming-tts-transform
  */
 
-import { TransformStream as NodeTransformStream } from 'node:stream/web';
+import {
+  TransformStream as NodeTransformStream,
+  type TransformStreamDefaultController,
+} from 'node:stream/web';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'StreamingTTS' });

@@ -13,6 +13,7 @@ import { deleteMemory, listMemories } from '../../services/custom-agent.service.
 import { renderStats } from './render-stats.js';
 import { renderCalendar } from './calendar.js';
 import { renderInsights } from './insights.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('VoiceJournalEntries');
 
@@ -98,7 +99,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
     renderEntries();
     renderInsights();
 
-    toast.success('Entry deleted');
+    toast.success(t('toasts.entryDeleted'));
     log.info({ entryId, agentId: currentAgent.id }, 'Journal entry deleted');
     return true;
   } catch (error) {
@@ -183,7 +184,7 @@ export function renderEntries(): void {
         <time class="entry-date">${formatDate(entry.createdAt)}</time>
         ${sourceLabel}
         ${entry.mood ? `<span class="entry-mood">${getMoodIcon(entry.mood)}</span>` : ''}
-        <button class="entry-delete" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="Delete entry" title="Delete entry">
+        <button class="entry-delete" data-action="delete-entry" data-entry-id="${entry.id}" aria-label="${t('accessibility.deleteEntry')}" title="Delete entry">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

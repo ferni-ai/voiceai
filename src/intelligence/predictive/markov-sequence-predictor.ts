@@ -355,7 +355,11 @@ export function predictNextStates(
 function predictFirstOrder(
   userId: string,
   currentState: ObservableState
-): Array<{ state: ObservableState; probability: number; confidence: TransitionProbability['confidence'] }> {
+): Array<{
+  state: ObservableState;
+  probability: number;
+  confidence: TransitionProbability['confidence'];
+}> {
   const profile = userProfiles.get(userId);
   const transitions = profile?.firstOrder.get(currentState);
 
@@ -374,9 +378,11 @@ function predictFirstOrder(
     }));
 }
 
-function predictFromCommunity(
-  currentState: ObservableState
-): Array<{ state: ObservableState; probability: number; confidence: TransitionProbability['confidence'] }> {
+function predictFromCommunity(currentState: ObservableState): Array<{
+  state: ObservableState;
+  probability: number;
+  confidence: TransitionProbability['confidence'];
+}> {
   const transitions = communityPatterns.get(currentState);
 
   if (!transitions || transitions.size === 0) {
@@ -455,7 +461,10 @@ async function loadUserProfileFromFirestore(userId: string): Promise<void> {
         profile.totalObservations = data.totalObservations;
         profile.lastUpdated = data.lastUpdated;
 
-        log.debug({ userId, observations: data.totalObservations }, 'Loaded Markov profile from Firestore');
+        log.debug(
+          { userId, observations: data.totalObservations },
+          'Loaded Markov profile from Firestore'
+        );
       }
     }
     markUserLoaded(userId);
@@ -643,9 +652,7 @@ export async function saveUserProfile(userId: string): Promise<void> {
 /**
  * Convert nested Map to plain object for Firestore
  */
-function mapToObject<V>(
-  map: Map<string, Map<string, V>>
-): Record<string, Record<string, V>> {
+function mapToObject<V>(map: Map<string, Map<string, V>>): Record<string, Record<string, V>> {
   const result: Record<string, Record<string, V>> = {};
   for (const [outerKey, innerMap] of map.entries()) {
     result[outerKey] = {};

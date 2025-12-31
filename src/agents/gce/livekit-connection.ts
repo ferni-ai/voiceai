@@ -323,7 +323,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
 
     case 'termination': {
       // Enhanced termination logging - this is critical for debugging conflicts
-      const jobId = message.value.jobId;
+      const { jobId } = message.value;
       _log('Job termination received', {
         jobId,
         instanceId: `${_config.agentName}-${process.pid}`,

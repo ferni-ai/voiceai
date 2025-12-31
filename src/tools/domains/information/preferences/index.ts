@@ -422,6 +422,83 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
         },
       }),
   },
+
+  // ────────────────────────────────────────────────────────────────────────
+  // QUERY ALL PREFERENCES
+  // ────────────────────────────────────────────────────────────────────────
+  {
+    id: 'myPreferences',
+    name: 'Get All My Preferences',
+    description: "Get everything Ferni has learned about the user's preferences",
+    domain: 'information',
+    tags: ['information', 'preferences', 'personalized', 'memory'],
+    create: (ctx: ToolContext) =>
+      llm.tool({
+        description:
+          'Get all the user\'s learned preferences - sports teams, stocks, news interests, locations, allergies. ' +
+          'Use when user asks "what do you know about me?", "what are my preferences?", "what have you learned about me?"',
+        parameters: z.object({}),
+        execute: async () => {
+          if (!ctx.userId) {
+            return "I'd need to know who you are to share what I've learned. Are you logged in?";
+          }
+
+          const preferences = await getUserPreferences(ctx.userId);
+          const parts: string[] = [];
+
+          // Sports teams
+          if (preferences.favoriteTeams && preferences.favoriteTeams.length > 0) {
+            const teams = preferences.favoriteTeams.map(t => 
+              t.league !== 'Unknown' ? `${t.name} (${t.league})` : t.name
+            );
+            parts.push(`**Sports**: You follow ${teams.join(', ')}`);
+          }
+
+          // Stock watchlist
+          if (preferences.stockWatchlist && preferences.stockWatchlist.length > 0) {
+            parts.push(`**Stocks**: You're tracking ${preferences.stockWatchlist.join(', ')}`);
+          }
+
+          // News interests
+          if (preferences.newsInterests && preferences.newsInterests.length > 0) {
+            parts.push(`**News interests**: ${preferences.newsInterests.join(', ')}`);
+          }
+
+          // Topics to avoid
+          if (preferences.avoidTopics && preferences.avoidTopics.length > 0) {
+            parts.push(`**Topics to minimize**: ${preferences.avoidTopics.join(', ')}`);
+          }
+
+          // Locations
+          if (preferences.homeLocation) {
+            parts.push(`**Home**: ${preferences.homeLocation.address}`);
+          }
+          if (preferences.workLocation) {
+            parts.push(`**Work**: ${preferences.workLocation.address}`);
+          }
+
+          // Allergies
+          if (preferences.allergies && preferences.allergies.length > 0) {
+            parts.push(`**Allergies**: ${preferences.allergies.join(', ')}`);
+          }
+
+          // Health conditions
+          if (preferences.hasRespiratoryConditions) {
+            parts.push(`**Health**: I know you have respiratory concerns, so I'll mention air quality`);
+          }
+
+          if (parts.length === 0) {
+            return "I haven't learned many preferences from our conversations yet! " +
+              "Just mention things naturally - like 'I'm an Eagles fan' or 'I follow Apple stock' - and I'll remember.";
+          }
+
+          log.info({ userId: ctx.userId, preferencesCount: parts.length }, '📋 User queried preferences');
+
+          return `Here's what I've learned about you:\n\n${parts.join('\n\n')}\n\n` +
+            "These help me personalize our conversations. If anything's wrong, just let me know!";
+        },
+      }),
+  },
 ];
 
 /**

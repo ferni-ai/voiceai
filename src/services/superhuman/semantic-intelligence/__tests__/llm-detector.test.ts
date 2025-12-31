@@ -15,58 +15,110 @@ process.env.GOOGLE_API_KEY = 'test-api-key-for-mocking';
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
-// Helper to create mock response based on content
-function createMockResponse(contents: string): { text: string } {
-  // Detect prompt type from content
-  const isAdvicePrompt = contents.includes('Analyze if this text contains actionable advice');
-  const isPersonPrompt = contents.includes('Extract all people mentioned');
-  const isOutcomePrompt = contents.includes("Determine if the user's message references");
+// Mock the gemini-config module - createMockResponse is hoisted so we need to inline the logic
+vi.mock('../../../../config/gemini-config.js', () => {
+  // Inline mock response generator (can't reference external function due to hoisting)
+  const generateMockResponse = (contents: string): { text: string } => {
+    const isAdvicePrompt = contents.includes('Analyze if this text contains actionable advice');
+    const isPersonPrompt = contents.includes('Extract all people mentioned');
+    const isOutcomePrompt = contents.includes("Determine if the user's message references");
 
-  // Extract the actual user text from the prompt (between TEXT: " and ")
-  // This avoids matching prompt example keywords like "Pomodoro" or "gratitude journal"
-  const textMatch = contents.match(/TEXT:\s*"([^"]*)"/);
-  const userText = textMatch ? textMatch[1].toLowerCase() : '';
+    // Extract user text from prompt
+    const textMatch = contents.match(/TEXT:\s*"([\s\S]*?)"/);
+    const userText = textMatch ? textMatch[1].toLowerCase().trim() : contents.toLowerCase();
+    const textToCheck = userText || contents.toLowerCase();
 
-  // ========== ADVICE DETECTION ==========
-  if (isAdvicePrompt) {
-    // Match on extracted user text, not the full prompt
-    if (
-      userText.includes('try keeping a gratitude journal') ||
-      userText.includes('gratitude journal')
-    ) {
+    if (isAdvicePrompt) {
+      if (textToCheck.includes('gratitude journal')) {
+        return {
+          text: JSON.stringify({
+            containsAdvice: true,
+            adviceText: 'keeping a gratitude journal',
+            category: 'practical',
+            confidence: 0.92,
+          }),
+        };
+      }
+      if (textToCheck.includes('pomodoro')) {
+        return {
+          text: JSON.stringify({
+            containsAdvice: true,
+            adviceText: 'the Pomodoro technique',
+            category: 'practical',
+            confidence: 0.88,
+          }),
+        };
+      }
+      if (textToCheck.includes('you should')) {
+        return {
+          text: JSON.stringify({
+            containsAdvice: true,
+            adviceText: 'get more sleep tonight',
+            category: 'behavioral',
+            confidence: 0.9,
+          }),
+        };
+      }
       return {
         text: JSON.stringify({
-          containsAdvice: true,
-          adviceText: 'keeping a gratitude journal',
-          category: 'practical',
-          confidence: 0.92,
+          containsAdvice: false,
+          adviceText: null,
+          category: null,
+          confidence: 0.1,
         }),
       };
     }
-    if (
-      userText.includes('have you tried the pomodoro') ||
-      userText.includes('pomodoro technique')
-    ) {
+
+    if (isPersonPrompt) {
+      if (textToCheck.includes('my mom') || textToCheck.includes('mom always')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'mom', relationship: 'parent', isProperName: false, confidence: 0.95 },
+            ],
+          }),
+        };
+      }
+      if (textToCheck.includes('my boss') || textToCheck.includes('with my boss')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'boss', relationship: 'coworker', isProperName: false, confidence: 0.92 },
+            ],
+          }),
+        };
+      }
+      if (contents.includes('Sarah')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 }],
+          }),
+        };
+      }
+      return { text: JSON.stringify({ persons: [] }) };
+    }
+
+    if (isOutcomePrompt) {
+      if (textToCheck.includes('breathing exercises') || textToCheck.includes('i tried')) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.89,
+          }),
+        };
+      }
       return {
         text: JSON.stringify({
-          containsAdvice: true,
-          adviceText: 'the Pomodoro technique for staying focused',
-          category: 'practical',
-          confidence: 0.88,
+          referencesAdvice: false,
+          outcome: null,
+          sentiment: null,
+          confidence: 0.1,
         }),
       };
     }
-    if (userText.includes('you should')) {
-      return {
-        text: JSON.stringify({
-          containsAdvice: true,
-          adviceText: 'get more sleep tonight',
-          category: 'behavioral',
-          confidence: 0.9,
-        }),
-      };
-    }
-    // Default: no advice (simple statements like "I had a good day")
+
     return {
       text: JSON.stringify({
         containsAdvice: false,
@@ -75,91 +127,30 @@ function createMockResponse(contents: string): { text: string } {
         confidence: 0.1,
       }),
     };
-  }
-
-  // ========== PERSON EXTRACTION ==========
-  if (isPersonPrompt) {
-    // Match on extracted user text
-    if (userText.includes('my mom') || userText.includes('mom always')) {
-      return {
-        text: JSON.stringify({
-          persons: [{ name: 'mom', relationship: 'parent', isProperName: false, confidence: 0.95 }],
-        }),
-      };
-    }
-    if (userText.includes('my boss') || userText.includes('with my boss')) {
-      return {
-        text: JSON.stringify({
-          persons: [
-            { name: 'boss', relationship: 'coworker', isProperName: false, confidence: 0.92 },
-          ],
-        }),
-      };
-    }
-    if (contents.includes('Sarah')) {
-      return {
-        text: JSON.stringify({
-          persons: [{ name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 }],
-        }),
-      };
-    }
-    // Default: no persons
-    return {
-      text: JSON.stringify({
-        persons: [],
-      }),
-    };
-  }
-
-  // ========== OUTCOME DETECTION ==========
-  if (isOutcomePrompt) {
-    if (contents.includes('breathing exercises') || contents.includes('I tried')) {
-      return {
-        text: JSON.stringify({
-          referencesAdvice: true,
-          outcome: 'followed',
-          sentiment: 'positive',
-          confidence: 0.89,
-        }),
-      };
-    }
-    // Default: no reference
-    return {
-      text: JSON.stringify({
-        referencesAdvice: false,
-        outcome: null,
-        sentiment: null,
-        confidence: 0.1,
-      }),
-    };
-  }
-
-  // ========== FALLBACK ==========
-  return {
-    text: JSON.stringify({
-      containsAdvice: false,
-      adviceText: null,
-      category: null,
-      confidence: 0.1,
-    }),
   };
-}
 
-// Mock the Google AI client with proper class structure
-class MockGoogleGenAI {
-  models = {
-    generateContent: async (params: { model: string; contents: string; config: unknown }) => {
-      return createMockResponse(params.contents);
+  const mockClient = {
+    models: {
+      generateContent: async (params: { model: string; contents: string; config: unknown }) => {
+        return generateMockResponse(params.contents);
+      },
     },
   };
 
-  constructor(_config: { apiKey: string }) {
-    // Constructor accepts apiKey config
-  }
-}
+  return {
+    getGeminiClient: vi.fn().mockResolvedValue(mockClient),
+    getDefaultModel: vi.fn().mockReturnValue('gemini-2.0-flash-exp'),
+    getShortLLMTimeout: vi.fn().mockReturnValue(2000),
+    getLLMTimeout: vi.fn().mockReturnValue(5000),
+    isGeminiConfigured: vi.fn().mockReturnValue(true),
+    resetGeminiClient: vi.fn(),
+  };
+});
 
-vi.mock('@google/genai', () => ({
-  GoogleGenAI: MockGoogleGenAI,
+// Mock model-config for timeout values
+vi.mock('../../../model-config.js', () => ({
+  getDefaultModel: vi.fn().mockReturnValue('gemini-2.0-flash-exp'),
+  getShortLLMTimeout: vi.fn().mockReturnValue(2000),
 }));
 
 // Clean up API key after tests
@@ -198,11 +189,14 @@ describe('LLM Detector', () => {
       expect(process.env.GOOGLE_API_KEY).toBe('test-api-key-for-mocking');
     });
 
-    it('should verify GoogleGenAI mock is applied', async () => {
-      const { GoogleGenAI } = await import('@google/genai');
-      expect(GoogleGenAI).toBeDefined();
-      // Our mock is a class, not vi.fn(), so just verify it exists
-      expect(GoogleGenAI.name).toBe('MockGoogleGenAI');
+    it('should verify gemini-config mock is applied', async () => {
+      const { getGeminiClient } = await import('../../../../config/gemini-config.js');
+      expect(getGeminiClient).toBeDefined();
+
+      // Verify the mock returns our mock client
+      const client = await getGeminiClient();
+      expect(client).toBeDefined();
+      expect(client).toHaveProperty('models');
     });
   });
 

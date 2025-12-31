@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onBreakthroughMomentChange } from '../data-layer/hooks/coaching-hooks.js';
 import type {
   RevelationProfile,
   RevelationMoment,
@@ -152,6 +153,19 @@ export async function recordRevelation(
   profile.totalRevelations++;
 
   await saveRevelationProfile(profile);
+
+  // Index to semantic memory for breakthrough search
+  void onBreakthroughMomentChange(
+    userId,
+    `revelation_${revelation.type}`,
+    {
+      description: `${revelation.type}: ${revelation.context}`,
+      trigger: `Revealed capability: ${revelationToCategory(revelation.type)}`,
+      impact: moment.userResponse === 'positive' ? 'high' : 'moderate',
+      date: new Date().toISOString(),
+    },
+    'create'
+  );
 
   log.info(
     { userId, type: revelation.type, context: revelation.context },

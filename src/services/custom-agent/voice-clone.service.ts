@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getRateLimiter } from '../../tools/rate-limiter.js';
 import type {
   ClonedVoice,
   VoiceUploadResponse,
@@ -442,6 +443,13 @@ async function callCartesiaCloneAPI(
   name: string,
   uploads: ProcessedUpload[]
 ): Promise<CartesiaVoiceCloneResponse> {
+  // Rate limiting for expensive voice clone operations
+  const rateLimiter = getRateLimiter('cartesia-voice-clone');
+  if (!rateLimiter.tryAcquire()) {
+    log.warn('Cartesia voice clone API rate limited');
+    throw new Error('Rate limited - voice clone operation. Please try again in a few seconds.');
+  }
+
   // If no API key, return simulated response for development
   if (!CARTESIA_API_KEY) {
     log.warn('CARTESIA_API_KEY not set, using simulated voice clone');
@@ -529,6 +537,13 @@ export async function generateVoicePreview(
   text: string
 ): Promise<{ audioUrl: string; durationSeconds: number; audioBase64?: string }> {
   log.info({ voiceId, textLength: text.length }, 'Generating voice preview');
+
+  // Rate limiting for TTS preview operations
+  const rateLimiter = getRateLimiter('cartesia');
+  if (!rateLimiter.tryAcquire()) {
+    log.warn('Cartesia TTS API rate limited');
+    throw new Error('Rate limited - TTS preview. Please try again shortly.');
+  }
 
   // If no API key, return simulated response
   if (!CARTESIA_API_KEY) {

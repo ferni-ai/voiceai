@@ -8,19 +8,21 @@
  */
 
 import type { JobContext } from '@livekit/agents';
-import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import type { PersonaAgent, AgentCreationContext } from './orchestrator.js';
 import type { SessionServices } from '../../services/types.js';
-import type { UserData } from '../shared/types.js';
+import { getLogger } from '../../utils/safe-logger.js';
 import { getPersonaAsyncCached } from '../shared/handoff/cached-modules.js';
+import type { UserData } from '../shared/types.js';
 import {
-  setupPersonaAgent,
   buildConversationSummary,
   getRecentMessagesForHandoff,
+  setupPersonaAgent,
 } from './agent-setup.js';
+import type { AgentCreationContext, PersonaAgent } from './orchestrator.js';
 // Speech coordination for centralized speech management
 import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
+// Centralized generateReply gateway - handles session readiness
+import { prewarmSessionAsync } from '../shared/generate-reply-gateway.js';
 
 const log = getLogger();
 
@@ -79,6 +81,14 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     personaId: string,
     context: AgentCreationContext
   ): Promise<PersonaAgent> {
+    const factoryStart = Date.now();
+    const mark = (step: string) => {
+      const elapsed = Date.now() - factoryStart;
+      log.info({ personaId, step, elapsedMs: elapsed }, `⏱️ [FACTORY] ${step}`);
+      process.stderr.write(`⏱️ [FACTORY ${personaId}] [${elapsed}ms] ${step}\n`);
+    };
+    mark('factory_start');
+
     const agentInstanceId = `${personaId}-${Date.now()}`;
 
     log.info(
@@ -92,10 +102,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     }
 
     // Get persona config
+    mark('get_persona_config');
     const personaConfig = await getPersonaAsyncCached(personaId);
     if (!personaConfig) {
       throw new Error(`Unknown persona: ${personaId}`);
     }
+    mark('persona_config_loaded');
     log.info({ personaId, personaName: personaConfig.name }, '🎭 Persona config loaded');
 
     // Build handoff context if this is a handoff
@@ -109,6 +121,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
 
     // Use the agent setup module
     // ⚡ FAST-AGENT-JOIN: Pass deferHandlers to speed up initial agent creation
+    mark('setup_persona_agent_start');
     const agentSetup = await setupPersonaAgent({
       persona: personaConfig,
       ctx,
@@ -125,6 +138,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
     });
+    mark('setup_persona_agent_done');
 
     // State for muting
     let isMuted = false;
@@ -167,6 +181,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         { personaId, agentInstanceId, isHandoff: context.isHandoff },
         '🎭 Starting agent session in room...'
       );
+      mark('session_start_call');
       await agentSetup.session.start({
         room: context.room,
         agent: agentSetup.agent,
@@ -174,57 +189,31 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         // For initial agent, be primary (record: true is default)
         ...(context.isHandoff ? { record: false } : {}),
       });
+      mark('session_started');
       log.info({ personaId, agentInstanceId }, '🎭 Agent session started successfully');
 
       // =========================================================================
-      // GEMINI PREWARM: Force Gemini to process the system prompt BEFORE user speaks
+      // GEMINI PREWARM: Use gateway for proper session readiness tracking
+      // =========================================================================
+      // The gateway tracks session readiness state. Other generateReply calls
+      // will wait or skip based on whether the session is warmed up.
       // =========================================================================
       const useOpenAI = process.env.USE_OPENAI_REALTIME === 'true';
-      if (!useOpenAI && !context.isHandoff) {
-        // Only prewarm for Gemini AND initial agent (not handoffs - they're time-sensitive)
-        const prewarmStart = Date.now();
-        log.info({ personaId }, '🔥 Prewarming Gemini session...');
+      const SKIP_PREWARM = process.env.SKIP_GEMINI_PREWARM === 'true';
 
-        try {
-          const warmupPromise = new Promise<void>((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-              reject(new Error('Gemini prewarm timeout (10s)'));
-            }, 10000);
-
-            const handle = agentSetup.session.generateReply({
-              instructions:
-                '[INTERNAL WARMUP - DO NOT SPEAK] Silently acknowledge you are ready. Output nothing.',
-              allowInterruptions: true,
-            });
-
-            handle
-              .waitForPlayout()
-              .then(() => {
-                clearTimeout(timeoutId);
-                resolve();
-              })
-              .catch((err) => {
-                clearTimeout(timeoutId);
-                log.debug(
-                  { personaId, error: String(err) },
-                  '⚠️ Prewarm playout error (may be OK)'
-                );
-                resolve();
-              });
-          });
-
-          await warmupPromise;
-          log.info({ personaId, durationMs: Date.now() - prewarmStart }, '🔥 Gemini prewarmed');
-        } catch (prewarmErr) {
-          log.warn(
-            { personaId, durationMs: Date.now() - prewarmStart, error: String(prewarmErr) },
-            '⚠️ Gemini prewarm failed (continuing anyway)'
-          );
-        }
+      if (!useOpenAI && !context.isHandoff && !SKIP_PREWARM) {
+        mark('prewarm_start');
+        // Use gateway's prewarm - it marks session as ready when complete
+        prewarmSessionAsync(agentSetup.session, sessionId);
+        log.info({ personaId }, '🔥 Prewarm triggered via gateway (not waiting)');
+        mark('prewarm_done');
+      } else if (SKIP_PREWARM) {
+        log.info({ personaId }, '⏭️ Prewarm skipped (SKIP_GEMINI_PREWARM=true)');
       }
 
       // Initialize speech coordination for this agent's session
       // This enables centralized speech management and prevents overlap
+      mark('speech_coordination_start');
       try {
         initializeSpeechCoordination({
           session: agentSetup.session,
@@ -239,6 +228,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
           '🎤 Speech coordination init failed (non-critical)'
         );
       }
+      mark('speech_coordination_done');
     } catch (startErr) {
       log.error(
         { personaId, agentInstanceId, error: String(startErr) },
@@ -246,6 +236,15 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       );
       throw new Error(`Failed to start session for ${personaId}: ${startErr}`);
     }
+
+    // Final timing
+    const totalFactoryMs = Date.now() - factoryStart;
+    mark('factory_complete');
+    log.info(
+      { personaId, agentInstanceId, totalFactoryMs },
+      `🏁 [FACTORY] Agent created in ${totalFactoryMs}ms`
+    );
+    process.stderr.write(`\n🏁 [FACTORY ${personaId}] TOTAL: ${totalFactoryMs}ms\n`);
 
     diag.entry(`🎭 Agent started: ${personaId} (${agentInstanceId})`);
 

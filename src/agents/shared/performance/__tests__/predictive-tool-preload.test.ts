@@ -70,9 +70,9 @@ describe('predictive-tool-preload', () => {
     it('should detect home automation patterns', () => {
       const result = predictTools('turn on the lights');
       expect(result.length).toBeGreaterThan(0);
-      expect(
-        result.some((r) => r.toolId === 'getHomeStatus' || r.toolId === 'controlDevice')
-      ).toBe(true);
+      expect(result.some((r) => r.toolId === 'getHomeStatus' || r.toolId === 'controlDevice')).toBe(
+        true
+      );
     });
 
     it('should detect handoff patterns', () => {

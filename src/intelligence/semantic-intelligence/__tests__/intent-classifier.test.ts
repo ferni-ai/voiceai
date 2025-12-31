@@ -24,11 +24,7 @@ describe('Intent Classifier', () => {
       // These must match INTENT_PATTERNS.tool_request:
       // /^(play|search|find|get|show|check|set|create|schedule|send|call|text|remind|add|delete|remove|cancel|book|order|start|stop|pause|resume)\b/i
       // /\b(weather|calendar|music|news|stocks|reminder|alarm|timer|event|appointment|message|email)\b/i
-      const musicInputs = [
-        'play some jazz',
-        'play some music please',
-        'can you play drake',
-      ];
+      const musicInputs = ['play some jazz', 'play some music please', 'can you play drake'];
 
       for (const input of musicInputs) {
         const result = classifyIntent(input);
@@ -59,7 +55,7 @@ describe('Intent Classifier', () => {
       const weatherInputs = [
         "what's the weather like",
         'check the weather for tomorrow',
-        "show me the weather forecast",
+        'show me the weather forecast',
       ];
 
       for (const input of weatherInputs) {
@@ -86,10 +82,7 @@ describe('Intent Classifier', () => {
 
     it('should classify memory save requests as tool_request', () => {
       // Use inputs that match tool_request patterns (remind/add verbs)
-      const memoryInputs = [
-        'remind me that my sister likes chocolate',
-        'add this to my notes',
-      ];
+      const memoryInputs = ['remind me that my sister likes chocolate', 'add this to my notes'];
 
       for (const input of memoryInputs) {
         const result = classifyIntent(input);
@@ -104,7 +97,7 @@ describe('Intent Classifier', () => {
       // /^(can you explain|help me understand|what does .* mean|i don't understand)/i
       const clarificationInputs = [
         'what does that mean',
-        "can you explain that",
+        'can you explain that',
         "i don't understand",
       ];
 
@@ -167,10 +160,7 @@ describe('Intent Classifier', () => {
       // These inputs match the actual URGENCY_PATTERNS.critical patterns:
       // /\b(emergency|urgent|asap|immediately|right now|help me|crisis|911|danger)\b/i
       // /\b(hurting myself|want to die|suicidal|kill myself)\b/i
-      const crisisInputs = [
-        'emergency!',
-        'I want to die',
-      ];
+      const crisisInputs = ['emergency!', 'I want to die'];
 
       for (const input of crisisInputs) {
         const result = classifyIntent(input);
@@ -197,11 +187,7 @@ describe('Intent Classifier', () => {
 
     it('should classify emotional expressions', () => {
       // Must match pattern: /^(i'm|i am)\s+(so\s+)?(happy|sad|angry|frustrated|excited|worried|anxious|stressed|tired|exhausted)\b/i
-      const emotionalInputs = [
-        "I'm so happy today",
-        "I'm frustrated",
-        "I am so tired",
-      ];
+      const emotionalInputs = ["I'm so happy today", "I'm frustrated", 'I am so tired'];
 
       for (const input of emotionalInputs) {
         const result = classifyIntent(input);

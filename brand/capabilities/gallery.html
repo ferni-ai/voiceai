@@ -5,15 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ferni Superhuman Capabilities</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Design System Tokens (single source of truth) -->
+  <link rel="stylesheet" href="../master-tokens.css">
   <style>
     :root {
-      --bg-primary: #faf8f5;
-      --bg-elevated: #fffdfb;
-      --text-primary: #2c2520;
-      --text-secondary: #5c544a;
-      --text-muted: #756a5e;
-      --accent: #3D5A45;
-      --ferni: #4a6741;
+      /* Map design system tokens to local aliases (with fallbacks) */
+      --bg-primary: var(--color-cream, #faf8f5);
+      --bg-elevated: var(--color-warm-white, #fffdfb);
+      --text-primary: var(--color-natural-ink, #2c2520);
+      --text-secondary: var(--color-text-secondary, #5c544a);
+      --text-muted: var(--color-text-muted, #756a5e);
+      --accent: var(--color-accent, #3D5A45);
+      --ferni: var(--color-ferni, #4a6741);
+      --ferni-dark: var(--color-ferni-dark, #3d5a35);
+      --success: var(--color-success, #059669);
+      /* RGB values for rgba() usage */
+      --ferni-rgb: 74, 103, 65;
+      --natural-ink-rgb: 44, 37, 32;
+      --cream-rgb: 250, 248, 245;
     }
 
     * {
@@ -23,7 +32,7 @@
     }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-display);
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.6;
@@ -46,7 +55,7 @@
       position: absolute;
       width: 600px;
       height: 600px;
-      background: radial-gradient(circle, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(var(--ferni-rgb), 0.15) 0%, transparent 70%);
       border-radius: 50%;
       animation: float 8s ease-in-out infinite;
     }
@@ -65,7 +74,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(74, 103, 65, 0.1);
+      background: rgba(var(--ferni-rgb), 0.1);
       padding: 8px 20px;
       border-radius: 100px;
       font-size: 14px;
@@ -175,7 +184,7 @@
       background: var(--bg-elevated);
       border-radius: 24px;
       padding: 40px;
-      border: 1px solid rgba(44, 37, 32, 0.08);
+      border: 1px solid rgba(var(--natural-ink-rgb), 0.08);
       transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
       overflow: hidden;
@@ -188,14 +197,14 @@
       left: 0;
       width: 100%;
       height: 4px;
-      background: linear-gradient(90deg, var(--ferni) 0%, rgba(74, 103, 65, 0.3) 100%);
+      background: linear-gradient(90deg, var(--ferni) 0%, rgba(var(--ferni-rgb), 0.3) 100%);
       opacity: 0;
       transition: opacity 0.3s;
     }
 
     .capability-card:hover {
       transform: translateY(-12px);
-      box-shadow: 0 30px 80px rgba(44, 37, 32, 0.12);
+      box-shadow: 0 30px 80px rgba(var(--natural-ink-rgb), 0.12);
     }
 
     .capability-card:hover::before {
@@ -214,7 +223,7 @@
       width: 56px;
       height: 56px;
       border-radius: 16px;
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, rgba(74, 103, 65, 0.05) 100%);
+      background: linear-gradient(135deg, rgba(var(--ferni-rgb), 0.15) 0%, rgba(var(--ferni-rgb), 0.05) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -257,11 +266,11 @@
     }
 
     .comparison-human {
-      background: rgba(44, 37, 32, 0.05);
+      background: rgba(var(--natural-ink-rgb), 0.05);
     }
 
     .comparison-ferni {
-      background: rgba(74, 103, 65, 0.1);
+      background: rgba(var(--ferni-rgb), 0.1);
     }
 
     .comparison-label {
@@ -285,7 +294,7 @@
 
     /* Featured Capability */
     .featured-capability {
-      background: linear-gradient(135deg, var(--ferni) 0%, #3d5a35 100%);
+      background: linear-gradient(135deg, var(--ferni) 0%, var(--ferni-dark) 100%);
       color: white;
       padding: 80px;
       border-radius: 32px;
@@ -358,7 +367,7 @@
 
     /* New Capabilities Section */
     .new-section {
-      background: linear-gradient(180deg, rgba(74, 103, 65, 0.05) 0%, transparent 100%);
+      background: linear-gradient(180deg, rgba(var(--ferni-rgb), 0.05) 0%, transparent 100%);
       padding: 80px 0;
       margin: 80px 0;
     }
@@ -368,7 +377,7 @@
       align-items: center;
       gap: 6px;
       background: rgba(16, 185, 129, 0.15);
-      color: #059669;
+      color: var(--success);
       padding: 6px 14px;
       border-radius: 100px;
       font-size: 12px;
@@ -414,7 +423,7 @@
 
     .cta-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(74, 103, 65, 0.3);
+      box-shadow: 0 12px 40px rgba(var(--ferni-rgb), 0.3);
     }
 
     /* Responsive */
@@ -455,15 +464,15 @@
 </head>
 <body>
   <!-- Brand Navigation -->
-  <nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(250, 248, 245, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(44, 37, 32, 0.08); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
-    <a href="../index.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); font-weight: 600; font-size: 14px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <a href="../index.html" class="nav-back" aria-label="Back to Brand Library">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
       Brand Library
     </a>
-    <div style="display: flex; gap: 20px; font-size: 13px;">
-      <a href="../marketing/introducing-ferni.html" style="color: var(--text-secondary); text-decoration: none;">Intro</a>
-      <a href="../motion/demo.html" style="color: var(--text-secondary); text-decoration: none;">Motion</a>
-      <a href="../characters/ferni/expressions.html" style="color: var(--text-secondary); text-decoration: none;">Expressions</a>
+    <div class="nav-links">
+      <a href="../marketing/introducing-ferni.html" class="nav-link">Intro</a>
+      <a href="../motion/demo.html" class="nav-link">Motion</a>
+      <a href="../characters/ferni/expressions.html" class="nav-link">Expressions</a>
     </div>
   </nav>
 
@@ -905,7 +914,7 @@
   <section class="footer-cta">
     <h2>Ready to experience superhuman support?</h2>
     <p>Finally, someone who actually listens. Someone who remembers. Someone who's always here.</p>
-    <a href="#" class="cta-button">
+    <a href="../index.html" class="cta-button">
       Meet Ferni
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -935,5 +944,33 @@
       observer.observe(card);
     });
   </script>
+
+  <footer>
+    <div class="footer-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#5a7751"/>
+            <stop offset="100%" style="stop-color:#3d5a35"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      </svg>
+    </div>
+    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="../capabilities/index.html">Capabilities</a>
+      <a href="../brand-book.html">Brand Book</a>
+      <a href="../brand-kit.html">Brand Kit</a>
+      <a href="../icons.html">Icons</a>
+      <a href="../components.html">Components</a>
+      <a href="../accessibility.html">Accessibility</a>
+      <a href="../sound-design.html">Sound</a>
+    </nav>
+    <p class="footer-copyright">Ferni Brand Library v2.0</p>
+  </footer>
 </body>
 </html>

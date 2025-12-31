@@ -88,7 +88,7 @@ export async function setupTools(config: ToolSetupConfig): Promise<ToolSetupResu
   }
 
   // Get tools from orchestrator
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const { tools, meta } = await getToolsForAgent({
     persona: { id: personaId, displayName: personaName },
     userId,

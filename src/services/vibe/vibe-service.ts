@@ -258,7 +258,7 @@ export async function getVibeState(userId: string): Promise<VibeState> {
     try {
       const connectionTest = await sonosService.testConnection(credentials.sonos);
       state.music.connected = connectionTest.connected;
-      
+
       if (connectionTest.connected) {
         // Try to get current playback
         const households = await sonosService.getHouseholds(credentials.sonos);
@@ -267,7 +267,7 @@ export async function getVibeState(userId: string): Promise<VibeState> {
           if (groups.length > 0) {
             state.music.playing = groups[0].playbackState === 'playing';
             state.music.volume = groups[0].volume;
-            
+
             const track = await sonosService.getCurrentTrack(credentials.sonos, groups[0].id);
             if (track) {
               state.music.track = track.name;
@@ -367,13 +367,16 @@ export async function activateVibe(
         if (preset.music.volume !== undefined) {
           await sonosService.setAllGroupsVolume(credentials.sonos, preset.music.volume);
         }
-        
+
         // Try to play matching music from favorites
         const musicResult = await playVibeMusic(userId, presetId, preset.music.volume);
         result.applied.music = musicResult.success;
-        
+
         if (!musicResult.success) {
-          log.info({ preset: presetId, music: preset.music }, 'Music vibe set (no matching playlist)');
+          log.info(
+            { preset: presetId, music: preset.music },
+            'Music vibe set (no matching playlist)'
+          );
         } else {
           log.info({ preset: presetId, music: preset.music }, 'Playing vibe music on Sonos');
         }
@@ -397,10 +400,13 @@ export async function activateVibe(
         preset.lights.brightness,
         preset.lights.colorTemp
       );
-      
+
       if (lightResult.success) {
         result.applied.lights = true;
-        log.info({ preset: presetId, lightCount: lightResult.devices.length }, 'Lights set for vibe');
+        log.info(
+          { preset: presetId, lightCount: lightResult.devices.length },
+          'Lights set for vibe'
+        );
       }
 
       // Also try HomeKit scenes if available
@@ -486,11 +492,7 @@ export async function setLights(
   colorTemp?: number
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const lightResult = await setLightsForVibe(
-      userId,
-      brightness ?? 50,
-      colorTemp
-    );
+    const lightResult = await setLightsForVibe(userId, brightness ?? 50, colorTemp);
 
     if (!lightResult.success) {
       return { success: false, message: 'No lights connected' };
@@ -517,7 +519,10 @@ export async function controlMusic(
   const credentials = await getUserSmartHomeCredentials(userId);
 
   if (!credentials.sonos) {
-    return { success: false, message: 'Sonos not connected. Go to Settings → Your Home to connect.' };
+    return {
+      success: false,
+      message: 'Sonos not connected. Go to Settings → Your Home to connect.',
+    };
   }
 
   try {
@@ -537,22 +542,22 @@ export async function controlMusic(
       case 'play':
         await sonosService.setPlaybackState(credentials.sonos, groupId, 'play');
         return { success: true, message: 'Playing' };
-      
+
       case 'pause':
         await sonosService.setPlaybackState(credentials.sonos, groupId, 'pause');
         return { success: true, message: 'Paused' };
-      
+
       case 'volume':
         if (value !== undefined) {
           await sonosService.setGroupVolume(credentials.sonos, groupId, value);
           return { success: true, message: `Volume set to ${value}%` };
         }
         return { success: false, message: 'Volume value required' };
-      
+
       case 'skip':
         await sonosService.skipToNext(credentials.sonos, groupId);
         return { success: true, message: 'Skipped to next track' };
-      
+
       default:
         return { success: false, message: `Unknown action: ${action}` };
     }

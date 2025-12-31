@@ -18,6 +18,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('VoiceCloneRecorder');
 
@@ -726,7 +727,7 @@ function render(): string {
             <span class="vcr-eyebrow">Voice Cloning</span>
             <h2 class="vcr-title" id="vcr-title">${currentAgent?.displayName || currentAgent?.name || 'Agent'}</h2>
           </div>
-          <button class="vcr-close-btn" data-action="close" aria-label="Close">
+          <button class="vcr-close-btn" data-action="close" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -777,7 +778,7 @@ function render(): string {
 
           <!-- Controls -->
           <div class="vcr-controls">
-            <button aria-label="Toggle" class="vcr-record-btn ${isRecording ? 'recording' : 'idle'}" id="vcr-record-btn" data-action="toggle-recording">
+            <button aria-label="${t('accessibility.toggle')}" class="vcr-record-btn ${isRecording ? 'recording' : 'idle'}" id="vcr-record-btn" data-action="toggle-recording">
               ${isRecording 
                 ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`
                 : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`
@@ -790,14 +791,14 @@ function render(): string {
 
           <!-- Navigation -->
           <div class="vcr-nav">
-            <button aria-label="Previous" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
+            <button aria-label="${t('accessibility.previous')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
               Previous
             </button>
-            <button aria-label="Skip" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
+            <button aria-label="${t('accessibility.skip')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
               Skip
             </button>
-            <button aria-label="Next" class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
+            <button aria-label="${t('accessibility.next')}" class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
               Next
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -826,7 +827,7 @@ function render(): string {
                         </span>
                       </div>
                     </div>
-                    <button class="vcr-sample-delete" data-action="delete-sample" data-index="${i}" aria-label="Delete sample">
+                    <button class="vcr-sample-delete" data-action="delete-sample" data-index="${i}" aria-label="${t('accessibility.deleteSample')}">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
@@ -837,10 +838,10 @@ function render(): string {
         </div>
 
         <footer class="vcr-footer">
-          <button aria-label="Cancel" class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
+          <button aria-label="${t('accessibility.cancel')}" class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
             Cancel
           </button>
-          <button aria-label="Save Voice Samples" class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
+          <button aria-label="${t('accessibility.saveVoiceSamples')}" class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             Save Voice Samples
           </button>
@@ -899,7 +900,7 @@ async function startRecording(): Promise<void> {
   } catch (err) {
     log.error('Failed to start recording:', err);
     const { toast } = await import('./toast.ui.js');
-    toast.error('Could not access microphone');
+    toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
 
@@ -1125,7 +1126,7 @@ function attachListeners(): void {
       samples.splice(index, 1);
       updateUI();
       const { toast } = await import('./toast.ui.js');
-      toast.info('Sample deleted');
+      toast.info(t('toasts.sampleDeleted'));
     });
   });
 
@@ -1240,7 +1241,7 @@ async function handleSave(): Promise<void> {
 
   try {
     // Upload all samples to the backend
-    toast.info('Uploading voice samples...');
+    toast.info(t('toasts.uploadingVoiceSamples'));
     
     let lastUploadId: string | null = null;
     let uploadedCount = 0;
@@ -1269,7 +1270,7 @@ async function handleSave(): Promise<void> {
     }
 
     // Trigger voice cloning via Cartesia
-    toast.info('Creating your voice clone...');
+    toast.info(t('toasts.creatingYourVoiceClone'));
     const cloneResult = await createVoiceClone(
       currentAgent.id,
       lastUploadId,
@@ -1278,14 +1279,14 @@ async function handleSave(): Promise<void> {
 
     if (cloneResult) {
       if (cloneResult.isSimulated) {
-        toast.success('Voice profile created! (Simulated in dev mode)');
+        toast.success(t('toasts.voiceProfileCreatedDev'));
       } else {
-        toast.success('Voice clone created with Cartesia!');
+        toast.success(t('toasts.voiceCloneCreated'));
       }
       log.info('Voice clone created:', cloneResult.voiceId);
     } else {
       // Still save locally even if cloning fails
-      toast.warning('Samples saved, but cloning failed. You can retry later.');
+      toast.warning(t('toasts.samplesSavedCloningFailed'));
     }
 
     closeVoiceCloneRecorder();

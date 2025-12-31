@@ -75,7 +75,7 @@ export interface SessionContextBuilder {
   services?: SessionServices;
   flags?: SessionFlags;
 
-  build(): SessionContext;
+  build: () => SessionContext;
 }
 
 // ============================================================================
@@ -113,10 +113,10 @@ export interface SessionState {
   flags: Map<string, boolean>;
 
   // Methods
-  update(changes: Partial<Omit<SessionState, 'update' | 'snapshot' | 'flags'>>): void;
-  snapshot(): Readonly<SessionStateSnapshot>;
-  setFlag(key: string, value: boolean): void;
-  getFlag(key: string): boolean;
+  update: (changes: Partial<Omit<SessionState, 'update' | 'snapshot' | 'flags'>>) => void;
+  snapshot: () => Readonly<SessionStateSnapshot>;
+  setFlag: (key: string, value: boolean) => void;
+  getFlag: (key: string) => boolean;
 }
 
 /**
@@ -146,11 +146,11 @@ export interface RoomAdapter {
   readonly isConnected: boolean;
   readonly localParticipant: ParticipantAdapter | null;
 
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  publishData(data: Uint8Array, options: { reliable: boolean }): Promise<void>;
-  on(event: string, handler: (...args: unknown[]) => void): void;
-  off(event: string, handler: (...args: unknown[]) => void): void;
+  connect: () => Promise<void>;
+  disconnect: () => Promise<void>;
+  publishData: (data: Uint8Array, options: { reliable: boolean }) => Promise<void>;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  off: (event: string, handler: (...args: unknown[]) => void) => void;
 }
 
 /**
@@ -166,20 +166,20 @@ export interface ParticipantAdapter {
  * TTS adapter - abstracts text-to-speech operations.
  */
 export interface TTSAdapter {
-  speak(text: string, options?: SpeakOptions): Promise<void>;
-  switchVoice(name: string, voiceId: string): void;
-  setSpeed(multiplier: number): void;
-  getLatency(): number;
-  warmConnection(): Promise<void>;
+  speak: (text: string, options?: SpeakOptions) => Promise<void>;
+  switchVoice: (name: string, voiceId: string) => void;
+  setSpeed: (multiplier: number) => void;
+  getLatency: () => number;
+  warmConnection: () => Promise<void>;
 }
 
 /**
  * LLM adapter - abstracts language model operations.
  */
 export interface LLMAdapter {
-  generate(context: LLMContext): Promise<LLMResponse>;
-  stream(context: LLMContext): AsyncIterable<LLMChunk>;
-  getModel(): string;
+  generate: (context: LLMContext) => Promise<LLMResponse>;
+  stream: (context: LLMContext) => AsyncIterable<LLMChunk>;
+  getModel: () => string;
 }
 
 // ============================================================================
@@ -338,8 +338,8 @@ export interface SessionServices {
   trialStatus: TrialStatus | null;
 
   // Core methods
-  captureInsight(type: string, key: string, value: unknown, confidence: number): void;
-  saveState(): Promise<void>;
+  captureInsight: (type: string, key: string, value: unknown, confidence: number) => void;
+  saveState: () => Promise<void>;
 
   // Optional methods (may be present on full services object)
   analyze?: (message: string) => unknown;
@@ -398,8 +398,8 @@ export interface HandlerContext {
  * Logger interface for handlers.
  */
 export interface Logger {
-  debug(message: string, data?: Record<string, unknown>): void;
-  info(message: string, data?: Record<string, unknown>): void;
-  warn(message: string, data?: Record<string, unknown>): void;
-  error(message: string, error?: Error, data?: Record<string, unknown>): void;
+  debug: (message: string, data?: Record<string, unknown>) => void;
+  info: (message: string, data?: Record<string, unknown>) => void;
+  warn: (message: string, data?: Record<string, unknown>) => void;
+  error: (message: string, error?: Error, data?: Record<string, unknown>) => void;
 }

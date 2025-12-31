@@ -15,8 +15,8 @@ const log = createLogger('decision-engine');
 // ============================================================================
 
 const MAX_OUTREACH_PER_DAY = 2;
-// TODO: Implement time-based throttling
-// const MIN_HOURS_BETWEEN_OUTREACH = 4;
+const MIN_HOURS_BETWEEN_OUTREACH = 4;
+const MIN_MS_BETWEEN_OUTREACH = MIN_HOURS_BETWEEN_OUTREACH * 60 * 60 * 1000;
 
 // Quiet hours by timezone offset from UTC
 const QUIET_HOURS = {
@@ -42,6 +42,27 @@ function isQuietHours(timezone?: string): boolean {
   }
 
   return hour >= QUIET_HOURS.start || hour < QUIET_HOURS.end;
+}
+
+/**
+ * Check if enough time has passed since the last outreach
+ */
+function isThrottled(lastOutreachAt: Date | undefined): boolean {
+  if (!lastOutreachAt) {
+    return false; // No previous outreach - not throttled
+  }
+
+  const timeSinceLastOutreach = Date.now() - lastOutreachAt.getTime();
+  return timeSinceLastOutreach < MIN_MS_BETWEEN_OUTREACH;
+}
+
+/**
+ * Calculate how many minutes until throttle expires
+ */
+function getThrottleRemainingMinutes(lastOutreachAt: Date): number {
+  const timeSinceLastOutreach = Date.now() - lastOutreachAt.getTime();
+  const remainingMs = MIN_MS_BETWEEN_OUTREACH - timeSinceLastOutreach;
+  return Math.ceil(remainingMs / 60000);
 }
 
 function calculateDelay(trigger: OutreachTrigger, context: UserContext): number {
@@ -104,6 +125,19 @@ export function makeDeliveryDecision(
       channel: 'none',
       delayMinutes: 0,
       reason: 'Fatigue prevention: max daily outreach reached',
+    };
+  }
+
+  // Time-based throttling: enforce minimum time between outreaches
+  // Exception: High priority emotional support bypasses throttling
+  const bypassThrottle = trigger.type === 'emotional_support' && trigger.priority === 'high';
+  if (!bypassThrottle && isThrottled(context.lastOutreachAt)) {
+    const remainingMinutes = getThrottleRemainingMinutes(context.lastOutreachAt!);
+    return {
+      shouldDeliver: true, // Will deliver, but delayed
+      channel: selectChannel(trigger, context),
+      delayMinutes: remainingMinutes,
+      reason: `Throttled: delaying ${remainingMinutes}m to prevent notification fatigue`,
     };
   }
 

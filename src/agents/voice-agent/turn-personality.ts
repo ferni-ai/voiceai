@@ -4,7 +4,7 @@
  * Handles the "Better Than Human" personality system integration for turns.
  * Extracted from turn-handler.ts for maintainability.
  *
- * NOW ALL PERSONAS get the full "Better Than Human" treatment:
+ * ALL PERSONAS (including Ferni) now use the unified shared personality system:
  * - 8-dimensional context sensing
  * - Real-time noticing (pauses, energy shifts, topic deflection)
  * - Cross-session resonance learning
@@ -15,8 +15,7 @@
  *
  * Responsibilities:
  * - Cross-turn personality state tracking
- * - Ferni personality processing (original system)
- * - Shared "Better Than Human" personality for ALL other personas
+ * - Unified "Better Than Human" personality for ALL personas
  * - Personality injection building
  *
  * @module voice-agent/turn-personality
@@ -35,10 +34,10 @@ import {
 // NEW: Full "Better Than Human" shared personality for ALL personas
 import {
   sharedPersonality as betterThanHumanPersonality,
+  cleanupSharedPersonalitySession,
   type SharedPersonalityTurnResult,
 } from '../../personas/shared/shared-personality-integration.js';
 import { hasPersonaBuildingBlocks } from '../../personas/shared/persona-building-blocks.js';
-import { cleanupSharedPersonalitySession } from '../../personas/shared/shared-personality-integration.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { ThemeCategory } from '../../services/session-variety-tracker.js';
 
@@ -85,7 +84,7 @@ export interface PersonalityContext {
 }
 
 // Import BehaviorEvent type for proper typing
-import type { BehaviorEvent } from '../realtime/behavior-types.js';
+import type { BehaviorEvent } from '../../types/behavior-types.js';
 
 export interface PersonalityProcessingResult {
   /** Whether personality injection should be added */
@@ -631,13 +630,20 @@ async function processBetterThanHumanPersonality(
 }
 
 /**
- * Process personality for any persona (routes to Ferni or shared)
+ * Process personality for any persona
+ *
+ * ALL personas now use the unified "Better Than Human" shared personality system.
+ * The Ferni-specific path is kept for fallback but shouldn't be needed.
+ *
+ * Routing:
+ * 1. Personas with building blocks → processBetterThanHumanPersonality (shared system)
+ * 2. Personas without building blocks → legacy shared personality
+ * 3. Ferni-specific fallback → only if shared system fails
  */
 export async function processPersonality(
   ctx: PersonalityContext
 ): Promise<PersonalityProcessingResult> {
-  if (ctx.personaId === 'ferni') {
-    return processFerniPersonality(ctx);
-  }
+  // All personas now route through the shared "Better Than Human" system
+  // Ferni is included - she has building blocks registered in persona-building-blocks.ts
   return processSharedPersonality(ctx);
 }

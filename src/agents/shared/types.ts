@@ -383,6 +383,20 @@ export interface UserData {
     /** Whether this was classified as a tool request */
     isToolRequest: boolean;
   };
+
+  // ============================================================
+  // BIDIRECTIONAL ENGAGEMENT: Thread Context
+  // Cross-channel conversation continuity (SMS → voice, push → call)
+  // ============================================================
+
+  /** Thread context for LLM injection (when continuing a thread) */
+  threadContext?: string;
+
+  /** Active thread ID (if continuing a conversation) */
+  threadId?: string;
+
+  /** Whether this is a response to our proactive outreach */
+  isOutreachResponse?: boolean;
 }
 
 // ============================================================================

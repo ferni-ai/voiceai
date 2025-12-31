@@ -504,8 +504,18 @@ export async function handleTokenRoutes(
       // 3. Geo-detected accent from IP/locale
       // 4. Default to 'american'
 
-      // Try to load user's saved accent from profile if authenticated
+      // Try to load user's saved accent AND location from profile if authenticated
+      // "Better than Human" - We remember your accent preference AND location
       let savedAccent: string | undefined;
+      let savedLocation:
+        | {
+            city?: string;
+            regionCode?: string;
+            countryCode?: string;
+            source?: string;
+          }
+        | undefined;
+
       if (firebaseUid && !preferred_accent) {
         try {
           const { getDefaultStore } = await import('../../../memory/index.js');
@@ -518,53 +528,86 @@ export async function handleTokenRoutes(
               'Loaded saved accent from profile'
             );
           }
+          // 📍 Load saved location (from browser geolocation or manual entry)
+          if (profile?.location?.city || profile?.location?.countryCode) {
+            savedLocation = {
+              city: profile.location.city,
+              regionCode: profile.location.regionCode,
+              countryCode: profile.location.countryCode,
+              source: profile.location.source,
+            };
+            log.debug(
+              {
+                firebaseUid: firebaseUid.substring(0, 8),
+                city: savedLocation.city,
+                source: savedLocation.source,
+              },
+              '📍 Loaded saved location from profile'
+            );
+          }
         } catch (profileErr) {
-          log.debug({ note: (profileErr as Error).message }, 'Profile accent lookup note');
+          log.debug({ note: (profileErr as Error).message }, 'Profile lookup note');
         }
       }
 
       // Detect geo/accent (fallback if no explicit or saved preference)
+      // Priority: saved location (browser-gps/manual) > IP geolocation > timezone inference
       let geoData = {
         locale: 'en-US',
         locales: ['en-US'],
         detectedAccent: preferred_accent || savedAccent || 'american',
-        countryCode: undefined as string | undefined,
-        city: undefined as string | undefined,
-        regionCode: undefined as string | undefined,
+        countryCode: savedLocation?.countryCode,
+        city: savedLocation?.city,
+        regionCode: savedLocation?.regionCode,
+        source: savedLocation?.source || 'default',
       };
 
-      try {
-        const { detectGeoFromRequest } =
-          await import('../../../services/identity/geo-detection.js');
-        const geo = await detectGeoFromRequest(req, {
-          enableIpLookup: true,
-          ipLookupTimeout: 2000,
-        });
-        geoData = {
-          locale: geo.primaryLanguage || 'en-US',
-          locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
-          // Use explicit > saved > geo-detected accent
-          detectedAccent: preferred_accent || savedAccent || geo.accent,
-          countryCode: geo.countryCode,
-          city: geo.city, // For weather, local content hints
-          regionCode: geo.regionCode, // State/province for weather
-        };
+      // Only do IP geolocation if we don't have saved location
+      if (!savedLocation?.city && !savedLocation?.countryCode) {
+        try {
+          const { detectGeoFromRequest } =
+            await import('../../../services/identity/geo-detection.js');
+          const geo = await detectGeoFromRequest(req, {
+            enableIpLookup: true,
+            ipLookupTimeout: 2000,
+          });
+          geoData = {
+            locale: geo.primaryLanguage || 'en-US',
+            locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
+            // Use explicit > saved > geo-detected accent
+            detectedAccent: preferred_accent || savedAccent || geo.accent,
+            countryCode: geo.countryCode,
+            city: geo.city, // For weather, local content hints
+            regionCode: geo.regionCode, // State/province for weather
+            source: geo.source,
+          };
 
-        if (geo.city) {
-          log.info(
-            {
-              city: geo.city,
-              region: geo.regionCode,
-              country: geo.countryCode,
-              source: geo.source,
-            },
-            '📍 Token: user location detected'
-          );
-        } else {
-          log.info({ source: geo.source }, '📍 Token: no city detected in geo data');
+          if (geo.city) {
+            log.info(
+              {
+                city: geo.city,
+                region: geo.regionCode,
+                country: geo.countryCode,
+                source: geo.source,
+              },
+              '📍 Token: location detected via IP/headers'
+            );
+          } else {
+            log.info({ source: geo.source }, '📍 Token: no city detected in geo data');
+          }
+        } catch (geoErr) {
+          log.warn({ note: (geoErr as Error).message }, 'Geo detection failed');
         }
-      } catch (geoErr) {
-        log.warn({ note: (geoErr as Error).message }, 'Geo detection failed');
+      } else {
+        log.info(
+          {
+            city: savedLocation?.city,
+            region: savedLocation?.regionCode,
+            country: savedLocation?.countryCode,
+            source: savedLocation?.source,
+          },
+          '📍 Token: using saved location from profile (Better than Human!)'
+        );
       }
 
       log.info(

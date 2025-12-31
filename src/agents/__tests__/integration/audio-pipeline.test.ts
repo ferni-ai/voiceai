@@ -114,11 +114,11 @@ describe('Voice Activity Detection', () => {
         threshold = 0.5
       ): VADResult => {
         // Simulate VAD by checking RMS energy
-        const data = frame.data;
+        const { data } = frame;
         let sumSquares = 0;
 
-        for (let i = 0; i < data.length; i++) {
-          sumSquares += data[i] * data[i];
+        for (const sample of data) {
+          sumSquares += sample * sample;
         }
 
         const rms = Math.sqrt(sumSquares / data.length);
@@ -286,7 +286,7 @@ describe('TTS Audio Generation', () => {
 
   describe('Streaming Synthesis', () => {
     it('should stream audio frames', async () => {
-      const frames: ReturnType<typeof createMockAudioFrame>[] = [];
+      const frames: Array<ReturnType<typeof createMockAudioFrame>> = [];
 
       for await (const frame of mockTTS.synthesizeStream('Hello world')) {
         frames.push(frame);
@@ -404,7 +404,7 @@ describe('Audio Streaming', () => {
   describe('Buffer Management', () => {
     it('should manage audio buffer correctly', () => {
       interface AudioBuffer {
-        frames: ReturnType<typeof createMockAudioFrame>[];
+        frames: Array<ReturnType<typeof createMockAudioFrame>>;
         maxSize: number;
       }
 
@@ -480,8 +480,8 @@ describe('Audio Quality', () => {
       const normalizeAudio = (samples: Float32Array, targetPeak = 0.9): Float32Array => {
         // Find current peak
         let peak = 0;
-        for (let i = 0; i < samples.length; i++) {
-          const abs = Math.abs(samples[i]);
+        for (const sample of samples) {
+          const abs = Math.abs(sample);
           if (abs > peak) peak = abs;
         }
 
@@ -503,8 +503,8 @@ describe('Audio Quality', () => {
 
       // Peak should be at target
       let peak = 0;
-      for (let i = 0; i < normalized.length; i++) {
-        const abs = Math.abs(normalized[i]);
+      for (const sample of normalized) {
+        const abs = Math.abs(sample);
         if (abs > peak) peak = abs;
       }
 

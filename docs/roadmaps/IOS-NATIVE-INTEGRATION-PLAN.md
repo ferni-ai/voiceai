@@ -2384,7 +2384,7 @@ struct SquashStretchModifier: ViewModifier {
 - [App Intents Documentation](https://developer.apple.com/documentation/appintents)
 - [LiveKit iOS SDK](https://docs.livekit.io/client-sdk-ios/)
 - [Ferni Design System](../../design-system/README.md)
-- [Ferni Brand Guidelines](../../design-system/brand/FERNI-BRAND-GUIDELINES.md)
+- [Ferni Brand Guidelines](../../design-system/docs/brand/FERNI-BRAND-GUIDELINES.md)
 
 ---
 

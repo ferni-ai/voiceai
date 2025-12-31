@@ -32,6 +32,33 @@ import {
   type VoiceRouterContext,
   type VoiceRouterResult,
 } from '../voice-integration.js';
+import type { voice } from '@livekit/agents';
+// Safe fire-and-forget for non-critical async operations
+import { fireAndForget } from '../../../utils/safe-fire-and-forget.js';
+
+// Type for the generateReply function (injected from agent layer to avoid import cycle)
+export type GenerateReplyFunction = (
+  session: voice.AgentSession,
+  sessionId: string,
+  options: {
+    instructions: string;
+    context?: string;
+    fallbackMessage?: string;
+    priority?: 'high' | 'normal' | 'low';
+  }
+) => Promise<{ success: boolean; usedFallback: boolean; error?: string }>;
+
+// Module-level reference set by agent layer
+let _generateReplyFn: GenerateReplyFunction | null = null;
+
+/**
+ * Set the generateReply function (called by agent layer on startup)
+ * This avoids the architecture violation of tools importing from agents
+ */
+export function setGenerateReplyFunction(fn: GenerateReplyFunction): void {
+  _generateReplyFn = fn;
+  log.info('✅ generateReply function injected into semantic router');
+}
 
 const log = createLogger({ module: 'semantic-router-transcript' });
 
@@ -52,14 +79,24 @@ export function isSemanticRoutingEnabled(): boolean {
 // ============================================================================
 
 /** Context for routing a transcript */
+/**
+ * Minimal session interface for synthetic tests and mock contexts.
+ * Production code should pass a full AgentSession for gateway integration.
+ */
+export interface MinimalSession {
+  generateReply: (options: { instructions: string; allowInterruptions?: boolean }) => void;
+}
+
 export interface TranscriptRoutingContext {
   userId: string;
   sessionId: string;
   personaId: string;
-  /** Voice session instance - uses generic to accept any AgentSession type */
-  session: {
-    generateReply: (options: { instructions: string; allowInterruptions?: boolean }) => void;
-  };
+  /**
+   * Voice session instance.
+   * - Production: Pass a full AgentSession for gateway integration (readiness tracking, debouncing, etc.)
+   * - Testing: Can pass MinimalSession for unit/synthetic tests (falls back to direct call)
+   */
+  session: voice.AgentSession | MinimalSession;
   conversationHistory?: Array<{ role: string; content: string }>;
   recentTools?: string[];
 
@@ -281,10 +318,36 @@ export async function routeTranscript(
             '🎯 Guiding Gemini with tool result'
           );
 
-          session.generateReply({
-            instructions: `The user said: "${transcript}"\n\nI've already executed the ${topMatch.toolId} tool for them. Speak this response naturally, as if you just did it:\n\n"${execResult.naturalResponse}"`,
-            allowInterruptions: true,
-          });
+          const instructions = `The user said: "${transcript}"\n\nI've already executed the ${topMatch.toolId} tool for them. Speak this response naturally, as if you just did it:\n\n"${execResult.naturalResponse}"`;
+
+          // Check if we have a full AgentSession (has 'started' property) vs minimal mock
+          const isFullSession = 'started' in session;
+
+          if (isFullSession) {
+            // Use injected gateway for proper error handling and session readiness checks
+            if (_generateReplyFn) {
+              fireAndForget(async () => {
+                await _generateReplyFn!(session as voice.AgentSession, sessionId, {
+                  instructions,
+                  context: 'semantic-router-tool-result',
+                  fallbackMessage: execResult.naturalResponse, // Use natural response as fallback
+                  priority: 'high', // Tool results are important
+                });
+              }, 'semantic-router-tool-guidance');
+            } else {
+              log.warn('⚠️ generateReply function not injected, skipping guidance');
+            }
+          } else {
+            // Minimal session (tests) - call directly with error handling
+            try {
+              session.generateReply({ instructions, allowInterruptions: true });
+            } catch (genErr) {
+              log.warn(
+                { error: String(genErr), toolId: topMatch.toolId },
+                '⚠️ generateReply failed for tool result (minimal session, non-critical)'
+              );
+            }
+          }
 
           return {
             attempted: true,

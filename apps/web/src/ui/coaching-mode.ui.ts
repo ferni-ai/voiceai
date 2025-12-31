@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('CoachingMode');
 
@@ -459,7 +460,7 @@ function render(): string {
             <span class="coaching-mode-eyebrow">Coaching Session with</span>
             <h2 class="coaching-mode-name" id="coaching-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
-          <button class="coaching-close-btn" aria-label="Close">
+          <button class="coaching-close-btn" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -510,8 +511,8 @@ function renderTopicStep(): string {
     </div>
     
     <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="Cancel" class="coaching-btn coaching-btn--secondary" data-action="cancel">Cancel</button>
-      <button aria-label="Continue" class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.cancel')}" class="coaching-btn coaching-btn--secondary" data-action="cancel">Cancel</button>
+      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -562,13 +563,13 @@ function renderContextStep(): string {
     </div>
     
     <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="Back" class="coaching-btn coaching-btn--secondary" data-action="back">
+      <button aria-label="${t('accessibility.back')}" class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Back
       </button>
-      <button aria-label="Continue" class="coaching-btn coaching-btn--primary" data-action="next">
+      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next">
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -621,13 +622,13 @@ function renderSessionStep(): string {
     </div>
     
     <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="Edit" class="coaching-btn coaching-btn--secondary" data-action="back">
+      <button aria-label="${t('accessibility.edit')}" class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Edit
       </button>
-      <button aria-label="Start Session" class="coaching-btn coaching-btn--primary" data-action="start-session">
+      <button aria-label="${t('accessibility.startSession')}" class="coaching-btn coaching-btn--primary" data-action="start-session">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>

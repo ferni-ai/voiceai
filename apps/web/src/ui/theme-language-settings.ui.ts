@@ -413,7 +413,7 @@ function render(): void {
             ${ICONS.sun}
             <h3 class="theme-language-settings__section-title">${t('settings.appearance') || 'Appearance'}</h3>
           </div>
-          <div class="theme-language-settings__themes" role="radiogroup" aria-label="Theme selection">
+          <div class="theme-language-settings__themes" role="radiogroup" aria-label="${t('accessibility.themeSelection')}">
             ${renderThemeOption('zen', currentTheme)}
             ${renderThemeOption('midnight', currentTheme)}
           </div>
@@ -425,7 +425,7 @@ function render(): void {
             ${ICONS.globe}
             <h3 class="theme-language-settings__section-title">${t('settings.language') || 'Language'}</h3>
           </div>
-          <div class="theme-language-settings__languages" role="listbox" aria-label="Language selection">
+          <div class="theme-language-settings__languages" role="listbox" aria-label="${t('accessibility.languageSelection')}">
             ${SUPPORTED_LOCALES.map((locale) => renderLanguageOption(locale, currentLocale)).join('')}
           </div>
         </section>

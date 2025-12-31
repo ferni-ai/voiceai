@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './toast.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('EightSleep');
 
@@ -670,7 +671,7 @@ async function startAuthFlow(): Promise<void> {
 async function setTemperature(level: number): Promise<void> {
   try {
     await apiPut('/api/eight-sleep/temperature', { level });
-    toast.success(`Bed set to level ${level}`);
+    toast.success(t('toasts.bedSetToLevelLevel'));
   } catch (error) {
     log.error('Failed to set temperature:', error);
     toast.error("Couldn't set temperature. Try again?");
@@ -680,7 +681,7 @@ async function setTemperature(level: number): Promise<void> {
 async function disconnect(): Promise<void> {
   try {
     await apiDelete('/api/eight-sleep/disconnect');
-    toast.success('Eight Sleep disconnected');
+    toast.success(t('toasts.eightSleepDisconnected'));
     callbacks.onDisconnected?.();
     render({ connected: false });
   } catch (error) {

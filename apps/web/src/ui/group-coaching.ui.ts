@@ -296,11 +296,11 @@ class GroupCoachingUI {
 
       <div class="group-coaching__content">
         <div class="group-coaching__actions" role="button" tabindex="0">
-          <button aria-label="Add" class="group-coaching__create-btn" data-action="create">
+          <button aria-label="${t('accessibility.add')}" class="group-coaching__create-btn" data-action="create">
             ${ICONS.plus}
             <span>New Session</span>
           </button>
-          <button aria-label="Join with Link" class="group-coaching__join-btn" data-action="join-link">
+          <button aria-label="${t('accessibility.joinWithLink')}" class="group-coaching__join-btn" data-action="join-link">
             ${ICONS.link}
             <span>Join with Link</span>
           </button>
@@ -322,7 +322,7 @@ class GroupCoachingUI {
 
     const typeOptions = getSessionTypes().map(
       (type) => `
-      <button aria-label="More information" class="group-coaching__type" data-type="${type.id}">
+      <button aria-label="${t('accessibility.moreInformation')}" class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
         <div class="group-coaching__type-info">
           <span class="group-coaching__type-name">${type.name}</span>
@@ -335,7 +335,7 @@ class GroupCoachingUI {
 
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
-        <button aria-label="Go back" class="group-coaching__back" data-action="back">←</button>
+        <button aria-label="${t('accessibility.goBack')}" class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">New Session</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
@@ -372,7 +372,7 @@ class GroupCoachingUI {
 
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
-        <button aria-label="Go back" class="group-coaching__back" data-action="back">←</button>
+        <button aria-label="${t('accessibility.goBack')}" class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">${typeInfo?.name || 'Session'}</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
@@ -395,7 +395,7 @@ class GroupCoachingUI {
             <h3>Invite Link</h3>
             <div class="group-coaching__invite-link">
               <input type="text" value="${joinLink}" readonly>
-              <button aria-label="Copy" class="group-coaching__copy-btn" data-action="copy" data-link="${joinLink}">
+              <button aria-label="${t('accessibility.copy')}" class="group-coaching__copy-btn" data-action="copy" data-link="${joinLink}">
                 ${ICONS.copy}
               </button>
             </div>
@@ -413,7 +413,7 @@ class GroupCoachingUI {
           ${
             session.status === 'waiting'
               ? `
-            <button aria-label="Play" class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
+            <button aria-label="${t('accessibility.play')}" class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
               ${ICONS.play}
               <span>Start Session</span>
             </button>
@@ -439,7 +439,7 @@ class GroupCoachingUI {
       </header>
       <div class="group-coaching__error">
         <p>${message}</p>
-        <button aria-label="Try Again" class="group-coaching__retry">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="group-coaching__retry">Try Again</button>
       </div>
     `;
 

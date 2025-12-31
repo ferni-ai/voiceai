@@ -507,7 +507,7 @@ export class AttributedTranscriptService {
     return utterances
       .sort((a, b) => b.text.length - a.text.length)
       .slice(0, 3)
-      .map((u) => (u.text.length > 100 ? u.text.slice(0, 100) + '...' : u.text));
+      .map((u) => (u.text.length > 100 ? `${u.text.slice(0, 100)}...` : u.text));
   }
 }
 

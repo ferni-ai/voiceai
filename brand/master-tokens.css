@@ -39,6 +39,11 @@
   --color-text-disabled: #B5AFA6;
   --color-text-inverse: #FFFFFF;
 
+  /* Brand Palette (canonical names) */
+  --color-warm-white: #FAF8F5;
+  --color-natural-ink: #2C2520;
+  --color-natural-ink-dark: #1a1512;
+
   /* Borders */
   --color-border-subtle: rgba(29, 27, 24, 0.06);
   --color-border-default: rgba(29, 27, 24, 0.12);
@@ -57,6 +62,7 @@
   --color-ferni-light: #5A7751;
   --color-ferni-dark: #3D5A35;
   --color-ferni-subtle: rgba(74, 103, 65, 0.1);
+  --color-ferni-border: rgba(74, 103, 65, 0.3);
   --color-ferni-glow: rgba(74, 103, 65, 0.4);
 
   --color-maya: #A67A6A;
@@ -94,6 +100,7 @@
   --color-success-subtle: rgba(61, 122, 82, 0.1);
   --color-error: #B5453A;
   --color-error-subtle: rgba(181, 69, 58, 0.1);
+  --color-error-border: rgba(181, 69, 58, 0.3);
   --color-warning: #A67C35;
   --color-warning-subtle: rgba(166, 124, 53, 0.1);
   --color-info: #3A6B73;
@@ -303,6 +310,100 @@
 }
 
 /* ============================================
+   ZEN THEME - Calm Focus Mode
+   Soft muted colors, reduced contrast, minimal visual noise
+   ============================================ */
+[data-theme="zen"] {
+  /* Backgrounds - soft sage-gray tones */
+  --color-bg-primary: #E8EBE6;
+  --color-bg-secondary: #DFE3DA;
+  --color-bg-tertiary: #D5DAD0;
+  --color-bg-elevated: #F0F2ED;
+  --color-bg-sunken: #D0D6CA;
+
+  /* Text - reduced contrast, easier on eyes */
+  --color-text-primary: #3A4238;
+  --color-text-secondary: #5A635A;
+  --color-text-tertiary: #6B756A;
+  --color-text-muted: #8A948A;
+  --color-text-disabled: #A5AFA5;
+  --color-text-inverse: #F0F2ED;
+
+  /* Borders - very subtle */
+  --color-border-subtle: rgba(58, 66, 56, 0.06);
+  --color-border-default: rgba(58, 66, 56, 0.10);
+  --color-border-strong: rgba(58, 66, 56, 0.18);
+
+  /* Shadows - soft and diffuse */
+  --shadow-xs: 0 1px 2px rgba(58, 66, 56, 0.04);
+  --shadow-sm: 0 1px 3px rgba(58, 66, 56, 0.06), 0 1px 2px rgba(58, 66, 56, 0.04);
+  --shadow-md: 0 4px 6px rgba(58, 66, 56, 0.08), 0 2px 4px rgba(58, 66, 56, 0.04);
+  --shadow-lg: 0 10px 15px rgba(58, 66, 56, 0.10), 0 4px 6px rgba(58, 66, 56, 0.05);
+  --shadow-xl: 0 20px 25px rgba(58, 66, 56, 0.12), 0 8px 10px rgba(58, 66, 56, 0.05);
+  --shadow-2xl: 0 25px 50px rgba(58, 66, 56, 0.15);
+
+  /* Glass in zen mode - frosted sage */
+  --glass-bg: rgba(223, 227, 218, 0.85);
+  --glass-bg-light: rgba(223, 227, 218, 0.65);
+  --glass-bg-heavy: rgba(223, 227, 218, 0.95);
+  --glass-border: rgba(58, 66, 56, 0.08);
+
+  /* Muted accent for zen - softer green */
+  --color-accent: #5A7A55;
+  --color-accent-hover: #4A6A45;
+  --color-accent-active: #3A5A35;
+
+  /* Persona colors slightly muted for zen */
+  --color-ferni: #5A7A55;
+  --color-maya: #B8978A;
+  --color-peter: #4A7A80;
+  --color-jordan: #D0A090;
+  --color-alex: #6A7A9A;
+  --color-nayan: #C8A580;
+}
+
+/* Automatic dark mode based on system preference */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Backgrounds */
+    --color-bg-primary: #141311;
+    --color-bg-secondary: #1C1A18;
+    --color-bg-tertiary: #242220;
+    --color-bg-elevated: #2A2826;
+    --color-bg-sunken: #0E0D0C;
+    --color-warm-white: #141311;
+
+    /* Text */
+    --color-text-primary: #F5F2ED;
+    --color-text-secondary: #B5AFA6;
+    --color-text-tertiary: #8A847C;
+    --color-text-muted: #6B665F;
+    --color-text-disabled: #4A4641;
+    --color-text-inverse: #1D1B18;
+    --color-natural-ink: #F5F2ED;
+
+    /* Borders */
+    --color-border-subtle: rgba(245, 242, 237, 0.06);
+    --color-border-default: rgba(245, 242, 237, 0.12);
+    --color-border-strong: rgba(245, 242, 237, 0.24);
+
+    /* Shadows in dark mode */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.35), 0 4px 6px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4), 0 8px 10px rgba(0, 0, 0, 0.2);
+    --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5);
+
+    /* Glass in dark mode */
+    --glass-bg: rgba(26, 24, 22, 0.8);
+    --glass-bg-light: rgba(26, 24, 22, 0.6);
+    --glass-bg-heavy: rgba(26, 24, 22, 0.95);
+    --glass-border: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* ============================================
    BASE RESET
    ============================================ */
 *,
@@ -317,6 +418,7 @@ html {
   font-size: 16px;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  color-scheme: light dark;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -501,6 +603,39 @@ body {
   color: var(--color-accent);
 }
 
+/* Back link pattern for sub-pages */
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.nav-back:hover {
+  opacity: 0.8;
+}
+
+.nav-back svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+/* Current page indicator */
+.nav-current {
+  color: var(--color-accent);
+  font-weight: var(--font-medium);
+}
+
 @media (max-width: 768px) {
   .nav {
     padding: var(--space-3) var(--space-4);
@@ -512,6 +647,68 @@ body {
 
   .nav-link {
     font-size: var(--text-xs);
+  }
+}
+
+/* ============================================
+   FOOTER COMPONENT
+   ============================================ */
+footer {
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-subtle);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+}
+
+.footer-logo {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-4);
+}
+
+.footer-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.footer-tagline {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.footer-links {
+  display: flex;
+  gap: var(--space-6);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-8);
+}
+
+.footer-links a {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.footer-links a:hover {
+  color: var(--color-accent);
+}
+
+.footer-copyright {
+  font-size: var(--text-xs);
+  color: var(--color-text-disabled);
+}
+
+@media (max-width: 768px) {
+  footer {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .footer-links {
+    gap: var(--space-4);
+    flex-direction: column;
   }
 }
 

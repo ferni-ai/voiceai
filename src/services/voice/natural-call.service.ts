@@ -168,15 +168,10 @@ export async function makeNaturalCall(request: NaturalCallRequest): Promise<Natu
           relationshipStage: context.relationshipStage || 'established',
         };
 
-    const result = await callWithPersonaVoice(
-      request.phone,
-      generatedCall.message,
-      personaId,
-      {
-        fallbackToTwilioVoice: request.options?.fallbackToTwilioVoice ?? true,
-        ssml: ssmlOptions,
-      }
-    );
+    const result = await callWithPersonaVoice(request.phone, generatedCall.message, personaId, {
+      fallbackToTwilioVoice: request.options?.fallbackToTwilioVoice ?? true,
+      ssml: ssmlOptions,
+    });
 
     if (result.success) {
       log.info(
@@ -427,7 +422,7 @@ export function previewAllCallTypes(
         reason: 'being such a great friend',
         appointment: 'your doctor appointment',
         time: 'tomorrow at 2pm',
-        location: 'Dr. Smith\'s office',
+        location: "Dr. Smith's office",
       },
     });
   }
@@ -465,14 +460,16 @@ function mapCallTypeToPurpose(callType: CallTemplateType): MessageContext['purpo
 }
 
 function mapRelationshipStage(
-  stage?: 'first_meeting' | 'early' | 'established' | 'deep_trust'
+  stage?: 'new' | 'building' | 'established' | 'deep'
 ): MessageContext['relationshipDepth'] {
   if (!stage) return 'established';
+  // Map CallContext.relationshipStage to MessageContext.relationshipDepth
+  // They happen to use the same values now
   const mapping: Record<string, MessageContext['relationshipDepth']> = {
-    first_meeting: 'new',
-    early: 'building',
+    new: 'new',
+    building: 'building',
     established: 'established',
-    deep_trust: 'deep',
+    deep: 'deep',
   };
   return mapping[stage] || 'established';
 }
@@ -480,7 +477,10 @@ function mapRelationshipStage(
 function mapCallTypeToSsmlType(
   callType: CallTemplateType
 ): 'introduction' | 'check-in' | 'celebration' | 'support' | 'reminder' {
-  const mapping: Record<CallTemplateType, 'introduction' | 'check-in' | 'celebration' | 'support' | 'reminder'> = {
+  const mapping: Record<
+    CallTemplateType,
+    'introduction' | 'check-in' | 'celebration' | 'support' | 'reminder'
+  > = {
     thinking_of_you: 'check-in',
     check_in: 'check-in',
     birthday: 'celebration',

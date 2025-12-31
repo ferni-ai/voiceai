@@ -126,6 +126,8 @@ describe('AliveOrchestrator', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mock to clear queued mockReturnValueOnce values from previous tests
+    mockAnalyzeAndSuggest.mockReset();
     mockAnalyzeAndSuggest.mockReturnValue(null);
     resetAliveOrchestrator('test-session-123');
   });

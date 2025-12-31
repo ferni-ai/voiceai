@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexThinkingOfYou } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'ThinkingOfYou' });
 
@@ -247,6 +248,14 @@ export function detectSignificantShare(
   }
 
   profile.significantShares.push(share);
+
+  // Index to semantic memory
+  indexThinkingOfYou(userId, {
+    id: share.id,
+    reason: `Shared about: ${share.topic}`,
+    theyShared: share.content,
+    outreachType: share.followUpType,
+  });
 
   // Keep only last 30 shares
   if (profile.significantShares.length > 30) {

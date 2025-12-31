@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('BirthdayRemindersUI');
 
@@ -683,14 +684,14 @@ async function saveSettings(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success('Settings saved!');
+      toast.success(t('toasts.settingsSaved'));
       closeBirthdayReminders();
     } else {
-      toast.error('Could not save settings');
+      toast.error(t('toasts.couldNotSaveSettings'));
     }
   } catch (error) {
     log.error('Failed to save reminder settings:', error);
-    toast.error('Could not save settings');
+    toast.error(t('toasts.couldNotSaveSettings'));
   } finally {
     state.isSaving = false;
   }
@@ -756,14 +757,14 @@ export function openBirthdayReminders(): void {
         <div class="br-eyebrow">Never Forget</div>
         <h2 class="br-title" id="br-title">${ICONS.cake} Important Dates</h2>
         <p class="br-subtitle">We remember so you don't have to</p>
-        <button class="br-close" aria-label="Close">${ICONS.close}</button>
+        <button class="br-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
       <div class="br-content">
         <div style="text-align: center; padding: var(--space-8); color: var(--color-text-muted);">Loading...</div>
       </div>
       <div class="br-footer">
-        <button aria-label="Cancel" class="br-btn br-btn-secondary" id="br-cancel">Cancel</button>
-        <button aria-label="Settings" class="br-btn br-btn-primary" id="br-save">Save Settings</button>
+        <button aria-label="${t('accessibility.cancel')}" class="br-btn br-btn-secondary" id="br-cancel">Cancel</button>
+        <button aria-label="${t('accessibility.settings')}" class="br-btn br-btn-primary" id="br-save">Save Settings</button>
       </div>
     </div>
   `;

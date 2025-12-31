@@ -24,6 +24,10 @@ import {
   extractTtsSessionContext,
   wrappedTtsNode,
 } from '../shared/tts-wrapper.js';
+// Centralized generateReply gateway - NEVER use session.generateReply directly!
+import { generateReply } from '../shared/generate-reply-gateway.js';
+// Safe fire-and-forget for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -527,13 +531,22 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
       contextHint = 'This is a new user.';
     }
 
-    this.session.generateReply({
-      instructions: `You are Ferni. ${contextHint}
+    // Generate a sessionId from available data (this agent class doesn't have sessionId directly)
+    const derivedSessionId = userData?.userId ? `agent-${userData.userId}` : `agent-${Date.now()}`;
+
+    // Use gateway for proper error handling and session readiness
+    fireAndForget(async () => {
+      await generateReply(this.session, derivedSessionId, {
+        instructions: `You are Ferni. ${contextHint}
 
 Generate a warm, brief greeting (1-2 sentences max).
 
 Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak naturally.`,
-    });
+        context: 'ferni-greeting',
+        fallbackMessage: 'Hey! Nice to meet you.',
+        priority: 'high', // Greetings are important
+      });
+    }, 'ferni-agent-greeting');
   }
 
   /**

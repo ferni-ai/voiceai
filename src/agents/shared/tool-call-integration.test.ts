@@ -167,7 +167,8 @@ describe('LAYER 3: Sanitizer - Catches Violations', () => {
     const wrongPatterns = [
       // From base-identity.ts
       'Let me call playMusic for you',
-      "I'll use the search tool now",
+      // Note: "search" isn't a registered tool, so we use "playMusic" which is
+      "I'll use the playMusic tool now",
       'Playing music query',
 
       // From ferni system-prompt.md
@@ -219,9 +220,9 @@ describe('LAYER 3: Sanitizer - Catches Violations', () => {
 
 describe('LAYER 4: Integration Summary', () => {
   test('SUMMARY: Full tool call prevention stack', () => {
-    console.log('\n' + '='.repeat(70));
+    console.log(`\n${'='.repeat(70)}`);
     console.log('📋 TOOL CALL PREVENTION - INTEGRATION TEST SUMMARY');
-    console.log('='.repeat(70) + '\n');
+    console.log(`${'='.repeat(70)}\n`);
 
     console.log('1️⃣  SYSTEM PROMPTS (First line of defense)');
     console.log('    └─ base-identity.ts: "NEVER announce function calls"');
@@ -243,7 +244,7 @@ describe('LAYER 4: Integration Summary', () => {
 
     console.log('='.repeat(70));
     console.log('✅ All layers configured for silent tool execution');
-    console.log('='.repeat(70) + '\n');
+    console.log(`${'='.repeat(70)}\n`);
 
     // This test always passes - it's just for documentation
     expect(true).toBe(true);

@@ -75,8 +75,11 @@ import {
 } from './comfort-progression.js';
 
 // Phase 3: Advanced Listening
-import type { VoicePrintEngine } from './voice-print.js';
-import { getVoicePrintEngine, resetVoicePrintEngine } from './voice-print.js';
+import {
+  getVoicePrintEngine,
+  resetVoicePrintEngine,
+  type VoicePrintEngine,
+} from './voice-print.js';
 
 import {
   type AmbientAwarenessEngine,
@@ -402,7 +405,9 @@ export class HumanizationOrchestrator {
     const fullContext: HumanizationContext = {
       ...context,
       responseText: response,
-      responseWordCount: RUST_COUNTING_AVAILABLE ? countWordsRust(response) : response.split(/\s+/).length,
+      responseWordCount: RUST_COUNTING_AVAILABLE
+        ? countWordsRust(response)
+        : response.split(/\s+/).length,
       responseComplexity: this.estimateComplexity(response),
       isGivingAdvice: this.detectAdviceGiving(response),
       isEmotionalContent: context.isEmotionalContent ?? this.detectEmotionalContent(response),
@@ -804,9 +809,7 @@ export class HumanizationOrchestrator {
     let complexity = 0.3;
 
     // 🦀 Use Rust for O(1) word counting when available
-    const wordCount = RUST_COUNTING_AVAILABLE
-      ? countWordsRust(text)
-      : text.split(/\s+/).length;
+    const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
     if (wordCount > 50) complexity += 0.1;
     if (wordCount > 80) complexity += 0.15;
     if (wordCount > 120) complexity += 0.15;

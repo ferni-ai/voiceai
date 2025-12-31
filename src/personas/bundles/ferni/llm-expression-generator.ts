@@ -173,8 +173,10 @@ const stats = {
 // ============================================================================
 
 function buildExpressionPrompt(requests: ExpressionRequest[]): string {
+  // ⚠️ IMPORTANT: Examples should be VARIED. Don't teach the LLM repetitive phrases!
+  // Coffee was way too repetitive. Now emphasizing variety in warm drinks.
   const examples: Record<ThemeCategory, string[]> = {
-    warm_drinks: ["Second coffee. Don't judge.", 'Mint tea today. Morocco habit.'],
+    warm_drinks: ['Mint tea today. Morocco habit.', 'Something warm in my hands. Helps me think.'],
     global_traveler: [
       'Ten years in Japan taught me that. The pause before speaking.',
       'Wyoming sky changes how you see things.',

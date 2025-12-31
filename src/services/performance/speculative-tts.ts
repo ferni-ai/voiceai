@@ -16,11 +16,16 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)
 import { LRUCache } from 'lru-cache';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // CARTESIA API CONFIGURATION
@@ -28,7 +33,7 @@ import { LRUCache } from 'lru-cache';
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
 const CARTESIA_API_VERSION = '2024-06-10';
-const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Get Cartesia API key from environment
@@ -751,7 +756,8 @@ class SpeculativeTTSEngine {
    */
   private estimateAudioDuration(text: string): number {
     // Average speaking rate: ~150 words per minute
-    const words = text.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const words = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
     return (words / 150) * 60;
   }
 

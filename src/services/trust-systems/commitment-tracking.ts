@@ -22,6 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -429,6 +430,21 @@ export async function saveCommitment(commitment: Commitment): Promise<void> {
       .doc(commitment.id)
       .set(cleanForFirestore(commitmentData));
 
+    // Index to semantic memory for contextual retrieval
+    indexCommitment(
+      {
+        id: commitment.id,
+        userId: commitment.userId,
+        content: commitment.content,
+        type: commitment.type,
+        status: commitment.status,
+        originalQuote: commitment.originalQuote,
+        motivation: commitment.motivation,
+        obstacles: commitment.obstacles,
+      },
+      'create'
+    );
+
     log.info({ userId: commitment.userId, commitmentId: commitment.id }, '💫 Commitment saved');
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to save commitment');
@@ -565,6 +581,11 @@ export async function updateCommitmentStatus(
       .collection('commitments')
       .doc(commitmentId)
       .update(cleanForFirestore(updates));
+
+    // Update or remove from semantic index based on status
+    if (status === 'completed' || status === 'abandoned') {
+      deindexCommitment(userId, commitmentId);
+    }
 
     log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
   } catch (err) {

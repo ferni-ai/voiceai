@@ -8,6 +8,7 @@
  */
 
 import { toast } from '../ui/toast.ui.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -63,7 +64,7 @@ export async function disconnectLinkedIn(): Promise<boolean> {
     });
 
     if (response.ok) {
-      toast.success('LinkedIn disconnected');
+      toast.success(t('toasts.linkedInDisconnected'));
       return true;
     }
 
@@ -86,7 +87,7 @@ export async function syncLinkedIn(): Promise<boolean> {
     });
 
     if (response.ok) {
-      toast.info('Syncing LinkedIn...');
+      toast.info(t('toasts.syncingLinkedIn'));
       return true;
     }
 
@@ -108,7 +109,7 @@ export async function connectLinkedIn(): Promise<void> {
   // Check if already connected
   const status = await getLinkedInStatus();
   if (status?.connected) {
-    toast.info('LinkedIn already connected!');
+    toast.info(t('toasts.linkedinAlreadyConnected'));
     return;
   }
 
@@ -132,7 +133,7 @@ export function handleLinkedInCallback(): void {
     url.searchParams.delete('linkedin');
     window.history.replaceState({}, '', url.toString());
   } else if (linkedinStatus === 'denied') {
-    toast.info('LinkedIn connection cancelled');
+    toast.info(t('toasts.linkedinConnectionCancelled'));
     // Clean up URL
     const url = new URL(window.location.href);
     url.searchParams.delete('linkedin');

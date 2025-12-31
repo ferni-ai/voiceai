@@ -58,7 +58,8 @@ const PREDICTION_PATTERNS: Array<{
       /\bplay (some|a|the)?\s*(music|song|track)\b/i,
       /\bput on (some|a)?\s*music\b/i,
       /\blisten to\b/i,
-      /\bplay (jazz|rock|classical|hip hop|pop|country)\b/i,
+      /\bplay (some )?(jazz|rock|classical|hip hop|pop|country)( music)?\b/i,
+      /\b(jazz|rock|classical|pop|country)\s*music\b/i,
       /\bspotify\b/i,
     ],
     tools: [
@@ -145,13 +146,7 @@ const PREDICTION_PATTERNS: Array<{
 
   // Contact patterns
   {
-    patterns: [
-      /\bcall\b/i,
-      /\btext\b/i,
-      /\bmessage\b/i,
-      /\bcontact\b/i,
-      /\bemail\b/i,
-    ],
+    patterns: [/\bcall\b/i, /\btext\b/i, /\bmessage\b/i, /\bcontact\b/i, /\bemail\b/i],
     tools: [
       { toolId: 'getContacts', confidence: 0.7 },
       { toolId: 'sendMessage', confidence: 0.6 },
@@ -251,7 +246,7 @@ async function preloadMusicDeps(): Promise<void> {
  */
 async function preloadCalendarDeps(): Promise<void> {
   try {
-    await import('../../../tools/domains/organization/calendar/index.js');
+    await import('../../../tools/domains/calendar/index.js');
     markToolPreloaded('getCalendarToday');
     markToolPreloaded('getUpcomingMeetings');
   } catch {

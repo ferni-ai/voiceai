@@ -10,6 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 import {
   type CustomAgent,
   type CustomAgentPersonality,
@@ -69,7 +70,7 @@ function ensureModalExists(): HTMLElement {
         </div>
         <div class="editor-header-actions" role="button" tabindex="0">
           <span class="editor-status" id="editor-status"></span>
-          <button class="editor-close" data-action="close" aria-label="Close editor">
+          <button class="editor-close" data-action="close" aria-label="${t('accessibility.closeEditor')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -79,7 +80,7 @@ function ensureModalExists(): HTMLElement {
       </header>
 
       <nav class="editor-tabs" role="tablist">
-        <button aria-label="More information" class="editor-tab active" data-tab="info" role="tab" aria-selected="true">
+        <button aria-label="${t('accessibility.moreInformation')}" class="editor-tab active" data-tab="info" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="16" x2="12" y2="12"/>
@@ -87,7 +88,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           Info
         </button>
-        <button aria-label="Personality" class="editor-tab" data-tab="personality" role="tab" aria-selected="false">
+        <button aria-label="${t('accessibility.personality')}" class="editor-tab" data-tab="personality" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
@@ -96,14 +97,14 @@ function ensureModalExists(): HTMLElement {
           </svg>
           Personality
         </button>
-        <button aria-label="Voice" class="editor-tab" data-tab="voice" role="tab" aria-selected="false">
+        <button aria-label="${t('accessibility.voice')}" class="editor-tab" data-tab="voice" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           </svg>
           Voice
         </button>
-        <button aria-label="Memories" class="editor-tab" data-tab="memories" role="tab" aria-selected="false">
+        <button aria-label="${t('accessibility.memories')}" class="editor-tab" data-tab="memories" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -117,7 +118,7 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="editor-footer">
-        <button aria-label="Delete" class="editor-btn editor-btn--danger" data-action="delete">
+        <button aria-label="${t('accessibility.delete')}" class="editor-btn editor-btn--danger" data-action="delete">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 6h18"/>
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -126,10 +127,10 @@ function ensureModalExists(): HTMLElement {
           Delete Agent
         </button>
         <div class="editor-footer-actions" role="button" tabindex="0">
-          <button aria-label="Cancel" class="editor-btn editor-btn--secondary" data-action="cancel">
+          <button aria-label="${t('accessibility.cancel')}" class="editor-btn editor-btn--secondary" data-action="cancel">
             Cancel
           </button>
-          <button aria-label="Save Changes" class="editor-btn editor-btn--primary" data-action="save" id="save-btn">
+          <button aria-label="${t('accessibility.saveChanges')}" class="editor-btn editor-btn--primary" data-action="save" id="save-btn">
             Save Changes
           </button>
         </div>
@@ -160,7 +161,7 @@ export async function openAgentEditor(agentId: string): Promise<void> {
     const agent = await getCustomAgent(agentId);
     if (!agent) {
       const { toast } = await import('./toast.ui.js');
-      toast.error('Agent not found');
+      toast.error(t('toasts.agentNotFound'));
       return;
     }
 
@@ -335,21 +336,21 @@ function renderInfoTab(): string {
       <div class="editor-section">
         <h3 class="editor-section-title">Status</h3>
         <div class="editor-status-toggle" role="button" tabindex="0">
-          <button aria-label="Draft" 
+          <button aria-label="${t('accessibility.draft')}" 
             class="status-option ${currentAgent.status === 'draft' ? 'status-option--active' : ''}"
             data-status="draft"
           >
             <span class="status-dot status-dot--draft"></span>
             Draft
           </button>
-          <button aria-label="Active" 
+          <button aria-label="${t('accessibility.active')}" 
             class="status-option ${currentAgent.status === 'active' ? 'status-option--active' : ''}"
             data-status="active"
           >
             <span class="status-dot status-dot--active"></span>
             Active
           </button>
-          <button aria-label="Pause" 
+          <button aria-label="${t('accessibility.pause')}" 
             class="status-option ${currentAgent.status === 'paused' ? 'status-option--active' : ''}"
             data-status="paused"
           >
@@ -388,7 +389,7 @@ function renderPersonalityTab(): string {
         <h3 class="editor-section-title">Personality Traits</h3>
         <div class="editor-traits">
           ${traits.map((trait) => `
-            <button aria-label="Edit" 
+            <button aria-label="${t('accessibility.edit')}" 
               type="button"
               class="editor-trait ${personality.traits.includes(trait) ? 'editor-trait--selected' : ''}"
               data-trait="${trait}"
@@ -400,7 +401,7 @@ function renderPersonalityTab(): string {
       <div class="editor-section">
         <h3 class="editor-section-title">Cognitive Style</h3>
         <div class="editor-profiles">
-          <button aria-label="Empathetic" 
+          <button aria-label="${t('accessibility.empathetic')}" 
             class="editor-profile ${personality.cognitiveProfile === 'empathetic' ? 'editor-profile--selected' : ''}"
             data-profile="empathetic"
           >
@@ -411,7 +412,7 @@ function renderPersonalityTab(): string {
             </span>
             <span class="profile-name">Empathetic</span>
           </button>
-          <button aria-label="Analytical" 
+          <button aria-label="${t('accessibility.analytical')}" 
             class="editor-profile ${personality.cognitiveProfile === 'analytical' ? 'editor-profile--selected' : ''}"
             data-profile="analytical"
           >
@@ -424,7 +425,7 @@ function renderPersonalityTab(): string {
             </span>
             <span class="profile-name">Analytical</span>
           </button>
-          <button aria-label="Balanced" 
+          <button aria-label="${t('accessibility.balanced')}" 
             class="editor-profile ${personality.cognitiveProfile === 'balanced' ? 'editor-profile--selected' : ''}"
             data-profile="balanced"
           >
@@ -494,7 +495,7 @@ function renderVoiceTab(): string {
         <p class="editor-hint">Select a pre-made voice from our library</p>
         <div class="editor-voice-grid">
           ${voices.map((v) => `
-            <button aria-label="More information" 
+            <button aria-label="${t('accessibility.moreInformation')}" 
               class="editor-voice-card ${voice.voiceId === v.id ? 'editor-voice-card--selected' : ''}"
               data-voice-id="${v.id}"
             >
@@ -538,7 +539,7 @@ function renderMemoriesTab(): string {
       <div class="editor-section">
         <div class="editor-section-header">
           <h3 class="editor-section-title">Memories (${allMemories.length})</h3>
-          <button aria-label="Add Memory" class="editor-add-btn" data-action="add-memory">
+          <button aria-label="${t('accessibility.addMemory')}" class="editor-add-btn" data-action="add-memory">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -565,7 +566,7 @@ function renderMemoriesTab(): string {
                   <span class="memory-title">${memory.title || memory.phrase || memory.content.substring(0, 40)}...</span>
                   <span class="memory-date">${new Date(memory.createdAt).toLocaleDateString()}</span>
                 </div>
-                <button class="memory-delete-btn" data-delete-memory="${memory.id}" data-category="${memory.category}" aria-label="Delete memory">
+                <button class="memory-delete-btn" data-delete-memory="${memory.id}" data-category="${memory.category}" aria-label="${t('accessibility.deleteMemory')}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -741,7 +742,7 @@ async function handleAddMemory(): Promise<void> {
         renderTab();
       }
       const { toast } = await import('./toast.ui.js');
-      toast.success('Memory added');
+      toast.success(t('toasts.memoryAdded'));
     } catch (err) {
       log.error('Failed to add memory:', err);
       const { toast } = await import('./toast.ui.js');
@@ -774,7 +775,7 @@ async function handleDeleteMemory(
     }
     renderTab();
     const { toast } = await import('./toast.ui.js');
-    toast.success('Memory deleted');
+    toast.success(t('toasts.memoryDeleted'));
   } catch (err) {
     log.error('Failed to delete memory:', err);
     const { toast } = await import('./toast.ui.js');
@@ -792,7 +793,7 @@ async function handleVoiceSelect(voiceId: string): Promise<void> {
     currentAgent.voice.status = 'ready';
     renderTab();
     const { toast } = await import('./toast.ui.js');
-    toast.success('Voice updated');
+    toast.success(t('toasts.voiceUpdated'));
   } catch (err) {
     log.error('Failed to select voice:', err);
     const { toast } = await import('./toast.ui.js');
@@ -824,7 +825,7 @@ async function saveChanges(): Promise<void> {
     dispatchCustomAgentEvent('custom-agent:updated', { agentId: currentAgent.id });
 
     const { toast } = await import('./toast.ui.js');
-    toast.success('Changes saved');
+    toast.success(t('toasts.infoChangesSaved'));
     soundUI.play('success');
   } catch (err) {
     log.error('Failed to save changes:', err);
@@ -858,7 +859,7 @@ async function deleteAgent(): Promise<void> {
     await closeAgentEditor();
 
     const { toast } = await import('./toast.ui.js');
-    toast.success('Agent deleted');
+    toast.success(t('toasts.agentDeleted'));
   } catch (err) {
     log.error('Failed to delete agent:', err);
     const { toast } = await import('./toast.ui.js');

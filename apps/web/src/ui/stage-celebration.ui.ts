@@ -974,7 +974,7 @@ function createCelebrationOverlay(): void {
         <span class="stage-arrow">${ICONS.chevronRight}</span>
         <span class="stage-to"></span>
       </div>
-      <button aria-label="Continue our journey" class="celebration-dismiss">Continue our journey</button>
+      <button aria-label="${t('accessibility.continueOurJourney')}" class="celebration-dismiss">Continue our journey</button>
     </div>
   `;
   
@@ -1098,10 +1098,10 @@ function createProgressPanel(): void {
             <h3 class="memories-title">Moments we share</h3>
           </div>
           <div class="memories-filters">
-            <button aria-label="All" class="memory-filter memory-filter--active" data-filter="all">All</button>
-            <button aria-label="Milestones" class="memory-filter" data-filter="stage-up">Milestones</button>
-            <button aria-label="Streaks" class="memory-filter" data-filter="streak-milestone">Streaks</button>
-            <button aria-label="Insights" class="memory-filter" data-filter="insight">Insights</button>
+            <button aria-label="${t('accessibility.all')}" class="memory-filter memory-filter--active" data-filter="all">All</button>
+            <button aria-label="${t('accessibility.milestones')}" class="memory-filter" data-filter="stage-up">Milestones</button>
+            <button aria-label="${t('accessibility.streaks')}" class="memory-filter" data-filter="streak-milestone">Streaks</button>
+            <button aria-label="${t('accessibility.insights')}" class="memory-filter" data-filter="insight">Insights</button>
           </div>
           <div class="memories-list"></div>
         </section>

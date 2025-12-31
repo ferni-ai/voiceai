@@ -357,8 +357,7 @@ export class VoiceTremorDetector {
       } else {
         // JavaScript fallback
         mean = validPitches.reduce((a, b) => a + b, 0) / validPitches.length;
-        variance =
-          validPitches.reduce((sum, p) => sum + (p - mean) ** 2, 0) / validPitches.length;
+        variance = validPitches.reduce((sum, p) => sum + (p - mean) ** 2, 0) / validPitches.length;
         stdDev = Math.sqrt(variance);
       }
 

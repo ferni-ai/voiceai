@@ -9,6 +9,7 @@
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onLifeThesisComponentChange } from '../data-layer/hooks/wisdom-hooks.js';
 import type {
   LifeThesis,
   ThesisDomain,
@@ -80,6 +81,26 @@ export async function saveThesis(
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
+  );
+
+  // Index to semantic memory for thesis search
+  void onLifeThesisComponentChange(
+    userId,
+    docRef.id,
+    {
+      component: thesis,
+      category:
+        domain === 'investment' || domain === 'habit' || domain === 'goal'
+          ? 'vision'
+          : domain === 'career' || domain === 'learning'
+            ? 'purpose'
+            : domain === 'relationship' || domain === 'boundary'
+              ? 'values'
+              : 'principles',
+      description: options.expectedOutcomes.join('. '),
+      confidence: 'developing',
+    },
+    'create'
   );
 
   log.info({ userId, domain, thesisId: docRef.id }, 'Thesis saved');

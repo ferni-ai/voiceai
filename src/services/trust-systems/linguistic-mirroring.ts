@@ -16,10 +16,13 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'LinguisticMirroring' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -314,8 +317,12 @@ function isCommonPhrase(phrase: string): boolean {
 function updateSpeechPatterns(message: string, profile: LinguisticProfile): void {
   // Sentence length
   const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+  // 🦀 Rust-accelerated word counting for each sentence
   const avgWords =
-    sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / (sentences.length || 1);
+    sentences.reduce(
+      (sum, s) => sum + (RUST_COUNTING_AVAILABLE ? countWordsRust(s) : s.split(/\s+/).length),
+      0
+    ) / (sentences.length || 1);
 
   // Weighted average with existing
   const oldAvg = profile.speechPatterns.avgSentenceLength;

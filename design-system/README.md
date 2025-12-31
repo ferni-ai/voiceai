@@ -52,10 +52,11 @@ design-system/
 │       ├── connect.mp3
 │       ├── disconnect.mp3
 │       └── handoff-to-*.mp3
-├── brand/                     # 📚 Brand documentation
-│   ├── GUIDELINES.md         # Full brand identity guide
-│   ├── SCREEN-GUIDELINES.md  # Digital design standards
-│   └── brand-book.html       # Interactive brand book
+├── docs/                      # 📚 Documentation
+│   └── brand/                # Brand documentation
+│       ├── GUIDELINES.md     # Full brand identity guide
+│       ├── SCREEN-GUIDELINES.md  # Digital design standards
+│       └── BETTER-THAN-HUMAN.md  # Superhuman EQ specs
 ├── dist/                      # ⚙️ Generated output (DON'T EDIT)
 │   ├── tokens.css            # CSS custom properties
 │   ├── tokens.ts             # TypeScript types + utilities

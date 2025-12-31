@@ -19,6 +19,7 @@
 import { createLogger } from '../../utils/logger.js';
 import { soundUI } from '../sound.ui.js';
 import { getCustomAgent, listMemories } from '../../services/custom-agent.service.js';
+import { t } from '../../i18n/index.js';
 import { 
   startJournalSync, 
   stopJournalSync, 
@@ -75,7 +76,7 @@ function ensureModalExists(): HTMLElement {
   const modal = document.createElement('div');
   modal.className = 'voice-journal-overlay';
   modal.innerHTML = `
-    <div class="journal-backdrop" data-action="close" role="button" tabindex="0" aria-label="Close journal"></div>
+    <div class="journal-backdrop" data-action="close" role="button" tabindex="0" aria-label="${t('accessibility.closeJournal')}"></div>
     <div class="journal-container" role="dialog" aria-modal="true" aria-labelledby="journal-title">
       <header class="journal-header">
         <div class="journal-header-content">
@@ -83,14 +84,14 @@ function ensureModalExists(): HTMLElement {
           <p class="journal-subtitle">Record your thoughts and feelings</p>
         </div>
         <div class="journal-header-actions">
-          <button class="journal-action-btn" data-action="export" aria-label="Export journal">
+          <button class="journal-action-btn" data-action="export" aria-label="${t('accessibility.exportJournal')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
           </button>
-          <button class="journal-action-btn" data-action="share" aria-label="Share entry">
+          <button class="journal-action-btn" data-action="share" aria-label="${t('accessibility.shareEntry')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="18" cy="5" r="3"/>
               <circle cx="6" cy="12" r="3"/>
@@ -99,7 +100,7 @@ function ensureModalExists(): HTMLElement {
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
             </svg>
           </button>
-          <button class="journal-close" data-action="close" aria-label="Close journal">
+          <button class="journal-close" data-action="close" aria-label="${t('accessibility.closeJournal')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -110,14 +111,14 @@ function ensureModalExists(): HTMLElement {
 
       <!-- Tabs -->
       <nav class="journal-tabs" role="tablist">
-        <button aria-label="Record" class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
+        <button aria-label="${t('accessibility.record')}" class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           </svg>
           Record
         </button>
-        <button aria-label="History" class="journal-tab" data-tab="history" role="tab" aria-selected="false">
+        <button aria-label="${t('accessibility.history')}" class="journal-tab" data-tab="history" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -126,7 +127,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           History
         </button>
-        <button aria-label="Insights" class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
+        <button aria-label="${t('accessibility.insights')}" class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
@@ -150,7 +151,7 @@ function ensureModalExists(): HTMLElement {
             </div>
             
             <div class="recorder-controls">
-              <button aria-label="Start Recording" class="recorder-btn" id="record-btn">
+              <button aria-label="${t('accessibility.startRecording')}" class="recorder-btn" id="record-btn">
                 <svg class="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -182,7 +183,7 @@ function ensureModalExists(): HTMLElement {
                    id="journal-search-input" 
                    class="journal-search-input" 
                    placeholder="Search entries..." 
-                   aria-label="Search journal entries">
+                   aria-label="${t('accessibility.searchJournalEntries')}">
           </div>
 
           <!-- Stats Bar -->
@@ -405,14 +406,14 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     if (!agent) {
       log.error('Agent not found:', agentId);
       const { toast } = await import('../toast.ui.js');
-      toast.error('Agent not found');
+      toast.error(t('toasts.agentNotFound'));
       return;
     }
 
     if (agent.type !== 'twin') {
       log.warn('Voice journal is only for Digital Twin agents');
       const { toast } = await import('../toast.ui.js');
-      toast.warning('Voice journal is only available for Digital Twin agents');
+      toast.warning(t('toasts.voiceJournalTwinOnly'));
       return;
     }
 
@@ -464,7 +465,7 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
   } catch (error) {
     log.error('Failed to open voice journal:', error);
     const { toast } = await import('../toast.ui.js');
-    toast.error('Could not open journal');
+    toast.error(t('toasts.couldNotOpenJournal'));
   }
 }
 
@@ -491,9 +492,9 @@ async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
     // Show toast notification
     const { toast } = await import('../toast.ui.js');
     if (event.type === 'entry_added') {
-      toast.info('New entry synced');
+      toast.info(t('toasts.newEntrySynced'));
     } else if (event.type === 'entry_deleted') {
-      toast.info('Entry removed');
+      toast.info(t('toasts.entryRemoved'));
     }
   }
 }

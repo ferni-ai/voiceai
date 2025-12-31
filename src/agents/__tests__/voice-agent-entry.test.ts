@@ -207,7 +207,7 @@ describe('Voice Agent Entry - Helper Functions', () => {
     );
     expect(parsePersonaFromMetadata(undefined)).toBeNull();
     expect(parsePersonaFromMetadata('invalid')).toBeNull();
-  });
+  }, 60000); // 60s timeout for heavy dynamic import under parallel test load
 
   it('should parse user from metadata correctly', async () => {
     const { parseUserFromMetadata } = await import('../voice-agent/index.js');
@@ -349,7 +349,7 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Extensibility Hook', pattern: 'extensibilitySessionPrompt' },
     ];
 
-    const results: { name: string; integrated: boolean }[] = [];
+    const results: Array<{ name: string; integrated: boolean }> = [];
 
     for (const integration of integrations) {
       results.push({

@@ -16,15 +16,21 @@
 
 import { voice } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
-import type {
-  ReadableStream as NodeReadableStream,
-  TransformStream as NodeTransformStream,
+import {
+  ReadableStream,
+  TransformStream,
+  type ReadableStreamDefaultController,
 } from 'node:stream/web';
 
+type NodeReadableStream<T> = ReadableStream<T>;
+type NodeTransformStream<I, O> = TransformStream<I, O>;
+
 import { createLogger } from '../../../utils/safe-logger.js';
-import { getTTSWithSpeculation } from './speculative-tts.js';
+import { getTTSWithSpeculation } from '../../../services/performance/speculative-tts.js';
 // ⚡ Import conversational audio cache for instant handoff/banter phrases
 import { getCachedAudio as getConversationalCachedAudio } from '../conversational-audio-cache.js';
+// ⚡ Import greeting audio cache for instant first greeting
+import { getPrewarmedGreetingAudio } from './greeting-audio-prewarm.js';
 
 const log = createLogger({ module: 'CacheAwareTTS' });
 
@@ -251,7 +257,43 @@ export async function processTTSWithCache(
         }) as NodeReadableStream<AudioFrame>;
       }
 
-      // 2. SPECULATIVE CACHE (may have been prefetched during conversation)
+      // 2. ⚡ GREETING AUDIO CACHE (pre-warmed at startup)
+      // This handles the very first greeting - critical for first impression!
+      const greetingAudio = getPrewarmedGreetingAudio(text, voiceId);
+      if (greetingAudio && greetingAudio.byteLength > 0) {
+        const hitLatency = Date.now() - startTime;
+        metrics.cacheHits++;
+        hitLatencies.push(hitLatency);
+        if (hitLatencies.length > 100) hitLatencies.shift();
+        metrics.avgCacheHitLatencyMs =
+          hitLatencies.reduce((a, b) => a + b, 0) / hitLatencies.length;
+
+        // Greeting cache saves ~300ms (direct TTS bypass)
+        metrics.totalSavedLatencyMs += 300;
+
+        log.info(
+          {
+            text: text.slice(0, 30),
+            sessionId,
+            hitLatencyMs: hitLatency,
+            audioBytes: greetingAudio.byteLength,
+            cache: 'greeting',
+          },
+          '⚡ GREETING CACHE HIT - instant first impression!'
+        );
+
+        const frames = [...splitIntoFrames(greetingAudio, sampleRate)];
+        return new ReadableStream<AudioFrame>({
+          start(controller) {
+            for (const frame of frames) {
+              controller.enqueue(frame);
+            }
+            controller.close();
+          },
+        }) as NodeReadableStream<AudioFrame>;
+      }
+
+      // 3. SPECULATIVE CACHE (may have been prefetched during conversation)
       const cacheResult = await getTTSWithSpeculation(text, voiceId, emotion);
 
       if (cacheResult.cached && cacheResult.audio.byteLength > 0) {

@@ -35,7 +35,7 @@ async function execute(
 ): Promise<unknown | null> {
   const fnLower = fn.toLowerCase();
   const userId = ctx.userId || 'unknown';
-  const sessionId = ctx.sessionId;
+  const { sessionId } = ctx;
 
   // ========================================
   // REACH OUT - UNIFIED "BETTER THAN HUMAN" OUTREACH

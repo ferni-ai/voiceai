@@ -16,8 +16,10 @@
 
 import { voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { TransformStream as NodeTransformStream } from 'node:stream/web';
+import {
+  TransformStream as NodeTransformStream,
+  type ReadableStream as NodeReadableStream,
+} from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createSanitizerWithMusicFallback } from './tool-call-sanitizer.js';
@@ -157,8 +159,17 @@ export async function wrappedTtsNode(
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
+
+    // Merge tools with session context so sanitizer has access to userId/personaId
+    // This is needed for location-based tools (weather) and observability tracking
+    const toolContext = {
+      ...tools,
+      userId,
+      personaId,
+    };
+
     const sanitizerWithFallback = createSanitizerWithMusicFallback(
-      tools,
+      toolContext,
       options.session,
       sessionId
     );
@@ -166,15 +177,24 @@ export async function wrappedTtsNode(
   }
 
   // 2. Apply interrupt-aware transform for softer recovery
-  // Note: Cast needed because Web Streams and Node Streams have slightly different types
-  const interruptAwareText = filteredText.pipeThrough(
-    createInterruptAwareTransform({
-      wasInterrupted,
-      interruptType,
-      personaId,
-      sessionId,
-    }) as unknown as NodeTransformStream<string, string>
-  );
+  // Can be disabled for debugging with DISABLE_INTERRUPT_TRANSFORM=true
+  const skipInterruptTransform = process.env.DISABLE_INTERRUPT_TRANSFORM === 'true';
+
+  let interruptAwareText: NodeReadableStream<string>;
+  if (skipInterruptTransform) {
+    log.info('🚫 Interrupt-aware transform DISABLED for debugging');
+    interruptAwareText = filteredText;
+  } else {
+    // Note: Cast needed because Web Streams and Node Streams have slightly different types
+    interruptAwareText = filteredText.pipeThrough(
+      createInterruptAwareTransform({
+        wasInterrupted,
+        interruptType,
+        personaId,
+        sessionId,
+      }) as unknown as NodeTransformStream<string, string>
+    );
+  }
 
   // Clear interrupt flag after using it
   if (wasInterrupted && onInterruptRecoveryApplied) {
@@ -303,7 +323,7 @@ export function extractTtsSessionContext(
   defaultPersonaId: string
 ): TtsSessionContext {
   // Access session userData safely
-  const session = agent.session;
+  const { session } = agent;
   const userData = session?.userData as Record<string, unknown> | undefined;
 
   return {
@@ -321,7 +341,7 @@ export function extractTtsSessionContext(
  * Safe to call even if session or userData is undefined.
  */
 export function clearInterruptFlags(agent: voice.Agent): void {
-  const session = agent.session;
+  const { session } = agent;
   const userData = session?.userData as Record<string, unknown> | undefined;
 
   if (userData) {

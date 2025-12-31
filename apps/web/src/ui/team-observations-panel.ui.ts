@@ -13,6 +13,7 @@
 import { apiGet, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('TeamObservationsPanel');
 
@@ -830,7 +831,7 @@ function createPanel(): void {
           </svg>
           Team Observations
         </div>
-        <button class="team-obs-panel__close" aria-label="Close">
+        <button class="team-obs-panel__close" aria-label="${t('accessibility.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>

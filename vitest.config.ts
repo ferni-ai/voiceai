@@ -20,6 +20,8 @@ export default defineConfig({
       // Gemini E2E tests hit real APIs and are flaky (rate limits, LLM non-determinism)
       // Run manually: pnpm vitest run src/tests/e2e/gemini-integration/
       'src/tests/e2e/gemini-integration/**',
+      // Integration tests (*.integration.test.ts) require real API keys - run manually
+      '**/*.integration.test.ts',
     ],
     coverage: {
       provider: 'v8',

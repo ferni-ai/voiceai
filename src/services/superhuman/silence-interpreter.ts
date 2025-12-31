@@ -20,6 +20,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onEmotionalPatternChange } from '../data-layer/hooks/wisdom-hooks.js';
 
 const log = createLogger({ module: 'SilenceInterpreter' });
 
@@ -435,6 +436,20 @@ export async function recordSilenceOutcome(
 
       profile.updatedAt = new Date();
       await ref.set(cleanForFirestore(profile)); // Use set instead of update for type safety
+
+      // Index silence pattern to semantic memory
+      void onEmotionalPatternChange(
+        userId,
+        `silence_${Date.now()}`,
+        {
+          pattern: `${analysis.type} silence detected (${analysis.duration}ms)`,
+          triggers: [],
+          frequency: 'occasional',
+          impact: 'mixed',
+          awareness: 'high',
+        },
+        'create'
+      );
     } else {
       // Create new profile
       const newProfile: SilenceProfile = {

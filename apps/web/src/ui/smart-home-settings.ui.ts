@@ -20,6 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { toast } from './toast.ui.js';
 import { appState } from '../state/index.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -1037,11 +1038,11 @@ function renderEcobeeSetup(container: HTMLElement): void {
     const btn = createElement('button', { 
       className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
     });
-    btn.textContent = 'Connect Ecobee';
+    btn.textContent = t('ui.smarthomesettings.connectEcobee');
     btn.addEventListener('click', async () => {
       const apiKey = (input as HTMLInputElement).value.trim();
       if (!apiKey) {
-        toast.warning('Enter your API key first');
+        toast.warning(t('toasts.enterApiKeyFirst'));
         return;
       }
       await connectEcobee(apiKey);
@@ -1106,11 +1107,11 @@ function renderHueSetup(container: HTMLElement): void {
     const btn = createElement('button', { 
       className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
     });
-    btn.textContent = 'Find Bridge';
+    btn.textContent = t('ui.smarthomesettings.findBridge');
     btn.addEventListener('click', async () => {
       const ip = input.value.trim();
       if (!ip) {
-        toast.warning('Enter your bridge IP address');
+        toast.warning(t('toasts.enterBridgeIp'));
         return;
       }
       hueBridgeIp = ip;
@@ -1119,7 +1120,7 @@ function renderHueSetup(container: HTMLElement): void {
       try {
         const response = await fetch(`http://${ip}/api/config`, { signal: AbortSignal.timeout(5000) });
         if (response.ok) {
-          toast.success('Bridge found!');
+          toast.success(t('toasts.bridgeFound'));
           setupStep = 1;
           renderSetupStep();
         } else {
@@ -1151,7 +1152,7 @@ function renderHueSetup(container: HTMLElement): void {
     const btn = createElement('button', { 
       className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
     });
-    btn.textContent = "I pressed it!";
+    btn.textContent = t('ui.smarthomesettings.iPressedIt');
     btn.addEventListener('click', async () => {
       await pairHueBridge();
     });
@@ -1264,11 +1265,11 @@ function renderLifxSetup(container: HTMLElement): void {
     const btn = createElement('button', { 
       className: 'smart-home-settings__btn smart-home-settings__btn--primary' 
     });
-    btn.textContent = 'Connect LIFX';
+    btn.textContent = t('ui.smarthomesettings.connectLifx');
     btn.addEventListener('click', async () => {
       const token = (input as HTMLInputElement).value.trim();
       if (!token) {
-        toast.warning('Enter your token first');
+        toast.warning(t('toasts.enterTokenFirst'));
         return;
       }
       await connectLifx(token);
@@ -1368,11 +1369,11 @@ function renderHomeKitSetup(container: HTMLElement): void {
     const status = await apiGet<IntegrationStatus['homeKit']>(`/api/smart-home/homekit/status?userId=${userId}`);
     
     if (status.ok && status.data?.connected) {
-      toast.success('HomeKit is connected!');
+      toast.success(t('toasts.homeKitConnected'));
       currentSetupFlow = null;
       loadAndRenderStatus();
     } else {
-      toast.warning('HomeKit not connected yet. Open the iOS app first.');
+      toast.warning(t('toasts.homeKitNotConnected'));
     }
   });
   content.appendChild(alreadyBtn);
@@ -1434,7 +1435,7 @@ async function connectEcobee(_apiKey: string): Promise<void> {
     }
 
     // Show PIN to user
-    toast.info(`Your PIN: ${response.data.pin}`);
+    toast.info(t('toasts.yourPinResponsedatapin'));
     
     // Open Ecobee authorization page
     window.open('https://www.ecobee.com/consumerportal/index.html#/my-apps/add/new', '_blank');
@@ -1447,7 +1448,7 @@ async function connectEcobee(_apiKey: string): Promise<void> {
       
       if (statusRes.ok && statusRes.data?.authorized) {
         clearInterval(checkInterval);
-        toast.success('Ecobee connected!');
+        toast.success(t('toasts.ecobeeConnected'));
         callbacks.onConnected?.('ecobee');
         currentSetupFlow = null;
         loadAndRenderStatus();
@@ -1502,7 +1503,7 @@ function renderEcobeeWaitingState(): void {
   const cancelBtn = createElement('button', { 
     className: 'smart-home-settings__btn smart-home-settings__btn--secondary' 
   });
-  cancelBtn.textContent = 'Cancel';
+  cancelBtn.textContent = t('ui.smarthomesettings.cancel');
   cancelBtn.addEventListener('click', () => {
     currentSetupFlow = null;
     loadAndRenderStatus();
@@ -1539,14 +1540,14 @@ async function pairHueBridge(): Promise<void> {
         username: hueUsername,
       });
 
-      toast.success('Hue connected!');
+      toast.success(t('toasts.hueConnected'));
       callbacks.onConnected?.('hue');
       setupStep = 2;
       renderSetupStep();
 
     } else if (result[0]?.error) {
       if (result[0].error.description.includes('link button')) {
-        toast.warning('Press the link button and try again');
+        toast.warning(t('toasts.pressLinkButton'));
       } else {
         toast.error(result[0].error.description);
       }
@@ -1592,7 +1593,7 @@ async function connectLifx(token: string): Promise<void> {
     loadAndRenderStatus();
 
   } catch {
-    toast.error('Invalid token. Check and try again.');
+    toast.error(t('toasts.invalidTokenCheckAndTryAgain'));
     setupStep = 1;
     renderSetupStep();
   } finally {
@@ -1635,7 +1636,7 @@ async function disconnectIntegration(integration: string): Promise<void> {
       await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
     }
     
-    toast.success('Disconnected');
+    toast.success(t('toasts.disconnected'));
     callbacks.onDisconnected?.(integration);
     loadAndRenderStatus();
   } catch {
@@ -1741,7 +1742,7 @@ export async function showSmartHomeSettings(cbs?: SmartHomeCallbacks): Promise<v
   const smartHomeResult = urlParams.get('smart_home');
   if (smartHomeResult === 'success') {
     const integration = urlParams.get('integration');
-    toast.success(`${integration} connected!`);
+    toast.success(t('toasts.integrationConnected'));
     callbacks.onConnected?.(integration || '');
     // Clean URL
     const url = new URL(window.location.href);
@@ -1775,7 +1776,7 @@ export function initSmartHomeSettings(): void {
       // Show appropriate toast after panel renders
       setTimeout(() => {
         if (oauthResult === 'success') {
-          toast.success('Sonos connected!');
+          toast.success(t('toasts.sonosConnected'));
         } else {
           toast.error("Couldn't connect Sonos. Try again?");
         }

@@ -218,7 +218,7 @@ A dashboard is considered "done" when:
 
 - **Dashboard Audit:** `docs/audits/DASHBOARD-AUDIT.md`
 - **Admin Implementation Plan:** `docs/plans/ADMIN-DASHBOARD-IMPLEMENTATION-PLAN.md`
-- **Brand Guidelines:** `design-system/brand/FERNI-BRAND-GUIDELINES.md`
+- **Brand Guidelines:** `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`
 - **Design Tokens:** `design-system/tokens/*.json`
 - **Generated CSS:** `design-system/dist/tokens.css`
 

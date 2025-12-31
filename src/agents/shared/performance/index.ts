@@ -69,7 +69,7 @@ export {
   type TurnTimings,
   type TurnMetrics,
   type SessionMetricsSummary,
-} from './turn-profiler.js';
+} from '../../../services/performance/turn-profiler.js';
 
 // Optimized Audio Processing - Frame decimation
 export {
@@ -128,10 +128,13 @@ export {
   type CachedToolResponse,
   type ToolCacheConfig,
   type ToolCacheMetrics,
-} from './tool-response-cache.js';
+} from '../../../services/performance/tool-response-cache.js';
 
 // Speculative TTS - Pre-generate likely response audio
-export { getSpeculativeTTSMetrics, speculateTTS } from './speculative-tts.js';
+export {
+  getSpeculativeTTSMetrics,
+  speculateTTS,
+} from '../../../services/performance/speculative-tts.js';
 
 // Streaming TTS Transform - Aggressive chunking for low latency first-audio
 export {
@@ -191,7 +194,7 @@ export {
   getCircuitBreakerStates,
   getReliabilityDashboard,
   resetReliabilityMetrics,
-} from '../tool-execution-reliability.js';
+} from '../../../services/performance/tool-execution-reliability.js';
 
 // ============================================================================
 // PERFORMANCE SUMMARY UTILITIES
@@ -201,7 +204,7 @@ export {
 import {
   getGlobalPerformanceSummary as _getGlobalPerformanceSummary,
   PERFORMANCE_THRESHOLDS as _PERFORMANCE_THRESHOLDS,
-} from './turn-profiler.js';
+} from '../../../services/performance/turn-profiler.js';
 import { getBatchWriteMetrics as _getBatchWriteMetrics } from './batch-firestore.js';
 import {
   getAllAudioProcessingMetrics as _getAllAudioProcessingMetrics,

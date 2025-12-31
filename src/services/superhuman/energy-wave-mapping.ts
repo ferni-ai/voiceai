@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onEnergyPatternChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'EnergyWaveMapping' });
 
@@ -150,11 +151,20 @@ export async function recordInteraction(
   };
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('energy_interactions')
       .add(cleanForFirestore(interaction));
+
+    // Index to semantic memory for energy pattern analysis
+    void onEnergyPatternChange(userId, docRef.id, {
+      conversationType: interaction.type,
+      dayOfWeek: interaction.dayOfWeek,
+      hourOfDay: interaction.hourOfDay,
+      engagement: interaction.engagement,
+      outcome: interaction.outcome,
+    });
 
     log.debug({ userId, type, hourOfDay: interaction.hourOfDay }, 'Recorded energy interaction');
   } catch (error) {

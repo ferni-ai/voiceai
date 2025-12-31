@@ -77,8 +77,8 @@ export function getAdaptiveEndpointingSettings(context: EndpointingContext): End
   const { userText, emotionalIntensity = 0.5, conversationPhase = 'exploring' } = context;
 
   // Start with defaults
-  let minDelay = DEFAULT_SETTINGS.minDelay;
-  let maxDelay = DEFAULT_SETTINGS.maxDelay;
+  let { minDelay } = DEFAULT_SETTINGS;
+  let { maxDelay } = DEFAULT_SETTINGS;
 
   // 1. HEAVY TOPICS - Need more processing time
   const isHeavyTopic = HEAVY_TOPIC_PATTERNS.some((p) => p.test(userText));

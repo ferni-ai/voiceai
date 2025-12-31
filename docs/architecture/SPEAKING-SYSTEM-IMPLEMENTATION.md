@@ -60,7 +60,7 @@ All platforms should use the same values from `design-system/tokens/animation.js
 | **Web** | `apps/web/src/ui/speaking-system.ui.ts` | ✅ Complete |
 | **iOS** | `apps/ios-native/Ferni/UI/SpeakingSystem/FerniSpeakingAvatar.swift` | ✅ Complete |
 | **Android** | `apps/android-native/app/.../ui/speaking/FerniSpeakingAvatar.kt` | ✅ Complete |
-| **Brand Docs** | `design-system/brand/SPEAKING-SYSTEM.md` | ✅ Complete |
+| **Brand Docs** | `design-system/docs/brand/SPEAKING-SYSTEM.md` | ✅ Complete |
 
 ---
 
@@ -334,6 +334,6 @@ while (isRecording) {
 ## Resources
 
 - **Design Tokens**: `design-system/tokens/animation.json`
-- **Brand Guide**: `design-system/brand/SPEAKING-SYSTEM.md`
+- **Brand Guide**: `design-system/docs/brand/SPEAKING-SYSTEM.md`
 - **Interactive Demo**: `design-system/playground/ferni-speaking-system.html`
 - **Pixar Principles**: `design-system/tokens/animation.json` → `pixarPrinciples`

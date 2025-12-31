@@ -583,18 +583,12 @@ const CONCERN_LEVEL_TO_EXPRESSION: Record<string, LuxoExpressionId> = {
  * @param intensity - Emotion intensity (0-1)
  * @returns Expression ID to use
  */
-function getExpressionForEmotion(
-  emotion: string,
-  intensity: number
-): LuxoExpressionId {
+function getExpressionForEmotion(emotion: string, intensity: number): LuxoExpressionId {
   const candidates = EMOTION_TO_EXPRESSION[emotion] || ['neutral'];
 
   // Select expression based on intensity
   // Higher intensity = more expressive variant
-  const index = Math.min(
-    Math.floor(intensity * candidates.length),
-    candidates.length - 1
-  );
+  const index = Math.min(Math.floor(intensity * candidates.length), candidates.length - 1);
 
   return candidates[index];
 }
@@ -646,14 +640,7 @@ export async function dispatchExpressionUpdate(
   options: ExpressionDispatchOptions,
   sendDataMessage: SendDataMessageFn
 ): Promise<void> {
-  const {
-    expression,
-    emotion,
-    intensity = 0.7,
-    duration = 300,
-    hold = 0,
-    concernLevel,
-  } = options;
+  const { expression, emotion, intensity = 0.7, duration = 300, hold = 0, concernLevel } = options;
 
   // Determine expression to use
   let expressionToUse: LuxoExpressionId;
@@ -719,10 +706,7 @@ export async function dispatchEmotionWithExpression(
     );
   } else {
     // Use emotion-based expression
-    await dispatchExpressionUpdate(
-      { emotion: primary, intensity, duration: 300 },
-      sendDataMessage
-    );
+    await dispatchExpressionUpdate({ emotion: primary, intensity, duration: 300 }, sendDataMessage);
   }
 }
 

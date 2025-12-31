@@ -64,7 +64,7 @@ interface CartesiaAudioResponse {
 function stripSsmlTags(text: string): string {
   return text
     .replace(/<[^>]+>/g, '') // Remove all XML tags
-    .replace(/\s+/g, ' ')    // Collapse whitespace
+    .replace(/\s+/g, ' ') // Collapse whitespace
     .trim();
 }
 
@@ -174,7 +174,10 @@ const audioUrlCache = new Map<string, { url: string; expires: number }>();
  * Upload audio buffer to Google Cloud Storage for Twilio playback
  * Returns a publicly accessible URL or null if upload fails
  */
-export async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): Promise<string | null> {
+export async function uploadAudioToGCS(
+  audioBuffer: Buffer,
+  filename: string
+): Promise<string | null> {
   if (!GCS_BUCKET) {
     getLogger().debug({}, 'GCS bucket not configured for audio hosting');
     return null;
@@ -220,7 +223,11 @@ export async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): P
  * Get or create a hosted URL for audio content
  * Uses caching to avoid re-uploading identical messages
  */
-async function getHostedAudioUrl(message: string, audioBuffer: Buffer, personaId = 'ferni'): Promise<string | null> {
+async function getHostedAudioUrl(
+  message: string,
+  audioBuffer: Buffer,
+  personaId = 'ferni'
+): Promise<string | null> {
   // Create a cache key from the message + persona
   const cacheKey = Buffer.from(`${personaId}:${message}`).toString('base64').slice(0, 32);
 

@@ -1010,7 +1010,7 @@ export function openEditPerson(options: EditPersonOptions): void {
   modalContainer.className = 'edit-person-overlay';
   modalContainer.innerHTML = `
     <div class="edit-person-backdrop"></div>
-    <div class="edit-person-modal" role="dialog" aria-modal="true" aria-label="Edit person">
+    <div class="edit-person-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.editPerson')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

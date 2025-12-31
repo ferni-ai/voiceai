@@ -523,7 +523,7 @@ export class SessionStateManager {
     this.state = updateConversation(this.state, { lastAgentResponse: response });
 
     // Track advice for counterfactual memory (fire-and-forget, non-blocking)
-    const userId = this.state.user.userId;
+    const { userId } = this.state.user;
     if (userId && userId !== 'anonymous') {
       void this.trackAdviceIfPresent(response, userId);
     }

@@ -1,0 +1,1666 @@
+{
+  "timestamp": "2025-12-30T22:29:36.733Z",
+  "config": {
+    "model": "gemini-2.0-flash",
+    "passingThreshold": 70,
+    "categories": [
+      "domain-naming",
+      "semantic-memory",
+      "integration-wiring",
+      "architectural-philosophy"
+    ],
+    "generateSuggestions": true,
+    "verbose": true
+  },
+  "overallScore": 71,
+  "categoryScores": {
+    "domain-naming": 76,
+    "semantic-memory": 70,
+    "integration-wiring": 60,
+    "architectural-philosophy": 72
+  },
+  "results": [
+    {
+      "probeId": "naming-superhuman-commitment-keeper",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"commitment-keeper\" strongly suggests a service that manages commitments. The description provided (Tracks and reminds about promises and commitments) aligns very well with this expectation. The name is intuitive and conveys the service's purpose effectively.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-emotional-first-aid",
+      "coherenceScore": 95,
+      "passed": true,
+      "reasoning": "The name \"emotional-first-aid\" strongly suggests providing immediate emotional support, aligning well with the actual purpose. The name is intuitive and evokes the idea of a rapid response to emotional distress, similar to physical first aid. The description within the code further reinforces this understanding. The slight deduction is due to the fact that 'first aid' might imply a one-time intervention, whereas the service could potentially offer ongoing support (though the 'immediate' aspect is well-captured).",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-predictive-coaching",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"predictive-coaching\" strongly suggests the service anticipates needs and provides guidance. The description \"Anticipates struggles before they happen\" aligns well with this expectation. The \"superhuman\" aspect is also present, as a human friend cannot consistently predict struggles before they occur.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-capacity-guardian",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"capacity-guardian\" strongly suggests a service that monitors and protects some kind of capacity. The actual purpose, monitoring and protecting against burnout, aligns well with this expectation, as burnout is directly related to a person's capacity to work and function. The 'guardian' aspect also fits well with the protective nature of the service. The name is intuitive and evokes the superhuman capability of preventing burnout before it happens.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-dream-keeper",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"dream-keeper\" is quite evocative and aligns well with the service's purpose of preserving and nurturing long-term aspirations. The name immediately suggests the idea of safeguarding dreams. The documentation further reinforces this by explicitly stating the superhuman capability of never forgetting what someone dreamed of becoming. The code context also supports this interpretation. While not a perfect 100, it's a strong and fitting name.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-relationship-network",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"relationship-network\" effectively conveys the service's purpose of tracking and strengthening relationship connections. The term 'network' implies connections and relationships, and the overall name suggests a system for managing these connections. The code context further reinforces this interpretation, explicitly stating that the service maps the user's social ecosystem and identifies opportunities for connection.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-life-narrative",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"life-narrative\" effectively conveys the service's purpose of building and maintaining a story of someone's life. It's relatively intuitive and aligns with the principle of names implying function. The documentation further reinforces this understanding. The 'superhuman' aspect is less obvious from the name alone, but the documentation clarifies that it remembers every chapter perfectly, which is beyond human capability.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-values-alignment",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"values-alignment\" accurately reflects the service's purpose of ensuring actions align with stated values. The description in the code context further reinforces this alignment. The name also hints at a superhuman capability, as it suggests a level of consistency and thoroughness in tracking values that a human friend might not be able to provide. While not perfect, it's a strong name.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-seasonal-awareness",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The name \"seasonal-awareness\" hints at understanding seasons, but it doesn't strongly convey the depth of tracking life cycles and seasonal patterns, especially the 'better than human' aspect of connecting personal patterns to larger cycles. It's somewhat vague and doesn't immediately evoke a superhuman capability. A human could also have \"seasonal awareness\".",
+      "suggestions": [
+        "Rename the service to something that more directly implies the 'better than human' capability of connecting personal patterns to larger cycles. Examples: 'CycleWeaver', 'PatternNexus', 'TemporalHarmony', 'ChronosLens'.",
+        "Add a more descriptive subtitle or short description alongside the service name in the code to clarify its purpose."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "seasonal-awareness",
+          "suggested": "CycleWeaver or similar",
+          "rationale": "The current name is too generic and doesn't strongly imply the superhuman capability of connecting personal patterns to larger cycles, as per the core philosophy."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-superhuman-relationship-milestones",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name 'relationship-milestones' strongly suggests that the service tracks and manages significant events or achievements within a relationship. The actual purpose, which is to celebrate and remember relationship anniversaries, aligns well with this expectation. The name is intuitive and conveys the service's function effectively. The 'superhuman' aspect is less obvious from the name alone, but the description in the code clarifies that it's about providing a capability that a human friend might not consistently offer.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-emotional",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The name \"emotional\" hints at the context builder's purpose, but it's not immediately clear that it injects \"emotional awareness context.\" While it's related, it could be more precise. A higher score would require the name to be more directly indicative of the context being provided.",
+      "suggestions": [
+        "Consider renaming the context builder to something more explicit, such as \"EmotionalAwarenessContextBuilder\" or \"EmpathyContextBuilder\"."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "\"emotional\"",
+          "suggested": "\"EmotionalAwarenessContextBuilder\" or \"EmpathyContextBuilder\"",
+          "rationale": "The current name is vague. A more descriptive name would improve discoverability and understanding of the context builder's function, aligning better with the principle that names should imply function intuitively."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-builder-crisis",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-celebration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-deep-relationship",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-pacing",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-better-than-human-direct",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The name \"better-than-human-direct\" hints at superhuman capabilities but doesn't explicitly state that it injects triggers. The description in the code clarifies this, but the name itself could be more precise. The 'direct' part is accurate, as it directly injects content, but the 'better-than-human' part is a bit vague without the context of the code documentation.",
+      "suggestions": [
+        "Consider renaming to something like 'superhuman-trigger-injector' or 'capability-trigger-direct'.",
+        "Add a comment near the import/usage of this context builder that explicitly states its function: 'Injects superhuman capability triggers into the conversation context.'"
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "\"better-than-human-direct\"",
+          "suggested": "\"superhuman-trigger-injector\" or \"capability-trigger-direct\"",
+          "rationale": "The current name is vague and relies on understanding the 'better-than-human' concept. A more explicit name would improve discoverability and understanding of the module's purpose."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-builder-peter-research-insights",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"peter-research-insights\" is reasonably clear in conveying that it provides insights related to Peter's research. The connection to \"Peter's financial research context\" is strong, although the \"financial\" aspect is implicit rather than explicit. A slight improvement could be made to explicitly include \"financial\" if that is the primary focus.",
+      "suggestions": [
+        "Consider renaming to \"peter-financial-research-insights\" for greater clarity."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "\"peter-research-insights\"",
+          "suggested": "\"peter-financial-research-insights\"",
+          "rationale": "Explicitly stating \"financial\" in the name would remove any ambiguity and improve clarity."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-builder-maya-coaching-insights",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"maya-coaching-insights\" strongly implies that the context builder provides insights related to Maya's coaching. The name is intuitive and aligns well with its function of providing Maya's habit coaching context. The use of \"insights\" suggests guidance, which is also accurate.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-ferni",
+      "coherenceScore": 85,
+      "passed": true,
+      "reasoning": "The name \"ferni\" generally feels human and approachable. It's a relatively uncommon name, which could be seen as either positive (unique) or negative (less familiar). It doesn't directly hint at life coaching or team coordination, but it doesn't actively detract from it either. The directory structure seems well-organized and relevant to the persona's function.",
+      "suggestions": [
+        "Consider adding a short description of Ferni's role to the directory's README or persona.manifest.json to explicitly connect the name to the expertise.",
+        "Explore alternative names that might subtly suggest coaching or coordination while maintaining a human feel (e.g., names with connotations of guidance or support)."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "The name 'ferni' doesn't explicitly suggest life coaching or team coordination.",
+          "suggested": "Consider names that subtly hint at these skills while maintaining a human feel.",
+          "rationale": "A more descriptive name could improve user understanding and trust in Ferni's capabilities."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-persona-peter-john",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The name \"peter-john\" is a plausible human name, which aligns with the principle of making AI feel human. However, it doesn't strongly hint at financial expertise. While a real person could have that name and that profession, the name itself doesn't contribute to the perception of expertise. It's a neutral name, which is acceptable, but could be improved.",
+      "suggestions": [
+        "Consider adding a middle name or initial that sounds more professional or associated with finance (e.g., Peter J. or Peter Jonathan).",
+        "Explore names that evoke trust and competence in the financial domain, while still sounding human."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "Name 'peter-john' is generic and doesn't suggest financial expertise.",
+          "suggested": "Name should subtly hint at financial expertise while remaining human-like.",
+          "rationale": "A name that subtly suggests expertise can enhance the user's perception of the AI's capabilities and build trust."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-persona-maya-santos",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"maya-santos\" sounds like a real person's name, which aligns well with the principle of making AI feel human. The specialization in \"Habit coaching and behavior change\" also hints at expertise without sounding overly robotic. The directory structure also supports this, with folders like 'content' and 'identity' suggesting a well-rounded persona.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-alex-chen",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"alex-chen\" sounds like a real person's name, aligning well with the principle of making AI feel human. It doesn't explicitly hint at their expertise in communication and scheduling, but it's a reasonable starting point. The bundle name itself doesn't need to explicitly state the expertise, as the contents of the bundle will define that.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-jordan-taylor",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"jordan-taylor\" is a common, human-sounding name. It doesn't immediately suggest AI or a bot. It aligns well with the principle of making AI feel human. The directory structure also suggests a well-organized persona bundle.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-nayan",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The name 'nayan' is a real name and could be considered human and approachable. It doesn't immediately scream 'AI' or 'bot'. However, it doesn't inherently hint at 'wisdom and life perspective' without prior knowledge or context. It's a decent name, but could be improved to better reflect the AI's expertise.",
+      "suggestions": [
+        "Consider names that subtly evoke wisdom or guidance, while still sounding human. Examples: 'Sage', 'Anya (meaning 'inexhaustible' or 'resurrection' in Sanskrit, often associated with wisdom)', 'Evelyn (meaning 'desired' or 'wished for', implying a sought-after source of wisdom)'."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "nayan",
+          "suggested": "A name that subtly hints at wisdom or life perspective",
+          "rationale": "While 'nayan' is a valid name, a name that more directly relates to the AI's expertise would better align with the principle of making AI feel human *and* useful. It would help users immediately understand the AI's purpose."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-antipattern-utils",
+      "coherenceScore": 30,
+      "passed": false,
+      "reasoning": "The use of 'utils' is a direct violation of the principle that names should imply function intuitively. It's a generic term that provides no information about the module's purpose, making it difficult for a newcomer to understand its role. This significantly hinders navigability and understanding of the codebase.",
+      "suggestions": [
+        "Analyze the contents of each 'utils' module to determine its specific purpose.",
+        "Rename each 'utils' module to reflect its primary function (e.g., 'date_formatting', 'api_request_handling', 'string_validation').",
+        "If a 'utils' module contains unrelated functions, consider splitting it into multiple modules with more specific names.",
+        "Document the purpose of each function within the renamed modules clearly."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "high",
+          "current": "'utils' module name",
+          "suggested": "Specific, descriptive module name (e.g., 'data_validation', 'error_handling')",
+          "rationale": "Generic names hide true purpose and make it difficult for newcomers to understand the codebase, violating the principles of intuitive naming and easy navigation."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-antipattern-helpers",
+      "coherenceScore": 20,
+      "passed": false,
+      "reasoning": "The use of 'helpers' as a module name is a classic anti-pattern. It violates the principle that names should imply function intuitively. An intelligent newcomer would not be able to understand the purpose of the module without further investigation. The question explicitly targets this anti-pattern.",
+      "suggestions": [
+        "Rename 'helpers' modules to reflect their specific functionality. For example, instead of 'user_helpers', consider 'user_authentication_helpers' or 'user_profile_formatting'.",
+        "If the 'helpers' module contains unrelated functions, refactor it into smaller, more focused modules with descriptive names."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "high",
+          "current": "Module named 'helpers'",
+          "suggested": "Module named after the specific functionality it provides (e.g., 'data_validation', 'api_request_formatter')",
+          "rationale": "The name 'helpers' is too generic and doesn't provide any information about the module's purpose, hindering understandability and maintainability. This directly contradicts the principle of intuitive naming."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-antipattern-misc",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-antipattern-common",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-consistency-superhuman-vs-better-than-human",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-consistency-persona-format",
+      "coherenceScore": 40,
+      "passed": false,
+      "reasoning": "The persona naming is inconsistent, violating the principle that names should imply function intuitively. While the function of these files isn't explicitly clear from the name alone, the inconsistency makes it harder to understand their purpose and relationship to each other. The mix of single names, first-last names, and hyphenated names creates confusion and hinders maintainability.",
+      "suggestions": [
+        "Establish a consistent naming convention for persona files (e.g., first-last-name, username, or a unique identifier).",
+        "Document the chosen naming convention in a README or contributing guide.",
+        "Rename existing persona files to adhere to the new convention.",
+        "Consider using directories instead of files for personas if more complex data or logic is associated with each persona."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "high",
+          "current": "Inconsistent persona naming: \"ferni\", \"peter-john\", \"maya-santos\", \"nayan\"",
+          "suggested": "Consistent persona naming (e.g., \"ferni-lastname\", \"peter-john\", \"maya-santos\", \"nayan-lastname\")",
+          "rationale": "Inconsistent naming violates the principle that names should imply function intuitively and hinders maintainability and understanding of the codebase. It makes it harder to quickly identify and work with persona files."
+        }
+      ]
+    },
+    {
+      "probeId": "naming-consistency-service-suffix",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The inconsistency in naming conventions for services (-service, -keeper, -guardian) introduces confusion and hinders intuitive understanding of their functions. While the stated intention is for -keeper/-guardian to represent 'superhuman' aspects and -service for 'infrastructure', this distinction isn't consistently applied or immediately obvious from the names alone. The presence of numerous files without any suffix further exacerbates the issue.",
+      "suggestions": [
+        "Establish a clear and consistent naming convention for services, potentially based on their role (infrastructure, AI agent, etc.).",
+        "Document the naming convention and its rationale in a central location (e.g., a README file in the `services/` directory).",
+        "Refactor existing service names to align with the chosen convention.",
+        "Consider using more descriptive names that directly reflect the service's function, rather than relying solely on suffixes."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "Inconsistent use of suffixes (-service, -keeper, -guardian, and no suffix) for services.",
+          "suggested": "Adopt a consistent naming convention, such as `-service` for infrastructure components and `-agent` or `-assistant` for AI agent-related services.  If `-keeper` or `-guardian` is to be used, document the specific criteria for its use.",
+          "rationale": "Consistent naming improves code readability, maintainability, and discoverability. It also reduces cognitive load for developers."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "Lack of clear distinction between different types of services based on naming.",
+          "suggested": "Use prefixes or suffixes to indicate the type of service (e.g., `infra-`, `ai-`, `data-`).",
+          "rationale": "This would allow developers to quickly identify the purpose of a service without having to examine its code."
+        }
+      ]
+    },
+    {
+      "probeId": "boundary-tool-vs-service",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The overall structure attempts to adhere to the principle of separating LLM-callable tools from internal services. However, the sheer volume and variety of contents within both directories, especially 'tools/', introduces some ambiguity. It's not immediately clear from the file names alone that everything in 'tools/' is *exclusively* LLM-callable, or that everything in 'services/' is *exclusively* internal. Some names like 'intelligence' appear in both, which could be confusing.",
+      "suggestions": [
+        "Consider more explicit naming conventions for files within 'tools/' to clearly indicate their LLM-callable nature (e.g., prefixing or suffixing with 'LLM').",
+        "Refactor 'tools/' to group related tools into subdirectories, improving organization and discoverability.",
+        "Review the contents of both directories to ensure strict adherence to the intended separation. Move any misplaced items.",
+        "Provide more comprehensive documentation (e.g., a README.md in each directory) explaining the purpose and conventions of each directory."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "Some file names in 'tools/' don't explicitly indicate LLM-callable functionality.",
+          "suggested": "Add a prefix or suffix (e.g., 'LLM_') to file names in 'tools/' to clearly denote LLM-callable tools.",
+          "rationale": "This improves clarity for newcomers and reduces the risk of misusing internal services as LLM tools."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The 'tools/' directory contains a large number of files at the top level, making it difficult to navigate.",
+          "suggested": "Group related tools into subdirectories within 'tools/' (e.g., 'tools/habit-coaching/', 'tools/financial-planning/').",
+          "rationale": "Improved organization enhances discoverability and maintainability."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "The term 'intelligence' appears in both directories.",
+          "suggested": "Rename or refactor one of the instances of 'intelligence' to avoid confusion.",
+          "rationale": "Using the same term in both directories can lead to ambiguity and make it harder to understand the system's architecture."
+        }
+      ]
+    },
+    {
+      "probeId": "boundary-intelligence-vs-services",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The naming of 'intelligence' for the layer handling reasoning and context is somewhat reasonable, but the contents of both the `intelligence/` and `services/` directories blur the lines. The `services/` directory contains items like `cognitive-intelligence`, `cognitive-session-hooks.ts`, and `cognitive-websocket.ts`, which suggests that some reasoning and context-related logic resides there as well. This creates confusion and makes it harder for a newcomer to understand the separation of concerns. The presence of `CLAUDE.md` in both directories further suggests a lack of clear ownership and responsibility. The term 'intelligence' itself can be broad and intimidating.",
+      "suggestions": [
+        "Rename 'intelligence/' to something more specific and less overloaded, such as 'reasoning/', 'context/', or 'cognitive-engine/'.",
+        "Refactor the code to ensure that the 'intelligence/' (or renamed) directory truly contains only reasoning and context-related logic, and the 'services/' directory contains only action-oriented business logic.",
+        "Move files like `cognitive-intelligence`, `cognitive-session-hooks.ts`, and `cognitive-websocket.ts` from `services/` to `intelligence/` (or the renamed directory) if they primarily deal with reasoning or context.",
+        "Create a clear definition of what constitutes 'reasoning/context' vs. 'actions/business logic' to guide future development.",
+        "Consider a different architectural pattern, such as a layered architecture with a clear separation of concerns, or a microservices architecture where each service has a well-defined responsibility."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "The name 'intelligence' is too broad and overlaps with the functionality in 'services'.",
+          "suggested": "Rename 'intelligence' to something more specific like 'reasoning' or 'cognitive-engine'.",
+          "rationale": "A more specific name will reduce ambiguity and make it easier for newcomers to understand the purpose of the directory."
+        },
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Cognitive-related components are present in both 'intelligence/' and 'services/'.",
+          "suggested": "Consolidate all cognitive/reasoning components into the 'intelligence/' (or renamed) directory.",
+          "rationale": "Having cognitive components in both directories violates the principle of clear separation of concerns and makes the codebase harder to understand and maintain."
+        },
+        {
+          "type": "wiring",
+          "severity": "low",
+          "current": "CLAUDE.md exists in both directories.",
+          "suggested": "Determine the primary owner of CLAUDE.md and place it in the appropriate directory, or create a shared documentation directory.",
+          "rationale": "Duplication of documentation suggests a lack of clear ownership and can lead to inconsistencies."
+        }
+      ]
+    },
+    {
+      "probeId": "boundary-memory-vs-data-layer",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The distinction between 'memory' and 'data-layer' is mostly clear, but there's room for improvement. 'Memory' seems to focus on semantic understanding, embeddings, and behavioral patterns, aligning with the 'semantic/behavioral' aspect. 'Data-layer' appears to handle entity storage and related services like indexing policies and hooks, which aligns with 'structured entity storage'. However, the presence of 'firestore-vector-store' within the 'memory' directory and 'semantic-context-builder' in 'data-layer' blurs the lines slightly. The term 'data-layer' is also somewhat generic and could be more specific to the type of data being managed.",
+      "suggestions": [
+        "Consider renaming 'data-layer' to something more specific, like 'entity-store' or 'structured-data'.",
+        "Move 'semantic-context-builder' from 'data-layer' to 'memory' or a shared utility directory if it's used by both.",
+        "Evaluate if 'firestore-vector-store' truly belongs in 'memory' or if it should be moved to 'data-layer' or a separate 'vector-store' service."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "firestore-vector-store in memory/",
+          "suggested": "Move firestore-vector-store to data-layer/ or a separate vector-store/ directory.",
+          "rationale": "Vector storage is a type of data storage and might be better suited in the data-layer or a dedicated vector-store service to maintain a clear separation of concerns."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "semantic-context-builder in services/data-layer/",
+          "suggested": "Move semantic-context-builder to memory/ or a shared utility directory.",
+          "rationale": "Semantic context building is closely related to memory and understanding, so it might be more appropriate to place it in the memory directory or a shared utility directory if it's used by both."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "services/data-layer/",
+          "suggested": "services/entity-store/ or services/structured-data/",
+          "rationale": "'data-layer' is a generic term. A more specific name like 'entity-store' or 'structured-data' would better reflect its purpose."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-retrieval-by-emotion",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The code provides a foundation for emotional memory retrieval, but it's not immediately clear how a query like \"I feel like I did when my dog died\" would directly trigger the retrieval of emotionally similar past moments. The `EmotionalThreading` module hints at continuity, but the mechanism for comparing and retrieving memories based on emotional similarity isn't explicitly laid out. The `UserEmotionEngine` interface has methods for recording and building emotional context, but lacks a direct 'retrieve similar' function. The naming is reasonable, but the organization could be improved to highlight the emotional retrieval path.",
+      "suggestions": [
+        "Add a `retrieveSimilarMoments` method to the `UserEmotionEngine` interface that takes an emotional state (e.g., a description of the user's current feeling) as input and returns a list of emotionally similar past moments.",
+        "Implement a similarity scoring mechanism within the `UserEmotionEngine` to compare the emotional state of the input query with the emotional states of past moments.",
+        "Consider creating a dedicated module or function for emotional similarity calculation, potentially leveraging techniques like cosine similarity on emotional vectors or semantic similarity on textual descriptions of emotional moments.",
+        "Refactor the `EmotionalThreading` module to explicitly incorporate emotional similarity in its thread management logic. This could involve prioritizing threads with emotionally similar content when suggesting follow-ups."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Emotional retrieval is implicit within the existing modules.",
+          "suggested": "Make emotional retrieval a more explicit and central function.",
+          "rationale": "This would improve the discoverability and usability of the emotional memory system."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "The `UserEmotionEngine` focuses on recording and building context, but lacks a clear 'retrieval' function.",
+          "suggested": "Consider renaming or adding methods to the `UserEmotionEngine` to reflect its retrieval capabilities.",
+          "rationale": "Clearer naming would improve the overall understanding of the module's purpose."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-retrieval-by-relationship",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The `memory/associative-memory.ts` file directly addresses the core philosophy and the 'serve relationships, not just tasks' principle. It specifically mentions the example of \"my daughter\" and how the system should retrieve related memories. The `services/contacts/` directory contains `contact-relationship-service.ts`, which suggests an awareness of relationships. However, the absence of `services/relationship-network/` (target not found) is a significant gap. The trigger patterns in `memory/associative-memory.ts` include patterns for identifying relationships like \"my sister\", which is positive. The path from mention -> relationship -> memories seems partially clear, but the missing `services/relationship-network/` and the lack of clear integration between `contact-relationship-service.ts` and `memory/associative-memory.ts` reduce the overall coherence.",
+      "suggestions": [
+        "Implement the `services/relationship-network/` module to explicitly manage and query relationships.",
+        "Integrate `contact-relationship-service.ts` with `memory/associative-memory.ts` to leverage relationship information for memory retrieval.",
+        "Add tests specifically for relationship-based memory retrieval, using examples like \"my sister\"."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Relationship management is split between `services/contacts/` and a missing `services/relationship-network/`.",
+          "suggested": "Consolidate relationship management into a dedicated `services/relationship-network/` module.",
+          "rationale": "Centralizing relationship logic improves maintainability and clarity."
+        },
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Unclear how `contact-relationship-service.ts` interacts with `memory/associative-memory.ts`.",
+          "suggested": "Explicitly wire `contact-relationship-service.ts` to provide relationship context to `memory/associative-memory.ts` during memory retrieval.",
+          "rationale": "This ensures that relationship information is used to filter and prioritize memories."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The `services/contacts/` directory contains many files, potentially obscuring the relationship-focused components.",
+          "suggested": "Refactor `services/contacts/` to better highlight relationship-related services, possibly by moving them to `services/relationship-network/` or creating subdirectories.",
+          "rationale": "Improved organization makes it easier to understand the system's relationship-centric capabilities."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-retrieval-by-time-context",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The `memory/key-moment-retrieval.ts` file focuses on retrieving key moments based on various factors like topic and emotion, but it doesn't explicitly address temporal retrieval using phrases like \"that thing we talked about last Tuesday.\" While it considers past conversations, the naming and logic don't directly facilitate retrieval based on vague temporal references. `memory/retrieval-explanations.ts` includes a `time_based` connection type and templates that use relative time references like `{timeAgo}`, which is a step in the right direction. However, the system lacks a mechanism to resolve the vague temporal reference \"that thing we talked about last Tuesday\" into a specific date or time range for effective retrieval. The `session-priming.ts` module (mentioned as related) is not provided, so its contribution to this aspect cannot be assessed.",
+      "suggestions": [
+        "Implement a mechanism to resolve vague temporal references (e.g., \"last Tuesday\") into specific date ranges.",
+        "Enhance the `KeyMomentRetrieval` class to prioritize memories based on temporal proximity when a vague temporal reference is detected in the user's query.",
+        "Add more specific explanation templates in `retrieval-explanations.ts` that cater to temporal references, such as \"I remember we discussed X last Tuesday when we were talking about Y.\"",
+        "Consider adding a 'temporalWeight' to the KeyMomentMatch or MemoryItem to prioritize more recent memories when a temporal reference is present."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "KeyMomentRetrieval doesn't explicitly imply temporal retrieval capabilities.",
+          "suggested": "Consider renaming to something like ContextAwareMemoryRetrieval or adding a method specifically for temporal retrieval (e.g., findRelevantMomentsByTime).",
+          "rationale": "The current name doesn't clearly communicate the ability to handle temporal queries."
+        },
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Temporal retrieval logic is not explicitly separated or highlighted within the existing codebase.",
+          "suggested": "Create a dedicated function or module for handling temporal resolution and retrieval, potentially within `KeyMomentRetrieval` or as a separate helper class.",
+          "rationale": "Separating the temporal retrieval logic improves code clarity and maintainability."
+        },
+        {
+          "type": "wiring",
+          "severity": "low",
+          "current": "The system doesn't seem to actively listen for or process vague temporal references in user input.",
+          "suggested": "Integrate a natural language processing (NLP) component to identify and extract temporal references from user queries before passing them to the retrieval system.",
+          "rationale": "This enables the system to proactively handle temporal queries."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-retrieval-by-topic",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The `memory/semantic-rag.ts` file aligns with the concept of semantic retrieval. It uses embedding-based similarity search, which is crucial for topic-based retrieval. The description emphasizes finding memories through meaning, not just keywords, which is relevant to the question. However, the code context doesn't explicitly show how it handles topic-based clustering or retrieval related to \"career change\". The absence of `intelligence/topic-awareness.ts` makes it difficult to assess the full picture. While the current implementation supports semantic retrieval, it's unclear how well it's tailored for specific topics like \"career change\". The connection to `life-chapter.ts` isn't evident in the provided context.",
+      "suggestions": [
+        "Add explicit topic modeling or clustering functionality to `memory/semantic-rag.ts` or a linked module.",
+        "Include a mechanism to categorize memories into topics or themes, potentially leveraging `life-chapter.ts`.",
+        "Provide examples or tests that demonstrate topic-based retrieval, specifically related to career changes or similar themes."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Implicit topic handling within semantic RAG",
+          "suggested": "Explicit topic modeling/clustering module",
+          "rationale": "Makes topic-based retrieval more robust and easier to understand."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "Semantic RAG",
+          "suggested": "Semantic RAG with Topic Awareness (or similar)",
+          "rationale": "More clearly indicates the system's ability to handle topic-based queries."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-org-vector-vs-structured",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The code context shows a `FirestoreStore` class, but it's unclear from this snippet alone whether it's intended for structured data or vector embeddings. The name `FirestoreStore` is generic and doesn't immediately suggest its purpose. The presence of `memory/firestore-vector-store/` suggests that vector storage is handled separately, but the connection between the two isn't explicitly stated in the provided code. The `FirestoreStore` extends `MemoryStore`, which is also not very descriptive. The types imported, like `UserProfile`, `ConversationSummary`, etc., suggest structured data, but without seeing the implementation details, it's hard to be certain.",
+      "suggestions": [
+        "Rename `FirestoreStore` to something more descriptive, like `FirestoreStructuredDataStore` or `FirestoreEntityStore`, to clearly indicate its purpose.",
+        "Add documentation to the `FirestoreStore` class explaining its role in storing structured data and how it differs from the vector store.",
+        "In the `FirestoreStore`'s documentation, explicitly state when to use it versus the vector store (e.g., for exact entity lookups vs. semantic search).",
+        "Consider creating a higher-level abstraction that encapsulates both the structured and vector stores, providing a unified interface for accessing user data. This would improve discoverability and reduce cognitive load for newcomers."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "FirestoreStore",
+          "suggested": "FirestoreStructuredDataStore or FirestoreEntityStore",
+          "rationale": "The current name is too generic and doesn't clearly indicate the type of data being stored."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "Separate FirestoreStore and vector store directories",
+          "suggested": "Add documentation explaining the relationship between the two stores and when to use each.",
+          "rationale": "While separation is good, the lack of clear documentation makes it difficult for newcomers to understand the system."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-org-consolidation",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The naming is reasonable. `memory-consolidator.ts` and `memory-deduplication.ts` clearly indicate their functions. `lsh-deduplication.ts` is more specific, indicating the deduplication method. The organization hints at a pipeline, but it's not explicitly laid out in a single file or directory. The code context shows deduplication and consolidation as separate processes, which aligns with the idea of a pipeline, but the connection between them isn't strongly emphasized in the file structure. The expected alignment is raw -> dedupe -> merge, and while dedupe and merge (consolidation) are present, the 'raw' input stage isn't explicitly represented in the file structure. It's implied that raw memories are fed into the deduplication process.",
+      "suggestions": [
+        "Consider creating a dedicated directory for the memory pipeline (e.g., `memory-pipeline/`) to visually represent the flow.",
+        "Within the pipeline directory, create files or modules representing each stage (e.g., `raw-memory-ingest.ts`, `memory-deduplication.ts`, `memory-consolidation.ts`).",
+        "Add comments or documentation that explicitly outlines the data flow through the pipeline."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Separate files for deduplication and consolidation.",
+          "suggested": "A directory structure or explicit module that represents the memory pipeline (raw -> dedupe -> consolidate).",
+          "rationale": "A clearer visual representation of the pipeline improves understanding and maintainability."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-org-decay",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The name \"memory-decay.ts\" accurately describes the file's function, which is to reduce the relevance of older memories over time. The metaphor of \"decay\" is appropriate as it implies a gradual fading, aligning with the actual behavior of reducing memory strength. The code context further reinforces this understanding by detailing configurable decay curves and factors influencing the decay rate. While 'decay' might not perfectly capture all nuances (e.g., it doesn't explicitly convey the concept of 'archiving'), it's a reasonable and understandable term.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-org-priming",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The term \"priming\" is used appropriately here. The code's documentation explicitly connects the concept to cognitive science and human interaction, aligning with the core philosophy of making AI human. While \"preloading\" or \"warming\" might be clearer to some, \"priming\" carries a specific connotation of preparing the AI with relevant context to facilitate a more natural and human-like interaction. The code context further reinforces this by describing how the system remembers past conversations and uses that to inform the current interaction.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-persona-specialization",
+      "coherenceScore": 20,
+      "passed": false,
+      "reasoning": "The target files were not found, so it's impossible to assess the coherence of their naming and organization with the stated principles. The score reflects the complete lack of evidence supporting alignment.",
+      "suggestions": [
+        "Locate the target files or confirm their existence and location.",
+        "Once the files are located, analyze their contents to determine if the naming and organization clearly establish a path from persona to memory type.",
+        "If the path is not clear, refactor the code and/or rename files and functions to explicitly reflect the persona-specific memory retrieval paths."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "critical",
+          "current": "Files not found, so organization cannot be assessed.",
+          "suggested": "Ensure files exist in the specified location or update the target paths.",
+          "rationale": "Without the files, it is impossible to evaluate the coherence of the codebase with the stated principles."
+        },
+        {
+          "type": "naming",
+          "severity": "critical",
+          "current": "File contents unavailable, so naming conventions cannot be assessed.",
+          "suggested": "Once files are located, review naming conventions to ensure they clearly indicate the persona and the type of memory being accessed.",
+          "rationale": "Clear naming conventions are crucial for an intelligent newcomer to easily navigate the codebase and understand the purpose of each file and function."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-persona-handoff",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The `services/handoff/` directory suggests an awareness of transferring state between users, which aligns with the question. The presence of `handoff-state.ts` is also encouraging. However, the absence of the target file `intelligence/context-builders/team-awareness.ts` makes it impossible to fully assess how 'handoff memory' is represented and transferred. Without seeing that file, it's difficult to determine if the context transfer is comprehensive and well-defined. The connection to 'serving relationships' is weak without a clear understanding of the context being transferred. The related module `cross-persona-insights.ts` is also not available to evaluate.",
+      "suggestions": [
+        "Ensure the `intelligence/context-builders/team-awareness.ts` file is present and accessible for evaluation.",
+        "Review the contents of `handoff-state.ts` to ensure it captures all relevant information for maintaining context during a user transfer (Ferni to Peter).",
+        "Consider renaming `handoff-state.ts` to something more descriptive, like `handoff-context.ts` or `user-transfer-context.ts`, to better reflect its purpose.",
+        "Add documentation to `handoff-state.ts` explaining the structure and purpose of the transferred context, and how it relates to 'serving relationships'."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "handoff-state.ts",
+          "suggested": "handoff-context.ts or user-transfer-context.ts",
+          "rationale": "More accurately reflects the purpose of the file as containing the context needed for a smooth user transfer."
+        },
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Lack of visibility into intelligence/context-builders/team-awareness.ts",
+          "suggested": "Ensure intelligence/context-builders/team-awareness.ts is accessible for review.",
+          "rationale": "Critical for understanding how the handoff context is used to maintain user awareness and relationships."
+        },
+        {
+          "type": "philosophy",
+          "severity": "medium",
+          "current": "Unclear how handoff-state.ts contributes to 'serving relationships'",
+          "suggested": "Ensure handoff-state.ts captures data relevant to maintaining relationships, not just completing tasks.",
+          "rationale": "The core philosophy emphasizes relationships, so the handoff process should prioritize transferring information that helps the new user understand and continue the existing relationship."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-perf-cache-naming",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The names generally provide a good understanding of the caching strategy. `semantic-memory-cache.ts` clearly indicates caching based on semantic similarity. `embedding-cache.ts` suggests caching of embeddings. `predictive-cache-warming.ts` implies a strategy of proactively filling the cache based on predictions. The files are also located in a `memory` directory, which further clarifies their purpose. The names are intuitive and imply their function, aligning with the principle. However, the relationship between the caches could be made more explicit.",
+      "suggestions": [
+        "Consider renaming `predictive-cache-warming.ts` to something like `predictive-semantic-cache-warming.ts` to explicitly link it to the semantic cache, if that is indeed its primary target."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "predictive-cache-warming.ts",
+          "suggested": "predictive-semantic-cache-warming.ts (if it primarily warms the semantic cache)",
+          "rationale": "More explicitly connects predictive warming to the semantic cache, if that's the target, improving clarity."
+        }
+      ]
+    },
+    {
+      "probeId": "memory-perf-rust-accelerator",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The name \"rust-accelerator.ts\" is somewhat descriptive, indicating that it uses Rust to accelerate some operations. However, it's too generic. It doesn't specify *what* it accelerates. The file is also quite large (72K), suggesting it might be doing too many different things and should be split into smaller, more focused modules. The comment block at the top does a better job of explaining the purpose, but this information should be reflected in the filename and/or module organization.",
+      "suggestions": [
+        "Split the file into smaller modules, each responsible for a specific type of acceleration (e.g., `rust-lsh-deduplication.ts`, `rust-batch-text-similarity.ts`, `rust-tool-scoring.ts`).",
+        "Rename the file to something more specific, such as `rust-memory-operations.ts` or `rust-string-similarity.ts`, depending on the primary focus after refactoring.",
+        "Add more detailed comments to each function explaining its purpose and performance characteristics."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "rust-accelerator.ts",
+          "suggested": "rust-lsh-deduplication.ts, rust-batch-text-similarity.ts, rust-tool-scoring.ts (after splitting)",
+          "rationale": "The current name is too generic and doesn't intuitively imply the specific functions it performs. More specific names would improve discoverability and understanding."
+        },
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Single large file",
+          "suggested": "Multiple smaller files, each responsible for a specific type of acceleration",
+          "rationale": "A large file is harder to understand, maintain, and test. Splitting it into smaller modules improves modularity and reduces cognitive load."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-persona-handoff-discovery",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The directory `services/handoff/` is a reasonable starting point, but the lack of `services/team-handler-registry.ts` makes it difficult to assess the complete flow. The provided context is insufficient to determine if the handoff flow is easily traceable from trigger to persona switch. The absence of the target file and the limited directory contents make it challenging to confirm intuitive navigation for a newcomer.",
+      "suggestions": [
+        "Ensure all relevant files are included in the code context for accurate evaluation.",
+        "Provide a more detailed description of the handoff process and the roles of Ferni and Peter.",
+        "Clarify the purpose of each file within the `services/handoff/` directory.",
+        "If `services/team-handler-registry.ts` is crucial, ensure it exists and is accessible."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Incomplete code context prevents tracing the full handoff flow.",
+          "suggested": "Provide complete code context, including `services/team-handler-registry.ts` and any other relevant files.",
+          "rationale": "Without the full context, it's impossible to determine if the handoff flow is easily traceable, hindering newcomer understanding."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The naming of `services/handoff/` is reasonable, but the internal structure and file names are unclear without more context.",
+          "suggested": "Provide a brief description of each file's purpose within the `services/handoff/` directory.",
+          "rationale": "Clear documentation of file purposes improves navigability and understanding for newcomers."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-cross-persona-intelligence",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "While the documentation and file structure suggest a system for cross-persona insights, it's not immediately clear how to trace the flow of insights from Peter to Ferni. The `services/cross-persona/` directory and related files like `cross-persona-insights.ts` and the architecture document provide a high-level overview, but the actual wiring and data flow are not explicitly defined. It's difficult to pinpoint where Peter's insights are recorded, how they are transformed, and how they are delivered to Ferni. The code context lacks concrete examples of this specific interaction.",
+      "suggestions": [
+        "Provide explicit examples in the documentation showing how insights flow between specific personas (e.g., Peter -> Ferni).",
+        "Include diagrams or flowcharts illustrating the data flow for cross-persona insights, highlighting the steps involved in transferring insights from one persona to another.",
+        "Add more detailed comments in the code, particularly in `cross-persona-insights.ts` and related files, explaining how insights are routed and processed.",
+        "Create unit tests that specifically demonstrate the transfer of insights between personas.",
+        "Consider adding a dedicated function or module for handling persona-to-persona insight routing to make the flow more explicit."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "The data flow between personas is implicit and not easily traceable.",
+          "suggested": "Make the data flow explicit by providing clear routing mechanisms and documentation.",
+          "rationale": "Explicit data flow improves discoverability and maintainability, aligning with the principle of easy navigation for newcomers."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The file structure provides a general overview of persona insights, but lacks specific details on how insights are transferred.",
+          "suggested": "Consider adding a file or module specifically responsible for routing insights between personas.",
+          "rationale": "A dedicated module for routing would improve the organization and make the data flow more apparent."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-team-coordination",
+      "coherenceScore": 30,
+      "passed": false,
+      "reasoning": "The coordination logic should reside in a shared service (like `services/team-engagement.ts`) to adhere to the principle of avoiding tightly coupled persona-specific logic. The absence of `intelligence/context-builders/ferni-coordinator-intelligence.ts` and the presence of numerous personality-related files within Ferni's bundle suggest that coordination logic is likely within the bundle, violating the principle of shared services. The naming of files within the bundle doesn't intuitively suggest a clear separation of concerns, making it difficult for a newcomer to understand where the coordination logic resides.",
+      "suggestions": [
+        "Move the team coordination logic out of the Ferni bundle and into a shared service, such as `services/team-engagement.ts` or a new service specifically for team coordination.",
+        "Rename files within the Ferni bundle to better reflect their specific functions and responsibilities.",
+        "Create a clear separation of concerns within the codebase, ensuring that persona-specific logic is distinct from shared services and coordination logic."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "high",
+          "current": "Coordination logic is likely within the Ferni persona bundle.",
+          "suggested": "Coordination logic should reside in a shared service.",
+          "rationale": "Centralizing coordination logic promotes reusability, maintainability, and reduces coupling between personas."
+        },
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "The Ferni bundle contains numerous personality-related files, potentially mixing persona-specific logic with coordination logic.",
+          "suggested": "Separate persona-specific logic from shared services and coordination logic into distinct modules or directories.",
+          "rationale": "Clear separation of concerns improves code readability, maintainability, and reduces the risk of unintended side effects."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "File names within the Ferni bundle may not intuitively indicate the location of coordination logic.",
+          "suggested": "Use more descriptive file names that clearly indicate the function and purpose of each file.",
+          "rationale": "Intuitive naming improves code discoverability and reduces the cognitive load for developers."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-tool-service-connection",
+      "coherenceScore": 50,
+      "passed": false,
+      "reasoning": "Based on the file names provided, it's difficult to determine a consistent pattern of tool names mirroring service names. While some tools might correspond to services (e.g., 'habit-coaching' in both), there's no clear, predictable relationship. Many tool names seem more general or related to specific features rather than directly reflecting a service. The lack of a clear naming convention makes it hard for a newcomer to predict which service a tool uses based solely on its name.",
+      "suggestions": [
+        "Establish a clear naming convention for tools that directly interact with services. If a tool primarily uses a specific service, its name should reflect that service's name or a clear abbreviation.",
+        "Document the relationship between tools and services. A mapping or dependency diagram would help newcomers understand the connections.",
+        "Refactor tool names to be more descriptive and aligned with the services they utilize, where applicable. Consider using a suffix or prefix to indicate the service being used (e.g., `HabitCoachingTool` or `ToolForHabitCoaching`).",
+        "Consider using a dependency injection or service locator pattern to make the service dependencies of each tool more explicit and easier to understand."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "Tool names are not consistently related to the services they use.",
+          "suggested": "Tool names should clearly indicate the primary service they interact with, either through direct naming or a consistent naming convention.",
+          "rationale": "Inconsistent naming makes it difficult for newcomers to understand the codebase and predict service dependencies, violating the principle of easy navigation."
+        },
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "The connection pattern between tools and services is not immediately obvious from the file names.",
+          "suggested": "Explicitly document or visualize the dependencies between tools and services.",
+          "rationale": "Lack of clarity in wiring hinders understanding and maintainability, making it harder to reason about the system's behavior."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-tool-registration",
+      "coherenceScore": 90,
+      "passed": true,
+      "reasoning": "The `TOOL-LOADING-SYSTEM.md` document clearly outlines the tool registration process. It details how tools are registered from the `src/tools/domains/*` directory and how they become available to the LLM through a multi-stage process involving configuration files and dynamic loading. The diagram and descriptions are helpful for understanding the flow. The document is well-organized and addresses the question directly.",
+      "suggestions": [],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-tool-dependencies",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The code context provides some clues, but it's not immediately clear how dependency injection is implemented and discoverable. The `services/di/` directory exists, which is a good sign, but there's no explicit documentation or example usage readily available in the provided snippets. The `session-manager.ts` file imports several modules, but it's not obvious how a tool would get access to the session context via dependency injection. The presence of `services/global-services.ts` (mentioned as a related module but not included in the code context) might be relevant, but without seeing its contents, it's hard to assess its role in dependency injection.",
+      "suggestions": [
+        "Add a README.md file to the `services/di/` directory explaining the dependency injection mechanism and providing usage examples.",
+        "Include code comments in `services/di/container.ts` and other relevant files to document the DI container's configuration and usage.",
+        "Provide an example in `session-manager.ts` or a related file demonstrating how to inject dependencies, including the session context, into a tool or service.",
+        "Create a dedicated section in the project's documentation explaining how to use dependency injection and access session context."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Dependency injection mechanism is not immediately discoverable.",
+          "suggested": "Provide clear documentation and examples for dependency injection in the `services/di/` directory.",
+          "rationale": "Newcomers need to easily understand how to inject dependencies and access session context to build and extend the system."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "Lack of clear entry point or documentation for DI.",
+          "suggested": "Add a central `index.ts` file with exports and a README to the `services/di/` directory.",
+          "rationale": "Improves discoverability and ease of use for developers."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-builder-loading",
+      "coherenceScore": 30,
+      "passed": false,
+      "reasoning": "The code context provided is from `intelligence/context-builders/index.ts`, not `intelligence/context-builders/loader.ts` as requested, and the latter file is missing. The provided code describes the overall structure of the context builders, including a warning that it is a legacy system. It also describes caching mechanisms. However, it does not describe how context builders are loaded, prioritized, or categorized in a way that is easily discoverable. The code mentions categories, but the loading and prioritization logic is not evident. The lack of the target file and the legacy nature of the code significantly reduce coherence with the question's intent.",
+      "suggestions": [
+        "Provide the code for `intelligence/context-builders/loader.ts`. If it doesn't exist, explain where the loading and prioritization logic resides.",
+        "Clarify how context builders are loaded and prioritized, especially within the legacy system. Make this information readily accessible to a newcomer.",
+        "Document the categories and their purpose more explicitly.",
+        "If the system is truly legacy, prioritize migrating to the new behavioral system and remove the legacy code to reduce confusion."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "high",
+          "current": "Context builder loading and prioritization are not clearly organized or discoverable.",
+          "suggested": "Centralize and document the loading and prioritization logic in a dedicated module or section, preferably in `loader.ts` or its equivalent in the new system.",
+          "rationale": "Lack of clear organization hinders understanding and maintainability, especially for newcomers."
+        },
+        {
+          "type": "wiring",
+          "severity": "high",
+          "current": "The wiring of context builders, including their loading and prioritization, is opaque.",
+          "suggested": "Expose the wiring logic clearly, potentially through a configuration file or a well-documented initialization process.",
+          "rationale": "Opaque wiring makes it difficult to understand the system's behavior and modify it safely."
+        },
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "The term 'loader' is used implicitly, but its function is not clearly defined.",
+          "suggested": "If a 'loader' module exists, ensure its name accurately reflects its purpose and that its documentation clearly explains its role in loading and prioritizing context builders.",
+          "rationale": "Ambiguous naming can lead to confusion and hinder understanding."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-builder-to-persona",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The question highlights a discoverability issue. While the file names `*-insights.ts` suggest they are related to insights, it's not immediately clear how they relate to specific personas. The `loader.ts` file is likely responsible for wiring these builders together, but without inspecting its contents, it's impossible to know the persona-builder mapping. This violates the principle of easy navigation for a newcomer.",
+      "suggestions": [
+        "Implement a clear naming convention to indicate persona-specific builders (e.g., `peterResearch_insights.ts` or `PeterResearchInsightsBuilder.ts`).",
+        "Document the persona-builder mapping within `loader.ts` or in a separate configuration file.",
+        "Consider using a more structured approach, like a factory pattern or dependency injection, to manage the creation and wiring of persona-specific builders. This could improve maintainability and discoverability.",
+        "Add comments to each builder file indicating which personas it applies to."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "File names like `peter-research-insights.ts` don't explicitly indicate the 'persona' aspect.",
+          "suggested": "Use a naming convention like `peterResearch_insights.ts` or `PeterResearchInsightsBuilder.ts` to clearly identify persona-specific builders.",
+          "rationale": "Improved naming enhances discoverability and reduces the cognitive load for developers trying to understand the system."
+        },
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "The relationship between builders and personas is implicit and likely defined within `loader.ts` without clear documentation.",
+          "suggested": "Explicitly document the persona-builder mapping in `loader.ts` or a separate configuration file. Consider using a factory pattern or dependency injection to manage builder creation and wiring.",
+          "rationale": "Explicit wiring improves maintainability and makes it easier to understand how different parts of the system are connected."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-builder-categories",
+      "coherenceScore": 50,
+      "passed": false,
+      "reasoning": "While the categories exist, the lack of documentation and the sheer number of categories (13) make it difficult for a newcomer to predict where a new builder should go. The categories themselves are somewhat self-explanatory, but without a clear definition or examples, it's hard to be confident in placing a new builder.",
+      "suggestions": [
+        "Document each category with a clear definition and examples of builders that belong to it.",
+        "Consider grouping related categories into broader themes to reduce the cognitive load.",
+        "Create a decision tree or flowchart to guide newcomers in selecting the appropriate category for a new builder.",
+        "Add comments to the code explaining the purpose of each category.",
+        "If possible, reduce the number of categories by merging similar ones or re-architecting the system."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "13 categories with no clear documentation or guidance on usage.",
+          "suggested": "Documented categories with clear definitions and examples, potentially grouped into broader themes.",
+          "rationale": "Without clear documentation, it's difficult for newcomers to understand the purpose of each category and correctly place new builders, hindering ease of navigation."
+        },
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "No clear process for determining which category a new builder should belong to.",
+          "suggested": "Implement a decision tree or flowchart to guide category selection.",
+          "rationale": "A clear process would make it easier for newcomers to understand the intended organization and contribute effectively."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-memory-to-superhuman",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The file structure suggests some awareness of memory access within the superhuman services. The presence of `conflict-resolution-memory.ts` and `inside-joke-memory.ts` within `services/superhuman/` indicates that some services directly interact with memory. However, the integration path isn't explicitly clear from the file names alone. It's not immediately obvious how these services access the `memory/` components, or if there's a standardized pattern. The `services/data-layer/` module (not shown in the provided context) might be relevant, but without seeing its contents, it's hard to assess the overall clarity of the integration path.",
+      "suggestions": [
+        "Create a clear and consistent pattern for memory access within superhuman services. This could involve a dedicated memory access module within each service or a shared utility function.",
+        "Document the memory access patterns in the README.md file within `services/superhuman/`.",
+        "Consider using more descriptive names for files that handle memory access, making it easier to understand their purpose at a glance. For example, instead of `conflict-resolution-memory.ts`, consider `conflict-resolution-memory-accessor.ts` or `conflict-resolution-memory-integration.ts`.",
+        "If `services/data-layer/` is the intended integration point, ensure it is clearly documented and that the superhuman services are using it correctly."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Implicit memory access patterns within superhuman services.",
+          "suggested": "Explicit and documented memory access patterns, potentially using a dedicated module or utility function.",
+          "rationale": "Clarity is essential for newcomers. Explicit patterns make it easier to understand how services interact with memory and reduce the risk of inconsistent or incorrect implementations."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "File names like `conflict-resolution-memory.ts` don't clearly indicate the role of the file in memory access.",
+          "suggested": "More descriptive file names like `conflict-resolution-memory-accessor.ts` or `conflict-resolution-memory-integration.ts`.",
+          "rationale": "Clear naming improves discoverability and understanding of the codebase."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-data-layer-routing",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The presence of `query-router.ts` is a good sign, suggesting a centralized routing mechanism. The existence of `domain-signals.ts` and entity-specific collections, while potentially useful, raises concerns about complexity for a newcomer. The question asks about adding a new entity type easily, and the current structure, while not explicitly preventing it, doesn't scream 'easy'. The score is above 70 because the file structure hints at a reasonable level of organization, but the domain-specific collections and signals introduce potential complexity that detracts from the principle of easy navigation for a newcomer.",
+      "suggestions": [
+        "Provide clear documentation or a README.md in the `services/data-layer/` directory explaining the routing mechanism and how to add a new entity type.",
+        "Consider abstracting the entity-specific logic behind an interface or abstract class to reduce coupling and improve maintainability.",
+        "Evaluate whether domain signals can be generalized or externalized to avoid tight coupling with specific entity types."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Entity-specific collections with domain signals and query routing",
+          "suggested": "A more generic collection structure with a clear extension mechanism for new entity types, and a well-documented query routing system.",
+          "rationale": "The current structure might make it harder for a newcomer to understand how to add a new entity type and how the query routing works for that entity. A more generic approach with clear extension points would improve discoverability and ease of use."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "Implicit routing logic within `query-router.ts` (assumed)",
+          "suggested": "Explicitly document the routing logic and provide examples for adding new entity types.",
+          "rationale": "Without clear documentation, understanding and extending the routing logic will be challenging for newcomers."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-calendar-integration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The presence of a `providers` directory suggests an attempt to isolate provider-specific logic, which is a good sign for an adapter pattern. However, without inspecting the contents of that directory and the `calendar-bridge.ts` file, it's difficult to definitively say how clear the adapter pattern is or how easy it would be to add a new provider. The score reflects this uncertainty. The file names like `calendar-bridge.ts` hint at an abstraction layer, but more evidence is needed to confirm a well-defined adapter pattern.",
+      "suggestions": [
+        "Review the contents of the `providers` directory and `calendar-bridge.ts` to assess the clarity of the adapter pattern.",
+        "Ensure a clear and well-documented interface exists for adding new calendar providers.",
+        "Consider renaming `calendar-bridge.ts` to something more descriptive of its role as an adapter, such as `calendar-adapter.ts` or `calendar-provider-interface.ts`."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "`calendar-bridge.ts`",
+          "suggested": "`calendar-adapter.ts` or `calendar-provider-interface.ts`",
+          "rationale": "The term 'bridge' is less specific than 'adapter' and doesn't immediately convey the purpose of abstracting calendar provider implementations."
+        }
+      ]
+    },
+    {
+      "probeId": "wiring-payment-integration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The code provides separate services for Stripe Payments, Stripe Subscriptions, and Apple IAP. While the individual modules are well-organized and named, the lack of a unified payment interface makes tracing the payment flow across different providers slightly difficult. The naming of `stripe-payments.ts` and `stripe-subscription.ts` is a bit confusing as they both handle payments, but in different forms. A newcomer might not immediately understand the distinction. The presence of `services/monetization/` and `services/premium/` suggests a higher-level organization, but the connection between these and the specific payment services isn't immediately clear from the code context provided.",
+      "suggestions": [
+        "Consider creating an abstract `PaymentService` interface or base class that both `StripePayments`, `StripeSubscription`, and `AppleIAP` implement. This would provide a unified interface for handling payments regardless of the provider.",
+        "Document the relationship between `services/monetization/`, `services/premium/`, and the specific payment services (Stripe and Apple IAP) to clarify the overall architecture.",
+        "Rename `stripe-payments.ts` to `stripe-one-time-payments.ts` to more clearly distinguish it from `stripe-subscription.ts`."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "wiring",
+          "severity": "medium",
+          "current": "Separate services for Stripe Payments, Stripe Subscriptions, and Apple IAP.",
+          "suggested": "A unified payment interface that abstracts away the underlying payment provider.",
+          "rationale": "A unified interface would simplify the payment flow and make it easier for newcomers to understand how payments are handled across different providers. It would also make it easier to add new payment providers in the future."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "Naming of `stripe-payments.ts` and `stripe-subscription.ts`.",
+          "suggested": "Rename `stripe-payments.ts` to `stripe-one-time-payments.ts`.",
+          "rationale": "The current naming is ambiguous as both files deal with payments. Being more specific improves clarity."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-superhuman-folder",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The services generally align with the concept of 'superhuman' capabilities, but some are borderline or could be interpreted as enhanced human capabilities rather than truly superhuman. Some names are also a bit vague and could be more descriptive of the specific superhuman ability they provide.",
+      "suggestions": [
+        "Review each service and ensure it clearly represents a capability that a human friend could *not* consistently provide.",
+        "Refine the naming of services to be more explicit about the superhuman ability they offer.",
+        "Consider adding documentation or comments to each service explaining how it exceeds human capability."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "philosophy",
+          "severity": "low",
+          "current": "Some services could be interpreted as enhanced human capabilities rather than superhuman.",
+          "suggested": "Ensure all services represent capabilities beyond consistent human capacity.",
+          "rationale": "The core philosophy emphasizes 'superhuman' capabilities, so services should clearly exceed human limits."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "Some service names are vague (e.g., 'Perfect Timing', 'Pattern Mirror').",
+          "suggested": "Use more descriptive names that clearly indicate the superhuman ability (e.g., 'Predictive Event Timing', 'Behavioral Pattern Recognition').",
+          "rationale": "Clearer names improve understanding and maintainability."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-superhuman-completeness",
+      "coherenceScore": 60,
+      "passed": false,
+      "reasoning": "The organization is unclear regarding superhuman capabilities. While the question suggests a `superhuman/` folder, the existing structure doesn't have one. The `services/` and `intelligence/` directories both contain modules that *could* potentially house superhuman capabilities (e.g., `proactive-insight-engine.ts`, `emotional-forecasting.ts`, `batched-llm-analysis.ts`). The lack of a dedicated `superhuman/` directory and the scattering of potentially superhuman capabilities across other directories reduces coherence. The related modules `better-than-human-direct.ts` further highlights this issue, as it's not immediately clear where this module should reside based on the current structure.",
+      "suggestions": [
+        "Create a `superhuman/` directory within `services/` to house capabilities that exceed human abilities.",
+        "Review all modules in `services/` and `intelligence/` to identify and relocate any superhuman capabilities to the `superhuman/` directory.",
+        "Rename `better-than-human-direct.ts` to something more descriptive and move it to the `superhuman/` directory if it fits the criteria."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Superhuman capabilities are scattered across `services/` and `intelligence/`.",
+          "suggested": "Consolidate superhuman capabilities into a dedicated `superhuman/` directory within `services/`.",
+          "rationale": "Centralizing superhuman capabilities improves discoverability, maintainability, and aligns with the principle of making AI human by clearly delineating what exceeds human ability."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "The name `better-than-human-direct.ts` is vague.",
+          "suggested": "Rename `better-than-human-direct.ts` to something more descriptive, reflecting its specific functionality.",
+          "rationale": "Clearer naming improves understanding and maintainability."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-eq-implementation",
+      "coherenceScore": 85,
+      "passed": true,
+      "reasoning": "The code and documentation clearly outline the five superhuman EQ capabilities promised by the brand. The naming is generally descriptive (e.g., `enforceMicroExpressionTiming`, `BreathSyncState`). The `better-than-human.ui.ts` file is well-commented and links back to the `BETTER-THAN-HUMAN.md` document, establishing a clear connection between the brand philosophy and the implementation. The use of terms like 'subliminal trust' and 'neural mirroring' directly reflect the brand's intention to create AI that feels human. However, the implementation details for 'Concern Detection' are missing in the documentation, which is a minor gap.",
+      "suggestions": [],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The 'Concern Detection' section in the documentation is incomplete.",
+          "suggested": "Provide implementation details for 'Concern Detection' in the `BETTER-THAN-HUMAN.md` document, similar to the other capabilities.",
+          "rationale": "Completing the documentation ensures a comprehensive understanding of all five superhuman capabilities and maintains consistency."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-persona-humanity",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-toast-humanity",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The guidelines provided indicate an attempt to enforce human language in toast messages. The examples given, such as \"Couldn't save that\" instead of \"Failed to save changes,\" demonstrate this principle. However, without seeing the actual code implementation and how strictly these guidelines are followed and enforced, it's difficult to give a higher score. The presence of guidelines is a good start, but the true test is whether the codebase consistently adheres to them.",
+      "suggestions": [
+        "Implement linting rules or custom ESLint rules to enforce the toast message style guidelines.",
+        "Create a dedicated toast utility function or component that automatically applies the human-friendly style.",
+        "Conduct code reviews specifically focused on toast message wording and adherence to the guidelines.",
+        "Add unit tests to verify that toast messages conform to the desired style."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "philosophy",
+          "severity": "low",
+          "current": "Guidelines exist but enforcement is unclear.",
+          "suggested": "Implement automated checks and processes to ensure consistent adherence to the guidelines.",
+          "rationale": "Without enforcement, guidelines can be easily overlooked, leading to inconsistencies and a drift away from the intended philosophy."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-meaningful-silence",
+      "coherenceScore": 50,
+      "passed": false,
+      "reasoning": "The name \"meaningful-silence.ts\" is a good start and hints at the principle of treating silence as communication. However, without seeing the implementation, it's impossible to determine if the file truly embodies a human-centric approach to handling pauses in conversation. The large file size (98K) raises concerns about potential code complexity and whether the logic is well-organized to support the core philosophy. It's difficult to assess if the implementation avoids treating silence as merely an absence of speech and instead considers its potential meaning and impact on the interaction.",
+      "suggestions": [
+        "Refactor the file into smaller, more manageable modules with clear responsibilities.",
+        "Ensure the implementation considers the context of the conversation when interpreting silence.",
+        "Add comments and documentation to explain the rationale behind the code and how it aligns with the human-centric AI philosophy.",
+        "Consider using more descriptive variable and function names that reflect the nuances of human communication and the meaning of silence."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "A single 98K file handles pauses in conversation.",
+          "suggested": "Break down the functionality into smaller, well-defined modules.",
+          "rationale": "Large files are harder to understand, maintain, and test. Modularity promotes code reusability and makes it easier to ensure each component aligns with the core philosophy."
+        },
+        {
+          "type": "philosophy",
+          "severity": "medium",
+          "current": "Potentially treating silence as just an absence of speech (unclear without code).",
+          "suggested": "Explicitly handle different types of silence (e.g., thoughtful pause, disagreement, confusion) and their potential meanings in the conversation.",
+          "rationale": "To truly make AI feel human, it needs to understand the nuances of communication, including the different ways silence can be used."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-relationship-services",
+      "coherenceScore": 85,
+      "passed": true,
+      "reasoning": "The services named 'relationship-network' and 'relationship-milestones' directly reflect the principle of serving relationships. The question prompts a deeper reflection on whether other transactional services, possibly within 'services/contacts/' or 'services/engagement/', are framed in a way that prioritizes tasks over relationships. The current naming convention within 'services/superhuman/relationship-*' seems aligned, but the question's core point is to ensure the *entire* system reflects the principle, not just these specific services. Therefore, the score is high but not perfect, as further investigation into related modules is warranted.",
+      "suggestions": [
+        "Conduct a review of 'services/contacts/' and 'services/engagement/' to identify transactional services that could be reframed to better serve relationships.",
+        "Develop a checklist or rubric to evaluate services based on their alignment with the 'Serve relationships, not just tasks' principle."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "philosophy",
+          "severity": "low",
+          "current": "Potential for transactional services in related modules to prioritize tasks over relationships.",
+          "suggested": "Ensure all services, including those in 'services/contacts/' and 'services/engagement/', are designed to serve relationships.",
+          "rationale": "A holistic application of the principle is crucial for achieving the core philosophy of making AI human."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-memory-relationship",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The module `deep-relationship.ts` exists and focuses on relationship context, which aligns with the principle of serving relationships. However, its location within `intelligence/context-builders` suggests it's just one of many context sources, rather than a central, prioritized aspect of the system. While the code itself appears well-structured and addresses the core concerns, the architectural prominence might be insufficient.",
+      "suggestions": [
+        "Consider moving the core relationship logic to a more central location, perhaps directly under `intelligence` or `memory`.",
+        "Evaluate if the current context builder architecture adequately prioritizes relationship context over other types of context.",
+        "Rename `deep-relationship.ts` to something more concise and impactful, such as `relationship-memory.ts` or `relationship-context.ts`."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "The `deep-relationship.ts` module is located within `intelligence/context-builders`.",
+          "suggested": "Move the core relationship logic to a more central location, such as `intelligence/relationship` or `memory/relationship`.",
+          "rationale": "Positioning relationship context as a core component, rather than just another context builder, better reflects the stated philosophy of prioritizing relationships."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-handoff-continuity",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The presence of `handoff-state.ts` suggests some consideration of state transfer, which is a positive. However, without seeing the contents of the files, it's difficult to determine if the handoff system truly preserves *relational* context, or just task-related data. The related module `cross-persona-insights.ts` hints at awareness of persona differences, which could contribute to relationship continuity, but the connection isn't explicit. The directory name `services/handoff/` is generic and doesn't convey the emphasis on relationships.",
+      "suggestions": [
+        "Rename `handoff-state.ts` to something like `relational-handoff-state.ts` or `contextual-handoff-state.ts` to emphasize the importance of preserving more than just task state.",
+        "Add documentation to the `services/handoff/` directory explaining how the system ensures relationship continuity during handoffs.",
+        "Consider adding a specific module or function within `services/handoff/` dedicated to handling relational context during handoffs. For example, `services/handoff/relational-context-handler.ts`."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "handoff-state.ts",
+          "suggested": "relational-handoff-state.ts",
+          "rationale": "The current name is too generic and doesn't reflect the principle of preserving relationships, not just tasks."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-coaching-gentleness",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The directory structure seems well-organized, with separate files for challenges, templates, storage, etc. This suggests a modular approach that could support gentle growth. The presence of `templates.ts` is promising for checking language. However, without examining the actual content of the files, especially `templates.ts` and `challenges.ts`, it's impossible to definitively assess whether the language is truly non-judgmental and encouraging. The persona directory also seems well-organized.",
+      "suggestions": [
+        "Review the language used in `tools/habit-coaching/templates.ts` and `tools/habit-coaching/challenges.ts` for any judgmental or shaming phrases. Replace them with encouraging and supportive alternatives.",
+        "Add comments to the code explaining how specific design choices contribute to the principle of 'gentle growth without judgment'.",
+        "Consider adding unit tests that specifically check for the absence of negative or judgmental language in the coaching output."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "philosophy",
+          "severity": "medium",
+          "current": "Potentially judgmental language in habit coaching templates and challenges.",
+          "suggested": "Ensure all language in templates and challenges is encouraging, supportive, and avoids shaming or guilt.",
+          "rationale": "Using judgmental language directly contradicts the principle of 'gentle growth without judgment' and can negatively impact the user experience."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-crisis-handling",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The `distress-levels.ts` file provides a good foundation for gentle crisis support. The naming of distress levels (Mild, Elevated, Moderate, High, Crisis) and the associated guidance generally align with the principle of support without judgment. The guidance for each level emphasizes empathy and validation, particularly at the higher levels. However, the term \"CRISIS\" itself, while clinically accurate, can be alarming. The description of \"CRISIS\" as requiring \"Immediate intervention\" and stating \"All other concerns are secondary\" leans towards an emergency alert pattern rather than a support opportunity. The lack of the `crisis.ts` file makes a full assessment impossible.",
+      "suggestions": [
+        "Consider renaming 'CRISIS' to something like 'INTENSE_DISTRESS' or 'URGENT_SUPPORT_NEEDED' to soften the language and reduce potential alarm.",
+        "If `crisis.ts` exists, ensure its implementation focuses on providing immediate support and connection rather than triggering alarms or automated interventions without human oversight.",
+        "Review the language used in the guidance for the highest distress level to ensure it prioritizes a supportive and calming tone over a directive or interventionist one."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "CRISIS",
+          "suggested": "INTENSE_DISTRESS or URGENT_SUPPORT_NEEDED",
+          "rationale": "The term 'CRISIS' can be alarming and may not fully align with the principle of 'support without judgment'. A softer term can convey the urgency without causing unnecessary panic."
+        },
+        {
+          "type": "philosophy",
+          "severity": "low",
+          "current": "Description of CRISIS level focusing on 'immediate intervention'",
+          "suggested": "Description of INTENSE_DISTRESS level focusing on 'immediate support and connection'",
+          "rationale": "Shifting the focus from 'intervention' to 'support and connection' better reflects the core philosophy of making AI human and supportive, not robotic and reactive."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-glidepath",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The concept of a 'glidepath' with levels from tiny to full is present, but the term 'glidepath' itself isn't explicitly named in the provided file list. The levels (tiny, mini, standard, advanced, full lifestyle) are defined, suggesting the concept exists implicitly. However, the absence of a clear 'Glidepath' class, interface, or even a prominent constant makes it less discoverable and harder to understand as a cohesive concept. The levels themselves are descriptive and align with the 'gentle growth' principle.",
+      "suggestions": [
+        "Introduce a `Glidepath` type or interface to explicitly represent the concept.",
+        "Create a `Glidepath` enum or constant object to group the different levels (tiny, mini, standard, advanced, full lifestyle) under a single name.",
+        "Document the 'glidepath' concept in `CLAUDE.md` or a dedicated file to explain its purpose and how it embodies the 'support growth without judgment' principle."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "The 'glidepath' concept is implicit through the levels (tiny, mini, standard, advanced, full lifestyle).",
+          "suggested": "Explicitly name the concept with a `Glidepath` type, enum, or constant object.",
+          "rationale": "Explicit naming improves discoverability and understanding of the underlying concept, making the codebase more maintainable and aligned with the principle of clear communication."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-layer-naming",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The layer names generally convey their responsibilities, but the specific levels and some of the groupings are not immediately intuitive for a newcomer. 'Agents' at the top makes sense, as does 'Memory' at the bottom. 'Intelligence' is a reasonable name for the layer above 'Services'. However, the inclusion of 'personas' alongside 'intelligence' is slightly confusing. The placement of 'tools', 'conversation', and 'speech' under 'intelligence' is reasonable. The 'services' layer is a bit vague without further context. The level 30 grouping of 'memory/config/utils/types' is also a bit of a mixed bag in terms of implied responsibility. 'Config' and 'Types' don't clearly relate to 'Memory' in an obvious way.",
+      "suggestions": [
+        "Consider renaming 'intelligence' to something more descriptive of its function, or provide more documentation.",
+        "Clarify the role of the 'services' layer with a more specific name or documentation.",
+        "Re-evaluate the grouping of 'memory/config/utils/types'. Consider separating 'config' and 'types' into a more appropriate layer, or providing a clear rationale for their inclusion with 'memory'.",
+        "Provide a high-level architectural diagram or documentation to explain the responsibilities of each layer and how they interact."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "intelligence",
+          "suggested": "reasoning or planning",
+          "rationale": "'Intelligence' is a broad term. A more specific name would better convey the layer's responsibility."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "services",
+          "suggested": "platform or infrastructure",
+          "rationale": "'Services' is vague. A more specific name would better convey the layer's responsibility."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "memory/config/utils/types",
+          "suggested": "memory, config, utils, types as separate concerns or grouped differently",
+          "rationale": "The grouping of 'memory/config/utils/types' is not immediately intuitive. 'Config' and 'Types' don't clearly relate to 'Memory'."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-import-rules",
+      "coherenceScore": 50,
+      "passed": false,
+      "reasoning": "The document describes the directory structure and some key architectural patterns, but it doesn't explicitly state or enforce import rules for clean architecture. While the directory structure *suggests* a layered approach, the document doesn't explicitly mention or enforce the constraint that lower layers cannot import from higher layers. A newcomer would not be able to easily discover or understand these rules from this document alone. The document focuses on Result types, which is a good practice, but misses the crucial aspect of import restrictions for maintaining clean architecture.",
+      "suggestions": [
+        "Add a section explicitly stating the import rules for clean architecture (e.g., lower layers cannot import from higher layers).",
+        "Provide examples of allowed and disallowed imports to illustrate the rules.",
+        "Mention how these rules are enforced (e.g., through linting rules, build process checks).",
+        "Include a diagram visualizing the layers and their dependencies.",
+        "Add a section on dependency injection and how it supports the clean architecture principles."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "high",
+          "current": "The document describes directory structure and Result types but lacks explicit information about import rules and layer dependencies.",
+          "suggested": "Add a section dedicated to import rules and layer dependencies, including examples and enforcement mechanisms.",
+          "rationale": "Without explicit import rules, the clean architecture is not effectively enforced, and newcomers will struggle to understand the intended architecture."
+        },
+        {
+          "type": "philosophy",
+          "severity": "medium",
+          "current": "The document mentions clean architecture but doesn't fully explain how it contributes to making AI human.",
+          "suggested": "Explain how clean architecture, with its clear separation of concerns and testability, enables faster iteration and adaptation to user needs, ultimately leading to a more human-centered AI.",
+          "rationale": "Connecting the technical architecture to the core philosophy reinforces the purpose and value of the architecture."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-domain-driven",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The directory structure includes several domain-related folders (habits, calendar, relationships are implied by the presence of 'conversation', 'session', 'personas', 'tasks'). However, it's impossible to definitively say whether the domain boundaries are *clear* and easily navigable without inspecting the *contents* of those directories. The presence of other folders like 'services', 'tools', 'intelligence', 'runtime' suggests that domain logic might be scattered across different areas, potentially obscuring the boundaries. The score reflects this uncertainty and the potential for improvement.",
+      "suggestions": [
+        "Provide a clear overview document explaining the domain model and how it maps to the directory structure.",
+        "Enforce a convention for naming files and classes within domain directories to clearly indicate their domain affiliation (e.g., `HabitService.ts`, `CalendarEvent.ts`).",
+        "Consider using subdirectories within domain folders to further organize code (e.g., `src/habits/models`, `src/habits/services`).",
+        "Review and refactor code to minimize dependencies between domain folders and generic folders like 'services' or 'tools'. Domain-specific logic should reside within the domain folders."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "Domain-related code might be spread across multiple directories (e.g., 'habits', 'services', 'tools').",
+          "suggested": "Consolidate domain-specific logic within dedicated domain folders.",
+          "rationale": "Scattering domain logic makes it harder for newcomers to understand the system and increases the risk of accidental coupling between unrelated domains."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "File and class names might not consistently reflect their domain affiliation.",
+          "suggested": "Adopt a naming convention that clearly indicates the domain to which a file or class belongs.",
+          "rationale": "Consistent naming improves discoverability and reduces cognitive load for developers."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-terminology-consistency",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-documentation-alignment",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "The README provides a good overview of the project, including setup instructions, development server details, and a high-level architecture diagram. However, it lacks detailed information about the code organization within the `docs/` directory itself. While it mentions the existence of an 'Architecture' section and 'Docs' section, it doesn't delve into the specifics of what each subdirectory within `docs/` contains or how they relate to the overall codebase. The quick reference section is helpful, but it doesn't provide a comprehensive view of the architecture.",
+      "suggestions": [
+        "Add a section to the README or a dedicated document within `docs/` that outlines the purpose and contents of each subdirectory within the `docs/` directory (e.g., `api`, `architecture`, `design`, `security`).",
+        "Expand the 'Architecture' section with more detailed diagrams or explanations of the different components and their interactions. Consider including a visual representation of the data flow.",
+        "Create a table of contents or index for the `docs/` directory to improve navigation and discoverability."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "organization",
+          "severity": "medium",
+          "current": "The README mentions 'Architecture' and 'Docs' sections, but doesn't provide a detailed overview of the contents of the `docs/` directory.",
+          "suggested": "Include a section in the README or a dedicated document within `docs/` that outlines the purpose and contents of each subdirectory within the `docs/` directory.",
+          "rationale": "This would improve discoverability and help newcomers understand the organization of the documentation."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": "The README provides a high-level architecture diagram, but it lacks detail.",
+          "suggested": "Expand the 'Architecture' section with more detailed diagrams or explanations of the different components and their interactions.",
+          "rationale": "A more detailed architecture overview would provide a better understanding of the system's design and how the different components fit together."
+        }
+      ]
+    },
+    {
+      "probeId": "philosophy-newcomer-onboarding",
+      "coherenceScore": 70,
+      "passed": true,
+      "reasoning": "The directory structure is generally well-organized and suggests a clear separation of concerns. However, some directory names could be more descriptive to immediately convey their purpose to a newcomer. The presence of files like `.DS_Store` and `firebase-debug.log` in the root `src/` directory detracts from the cleanliness and clarity of the structure.",
+      "suggestions": [
+        "Rename 'intelligence' to something more specific like 'reasoning' or 'cognitiveServices' to better reflect its content.",
+        "Consider renaming 'memory' to 'knowledgeBase' or 'longTermMemory' for clarity.",
+        "Move `.DS_Store` and `firebase-debug.log` to appropriate locations (e.g., a `.gitignore` file for `.DS_Store` and a dedicated logs directory for `firebase-debug.log`).",
+        "Review the contents of 'agents' and 'personas' to ensure a clear distinction between them. If they are closely related, consider merging or clarifying their roles with more descriptive names.",
+        "Consider renaming 'ssml' to 'speechMarkup' for better readability."
+      ],
+      "alignmentGaps": [
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "intelligence",
+          "suggested": "reasoning | cognitiveServices",
+          "rationale": "The term 'intelligence' is broad. A more specific name would help a newcomer understand the directory's purpose quickly."
+        },
+        {
+          "type": "naming",
+          "severity": "medium",
+          "current": "memory",
+          "suggested": "knowledgeBase | longTermMemory",
+          "rationale": "'memory' is a common term but doesn't immediately convey the specific type of memory being managed (e.g., long-term, short-term, knowledge base)."
+        },
+        {
+          "type": "organization",
+          "severity": "low",
+          "current": ".DS_Store, firebase-debug.log in src/",
+          "suggested": "Remove .DS_Store, move firebase-debug.log to a logs directory",
+          "rationale": "These files are not core source code and clutter the root directory, making it harder to navigate."
+        },
+        {
+          "type": "naming",
+          "severity": "low",
+          "current": "ssml",
+          "suggested": "speechMarkup",
+          "rationale": "While 'ssml' is a standard abbreviation, 'speechMarkup' is more readable and understandable for newcomers."
+        }
+      ]
+    }
+  ],
+  "criticalGaps": [
+    {
+      "type": "naming",
+      "severity": "high",
+      "current": "'utils' module name",
+      "suggested": "Specific, descriptive module name (e.g., 'data_validation', 'error_handling')",
+      "rationale": "Generic names hide true purpose and make it difficult for newcomers to understand the codebase, violating the principles of intuitive naming and easy navigation."
+    },
+    {
+      "type": "naming",
+      "severity": "high",
+      "current": "Module named 'helpers'",
+      "suggested": "Module named after the specific functionality it provides (e.g., 'data_validation', 'api_request_formatter')",
+      "rationale": "The name 'helpers' is too generic and doesn't provide any information about the module's purpose, hindering understandability and maintainability. This directly contradicts the principle of intuitive naming."
+    },
+    {
+      "type": "naming",
+      "severity": "high",
+      "current": "Inconsistent persona naming: \"ferni\", \"peter-john\", \"maya-santos\", \"nayan\"",
+      "suggested": "Consistent persona naming (e.g., \"ferni-lastname\", \"peter-john\", \"maya-santos\", \"nayan-lastname\")",
+      "rationale": "Inconsistent naming violates the principle that names should imply function intuitively and hinders maintainability and understanding of the codebase. It makes it harder to quickly identify and work with persona files."
+    },
+    {
+      "type": "organization",
+      "severity": "critical",
+      "current": "Files not found, so organization cannot be assessed.",
+      "suggested": "Ensure files exist in the specified location or update the target paths.",
+      "rationale": "Without the files, it is impossible to evaluate the coherence of the codebase with the stated principles."
+    },
+    {
+      "type": "naming",
+      "severity": "critical",
+      "current": "File contents unavailable, so naming conventions cannot be assessed.",
+      "suggested": "Once files are located, review naming conventions to ensure they clearly indicate the persona and the type of memory being accessed.",
+      "rationale": "Clear naming conventions are crucial for an intelligent newcomer to easily navigate the codebase and understand the purpose of each file and function."
+    },
+    {
+      "type": "wiring",
+      "severity": "high",
+      "current": "Coordination logic is likely within the Ferni persona bundle.",
+      "suggested": "Coordination logic should reside in a shared service.",
+      "rationale": "Centralizing coordination logic promotes reusability, maintainability, and reduces coupling between personas."
+    },
+    {
+      "type": "organization",
+      "severity": "high",
+      "current": "Context builder loading and prioritization are not clearly organized or discoverable.",
+      "suggested": "Centralize and document the loading and prioritization logic in a dedicated module or section, preferably in `loader.ts` or its equivalent in the new system.",
+      "rationale": "Lack of clear organization hinders understanding and maintainability, especially for newcomers."
+    },
+    {
+      "type": "wiring",
+      "severity": "high",
+      "current": "The wiring of context builders, including their loading and prioritization, is opaque.",
+      "suggested": "Expose the wiring logic clearly, potentially through a configuration file or a well-documented initialization process.",
+      "rationale": "Opaque wiring makes it difficult to understand the system's behavior and modify it safely."
+    },
+    {
+      "type": "organization",
+      "severity": "high",
+      "current": "The document describes directory structure and Result types but lacks explicit information about import rules and layer dependencies.",
+      "suggested": "Add a section dedicated to import rules and layer dependencies, including examples and enforcement mechanisms.",
+      "rationale": "Without explicit import rules, the clean architecture is not effectively enforced, and newcomers will struggle to understand the intended architecture."
+    }
+  ],
+  "summary": "Overall semantic coherence: 71%\nPass rate: 74%\n\nCategory Breakdown:\n  domain-naming: 76%\n  semantic-memory: 70%\n  integration-wiring: 60%\n  architectural-philosophy: 72%\n\nCritical gaps found: 9",
+  "recommendations": [
+    "Configure LLM API key for real evaluation",
+    "Rename the service to something that more directly implies the 'better than human' capability of connecting personal patterns to larger cycles. Examples: 'CycleWeaver', 'PatternNexus', 'TemporalHarmony', 'ChronosLens'.",
+    "Add a more descriptive subtitle or short description alongside the service name in the code to clarify its purpose.",
+    "Consider renaming the context builder to something more explicit, such as \"EmotionalAwarenessContextBuilder\" or \"EmpathyContextBuilder\".",
+    "Consider renaming to something like 'superhuman-trigger-injector' or 'capability-trigger-direct'."
+  ]
+}

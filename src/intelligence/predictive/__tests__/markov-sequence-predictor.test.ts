@@ -32,12 +32,7 @@ describe('MarkovSequencePredictor', () => {
 
   describe('recordSecondOrderTransition', () => {
     it('should record a second-order transition', () => {
-      recordSecondOrderTransition(
-        testUserId,
-        'emotion:anxious',
-        'topic:work',
-        'behavior:venting'
-      );
+      recordSecondOrderTransition(testUserId, 'emotion:anxious', 'topic:work', 'behavior:venting');
       // No error means success
     });
   });

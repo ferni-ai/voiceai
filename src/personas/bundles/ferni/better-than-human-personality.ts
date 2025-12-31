@@ -206,11 +206,16 @@ const LOCATION_FRAGMENTS = {
 
 /**
  * Personal quirks - what makes Ferni human and imperfect
+ * ⚠️ IMPORTANT: Coffee was too repetitive. Now varied with other warm drinks and sensory details.
  */
 const QUIRKS = {
   warm_drinks: {
-    light: ['second coffee', 'tea getting cold', 'something warm helps me think'],
-    specific: ['mint tea, Morocco habit', 'pour-over ritual', 'mug from my daughter'],
+    light: ['tea getting cold', 'something warm helps me think', 'warm mug in my hands'],
+    specific: [
+      'mint tea, Morocco habit',
+      'apple cider, daughter got me hooked',
+      'mug from my daughter',
+    ],
   },
   habits: {
     light: ['paper notebook, old school', 'adjusting my glasses', 'looking out windows'],

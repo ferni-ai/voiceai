@@ -730,9 +730,27 @@ async function handleFounderStats(res: ServerResponse): Promise<void> {
       return;
     }
 
-    // TODO: Query real Firestore data when available
-    // For now, return mock data
-    sendJSON(res, MOCK_FOUNDER_STATS);
+    // Query founder_stats collection for aggregated data
+    const statsDoc = await db.collection('founder_stats').doc('current').get();
+
+    if (!statsDoc.exists) {
+      // No stats document yet - fallback to mock
+      log.debug('No founder_stats document, using defaults');
+      sendJSON(res, MOCK_FOUNDER_STATS);
+      return;
+    }
+
+    const data = statsDoc.data()!;
+    const stats: FounderStatsData = {
+      totalFounders: data.totalFounders ?? MOCK_FOUNDER_STATS.totalFounders,
+      thisMonthFounders: data.thisMonthFounders ?? MOCK_FOUNDER_STATS.thisMonthFounders,
+      conversationsSupported: data.conversationsSupported ?? MOCK_FOUNDER_STATS.conversationsSupported,
+      conversationsThisMonth: data.conversationsThisMonth ?? MOCK_FOUNDER_STATS.conversationsThisMonth,
+      featuresUnlocked: data.featuresUnlocked ?? MOCK_FOUNDER_STATS.featuresUnlocked,
+      monthlyRecurring: data.monthlyRecurring ?? MOCK_FOUNDER_STATS.monthlyRecurring,
+    };
+
+    sendJSON(res, stats);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founder stats');
     sendJSON(res, MOCK_FOUNDER_STATS); // Graceful fallback
@@ -751,8 +769,37 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
       return;
     }
 
-    // TODO: Query real Firestore data when available
-    sendJSON(res, MOCK_FOUNDERS);
+    // Query founders collection, ordered by tier (forest > tree > sprout > seed) then joinedAt
+    const foundersSnap = await db
+      .collection('founders')
+      .orderBy('joinedAt', 'asc')
+      .limit(50)
+      .get();
+
+    if (foundersSnap.empty) {
+      log.debug('No founders in collection, using mock data');
+      sendJSON(res, MOCK_FOUNDERS);
+      return;
+    }
+
+    const founders: FounderData[] = foundersSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        displayName: data.displayName || null,
+        initials: data.initials || (data.displayName?.[0] || 'F'),
+        joinedAt: data.joinedAt?.toDate?.().toISOString?.() || data.joinedAt || '',
+        tier: data.tier || 'seed',
+        isEarlyBird: data.isEarlyBird || false,
+        badge: data.badge,
+      };
+    });
+
+    // Sort by tier priority (forest first)
+    const tierOrder = { forest: 0, tree: 1, sprout: 2, seed: 3 };
+    founders.sort((a, b) => (tierOrder[a.tier] ?? 4) - (tierOrder[b.tier] ?? 4));
+
+    sendJSON(res, founders);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founders wall');
     sendJSON(res, MOCK_FOUNDERS);
@@ -771,8 +818,32 @@ async function handleFounderStories(res: ServerResponse): Promise<void> {
       return;
     }
 
-    // TODO: Query real Firestore data when available
-    sendJSON(res, MOCK_STORIES);
+    // Query approved founder stories, most recent first
+    const storiesSnap = await db
+      .collection('founder_stories')
+      .where('approved', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    if (storiesSnap.empty) {
+      log.debug('No founder stories in collection, using mock data');
+      sendJSON(res, MOCK_STORIES);
+      return;
+    }
+
+    const stories: FounderStoryData[] = storiesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        quote: data.quote || '',
+        attribution: data.attribution || 'A founding member',
+        memberSince: data.memberSince || '',
+        theme: data.theme || 'gratitude',
+      };
+    });
+
+    sendJSON(res, stories);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get founder stories');
     sendJSON(res, MOCK_STORIES);
@@ -791,8 +862,33 @@ async function handleMilestones(res: ServerResponse): Promise<void> {
       return;
     }
 
-    // TODO: Query real Firestore data when available
-    sendJSON(res, MOCK_MILESTONES);
+    // Query community milestones ordered by target
+    const milestonesSnap = await db
+      .collection('community_milestones')
+      .orderBy('target', 'asc')
+      .get();
+
+    if (milestonesSnap.empty) {
+      log.debug('No milestones in collection, using mock data');
+      sendJSON(res, MOCK_MILESTONES);
+      return;
+    }
+
+    const milestones: MilestoneData[] = milestonesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        target: data.target || 0,
+        current: data.current || 0,
+        type: data.type || 'founders',
+        title: data.title || '',
+        celebration: data.celebration || '',
+        reached: data.reached || false,
+        reachedAt: data.reachedAt?.toDate?.().toISOString?.() || data.reachedAt,
+      };
+    });
+
+    sendJSON(res, milestones);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get milestones');
     sendJSON(res, MOCK_MILESTONES);
@@ -807,36 +903,78 @@ async function handlePersonalImpact(res: ServerResponse, userId: string): Promis
   try {
     const db = getFirestore();
 
-    const mockImpact: PersonalImpactData = {
+    // Default impact data for new/non-contributing users
+    const defaultImpact: PersonalImpactData = {
       userId,
-      memberSince: '2024-06-15',
-      totalContributed: 150,
-      conversationsEnabled: 847,
-      percentileRank: 15,
-      streak: 6,
-      badges: [
-        {
-          id: 'believer',
-          name: 'Believer',
-          description: '6+ month streak',
-          earnedAt: '2024-12-15',
-          icon: 'heart',
-        },
-      ],
+      memberSince: '',
+      totalContributed: 0,
+      conversationsEnabled: 0,
+      percentileRank: 100,
+      streak: 0,
+      badges: [],
       impact: {
-        conversationsThisMonth: 142,
-        familiesHelped: 23,
-        featuresYouUnlocked: ['habit-tracking'],
+        conversationsThisMonth: 0,
+        familiesHelped: 0,
+        featuresYouUnlocked: [],
       },
     };
 
     if (!db) {
-      sendJSON(res, mockImpact);
+      sendJSON(res, defaultImpact);
       return;
     }
 
-    // TODO: Query real user data from Firestore
-    sendJSON(res, mockImpact);
+    // Query user's garden data
+    const userGardenDoc = await db.collection('user_gardens').doc(userId).get();
+
+    if (!userGardenDoc.exists) {
+      // User hasn't contributed yet
+      sendJSON(res, defaultImpact);
+      return;
+    }
+
+    const gardenData = userGardenDoc.data()!;
+
+    // Query user's impact metrics
+    const impactDoc = await db.collection('founder_impact').doc(userId).get();
+    const impactData = impactDoc.exists ? impactDoc.data()! : {};
+
+    // Query user's badges
+    const badgesSnap = await db
+      .collection('user_gardens')
+      .doc(userId)
+      .collection('badges')
+      .orderBy('earnedAt', 'desc')
+      .get();
+
+    const badges = badgesSnap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || '',
+        description: data.description || '',
+        earnedAt: data.earnedAt?.toDate?.().toISOString?.() || data.earnedAt || '',
+        icon: data.icon || 'star',
+      };
+    });
+
+    const personalImpact: PersonalImpactData = {
+      userId,
+      memberSince:
+        gardenData.firstSeedDate?.toDate?.().toISOString?.() || gardenData.firstSeedDate || '',
+      totalContributed: gardenData.totalSeeds || 0,
+      conversationsEnabled: impactData.conversationsEnabled || 0,
+      percentileRank: impactData.percentileRank ?? 100,
+      streak: gardenData.monthlyStreak || 0,
+      badges,
+      impact: {
+        conversationsThisMonth: impactData.conversationsThisMonth || 0,
+        familiesHelped: impactData.familiesHelped || 0,
+        featuresYouUnlocked: impactData.featuresYouUnlocked || [],
+      },
+    };
+
+    sendJSON(res, personalImpact);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get personal impact');
     sendError(res, 'Failed to get personal impact', 500);

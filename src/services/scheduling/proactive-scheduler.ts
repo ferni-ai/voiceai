@@ -10,11 +10,13 @@
  * Triggers notifications via the Agent Bus.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
-import { getLifeDataStore, type LifeMilestone, type LifeGoal } from '../stores/life-data-store.js';
-import { getAgentBus, type AgentId } from '../agent-bus.js';
+
 import { getDefaultStore } from '../../memory/index.js';
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { getAgentBus, type AgentId } from '../agent-bus.js';
+import { getLifeDataStore, type LifeMilestone, type LifeGoal } from '../stores/life-data-store.js';
 
 // ============================================================================
 // TYPES
@@ -268,19 +270,19 @@ class ProactiveScheduler extends EventEmitter {
     void this.runChecks();
 
     // Then run on interval
-    this.intervalId = setInterval(() => {
-      void this.runChecks();
-    }, this.config.checkIntervalMs);
+    registerInterval(
+      'proactive-scheduler-checks',
+      () => void this.runChecks(),
+      this.config.checkIntervalMs
+    );
   }
 
   /**
    * Stop the scheduler
    */
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+    clearNamedInterval('proactive-scheduler-checks');
+    this.intervalId = null;
     this.running = false;
     getLogger().info('⏰ Proactive Scheduler stopped');
   }

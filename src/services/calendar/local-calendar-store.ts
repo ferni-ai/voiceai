@@ -12,6 +12,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CalendarEvent, CreateEventInput } from './calendar-service.js';
+import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
 
 const log = getLogger();
 
@@ -248,6 +249,21 @@ export async function createLocalEvent(
   // Persist
   await persistEvent(userId, event);
 
+  // Index to semantic memory for calendar search
+  void onCalendarEventChange(
+    userId,
+    event.id,
+    {
+      title: event.title,
+      date: event.startTime.toISOString(),
+      time: event.startTime.toTimeString().slice(0, 5),
+      attendees: event.attendees,
+      notes: event.description,
+      duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000),
+    },
+    'create'
+  );
+
   log.info({ userId, eventId: event.id, title: event.title }, 'Local calendar event created');
   return event;
 }
@@ -285,6 +301,21 @@ export async function updateLocalEvent(
 
   // Persist
   await persistEvent(userId, event);
+
+  // Index to semantic memory for calendar search
+  void onCalendarEventChange(
+    userId,
+    event.id,
+    {
+      title: event.title,
+      date: event.startTime.toISOString(),
+      time: event.startTime.toTimeString().slice(0, 5),
+      attendees: event.attendees,
+      notes: event.description,
+      duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000),
+    },
+    'update'
+  );
 
   log.info({ userId, eventId }, 'Local calendar event updated');
   return event;

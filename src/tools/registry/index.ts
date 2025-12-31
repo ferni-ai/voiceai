@@ -29,6 +29,7 @@ import {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   validateToolDefinition,
   validateToolSetSpec,
   type RegistryEvent,
@@ -361,6 +362,16 @@ export class ToolRegistry {
   buildToolSet(spec: ToolSetSpec, ctx: ToolContext): ToolSetResult {
     const startTime = Date.now();
 
+    // Log which services are available (helps debug tools being skipped)
+    const serviceStatus = {
+      twilio: ctx.services.has('twilio'),
+      plaid: ctx.services.has('plaid'),
+      spotify: ctx.services.has('spotify'),
+      firebase: ctx.services.has('firebase'),
+      googleCalendar: ctx.services.has('google-calendar'),
+    };
+    getLogger().debug({ serviceStatus }, '🔧 Building tool set with service availability');
+
     // Validate spec
     const specErrors = validateToolSetSpec(spec);
     if (specErrors.length > 0) {
@@ -496,13 +507,13 @@ export class ToolRegistry {
    */
   buildSimple(domains: ToolDomain[], ctx: Partial<ToolContext> = {}): Record<string, Tool> {
     // Note: We spread ctx first, then override with defaults for missing values
-    // This ensures ctx.services = undefined doesn't overwrite our EmptyServiceRegistry
+    // Use EnvironmentServiceRegistry to check actual env vars for service availability
     const fullCtx: ToolContext = {
       ...ctx,
       userId: ctx.userId || 'default',
       agentId: ctx.agentId || 'default',
       agentDisplayName: ctx.agentDisplayName || 'Agent',
-      services: ctx.services || new EmptyServiceRegistry(),
+      services: ctx.services || new EnvironmentServiceRegistry(),
     };
 
     const result = this.buildToolSet({ domains }, fullCtx);
@@ -651,6 +662,7 @@ export {
   assertTool,
   DOMAIN_TO_CATEGORY,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   isTool,
   type BaseTool,
   type RegistryQueryOptions,

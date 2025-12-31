@@ -14,6 +14,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
 
@@ -380,7 +381,7 @@ function handleAction(e: Event): void {
       break;
     case 'refresh':
       void loadAndRender();
-      toast.info('Refreshing...');
+      toast.info(t('toasts.refreshing'));
       break;
   }
 }

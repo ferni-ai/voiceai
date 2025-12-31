@@ -96,7 +96,7 @@ export class ParallelExecutor<T> {
   /**
    * Add multiple operations at once
    */
-  addAll(operations: ParallelOperation<T>[]): this {
+  addAll(operations: Array<ParallelOperation<T>>): this {
     for (const op of operations) {
       this.add(op);
     }
@@ -143,7 +143,7 @@ export class ParallelExecutor<T> {
 
       // Execute batch in parallel
       const batchResults = await Promise.allSettled(
-        executableOps.map((op) => this.executeWithTimeout(op))
+        executableOps.map(async (op) => this.executeWithTimeout(op))
       );
 
       // Process results
@@ -192,14 +192,14 @@ export class ParallelExecutor<T> {
   /**
    * Build execution batches based on dependencies
    */
-  private buildExecutionBatches(): ParallelOperation<T>[][] {
-    const batches: ParallelOperation<T>[][] = [];
+  private buildExecutionBatches(): Array<Array<ParallelOperation<T>>> {
+    const batches: Array<Array<ParallelOperation<T>>> = [];
     const scheduled = new Set<string>();
     const remaining = new Set(this.operations.keys());
 
     while (remaining.size > 0) {
       // Find operations whose dependencies are all scheduled
-      const batch: ParallelOperation<T>[] = [];
+      const batch: Array<ParallelOperation<T>> = [];
       const remainingIds = Array.from(remaining);
 
       for (const id of remainingIds) {
@@ -367,7 +367,7 @@ export async function parallelCollect<T>(
   // FIX BUG: Track timeouts so we can clear them to prevent timer leaks
   const timeoutIds: Array<ReturnType<typeof setTimeout>> = [];
 
-  const wrapped = fns.map((fn, index) => {
+  const wrapped = fns.map(async (fn, index) => {
     let timeoutId: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);

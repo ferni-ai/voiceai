@@ -242,7 +242,7 @@ Ferni takes action in the real world on your behalf—making calls, sending mess
 ## References
 
 - `CORE-PRINCIPLES.md` - Ferni's foundational philosophy
-- `design-system/brand/BETTER-THAN-HUMAN.md` - EQ principles
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md` - EQ principles
 - `docs/architecture/GROUP-CONVERSATIONS.md` - Technical architecture
 - `docs/design/CONCIERGE-FEATURE.md` - Existing concierge design
 

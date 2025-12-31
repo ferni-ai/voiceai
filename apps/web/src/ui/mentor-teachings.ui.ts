@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('MentorTeachings');
 
@@ -362,7 +363,7 @@ function render(): string {
             <span class="mentor-teachings-eyebrow">Learning From</span>
             <h2 class="mentor-teachings-name" id="mentor-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
-          <button class="mentor-close-btn" aria-label="Close teachings">
+          <button class="mentor-close-btn" aria-label="${t('accessibility.closeTeachings')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -381,7 +382,7 @@ function render(): string {
                 </svg>
                 Core Principles
               </h3>
-              <button aria-label="Add Principle" class="mentor-add-btn" data-action="add-principle">
+              <button aria-label="${t('accessibility.addPrinciple')}" class="mentor-add-btn" data-action="add-principle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -404,11 +405,11 @@ function render(): string {
               <div class="mentor-principle-card" data-index="${i}">
                 <h4 class="mentor-principle-title">${p}</h4>
                 <div class="mentor-card-actions" role="button" tabindex="0">
-                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}" aria-label="Edit principle">
+                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}" aria-label="${t('accessibility.editPrinciple')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}" aria-label="Delete principle">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}" aria-label="${t('accessibility.deletePrinciple')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -427,7 +428,7 @@ function render(): string {
                 </svg>
                 Key Quotes
               </h3>
-              <button aria-label="Add Quote" class="mentor-add-btn" data-action="add-quote">
+              <button aria-label="${t('accessibility.addQuote')}" class="mentor-add-btn" data-action="add-quote">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -451,11 +452,11 @@ function render(): string {
                 <p class="mentor-quote-text">${q.quote}</p>
                 ${q.source ? `<span class="mentor-quote-source">— ${q.source}</span>` : ''}
                 <div class="mentor-card-actions" role="button" tabindex="0">
-                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}" aria-label="Edit quote">
+                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}" aria-label="${t('accessibility.editQuote')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}" aria-label="Delete quote">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}" aria-label="${t('accessibility.deleteQuote')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -639,7 +640,7 @@ async function handleAddPrinciple(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates);
-    toast.success('Principle added!');
+    toast.success(t('toasts.principleAdded'));
     
     // Refresh
     await openMentorTeachings(currentAgent.id);
@@ -667,7 +668,7 @@ async function handleAddQuote(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Quote captured!');
+    toast.success(t('toasts.quoteCaptured'));
     
     // Refresh
     await openMentorTeachings(currentAgent.id);
@@ -695,7 +696,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       personality: { ...currentAgent.personality, values: updatedPrinciples }
     });
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit principle:', err);
@@ -716,7 +717,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       personality: { ...currentAgent.personality, values: updatedPrinciples }
     });
-    toast.success('Deleted');
+    toast.success(t('toasts.deleted'));
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete principle:', err);
@@ -744,7 +745,7 @@ async function handleEditQuote(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, wisdom: updatedQuotes as unknown as typeof currentAgent.memories.wisdom }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit quote:', err);
@@ -765,7 +766,7 @@ async function handleDeleteQuote(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, wisdom: updatedQuotes as unknown as typeof currentAgent.memories.wisdom }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Deleted');
+    toast.success(t('toasts.deleted'));
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete quote:', err);

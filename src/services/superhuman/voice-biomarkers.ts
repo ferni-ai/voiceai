@@ -17,6 +17,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onVoiceBiomarkerChange } from '../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'VoiceBiomarkers' });
 
@@ -195,11 +196,32 @@ export async function storeBiomarkerReading(
       timestamp: Date.now(),
     };
 
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('voice_biomarkers')
       .add(cleanForFirestore(reading));
+
+    // Index to semantic memory for "Better Than Human" recall
+    void onVoiceBiomarkerChange(
+      userId,
+      docRef.id,
+      {
+        emotion: getEmotionFromBiomarkers(biomarkers),
+        confidence: biomarkers.confidence,
+        voiceFeatures: {
+          pitch: getPitchCategory(input.pitchVariability || 0.5),
+          pace: getPaceCategory(input.speechRate || 150),
+          energy: getEnergyCategory(biomarkers.fatigueLevel),
+          strain: (input.strain || 0) > 0.3,
+        },
+        context: `Fatigue: ${(biomarkers.fatigueLevel * 100).toFixed(0)}%, Stress: ${biomarkers.stressTrajectory}`,
+        sessionId,
+        timestamp: new Date().toISOString(),
+        insights: generateBiomarkerInsights(biomarkers),
+      },
+      'create'
+    );
 
     log.debug({ userId, fatigueLevel: biomarkers.fatigueLevel }, 'Stored biomarker reading');
   } catch (error) {
@@ -362,6 +384,74 @@ export async function buildVoiceBiomarkersContext(
   }
 
   return sections.join('\n\n');
+}
+
+// ============================================================================
+// SEMANTIC INDEXING HELPERS
+// ============================================================================
+
+/** Convert biomarker readings to a primary emotion label */
+function getEmotionFromBiomarkers(biomarkers: VoiceBiomarkers): string {
+  if (biomarkers.fatigueLevel > 0.7) return 'exhausted';
+  if (biomarkers.fatigueLevel > 0.5) return 'tired';
+  if (biomarkers.stressTrajectory === 'rising') return 'stressed';
+  if (biomarkers.illnessRisk > 0.5) return 'unwell';
+  if (biomarkers.stressTrajectory === 'falling') return 'relaxing';
+  return 'neutral';
+}
+
+/** Convert pitch variability to category */
+function getPitchCategory(variability: number): 'low' | 'normal' | 'high' | 'variable' {
+  if (variability < 0.3) return 'low';
+  if (variability < 0.6) return 'normal';
+  if (variability < 0.8) return 'high';
+  return 'variable';
+}
+
+/** Convert speech rate to category */
+function getPaceCategory(speechRate: number): 'slow' | 'normal' | 'fast' | 'rushed' {
+  if (speechRate < 120) return 'slow';
+  if (speechRate < 160) return 'normal';
+  if (speechRate < 200) return 'fast';
+  return 'rushed';
+}
+
+/** Convert fatigue level to energy category */
+function getEnergyCategory(fatigueLevel: number): 'low' | 'moderate' | 'high' {
+  if (fatigueLevel > 0.6) return 'low';
+  if (fatigueLevel > 0.3) return 'moderate';
+  return 'high';
+}
+
+/** Generate human-readable insights from biomarkers */
+function generateBiomarkerInsights(biomarkers: VoiceBiomarkers): string[] {
+  const insights: string[] = [];
+
+  if (biomarkers.fatigueLevel > 0.7) {
+    insights.push('Significant fatigue detected - user may be sleep deprived');
+  } else if (biomarkers.fatigueLevel > 0.5) {
+    insights.push('Moderate fatigue - user sounds tired');
+  }
+
+  if (biomarkers.stressTrajectory === 'rising') {
+    insights.push('Stress levels rising over recent conversations');
+  } else if (biomarkers.stressTrajectory === 'falling') {
+    insights.push('Stress levels decreasing - user is recovering');
+  }
+
+  if (biomarkers.hydrationEstimate < 0.4) {
+    insights.push('Voice suggests possible dehydration');
+  }
+
+  if (biomarkers.illnessRisk > 0.5) {
+    insights.push('Voice patterns suggest possible illness');
+  }
+
+  if (biomarkers.medicationChangeIndicator) {
+    insights.push('Voice changes may indicate medication adjustment');
+  }
+
+  return insights;
 }
 
 // ============================================================================

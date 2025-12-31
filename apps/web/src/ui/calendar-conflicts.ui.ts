@@ -220,7 +220,7 @@ class CalendarConflictsUI {
           hasConflicts
             ? `
           <div class="calendar-conflicts__actions" role="button" tabindex="0">
-            <button aria-label="Refresh" class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
+            <button aria-label="${t('accessibility.refresh')}" class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
               ${ICONS.refresh}
               <span>Auto-resolve All</span>
             </button>
@@ -277,13 +277,13 @@ class CalendarConflictsUI {
         </div>
 
         <div class="calendar-conflicts__card-actions" role="button" tabindex="0">
-          <button aria-label="Keep Ferni" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
+          <button aria-label="${t('accessibility.keepFerni')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
             Keep Ferni
           </button>
-          <button aria-label="Keep" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
+          <button aria-label="${t('accessibility.keep')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
             Keep ${providerName}
           </button>
-          <button aria-label="Dismiss" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
+          <button aria-label="${t('accessibility.dismiss')}" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
             Dismiss
           </button>
         </div>

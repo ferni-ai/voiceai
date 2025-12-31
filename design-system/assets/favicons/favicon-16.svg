@@ -1,16 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Ferni Orb Favicon 16x16 - Simplified for small size -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Favicon 16x16 - Eyes design -->
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="orbGrad16" x1="30%" y1="0%" x2="70%" y2="100%">
-      <stop offset="0%" stop-color="#5a7a52"/>
-      <stop offset="50%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#3d5a35"/>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
     </linearGradient>
   </defs>
-  <!-- Outer ring (subtle at this size) -->
-  <circle cx="8" cy="8" r="7" fill="none" stroke="#8aa880" stroke-width="0.5" opacity="0.4"/>
-  <!-- Main orb -->
-  <circle cx="8" cy="8" r="6" fill="url(#orbGrad16)"/>
-  <!-- Highlight (simplified) -->
-  <ellipse cx="8" cy="5.5" rx="3" ry="1.5" fill="white" opacity="0.2"/>
+
+  <!-- Circular background -->
+  <circle cx="8" cy="8" r="7" fill="url(#orbGradient)"/>
+
+  <!-- Left eye -->
+  <ellipse cx="5.5" cy="7.5" rx="1.3" ry="1.6" fill="url(#eyeFill)"/>
+  <circle cx="5" cy="6.8" r="0.3" fill="white"/>
+
+  <!-- Right eye -->
+  <ellipse cx="10.5" cy="7.5" rx="1.3" ry="1.6" fill="url(#eyeFill)"/>
+  <circle cx="10" cy="6.8" r="0.3" fill="white"/>
 </svg>

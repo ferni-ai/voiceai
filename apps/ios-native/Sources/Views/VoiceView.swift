@@ -12,12 +12,22 @@ import UIKit
 struct VoiceView: View {
     @EnvironmentObject var session: IOSLiveKitSession
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var relationshipService: RelationshipArcService
 
     // MARK: - Better Than Human Engine
     @StateObject private var betterThanHuman = BetterThanHumanEngine()
 
+    // MARK: - Avatar Style Configuration
+    /// Set to true to use the new Window Avatar with 100 expressions
+    /// Set to false to use the classic Pixar Voice Orb
+    var useWindowAvatar: Bool = true
+
     // Animation state
     @State private var emotionHint: EmotionHint? = nil
+
+    // Color transition state - smoothly animate between persona colors
+    @State private var displayedPersonaId: String = "ferni"
+    @State private var colorTransitionProgress: CGFloat = 1.0
 
     // Waveform animation
     @State private var waveformPhase: Double = 0
@@ -113,7 +123,61 @@ struct VoiceView: View {
         }
     }
 
-    // MARK: - Background
+    // MARK: - Window Avatar View
+
+    /// The new Window Avatar with 100 expressions
+    /// Connected to session.currentExpression for automatic updates
+    private var windowAvatarView: some View {
+        // Map persona ID to Window Avatar's WindowPersona enum
+        let avatarPersona: WindowPersona = {
+            switch session.currentPersonaId {
+            case "ferni": return .ferni
+            case "peter": return .peter
+            case "maya": return .maya
+            case "jordan": return .jordan
+            case "nayan": return .nayan
+            case "alex": return .alex
+            default: return .ferni
+            }
+        }()
+
+        return ZStack {
+            // Glow effect behind avatar
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            PersonaRegistry.get(session.currentPersonaId).glowColor.opacity(0.3),
+                            PersonaRegistry.get(session.currentPersonaId).glowColor.opacity(0.1),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 100,
+                        endRadius: 200
+                    )
+                )
+                .frame(width: 400, height: 400)
+                .blur(radius: 20)
+
+            // The Window Avatar
+            FerniWindowAvatar(
+                size: 200,
+                persona: avatarPersona,
+                expression: session.currentExpression,
+                isSpeaking: Binding(
+                    get: { session.isAgentSpeaking },
+                    set: { _ in }
+                ),
+                volume: Binding(
+                    get: { session.agentAudioLevel },
+                    set: { _ in }
+                )
+            )
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: session.currentExpression)
+    }
+
+    // MARK: - Background (Animated Persona Colors)
 
     private var backgroundGradient: some View {
         let persona = PersonaRegistry.get(session.currentPersonaId)
@@ -122,18 +186,20 @@ struct VoiceView: View {
             // Deep black base for maximum glow contrast
             Color.black
 
-            // Subtle persona-colored ambient glow at center
+            // Animated persona-colored ambient glow at center
             RadialGradient(
                 colors: [
-                    persona.primaryColor.opacity(0.12),
-                    persona.primaryColor.opacity(0.05),
+                    persona.primaryColor.opacity(0.15),
+                    persona.primaryColor.opacity(0.06),
                     Color.clear
                 ],
                 center: .center,
                 startRadius: 50,
                 endRadius: 400
             )
-            .offset(y: -100) // Center around orb area
+            .offset(y: -100)
+            // Smooth color transition animation
+            .animation(.easeInOut(duration: 0.6), value: session.currentPersonaId)
 
             // Bottom gradient fade
             LinearGradient(
@@ -144,6 +210,15 @@ struct VoiceView: View {
                 startPoint: .center,
                 endPoint: .bottom
             )
+        }
+        // Track persona changes for color transition
+        .onChange(of: session.currentPersonaId) { newPersonaId in
+            withAnimation(.easeInOut(duration: 0.5)) {
+                displayedPersonaId = newPersonaId
+            }
+        }
+        .onAppear {
+            displayedPersonaId = session.currentPersonaId
         }
     }
 
@@ -156,14 +231,23 @@ struct VoiceView: View {
         // Frame needs to be 2.2x to show full glow halo
         let frameSize: CGFloat = orbSize * 2.2
 
-        return PixarVoiceOrb(
-            persona: persona,
-            isActive: session.state.isActive,
-            size: orbSize,
-            emotionHint: emotionHint,
-            betterThanHumanState: betterThanHuman.currentState
-        )
-        .frame(width: frameSize, height: frameSize)
+        return Group {
+            if useWindowAvatar {
+                // New Window Avatar with 100 expressions
+                windowAvatarView
+                    .frame(width: orbSize, height: orbSize)
+            } else {
+                // Classic Pixar Voice Orb
+                PixarVoiceOrb(
+                    persona: persona,
+                    isActive: session.state.isActive,
+                    size: orbSize,
+                    emotionHint: emotionHint,
+                    betterThanHumanState: betterThanHuman.currentState
+                )
+                .frame(width: frameSize, height: frameSize)
+            }
+        }
         .onTapGesture {
             handleOrbTap()
         }
@@ -214,9 +298,17 @@ struct VoiceView: View {
     }
 
     private func switchToPersona(_ personaId: String) {
+        // Check if persona is unlocked
+        let teamService = TeamUnlockService.shared
+        guard teamService.isUnlocked(personaId) else {
+            // Play error haptic for locked persona
+            appState.playErrorHaptic()
+            return
+        }
+        
         appState.playTapHaptic()
 
-        // Trigger recognition micro-expression for delight
+        // Trigger micro-expression for delight
         betterThanHuman.triggerMicroExpression(.delight)
 
         // Animate the transition
@@ -265,52 +357,74 @@ struct VoiceView: View {
         .padding(.top, 30)
     }
 
-    // MARK: - Audio Waveform
+    // MARK: - Audio Waveform (Premium Design)
 
     private var audioWaveform: some View {
         let persona = PersonaRegistry.get(session.currentPersonaId)
-        let barCount = 40
+        let barCount = 32  // Fewer, chunkier bars look more premium
+        
+        // Determine intensity based on state
+        let intensity: CGFloat = session.state == .speaking ? 1.2 : (session.state == .listening ? 0.6 : 0.3)
 
-        return HStack(spacing: 3) {
-            ForEach(0..<barCount, id: \.self) { index in
-                let indexPhase = Double(index) / Double(barCount)
-                // Create organic wave pattern
-                let wave1 = sin(waveformPhase * 2 + indexPhase * .pi * 4) * 0.4
-                let wave2 = sin(waveformPhase * 3.7 + indexPhase * .pi * 6) * 0.25
-                let wave3 = sin(waveformPhase * 7.3 + indexPhase * .pi * 2) * 0.15
-                let height = max(0.15, 0.5 + wave1 + wave2 + wave3)
+        return VStack(spacing: 8) {
+            // Waveform container with subtle glow
+            ZStack {
+                // Background glow when active
+                if session.state == .speaking {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(persona.glowColor.opacity(0.08))
+                        .blur(radius: 20)
+                        .frame(height: 60)
+                }
+                
+                HStack(spacing: 4) {
+                    ForEach(0..<barCount, id: \.self) { index in
+                        let indexPhase = Double(index) / Double(barCount)
+                        let centerDistance = abs(Double(index) - Double(barCount) / 2) / (Double(barCount) / 2)
+                        
+                        // Create organic wave pattern with center emphasis
+                        let wave1 = sin(waveformPhase * 2.5 + indexPhase * .pi * 5) * 0.35
+                        let wave2 = sin(waveformPhase * 4.2 + indexPhase * .pi * 3) * 0.2
+                        let wave3 = sin(waveformPhase * 8.1 + indexPhase * .pi * 7) * 0.1
+                        let centerBoost = (1.0 - centerDistance * 0.5) // Bars in center are taller
+                        let height = max(0.12, (0.4 + wave1 + wave2 + wave3) * centerBoost * Double(intensity))
 
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                persona.primaryColor.opacity(0.8),
-                                persona.secondaryColor.opacity(0.6)
-                            ],
-                            startPoint: .bottom,
-                            endPoint: .top
-                        )
-                    )
-                    .frame(width: 4, height: CGFloat(height) * 30)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        persona.primaryColor.opacity(0.9),
+                                        persona.glowColor.opacity(0.7)
+                                    ],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                            )
+                            .frame(width: 6, height: CGFloat(height) * 50)
+                            .shadow(color: persona.glowColor.opacity(session.state == .speaking ? 0.4 : 0.1), radius: 4)
+                    }
+                }
+                .frame(height: 50)
             }
         }
-        .frame(height: 35)
+        .padding(.horizontal, 24)
     }
 
     private func startWaveformAnimation() {
         Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
-            waveformPhase += 0.08
+            waveformPhase += 0.06  // Slightly slower for more organic feel
         }
     }
 
     // MARK: - Control Bar
 
     private var controlBar: some View {
-        HStack(spacing: 40) {
+        HStack(spacing: 32) {
             // Mute button
             GlassControlButton(
                 icon: session.isMuted ? "mic.slash.fill" : "mic.fill",
                 isActive: !session.isMuted,
+                persona: PersonaRegistry.get(session.currentPersonaId),
                 action: {
                     appState.playTapHaptic()
                     session.toggleMute()
@@ -319,7 +433,7 @@ struct VoiceView: View {
             .accessibilityLabel(session.isMuted ? "Unmute microphone" : "Mute microphone")
             .accessibilityHint("Double tap to \(session.isMuted ? "unmute" : "mute")")
 
-            // Connect/Disconnect button (large, center)
+            // Connect/Disconnect button (large, center) - the star of the show
             PremiumConnectButton(
                 state: session.state,
                 persona: PersonaRegistry.get(session.currentPersonaId),
@@ -334,6 +448,7 @@ struct VoiceView: View {
             GlassControlButton(
                 icon: "person.2.fill",
                 isActive: false,
+                persona: PersonaRegistry.get(session.currentPersonaId),
                 action: {
                     appState.playTapHaptic()
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -344,7 +459,7 @@ struct VoiceView: View {
             .accessibilityLabel("Choose persona")
             .accessibilityHint("Double tap to show persona picker")
         }
-        .padding(.horizontal, 30)
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Actions
@@ -501,6 +616,7 @@ struct VoiceView: View {
 struct GlassControlButton: View {
     let icon: String
     let isActive: Bool
+    var persona: Persona? = nil
     let action: () -> Void
 
     @State private var isPressed = false
@@ -508,7 +624,7 @@ struct GlassControlButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Glass background
+                // Glass background with shadow
                 Circle()
                     .fill(.ultraThinMaterial)
                     .overlay(
@@ -525,23 +641,25 @@ struct GlassControlButton: View {
                                 lineWidth: 1
                             )
                     )
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
 
-                // Icon
+                // Icon with subtle glow when active
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(isActive ? .white : .white.opacity(0.6))
+                    .foregroundColor(isActive ? .white : .white.opacity(0.55))
+                    .shadow(color: isActive ? (persona?.glowColor ?? .white).opacity(0.3) : .clear, radius: 4)
             }
-            .frame(width: 54, height: 54)
-            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .frame(width: 52, height: 52)
+            .scaleEffect(isPressed ? 0.9 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    withAnimation(.easeOut(duration: 0.1)) { isPressed = true }
+                    withAnimation(.easeOut(duration: 0.08)) { isPressed = true }
                 }
                 .onEnded { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { isPressed = false }
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) { isPressed = false }
                 }
         )
     }
@@ -549,7 +667,7 @@ struct GlassControlButton: View {
 
 // MARK: - Premium Connect Button
 
-/// Premium iOS-native connect button with persona colors
+/// Premium iOS-native connect button - large, tactile, beautiful
 struct PremiumConnectButton: View {
     let state: VoiceState
     let persona: Persona
@@ -558,91 +676,131 @@ struct PremiumConnectButton: View {
     @State private var isPressed = false
     @State private var rotationAngle: Double = 0
     @State private var pulseScale: CGFloat = 1.0
+    @State private var glowOpacity: Double = 0.3
 
     var isConnected: Bool { state.isActive }
     var isConnecting: Bool { state == .connecting }
 
+    // Colors
+    private let connectGreen = Color(red: 0.29, green: 0.45, blue: 0.30)  // Slightly brighter Ferni green
+    private let disconnectRed = Color(red: 0.88, green: 0.35, blue: 0.35)
+
     var body: some View {
         Button(action: action) {
             ZStack {
-                // Outer glow ring (when connected)
-                if isConnected {
-                    Circle()
-                        .stroke(persona.glowColor.opacity(0.3), lineWidth: 2)
-                        .frame(width: 90, height: 90)
-                        .scaleEffect(pulseScale)
-                }
+                // Outer glow ring - always visible but pulses when connected
+                Circle()
+                    .stroke(
+                        (isConnected ? disconnectRed : persona.glowColor).opacity(glowOpacity),
+                        lineWidth: isConnected ? 3 : 2
+                    )
+                    .frame(width: 108, height: 108)
+                    .scaleEffect(pulseScale)
+                
+                // Second glow layer for depth
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [
+                                (isConnected ? disconnectRed : persona.glowColor).opacity(0.15),
+                                Color.clear
+                            ],
+                            center: .center,
+                            startRadius: 35,
+                            endRadius: 60
+                        )
+                    )
+                    .frame(width: 100, height: 100)
 
-                // Glass background with gradient
+                // Main button - BIGGER (88pt)
                 Circle()
                     .fill(
                         LinearGradient(
                             colors: isConnected
-                                ? [Color(hex: 0xe85d5d), Color(hex: 0xc23c3c)]  // Red gradient for disconnect
-                                : [persona.primaryColor, persona.secondaryColor],  // Persona colors for connect
+                                ? [disconnectRed, disconnectRed.opacity(0.85)]
+                                : [connectGreen, persona.primaryColor],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay(
+                        // Inner highlight ring
                         Circle()
                             .stroke(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(0.4),
-                                        Color.white.opacity(0.1)
+                                        Color.white.opacity(0.5),
+                                        Color.white.opacity(0.1),
+                                        Color.clear
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1.5
+                                lineWidth: 2
                             )
+                            .padding(2)
                     )
-                    .shadow(color: (isConnected ? Color(hex: 0xe85d5d) : persona.glowColor).opacity(0.4), radius: 12)
-                    .frame(width: 76, height: 76)
+                    .shadow(color: (isConnected ? disconnectRed : connectGreen).opacity(0.5), radius: 16, y: 4)
+                    .frame(width: 88, height: 88)
 
                 // Icon or spinner
                 if isConnecting {
-                    // Spinning indicator
+                    // Elegant spinning indicator
                     ZStack {
                         Circle()
-                            .stroke(Color.white.opacity(0.3), lineWidth: 3)
-                            .frame(width: 32, height: 32)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 3)
+                            .frame(width: 36, height: 36)
 
                         Circle()
-                            .trim(from: 0, to: 0.3)
-                            .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                            .frame(width: 32, height: 32)
+                            .trim(from: 0, to: 0.35)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [Color.white, Color.white.opacity(0.3)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                            )
+                            .frame(width: 36, height: 36)
                             .rotationEffect(.degrees(rotationAngle))
                     }
                     .onAppear {
-                        withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                        withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) {
                             rotationAngle = 360
                         }
                     }
                 } else {
+                    // Icon with shadow for depth
                     Image(systemName: isConnected ? "phone.down.fill" : "waveform")
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(size: 32, weight: .semibold))
                         .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                 }
             }
-            .scaleEffect(isPressed ? 0.92 : 1.0)
+            .scaleEffect(isPressed ? 0.93 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isConnecting)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    withAnimation(.easeOut(duration: 0.1)) { isPressed = true }
+                    withAnimation(.easeOut(duration: 0.08)) { isPressed = true }
                 }
                 .onEnded { _ in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { isPressed = false }
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) { isPressed = false }
                 }
         )
         .onAppear {
-            // Pulse animation for connected state
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                pulseScale = 1.1
+            // Subtle pulse animation
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                pulseScale = 1.05
+                glowOpacity = isConnected ? 0.5 : 0.4
+            }
+        }
+        .onChange(of: isConnected) { connected in
+            // Reset pulse when state changes
+            withAnimation(.easeInOut(duration: 0.3)) {
+                glowOpacity = connected ? 0.5 : 0.3
             }
         }
     }
@@ -654,6 +812,7 @@ struct PremiumConnectButton: View {
     VoiceView()
         .environmentObject(IOSLiveKitSession())
         .environmentObject(AppState())
+        .environmentObject(RelationshipArcService.shared)
 }
 
 // MARK: - Shake Gesture Detector

@@ -13,6 +13,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import {
   createAnimationConfig,
   escapeAttr,
@@ -486,7 +487,7 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
       </div>
     `;
 
@@ -584,7 +585,7 @@ class RitualBuilderUI {
                 class="engagement-input"
                 value="${this.ritual.specificTime ? `${String(this.ritual.specificTime.hour).padStart(2, '0')}:${String(this.ritual.specificTime.minute).padStart(2, '0')}` : ''}"
               />
-              <button aria-label="Copy" type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
+              <button aria-label="${t('accessibility.copy')}" type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
                 ${ICONS.clock}
                 ${BUILDER_COPY.buttons.suggestTimes}
               </button>
@@ -627,8 +628,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="Copy" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
-        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
       </div>
     `;
 
@@ -822,8 +823,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="Edit" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
-        <button aria-label="Copy" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
+        <button aria-label="${t('accessibility.edit')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
       </div>
     `;
 

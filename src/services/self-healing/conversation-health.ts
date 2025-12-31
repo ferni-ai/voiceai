@@ -178,8 +178,11 @@ function categorizeService(serviceName: string): keyof typeof DEGRADATION_PHRASE
   const lower = serviceName.toLowerCase();
 
   if (lower.includes('spotify') || lower.includes('music')) return 'music';
-  if (lower.includes('weather') || lower.includes('google')) return 'weather';
-  if (lower.includes('calendar')) return 'calendar';
+  // Only categorize as 'weather' if explicitly weather-related
+  // Previously included 'google' which caused unrelated Google circuits (calendar, books)
+  // to incorrectly report weather as unavailable
+  if (lower.includes('weather') || lower.includes('open-meteo')) return 'weather';
+  if (lower.includes('calendar') || lower.includes('google-calendar')) return 'calendar';
   if (
     lower.includes('home') ||
     lower.includes('hue') ||
@@ -418,8 +421,11 @@ export function checkCapability(
 
   const serviceMap: Record<string, string[]> = {
     music: ['spotify'],
-    weather: ['weather', 'google'],
-    calendar: ['calendar', 'google'],
+    // NOTE: Weather uses Open-Meteo as fallback, don't include 'google' here
+    // Google Weather API is optional - Open-Meteo always works
+    weather: ['weather', 'open-meteo'],
+    // Calendar specifically uses google-calendar circuit breaker
+    calendar: ['google-calendar'],
     smartHome: ['home-assistant', 'hue', 'lifx', 'smartthings'],
     memory: ['firestore', 'context'],
   };

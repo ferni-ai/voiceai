@@ -138,7 +138,7 @@ async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<v
     flushLocks.delete(userId);
   });
   flushLocks.set(userId, lockPromise);
-  
+
   return lockPromise;
 }
 
@@ -149,10 +149,7 @@ async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<v
 /**
  * Save Markov model state to Firestore
  */
-export async function saveMarkovState(
-  userId: string,
-  data: MarkovPersistenceData
-): Promise<void> {
+export async function saveMarkovState(userId: string, data: MarkovPersistenceData): Promise<void> {
   const firestore = getFirestoreDb();
   if (!firestore) {
     log.debug({ userId }, 'Firestore not available, skipping Markov save');
@@ -385,9 +382,7 @@ export async function loadReinforcementState(
 /**
  * Save community-wide patterns (aggregated, anonymous)
  */
-export async function saveCommunityPatterns(
-  data: MarkovPersistenceData
-): Promise<void> {
+export async function saveCommunityPatterns(data: MarkovPersistenceData): Promise<void> {
   const firestore = getFirestoreDb();
   if (!firestore) return;
 
@@ -561,12 +556,9 @@ export function initializePersistence(
   if (initialized) return;
 
   // Set up periodic flush (every 5 minutes)
-  flushIntervalHandle = setInterval(
-    () => {
-      void flushDirtyUsers(getMarkovData, getTimeSeriesData, getReinforcementData);
-    },
-    FLUSH_INTERVAL_MS
-  );
+  flushIntervalHandle = setInterval(() => {
+    void flushDirtyUsers(getMarkovData, getTimeSeriesData, getReinforcementData);
+  }, FLUSH_INTERVAL_MS);
 
   initialized = true;
   log.info('🧠 Predictive ML persistence initialized');

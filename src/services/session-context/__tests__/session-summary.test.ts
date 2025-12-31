@@ -40,6 +40,7 @@ import {
   recordAppInteraction,
   formatContextForVoiceCall,
   formatContextForApp,
+  clearAllSessionData,
   type VoiceSessionSummary,
   type ActiveUserContext,
 } from '../session-summary.js';
@@ -47,6 +48,11 @@ import {
 describe('Session Summary', () => {
   const testUserId = 'test-user-123';
   const testSessionId = 'session-123';
+
+  beforeEach(() => {
+    // Clear in-memory data between tests
+    clearAllSessionData();
+  });
 
   const mockSummary: VoiceSessionSummary = {
     sessionId: testSessionId,

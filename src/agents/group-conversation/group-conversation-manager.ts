@@ -13,14 +13,18 @@ import { EventEmitter } from 'events';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import type { ParticipantRegistry } from './participant-registry.js';
+import { callLLM } from '../../services/llm-utils.js';
 import {
   createParticipantRegistry,
   createUserParticipant,
   createAgentParticipant,
+  type ParticipantRegistry,
 } from './participant-registry.js';
-import type { TurnTakingEngine } from './turn-taking.js';
-import { createTurnTakingEngine, DEFAULT_TURN_TAKING_CONFIG } from './turn-taking.js';
+import {
+  createTurnTakingEngine,
+  DEFAULT_TURN_TAKING_CONFIG,
+  type TurnTakingEngine,
+} from './turn-taking.js';
 import type {
   GroupConversation,
   GroupParticipant,
@@ -317,9 +321,10 @@ export class GroupConversationManager extends EventEmitter {
 
   /**
    * Get conversation summary (for handoffs, context, etc.)
+   * Uses LLM to extract key points, action items, and decisions.
    */
   async getSummary(): Promise<GroupConversationSummary> {
-    // TODO: Use LLM to generate intelligent summary
+    // Build participant summaries
     const participantSummaries = new Map<
       string,
       { utteranceCount: number; speakingTimeMs: number; mainContributions: string[] }
@@ -334,12 +339,154 @@ export class GroupConversationManager extends EventEmitter {
       });
     }
 
+    // If no transcript, return empty summary
+    if (this.conversation.transcript.length === 0) {
+      return { keyPoints: [], actionItems: [], decisions: [], participantSummaries };
+    }
+
+    // Use LLM to extract key points, action items, and decisions
+    const llmSummary = await this.generateLLMSummary();
+
     return {
-      keyPoints: [], // TODO: Extract via LLM
-      actionItems: [], // TODO: Extract via LLM
-      decisions: [], // TODO: Extract via LLM
+      keyPoints: llmSummary.keyPoints,
+      actionItems: llmSummary.actionItems,
+      decisions: llmSummary.decisions,
       participantSummaries,
     };
+  }
+
+  /**
+   * Generate summary using LLM
+   */
+  private async generateLLMSummary(): Promise<{
+    keyPoints: string[];
+    actionItems: Array<{ item: string; assignedTo?: string; dueDate?: string }>;
+    decisions: string[];
+  }> {
+    // Format transcript for LLM
+    const transcriptText = this.conversation.transcript
+      .slice(-50) // Last 50 utterances max
+      .map((u) => `[${u.speakerName}]: ${u.text}`)
+      .join('\n');
+
+    const participantList = this.registry
+      .getAll()
+      .map((p) => `- ${p.name} (${p.type})`)
+      .join('\n');
+
+    const prompt = `Analyze this group conversation and extract structured information.
+
+TOPIC: ${this.conversation.topic ?? 'General discussion'}
+
+PARTICIPANTS:
+${participantList}
+
+TRANSCRIPT:
+${transcriptText}
+
+Extract the following in JSON format:
+{
+  "keyPoints": ["main point 1", "main point 2", ...],
+  "actionItems": [{"item": "task description", "assignedTo": "person name or null", "dueDate": "date or null"}],
+  "decisions": ["decision 1", "decision 2", ...]
+}
+
+Rules:
+- Keep key points concise (max 10 words each)
+- Only include clear action items with specific tasks
+- Only include definitive decisions that were agreed upon
+- Return empty arrays if nothing applies
+- Return ONLY valid JSON, no explanation`;
+
+    try {
+      const result = await callLLM(prompt, {
+        maxTokens: 500,
+        temperature: 0.3, // Lower temperature for structured output
+        timeout: 5000,
+      });
+
+      if (!result) {
+        log.debug({ sessionId: this.config.sessionId }, 'LLM unavailable for summary generation');
+        return { keyPoints: [], actionItems: [], decisions: [] };
+      }
+
+      // Parse JSON response
+      const parsed = this.parseLLMSummaryResponse(result);
+      log.info(
+        {
+          sessionId: this.config.sessionId,
+          keyPointCount: parsed.keyPoints.length,
+          actionItemCount: parsed.actionItems.length,
+          decisionCount: parsed.decisions.length,
+        },
+        '🎙️ Generated LLM summary for group conversation'
+      );
+
+      return parsed;
+    } catch (error) {
+      log.warn(
+        { error: String(error), sessionId: this.config.sessionId },
+        'Failed to generate LLM summary, returning empty'
+      );
+      return { keyPoints: [], actionItems: [], decisions: [] };
+    }
+  }
+
+  /**
+   * Parse LLM response for summary extraction
+   */
+  private parseLLMSummaryResponse(response: string): {
+    keyPoints: string[];
+    actionItems: Array<{ item: string; assignedTo?: string; dueDate?: string }>;
+    decisions: string[];
+  } {
+    try {
+      // Clean up response - remove markdown code blocks if present
+      let cleaned = response.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+      }
+
+      const parsed = JSON.parse(cleaned) as {
+        keyPoints?: unknown;
+        actionItems?: unknown;
+        decisions?: unknown;
+      };
+
+      // Validate and extract keyPoints
+      const keyPoints = Array.isArray(parsed.keyPoints)
+        ? (parsed.keyPoints as unknown[])
+            .filter((kp): kp is string => typeof kp === 'string')
+            .slice(0, 10)
+        : [];
+
+      // Validate and extract actionItems
+      const actionItems = Array.isArray(parsed.actionItems)
+        ? (parsed.actionItems as unknown[])
+            .filter(
+              (ai): ai is { item: string; assignedTo?: string; dueDate?: string } =>
+                typeof ai === 'object' && ai !== null && 'item' in ai && typeof ai.item === 'string'
+            )
+            .slice(0, 10)
+            .map((ai) => ({
+              item: ai.item,
+              assignedTo: typeof ai.assignedTo === 'string' ? ai.assignedTo : undefined,
+              dueDate: typeof ai.dueDate === 'string' ? ai.dueDate : undefined,
+            }))
+        : [];
+
+      // Validate and extract decisions
+      const decisions = Array.isArray(parsed.decisions)
+        ? (parsed.decisions as unknown[])
+            .filter((d): d is string => typeof d === 'string')
+            .slice(0, 10)
+        : [];
+
+      return { keyPoints, actionItems, decisions };
+    } catch {
+      log.debug({ response: response.slice(0, 200) }, 'Failed to parse LLM summary response');
+      return { keyPoints: [], actionItems: [], decisions: [] };
+    }
   }
 
   /**
@@ -451,6 +598,6 @@ export async function createGroupConversation(
 
   return {
     conversation: manager.getConversation(),
-    cleanup: () => manager.cleanup(),
+    cleanup: async () => manager.cleanup(),
   };
 }

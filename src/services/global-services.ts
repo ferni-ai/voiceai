@@ -77,8 +77,11 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
 
   try {
     // Initialize memory system - only index persona if not already done
+    // CRITICAL: Skip rehydration during startup - it blocks for 60+ seconds
+    // Rehydration can happen async after worker is ready for jobs
     const { store, vectorStore } = await initializeMemorySystem({
       indexPersona: shouldIndexPersona,
+      rehydrateConversations: false, // Skip blocking rehydration during warmup
     });
 
     if (shouldIndexPersona) {

@@ -65,6 +65,8 @@ export type SsmlTagType =
   | 'break'
   | 'emotion'
   | 'speed'
+  | 'volume' // Cartesia Sonic-3 specific
+  | 'spell' // Cartesia Sonic-3 specific
   | 'emphasis'
   | 'prosody'
   | 'phoneme'
@@ -168,7 +170,6 @@ function loadNativeModule(): FerniPerfSsmlModule {
   loadAttempted = true;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@ferni/perf') as Record<string, unknown>;
 
     // Verify core SSML functions actually exist

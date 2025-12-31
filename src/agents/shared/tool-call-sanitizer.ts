@@ -30,6 +30,7 @@
  * but this catches any leakage from the JSON fallback path.
  */
 
+import { TransformStream, type TransformStreamDefaultController } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   detectsToolCallLeakage as primingDetectsLeakage,
@@ -39,6 +40,8 @@ import {
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // "Better than Human" semantic tool presence for emotion-aware feedback
 import { startToolPresence } from '../../tools/execution/index.js';
+// Centralized generateReply gateway - NEVER use session.generateReply directly!
+import { generateReply } from './generate-reply-gateway.js';
 // Native SIMD-accelerated JSON parser (for faster tool call detection)
 import {
   likelyContainsFunctionCall as nativeLikelyContainsFunctionCall,
@@ -1134,10 +1137,7 @@ const TOOL_NAME_PATTERNS = [
       '🚀 Tool call sanitizer initialized with native acceleration + Aho-Corasick'
     );
   } catch (err) {
-    log.warn(
-      { error: String(err) },
-      '⚠️ Native module initialization failed, using JS fallback'
-    );
+    log.warn({ error: String(err) }, '⚠️ Native module initialization failed, using JS fallback');
   }
 })();
 
@@ -1773,10 +1773,18 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     lowerTrimmed.includes('do not speak this') ||
     lowerTrimmed.includes("don't speak this") ||
     lowerTrimmed.includes('respond naturally') ||
-    lowerTrimmed.includes('for internal use only')
+    lowerTrimmed.includes('for internal use only') ||
+    // CRITICAL: Catch echoed instruction text from meaningful-silence.ts
+    (lowerTrimmed.includes("don't say") && lowerTrimmed.includes('type phrases')) ||
+    lowerTrimmed.includes("don't be robotic") ||
+    lowerTrimmed.includes('whatever fits the moment') ||
+    lowerTrimmed.includes('how to respond:') ||
+    lowerTrimmed.includes('what you know:') ||
+    lowerTrimmed.includes('be genuine - like a real friend') ||
+    lowerTrimmed.includes('could be a few words, could be a full thought')
   ) {
     log.warn(
-      { text: trimmed },
+      { text: trimmed.slice(0, 100) },
       '🚨 INTERNAL INSTRUCTION DETECTED - Tool response with speak instruction'
     );
     return {
@@ -1908,6 +1916,16 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     // SSML expressions like [laughter], [sigh], [chuckle], [whisper], etc.
     /\[[A-Z][A-Z\s_-]+[A-Z]\]/, // Any [ALL_CAPS_LABEL] anywhere (case-sensitive!)
     /\[[A-Z][A-Z\s_-]+:/, // Any [CAPS_LABEL: anywhere (case-sensitive!)
+    // === CRITICAL: Echoed instruction text from meaningful-silence.ts ===
+    // These patterns catch when Gemini echoes back our internal instructions verbatim
+    /don't say ".*" type phrases/i, // "Don't say 'I'm here if you need me' type phrases"
+    /don't be robotic or formulaic/i, // Direct instruction text from silence handler
+    /respond naturally\s*[-–—]?\s*could be/i, // "Respond naturally - could be a few words"
+    /whatever fits the moment/i, // End of our silence instruction
+    /be genuine\s*[-–—]?\s*like a real friend/i, // Instruction pattern
+    /keep it SHORT \(under \d+ words\)/i, // Dead air instruction
+    /don't ask questions\s*[-–—]?\s*just acknowledge/i, // Dead air instruction
+    /be warm but not needy/i, // Dead air instruction
   ];
 
   for (const pattern of instructionLeakagePatterns) {
@@ -2376,7 +2394,7 @@ function getSlowToolAcknowledgment(fn: string, personaId?: string, userId?: stri
   // Try to use the new persona-aware system
   try {
     // Dynamic import to avoid circular dependencies
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { generateAcknowledgment, getToolCategory } =
       require('../../speech/coordination/index.js') as {
         generateAcknowledgment: (ctx: {
@@ -3459,7 +3477,7 @@ export function createSanitizerWithMusicFallback(
         const cleanedBuffer = stripGuidanceBlocks(buffer);
         if (cleanedBuffer) {
           // 🎯 Accumulate text for post-LLM semantic routing fallback
-          accumulatedTextForSemanticFallback += cleanedBuffer + ' ';
+          accumulatedTextForSemanticFallback += `${cleanedBuffer} `;
           controller.enqueue(cleanedBuffer);
         }
         buffer = '';
@@ -3595,14 +3613,20 @@ export function createSanitizerWithMusicFallback(
                     '✅ POST-LLM SEMANTIC FALLBACK: Tool executed successfully'
                   );
 
-                  // Speak the result if we have a session
-                  if (session?.generateReply && resultData) {
+                  // Speak the result if we have a session and sessionId
+                  if (session && resultData && sessionId) {
                     const resultText =
                       typeof resultData === 'string' ? resultData : JSON.stringify(resultData);
 
-                    session.generateReply({
+                    // Use gateway for proper error handling and session readiness
+                    // Fire-and-forget since this is a non-critical acknowledgment
+                    generateReply(session, sessionId, {
                       instructions: `I just executed ${topMatch.toolId} for the user. Briefly acknowledge: "${resultText.slice(0, 200)}"`,
-                      allowInterruptions: true,
+                      context: 'tool-execution-acknowledgment',
+                      fallbackMessage: 'Done.',
+                      priority: 'low',
+                    }).catch(() => {
+                      // Ignore errors - this is a non-critical acknowledgment
                     });
                   }
                 } else {

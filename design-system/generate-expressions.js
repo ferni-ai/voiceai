@@ -80,9 +80,11 @@ function generateExpressionData(expressions) {
     // Eyes group (gaze)
     lines.push(`    eyesGroup: { translateX: ${expr.eyesGroup?.translateX ?? 0}, translateY: ${expr.eyesGroup?.translateY ?? 0} },`);
 
-    // Lid curves
-    lines.push(`    lidTop: { curve: ${expr.lidTop?.curve ?? 0} },`);
-    lines.push(`    lidBottom: { curve: ${expr.lidBottom?.curve ?? 0} },`);
+    // Lid curves (quote string values like 'voice-reactive')
+    const lidTopCurve = expr.lidTop?.curve ?? 0;
+    const lidBottomCurve = expr.lidBottom?.curve ?? 0;
+    lines.push(`    lidTop: { curve: ${typeof lidTopCurve === 'string' ? `'${lidTopCurve}'` : lidTopCurve} },`);
+    lines.push(`    lidBottom: { curve: ${typeof lidBottomCurve === 'string' ? `'${lidBottomCurve}'` : lidBottomCurve} },`);
 
     // Smile crease
     if (expr.smileCrease) {
@@ -250,7 +252,7 @@ export interface GazeDirection {
  * Lid curve configuration (controls SVG path curve)
  */
 export interface LidCurve {
-  curve: number;
+  curve: number | string;  // Can be numeric value or 'voice-reactive'
 }
 
 /**
@@ -709,6 +711,67 @@ ${generateKeyframes()}
 // iOS JSON GENERATOR
 // ============================================================================
 
+/**
+ * Derive iOS expression parameters from web properties.
+ *
+ * iOS Window Avatar uses:
+ * - topCutoff: 0-1, how much of eye top is hidden (squint = more cutoff)
+ * - topCurve: Curvature of top lid (positive = happy arc, negative = surprised)
+ * - bottomCutoff: 0-1, how much of eye bottom is hidden
+ * - bottomCurve: Curvature of bottom lid (negative = smile, positive = sad)
+ * - asymmetry: 0-1, difference between left and right eye
+ */
+function deriveIOSValues(expr) {
+  const scaleY = expr.eyeWhite?.scaleY ?? 1;
+  const scaleX = expr.eyeWhite?.scaleX ?? 1;
+  const lidTopCurve = expr.lidTop?.curve ?? 0;
+  const lidBottomCurve = expr.lidBottom?.curve ?? 0;
+
+  // Calculate topCutoff from eye squint (scaleY < 1 = squinted)
+  // Squinted eyes (scaleY=0.6) → topCutoff ~0.2
+  // Wide eyes (scaleY=1.2) → topCutoff = 0
+  let topCutoff = 0;
+  if (scaleY < 1) {
+    // More squint = more cutoff, scaled to 0-0.4 range
+    topCutoff = Math.min((1 - scaleY) * 0.5, 0.4);
+  }
+
+  // Calculate bottomCutoff (usually less than top for most expressions)
+  let bottomCutoff = 0;
+  if (scaleY < 0.8) {
+    // Very squinted eyes also cut bottom
+    bottomCutoff = Math.min((1 - scaleY) * 0.3, 0.35);
+  }
+
+  // For sleepy/tired expressions (very low scaleY), increase both cutoffs
+  if (scaleY < 0.5) {
+    topCutoff = Math.min(topCutoff + 0.15, 0.5);
+    bottomCutoff = Math.min(bottomCutoff + 0.1, 0.4);
+  }
+
+  // Normalize lid curves to iOS range (-0.5 to 0.5)
+  // Web uses values like -25 to 75, iOS uses smaller normalized values
+  const topCurve = Math.max(-0.5, Math.min(0.5, lidTopCurve / 100));
+  const bottomCurve = Math.max(-0.5, Math.min(0.5, lidBottomCurve / 100));
+
+  // Calculate asymmetry from left/right eye overrides
+  let asymmetry = 0;
+  const leftScaleY = expr.eyeLeft?.scaleY ?? scaleY;
+  const rightScaleY = expr.eyeRight?.scaleY ?? scaleY;
+  if (leftScaleY !== rightScaleY) {
+    asymmetry = Math.abs(leftScaleY - rightScaleY);
+  }
+
+  // Round to 2 decimal places for cleaner JSON
+  return {
+    topCutoff: Math.round(topCutoff * 100) / 100,
+    topCurve: Math.round(topCurve * 100) / 100,
+    bottomCutoff: Math.round(bottomCutoff * 100) / 100,
+    bottomCurve: Math.round(bottomCurve * 100) / 100,
+    asymmetry: Math.round(asymmetry * 100) / 100,
+  };
+}
+
 function generateIOSJSON(data) {
   const iosData = {
     version: data.version,
@@ -719,15 +782,21 @@ function generateIOSJSON(data) {
   };
 
   for (const [id, expr] of Object.entries(data.expressions)) {
+    // Use explicit iOS values if provided, otherwise derive from web properties
+    const derivedIOS = deriveIOSValues(expr);
+
     iosData.expressions[id] = {
       family: expr.family,
-      topCutoff: expr.ios?.topCutoff ?? 0,
-      topCurve: expr.ios?.topCurve ?? 0,
-      bottomCutoff: expr.ios?.bottomCutoff ?? 0,
-      bottomCurve: expr.ios?.bottomCurve ?? 0,
-      asymmetry: expr.ios?.asymmetry ?? 0,
+      topCutoff: expr.ios?.topCutoff ?? derivedIOS.topCutoff,
+      topCurve: expr.ios?.topCurve ?? derivedIOS.topCurve,
+      bottomCutoff: expr.ios?.bottomCutoff ?? derivedIOS.bottomCutoff,
+      bottomCurve: expr.ios?.bottomCurve ?? derivedIOS.bottomCurve,
+      asymmetry: expr.ios?.asymmetry ?? derivedIOS.asymmetry,
       animation: expr.animation ?? null,
       sparkle: expr.sparkle ?? false,
+      // Include web properties for reference/debugging
+      eyeScaleY: expr.eyeWhite?.scaleY ?? 1,
+      eyeScaleX: expr.eyeWhite?.scaleX ?? 1,
     };
   }
 

@@ -17,6 +17,7 @@ import { loadNetwork } from '../superhuman/relationship-network.js';
 import { loadPersonalDates } from '../superhuman/seasonal-awareness.js';
 import { getGroup, getGroups } from './contact-groups.js';
 import { getContact, getContacts, recordInteraction } from './contact-relationship-service.js';
+import { onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import type {
   BatchOutreachRequest,
   BatchOutreachResult,
@@ -1141,6 +1142,23 @@ async function saveOutreachHistory(
           createdAt: new Date(),
         })
       );
+
+    // Index each message interaction to semantic memory
+    for (const msg of messages) {
+      void onContactInteractionChange(
+        userId,
+        `outreach_${requestId}_${msg.contactId}`,
+        {
+          contactName: msg.contactName,
+          interactionType: 'message',
+          summary: `${msg.occasion} message via ${msg.channel}`,
+          date: msg.sentAt?.toISOString() || new Date().toISOString(),
+          sentiment: 'positive',
+          followUpNeeded: false,
+        },
+        'create'
+      );
+    }
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to save outreach history');
   }

@@ -252,9 +252,7 @@ export function estimateSyntacticCompleteness(text: string): {
 
   // Heuristic: longer utterances are more likely complete
   // 🦀 Use Rust for O(1) word counting when available
-  const wordCount = RUST_COUNTING_AVAILABLE
-    ? countWordsRust(trimmed)
-    : trimmed.split(/\s+/).length;
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(trimmed) : trimmed.split(/\s+/).length;
   if (wordCount >= 5) {
     // Check for verb presence (crude)
     const hasVerb =

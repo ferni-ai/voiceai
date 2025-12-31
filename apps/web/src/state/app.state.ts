@@ -390,6 +390,13 @@ export function getDeviceId(): string {
 }
 
 /**
+ * Get current user name (from onboarding, localStorage, or auth).
+ */
+export function getUserName(): string | null {
+  return appState.getState().userName;
+}
+
+/**
  * Set wrap-up state (agent is saying goodbye).
  */
 export function setWrappingUp(isWrappingUp: boolean): void {

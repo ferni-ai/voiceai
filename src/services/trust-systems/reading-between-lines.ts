@@ -23,6 +23,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { indexReadingBetweenLines } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'ReadingBetweenLines' });
 
@@ -673,8 +674,20 @@ export function detectUnsaidSignals(
     persistProfile(userId);
   }
 
-  // Log for debugging
+  // Index significant signals to semantic memory
   if (signals.length > 0) {
+    for (const signal of signals) {
+      // Only index high-confidence signals
+      if (signal.confidence >= 0.6) {
+        indexReadingBetweenLines(userId, {
+          id: `unsaid_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          observation: signal.observation,
+          whatTheySaid: userMessage.slice(0, 200),
+          whatTheyMeant: signal.underlying,
+        });
+      }
+    }
+
     log.debug(
       {
         userId,

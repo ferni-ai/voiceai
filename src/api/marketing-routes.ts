@@ -93,7 +93,15 @@ export async function handleMarketingRoutes(
         return true;
       }
 
-      // TODO: Store tokens securely for the user
+      // Store tokens securely (encrypted with AES-256-GCM)
+      const storage = new MarketingStorage(savedState.userId);
+      await storage.saveTokens('twitter', {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresIn ? Date.now() + tokens.expiresIn * 1000 : undefined,
+        updatedAt: Date.now(),
+      });
+
       log.info({ userId: savedState.userId }, '🐦 Twitter connected successfully');
 
       // Redirect to success page
@@ -157,7 +165,14 @@ export async function handleMarketingRoutes(
         return true;
       }
 
-      // TODO: Store tokens securely for the user
+      // Store tokens securely (encrypted with AES-256-GCM)
+      const storage = new MarketingStorage(savedState.userId);
+      await storage.saveTokens('linkedin', {
+        accessToken: tokens.accessToken,
+        expiresAt: tokens.expiresIn ? Date.now() + tokens.expiresIn * 1000 : undefined,
+        updatedAt: Date.now(),
+      });
+
       log.info({ userId: savedState.userId }, '💼 LinkedIn connected successfully');
 
       res.writeHead(302, { Location: '/settings/social-accounts?connected=linkedin' });

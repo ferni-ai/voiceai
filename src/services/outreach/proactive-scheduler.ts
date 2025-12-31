@@ -14,9 +14,11 @@
  * @module proactive-scheduler
  */
 
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { runBackground } from '../../utils/background-task.js';
+import { onScheduledOutreachChange } from '../data-layer/hooks/misc-hooks.js';
 
 const log = createLogger({ module: 'ProactiveScheduler' });
 
@@ -296,7 +298,7 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
 // ============================================================================
 
 let schedulerRunning = false;
-let schedulerInterval: ReturnType<typeof setInterval> | null = null;
+let schedulerInterval: (() => void) | null = null;
 
 /**
  * Start the proactive outreach scheduler.
@@ -314,19 +316,21 @@ export function startScheduler(config: Partial<SchedulerConfig> = {}): void {
   schedulerRunning = true;
   log.info({ checkIntervalMs: cfg.checkIntervalMs }, '🚀 Starting proactive outreach scheduler');
 
-  schedulerInterval = setInterval(async () => {
-    await processScheduledOutreach(cfg);
-  }, cfg.checkIntervalMs);
+  schedulerInterval = registerInterval(
+    'proactive-outreach-scheduler',
+    () => {
+      void processScheduledOutreach(cfg);
+    },
+    cfg.checkIntervalMs
+  );
 }
 
 /**
  * Stop the scheduler.
  */
 export function stopScheduler(): void {
-  if (schedulerInterval) {
-    clearInterval(schedulerInterval);
-    schedulerInterval = null;
-  }
+  clearNamedInterval('proactive-outreach-scheduler');
+  schedulerInterval = null;
   schedulerRunning = false;
   log.info('⏹️ Stopped proactive outreach scheduler');
 }
@@ -429,6 +433,17 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
           createdAt: outreach.createdAt.toISOString(),
         })
       );
+
+    // Semantic indexing
+    void onScheduledOutreachChange(outreach.userId, outreach.id, {
+      type: outreach.type as 'check_in' | 'reminder' | 'celebration' | 'thinking_of_you',
+      reason: outreach.message,
+      scheduledFor: outreach.scheduledFor.toISOString(),
+      channel: 'voice',
+      priority: outreach.priority as 'low' | 'normal' | 'high',
+      status: outreach.status as 'pending' | 'sent' | 'cancelled',
+      createdAt: outreach.createdAt.toISOString(),
+    }, 'create');
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist outreach');
   }

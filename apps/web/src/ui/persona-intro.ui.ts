@@ -533,17 +533,17 @@ function renderStep(): void {
       ${
         !isFirstStep
           ? `
-        <button aria-label="Back" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
+        <button aria-label="${t('accessibility.back')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           Back
         </button>
       `
           : `
-        <button aria-label="Skip intro" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
+        <button aria-label="${t('accessibility.skipIntro')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           Skip intro
         </button>
       `
       }
-      <button aria-label="Go forward" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
+      <button aria-label="${t('accessibility.goForward')}" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${step.buttonText}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}

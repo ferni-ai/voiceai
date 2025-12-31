@@ -408,7 +408,7 @@ Phase 4 required no work because:
 
 - `docs/audits/LEGACY-FILLER-CLEANUP.md` - Similar cleanup for thinking fillers
 - `docs/architecture/PROCESSING-TIMELINE.md` - Processing phrase system
-- `design-system/brand/BETTER-THAN-HUMAN.md` - EQ philosophy
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md` - EQ philosophy
 - `src/intelligence/dynamic-questions.ts` - **NEW: Core dynamic question system**
 
 ---

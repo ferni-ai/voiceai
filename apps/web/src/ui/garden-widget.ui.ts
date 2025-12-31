@@ -203,10 +203,10 @@ function renderExpandedWidget(): string {
       <p class="garden-widget__message">${getHealthMessage(garden)}</p>
 
       <div class="garden-widget__actions" role="button" tabindex="0">
-        <button aria-label="Plant a Seed" class="garden-widget__action-btn garden-widget__action-btn--primary">
+        <button aria-label="${t('accessibility.plantASeed')}" class="garden-widget__action-btn garden-widget__action-btn--primary">
           Plant a Seed
         </button>
-        <button aria-label="Become a Gardener" class="garden-widget__action-btn garden-widget__action-btn--secondary">
+        <button aria-label="${t('accessibility.becomeAGardener')}" class="garden-widget__action-btn garden-widget__action-btn--secondary">
           Become a Gardener
         </button>
       </div>

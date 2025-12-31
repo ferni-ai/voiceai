@@ -16,6 +16,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onCapacityStateChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'SocialBattery' });
 
@@ -232,11 +233,24 @@ export async function recordSocialEvent(
   };
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('social_events')
       .add(cleanForFirestore(event));
+
+    // Index to semantic memory for capacity awareness
+    void onCapacityStateChange(
+      userId,
+      docRef.id,
+      {
+        level: energyImpact > 0 ? 'good' : energyImpact < -30 ? 'depleted' : 'moderate',
+        factors: [type, context || 'social event'].filter(Boolean) as string[],
+        recommendation: energyImpact < -30 ? 'Schedule recovery time' : 'Social battery updated',
+        timestamp: new Date().toISOString(),
+      },
+      'create'
+    );
 
     log.debug({ userId, type, impact: energyImpact }, 'Recorded social event');
   } catch (error) {

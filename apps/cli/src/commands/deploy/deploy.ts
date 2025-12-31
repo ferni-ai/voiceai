@@ -836,8 +836,8 @@ async function deployBrand(options: DeployOptions): Promise<boolean> {
 
   // Upload brand files
   log.info('Uploading brand assets...');
-  exec(`gsutil -m cp design-system/brand/*.html gs://${bucketName}/`);
-  exec(`gsutil -m cp design-system/brand/*.md gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/docs/brand/*.html gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/docs/brand/*.md gs://${bucketName}/`);
   exec(`gsutil -m cp design-system/dist/tokens.css gs://${bucketName}/`);
   exec(`gsutil -m cp -r design-system/assets/* gs://${bucketName}/assets/`);
 

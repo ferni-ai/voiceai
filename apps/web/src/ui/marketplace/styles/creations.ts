@@ -180,12 +180,26 @@ export function getCreationsStyles(): string {
       text-align: center;
       transition: all ${DURATION.FAST}ms ease;
       box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .creation-type-card:hover {
       border-color: var(--persona-primary, var(--color-accent-primary));
       transform: translateY(-3px);
       box-shadow: var(--shadow-lg);
+    }
+
+    .creation-type-card:hover .creation-type-cta {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .creation-type-card:focus-visible {
+      outline: 2px solid var(--persona-primary, var(--color-accent-primary));
+      outline-offset: 2px;
     }
 
     .creation-type-icon {
@@ -213,8 +227,30 @@ export function getCreationsStyles(): string {
       font-family: var(--font-body);
       font-size: 0.75rem;
       color: var(--color-text-muted);
-      margin: 0;
+      margin: 0 0 var(--space-sm);
       line-height: 1.4;
+    }
+
+    .creation-type-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--persona-primary, var(--color-accent-primary));
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all ${DURATION.FAST}ms ease;
+      margin-top: auto;
+    }
+
+    .creation-type-cta svg {
+      transition: transform ${DURATION.FAST}ms ease;
+    }
+
+    .creation-type-card:hover .creation-type-cta svg {
+      transform: translateX(3px);
     }
 
     /* ========================================

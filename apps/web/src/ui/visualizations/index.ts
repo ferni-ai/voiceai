@@ -50,7 +50,14 @@ export type {
   VisualizationColors,
 } from './types.js';
 
-export { DEFAULT_COLORS } from './types.js';
+export { DEFAULT_COLORS, CSS_COLOR_VARS } from './types.js';
+
+// Styles - shared CSS for all visualizations
+export {
+  getVisualizationStyles,
+  injectVisualizationStyles,
+  removeVisualizationStyles,
+} from './styles/visualization.css.js';
 
 // Builders - individual visualization components
 export { buildMoodCalendar } from './builders/mood-calendar.js';

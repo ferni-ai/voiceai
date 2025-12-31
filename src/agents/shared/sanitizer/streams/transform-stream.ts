@@ -7,6 +7,8 @@
  * @module agents/shared/sanitizer/streams/transform-stream
  */
 
+import type { ReadableStream, WritableStream } from 'node:stream/web';
+import { TransformStream } from 'node:stream/web';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import type { SanitizerStreamOptions } from '../types.js';
 import {
@@ -32,10 +34,10 @@ const log = createLogger({ module: 'sanitizer-stream' });
 // ============================================================================
 
 // Using a generic transform stream type to avoid livekit dependency issues
-export type AnyTransformStream = {
+export interface AnyTransformStream {
   readable: ReadableStream<string>;
   writable: WritableStream<string>;
-};
+}
 
 // ============================================================================
 // BASIC SANITIZER STREAM

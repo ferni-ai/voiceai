@@ -1,1535 +1,1369 @@
 {
-  "$schema": "./expressions.schema.json",
+  "$schema": "../schemas/tokens.schema.json",
+  "name": "Ferni Expression Tokens",
+  "description": "92+ Luxo-style expressions for avatar emotion display. Eye expression via scaleY/scaleX transforms, lid paths for window masking, body transforms for personality.",
   "version": "1.0.0",
-  "description": "92 Luxo-style expressions for Ferni avatar - CSS transforms only, no pupils",
+
   "expressions": {
     "neutral": {
       "family": "core",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 1, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Resting state - attentive but calm",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 1 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -10 },
-      "lidBottom": { "curve": 10 },
+      "lidTop": { "curve": 12 },
+      "lidBottom": { "curve": 12 },
       "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": 0, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.2, "strokeWidth": 1 }
     },
+
     "listening": {
       "family": "core",
-      "body": { "transform": "translateY(-2px)" },
-      "eyeWhite": { "scaleY": 1.08, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Active listening - slightly wider eyes, gentle lean forward",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 1.05 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 5 },
+      "lidTop": { "curve": 8 },
       "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": -0.05, "bottomCutoff": 0, "bottomCurve": 0.1, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 }
     },
+
     "speaking": {
       "family": "core",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Speaking state - voice-reactive bottom lid",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.98 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "speakPulse",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "lidTop": { "curve": 10 },
+      "lidBottom": { "curve": "voice-reactive" },
+      "smileCrease": { "opacity": 0.3 },
+      "presenceRing": { "opacity": 0.25, "strokeWidth": 1.5 }
     },
+
     "happy": {
       "family": "happy",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.8, "scaleX": 1.06 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Cheerful but natural happiness",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.8 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 25 },
       "lidBottom": { "curve": -15 },
-      "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.1, "topCurve": 0.25, "bottomCutoff": 0.08, "bottomCurve": -0.15, "asymmetry": 0 }
+      "smileCrease": { "opacity": 0.5 },
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 }
     },
+
     "joyful": {
       "family": "happy",
+      "description": "Genuine joy - eyes squint with happiness, slight bounce",
       "body": { "transform": "translateY(-4px) scale(1.03)" },
-      "eyeWhite": { "scaleY": 0.7, "scaleX": 1.12 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.12, "scaleY": 0.7 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 35 },
       "lidBottom": { "curve": -25 },
       "smileCrease": { "opacity": 1, "strokeWidth": 1.5 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 2, "scale": 1.02 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.16, "topCurve": 0.35, "bottomCutoff": 0.12, "bottomCurve": -0.25, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 }
     },
+
     "delighted": {
       "family": "happy",
+      "description": "Peak happiness - sparkles appear, maximum squint",
       "body": { "transform": "translateY(-6px) scale(1.05) rotate(-2deg)" },
-      "eyeWhite": { "scaleY": 0.6, "scaleX": 1.15 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.15, "scaleY": 0.6 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 42 },
       "lidBottom": { "curve": -28 },
       "smileCrease": { "opacity": 1, "strokeWidth": 2 },
+      "sparkleGroup": { "opacity": 1 },
       "presenceRing": { "opacity": 0.6, "strokeWidth": 2.5 },
-      "animation": "delightedBounce",
-      "sparkle": true,
-      "ios": { "topCutoff": 0.22, "topCurve": 0.42, "bottomCutoff": 0.14, "bottomCurve": -0.28, "asymmetry": 0 }
+      "animation": "delightedBounce"
     },
+
     "amused": {
       "family": "happy",
+      "description": "Slight smirk, asymmetric squint",
       "body": { "transform": "rotate(1.5deg)" },
-      "eyeWhite": { "scaleY": 0.78, "scaleX": 1.06 },
-      "eyeLeftOverride": { "scaleY": 0.75, "scaleX": 1.06 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.78 },
+      "eyeLeft": { "scaleX": 1.06, "scaleY": 0.75 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 26 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.7 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.1, "topCurve": 0.26, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
+      "smileCrease": { "opacity": 0.7 }
     },
+
     "pleased": {
       "family": "happy",
+      "description": "Quiet satisfaction",
       "body": { "transform": "translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.82, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.82 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 22 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.08, "topCurve": 0.22, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "smileCrease": { "opacity": 0.5 }
     },
+
     "content": {
       "family": "happy",
+      "description": "At peace, gentle satisfaction",
       "body": { "transform": "scale(0.99)" },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.85 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.25, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.25 }
     },
+
     "excited": {
       "family": "happy",
+      "description": "High energy, eyes wide, constant micro-bounce",
       "body": { "transform": "scale(1.06)" },
-      "eyeWhite": { "scaleY": 1.15, "scaleX": 1.08 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 1.15 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": -12 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.8 },
+      "sparkleGroup": { "opacity": 1 },
       "presenceRing": { "opacity": 0.6, "strokeWidth": 2.5 },
-      "animation": "excitedBounce",
-      "sparkle": true,
-      "ios": { "topCutoff": 0, "topCurve": -0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "animation": "excitedBounce"
     },
+
     "grateful": {
       "family": "happy",
+      "description": "Warm gratitude, gentle tilt",
       "body": { "transform": "translateY(-3px) rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 0.72, "scaleX": 1.08 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 0.72 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 32 },
       "lidBottom": { "curve": -15 },
-      "smileCrease": { "opacity": 0.9, "strokeWidth": 1.3 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.14, "topCurve": 0.32, "bottomCutoff": 0.08, "bottomCurve": -0.15, "asymmetry": 0 }
+      "smileCrease": { "opacity": 0.9, "strokeWidth": 1.3 }
     },
+
     "proud": {
       "family": "happy",
+      "description": "Confident satisfaction, subtle lift",
       "body": { "transform": "translateY(-5px) scale(1.04)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.88 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.6 },
-      "presenceRing": { "opacity": 0.45, "strokeWidth": 2 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.45, "strokeWidth": 2 }
     },
+
     "warm": {
       "family": "warmth",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1.03 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Gentle warmth, soft eyes",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.9 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 18 },
       "lidBottom": { "curve": -10 },
-      "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0.05, "bottomCurve": -0.1, "asymmetry": 0 }
+      "smileCrease": { "opacity": 0.4 }
     },
+
     "caring": {
       "family": "warmth",
+      "description": "Attentive care, gentle tilt",
       "body": { "transform": "translateY(-2px) rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.88 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 20 },
       "lidBottom": { "curve": -8 },
       "smileCrease": { "opacity": 0.6 },
       "presenceRing": { "opacity": 0.4, "strokeWidth": 1.8 },
-      "animation": "warmPulse",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0.04, "bottomCurve": -0.08, "asymmetry": 0 }
+      "animation": "caringSettle"
     },
+
     "loving": {
       "family": "warmth",
+      "description": "Deep affection, warm glow",
       "body": { "transform": "translateY(-4px) scale(1.02)" },
-      "eyeWhite": { "scaleY": 0.75, "scaleX": 1.08 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 0.75 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 30 },
       "lidBottom": { "curve": -18 },
       "smileCrease": { "opacity": 1, "strokeWidth": 1.5 },
       "presenceRing": { "opacity": 0.55, "strokeWidth": 2.5 },
-      "animation": "lovingGlow",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.12, "topCurve": 0.3, "bottomCutoff": 0.09, "bottomCurve": -0.18, "asymmetry": 0 }
+      "animation": "lovingGlow"
     },
+
     "tender": {
       "family": "warmth",
+      "description": "Soft tenderness",
       "body": { "transform": "translateY(-2px) rotate(-0.5deg)" },
-      "eyeWhite": { "scaleY": 0.82, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.82 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 24 },
       "lidBottom": { "curve": -10 },
       "smileCrease": { "opacity": 0.8, "strokeWidth": 1.2 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.8 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.09, "topCurve": 0.24, "bottomCutoff": 0.05, "bottomCurve": -0.1, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.8 }
     },
+
     "supportive": {
       "family": "warmth",
+      "description": "Leaning in, present and supportive",
       "body": { "transform": "translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1.01 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.92 },
       "eyesGroup": { "translateX": -1, "translateY": 0 },
       "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.42, "strokeWidth": 1.6 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.42, "strokeWidth": 1.6 }
     },
+
     "compassionate": {
       "family": "warmth",
+      "description": "Deep empathy, gentle asymmetry",
       "body": { "transform": "translateY(-2px) rotate(-1.5deg)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.03 },
-      "eyeLeftOverride": { "scaleY": 0.86, "scaleX": 1.03 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.88 },
+      "eyeLeft": { "scaleX": 1.03, "scaleY": 0.86 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 20 },
       "lidBottom": { "curve": -8 },
       "smileCrease": { "opacity": 0.6 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": "warmPulse",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0.04, "bottomCurve": -0.08, "asymmetry": 0.03 }
+      "presenceRing": { "opacity": 0.4 }
     },
+
     "empathetic": {
       "family": "warmth",
+      "description": "Mirroring, emotional resonance",
       "body": { "transform": "rotate(-2deg) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1.02 },
-      "eyeLeftOverride": { "scaleY": 0.88, "scaleX": 1.02 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.9 },
+      "eyeLeft": { "scaleX": 1.02, "scaleY": 0.88 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.6 },
-      "animation": "empathyMirror",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
+      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.6 }
     },
+
     "nurturing": {
       "family": "warmth",
+      "description": "Protective warmth, gentle swell",
       "body": { "transform": "translateY(-3px) scale(1.01)" },
-      "eyeWhite": { "scaleY": 0.8, "scaleX": 1.06 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.8 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 26 },
       "lidBottom": { "curve": -12 },
       "smileCrease": { "opacity": 0.85, "strokeWidth": 1.3 },
-      "presenceRing": { "opacity": 0.48, "strokeWidth": 2 },
-      "animation": "nurturingSwell",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.1, "topCurve": 0.26, "bottomCutoff": 0.06, "bottomCurve": -0.12, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.48, "strokeWidth": 2 }
     },
+
     "playful": {
       "family": "playful",
+      "description": "Light-hearted playfulness, swaying",
       "body": { "transform": "rotate(2deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1.06 },
-      "eyeLeftOverride": { "scaleY": 0.88, "scaleX": 1.06 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.92 },
+      "eyeLeft": { "scaleX": 1.06, "scaleY": 0.88 },
       "eyesGroup": { "translateX": 2, "translateY": 0 },
       "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
       "smileCrease": { "opacity": 0.6 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "playfulSway",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
+      "animation": "playfulSway"
     },
+
     "mischievous": {
       "family": "playful",
+      "description": "Up to something, sidelong glance",
       "body": { "transform": "rotate(4deg) translateX(3px)" },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1.05 },
-      "eyeLeftOverride": { "scaleY": 0.8, "scaleX": 1.05 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 0.85 },
+      "eyeLeft": { "scaleX": 1.05, "scaleY": 0.8 },
       "eyesGroup": { "translateX": 3, "translateY": -1 },
       "lidTop": { "curve": 20 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.7, "strokeWidth": 1.3 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.08 }
+      "smileCrease": { "opacity": 0.7, "strokeWidth": 1.3 }
     },
+
     "cheeky": {
       "family": "playful",
+      "description": "Playful impertinence",
       "body": { "transform": "rotate(3deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.82, "scaleX": 1.06 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.82 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 24 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.8 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.09, "topCurve": 0.24, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "smileCrease": { "opacity": 0.8 }
     },
+
     "silly": {
       "family": "playful",
+      "description": "Goofy, wobbling",
       "body": { "transform": "rotate(-4deg) scaleX(1.03) translateY(-3px)" },
-      "eyeWhite": { "scaleY": 0.78, "scaleX": 1.12 },
-      "eyeLeftOverride": { "scaleY": 0.72, "scaleX": 1.12 },
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 0.95 },
+      "eyeLeft": { "scaleX": 1.08, "scaleY": 0.85 },
+      "eyeRight": { "scaleX": 1.08, "scaleY": 1.0 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 30 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 1, "strokeWidth": 1.5 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "sillyWobble",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.12, "topCurve": 0.3, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.1 }
+      "lidTop": { "curve": 8 },
+      "smileCrease": { "opacity": 0.9 },
+      "animation": "sillyWobble"
     },
+
     "winking": {
       "family": "playful",
-      "body": { "transform": "rotate(2deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 1, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.08, "scaleX": 1.2 },
-      "eyeRightOverride": { "scaleY": 1.05, "scaleX": 1 },
+      "description": "Playful wink, one eye closed",
+      "body": { "transform": "rotate(2deg)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.9 },
+      "eyeLeft": { "scaleX": 1.0, "scaleY": 0.15 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.6 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "winkBounce",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.9 }
+      "lidTop": { "curve": 20 },
+      "smileCrease": { "opacity": 0.8, "strokeWidth": 1.3 },
+      "animation": "winkPop"
     },
+
     "teasing": {
       "family": "playful",
+      "description": "Gentle teasing, knowing look",
       "body": { "transform": "rotate(2.5deg) translateX(2px)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.04 },
-      "eyeLeftOverride": { "scaleY": 0.82, "scaleX": 1.04 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 2, "translateY": -0.5 },
-      "lidTop": { "curve": 16 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.55 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.16, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.08 }
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 0.88 },
+      "eyeLeft": { "scaleX": 1.05, "scaleY": 0.82 },
+      "eyesGroup": { "translateX": 2, "translateY": 0 },
+      "lidTop": { "curve": 18 },
+      "smileCrease": { "opacity": 0.75 }
     },
+
     "surprised": {
       "family": "surprised",
+      "description": "Genuine surprise, eyes wide",
       "body": { "transform": "scaleY(1.02) scaleX(0.99)" },
-      "eyeWhite": { "scaleY": 1.15, "scaleX": 1.05 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 1.15 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": -15 },
       "lidBottom": { "curve": 15 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.15, "bottomCutoff": 0, "bottomCurve": 0.15, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.4 }
     },
+
     "shocked": {
       "family": "surprised",
-      "body": { "transform": "scaleY(1.08) scaleX(0.94) translateY(-8px)" },
-      "eyeWhite": { "scaleY": 1.35, "scaleX": 1.15 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Extreme surprise, maximum eye widening",
+      "body": { "transform": "scaleY(1.05) scaleX(0.97) translateY(-4px)" },
+      "eyeWhite": { "scaleX": 1.1, "scaleY": 1.25 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -35 },
-      "lidBottom": { "curve": 25 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.7, "strokeWidth": 3 },
-      "animation": "shockPop",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.35, "bottomCutoff": 0, "bottomCurve": 0.25, "asymmetry": 0 }
+      "lidTop": { "curve": -25 },
+      "lidBottom": { "curve": 22 },
+      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 }
     },
+
     "amazed": {
       "family": "surprised",
-      "body": { "transform": "translateY(-6px) scale(1.04)" },
-      "eyeWhite": { "scaleY": 1.25, "scaleX": 1.1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -28 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.55, "strokeWidth": 2 },
-      "animation": "amazedFloat",
-      "sparkle": true,
-      "ios": { "topCutoff": 0, "topCurve": -0.28, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "description": "Wonder and amazement, sparkles",
+      "body": { "transform": "scale(1.03) translateY(-5px)" },
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 1.18 },
+      "eyesGroup": { "translateX": 0, "translateY": -1 },
+      "lidTop": { "curve": -18 },
+      "lidBottom": { "curve": 12 },
+      "sparkleGroup": { "opacity": 1 },
+      "presenceRing": { "opacity": 0.55, "strokeWidth": 2.5 }
     },
+
     "intrigued": {
       "family": "surprised",
-      "body": { "transform": "rotate(3deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 1.1, "scaleX": 1.03 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 1.15, "scaleX": 1.05 },
-      "eyesGroup": { "translateX": 2, "translateY": -2 },
-      "lidTop": { "curve": -12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
+      "description": "Curious interest, slight head tilt",
+      "body": { "transform": "rotate(2deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 1.08 },
+      "eyeLeft": { "scaleX": 1.04, "scaleY": 1.05 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": -5 },
+      "presenceRing": { "opacity": 0.35 }
     },
+
     "astonished": {
       "family": "surprised",
-      "body": { "transform": "scaleY(1.06) scaleX(0.95) translateY(-5px)" },
-      "eyeWhite": { "scaleY": 1.28, "scaleX": 1.1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Jaw-dropping astonishment",
+      "body": { "transform": "scaleY(1.04) translateY(-3px)" },
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 1.2 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -30 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 },
-      "animation": "astonishedPop",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.3, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "lidTop": { "curve": -20 },
+      "lidBottom": { "curve": 20 },
+      "presenceRing": { "opacity": 0.45, "strokeWidth": 2 }
     },
+
     "curious": {
       "family": "surprised",
-      "body": { "transform": "rotate(4deg) translateY(-3px)" },
-      "eyeWhite": { "scaleY": 1.08, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 1.12, "scaleX": 1 },
-      "eyesGroup": { "translateX": 3, "translateY": -2 },
-      "lidTop": { "curve": -8 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "curiousTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.08, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
+      "description": "Inquisitive, asymmetric brow raise",
+      "body": { "transform": "rotate(3deg)" },
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 1.06 },
+      "eyeLeft": { "scaleX": 1.05, "scaleY": 1.1 },
+      "eyesGroup": { "translateX": 2, "translateY": -1 },
+      "lidTop": { "curve": -8, "asymmetry": 0.15 },
+      "presenceRing": { "opacity": 0.32 }
     },
+
     "thinking": {
       "family": "thinking",
+      "description": "Deep thought, gaze shifted up-left",
       "body": { "transform": "rotate(1.5deg)" },
-      "eyeWhite": { "scaleY": 0.95, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.95 },
       "eyesGroup": { "translateX": 2, "translateY": -2 },
       "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.25 }
     },
+
     "pondering": {
       "family": "thinking",
-      "body": { "transform": "rotate(3deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 0.96 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 4, "translateY": -3 },
+      "description": "Weighing options, subtle sway",
+      "body": { "transform": "rotate(-1deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": -2, "translateY": -2 },
       "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.28, "strokeWidth": 1.5 },
-      "animation": "ponderDrift",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.28 }
     },
+
     "contemplating": {
       "family": "thinking",
-      "body": { "transform": "rotate(1.5deg) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 0.98 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 3, "translateY": -2 },
-      "lidTop": { "curve": 16 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "contemplateSway",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.16, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "description": "Deep contemplation, soft focus",
+      "body": { "transform": "scale(0.99) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": 0, "translateY": -3 },
+      "lidTop": { "curve": 20 },
+      "presenceRing": { "opacity": 0.22 }
     },
+
     "focused": {
       "family": "thinking",
-      "body": { "transform": "translateY(-1px) scale(0.99)" },
-      "eyeWhite": { "scaleY": 0.94, "scaleX": 0.95 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "description": "Intense concentration, slight squint",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.9 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.25, "strokeWidth": 1.2 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "lidTop": { "curve": 16 },
+      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 }
     },
+
     "processing": {
       "family": "thinking",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.86, "scaleX": 0.97 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "description": "Working through something, animated gaze",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.94 },
+      "eyesGroup": { "translateX": 0, "translateY": -1 },
       "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "processingBody",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 }
     },
+
     "reflecting": {
       "family": "thinking",
-      "body": { "transform": "rotate(-2deg) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.82, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": -2, "translateY": 2 },
+      "description": "Looking inward, downcast gaze",
+      "body": { "transform": "translateY(1px) rotate(-1deg)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": -1, "translateY": 2 },
       "lidTop": { "curve": 22 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.28, "strokeWidth": 1.5 },
-      "animation": "reflectingSway",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.08, "topCurve": 0.22, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.2 }
     },
+
     "analyzing": {
       "family": "thinking",
+      "description": "Scrutinizing, narrowed eyes",
       "body": { "transform": "translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 0.94 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.3 },
-      "animation": "analyzingScan",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.82 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": 22 },
+      "presenceRing": { "opacity": 0.28 }
     },
+
     "attentive": {
       "family": "listening",
-      "body": { "transform": "translateY(-2px) rotate(1deg)" },
-      "eyeWhite": { "scaleY": 1.1, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 1.12, "scaleX": 1 },
-      "eyesGroup": { "translateX": 0, "translateY": -1 },
-      "lidTop": { "curve": 2 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.45, "strokeWidth": 2 },
-      "animation": "attentiveLean",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.01, "topCurve": 0.02, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.02 }
+      "description": "Fully present, engaged listening",
+      "body": { "transform": "translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 1.02 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 6 },
+      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.8 }
     },
+
     "engaged": {
       "family": "listening",
-      "body": { "transform": "translateY(-1px) scaleY(1.01)" },
-      "eyeWhite": { "scaleY": 1.06, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": "engagedNod",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "description": "Actively participating, slight lean",
+      "body": { "transform": "translateY(-2px) scale(1.01)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 1 },
+      "eyesGroup": { "translateX": -1, "translateY": 0 },
+      "lidTop": { "curve": 8 },
+      "smileCrease": { "opacity": 0.3 },
+      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.8 }
     },
+
     "interested": {
       "family": "listening",
-      "body": { "transform": "rotate(2deg)" },
-      "eyeWhite": { "scaleY": 1.04, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 1.06, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 1, "translateY": -0.5 },
-      "lidTop": { "curve": 6 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.5 },
-      "animation": "interestedTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.06, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
+      "description": "Showing interest, brow slightly raised",
+      "body": { "transform": "translateY(-1px) rotate(1deg)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 1.04 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 4 },
+      "presenceRing": { "opacity": 0.32 }
     },
+
     "absorbing": {
       "family": "listening",
-      "body": { "transform": "scaleY(1.01)" },
-      "eyeWhite": { "scaleY": 1.05, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 4 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.42, "strokeWidth": 1.5 },
-      "animation": "absorbingBreathe",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.01, "topCurve": 0.04, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "receptive": {
-      "family": "listening",
-      "body": { "transform": "translateY(-0.5px)" },
-      "eyeWhite": { "scaleY": 1.02, "scaleX": 1.01 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 8 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "receptiveOpen",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.08, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "present": {
-      "family": "presence",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 1, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "presentBreathe",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "grounded": {
-      "family": "presence",
-      "body": { "transform": "translateY(1px)" },
-      "eyeWhite": { "scaleY": 0.98, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 2.5 },
-      "animation": "groundedSettle",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "calm": {
-      "family": "presence",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.95, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 10 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "calmFloat",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.1, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "serene": {
-      "family": "presence",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.9, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.3 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "sereneFloat",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "peaceful": {
-      "family": "presence",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": -5 },
-      "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.28, "strokeWidth": 1.5 },
-      "animation": "peacefulDrift",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0.02, "bottomCurve": -0.05, "asymmetry": 0 }
-    },
-    "encouraging": {
-      "family": "coaching",
+      "description": "Taking it all in, open receptive",
       "body": { "transform": "translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.45 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 2 },
-      "animation": "encouragingBounce",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "cheering": {
-      "family": "coaching",
-      "body": { "transform": "translateY(-2px) scaleY(1.02)" },
-      "eyeWhite": { "scaleY": 0.8, "scaleX": 1.06 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 25 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.7 },
-      "presenceRing": { "opacity": 0.55, "strokeWidth": 2 },
-      "animation": "cheeringBounce",
-      "sparkle": true,
-      "ios": { "topCutoff": 0.1, "topCurve": 0.25, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "guiding": {
-      "family": "coaching",
-      "body": { "transform": "rotate(1deg)" },
-      "eyeWhite": { "scaleY": 0.96, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 0.98, "scaleX": 1 },
-      "eyesGroup": { "translateX": 0.5, "translateY": -0.5 },
-      "lidTop": { "curve": 10 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.35 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.5 },
-      "animation": "guidingLean",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.1, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "wise": {
-      "family": "coaching",
-      "body": { "transform": "rotate(-0.5deg)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.88, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 16 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 2.5 },
-      "animation": "wiseTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.16, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "knowing": {
-      "family": "coaching",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.01 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 0.86, "scaleX": 1.02 },
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "knowingNod",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "sleepy": {
-      "family": "tired",
-      "body": { "transform": "scaleY(0.99)" },
-      "eyeWhite": { "scaleY": 0.5, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 55 },
-      "lidBottom": { "curve": -30 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.2, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.28, "topCurve": 0.55, "bottomCutoff": 0.15, "bottomCurve": -0.3, "asymmetry": 0 }
-    },
-    "drowsy": {
-      "family": "tired",
-      "body": { "transform": "scaleY(0.98) translateY(2px)" },
-      "eyeWhite": { "scaleY": 0.5, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 52 },
-      "lidBottom": { "curve": -25 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.2, "strokeWidth": 1.5 },
-      "animation": null,
-      "sparkle": false,
-      "ios": { "topCutoff": 0.26, "topCurve": 0.52, "bottomCutoff": 0.12, "bottomCurve": -0.25, "asymmetry": 0 }
-    },
-    "exhausted": {
-      "family": "tired",
-      "body": { "transform": "scaleY(0.97) rotate(-2deg) translateY(3px)" },
-      "eyeWhite": { "scaleY": 0.35, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.3, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 2 },
-      "lidTop": { "curve": 68 },
-      "lidBottom": { "curve": -38 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.15, "strokeWidth": 1 },
-      "animation": "exhaustedSlump",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.35, "topCurve": 0.68, "bottomCutoff": 0.2, "bottomCurve": -0.38, "asymmetry": 0.08 }
-    },
-    "yawning": {
-      "family": "tired",
-      "body": { "transform": "scaleY(1.04) scaleX(0.97)" },
-      "eyeWhite": { "scaleY": 0.2, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 78 },
-      "lidBottom": { "curve": -45 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.18, "strokeWidth": 1.5 },
-      "animation": "yawnStretch",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.4, "topCurve": 0.78, "bottomCutoff": 0.22, "bottomCurve": -0.45, "asymmetry": 0 }
-    },
-    "resting": {
-      "family": "tired",
-      "body": { "transform": "scaleY(0.99) translateY(1px)" },
-      "eyeWhite": { "scaleY": 0.6, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 45 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.22, "strokeWidth": 1.5 },
-      "animation": "restingFloat",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.22, "topCurve": 0.45, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "blissful": {
-      "family": "tired",
-      "body": { "transform": "translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.55, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 50 },
-      "lidBottom": { "curve": -18 },
-      "smileCrease": { "opacity": 0.7 },
-      "presenceRing": { "opacity": 0.28, "strokeWidth": 2 },
-      "animation": "blissfulFloat",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.25, "topCurve": 0.5, "bottomCutoff": 0.09, "bottomCurve": -0.18, "asymmetry": 0 }
-    },
-    "concerned": {
-      "family": "concern",
-      "body": { "transform": "rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 1.02, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 1.04, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 8 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "concernedTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.08, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "worried": {
-      "family": "concern",
-      "body": { "transform": "rotate(-1.5deg) translateY(1px)" },
-      "eyeWhite": { "scaleY": 1.05, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 1.08, "scaleX": 1 },
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.5 },
-      "animation": "worriedFidget",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.04 }
-    },
-    "sympathetic": {
-      "family": "concern",
-      "body": { "transform": "rotate(-0.5deg)" },
-      "eyeWhite": { "scaleY": 0.95, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.3 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "sympatheticLean",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "understanding": {
-      "family": "concern",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.9, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.35 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "understandingNod",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.03 }
-    },
-    "comforting": {
-      "family": "concern",
-      "body": { "transform": "translateY(-0.5px)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 16 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 2.5 },
-      "animation": "comfortingWarmth",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.16, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "sad": {
-      "family": "sad",
-      "body": { "transform": "translateY(2px) scaleY(0.98)" },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.82, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 2 },
-      "lidTop": { "curve": 20 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.2, "strokeWidth": 1.5 },
-      "animation": "sadDroop",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
-    },
-    "crying": {
-      "family": "sad",
-      "body": { "transform": "translateY(3px) scaleY(0.96)" },
-      "eyeWhite": { "scaleY": 0.4, "scaleX": 1.1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 55 },
-      "lidBottom": { "curve": -25 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.15, "strokeWidth": 1.5 },
-      "animation": "cryingShake",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.28, "topCurve": 0.55, "bottomCutoff": 0.12, "bottomCurve": -0.25, "asymmetry": 0 }
-    },
-    "melancholy": {
-      "family": "sad",
-      "body": { "transform": "translateY(1px) rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 0.8, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 25 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.22, "strokeWidth": 1.5 },
-      "animation": "melancholyDrift",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.1, "topCurve": 0.25, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "disappointed": {
-      "family": "sad",
-      "body": { "transform": "translateY(1.5px) scaleY(0.98)" },
-      "eyeWhite": { "scaleY": 0.75, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 1 },
-      "lidTop": { "curve": 30 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.18, "strokeWidth": 1.5 },
-      "animation": "disappointedSink",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.12, "topCurve": 0.3, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "dejected": {
-      "family": "sad",
-      "body": { "transform": "translateY(3px) scaleY(0.95) rotate(-2deg)" },
-      "eyeWhite": { "scaleY": 0.65, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.6, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": -1, "translateY": 2 },
-      "lidTop": { "curve": 40 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.12, "strokeWidth": 1 },
-      "animation": "dejectedSlump",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.2, "topCurve": 0.4, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.08 }
-    },
-    "frustrated": {
-      "family": "frustrated",
-      "body": { "transform": "scaleY(0.97) scaleX(1.02)" },
-      "eyeWhite": { "scaleY": 0.7, "scaleX": 1.05 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 15 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "frustratedTense",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.15, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "annoyed": {
-      "family": "frustrated",
-      "body": { "transform": "rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 0.75, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 0.7, "scaleX": 1 },
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "annoyedTwitch",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.08 }
-    },
-    "irritated": {
-      "family": "frustrated",
-      "body": { "transform": "scaleY(0.98)" },
-      "eyeWhite": { "scaleY": 0.68, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 22 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": "irritatedJitter",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.08, "topCurve": 0.22, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "exasperated": {
-      "family": "frustrated",
-      "body": { "transform": "rotate(2deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.6, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": -1 },
-      "lidTop": { "curve": 35 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "exasperatedSigh",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.16, "topCurve": 0.35, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "eyeroll": {
-      "family": "frustrated",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "eyerollGaze",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "confused": {
-      "family": "confused",
-      "body": { "transform": "rotate(3deg)" },
-      "eyeWhite": { "scaleY": 1.02, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.95, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "confusedTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.1 }
-    },
-    "skeptical": {
-      "family": "confused",
-      "body": { "transform": "rotate(-2deg)" },
-      "eyeWhite": { "scaleY": 0.8, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 0.65, "scaleX": 1 },
-      "eyesGroup": { "translateX": 1, "translateY": 0 },
-      "lidTop": { "curve": 20 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "skepticalSquint",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.2 }
-    },
-    "puzzled": {
-      "family": "confused",
-      "body": { "transform": "rotate(4deg) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 1.05, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.98, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 3 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "puzzledBob",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.01, "topCurve": 0.03, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.1 }
-    },
-    "perplexed": {
-      "family": "confused",
-      "body": { "transform": "rotate(-3deg) scaleY(0.99)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 1, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 10 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.28, "strokeWidth": 1.5 },
-      "animation": "perplexedWobble",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.1, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.12 }
-    },
-    "bewildered": {
-      "family": "confused",
-      "body": { "transform": "rotate(5deg) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 1.1, "scaleX": 1.05 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -2 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "bewilderedSpin",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.02, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "nervous": {
-      "family": "nervous",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 1.08, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 1.06 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 2 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "nervousShake",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.01, "topCurve": 0.02, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.6 }
     },
-    "anxious": {
-      "family": "nervous",
-      "body": { "transform": "scaleY(0.99)" },
-      "eyeWhite": { "scaleY": 1.12, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 1.08, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 0 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 1.5 },
-      "animation": "anxiousTremble",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": 0, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
-    },
-    "scared": {
-      "family": "nervous",
-      "body": { "transform": "scaleY(0.97) translateY(1px)" },
-      "eyeWhite": { "scaleY": 1.2, "scaleX": 1.1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": -5 },
-      "lidBottom": { "curve": 5 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.45, "strokeWidth": 1.5 },
-      "animation": "scaredRecoil",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.05, "bottomCutoff": 0, "bottomCurve": 0.05, "asymmetry": 0 }
-    },
-    "fearful": {
-      "family": "nervous",
-      "body": { "transform": "scaleY(0.95) scaleX(0.98)" },
-      "eyeWhite": { "scaleY": 1.25, "scaleX": 1.15 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": -1 },
-      "lidTop": { "curve": -8 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 1.5 },
-      "animation": "fearfulCower",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.08, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "uneasy": {
-      "family": "nervous",
-      "body": { "transform": "rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 1.04, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 1, "scaleX": 1 },
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 4 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.32, "strokeWidth": 1.5 },
-      "animation": "uneasyShift",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.01, "topCurve": 0.04, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.05 }
-    },
-    "embarrassed": {
-      "family": "embarrassed",
-      "body": { "transform": "scaleY(0.97) scaleX(0.99)" },
-      "eyeWhite": { "scaleY": 1.15, "scaleX": 1.08 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": -0.5 },
-      "lidTop": { "curve": -3 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.45, "strokeWidth": 1.5 },
-      "animation": "embarrassedShrink",
-      "sparkle": false,
-      "ios": { "topCutoff": 0, "topCurve": -0.03, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "awkward": {
-      "family": "embarrassed",
-      "body": { "transform": "rotate(2deg) scaleY(0.98)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1.05 },
-      "eyeLeftOverride": { "scaleY": 0.85, "scaleX": 1.05 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 12 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "awkwardSquirm",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.08 }
-    },
-    "cringing": {
-      "family": "embarrassed",
-      "body": { "transform": "scaleY(0.95) scaleX(1.02)" },
-      "eyeWhite": { "scaleY": 0.5, "scaleX": 1.1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 45 },
-      "lidBottom": { "curve": -20 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "cringingSqueeze",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.22, "topCurve": 0.45, "bottomCutoff": 0.1, "bottomCurve": -0.2, "asymmetry": 0 }
-    },
-    "sheepish": {
-      "family": "embarrassed",
-      "body": { "transform": "rotate(-2deg) translateY(1px)" },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": -1, "translateY": 0 },
-      "lidTop": { "curve": 18 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.25 },
-      "presenceRing": { "opacity": 0.3, "strokeWidth": 1.5 },
-      "animation": "sheepishLean",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.06, "topCurve": 0.18, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "flustered": {
-      "family": "embarrassed",
-      "body": { "transform": null },
-      "eyeWhite": { "scaleY": 1.05, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 1.1, "scaleX": 1 },
-      "eyeRightOverride": null,
+
+    "receptive": {
+      "family": "listening",
+      "description": "Open and welcoming, soft gaze",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 1.02 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 5 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 1.5 },
-      "animation": "flusteredBounce",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.02, "topCurve": 0.05, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.06 }
+      "smileCrease": { "opacity": 0.2 },
+      "presenceRing": { "opacity": 0.3 }
     },
-    "confident": {
-      "family": "cool",
-      "body": { "transform": "translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.5 },
-      "presenceRing": { "opacity": 0.4, "strokeWidth": 2.5 },
-      "animation": "confidentStance",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "smirking": {
-      "family": "cool",
-      "body": { "transform": "rotate(2deg)" },
-      "eyeWhite": { "scaleY": 0.82, "scaleX": 1 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": { "scaleY": 0.75, "scaleX": 1 },
-      "eyesGroup": { "translateX": 1, "translateY": 0 },
-      "lidTop": { "curve": 20 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.6, "strokeWidth": 1.3 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "smirkingTilt",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.07, "topCurve": 0.2, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.12 }
-    },
-    "cool": {
-      "family": "cool",
-      "body": { "transform": "translateY(-1px) rotate(-1deg)" },
-      "eyeWhite": { "scaleY": 0.7, "scaleX": 1.05 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 28 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.4 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "coolLean",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.12, "topCurve": 0.28, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "sassy": {
-      "family": "cool",
-      "body": { "transform": "rotate(3deg) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.78, "scaleX": 1 },
-      "eyeLeftOverride": { "scaleY": 0.72, "scaleX": 1 },
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 24 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.65 },
-      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 },
-      "animation": "sassyBounce",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.09, "topCurve": 0.24, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0.1 }
-    },
-    "smug": {
-      "family": "cool",
-      "body": { "transform": "rotate(-1deg) scaleY(1.01)" },
-      "eyeWhite": { "scaleY": 0.72, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 30 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.7, "strokeWidth": 1.3 },
-      "presenceRing": { "opacity": 0.42, "strokeWidth": 2.5 },
-      "animation": "smugSettle",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.12, "topCurve": 0.3, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "determined": {
-      "family": "intense",
-      "body": { "transform": "scaleY(1.02) translateY(-1px)" },
-      "eyeWhite": { "scaleY": 0.85, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": -0.5 },
-      "lidTop": { "curve": 16 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 2.8 },
-      "animation": "determinedStance",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.16, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "fierce": {
-      "family": "intense",
-      "body": { "transform": "scaleY(0.98) scaleX(1.02)" },
-      "eyeWhite": { "scaleY": 0.75, "scaleX": 1.08 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 22 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.55, "strokeWidth": 1.5 },
-      "animation": "fierceIntensity",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.08, "topCurve": 0.22, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "intense": {
-      "family": "intense",
-      "body": { "transform": "scaleY(1.01)" },
-      "eyeWhite": { "scaleY": 0.92, "scaleX": 1.05 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+
+    "present": {
+      "family": "presence",
+      "description": "Fully here, grounded presence",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 1 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 10 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0 },
-      "presenceRing": { "opacity": 0.48, "strokeWidth": 2.5 },
-      "animation": "intenseStare",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.03, "topCurve": 0.1, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.4, "strokeWidth": 2 }
     },
-    "resolute": {
-      "family": "intense",
-      "body": { "transform": "translateY(-0.5px)" },
-      "eyeWhite": { "scaleY": 0.88, "scaleX": 1.02 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
-      "eyesGroup": { "translateX": 0, "translateY": 0 },
-      "lidTop": { "curve": 14 },
-      "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.35 },
-      "presenceRing": { "opacity": 0.45, "strokeWidth": 2.8 },
-      "animation": "resoluteStand",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.05, "topCurve": 0.14, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
-    },
-    "passionate": {
-      "family": "intense",
-      "body": { "transform": "scaleY(1.02) translateY(-2px)" },
-      "eyeWhite": { "scaleY": 0.9, "scaleX": 1.04 },
-      "eyeLeftOverride": null,
-      "eyeRightOverride": null,
+
+    "grounded": {
+      "family": "presence",
+      "description": "Stable, centered presence",
+      "body": { "transform": "scale(0.99)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.98 },
       "eyesGroup": { "translateX": 0, "translateY": 0 },
       "lidTop": { "curve": 12 },
+      "presenceRing": { "opacity": 0.45, "strokeWidth": 2.2 }
+    },
+
+    "calm": {
+      "family": "presence",
+      "description": "Peaceful calm, gentle breathing",
+      "body": { "transform": "none" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 16 },
+      "presenceRing": { "opacity": 0.35 },
+      "animation": "calmBreathe"
+    },
+
+    "serene": {
+      "family": "presence",
+      "description": "Deep serenity, half-lidded bliss",
+      "body": { "transform": "scale(0.99)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.8 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 25 },
+      "smileCrease": { "opacity": 0.3 },
+      "presenceRing": { "opacity": 0.3 }
+    },
+
+    "peaceful": {
+      "family": "presence",
+      "description": "At peace, gentle contentment",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 20 },
+      "smileCrease": { "opacity": 0.4 },
+      "presenceRing": { "opacity": 0.32 }
+    },
+
+    "encouraging": {
+      "family": "coaching",
+      "description": "You've got this! Supportive energy",
+      "body": { "transform": "translateY(-3px) scale(1.02)" },
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 15 },
+      "smileCrease": { "opacity": 0.7 },
+      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 }
+    },
+
+    "cheering": {
+      "family": "coaching",
+      "description": "Celebratory encouragement, bouncing",
+      "body": { "transform": "translateY(-5px) scale(1.04)" },
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 0.75 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 30 },
+      "smileCrease": { "opacity": 1, "strokeWidth": 1.5 },
+      "sparkleGroup": { "opacity": 0.8 },
+      "presenceRing": { "opacity": 0.6, "strokeWidth": 2.5 },
+      "animation": "cheeringBounce"
+    },
+
+    "guiding": {
+      "family": "coaching",
+      "description": "Gentle guidance, pointing the way",
+      "body": { "transform": "rotate(1deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.94 },
+      "eyesGroup": { "translateX": 2, "translateY": 0 },
+      "lidTop": { "curve": 12 },
+      "smileCrease": { "opacity": 0.5 },
+      "presenceRing": { "opacity": 0.38 }
+    },
+
+    "wise": {
+      "family": "coaching",
+      "description": "Sage wisdom, knowing calm",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 18 },
+      "smileCrease": { "opacity": 0.4 },
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.8 }
+    },
+
+    "knowing": {
+      "family": "coaching",
+      "description": "I understand, gentle acknowledgment",
+      "body": { "transform": "rotate(-1deg)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.9 },
+      "eyeLeft": { "scaleX": 1.02, "scaleY": 0.86 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 16 },
+      "smileCrease": { "opacity": 0.55 }
+    },
+
+    "sleepy": {
+      "family": "tired",
+      "description": "Heavy eyelids, ready for rest",
+      "body": { "transform": "scaleY(0.99)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.5 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 55 },
+      "lidBottom": { "curve": 30 },
+      "presenceRing": { "opacity": 0.15 }
+    },
+
+    "drowsy": {
+      "family": "tired",
+      "description": "Fighting sleep, slow blinks",
+      "body": { "transform": "scaleY(0.98) translateY(1px)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.45 },
+      "eyesGroup": { "translateX": 0, "translateY": 1 },
+      "lidTop": { "curve": 60 },
+      "lidBottom": { "curve": 35 },
+      "presenceRing": { "opacity": 0.12 },
+      "animation": "drowsyBlink"
+    },
+
+    "exhausted": {
+      "family": "tired",
+      "description": "Deeply tired, barely open",
+      "body": { "transform": "scaleY(0.97) translateY(2px) rotate(-1deg)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.35 },
+      "eyesGroup": { "translateX": 0, "translateY": 2 },
+      "lidTop": { "curve": 70 },
+      "lidBottom": { "curve": 40 },
+      "presenceRing": { "opacity": 0.1 }
+    },
+
+    "yawning": {
+      "family": "tired",
+      "description": "Mid-yawn, eyes squeezed",
+      "body": { "transform": "scaleY(1.02) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 0.95, "scaleY": 0.25 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 75 },
+      "lidBottom": { "curve": -35 },
+      "animation": "yawnCycle"
+    },
+
+    "resting": {
+      "family": "tired",
+      "description": "Peaceful rest, eyes nearly closed",
+      "body": { "transform": "scale(0.99)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.4 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 65 },
+      "lidBottom": { "curve": 25 },
+      "presenceRing": { "opacity": 0.18 }
+    },
+
+    "blissful": {
+      "family": "tired",
+      "description": "Happy sleepy, content rest",
+      "body": { "transform": "scale(0.99) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.55 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 50 },
+      "lidBottom": { "curve": 15 },
+      "smileCrease": { "opacity": 0.6 },
+      "presenceRing": { "opacity": 0.25 }
+    },
+
+    "concerned": {
+      "family": "concern",
+      "description": "Worry for others, brow furrowed",
+      "body": { "transform": "rotate(-1.5deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.95 },
+      "eyesGroup": { "translateX": -1, "translateY": 0 },
+      "lidTop": { "curve": 8, "furrow": true },
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.6 }
+    },
+
+    "worried": {
+      "family": "concern",
+      "description": "Anxious concern, eyes searching",
+      "body": { "transform": "rotate(-2deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 1.02 },
+      "eyeLeft": { "scaleX": 1.03, "scaleY": 0.98 },
+      "eyesGroup": { "translateX": -2, "translateY": -1 },
+      "lidTop": { "curve": 5, "furrow": true },
+      "presenceRing": { "opacity": 0.3 }
+    },
+
+    "sympathetic": {
+      "family": "concern",
+      "description": "I feel for you, soft concern",
+      "body": { "transform": "rotate(-2deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 15 },
+      "smileCrease": { "opacity": 0.3 },
+      "presenceRing": { "opacity": 0.35, "strokeWidth": 1.5 }
+    },
+
+    "understanding": {
+      "family": "concern",
+      "description": "I get it, empathetic nod",
+      "body": { "transform": "rotate(-1deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 14 },
+      "smileCrease": { "opacity": 0.4 },
+      "presenceRing": { "opacity": 0.38, "strokeWidth": 1.6 }
+    },
+
+    "comforting": {
+      "family": "concern",
+      "description": "Here for you, warm reassurance",
+      "body": { "transform": "rotate(-1.5deg) translateY(-2px) scale(1.01)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": -1, "translateY": 0 },
+      "lidTop": { "curve": 18 },
+      "smileCrease": { "opacity": 0.5 },
+      "presenceRing": { "opacity": 0.42, "strokeWidth": 1.8 }
+    },
+
+    "sad": {
+      "family": "sad",
+      "description": "Genuine sadness, downturned expression",
+      "body": { "transform": "translateY(1px) rotate(-1deg)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 2 },
+      "lidTop": { "curve": 18, "droop": true },
+      "lidBottom": { "curve": 8 },
+      "presenceRing": { "opacity": 0.2 }
+    },
+
+    "crying": {
+      "family": "sad",
+      "description": "Tears flowing, squinted eyes",
+      "body": { "transform": "translateY(1px) scaleY(0.98)" },
+      "eyeWhite": { "scaleX": 0.98, "scaleY": 0.6 },
+      "eyesGroup": { "translateX": 0, "translateY": 1 },
+      "lidTop": { "curve": 45 },
+      "lidBottom": { "curve": 20 },
+      "presenceRing": { "opacity": 0.15 }
+    },
+
+    "melancholy": {
+      "family": "sad",
+      "description": "Wistful sadness, distant gaze",
+      "body": { "transform": "translateY(1px) rotate(-0.5deg)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": 2, "translateY": 2 },
+      "lidTop": { "curve": 20 },
+      "lidBottom": { "curve": 5 },
+      "presenceRing": { "opacity": 0.18 }
+    },
+
+    "disappointed": {
+      "family": "sad",
+      "description": "Let down, slight deflation",
+      "body": { "transform": "translateY(2px) scale(0.98)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": 0, "translateY": 1 },
+      "lidTop": { "curve": 16 },
+      "lidBottom": { "curve": 6 },
+      "presenceRing": { "opacity": 0.2 }
+    },
+
+    "dejected": {
+      "family": "sad",
+      "description": "Deep disappointment, slumped",
+      "body": { "transform": "translateY(3px) scale(0.97) rotate(-2deg)" },
+      "eyeWhite": { "scaleX": 0.99, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": -1, "translateY": 3 },
+      "lidTop": { "curve": 22, "droop": true },
+      "lidBottom": { "curve": 8 },
+      "presenceRing": { "opacity": 0.15 }
+    },
+
+    "frustrated": {
+      "family": "frustrated",
+      "description": "Mild frustration, tight expression",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 20, "furrow": true },
+      "presenceRing": { "opacity": 0.3 }
+    },
+
+    "annoyed": {
+      "family": "frustrated",
+      "description": "Something's bothering me",
+      "body": { "transform": "rotate(1deg)" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.9 },
+      "eyeLeft": { "scaleX": 1.01, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": 18 },
+      "presenceRing": { "opacity": 0.28 }
+    },
+
+    "irritated": {
+      "family": "frustrated",
+      "description": "Growing impatience",
+      "body": { "transform": "rotate(-1deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": -1, "translateY": 0 },
+      "lidTop": { "curve": 22, "furrow": true },
+      "presenceRing": { "opacity": 0.32 }
+    },
+
+    "exasperated": {
+      "family": "frustrated",
+      "description": "At wits end, dramatic sigh",
+      "body": { "transform": "translateY(1px) scaleY(0.98)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.8 },
+      "eyesGroup": { "translateX": 0, "translateY": 2 },
+      "lidTop": { "curve": 28 }
+    },
+
+    "eyeroll": {
+      "family": "frustrated",
+      "description": "Classic eye roll",
+      "body": { "transform": "rotate(-2deg)" },
+      "eyeWhite": { "scaleX": 1, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 15 },
+      "animation": "eyerollArc"
+    },
+
+    "confused": {
+      "family": "confused",
+      "description": "Not following, puzzled look",
+      "body": { "transform": "rotate(3deg)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 1 },
+      "eyeLeft": { "scaleX": 1.03, "scaleY": 0.95 },
+      "eyesGroup": { "translateX": 2, "translateY": 0 },
+      "lidTop": { "curve": 8, "asymmetry": 0.2 },
+      "presenceRing": { "opacity": 0.25 }
+    },
+
+    "skeptical": {
+      "family": "confused",
+      "description": "Doubtful, one brow raised",
+      "body": { "transform": "rotate(2deg)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.92 },
+      "eyeLeft": { "scaleX": 1.02, "scaleY": 0.85 },
+      "eyeRight": { "scaleX": 1.04, "scaleY": 1.02 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": 12, "asymmetry": 0.3 },
+      "presenceRing": { "opacity": 0.28 }
+    },
+
+    "puzzled": {
+      "family": "confused",
+      "description": "Trying to understand",
+      "body": { "transform": "rotate(2.5deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.98 },
+      "eyesGroup": { "translateX": 2, "translateY": -1 },
+      "lidTop": { "curve": 6, "asymmetry": 0.15 },
+      "presenceRing": { "opacity": 0.26 }
+    },
+
+    "perplexed": {
+      "family": "confused",
+      "description": "Deeply confused, searching",
+      "body": { "transform": "rotate(4deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 1.02 },
+      "eyeLeft": { "scaleX": 1.04, "scaleY": 0.98 },
+      "eyesGroup": { "translateX": 3, "translateY": -1 },
+      "lidTop": { "curve": 4, "asymmetry": 0.25 },
+      "presenceRing": { "opacity": 0.3 }
+    },
+
+    "bewildered": {
+      "family": "confused",
+      "description": "Completely lost, wide-eyed confusion",
+      "body": { "transform": "rotate(5deg) scaleX(0.99)" },
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 1.08 },
+      "eyeLeft": { "scaleX": 1.06, "scaleY": 1.02 },
+      "eyesGroup": { "translateX": 4, "translateY": -2 },
+      "lidTop": { "curve": -2, "asymmetry": 0.3 },
+      "presenceRing": { "opacity": 0.32 }
+    },
+
+    "nervous": {
+      "family": "nervous",
+      "description": "Uneasy, darting glance",
+      "body": { "transform": "translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 1.02 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 6 },
+      "presenceRing": { "opacity": 0.28 },
+      "animation": "nervousLook"
+    },
+
+    "anxious": {
+      "family": "nervous",
+      "description": "Heightened worry, tense expression",
+      "body": { "transform": "scaleY(1.01) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 1.06 },
+      "eyesGroup": { "translateX": -2, "translateY": -1 },
+      "lidTop": { "curve": 4, "furrow": true },
+      "presenceRing": { "opacity": 0.35 },
+      "animation": "anxiousDart"
+    },
+
+    "scared": {
+      "family": "nervous",
+      "description": "Fear response, eyes wide",
+      "body": { "transform": "scaleY(1.03) translateY(-3px)" },
+      "eyeWhite": { "scaleX": 1.08, "scaleY": 1.15 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": -12 },
       "lidBottom": { "curve": 10 },
-      "smileCrease": { "opacity": 0.55 },
-      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 },
-      "animation": "passionatePulse",
-      "sparkle": false,
-      "ios": { "topCutoff": 0.04, "topCurve": 0.12, "bottomCutoff": 0, "bottomCurve": 0, "asymmetry": 0 }
+      "presenceRing": { "opacity": 0.4 }
+    },
+
+    "fearful": {
+      "family": "nervous",
+      "description": "Deep fear, frozen expression",
+      "body": { "transform": "scaleY(1.04) scaleX(0.98) translateY(-4px)" },
+      "eyeWhite": { "scaleX": 1.1, "scaleY": 1.2 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": -18 },
+      "lidBottom": { "curve": 15 },
+      "presenceRing": { "opacity": 0.45 }
+    },
+
+    "uneasy": {
+      "family": "nervous",
+      "description": "Something's off, subtle discomfort",
+      "body": { "transform": "rotate(-1deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.98 },
+      "eyesGroup": { "translateX": -1, "translateY": 0 },
+      "lidTop": { "curve": 10 },
+      "presenceRing": { "opacity": 0.26 }
+    },
+
+    "embarrassed": {
+      "family": "embarrassed",
+      "description": "Self-conscious, looking away",
+      "body": { "transform": "rotate(-3deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": -3, "translateY": 1 },
+      "lidTop": { "curve": 22 },
+      "presenceRing": { "opacity": 0.3 }
+    },
+
+    "awkward": {
+      "family": "embarrassed",
+      "description": "Social discomfort, uncertain",
+      "body": { "transform": "rotate(2deg) translateX(-2px)" },
+      "eyeWhite": { "scaleX": 1.01, "scaleY": 0.9 },
+      "eyeLeft": { "scaleX": 1.01, "scaleY": 0.85 },
+      "eyesGroup": { "translateX": 2, "translateY": 1 },
+      "lidTop": { "curve": 18 },
+      "presenceRing": { "opacity": 0.25 }
+    },
+
+    "cringing": {
+      "family": "embarrassed",
+      "description": "Second-hand embarrassment, squinting",
+      "body": { "transform": "rotate(-2deg) scaleX(0.98) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 0.98, "scaleY": 0.7 },
+      "eyesGroup": { "translateX": -2, "translateY": 1 },
+      "lidTop": { "curve": 35 },
+      "smileCrease": { "opacity": 0.4 }
+    },
+
+    "sheepish": {
+      "family": "embarrassed",
+      "description": "Guilty but cute, apologetic",
+      "body": { "transform": "rotate(-2deg) translateY(-1px)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": -2, "translateY": 0 },
+      "lidTop": { "curve": 16 },
+      "smileCrease": { "opacity": 0.5 },
+      "presenceRing": { "opacity": 0.28 }
+    },
+
+    "flustered": {
+      "family": "embarrassed",
+      "description": "Overwhelmed, scattered look",
+      "body": { "transform": "rotate(1deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.95 },
+      "eyeLeft": { "scaleX": 1.04, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 1, "translateY": -1 },
+      "lidTop": { "curve": 12 },
+      "presenceRing": { "opacity": 0.32 }
+    },
+
+    "confident": {
+      "family": "cool",
+      "description": "Self-assured, relaxed power",
+      "body": { "transform": "translateY(-3px) scale(1.02)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 16 },
+      "smileCrease": { "opacity": 0.4 },
+      "presenceRing": { "opacity": 0.45, "strokeWidth": 2 }
+    },
+
+    "smirking": {
+      "family": "cool",
+      "description": "Knowing smirk, one-sided",
+      "body": { "transform": "rotate(2deg)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.88 },
+      "eyeLeft": { "scaleX": 1.04, "scaleY": 0.82 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": 20 },
+      "smileCrease": { "opacity": 0.7, "asymmetry": 0.5 }
+    },
+
+    "cool": {
+      "family": "cool",
+      "description": "Effortlessly cool, relaxed squint",
+      "body": { "transform": "rotate(1deg) translateY(-2px)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.82 },
+      "eyesGroup": { "translateX": 2, "translateY": 0 },
+      "lidTop": { "curve": 24 },
+      "smileCrease": { "opacity": 0.5 }
+    },
+
+    "sassy": {
+      "family": "cool",
+      "description": "Playful attitude, side-eye",
+      "body": { "transform": "rotate(3deg) translateX(2px)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.85 },
+      "eyeLeft": { "scaleX": 1.04, "scaleY": 0.8 },
+      "eyesGroup": { "translateX": 3, "translateY": 0 },
+      "lidTop": { "curve": 22 },
+      "smileCrease": { "opacity": 0.6 }
+    },
+
+    "smug": {
+      "family": "cool",
+      "description": "Self-satisfied, slight superiority",
+      "body": { "transform": "rotate(1.5deg) translateY(-2px) scale(1.01)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.85 },
+      "eyeLeft": { "scaleX": 1.03, "scaleY": 0.8 },
+      "eyesGroup": { "translateX": 1, "translateY": 0 },
+      "lidTop": { "curve": 22 },
+      "smileCrease": { "opacity": 0.65 },
+      "presenceRing": { "opacity": 0.35 }
+    },
+
+    "determined": {
+      "family": "intense",
+      "description": "Focused resolve, eyes forward",
+      "body": { "transform": "translateY(-2px) scale(1.01)" },
+      "eyeWhite": { "scaleX": 1.03, "scaleY": 0.92 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 14 },
+      "presenceRing": { "opacity": 0.5, "strokeWidth": 2 }
+    },
+
+    "fierce": {
+      "family": "intense",
+      "description": "Intense focus, power stance",
+      "body": { "transform": "translateY(-3px) scale(1.03)" },
+      "eyeWhite": { "scaleX": 1.05, "scaleY": 0.88 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 18, "furrow": true },
+      "presenceRing": { "opacity": 0.6, "strokeWidth": 2.5 }
+    },
+
+    "intense": {
+      "family": "intense",
+      "description": "Laser focus, penetrating gaze",
+      "body": { "transform": "translateY(-2px) scale(1.02)" },
+      "eyeWhite": { "scaleX": 1.04, "scaleY": 0.9 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 16 },
+      "presenceRing": { "opacity": 0.55, "strokeWidth": 2.2 }
+    },
+
+    "resolute": {
+      "family": "intense",
+      "description": "Unwavering determination",
+      "body": { "transform": "translateY(-2px) scale(1.01)" },
+      "eyeWhite": { "scaleX": 1.02, "scaleY": 0.94 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 12 },
+      "presenceRing": { "opacity": 0.48, "strokeWidth": 2 }
+    },
+
+    "passionate": {
+      "family": "intense",
+      "description": "Burning passion, animated energy",
+      "body": { "transform": "translateY(-4px) scale(1.03)" },
+      "eyeWhite": { "scaleX": 1.06, "scaleY": 0.95 },
+      "eyesGroup": { "translateX": 0, "translateY": 0 },
+      "lidTop": { "curve": 10 },
+      "smileCrease": { "opacity": 0.6 },
+      "presenceRing": { "opacity": 0.55, "strokeWidth": 2.5 },
+      "animation": "passionatePulse"
     }
   },
-  "microExpressions": {
-    "recognition": { "duration": 80, "eyeWhite": { "scaleY": 1.08 } },
-    "concern": { "duration": 100, "lidTop": { "curve": 5 } },
-    "delight": { "duration": 120, "smileCrease": { "opacity": 0.8 } },
-    "warmth": { "duration": 100, "smileCrease": { "opacity": 0.6 } },
-    "interest": { "duration": 90, "eyeWhite": { "scaleY": 1.05 } },
-    "surprise": { "duration": 150, "eyeWhite": { "scaleY": 1.12, "scaleX": 1.05 } }
+
+  "animations": {
+    "delightedBounce": {
+      "duration": "0.5s",
+      "easing": "var(--ease-spring)",
+      "keyframes": {
+        "0%": { "transform": "translateY(0) scale(1) rotate(0)" },
+        "40%": { "transform": "translateY(-10px) scale(1.08) rotate(-3deg)" },
+        "70%": { "transform": "translateY(-4px) scale(1.04) rotate(-1deg)" },
+        "100%": { "transform": "translateY(-6px) scale(1.05) rotate(-2deg)" }
+      }
+    },
+    "excitedBounce": {
+      "duration": "0.35s",
+      "easing": "var(--ease-bounce)",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "scale(1.06) translateY(0) rotate(0)" },
+        "25%": { "transform": "scale(1.08) translateY(-4px) rotate(-1deg)" },
+        "50%": { "transform": "scale(1.04) translateY(-2px) rotate(1deg)" },
+        "75%": { "transform": "scale(1.07) translateY(-3px) rotate(-0.5deg)" }
+      }
+    },
+    "caringSettle": {
+      "duration": "0.4s",
+      "easing": "var(--ease-spring)",
+      "keyframes": {
+        "0%": { "transform": "translateY(0) rotate(0)" },
+        "50%": { "transform": "translateY(-3px) rotate(-1.5deg)" },
+        "100%": { "transform": "translateY(-2px) rotate(-1deg)" }
+      }
+    },
+    "lovingGlow": {
+      "duration": "2s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "translateY(-4px) scale(1.02)" },
+        "50%": { "transform": "translateY(-5px) scale(1.03)" }
+      }
+    },
+    "playfulSway": {
+      "duration": "1.5s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "rotate(2deg) translateY(-2px)" },
+        "50%": { "transform": "rotate(-1deg) translateY(-3px)" }
+      }
+    },
+    "sillyWobble": {
+      "duration": "0.6s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "rotate(-4deg) scaleX(1.03) translateY(-3px)" },
+        "50%": { "transform": "rotate(3deg) scaleX(1.03) translateY(-4px)" }
+      }
+    },
+    "winkPop": {
+      "duration": "0.3s",
+      "easing": "var(--ease-spring)",
+      "keyframes": {
+        "0%": { "scaleY": 0.9 },
+        "30%": { "scaleY": 0.1 },
+        "100%": { "scaleY": 0.15 }
+      }
+    },
+    "cheeringBounce": {
+      "duration": "0.5s",
+      "easing": "var(--ease-spring)",
+      "keyframes": {
+        "0%": { "transform": "translateY(0) scale(1)" },
+        "50%": { "transform": "translateY(-8px) scale(1.06)" },
+        "100%": { "transform": "translateY(-5px) scale(1.04)" }
+      }
+    },
+    "drowsyBlink": {
+      "duration": "3s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 90%, 100%": { "scaleY": 0.45 },
+        "45%, 55%": { "scaleY": 0.2 }
+      }
+    },
+    "yawnCycle": {
+      "duration": "2s",
+      "easing": "ease-in-out",
+      "keyframes": {
+        "0%": { "scaleY": 0.9, "bottomCutoff": 0.12 },
+        "30%": { "scaleY": 0.25, "bottomCutoff": 0.35 },
+        "70%": { "scaleY": 0.25, "bottomCutoff": 0.35 },
+        "100%": { "scaleY": 0.4, "bottomCutoff": 0.25 }
+      }
+    },
+    "nervousLook": {
+      "duration": "2s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "translateX": 0 },
+        "25%": { "translateX": 2 },
+        "75%": { "translateX": -2 }
+      }
+    },
+    "anxiousDart": {
+      "duration": "1.5s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "translateX": -2, "translateY": -1 },
+        "33%": { "translateX": 2, "translateY": 0 },
+        "66%": { "translateX": -1, "translateY": -2 }
+      }
+    },
+    "eyerollArc": {
+      "duration": "0.8s",
+      "easing": "ease-in-out",
+      "keyframes": {
+        "0%": { "translateX": 0, "translateY": 0 },
+        "30%": { "translateX": 0, "translateY": -4 },
+        "60%": { "translateX": 2, "translateY": -3 },
+        "100%": { "translateX": 0, "translateY": 0 }
+      }
+    },
+    "passionatePulse": {
+      "duration": "1s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "translateY(-4px) scale(1.03)" },
+        "50%": { "transform": "translateY(-5px) scale(1.04)" }
+      }
+    },
+    "calmBreathe": {
+      "duration": "4s",
+      "easing": "ease-in-out",
+      "iteration": "infinite",
+      "keyframes": {
+        "0%, 100%": { "transform": "scale(1)" },
+        "50%": { "transform": "scale(1.01)" }
+      }
+    }
   },
+
   "families": {
-    "core": { "displayName": "Core", "description": "Fundamental conversational states" },
-    "happy": { "displayName": "Happy", "description": "Joy, delight, and positive emotions" },
-    "warmth": { "displayName": "Warmth", "description": "Care, love, and supportive emotions" },
-    "playful": { "displayName": "Playful", "description": "Fun, mischievous, and lighthearted" },
-    "surprised": { "displayName": "Surprised", "description": "Amazement, curiosity, and wonder" },
-    "thinking": { "displayName": "Thinking", "description": "Contemplation and deep thought" },
-    "listening": { "displayName": "Listening", "description": "Active attention and receptivity" },
-    "presence": { "displayName": "Presence", "description": "Groundedness and inner peace" },
-    "coaching": { "displayName": "Coaching", "description": "Guidance, wisdom, and encouragement" },
-    "tired": { "displayName": "Tired", "description": "Sleepy, restful, and exhausted states" },
-    "concern": { "displayName": "Concern", "description": "Worry, sympathy, and care for others" },
-    "sad": { "displayName": "Sad", "description": "Sadness, disappointment, and grief" },
-    "frustrated": { "displayName": "Frustrated", "description": "Annoyance, irritation, and exasperation" },
-    "confused": { "displayName": "Confused", "description": "Puzzlement, skepticism, and bewilderment" },
-    "nervous": { "displayName": "Nervous", "description": "Anxiety, fear, and unease" },
-    "embarrassed": { "displayName": "Embarrassed", "description": "Awkwardness, cringing, and sheepishness" },
-    "cool": { "displayName": "Cool", "description": "Confidence, smugness, and sass" },
-    "intense": { "displayName": "Intense", "description": "Determination, passion, and fierceness" }
+    "core": {
+      "displayName": "Core States",
+      "description": "Fundamental expressions for conversation: neutral, listening, speaking"
+    },
+    "happy": {
+      "displayName": "Happy",
+      "description": "Joy spectrum from pleased to delighted - warmth, gratitude, excitement"
+    },
+    "warmth": {
+      "displayName": "Warmth & Care",
+      "description": "Emotional warmth: caring, loving, tender, supportive, compassionate"
+    },
+    "playful": {
+      "displayName": "Playful",
+      "description": "Lighthearted expressions: mischievous, cheeky, silly, winking, teasing"
+    },
+    "surprised": {
+      "displayName": "Surprised",
+      "description": "Discovery and reaction: surprised, shocked, amazed, intrigued, curious"
+    },
+    "thinking": {
+      "displayName": "Thinking",
+      "description": "Cognitive states: pondering, contemplating, focused, processing, analyzing"
+    },
+    "listening": {
+      "displayName": "Listening",
+      "description": "Active engagement: attentive, engaged, interested, absorbing, receptive"
+    },
+    "presence": {
+      "displayName": "Presence",
+      "description": "Grounded states: present, grounded, calm, serene, peaceful"
+    },
+    "coaching": {
+      "displayName": "Coaching",
+      "description": "Supportive guidance: encouraging, cheering, guiding, wise, knowing"
+    },
+    "tired": {
+      "displayName": "Tired",
+      "description": "Fatigue spectrum: sleepy, drowsy, exhausted, yawning, resting, blissful"
+    },
+    "concern": {
+      "displayName": "Concern",
+      "description": "Empathetic worry: concerned, worried, sympathetic, understanding, comforting"
+    },
+    "sad": {
+      "displayName": "Sad",
+      "description": "Sadness spectrum: sad, crying, melancholy, disappointed, dejected"
+    },
+    "frustrated": {
+      "displayName": "Frustrated",
+      "description": "Irritation expressions: frustrated, annoyed, irritated, exasperated, eyeroll"
+    },
+    "confused": {
+      "displayName": "Confused",
+      "description": "Uncertainty: confused, skeptical, puzzled, perplexed, bewildered"
+    },
+    "nervous": {
+      "displayName": "Nervous",
+      "description": "Anxiety states: nervous, anxious, scared, fearful, uneasy"
+    },
+    "embarrassed": {
+      "displayName": "Embarrassed",
+      "description": "Self-conscious: embarrassed, awkward, cringing, sheepish, flustered"
+    },
+    "cool": {
+      "displayName": "Cool",
+      "description": "Confidence expressions: confident, smirking, cool, sassy, smug"
+    },
+    "intense": {
+      "displayName": "Intense",
+      "description": "Focused determination: determined, fierce, intense, resolute, passionate"
+    }
+  },
+
+  "microExpressions": {
+    "recognition": {
+      "description": "Brief flash of recognition - 'I hear you'",
+      "expression": "attentive",
+      "duration": 80,
+      "returnTo": "listening"
+    },
+    "concern": {
+      "description": "Quick flash of empathy when detecting distress",
+      "expression": "concerned",
+      "duration": 100,
+      "returnTo": "listening"
+    },
+    "delight": {
+      "description": "Micro-flash of joy in response to user happiness",
+      "expression": "delighted",
+      "duration": 120,
+      "returnTo": "happy"
+    },
+    "warmth": {
+      "description": "Brief warmth flash - building connection",
+      "expression": "warm",
+      "duration": 100,
+      "returnTo": "listening"
+    },
+    "interest": {
+      "description": "Quick flash of curiosity",
+      "expression": "interested",
+      "duration": 90,
+      "returnTo": "listening"
+    },
+    "surprise": {
+      "description": "Brief surprise micro-expression",
+      "expression": "surprised",
+      "duration": 80,
+      "returnTo": "listening"
+    }
   }
 }

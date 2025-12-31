@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { onSessionSummaryChange } from '../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'SessionSummary' });
 
@@ -119,6 +120,14 @@ export interface AppBrowsingContext {
 const sessionSummaries = new Map<string, VoiceSessionSummary>();
 const activeContexts = new Map<string, ActiveUserContext>();
 
+/**
+ * Clear all in-memory session data (for testing only).
+ */
+export function clearAllSessionData(): void {
+  sessionSummaries.clear();
+  activeContexts.clear();
+}
+
 // ============================================================================
 // SESSION SUMMARY FUNCTIONS
 // ============================================================================
@@ -177,9 +186,7 @@ export async function storeSessionSummary(summary: VoiceSessionSummary): Promise
 /**
  * Get the most recent session summary for a user.
  */
-export async function getLastSessionSummary(
-  userId: string
-): Promise<VoiceSessionSummary | null> {
+export async function getLastSessionSummary(userId: string): Promise<VoiceSessionSummary | null> {
   // Try memory first
   const context = activeContexts.get(userId);
   if (context?.lastVoiceSession) {
@@ -193,9 +200,7 @@ export async function getLastSessionSummary(
 /**
  * Get active user context for cross-channel awareness.
  */
-export async function getActiveUserContext(
-  userId: string
-): Promise<ActiveUserContext | null> {
+export async function getActiveUserContext(userId: string): Promise<ActiveUserContext | null> {
   // Try memory first
   const context = activeContexts.get(userId);
   if (context) {
@@ -254,10 +259,7 @@ export async function recordAppScreenView(
 /**
  * Record a specific interaction in the app.
  */
-export async function recordAppInteraction(
-  userId: string,
-  interaction: string
-): Promise<void> {
+export async function recordAppInteraction(userId: string, interaction: string): Promise<void> {
   const context = activeContexts.get(userId) || createEmptyContext(userId);
 
   if (!context.appBrowsingContext) {
@@ -302,7 +304,9 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
     );
 
     if (daysSince <= 7) {
-      lines.push(`Last conversation: ${daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`}`);
+      lines.push(
+        `Last conversation: ${daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`}`
+      );
       lines.push(`Topics discussed: ${context.lastVoiceSession.mainTopics.join(', ')}`);
 
       if (context.lastVoiceSession.naturalSummary) {
@@ -324,7 +328,7 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
     );
 
     if (hoursSince <= 24) {
-      lines.push('Since our last conversation, they\'ve been looking at:');
+      lines.push("Since our last conversation, they've been looking at:");
 
       // Find screens with significant time
       const significantScreens = Object.entries(context.appBrowsingContext.timeSpent)
@@ -338,7 +342,9 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
       }
 
       if (context.appBrowsingContext.interactions.length > 0) {
-        lines.push(`Recent interactions: ${context.appBrowsingContext.interactions.slice(0, 3).join(', ')}`);
+        lines.push(
+          `Recent interactions: ${context.appBrowsingContext.interactions.slice(0, 3).join(', ')}`
+        );
       }
 
       lines.push('');
@@ -353,7 +359,9 @@ export function formatContextForVoiceCall(context: ActiveUserContext): string {
 
   // Emotional state
   if (context.emotionalState.current !== 'neutral') {
-    lines.push(`Last known emotional state: ${context.emotionalState.current} (${context.emotionalState.trajectory})`);
+    lines.push(
+      `Last known emotional state: ${context.emotionalState.current} (${context.emotionalState.trajectory})`
+    );
     lines.push('');
   }
 
@@ -395,7 +403,7 @@ export function formatContextForApp(context: ActiveUserContext): {
       if (context.lastVoiceSession.wasSignificant) {
         result.bridgeMessage = "I've been thinking about what you shared earlier...";
       } else if (context.lastVoiceSession.insightsGenerated.length > 0) {
-        result.bridgeMessage = "I noticed something from our conversation...";
+        result.bridgeMessage = 'I noticed something from our conversation...';
       } else if (context.lastVoiceSession.unfinishedTopics.length > 0) {
         result.bridgeMessage = "There's more I wanted to explore with you...";
       }
@@ -455,7 +463,34 @@ async function persistSummaryToFirestore(summary: VoiceSessionSummary): Promise<
         })),
       });
 
-    log.debug({ userId: summary.userId, sessionId: summary.sessionId }, 'Session summary persisted to Firestore');
+    // Index to semantic memory for "Better Than Human" recall
+    // "We remember your whole story"
+    void onSessionSummaryChange(
+      summary.userId,
+      summary.sessionId,
+      {
+        sessionId: summary.sessionId,
+        summary: summary.naturalSummary,
+        keyTopics: summary.mainTopics,
+        emotionalArc: summary.emotionalArc.length > 0
+          ? `Started ${summary.emotionalArc[0]?.emotion || 'neutral'}, ended ${summary.endingEmotionalState}`
+          : summary.endingEmotionalState,
+        actionItems: summary.unfinishedTopics,
+        promises: summary.commitmentsMade,
+        questionsRaised: summary.suggestedFollowUp ? [summary.suggestedFollowUp] : [],
+        breakthroughs: summary.insightsGenerated
+          .filter((i) => i.type === 'breakthrough')
+          .map((i) => i.content),
+        duration: Math.round(summary.durationSeconds / 60),
+        timestamp: summary.endedAt.toISOString(),
+      },
+      summary.wasSignificant ? 'create' : 'update'
+    );
+
+    log.debug(
+      { userId: summary.userId, sessionId: summary.sessionId },
+      'Session summary persisted to Firestore'
+    );
   } catch (err) {
     log.warn({ error: String(err) }, 'Failed to persist session summary to Firestore');
   }
@@ -572,7 +607,7 @@ async function loadContextFromFirestore(userId: string): Promise<ActiveUserConte
     } as ActiveUserContext;
 
     // Also load last voice session
-    context.lastVoiceSession = await loadLastSummaryFromFirestore(userId) || undefined;
+    context.lastVoiceSession = (await loadLastSummaryFromFirestore(userId)) || undefined;
 
     // Cache in memory
     activeContexts.set(userId, context);
@@ -588,6 +623,4 @@ async function loadContextFromFirestore(userId: string): Promise<ActiveUserConte
 // EXPORTS
 // ============================================================================
 
-export {
-  formatContextForVoiceCall as formatSessionContextForLLM,
-};
+export { formatContextForVoiceCall as formatSessionContextForLLM };

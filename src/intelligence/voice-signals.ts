@@ -16,8 +16,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const log = getLogger();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -281,7 +284,10 @@ export function recordVoiceTurn(
   }
 
   // Record answer length
-  const wordCount = transcript.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordCount = RUST_COUNTING_AVAILABLE
+    ? countWordsRust(transcript)
+    : transcript.split(/\s+/).length;
   history.answerLengths.push(wordCount);
   if (history.answerLengths.length > 10) {
     history.answerLengths.shift();

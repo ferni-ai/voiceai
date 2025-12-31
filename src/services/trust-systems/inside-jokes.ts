@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexInsideJoke } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'InsideJokes' });
 
@@ -350,6 +351,14 @@ function createMoment(
 
   profile.moments.push(moment);
 
+  // Index to semantic memory for contextual retrieval
+  indexInsideJoke(profile.userId, {
+    id: moment.id,
+    joke: moment.content,
+    context: moment.origin.topic || '',
+    sharedMoment: moment.origin.whatTheySaid,
+  });
+
   // Keep only last 50 moments
   if (profile.moments.length > 50) {
     profile.moments = profile.moments.slice(-50);
@@ -589,6 +598,19 @@ export function detectRunningGag(userId: string, topic: string): SharedMoment | 
       };
 
       profile.moments.push(gag);
+
+      // Index to semantic memory
+      indexInsideJoke(
+        profile.userId,
+        {
+          id: gag.id,
+          joke: gag.content,
+          context: gag.origin.topic || '',
+          sharedMoment: gag.type,
+        },
+        'create'
+      );
+
       log.info({ userId, topic }, '🎭 Running gag detected');
       return gag;
     }

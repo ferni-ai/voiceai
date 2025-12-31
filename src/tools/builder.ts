@@ -22,7 +22,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
 import {
-  EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
   type ServiceRegistry,
   type Tool,
   type ToolContext,
@@ -407,7 +407,7 @@ export async function buildAgentTools(
     userId: options.userId || 'default',
     agentId: manifest.identity.id,
     agentDisplayName: manifest.identity.display_name,
-    services: options.services || new EmptyServiceRegistry(),
+    services: options.services || new EnvironmentServiceRegistry(),
     agentManifest: {
       identity: manifest.identity,
       tools: manifest.tools,

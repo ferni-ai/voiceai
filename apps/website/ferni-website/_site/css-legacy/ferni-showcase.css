@@ -1,0 +1,599 @@
+/**
+ * Ferni Showcase Styles
+ * 
+ * Enhanced visual styles for the landing page hero Ferni avatar.
+ * Brings all the magic: expressions, emotions, sparkles, micro-expressions.
+ * 
+ * "Better than human" - Ferni should feel genuinely alive.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Ferni Color Palette */
+  --ferni-primary: #4a6741;
+  --ferni-secondary: #3d5a35;
+  --ferni-glow: rgba(74, 103, 65, 0.35);
+  --ferni-glow-strong: rgba(74, 103, 65, 0.55);
+  --ferni-glow-soft: rgba(74, 103, 65, 0.2);
+  
+  /* Sparkle & Warmth */
+  --ferni-warmth: #ffd700;
+  --ferni-warmth-soft: rgba(255, 215, 0, 0.4);
+  --ferni-sparkle: linear-gradient(135deg, #ffd700, #ffb347);
+  
+  /* Animation Timing */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-gentle: cubic-bezier(0.25, 1.25, 0.5, 1);
+  --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Breath Timing */
+  --breath-duration: 4s;
+  --breath-duration-active: 2.8s;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HERO FERNI - The Living Avatar
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.hero-ferni {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: var(--space-6, 24px);
+  transform-origin: center bottom;
+  cursor: pointer;
+  
+  /* Enable hardware acceleration */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Ambient Glow - Emotional Aura */
+.hero-ferni__glow {
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--ferni-glow) 0%,
+    var(--ferni-glow-soft) 40%,
+    transparent 70%
+  );
+  filter: blur(20px);
+  opacity: 0.6;
+  animation: glowPulse 4s ease-in-out infinite;
+  transition: opacity 0.4s ease, transform 0.4s var(--ease-spring);
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+/* Outer Ring */
+.hero-ferni__ring--outer {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px solid var(--ferni-glow-soft);
+  animation: ringPulse 3s ease-in-out infinite;
+}
+
+.hero-ferni__ring--inner {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid var(--ferni-glow);
+  animation: ringPulse 3s ease-in-out infinite 0.5s;
+}
+
+@keyframes ringPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.6;
+  }
+}
+
+/* The Orb - Main Avatar Body */
+.hero-ferni__orb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    var(--ferni-secondary) 0%,
+    var(--ferni-primary) 50%,
+    #5a7a4d 100%
+  );
+  box-shadow:
+    0 0 60px var(--ferni-glow),
+    0 0 100px var(--ferni-glow-soft),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.15),
+    inset 0 20px 40px rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.4s ease;
+}
+
+/* Highlight - Top Left Glossy Spot */
+.hero-ferni__orb::before {
+  content: '';
+  position: absolute;
+  top: 12%;
+  left: 15%;
+  width: 28%;
+  height: 24%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.35) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(6px);
+}
+
+/* Pulse Ring - Active State */
+.hero-ferni__pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--ferni-primary);
+  opacity: 0;
+  animation: pulseBeat 2s ease-out infinite;
+}
+
+@keyframes pulseBeat {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   EYES - The Soul
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.hero-ferni__eyes {
+  width: 70%;
+  height: 70%;
+  position: relative;
+  z-index: 5;
+}
+
+.ferni-eye {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  transition: transform 0.3s var(--ease-spring-gentle);
+}
+
+.ferni-sparkle {
+  filter: blur(0.5px);
+  animation: eyeSparkle 3s ease-in-out infinite;
+}
+
+@keyframes eyeSparkle {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Eye tracking on hover (subtle) */
+.hero-ferni:hover .ferni-eye--left {
+  transform: translateX(2px);
+}
+
+.hero-ferni:hover .ferni-eye--right {
+  transform: translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BREATHING - Life Force
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.hero-ferni--breathing {
+  animation: avatarBreath var(--breath-duration) ease-in-out infinite;
+}
+
+@keyframes avatarBreath {
+  0%, 100% {
+    transform: scale3d(1, 1, 1);
+  }
+  8% {
+    transform: scale3d(1.003, 0.997, 1) translateY(1px);
+  }
+  35% {
+    transform: scale3d(0.995, 1.015, 1) translateY(-2px);
+  }
+  42% {
+    transform: scale3d(0.994, 1.018, 1) translateY(-3px);
+  }
+  70% {
+    transform: scale3d(0.998, 1.008, 1) translateY(-1px);
+  }
+  92% {
+    transform: scale3d(1.001, 0.999, 1) translateY(0.5px);
+  }
+}
+
+/* Active state - faster breathing */
+.hero-ferni--active.hero-ferni--breathing {
+  animation-duration: var(--breath-duration-active);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   EXPRESSION OVERLAY - Eyelid System
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.ferni-expression-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.ferni-lids {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ferni-lid-top,
+.ferni-lid-bottom {
+  transition: d 0.3s var(--ease-spring-gentle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIMPLES - Warmth Indicators
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.ferni-dimples {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ferni-dimple {
+  position: absolute;
+  width: 10px;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  filter: blur(1.5px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ferni-dimple--left {
+  bottom: 28%;
+  left: 20%;
+}
+
+.ferni-dimple--right {
+  bottom: 28%;
+  right: 20%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SPARKLE EFFECTS - Magic Particles
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.ferni-sparkle-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.ferni-sparkle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+@keyframes sparkleOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.2);
+  }
+}
+
+/* Memory Spark - Golden Flash */
+.ferni-memory-flash {
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+@keyframes memoryFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   INTERACTIVE STATES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Hover - Curious and Engaged */
+.hero-ferni:hover {
+  z-index: 10;
+}
+
+.hero-ferni:hover .hero-ferni__glow {
+  opacity: 0.8;
+  transform: scale(1.15);
+}
+
+.hero-ferni:hover .hero-ferni__ring--outer,
+.hero-ferni:hover .hero-ferni__ring--inner {
+  opacity: 0.7;
+}
+
+.hero-ferni:hover .hero-ferni__orb {
+  box-shadow:
+    0 0 80px var(--ferni-glow-strong),
+    0 0 120px var(--ferni-glow),
+    inset 0 -20px 40px rgba(0, 0, 0, 0.12),
+    inset 0 20px 50px rgba(255, 255, 255, 0.15);
+}
+
+/* Active/Click - Squash */
+.hero-ferni:active .hero-ferni__orb {
+  transform: scale(0.94);
+  transition: transform 0.08s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   EMOTION STATES - Data Attributes for JS Control
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Happy */
+.hero-ferni[data-emotion="happy"] .hero-ferni__glow {
+  opacity: 0.7;
+  background: radial-gradient(
+    circle,
+    rgba(74, 103, 65, 0.45) 0%,
+    var(--ferni-glow-soft) 40%,
+    transparent 70%
+  );
+}
+
+/* Excited */
+.hero-ferni[data-emotion="excited"] .hero-ferni__pulse {
+  animation-duration: 1s;
+}
+
+.hero-ferni[data-emotion="excited"] .hero-ferni__glow {
+  animation-duration: 2s;
+}
+
+/* Thinking */
+.hero-ferni[data-emotion="thinking"] .hero-ferni__orb {
+  transform: rotate(-3deg);
+}
+
+/* Curious */
+.hero-ferni[data-emotion="curious"] .hero-ferni__orb {
+  transform: rotate(5deg) translateX(2px);
+}
+
+/* Empathetic */
+.hero-ferni[data-emotion="empathetic"] .ferni-dimple {
+  opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MICRO-EXPRESSION FLASH STATES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.hero-ferni.micro-recognition {
+  animation: microRecognition 80ms ease-out;
+}
+
+@keyframes microRecognition {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.hero-ferni.micro-warmth {
+  animation: microWarmth 120ms ease-out;
+}
+
+@keyframes microWarmth {
+  0%, 100% { 
+    filter: brightness(1);
+  }
+  50% { 
+    filter: brightness(1.1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BODY LANGUAGE - Pixar Style Reactions
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* Bounce */
+.hero-ferni.react-bounce {
+  animation: pixarBounce 0.6s var(--ease-spring);
+}
+
+@keyframes pixarBounce {
+  0% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(3px) scale(1.06, 0.9); }
+  30% { transform: translateY(-18px) scale(0.92, 1.12); }
+  45% { transform: translateY(-20px) scale(0.94, 1.08); }
+  60% { transform: translateY(-10px) scale(1.02, 0.98); }
+  75% { transform: translateY(4px) scale(0.97, 1.02); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* Nod */
+.hero-ferni.react-nod {
+  animation: pixarNod 0.5s var(--ease-spring);
+}
+
+@keyframes pixarNod {
+  0% { transform: translateY(0) rotate(0); }
+  15% { transform: translateY(-3px) rotate(-0.5deg); }
+  30% { transform: translateY(6px) rotate(1deg); }
+  50% { transform: translateY(8px) rotate(0.5deg); }
+  70% { transform: translateY(3px) rotate(-0.2deg); }
+  100% { transform: translateY(0) rotate(0); }
+}
+
+/* Attention */
+.hero-ferni.react-attention {
+  animation: pixarAttention 0.4s var(--ease-spring);
+}
+
+@keyframes pixarAttention {
+  0% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.06) rotate(-1.5deg); }
+  60% { transform: scale(1.03) rotate(0.5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* Shake */
+.hero-ferni.react-shake {
+  animation: pixarShake 0.4s var(--ease-spring);
+}
+
+@keyframes pixarShake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-4px) rotate(-2deg); }
+  40% { transform: translateX(4px) rotate(2deg); }
+  60% { transform: translateX(-3px) rotate(-1deg); }
+  80% { transform: translateX(2px) rotate(1deg); }
+}
+
+/* Curious Tilt */
+.hero-ferni.react-curious {
+  animation: pixarCurious 0.8s var(--ease-organic);
+}
+
+@keyframes pixarCurious {
+  0% { transform: rotate(0); }
+  30% { transform: rotate(-5deg) translateX(-3px); }
+  60% { transform: rotate(4deg) translateX(2px); }
+  100% { transform: rotate(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .hero-ferni {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .hero-ferni__glow {
+    inset: -25px;
+  }
+  
+  .hero-ferni__ring--outer {
+    inset: -10px;
+  }
+  
+  .hero-ferni__ring--inner {
+    inset: -5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-ferni {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-ferni,
+  .hero-ferni--breathing,
+  .hero-ferni__glow,
+  .hero-ferni__pulse,
+  .hero-ferni__ring--outer,
+  .hero-ferni__ring--inner,
+  .ferni-eye,
+  .ferni-sparkle,
+  .ferni-lid-top,
+  .ferni-lid-bottom,
+  .ferni-sparkle {
+    animation: none !important;
+    transition: opacity 0.3s ease !important;
+  }
+  
+  .hero-ferni.react-bounce,
+  .hero-ferni.react-nod,
+  .hero-ferni.react-attention,
+  .hero-ferni.react-shake,
+  .hero-ferni.react-curious,
+  .hero-ferni.micro-recognition,
+  .hero-ferni.micro-warmth {
+    animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE SUPPORT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ferni-glow: rgba(74, 103, 65, 0.5);
+    --ferni-glow-strong: rgba(74, 103, 65, 0.7);
+  }
+  
+  .ferni-dimple {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}

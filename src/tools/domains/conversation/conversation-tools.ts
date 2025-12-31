@@ -93,11 +93,24 @@ export function createConversationTools() {
         // Store in session memory
         userData.name = name;
 
-        // CRITICAL: Also persist to user profile so we remember across sessions!
+        // CRITICAL: Persist to user profile AND save to Firestore!
         if (userData.services?.userProfile) {
           userData.services.userProfile.name = name;
           userData.services.userProfile.preferredName = name;
-          getLogger().info(`Persisted name "${name}" to user profile`);
+
+          // ACTUALLY SAVE TO FIRESTORE - not just in-memory!
+          try {
+            await userData.services.saveProfile();
+            getLogger().info(
+              { name, userId: userData.services.userProfile.id },
+              '🎉 User name persisted to Firestore!'
+            );
+          } catch (saveError) {
+            getLogger().error(
+              { error: String(saveError), name },
+              'Failed to persist name to Firestore - will be saved at session end'
+            );
+          }
         }
 
         // Return is for internal confirmation only - Jack should respond naturally, not read this

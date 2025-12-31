@@ -268,15 +268,20 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
     }
   };
 
+  // Wrap async handler for EventEmitter compatibility
+  const wrappedHandler = (data: HandoffEventPayload): void => {
+    void handleVoiceSwitch(data);
+  };
+
   // Register the handler
-  handoffEvents.on('voiceSwitch', handleVoiceSwitch);
+  handoffEvents.on('voiceSwitch', wrappedHandler);
   log.info({ sessionId }, '✅ voiceSwitch handler registered');
 
   // Return handler and cleanup
   return {
     handler: handleVoiceSwitch,
     cleanup: () => {
-      handoffEvents.off('voiceSwitch', handleVoiceSwitch);
+      handoffEvents.off('voiceSwitch', wrappedHandler);
       log.info({ sessionId }, '🗑️ voiceSwitch handler unregistered');
     },
   };

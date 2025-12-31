@@ -16,6 +16,7 @@ import {
   createFlexContainer,
   setStyles,
   createScreenReaderLabel,
+  getCssVar,
 } from '../utils/dom.js';
 import type {
   RelationshipNetworkData,
@@ -23,18 +24,28 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
-// CONSTANTS
+// CONSTANTS - Using CSS Variables for brand consistency
 // ============================================================================
 
+// CSS variable names for consistent theming
+const CATEGORY_CSS_VARS: Record<Relationship['category'], string> = {
+  family: 'var(--color-semantic-error, #e74c3c)',
+  friend: 'var(--color-accent, #3D5A45)',
+  colleague: 'var(--persona-peter-primary, #3a6b73)',
+  mentor: 'var(--persona-eli-primary, #8a7a9a)',
+  other: 'var(--color-text-muted, #9a8f85)',
+};
+
+// Computed colors for SVG attributes that need hex values
 const CATEGORY_COLORS: Record<Relationship['category'], string> = {
-  family: '#e74c3c',
-  friend: DEFAULT_COLORS.accent,
-  colleague: '#3a6b73',
-  mentor: '#8a7a9a',
-  other: '#9a8f85',
+  family: getCssVar('--color-semantic-error', '#e74c3c'),
+  friend: getCssVar('--color-accent', '#3D5A45'),
+  colleague: getCssVar('--persona-peter-primary', '#3a6b73'),
+  mentor: getCssVar('--persona-eli-primary', '#8a7a9a'),
+  other: getCssVar('--color-text-muted', '#9a8f85'),
 };
 
 const TREND_LABELS: Record<Relationship['trend'], string> = {
@@ -180,8 +191,12 @@ function buildMobile(
 
   // Category breakdown
   const categories = getCategoryBreakdown(data.relationships);
-  const categoryRow = createFlexContainer('row', '12px', 'flex-start');
-  setStyles(categoryRow, { flexWrap: 'wrap', marginTop: '8px' });
+  const categoryRow = createFlexContainer('row', '10px', 'flex-start');
+  setStyles(categoryRow, {
+    flexWrap: 'wrap',
+    marginTop: '0.625rem',
+    gap: '0.5rem',
+  });
 
   Object.entries(categories).forEach(([category, count]) => {
     if (count === 0) return;
@@ -190,23 +205,30 @@ function buildMobile(
     setStyles(chip, {
       display: 'flex',
       alignItems: 'center',
-      gap: '4px',
-      padding: '4px 8px',
-      background: 'var(--color-background)',
-      borderRadius: isAndroid ? '4px' : '12px',
+      gap: '0.375rem',
+      padding: '0.375rem 0.625rem',
+      background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.04))',
+      borderRadius: isAndroid ? 'var(--radius-sm, 0.375rem)' : 'var(--radius-full, 9999px)',
       fontSize: '0.75rem',
+      fontWeight: '500',
+      color: 'var(--color-text-secondary)',
+      transition: 'background 150ms',
     });
 
     const dot = createElement('div');
     setStyles(dot, {
-      width: '8px',
-      height: '8px',
+      width: '0.5rem',
+      height: '0.5rem',
       borderRadius: '50%',
-      background: CATEGORY_COLORS[category as Relationship['category']],
+      background: CATEGORY_CSS_VARS[category as Relationship['category']],
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
     });
     chip.appendChild(dot);
 
-    chip.appendChild(createElement('span', '', `${count} ${category}`));
+    const label = createElement('span');
+    label.textContent = `${count} ${category}`;
+    setStyles(label, { textTransform: 'capitalize' });
+    chip.appendChild(label);
     categoryRow.appendChild(chip);
   });
 
@@ -326,6 +348,13 @@ function buildMobile(
 
 /**
  * Build relationship network for tablet with full visualization.
+ * 
+ * Design improvements:
+ * - Larger, more prominent network graph
+ * - Better proportions (65/35 split)
+ * - MA spacing philosophy (pause=13px, rest=21px, silence=34px)
+ * - Glass morphism panels
+ * - Improved typography hierarchy
  */
 function buildTablet(
   container: HTMLElement,
@@ -333,42 +362,151 @@ function buildTablet(
   _context: DeviceContext
 ): VisualizationResult {
   container.replaceChildren();
+  
+  // Apply container styles
+  setStyles(container, {
+    padding: '1.5rem', // More generous padding
+    minHeight: '320px',
+  });
 
-  // Header
+  // Header with improved typography
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Relationship Network'));
-  header.appendChild(createElement('p', '', 'Your constellation of connections'));
+  setStyles(header, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '1.3125rem', // MA: rest (21px)
+    paddingBottom: '0.8125rem', // MA: pause (13px)
+    borderBottom: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+  });
+  
+  const headerText = createElement('div');
+  const title = createElement('h3');
+  setStyles(title, {
+    fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+    fontSize: '1.0625rem', // cardTitle
+    fontWeight: '600',
+    lineHeight: '1.3',
+    letterSpacing: '-0.01em',
+    color: 'var(--color-text-primary, #2C2520)',
+    margin: '0 0 0.25rem',
+  });
+  title.textContent = 'Relationship Network';
+  
+  const subtitle = createElement('p');
+  setStyles(subtitle, {
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.75rem', // caption
+    fontWeight: '500',
+    color: 'var(--color-text-muted, #8a8279)',
+    margin: '0',
+    letterSpacing: '0.01em',
+  });
+  subtitle.textContent = 'Your constellation of connections';
+  
+  headerText.appendChild(title);
+  headerText.appendChild(subtitle);
+  header.appendChild(headerText);
+  
+  // Active badge in header
+  const activeBadge = createElement('div');
+  setStyles(activeBadge, {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.375rem',
+    padding: '0.375rem 0.75rem',
+    background: 'var(--color-accent-subtle, rgba(61, 90, 69, 0.08))',
+    borderRadius: 'var(--radius-full, 9999px)',
+    fontSize: '0.6875rem',
+    fontWeight: '600',
+    color: 'var(--color-accent, #3D5A45)',
+    letterSpacing: '0.02em',
+  });
+  activeBadge.textContent = `${data.activeConnections} active`;
+  header.appendChild(activeBadge);
+  
   container.appendChild(header);
 
-  // Main content
-  const contentGrid = createFlexContainer('row', '24px');
-  setStyles(contentGrid, { padding: '16px' });
+  // Main content grid - 65/35 split for better proportions
+  const contentGrid = createElement('div');
+  setStyles(contentGrid, {
+    display: 'grid',
+    gridTemplateColumns: '1fr 220px', // Fixed width sidebar
+    gap: '1.5rem', // More breathing room
+    alignItems: 'start',
+  });
 
-  // Left: Network visualization
+  // Left: Network visualization with better sizing
   const networkSection = createElement('div');
-  setStyles(networkSection, { flex: '2', display: 'flex', justifyContent: 'center' });
+  setStyles(networkSection, {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: 'var(--tonal-surface1, rgba(44, 37, 32, 0.015))',
+    borderRadius: 'var(--radius-xl, 1.25rem)',
+    padding: '1rem',
+    minHeight: '240px',
+  });
 
   const svg = createSvgElement('svg');
-  svg.setAttribute('viewBox', '0 0 300 250');
-  setStyles(svg as unknown as HTMLElement, { width: '100%', maxWidth: '350px' });
+  svg.setAttribute('viewBox', '0 0 360 280'); // Larger viewBox
+  setStyles(svg as unknown as HTMLElement, {
+    width: '100%',
+    maxWidth: '400px',
+    height: 'auto',
+  });
+  
+  // Add subtle background gradient to SVG
+  const defs = createSvgElement('defs');
+  const radialGrad = createSvgElement('radialGradient');
+  radialGrad.setAttribute('id', 'centerGlow');
+  radialGrad.setAttribute('cx', '50%');
+  radialGrad.setAttribute('cy', '50%');
+  radialGrad.setAttribute('r', '50%');
+  
+  const stop1 = createSvgElement('stop');
+  stop1.setAttribute('offset', '0%');
+  stop1.setAttribute('stop-color', 'var(--color-accent, #3D5A45)');
+  stop1.setAttribute('stop-opacity', '0.06');
+  const stop2 = createSvgElement('stop');
+  stop2.setAttribute('offset', '100%');
+  stop2.setAttribute('stop-color', 'var(--color-accent, #3D5A45)');
+  stop2.setAttribute('stop-opacity', '0');
+  
+  radialGrad.appendChild(stop1);
+  radialGrad.appendChild(stop2);
+  defs.appendChild(radialGrad);
+  svg.appendChild(defs);
+  
+  // Background glow
+  const bgCircle = createSvgElement('circle');
+  bgCircle.setAttribute('cx', '180');
+  bgCircle.setAttribute('cy', '140');
+  bgCircle.setAttribute('r', '120');
+  bgCircle.setAttribute('fill', 'url(#centerGlow)');
+  svg.appendChild(bgCircle);
 
-  const centerX = 150;
-  const centerY = 125;
+  const centerX = 180;
+  const centerY = 140;
 
   // Sort by strength for layout
   const sortedRels = [...data.relationships].sort((a, b) => b.strength - a.strength);
 
-  // Position nodes in concentric rings based on strength
+  // Position nodes with better spacing algorithm
   const positions: Array<{ rel: Relationship; x: number; y: number }> = [];
-
+  
+  // Use deterministic positioning based on index for consistent layout
+  const seed = data.totalConnections; // Consistent "randomness"
   sortedRels.forEach((rel, i) => {
-    // Inner ring for strong, outer for weak
-    const ringRadius = 40 + (1 - rel.strength) * 60;
-    const angle = (Math.PI * 2 * i) / sortedRels.length - Math.PI / 2;
+    // Inner ring for strong connections, outer for weaker
+    const strengthFactor = 1 - rel.strength;
+    const ringRadius = 55 + strengthFactor * 65; // 55-120px range
+    const angleOffset = (seed * 0.1) % (Math.PI * 0.5); // Consistent rotation
+    const angle = (Math.PI * 2 * i) / sortedRels.length - Math.PI / 2 + angleOffset;
 
-    // Add some randomness for organic feel
-    const jitterX = (Math.random() - 0.5) * 15;
-    const jitterY = (Math.random() - 0.5) * 15;
+    // Deterministic jitter based on index
+    const jitterX = Math.sin(i * 2.5 + seed) * 12;
+    const jitterY = Math.cos(i * 3.1 + seed) * 12;
 
     const x = centerX + ringRadius * Math.cos(angle) + jitterX;
     const y = centerY + ringRadius * Math.sin(angle) + jitterY;
@@ -376,7 +514,7 @@ function buildTablet(
     positions.push({ rel, x, y });
   });
 
-  // Draw connections first (behind nodes)
+  // Draw connections first (behind nodes) with gradient strokes
   positions.forEach(({ rel, x, y }) => {
     const line = createSvgElement('line');
     line.setAttribute('x1', String(centerX));
@@ -384,44 +522,66 @@ function buildTablet(
     line.setAttribute('x2', String(x));
     line.setAttribute('y2', String(y));
     line.setAttribute('stroke', CATEGORY_COLORS[rel.category]);
-    line.setAttribute('stroke-width', String(1 + rel.strength * 2));
-    line.setAttribute('opacity', String(0.2 + rel.strength * 0.3));
+    line.setAttribute('stroke-width', String(1.5 + rel.strength * 2.5));
+    line.setAttribute('opacity', String(0.25 + rel.strength * 0.35));
+    line.setAttribute('stroke-linecap', 'round');
     svg.appendChild(line);
   });
 
-  // Center node (you)
+  // Center node with glow effect (you)
+  const centerGlow = createSvgElement('circle');
+  centerGlow.setAttribute('cx', String(centerX));
+  centerGlow.setAttribute('cy', String(centerY));
+  centerGlow.setAttribute('r', '22');
+  centerGlow.setAttribute('fill', 'var(--color-accent, #3D5A45)');
+  centerGlow.setAttribute('opacity', '0.15');
+  svg.appendChild(centerGlow);
+  
   const centerCircle = createSvgElement('circle');
   centerCircle.setAttribute('cx', String(centerX));
   centerCircle.setAttribute('cy', String(centerY));
-  centerCircle.setAttribute('r', '12');
-  centerCircle.setAttribute('fill', 'var(--color-accent)');
+  centerCircle.setAttribute('r', '16');
+  centerCircle.setAttribute('fill', 'var(--color-accent, #3D5A45)');
   svg.appendChild(centerCircle);
 
   const centerLabel = createSvgElement('text');
   centerLabel.setAttribute('x', String(centerX));
-  centerLabel.setAttribute('y', String(centerY + 3));
+  centerLabel.setAttribute('y', String(centerY + 4));
   centerLabel.setAttribute('text-anchor', 'middle');
-  centerLabel.setAttribute('font-size', '8');
+  centerLabel.setAttribute('font-size', '11');
   centerLabel.setAttribute('fill', 'white');
   centerLabel.setAttribute('font-weight', '600');
-  centerLabel.textContent = 'You';
+  centerLabel.setAttribute('font-family', 'var(--font-body, Inter, sans-serif)');
+  centerLabel.textContent = t('common.you', 'You');
   svg.appendChild(centerLabel);
 
-  // Draw nodes
+  // Draw nodes with improved styling
   positions.forEach(({ rel, x, y }) => {
-    const nodeSize = 6 + rel.strength * 6;
+    const nodeSize = 8 + rel.strength * 7; // 8-15px range
 
-    // Glow for fading relationships
+    // Glow ring for fading relationships (needs attention)
     if (rel.trend === 'fading') {
-      const glow = createSvgElement('circle');
-      glow.setAttribute('cx', String(x));
-      glow.setAttribute('cy', String(y));
-      glow.setAttribute('r', String(nodeSize + 4));
-      glow.setAttribute('fill', 'var(--color-semantic-warning)');
-      glow.setAttribute('opacity', '0.3');
-      svg.appendChild(glow);
+      const pulseGlow = createSvgElement('circle');
+      pulseGlow.setAttribute('cx', String(x));
+      pulseGlow.setAttribute('cy', String(y));
+      pulseGlow.setAttribute('r', String(nodeSize + 6));
+      pulseGlow.setAttribute('fill', 'none');
+      pulseGlow.setAttribute('stroke', 'var(--color-semantic-warning, #e67e22)');
+      pulseGlow.setAttribute('stroke-width', '2');
+      pulseGlow.setAttribute('opacity', '0.4');
+      svg.appendChild(pulseGlow);
     }
+    
+    // Outer ring for depth
+    const outerRing = createSvgElement('circle');
+    outerRing.setAttribute('cx', String(x));
+    outerRing.setAttribute('cy', String(y));
+    outerRing.setAttribute('r', String(nodeSize + 2));
+    outerRing.setAttribute('fill', CATEGORY_COLORS[rel.category]);
+    outerRing.setAttribute('opacity', '0.2');
+    svg.appendChild(outerRing);
 
+    // Main node
     const node = createSvgElement('circle');
     node.setAttribute('cx', String(x));
     node.setAttribute('cy', String(y));
@@ -429,15 +589,32 @@ function buildTablet(
     node.setAttribute('fill', CATEGORY_COLORS[rel.category]);
     svg.appendChild(node);
 
-    // Name label (only for top connections)
-    if (rel.strength >= 0.6) {
+    // Name label with background pill for top connections
+    if (rel.strength >= 0.5) {
+      const labelY = y + nodeSize + 14;
+      const displayName = truncateName(rel.name);
+      
+      // Label background for readability
+      const labelBg = createSvgElement('rect');
+      const textWidth = displayName.length * 5 + 8;
+      labelBg.setAttribute('x', String(x - textWidth / 2));
+      labelBg.setAttribute('y', String(labelY - 9));
+      labelBg.setAttribute('width', String(textWidth));
+      labelBg.setAttribute('height', '14');
+      labelBg.setAttribute('rx', '7');
+      labelBg.setAttribute('fill', 'var(--color-bg-elevated, #FFFDFB)');
+      labelBg.setAttribute('opacity', '0.9');
+      svg.appendChild(labelBg);
+      
       const label = createSvgElement('text');
       label.setAttribute('x', String(x));
-      label.setAttribute('y', String(y + nodeSize + 12));
+      label.setAttribute('y', String(labelY));
       label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('font-size', '9');
-      label.setAttribute('fill', 'var(--color-text-secondary)');
-      label.textContent = truncateName(rel.name);
+      label.setAttribute('font-size', '10');
+      label.setAttribute('font-weight', '500');
+      label.setAttribute('fill', 'var(--color-text-secondary, #5c544a)');
+      label.setAttribute('font-family', 'var(--font-body, Inter, sans-serif)');
+      label.textContent = displayName;
       svg.appendChild(label);
     }
   });
@@ -445,47 +622,72 @@ function buildTablet(
   networkSection.appendChild(svg);
   contentGrid.appendChild(networkSection);
 
-  // Right: Details
+  // Right: Details sidebar with improved spacing
   const detailsSection = createElement('div');
-  setStyles(detailsSection, { flex: '1' });
+  setStyles(detailsSection, {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.8125rem', // MA: pause (13px)
+  });
 
-  // Stats panel
+  // Stats panel with glass morphism
   const statsPanel = createElement('div');
   setStyles(statsPanel, {
-    padding: '16px',
-    background: 'var(--color-bg-elevated)',
-    borderRadius: '12px',
-    border: '1px solid var(--color-border-subtle)',
-    marginBottom: '12px',
+    padding: '1rem 1.125rem',
+    background: 'var(--color-bg-elevated, #FFFDFB)',
+    borderRadius: 'var(--radius-lg, 1rem)',
+    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
   });
 
   const statsLabel = createElement('div');
   setStyles(statsLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '12px',
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.625rem', // 10px
+    fontWeight: '700',
+    color: 'var(--color-text-muted, #8a8279)',
+    marginBottom: '0.875rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.08em',
   });
-  statsLabel.textContent = 'Network Stats';
+  statsLabel.textContent = t('visualizations.networkStats', 'NETWORK STATS');
   statsPanel.appendChild(statsLabel);
 
-  // Stat rows
+  // Stat rows with improved typography
   const stats = [
-    { label: 'Total Connections', value: data.totalConnections },
-    { label: 'Active', value: data.activeConnections },
-    { label: 'Needs Attention', value: data.needsAttention.length },
+    { label: 'Total Connections', value: data.totalConnections, color: 'var(--color-text-primary, #2C2520)' },
+    { label: 'Active', value: data.activeConnections, color: 'var(--color-semantic-success, #27ae60)' },
+    { label: 'Needs Attention', value: data.needsAttention.length, color: 'var(--color-semantic-warning, #e67e22)' },
   ];
 
-  stats.forEach((stat) => {
-    const row = createFlexContainer('row', '8px', 'space-between');
-    setStyles(row, { marginBottom: '8px' });
+  stats.forEach((stat, idx) => {
+    const row = createElement('div');
+    setStyles(row, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: idx > 0 ? '0.625rem' : '0',
+      paddingBottom: idx < stats.length - 1 ? '0.625rem' : '0',
+      borderBottom: idx < stats.length - 1 ? '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))' : 'none',
+    });
 
-    row.appendChild(createElement('span', '', stat.label));
+    const label = createElement('span', '', stat.label);
+    setStyles(label, {
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.8125rem', // bodySmall
+      fontWeight: '500',
+      color: 'var(--color-text-secondary, #5c544a)',
+    });
+    row.appendChild(label);
 
     const value = createElement('span', '', String(stat.value));
-    setStyles(value, { fontWeight: '600' });
+    setStyles(value, {
+      fontFamily: 'var(--font-display, "Plus Jakarta Sans", sans-serif)',
+      fontWeight: '700',
+      fontSize: '1rem',
+      color: stat.color,
+      letterSpacing: '-0.02em',
+    });
     row.appendChild(value);
 
     statsPanel.appendChild(row);
@@ -493,80 +695,119 @@ function buildTablet(
 
   detailsSection.appendChild(statsPanel);
 
-  // Category legend
+  // Category legend with pill chips
   const legendPanel = createElement('div');
   setStyles(legendPanel, {
-    padding: '12px',
-    background: 'var(--color-background)',
-    borderRadius: '8px',
+    padding: '1rem 1.125rem',
+    background: 'var(--color-bg-elevated, #FFFDFB)',
+    borderRadius: 'var(--radius-lg, 1rem)',
+    border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
   });
 
   const legendLabel = createElement('div');
   setStyles(legendLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
+    fontFamily: 'var(--font-body, Inter, sans-serif)',
+    fontSize: '0.625rem',
+    fontWeight: '700',
+    color: 'var(--color-text-muted, #8a8279)',
+    marginBottom: '0.75rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
+    letterSpacing: '0.08em',
   });
-  legendLabel.textContent = 'Categories';
+  legendLabel.textContent = t('visualizations.categories', 'CATEGORIES');
   legendPanel.appendChild(legendLabel);
 
-  const categories = getCategoryBreakdown(data.relationships);
-  Object.entries(categories).forEach(([category, count]) => {
+  // Categories as inline chips
+  const categoriesContainer = createElement('div');
+  setStyles(categoriesContainer, {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.5rem',
+  });
+
+  const categoriesData = getCategoryBreakdown(data.relationships);
+  Object.entries(categoriesData).forEach(([category, count]) => {
     if (count === 0) return;
 
-    const row = createFlexContainer('row', '8px', 'flex-start', 'center');
-    setStyles(row, { marginBottom: '4px' });
+    const chip = createElement('div');
+    setStyles(chip, {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      padding: '0.375rem 0',
+    });
 
     const dot = createElement('div');
     setStyles(dot, {
-      width: '10px',
-      height: '10px',
+      width: '0.5rem',
+      height: '0.5rem',
       borderRadius: '50%',
-      background: CATEGORY_COLORS[category as Relationship['category']],
+      background: CATEGORY_CSS_VARS[category as Relationship['category']],
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
+      flexShrink: '0',
     });
-    row.appendChild(dot);
+    chip.appendChild(dot);
 
-    const label = createElement('span', '', `${category} (${count})`);
-    setStyles(label, {
-      fontSize: '0.85rem',
+    const chipLabel = createElement('span');
+    setStyles(chipLabel, {
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.8125rem',
+      fontWeight: '500',
+      color: 'var(--color-text-secondary, #5c544a)',
       textTransform: 'capitalize',
     });
-    row.appendChild(label);
+    chipLabel.textContent = category;
+    chip.appendChild(chipLabel);
 
-    legendPanel.appendChild(row);
+    const chipCount = createElement('span');
+    setStyles(chipCount, {
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.75rem',
+      fontWeight: '600',
+      color: 'var(--color-text-muted, #8a8279)',
+      marginLeft: 'auto',
+    });
+    chipCount.textContent = `(${count})`;
+    chip.appendChild(chipCount);
+
+    categoriesContainer.appendChild(chip);
   });
 
+  legendPanel.appendChild(categoriesContainer);
   detailsSection.appendChild(legendPanel);
 
-  // Needs attention list
+  // Needs attention card with warm styling
   if (data.needsAttention.length > 0) {
     const attentionPanel = createElement('div');
     setStyles(attentionPanel, {
-      padding: '12px',
-      background: 'rgba(230, 126, 34, 0.1)',
-      borderRadius: '8px',
-      marginTop: '12px',
-      border: '1px solid var(--color-semantic-warning)',
+      padding: '1rem 1.125rem',
+      background: 'var(--color-semantic-warning-subtle, rgba(230, 126, 34, 0.06))',
+      borderRadius: 'var(--radius-lg, 1rem)',
+      borderLeft: '4px solid var(--color-semantic-warning, #e67e22)',
     });
 
     const attentionLabel = createElement('div');
     setStyles(attentionLabel, {
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      color: 'var(--color-semantic-warning)',
-      marginBottom: '8px',
+      fontFamily: 'var(--font-body, Inter, sans-serif)',
+      fontSize: '0.625rem',
+      fontWeight: '700',
+      color: 'var(--color-semantic-warning-dark, #d35400)',
+      marginBottom: '0.625rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
     });
-    attentionLabel.textContent = 'Reconnect With';
+    attentionLabel.textContent = t('visualizations.reconnectWith', 'RECONNECT WITH');
     attentionPanel.appendChild(attentionLabel);
 
-    data.needsAttention.slice(0, 3).forEach((name) => {
+    data.needsAttention.slice(0, 3).forEach((name, idx) => {
       const nameEl = createElement('div');
       setStyles(nameEl, {
-        fontSize: '0.85rem',
-        marginBottom: '4px',
+        fontFamily: 'var(--font-body, Inter, sans-serif)',
+        fontSize: '0.875rem',
+        fontWeight: '500',
+        color: 'var(--color-text-primary, #2C2520)',
+        marginBottom: idx < Math.min(data.needsAttention.length - 1, 2) ? '0.375rem' : '0',
       });
       nameEl.textContent = name;
       attentionPanel.appendChild(nameEl);
@@ -578,11 +819,18 @@ function buildTablet(
   contentGrid.appendChild(detailsSection);
   container.appendChild(contentGrid);
 
+  // Screen reader label
+  container.appendChild(
+    createScreenReaderLabel(
+      `Relationship network visualization showing ${data.totalConnections} connections across ${Object.keys(categoriesData).filter(k => categoriesData[k as Relationship['category']] > 0).length} categories. ${data.activeConnections} are active, ${data.needsAttention.length} need attention.`
+    )
+  );
+
   return {
     element: container,
     type: 'relationship-network',
     device: 'tablet',
-    ariaLabel: `Relationship network with ${data.totalConnections} connections in ${Object.keys(categories).length} categories`,
+    ariaLabel: `Relationship network with ${data.totalConnections} connections`,
   };
 }
 

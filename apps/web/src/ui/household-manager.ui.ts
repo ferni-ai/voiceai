@@ -908,7 +908,7 @@ function createModal(): void {
         </div>
       </div>
       <footer class="household-modal__footer">
-        <button aria-label="Done" class="household-btn household-btn--secondary" data-action="close">Done</button>
+        <button aria-label="${t('accessibility.done')}" class="household-btn household-btn--secondary" data-action="close">Done</button>
       </footer>
     </div>
   `;
@@ -975,7 +975,7 @@ function renderMainView(content: HTMLElement): void {
         <p class="household-empty__text">
           When you share this device with family, I can recognize each person's voice and remember everyone individually.
         </p>
-        <button aria-label="Create Household" class="household-btn household-btn--primary" data-action="show-create">
+        <button aria-label="${t('accessibility.createHousehold')}" class="household-btn household-btn--primary" data-action="show-create">
           ${ICONS.home}
           <span>Create Household</span>
         </button>
@@ -1021,7 +1021,7 @@ function renderMainView(content: HTMLElement): void {
             <option value="guest">Guest</option>
           </select>
         </div>
-        <button aria-label="Add to Household" class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
+        <button aria-label="${t('accessibility.addToHousehold')}" class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
           Add to Household
         </button>
         <p class="household-add-form__hint">
@@ -1098,10 +1098,10 @@ function renderCreateForm(content: HTMLElement): void {
         />
       </div>
       <div class="household-create-form__actions" role="button" tabindex="0">
-        <button aria-label="Maybe later" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
+        <button aria-label="${t('accessibility.maybeLater')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
           Maybe later
         </button>
-        <button aria-label="Create" class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
+        <button aria-label="${t('accessibility.create')}" class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
           Create
         </button>
       </div>
@@ -1145,10 +1145,10 @@ function renderConfirmRemove(content: HTMLElement): void {
         They can always re-enroll later if needed.
       </p>
       <div class="household-confirm__actions" role="button" tabindex="0">
-        <button aria-label="Keep them" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
+        <button aria-label="${t('accessibility.keepThem')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
           Keep them
         </button>
-        <button aria-label="Remove" class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
+        <button aria-label="${t('accessibility.remove')}" class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
           Remove
         </button>
       </div>
@@ -1236,7 +1236,7 @@ async function handleCreateHousehold(): Promise<void> {
 
   if (!name) {
     nameInput?.focus();
-    toast.warning('Add a name first');
+    toast.warning(t('toasts.addANameFirst'));
     return;
   }
 
@@ -1251,7 +1251,7 @@ async function handleCreateHousehold(): Promise<void> {
 
   if (household) {
     log.info('Household created:', household.name);
-    toast.success(`${household.name} created!`);
+    toast.success(t('toasts.householdnameCreated'));
   } else {
     toast.error("Couldn't create that. Try again?");
   }
@@ -1266,7 +1266,7 @@ async function handleAddMember(): Promise<void> {
 
   if (!displayName) {
     nameInput?.focus();
-    toast.warning('Add a name first');
+    toast.warning(t('toasts.addANameFirst'));
     return;
   }
 
@@ -1290,9 +1290,9 @@ async function handleAddMember(): Promise<void> {
 
     // Show success toast
     if (result.needsVoiceEnrollment) {
-      toast.success(`${displayName} added! Voice enrollment needed.`);
+      toast.success(t('toasts.displaynameAddedVoiceEnrollmentNeeded'));
     } else {
-      toast.success(`${displayName} added!`);
+      toast.success(t('toasts.displaynameAdded'));
     }
   } else {
     // Show error toast
@@ -1315,7 +1315,7 @@ async function handleRemoveMember(userId: string): Promise<void> {
     household.members = household.members.filter((m) => m.userId !== userId);
     callbacks.onMemberRemoved?.(userId);
     log.info('Member removed:', userId);
-    toast.success(`${memberName} removed`);
+    toast.success(t('toasts.membernameRemoved'));
   } else {
     toast.error("Couldn't remove them. Try again?");
   }

@@ -13,6 +13,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onEmotionalPatternChange } from '../data-layer/hooks/wisdom-hooks.js';
 
 const log = createLogger({ module: 'ContradictionComfort' });
 
@@ -443,6 +444,20 @@ export async function recordContradiction(
 
     profile.updatedAt = new Date();
     await ref.set(cleanForFirestore(profile));
+
+    // Index contradiction to semantic memory for emotional pattern awareness
+    void onEmotionalPatternChange(
+      userId,
+      `contradiction_${Date.now()}`,
+      {
+        pattern: `Can hold both: ${detection.emotions[0]} AND ${detection.emotions[1]}`,
+        triggers: detection.topic ? [detection.topic] : [],
+        frequency: 'occasional',
+        impact: 'mixed',
+        awareness: 'high',
+      },
+      'create'
+    );
 
     log.debug({ userId, emotions: detection.emotions }, 'Recorded contradiction');
   } catch (error) {

@@ -164,9 +164,10 @@ export async function runDailyOutreachJob(
           // 🔮 ML PREDICTION-DRIVEN OUTREACH: Act on ML predictions
           // This is "Better than Human" - we reach out BEFORE they know they need us
           try {
-            const { evaluatePredictionDrivenOutreach } = await import('./prediction-driven-outreach.js');
+            const { evaluatePredictionDrivenOutreach } =
+              await import('./prediction-driven-outreach.js');
             const mlDecision = await evaluatePredictionDrivenOutreach(profile.id, profile);
-            
+
             if (mlDecision.shouldReach && mlDecision.channel === 'voice_call') {
               // High confidence: Trigger proactive voice call
               const voiceOutreach = await orchestrator.triggerProactiveCall(
@@ -183,7 +184,11 @@ export async function runDailyOutreachJob(
                 outreachSent++;
                 byType['ml_voice_call'] = (byType['ml_voice_call'] || 0) + 1;
                 log.info(
-                  { userId: profile.id, trigger: mlDecision.trigger, confidence: mlDecision.confidence },
+                  {
+                    userId: profile.id,
+                    trigger: mlDecision.trigger,
+                    confidence: mlDecision.confidence,
+                  },
                   '📞 ML-driven proactive voice call triggered'
                 );
               }
@@ -192,7 +197,7 @@ export async function runDailyOutreachJob(
               const pushOutreach = await orchestrator.sendPushNotification(
                 profile.id,
                 mlDecision.message || "I've been thinking about you...",
-                { 
+                {
                   trigger: mlDecision.trigger,
                   personaId: mlDecision.personaId,
                   metadata: mlDecision.context,
@@ -202,7 +207,11 @@ export async function runDailyOutreachJob(
                 outreachSent++;
                 byType['ml_push'] = (byType['ml_push'] || 0) + 1;
                 log.info(
-                  { userId: profile.id, trigger: mlDecision.trigger, confidence: mlDecision.confidence },
+                  {
+                    userId: profile.id,
+                    trigger: mlDecision.trigger,
+                    confidence: mlDecision.confidence,
+                  },
                   '🔔 ML-driven push notification sent'
                 );
               }

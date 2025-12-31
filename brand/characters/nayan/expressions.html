@@ -5,27 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nayan Patel - Expression Gallery</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../../master-tokens.css">
   <style>
+    /* Nayan-specific overrides - base tokens from master-tokens.css */
     :root {
-      --bg-primary: #faf8f5;
-      --bg-elevated: #fffdfb;
-      --text-primary: #2c2520;
-      --text-secondary: #5c544a;
-      --text-muted: #756a5e;
-
       /* Nayan's Colors */
       --persona-start: #b08f5f;
       --persona-end: #9a7b4f;
 
-      /* Pixar Animation System */
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
-      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
       /* Nayan's Timing: 1.3x (deliberate, contemplative - slowest) */
       --timing-multiplier: 1.3;
 
-      /* Glow Colors */
+      /* Nayan-specific glow colors */
       --glow-protective: rgba(176, 143, 95, 0.5);
       --glow-golden: rgba(196, 162, 101, 0.5);
       --glow-sage: rgba(90, 122, 81, 0.5);
@@ -35,29 +27,13 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-display);
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
     }
 
-    .brand-nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 1000;
-      background: rgba(250, 248, 245, 0.95);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .brand-nav a { text-decoration: none; color: var(--text-secondary); font-size: 13px; transition: color 0.2s; }
-    .brand-nav a:hover { color: var(--text-primary); }
-    .brand-nav .home-link { display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600; }
-    .brand-nav .nav-links { display: flex; gap: 20px; }
+    /* Navigation - uses .nav from master-tokens.css */
 
     .header {
       text-align: center;
@@ -210,7 +186,7 @@
     .expression-btn.active {
       background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
       border-color: transparent;
-      color: white;
+      color: var(--color-natural-ink, #2C2520);
     }
 
     .profile-section {
@@ -244,18 +220,18 @@
   </style>
 </head>
 <body>
-  <nav class="brand-nav">
-    <a href="../../index.html" class="home-link">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+  <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
+    <a href="../../index.html" class="nav-back" aria-label="Back to Brand Library">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
       Brand Library
     </a>
     <div class="nav-links">
-      <a href="../ferni/expressions.html">Ferni</a>
-      <a href="../maya/expressions.html">Maya</a>
-      <a href="../peter/expressions.html">Peter</a>
-      <a href="../jordan/expressions.html">Jordan</a>
-      <a href="../alex/expressions.html">Alex</a>
-      <a href="../../expressions/gallery.html">All Expressions</a>
+      <a href="../ferni/expressions.html" class="nav-link">Ferni</a>
+      <a href="../maya/expressions.html" class="nav-link">Maya</a>
+      <a href="../peter/expressions.html" class="nav-link">Peter</a>
+      <a href="../jordan/expressions.html" class="nav-link">Jordan</a>
+      <a href="../alex/expressions.html" class="nav-link">Alex</a>
+      <a href="../../expressions/gallery.html" class="nav-link">All Expressions</a>
     </div>
   </nav>
 
@@ -285,21 +261,18 @@
             <clipPath id="eyeClipRight"><ellipse cx="130" cy="90" rx="20" ry="18"/></clipPath>
           </defs>
           <g class="avatar-body"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
+          <!-- LUXO STYLE: opaque white eyes, no pupils - expression comes from eye shape -->
           <g class="eyes-group">
             <g clip-path="url(#eyeClipLeft)">
               <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
-              <circle cx="70" cy="92" r="10" fill="#2c2520"/>
-              <circle cx="73" cy="88" r="3" fill="white" opacity="0.8"/>
             </g>
             <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
             <g clip-path="url(#eyeClipRight)">
               <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
-              <circle cx="130" cy="92" r="10" fill="#2c2520"/>
-              <circle cx="133" cy="88" r="3" fill="white" opacity="0.8"/>
             </g>
             <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
           </g>
-          <path d="M 75,130 Q 100,150 125,130" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+          <!-- No smile - Luxo style avatar (expressions through eye shape only) -->
         </svg>
         <div class="stillness-indicator" id="stillnessIndicator">...taking a moment...</div>
       </div>
@@ -434,5 +407,33 @@
 
     buildExpressionGrid();
   </script>
+
+  <footer>
+    <div class="footer-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#5a7751"/>
+            <stop offset="100%" style="stop-color:#3d5a35"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      </svg>
+    </div>
+    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="../../capabilities/index.html">Capabilities</a>
+      <a href="../../brand-book.html">Brand Book</a>
+      <a href="../../brand-kit.html">Brand Kit</a>
+      <a href="../../icons.html">Icons</a>
+      <a href="../../components.html">Components</a>
+      <a href="../../accessibility.html">Accessibility</a>
+      <a href="../../sound-design.html">Sound</a>
+    </nav>
+    <p class="footer-copyright">Ferni Brand Library v2.0</p>
+  </footer>
 </body>
 </html>

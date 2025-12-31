@@ -204,7 +204,7 @@ if (captureResult.contextForLLM) {
 
 ### 12. **Micro-Expression Integration**
 
-**Location:** `design-system/brand/BETTER-THAN-HUMAN.md` documents the spec  
+**Location:** `design-system/docs/brand/BETTER-THAN-HUMAN.md` documents the spec  
 **Status:** Frontend has it, but backend doesn't trigger it
 
 **Missing:** Backend should emit events for:

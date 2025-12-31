@@ -11,68 +11,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <!-- Design System: Single source of truth -->
+    <link rel="stylesheet" href="master-tokens.css" />
 
     <style>
-      :root {
-        /* ============================================
-           COLORS - Background (Zen Garden Theme)
-           ============================================ */
-        --color-bg-primary: #faf8f5;
-        --color-bg-secondary: #f5f2ed;
-        --color-bg-elevated: #fffdfb;
-        --color-bg-glass: rgba(139, 119, 91, 0.03);
-
-        /* ============================================
-           COLORS - Text
-           ============================================ */
-        --color-text-primary: #2c2520;
-        --color-text-secondary: #5c544a;
-        --color-text-muted: #756a5e;
-        --color-text-dimmed: #857a6e;
-
-        /* ============================================
-           COLORS - Accent (CTA Green)
-           ============================================ */
-        --color-accent: #3D5A45;
-        --color-accent-hover: #4a6b52;
-        --color-accent-glow: rgba(61, 90, 69, 0.15);
-
-        /* ============================================
-           COLORS - Personas (6 Core Team)
-           ============================================ */
-        --color-ferni: #4a6741;
-        --color-peter: #3a6b73;
-        --color-alex: #5a6b8a;
-        --color-maya: #a67a6a;
-        --color-jordan: #c4856a;
-        --color-nayan: #b8956a;
-
-        /* ============================================
-           COLORS - Semantic
-           ============================================ */
-        --color-success: #3d7a52;
-        --color-error: #b5453a;
-        --color-warning: #a67c35;
-        --color-gold: #d4a954;
-
-        /* ============================================
-           TYPOGRAPHY
-           ============================================ */
-        --font-display: 'Plus Jakarta Sans', sans-serif;
-        --font-body: 'Inter', sans-serif;
-        --font-editorial: 'Playfair Display', serif;
-        --font-mono: 'JetBrains Mono', monospace;
-
-        /* ============================================
-           ANIMATION
-           ============================================ */
-        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-        --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        --duration-fast: 150ms;
-        --duration-normal: 300ms;
-        --duration-slow: 500ms;
-      }
-
+      /* Page-specific styles - tokens from master-tokens.css */
       * {
         margin: 0;
         padding: 0;
@@ -670,8 +613,11 @@
     </style>
   </head>
   <body>
+    <!-- Skip to Content (Accessibility) -->
+    <a href="#main" class="skip-link">Skip to content</a>
+
     <!-- Page 1: Cover -->
-    <div class="page cover">
+    <div id="main" class="page cover">
       <div class="cover-logo">
         <svg viewBox="0 0 100 100">
           <defs>
@@ -737,7 +683,7 @@
 
       <div class="philosophy-block">
         <h4>Kintsugi Philosophy</h4>
-        <p>"The cracks are where the gold goes." &mdash; When pottery breaks, we repair it with gold. The breaking becomes part of the beauty. This is the heart of Ferni.</p>
+        <p>"We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive." &mdash; This is the heart of Ferni.</p>
       </div>
 
       <h3>Brand Pillars</h3>
@@ -1360,7 +1306,7 @@
           &bull; "Finally, someone who actually listens."
         </p>
         <p style="font-size: 18px; margin-bottom: 8px; font-family: var(--font-editorial); font-style: italic;">
-          &bull; "The cracks are where the gold goes."
+          &bull; "We celebrate the imperfections and the joy of being alive."
         </p>
         <p style="font-size: 18px; font-family: var(--font-editorial); font-style: italic;">
           &bull; "Better than human."
@@ -1489,7 +1435,475 @@
       </div>
     </div>
 
-    <!-- Page 9: Implementation -->
+    <!-- Page 9: Device Visualizations -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">8</div>
+        <h2>Device Visualizations</h2>
+      </div>
+
+      <p style="margin-bottom: 24px;">Ferni adapts gracefully across all screen sizes. The orb avatar remains the focal point, scaling appropriately while maintaining expressiveness at every size.</p>
+
+      <h3>Responsive Breakpoints</h3>
+      <table style="margin-bottom: 24px;">
+        <tr>
+          <th>Device</th>
+          <th>Breakpoint</th>
+          <th>Avatar Size</th>
+          <th>Layout</th>
+        </tr>
+        <tr>
+          <td>Desktop</td>
+          <td>≥1024px</td>
+          <td>120–160px</td>
+          <td>Side-by-side panels</td>
+        </tr>
+        <tr>
+          <td>Tablet</td>
+          <td>768–1023px</td>
+          <td>80–120px</td>
+          <td>Adaptive columns</td>
+        </tr>
+        <tr>
+          <td>Mobile</td>
+          <td>≤767px</td>
+          <td>48–64px</td>
+          <td>Stacked, full-width</td>
+        </tr>
+        <tr>
+          <td>Watch</td>
+          <td>≤200px</td>
+          <td>40–48px</td>
+          <td>Minimal, centered</td>
+        </tr>
+      </table>
+
+      <!-- Device Mockups -->
+      <h3>Device Gallery</h3>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+        <!-- iPhone -->
+        <div style="text-align: center;">
+          <div style="background: #1a1815; border-radius: 24px; padding: 8px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div style="background: linear-gradient(180deg, #FAF8F5 0%, #F5F2ED 100%); border-radius: 18px; width: 100px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; position: relative; overflow: hidden;">
+              <!-- Status bar hint -->
+              <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; background: rgba(44,37,32,0.1); border-radius: 2px;"></div>
+              <!-- Avatar -->
+              <svg viewBox="0 0 56 56" width="48" height="48">
+                <defs>
+                  <linearGradient id="iphoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#5a8060"/>
+                    <stop offset="100%" stop-color="#3d5a35"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="28" cy="28" r="26" fill="url(#iphoneGrad)"/>
+                <ellipse cx="21" cy="27" rx="4" ry="5.5" fill="white"/>
+                <ellipse cx="35" cy="27" rx="4" ry="5.5" fill="white"/>
+              </svg>
+              <!-- Voice indicator -->
+              <div style="display: flex; gap: 2px; align-items: center;">
+                <div style="width: 3px; height: 8px; background: var(--color-ferni); border-radius: 1px;"></div>
+                <div style="width: 3px; height: 14px; background: var(--color-ferni); border-radius: 1px;"></div>
+                <div style="width: 3px; height: 10px; background: var(--color-ferni); border-radius: 1px;"></div>
+                <div style="width: 3px; height: 16px; background: var(--color-ferni); border-radius: 1px;"></div>
+                <div style="width: 3px; height: 8px; background: var(--color-ferni); border-radius: 1px;"></div>
+              </div>
+              <!-- Home indicator -->
+              <div style="position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 32px; height: 3px; background: rgba(44,37,32,0.15); border-radius: 2px;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">iPhone</p>
+        </div>
+
+        <!-- iPad -->
+        <div style="text-align: center;">
+          <div style="background: #1a1815; border-radius: 16px; padding: 6px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div style="background: linear-gradient(180deg, #FAF8F5 0%, #F5F2ED 100%); border-radius: 10px; width: 130px; height: 170px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; position: relative;">
+              <!-- Avatar larger -->
+              <svg viewBox="0 0 70 70" width="64" height="64">
+                <defs>
+                  <linearGradient id="ipadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#5a8060"/>
+                    <stop offset="100%" stop-color="#3d5a35"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="35" cy="35" r="33" fill="url(#ipadGrad)"/>
+                <ellipse cx="26" cy="34" rx="5" ry="7" fill="white"/>
+                <ellipse cx="44" cy="34" rx="5" ry="7" fill="white"/>
+              </svg>
+              <!-- Chat preview -->
+              <div style="width: 100%; display: flex; flex-direction: column; gap: 4px;">
+                <div style="background: rgba(74,103,65,0.1); height: 8px; border-radius: 4px; width: 85%;"></div>
+                <div style="background: rgba(74,103,65,0.1); height: 8px; border-radius: 4px; width: 70%;"></div>
+              </div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">iPad</p>
+        </div>
+
+        <!-- Apple Watch -->
+        <div style="text-align: center;">
+          <div style="background: #1a1815; border-radius: 16px; padding: 4px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div style="background: linear-gradient(180deg, #2C2520 0%, #1a1815 100%); border-radius: 12px; width: 60px; height: 72px; display: flex; align-items: center; justify-content: center; position: relative;">
+              <!-- Minimal avatar on dark -->
+              <svg viewBox="0 0 44 44" width="36" height="36">
+                <circle cx="22" cy="22" r="20" fill="#4a6741"/>
+                <ellipse cx="16" cy="21" rx="3" ry="4.5" fill="white"/>
+                <ellipse cx="28" cy="21" rx="3" ry="4.5" fill="white"/>
+              </svg>
+              <!-- Time -->
+              <div style="position: absolute; top: 4px; left: 50%; transform: translateX(-50%); font-size: 7px; color: rgba(255,255,255,0.6); font-weight: 500;">9:41</div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">Watch</p>
+        </div>
+
+        <!-- Desktop/Mac -->
+        <div style="text-align: center;">
+          <div style="background: #1a1815; border-radius: 8px; padding: 4px 4px 0 4px; display: inline-block; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div style="background: linear-gradient(180deg, #FAF8F5 0%, #F5F2ED 100%); border-radius: 4px 4px 0 0; width: 120px; height: 75px; display: flex; align-items: center; padding: 8px; gap: 8px;">
+              <!-- Sidebar -->
+              <div style="width: 28px; height: 100%; background: rgba(74,103,65,0.08); border-radius: 4px; display: flex; flex-direction: column; align-items: center; padding: 4px 0; gap: 4px;">
+                <div style="width: 16px; height: 16px; background: #4a6741; border-radius: 50%;"></div>
+                <div style="width: 12px; height: 12px; background: rgba(44,37,32,0.1); border-radius: 50%;"></div>
+                <div style="width: 12px; height: 12px; background: rgba(44,37,32,0.1); border-radius: 50%;"></div>
+              </div>
+              <!-- Main area -->
+              <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                <svg viewBox="0 0 36 36" width="28" height="28">
+                  <circle cx="18" cy="18" r="16" fill="#4a6741"/>
+                  <ellipse cx="13" cy="17" rx="2.5" ry="3.5" fill="white"/>
+                  <ellipse cx="23" cy="17" rx="2.5" ry="3.5" fill="white"/>
+                </svg>
+                <div style="width: 100%; height: 4px; background: rgba(74,103,65,0.1); border-radius: 2px;"></div>
+              </div>
+            </div>
+            <!-- Stand -->
+            <div style="background: #2a2520; height: 6px; border-radius: 0 0 4px 4px;"></div>
+          </div>
+          <div style="background: #3a3530; height: 3px; width: 50px; margin: 0 auto; border-radius: 0 0 4px 4px;"></div>
+          <p style="font-size: 11px; color: var(--color-text-muted); margin-top: 8px;">Desktop</p>
+        </div>
+      </div>
+
+      <!-- Avatar Scaling Rules -->
+      <h3>Avatar Scaling Rules</h3>
+      <div class="two-col" style="margin-bottom: 24px;">
+        <div>
+          <h4>Maintain Expressiveness</h4>
+          <ul class="feature-list">
+            <li>Presence ring visible at ≥48px</li>
+            <li>Eye expressions clear at ≥32px</li>
+            <li>Minimum avatar size: 24px</li>
+            <li>Voice visualizer scales proportionally</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Touch Targets</h4>
+          <ul class="feature-list">
+            <li>Minimum tap target: 44×44px (iOS)</li>
+            <li>Minimum tap target: 48×48dp (Android)</li>
+            <li>Comfortable: 48×48px or larger</li>
+            <li>Avatar always tappable</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>9</span>
+      </div>
+    </div>
+
+    <!-- Page 10: Do's and Don'ts -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">10</div>
+        <h2>Do's and Don'ts</h2>
+      </div>
+
+      <p style="margin-bottom: 32px;">Consistency builds trust. Follow these guidelines to maintain brand integrity across all touchpoints.</p>
+
+      <!-- Logo Usage -->
+      <h3>Logo Usage</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px;">
+            <svg viewBox="0 0 60 60" width="50" height="50">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+              <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use the logo with adequate clear space around it</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px;">
+            <svg viewBox="0 0 60 60" width="50" height="40" style="transform: scaleX(1.4);">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+              <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Stretch, distort, or change the logo proportions</p>
+        </div>
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: #2C2520; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px;">
+            <svg viewBox="0 0 60 60" width="50" height="50">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+              <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use on dark backgrounds with sufficient contrast</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
+            <svg viewBox="0 0 60 60" width="50" height="50" style="filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.4));">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <ellipse cx="22" cy="29" rx="4" ry="6" fill="white"/>
+              <ellipse cx="38" cy="29" rx="4" ry="6" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Add drop shadows or effects to the logo</p>
+        </div>
+      </div>
+
+      <!-- Color Usage -->
+      <h3>Color Usage</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 60px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #4a6741;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #a67a6a;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #3a6b73;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #c4856a;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use official persona colors from the palette</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 60px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #00FF00;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #FF00FF;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #00FFFF;"></div>
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: #FF0000;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use unapproved or neon colors</p>
+        </div>
+      </div>
+
+      <!-- Typography -->
+      <h3>Typography</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 50px; margin-bottom: 8px;">
+            <p style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 16px; margin: 0; color: var(--color-text-primary);">Plus Jakarta Sans</p>
+            <p style="font-family: 'Inter', sans-serif; font-size: 12px; margin: 4px 0 0 0; color: var(--color-text-secondary);">Inter for body text</p>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use approved typefaces consistently</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 50px; margin-bottom: 8px;">
+            <p style="font-family: 'Comic Sans MS', cursive; font-size: 16px; margin: 0; color: var(--color-text-primary);">Comic Sans MS</p>
+            <p style="font-family: 'Papyrus', fantasy; font-size: 12px; margin: 4px 0 0 0; color: var(--color-text-secondary);">Or other informal fonts</p>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Mix in unapproved typefaces</p>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>10</span>
+      </div>
+    </div>
+
+    <!-- Page 11: Do's and Don'ts (continued) -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">10</div>
+        <h2>Do's and Don'ts (continued)</h2>
+      </div>
+
+      <!-- Avatar/Eyes -->
+      <h3>Avatar & Eyes (Luxo Style)</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px;">
+            <svg viewBox="0 0 60 60" width="60" height="60">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <!-- LUXO STYLE: opaque white eyes, no pupils -->
+              <ellipse cx="22" cy="29" rx="5" ry="7" fill="white"/>
+              <ellipse cx="38" cy="29" rx="5" ry="7" fill="white"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Solid white ellipse eyes (Luxo Jr. style) — expression through shape</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 8px;">
+            <svg viewBox="0 0 60 60" width="60" height="60">
+              <circle cx="30" cy="30" r="28" fill="#4a6741"/>
+              <!-- WRONG: pupils inside eyes -->
+              <ellipse cx="22" cy="29" rx="5" ry="7" fill="white"/>
+              <ellipse cx="38" cy="29" rx="5" ry="7" fill="white"/>
+              <circle cx="23" cy="30" r="2.5" fill="#2C2520"/>
+              <circle cx="39" cy="30" r="2.5" fill="#2C2520"/>
+            </svg>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Add pupils, irises, or other details inside eyes</p>
+        </div>
+      </div>
+
+      <!-- Voice & Tone -->
+      <h3>Voice & Tone</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 60px; margin-bottom: 8px;">
+            <p style="font-size: 13px; margin: 0; color: var(--color-text-primary); font-style: italic;">"Couldn't save that. Try again?"</p>
+            <p style="font-size: 13px; margin: 8px 0 0 0; color: var(--color-text-primary); font-style: italic;">"Got it! I'll know your voice now."</p>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Warm, human, conversational — like a friend</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; min-height: 60px; margin-bottom: 8px;">
+            <p style="font-size: 13px; margin: 0; color: var(--color-text-primary); font-style: italic;">"Error: Operation failed. Please try again later."</p>
+            <p style="font-size: 13px; margin: 8px 0 0 0; color: var(--color-text-primary); font-style: italic;">"Voice enrollment completed successfully!"</p>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Cold, robotic, enterprise software language</p>
+        </div>
+      </div>
+
+      <!-- Spacing & Layout -->
+      <h3>Spacing & Layout</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 80%;"></div>
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 60%;"></div>
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 70%;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use the 4px grid with consistent spacing tokens</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px;">
+            <div style="display: flex; flex-direction: column;">
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 80%; margin-bottom: 3px;"></div>
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 60%; margin-bottom: 17px;"></div>
+              <div style="background: var(--color-bg-secondary); height: 12px; border-radius: 4px; width: 70%;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use arbitrary spacing values (3px, 17px, 11px)</p>
+        </div>
+      </div>
+
+      <!-- Animation -->
+      <h3>Animation</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- DO -->
+        <div style="background: rgba(74, 103, 65, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: var(--color-ferni); border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px;"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span style="font-weight: 600; color: var(--color-ferni); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Do</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px; font-family: monospace; font-size: 10px; color: var(--color-text-secondary);">
+            <code>transition: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);</code>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use spring easing for organic, playful motion</p>
+        </div>
+        <!-- DON'T -->
+        <div style="background: rgba(180, 60, 60, 0.08); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="width: 20px; height: 20px; background: #b43c3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✕</span>
+            <span style="font-weight: 600; color: #b43c3c; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Don't</span>
+          </div>
+          <div style="background: white; border-radius: 8px; padding: 16px; margin-bottom: 8px; font-family: monospace; font-size: 10px; color: var(--color-text-secondary);">
+            <code>transition: 0.1s linear;</code>
+          </div>
+          <p style="font-size: 11px; color: var(--color-text-secondary); margin: 0;">Use linear or abrupt timing functions</p>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>11</span>
+      </div>
+    </div>
+
+    <!-- Page 12: Implementation -->
     <div class="page" style="display: flex; flex-direction: column">
       <div class="section-title">
         <div class="section-number">&#9733;</div>
@@ -1552,8 +1966,8 @@
           <td><a href="universe/index.html">Ferni Universe Story</a> &mdash; Cinematic scrollytelling</td>
         </tr>
         <tr>
-          <td><code>/brand/FERNI-UNIVERSE-BIBLE.md</code></td>
-          <td><a href="FERNI-UNIVERSE-BIBLE.md">Universe Bible</a> &mdash; Complete story</td>
+          <td><code>/brand/universe-bible.html</code></td>
+          <td><a href="universe-bible.html">Universe Bible</a> &mdash; Complete story</td>
         </tr>
         <tr>
           <td><code>/brand/ferni-design-tokens.css</code></td>
@@ -1604,11 +2018,16 @@
           Ferni
         </p>
         <p style="color: var(--color-text-muted); margin-bottom: 24px; font-family: var(--font-editorial); font-style: italic;">
-          "The cracks are where the gold goes."
+          "We celebrate the imperfections and the joy of being alive."
         </p>
         <p style="font-size: 12px; color: var(--color-text-dimmed)">
-          &copy; 2024 Ferni. All rights reserved.
+          &copy; 2025 Ferni. All rights reserved.
         </p>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>12</span>
       </div>
     </div>
   </body>

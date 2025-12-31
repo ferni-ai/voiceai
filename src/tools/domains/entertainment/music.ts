@@ -12,7 +12,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDJDropPhrase } from '../../../audio/ambient-music.js';
-import { getMusicPlayer, isMusicAvailable, type MusicTrack } from '../../../audio/index.js';
+import { getMusicPlayer, isMusicAvailable, getDJBooth, type MusicTrack } from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
 import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
@@ -551,6 +551,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       artist: track.artist,
       previewUrl: track.previewUrl,
       duration: ITUNES_PREVIEW_DURATION_MS, // Use preview duration, NOT full track duration
+      genre: track.genre, // 🎵 Include genre for preference learning
     };
 
     // Step 4: Play the track - use crossfade if something is already playing!
@@ -1091,6 +1092,27 @@ export function createMusicTools() {
         const hasQueue = musicPlayer.getState().queue.length > 0;
         const teaser = getQueueTeaser(personaId || 'ferni', hasQueue);
         return teaser || 'Want me to keep the music going?';
+      },
+    }),
+
+    /**
+     * 🎵 Get user's learned music preferences
+     * Users can ask "What music do you remember I like?" or "What are my music preferences?"
+     */
+    myMusicPreferences: llm.tool({
+      description:
+        'Get the user\'s learned music preferences including favorite genres, artists, and dislikes. ' +
+        'Use when user asks about their music taste, what you remember about their preferences, ' +
+        'or "what music do I like".',
+      parameters: z.object({}),
+      execute: async () => {
+        const djBooth = getDJBooth();
+        if (!djBooth) {
+          return "I'm still learning your music preferences! Play some music and tell me what you like.";
+        }
+        
+        const summary = djBooth.getMusicPreferencesSummary();
+        return summary;
       },
     }),
   };

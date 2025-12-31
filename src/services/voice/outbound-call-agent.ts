@@ -196,9 +196,15 @@ async function generateResponse(state: ConversationState, userInput: string): Pr
     // Build conversation context
     const history = state.history.slice(-10); // Last 10 exchanges
 
-    const prompt = history.length > 1
-      ? `Previous conversation:\n${history.slice(0, -1).map((h) => `${h.role === 'user' ? 'Them' : 'You'}: ${h.content}`).join('\n')}\n\nThey just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`
-      : `They just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`;
+    const prompt =
+      history.length > 1
+        ? `Previous conversation:\n${history
+            .slice(0, -1)
+            .map((h) => `${h.role === 'user' ? 'Them' : 'You'}: ${h.content}`)
+            .join(
+              '\n'
+            )}\n\nThey just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`
+        : `They just said: "${userInput}"\n\nRespond naturally and concisely (2-3 sentences max):`;
 
     const result = await state.gemini.generateContent(prompt);
     const response = result.response.text();
@@ -286,7 +292,10 @@ async function speakToCaller(
     for (let offset = 0; offset < pcm8k.length; offset += chunkSize) {
       if (!state.isRunning) break;
 
-      const chunk = pcmBuffer.slice(offset * 2, Math.min((offset + chunkSize) * 2, pcmBuffer.length));
+      const chunk = pcmBuffer.slice(
+        offset * 2,
+        Math.min((offset + chunkSize) * 2, pcmBuffer.length)
+      );
       bridge.sendAudioToCaller(state.callSid, convert8kTo16kForBridge(chunk));
 
       // Pace the audio output (20ms chunks)

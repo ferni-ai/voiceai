@@ -1,11 +1,23 @@
 /**
  * Marketing Content Storage
  *
- * Stores drafts, scheduled posts, and analytics in Firestore.
+ * Stores drafts, scheduled posts, analytics, and OAuth tokens in Firestore.
+ * Tokens are encrypted using AES-256-GCM before storage.
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { encryptData, decryptData } from '../../../servers/shared/encryption.js';
+
+// Helper to get Firestore instance
+async function getFirestoreDb() {
+  try {
+    const { getFirestore } = await import('firebase-admin/firestore');
+    return getFirestore();
+  } catch {
+    return null;
+  }
+}
 
 const log = getLogger();
 
@@ -75,10 +87,27 @@ interface AnalyticsResult {
   insights: string[];
 }
 
+/**
+ * Social platform OAuth tokens
+ * Stored encrypted in Firestore
+ */
+export interface SocialTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  tokenType?: string;
+  scope?: string;
+  userId?: string; // Platform-specific user ID
+  username?: string; // Platform username
+  updatedAt: number;
+}
+
 // In-memory storage for development (replace with Firestore in production)
 const draftsStore = new Map<string, Draft>();
 const scheduledStore = new Map<string, ScheduledPost>();
 const postedStore = new Map<string, PostedContent>();
+// Token cache (encrypted tokens stored in Firestore, cached in memory)
+const tokensCache = new Map<string, string>(); // userId:platform -> encrypted tokens
 
 export class MarketingStorage {
   private userId: string;
@@ -338,6 +367,151 @@ export class MarketingStorage {
     }
 
     return result;
+  }
+
+  // ============================================================================
+  // SOCIAL TOKENS (Encrypted)
+  // ============================================================================
+
+  /**
+   * Store social platform tokens securely
+   * Tokens are encrypted with AES-256-GCM before storage
+   */
+  async saveTokens(platform: 'twitter' | 'linkedin', tokens: SocialTokens): Promise<void> {
+    const cacheKey = `${this.userId}:${platform}`;
+
+    // Add metadata
+    const tokensWithMetadata: SocialTokens = {
+      ...tokens,
+      updatedAt: Date.now(),
+    };
+
+    // Encrypt the tokens
+    const encrypted = encryptData(tokensWithMetadata);
+
+    // Store in cache
+    tokensCache.set(cacheKey, encrypted);
+
+    // Persist to Firestore
+    try {
+      const db = await getFirestoreDb();
+      if (db) {
+        await db
+          .collection('bogle_users')
+          .doc(this.userId)
+          .collection('social_tokens')
+          .doc(platform)
+          .set(
+            cleanForFirestore({
+              encryptedTokens: encrypted,
+              platform,
+              updatedAt: new Date().toISOString(),
+            })
+          );
+
+        log.info(
+          { userId: this.userId.substring(0, 8) + '...', platform },
+          `🔐 ${platform} tokens stored securely`
+        );
+      }
+    } catch (error) {
+      log.error({ error: String(error), platform }, 'Failed to persist tokens to Firestore');
+      // Tokens are still in cache, so functionality continues
+    }
+  }
+
+  /**
+   * Retrieve and decrypt social platform tokens
+   */
+  async getTokens(platform: 'twitter' | 'linkedin'): Promise<SocialTokens | null> {
+    const cacheKey = `${this.userId}:${platform}`;
+
+    // Check cache first
+    let encrypted = tokensCache.get(cacheKey);
+
+    // If not in cache, try Firestore
+    if (!encrypted) {
+      try {
+        const db = await getFirestoreDb();
+        if (db) {
+          const doc = await db
+            .collection('bogle_users')
+            .doc(this.userId)
+            .collection('social_tokens')
+            .doc(platform)
+            .get();
+
+          if (doc.exists) {
+            const data = doc.data();
+            encrypted = data?.encryptedTokens;
+            if (encrypted) {
+              // Populate cache
+              tokensCache.set(cacheKey, encrypted);
+            }
+          }
+        }
+      } catch (error) {
+        log.error({ error: String(error), platform }, 'Failed to retrieve tokens from Firestore');
+      }
+    }
+
+    if (!encrypted) {
+      return null;
+    }
+
+    // Decrypt the tokens
+    const tokens = decryptData<SocialTokens>(encrypted);
+
+    if (!tokens) {
+      log.warn({ platform }, 'Failed to decrypt tokens');
+      return null;
+    }
+
+    // Check if tokens are expired
+    if (tokens.expiresAt && tokens.expiresAt < Date.now()) {
+      log.debug({ platform }, 'Tokens expired');
+      // Don't delete - may have refresh token
+    }
+
+    return tokens;
+  }
+
+  /**
+   * Check if platform is connected (has valid tokens)
+   */
+  async hasTokens(platform: 'twitter' | 'linkedin'): Promise<boolean> {
+    const tokens = await this.getTokens(platform);
+    return tokens !== null && !!tokens.accessToken;
+  }
+
+  /**
+   * Delete stored tokens (disconnect platform)
+   */
+  async deleteTokens(platform: 'twitter' | 'linkedin'): Promise<void> {
+    const cacheKey = `${this.userId}:${platform}`;
+
+    // Remove from cache
+    tokensCache.delete(cacheKey);
+
+    // Remove from Firestore
+    try {
+      const db = await getFirestoreDb();
+      if (db) {
+        await db
+          .collection('bogle_users')
+          .doc(this.userId)
+          .collection('social_tokens')
+          .doc(platform)
+          .delete();
+
+        log.info(
+          { userId: this.userId.substring(0, 8) + '...', platform },
+          `🔓 ${platform} tokens deleted`
+        );
+      }
+    } catch (error) {
+      log.error({ error: String(error), platform }, 'Failed to delete tokens from Firestore');
+    }
   }
 }
 

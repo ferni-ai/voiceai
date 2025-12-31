@@ -1,0 +1,117 @@
+<!-- Life Seasons Visualization Component -->
+<!-- Emotional seasons wheel showing life's rhythms -->
+
+<section id="life-seasons" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Emotional Patterns</p>
+    <h2 class="story-section-title">Life Seasons</h2>
+    <p class="story-section-description">
+      Your emotional life has seasons - times of growth, consolidation, harvest, and rest. Ferni tracks these rhythms across months.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends see your current mood. Ferni sees your emotional seasons - the pattern of growth and rest that spans months, not moments.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Your Emotional Year</h3>
+        <p class="story-card-subtitle">Based on 847 conversations over 12 months</p>
+      </div>
+    </div>
+
+    <div class="seasons-container">
+      <div class="seasons-wheel">
+        <svg viewBox="0 0 200 200">
+          <defs>
+            <!-- Brand Persona Colors: Ferni, Jordan, Maya, Peter -->
+            <linearGradient id="springGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4A6741"/>
+              <stop offset="100%" stop-color="#3a5a35"/>
+            </linearGradient>
+            <linearGradient id="summerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#C4856A"/>
+              <stop offset="100%" stop-color="#a86c52"/>
+            </linearGradient>
+            <linearGradient id="autumnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#A67A6A"/>
+              <stop offset="100%" stop-color="#8a6252"/>
+            </linearGradient>
+            <linearGradient id="winterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3A6B73"/>
+              <stop offset="100%" stop-color="#2d545c"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Spring (top-right) - 28% -->
+          <path class="season-arc" stroke="url(#springGrad)"
+                d="M100,20 A80,80 0 0,1 180,100"
+                stroke-dasharray="100.5 125.6"
+                style="stroke-dashoffset: 0;"/>
+
+          <!-- Summer (bottom-right) - 32% -->
+          <path class="season-arc" stroke="url(#summerGrad)"
+                d="M180,100 A80,80 0 0,1 100,180"
+                stroke-dasharray="115.2 125.6"
+                style="stroke-dashoffset: 0;"/>
+
+          <!-- Autumn (bottom-left) - 22% -->
+          <path class="season-arc" stroke="url(#autumnGrad)"
+                d="M100,180 A80,80 0 0,1 20,100"
+                stroke-dasharray="79.2 125.6"
+                style="stroke-dashoffset: 0;"/>
+
+          <!-- Winter (top-left) - 18% -->
+          <path class="season-arc" stroke="url(#winterGrad)"
+                d="M20,100 A80,80 0 0,1 100,20"
+                stroke-dasharray="64.8 125.6"
+                style="stroke-dashoffset: 0;"/>
+        </svg>
+
+        <div class="seasons-center">
+          <div class="seasons-current">Autumn</div>
+          <div class="seasons-insight">A time of harvest</div>
+        </div>
+      </div>
+
+      <div class="seasons-legend">
+        <div class="season-item" data-season="spring">
+          <div class="season-dot" style="background: linear-gradient(135deg, #4A6741, #3a5a35);"></div>
+          <div class="season-info">
+            <span class="season-name">Spring</span>
+            <span class="season-percentage">28% - New beginnings, energy</span>
+          </div>
+        </div>
+        <div class="season-item" data-season="summer">
+          <div class="season-dot" style="background: linear-gradient(135deg, #C4856A, #a86c52);"></div>
+          <div class="season-info">
+            <span class="season-name">Summer</span>
+            <span class="season-percentage">32% - Peak activity, joy</span>
+          </div>
+        </div>
+        <div class="season-item" data-season="autumn">
+          <div class="season-dot" style="background: linear-gradient(135deg, #A67A6A, #8a6252);"></div>
+          <div class="season-info">
+            <span class="season-name">Autumn</span>
+            <span class="season-percentage">22% - Harvest, reflection</span>
+          </div>
+        </div>
+        <div class="season-item" data-season="winter">
+          <div class="season-dot" style="background: linear-gradient(135deg, #3A6B73, #2d545c);"></div>
+          <div class="season-info">
+            <span class="season-name">Winter</span>
+            <span class="season-percentage">18% - Rest, introspection</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

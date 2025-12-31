@@ -36,8 +36,8 @@ import {
   cacheToolResult,
   checkToolCache,
   invalidateToolCache,
-} from './performance/tool-response-cache.js';
-import { executeWithReliability } from './tool-execution-reliability.js';
+} from '../../services/performance/tool-response-cache.js';
+import { executeWithReliability } from '../../services/performance/tool-execution-reliability.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
@@ -62,7 +62,7 @@ function recordSemanticExecution(params: {
 }): void {
   // Fire and forget - don't await, don't block tool execution
   import('../../intelligence/semantic-intelligence/index.js')
-    .then(({ recordExecution }) =>
+    .then(async ({ recordExecution }) =>
       recordExecution({
         userId: params.userId,
         sessionId: params.sessionId || 'unknown',
@@ -1092,7 +1092,7 @@ async function routeToTool(
         try {
           const { getUserLocationPreference } =
             await import('../../tools/domains/information/location-preference.js');
-          const savedLocation = await getUserLocationPreference(ctx.userId);
+          const savedLocation = getUserLocationPreference(ctx.userId);
           if (savedLocation) {
             location = savedLocation;
             log.info({ userId: ctx.userId, savedLocation }, '🌤️ Using saved location preference');

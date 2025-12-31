@@ -50,6 +50,7 @@ import {
   // "Better Than Human" routes
   handleVisualMemoryRoutes,
   handleAmbientModeRoutes,
+  handleBTHIntelligenceRoutes,
 } from './routes/index.js';
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
@@ -162,6 +163,7 @@ import {
   initializeTwilioStreamBridge,
   attachTwilioStreamBridgeToServer,
 } from '../../api/twilio-routes.js';
+import { handleOutboundCallRoutes } from '../../api/outbound-call-handler.js';
 
 // WebSocket for real-time insights
 import {
@@ -355,6 +357,11 @@ const server = http.createServer(async (req, res) => {
   // 🌙 Ambient Mode routes (continuous background presence)
   if (pathname.startsWith('/api/ambient-mode')) {
     if (await handleAmbientModeRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // 🧠 BTH Intelligence Debug routes (user knowledge aggregation)
+  if (pathname.startsWith('/api/bth')) {
+    if (await handleBTHIntelligenceRoutes(req, res)) return;
   }
 
   // ============================================================================
@@ -784,6 +791,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Outbound call routes (conversational calls initiated via API)
+    if (pathname.startsWith('/api/outbound-call')) {
+      const handled = await handleOutboundCallRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Proactive tool suggestions routes
     if (pathname.startsWith('/api/proactive')) {
       const handled = await handleProactiveRoutes(req, res, pathname);
@@ -939,7 +952,20 @@ const server = http.createServer(async (req, res) => {
     // Session context routes (Voice ↔ App sync - Better Than Human)
     if (pathname.startsWith('/api/context')) {
       const { handleSessionContextRoute } = await import('../../api/routes/session-context.js');
-      const handled = await handleSessionContextRoute(req, res, body);
+      // Parse body for POST requests
+      let contextBody: unknown;
+      if (req.method === 'POST') {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        try {
+          contextBody = JSON.parse(Buffer.concat(chunks).toString());
+        } catch {
+          contextBody = undefined;
+        }
+      }
+      const handled = await handleSessionContextRoute(req, res, contextBody);
       if (handled) return;
     }
 

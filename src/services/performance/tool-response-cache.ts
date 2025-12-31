@@ -9,6 +9,8 @@
  * - Configurable TTL per tool type
  * - Cache key includes relevant args
  * - Automatic cache invalidation on write operations
+ * - Redis backing for persistence across restarts (when available)
+ * - In-memory L1 cache for sub-millisecond access
  *
  * Read-only tools eligible for caching:
  * - Weather (30s TTL - weather updates slowly)
@@ -26,6 +28,9 @@ import { createLogger } from '../../utils/safe-logger.js';
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)
 import { LRUCache } from 'lru-cache';
+
+// Redis backing type (lazy loaded)
+type RedisCache = ReturnType<typeof import('../../memory/redis-cache.js').getRedisCache> | null;
 
 const log = createLogger({ module: 'ToolResponseCache' });
 
@@ -167,12 +172,41 @@ class ToolResponseCache {
   };
   private avgToolLatencyMs = 150; // Estimated average tool latency for savings calculation
 
+  // Redis backing (L2 cache for persistence across restarts)
+  private redisCache: RedisCache = null;
+  private redisInitialized = false;
+  private redisKeyPrefix = 'tool:';
+
   constructor(config: ToolCacheConfig = {}) {
     this.config = {
       maxEntries: config.maxEntries ?? 100,
       defaultTtlMs: config.defaultTtlMs ?? 30_000,
       enabled: config.enabled ?? true,
     };
+
+    // Initialize Redis in background (non-blocking)
+    this.initializeRedis();
+  }
+
+  /**
+   * Initialize Redis connection (non-blocking)
+   */
+  private async initializeRedis(): Promise<void> {
+    if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+      log.debug('Redis not configured, using memory-only tool cache');
+      return;
+    }
+
+    try {
+      const { getRedisCache } = await import('../../memory/redis-cache.js');
+      this.redisCache = getRedisCache();
+      await this.redisCache.initialize();
+      this.redisInitialized = true;
+      log.info('Tool response cache initialized with Redis backing (L2)');
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Redis unavailable for tool cache, using memory-only');
+      this.redisCache = null;
+    }
   }
 
   /**
@@ -215,7 +249,7 @@ class ToolResponseCache {
   }
 
   /**
-   * Get cached response if valid
+   * Get cached response if valid (checks memory L1, then Redis L2)
    */
   get(
     sessionId: string,
@@ -230,13 +264,17 @@ class ToolResponseCache {
     const key = this.getCacheKey(fn, args);
     const cached = cache.get(key);
 
+    // L1: Check in-memory cache first (fastest)
     if (cached) {
       const age = Date.now() - cached.cachedAt;
       if (age < cached.ttlMs) {
         cached.hitCount++;
         this.metrics.hits++;
         this.metrics.totalSavedMs += this.avgToolLatencyMs;
-        log.debug({ fn, hitCount: cached.hitCount, ageMs: age }, '🎯 Tool response cache HIT');
+        log.debug(
+          { fn, hitCount: cached.hitCount, ageMs: age, layer: 'L1' },
+          '🎯 Tool response cache HIT (memory)'
+        );
         return { hit: true, result: cached.result };
       }
       // Expired - will be replaced
@@ -248,7 +286,54 @@ class ToolResponseCache {
   }
 
   /**
-   * Cache a tool response
+   * Get cached response async (includes Redis L2 lookup)
+   * Use this for non-latency-critical paths
+   */
+  async getAsync(
+    sessionId: string,
+    fn: string,
+    args: Record<string, unknown>
+  ): Promise<{ hit: boolean; result?: unknown }> {
+    // First check L1 (memory)
+    const memoryResult = this.get(sessionId, fn, args);
+    if (memoryResult.hit) {
+      return memoryResult;
+    }
+
+    // L2: Check Redis if available
+    if (this.redisCache && this.redisInitialized) {
+      try {
+        const key = this.getCacheKey(fn, args);
+        const redisKey = `${this.redisKeyPrefix}${sessionId}:${key}`;
+        const redisData = await this.redisCache.getSession(redisKey);
+
+        if (redisData) {
+          // Found in Redis - populate L1 cache and return
+          const cached = redisData as unknown as CachedToolResponse;
+          const age = Date.now() - cached.cachedAt;
+
+          if (age < cached.ttlMs) {
+            // Valid - populate L1 and return
+            const cache = this.getSessionCache(sessionId);
+            cache.set(key, cached);
+            this.metrics.hits++;
+            this.metrics.totalSavedMs += this.avgToolLatencyMs;
+            log.debug({ fn, ageMs: age, layer: 'L2' }, '🎯 Tool response cache HIT (Redis)');
+            return { hit: true, result: cached.result };
+          }
+          // Expired in Redis too - delete it
+          await this.redisCache.deleteSession(redisKey);
+        }
+      } catch (error) {
+        log.debug({ error: String(error), fn }, 'Redis L2 lookup failed');
+      }
+    }
+
+    return { hit: false };
+  }
+
+  /**
+   * Cache a tool response (writes to L1 memory and L2 Redis)
    */
   set(sessionId: string, fn: string, args: Record<string, unknown>, result: unknown): void {
     if (!this.isCacheable(fn)) return;
@@ -258,15 +343,32 @@ class ToolResponseCache {
     const fnLower = fn.toLowerCase();
     const ttlMs = TTL_BY_TOOL[fnLower] ?? this.config.defaultTtlMs;
 
-    cache.set(key, {
+    const cachedResponse: CachedToolResponse = {
       result,
       cachedAt: Date.now(),
       ttlMs,
       hitCount: 0,
-    });
+    };
 
+    // L1: Always set in memory cache (synchronous)
+    cache.set(key, cachedResponse);
     this.metrics.cacheSize = cache.size;
-    log.debug({ fn, ttlMs, cacheSize: cache.size }, '💾 Tool response cached');
+
+    // L2: Write to Redis in background (non-blocking)
+    if (this.redisCache && this.redisInitialized) {
+      const redisKey = `${this.redisKeyPrefix}${sessionId}:${key}`;
+      // Fire-and-forget Redis write
+      void this.redisCache
+        .setSession(redisKey, cachedResponse as unknown as Record<string, unknown>, ttlMs / 1000)
+        .catch((error) => {
+          log.debug({ error: String(error), fn }, 'Redis L2 write failed');
+        });
+    }
+
+    log.debug(
+      { fn, ttlMs, cacheSize: cache.size, redisEnabled: !!this.redisCache },
+      '💾 Tool response cached'
+    );
   }
 
   /**
@@ -303,7 +405,7 @@ class ToolResponseCache {
   }
 
   /**
-   * Clear cache for a session
+   * Clear cache for a session (clears L1 and L2)
    */
   clearSession(sessionId: string): void {
     const cache = this.caches.get(sessionId);
@@ -313,13 +415,24 @@ class ToolResponseCache {
       this.caches.delete(sessionId);
       log.debug({ sessionId, entriesCleared: size }, '🧹 Session cache cleared');
     }
+
+    // Clear from Redis L2 in background
+    if (this.redisCache && this.redisInitialized) {
+      const keyPrefix = `${this.redisKeyPrefix}${sessionId}:`;
+      void this.redisCache.deleteSession(keyPrefix).catch((error) => {
+        log.debug({ error: String(error), sessionId }, 'Redis session clear failed');
+      });
+    }
   }
 
   /**
-   * Get metrics
+   * Get metrics (includes Redis status)
    */
-  getMetrics(): ToolCacheMetrics {
-    return { ...this.metrics };
+  getMetrics(): ToolCacheMetrics & { redisEnabled: boolean } {
+    return {
+      ...this.metrics,
+      redisEnabled: this.redisInitialized && this.redisCache !== null,
+    };
   }
 
   /**
@@ -371,7 +484,7 @@ export function resetToolResponseCache(): void {
 // ============================================================================
 
 /**
- * Check cache before executing a tool
+ * Check cache before executing a tool (synchronous - L1 memory only)
  */
 export function checkToolCache(
   sessionId: string,
@@ -379,6 +492,18 @@ export function checkToolCache(
   args: Record<string, unknown>
 ): { hit: boolean; result?: unknown } {
   return getToolResponseCache().get(sessionId, fn, args);
+}
+
+/**
+ * Check cache before executing a tool (async - includes L2 Redis lookup)
+ * Use this for non-latency-critical paths where Redis lookup is acceptable
+ */
+export async function checkToolCacheAsync(
+  sessionId: string,
+  fn: string,
+  args: Record<string, unknown>
+): Promise<{ hit: boolean; result?: unknown }> {
+  return getToolResponseCache().getAsync(sessionId, fn, args);
 }
 
 /**

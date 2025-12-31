@@ -170,6 +170,8 @@ export interface GlobalServices {
 export interface CreateSessionOptions {
   sessionId: string;
   userId?: string;
+  /** User's name from onboarding or auth - persisted to Firestore on profile creation */
+  userName?: string;
   isReturningUser?: boolean;
   personaSpeech?: import('../personas/types.js').SpeechCharacteristics;
   personaEnergy?: number;

@@ -485,7 +485,6 @@ describe('Chaos Tests - Service Failures', () => {
     });
 
     it('should handle null/undefined gracefully', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => mockServices.analyze(undefined as any)).not.toThrow();
     });
   });

@@ -16,6 +16,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('RecordGiftUI');
 
@@ -598,7 +599,7 @@ function render(): void {
           <div class="rg-eyebrow">Record a Gift</div>
           <h2 class="rg-title">${state.direction === 'given' ? 'for' : 'from'} ${escapeHtml(state.contactName)}</h2>
         </div>
-        <button class="rg-close" aria-label="Close">${ICONS.close}</button>
+        <button class="rg-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -606,11 +607,11 @@ function render(): void {
       <!-- Direction Selector -->
       <div class="rg-section">
         <div class="rg-directions">
-          <button aria-label="You gave" class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
+          <button aria-label="${t('accessibility.youGave')}" class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
             <span class="rg-direction-icon">${ICONS.send}</span>
             <span class="rg-direction-label">You gave</span>
           </button>
-          <button aria-label="You received" class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
+          <button aria-label="${t('accessibility.youReceived')}" class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
             <span class="rg-direction-icon">${ICONS.inbox}</span>
             <span class="rg-direction-label">You received</span>
           </button>
@@ -651,19 +652,19 @@ function render(): void {
         <div class="rg-section">
           <label class="rg-label">How did they react?</label>
           <div class="rg-reactions" role="button" tabindex="0">
-            <button aria-label="Loved it" class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
+            <button aria-label="${t('accessibility.lovedIt')}" class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.heart}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">Loved it</span>
             </button>
-            <button aria-label="Liked it" class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
+            <button aria-label="${t('accessibility.likedIt')}" class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsUp}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">Liked it</span>
             </button>
-            <button aria-label="Meh" class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
+            <button aria-label="${t('accessibility.meh')}" class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.meh}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">Meh</span>
             </button>
-            <button aria-label="Nope" class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
+            <button aria-label="${t('accessibility.nope')}" class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsDown}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">Nope</span>
             </button>
@@ -673,7 +674,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="rg-section">
-        <button aria-label="Move down" class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
+        <button aria-label="${t('accessibility.moveDown')}" class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
           More details ${ICONS.chevronDown}
         </button>
         
@@ -692,8 +693,8 @@ function render(): void {
     </div>
     
     <div class="rg-footer">
-      <button aria-label="Cancel" class="rg-btn rg-btn-secondary" id="rg-cancel">Cancel</button>
-      <button aria-label="Submit" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.cancel')}" class="rg-btn rg-btn-secondary" id="rg-cancel">Cancel</button>
+      <button aria-label="${t('accessibility.submit')}" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? 'Saving...' : 'Save Gift'}
       </button>
     </div>
@@ -820,7 +821,7 @@ async function handleSave(): Promise<void> {
     });
 
     if (response.ok) {
-      toast.success('Gift recorded!');
+      toast.success(t('toasts.giftRecorded'));
       
       if (callbacks.onSuccess) {
         callbacks.onSuccess(data);
@@ -835,7 +836,7 @@ async function handleSave(): Promise<void> {
     }
   } catch (error) {
     log.error('Failed to save gift:', error);
-    toast.error('Could not save gift');
+    toast.error(t('toasts.couldNotSaveGift'));
     state.isSubmitting = false;
     render();
   }
@@ -893,7 +894,7 @@ export function openRecordGift(options: RecordGiftOptions): void {
   modalContainer.className = 'record-gift-overlay';
   modalContainer.innerHTML = `
     <div class="record-gift-backdrop"></div>
-    <div class="record-gift-modal" role="dialog" aria-modal="true" aria-label="Record a gift">
+    <div class="record-gift-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.recordAGift')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

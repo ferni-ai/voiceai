@@ -441,7 +441,7 @@ class BatchWriteManager {
    */
   async flushAll(): Promise<void> {
     const sessions = Array.from(this.sessionQueues.keys());
-    await Promise.all(sessions.map((sessionId) => this.flush(sessionId)));
+    await Promise.all(sessions.map(async (sessionId) => this.flush(sessionId)));
   }
 
   /**

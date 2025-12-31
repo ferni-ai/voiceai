@@ -1568,15 +1568,15 @@ export async function buildHealthAwarenessInjections(): Promise<ContextInjection
         content += systemInjection;
       }
 
-      // Add warm communication guidance
+      // Add guidance that prioritizes TRYING TOOLS over apologizing
+      // NOTE: This must NOT contradict function-calling-base.md which says:
+      // "NEVER SAY: 'I'm having trouble accessing...'"
       content += `
-COMMUNICATION GUIDANCE:
-- If user asks about an affected service, acknowledge warmly before trying
-- Don't apologize excessively - just be honest and helpful
-- Example: "I'm having a bit of trouble with [service] at the moment, but let me try..."
-- If something fails, explain simply: "That's not working for me right now - want to try again in a bit?"
-
-A human friend would be honest about technical difficulties. So are you.
+IMPORTANT: Even if a service is degraded, STILL TRY THE TOOL.
+- Output the JSON function call - the system has fallbacks
+- Don't pre-apologize - let the tool execution determine the result
+- If the tool actually fails, the result will tell you what to say
+- Example: User asks for weather → Output {"fn":"getWeather","args":{}} anyway
 `;
     }
 

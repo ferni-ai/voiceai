@@ -20,15 +20,22 @@ vi.mock('@google-cloud/firestore', () => ({
   })),
 }));
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock logger - must export both getLogger and createLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 // Mock google-calendar-oauth (for Google provider)
 vi.mock('../../identity/google-calendar-oauth.js', () => ({

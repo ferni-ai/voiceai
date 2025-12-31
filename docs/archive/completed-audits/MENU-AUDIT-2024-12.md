@@ -530,7 +530,7 @@ Create tests for:
 | Menu UI              | `apps/web/src/ui/settings-menu.ui.ts`                 |
 | Relationship Service | `apps/web/src/services/relationship-stage.service.ts` |
 | Design Tokens        | `design-system/tokens/*.json`                                    |
-| Brand Guidelines     | `design-system/brand/FERNI-BRAND-GUIDELINES.md`                  |
+| Brand Guidelines     | `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`                  |
 | E2E Tests            | `e2e/*.spec.ts`                                                  |
 
 ## Appendix B: Related Audits

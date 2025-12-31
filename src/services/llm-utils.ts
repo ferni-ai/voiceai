@@ -15,9 +15,12 @@
  * @module services/llm-utils
  */
 
+import { getDefaultModel, getGeminiClient } from '../config/gemini-config.js';
+import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
-import { getDefaultModel } from '../config/gemini-config.js';
+
+// Check if Vertex AI is explicitly enabled
+const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
 
 // ============================================================================
 // CIRCUIT BREAKERS
@@ -172,6 +175,86 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
 }
 
 // ============================================================================
+// GEMINI API (Consumer tier - used when USE_VERTEX_AI=false)
+// ============================================================================
+
+const geminiAPICircuitBreaker = getCircuitBreaker('gemini-api', {
+  failureThreshold: 3,
+  resetTimeout: 30000,
+  successThreshold: 2,
+});
+
+/**
+ * Call Gemini API for supplementary analysis
+ * Uses consumer tier (via centralized gemini-config client)
+ */
+async function callGeminiAPI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
+  // Check circuit breaker first
+  if (!geminiAPICircuitBreaker.canRequest()) {
+    getLogger().warn('Gemini API circuit breaker is open, skipping request');
+    return null;
+  }
+
+  try {
+    const client = await getGeminiClient();
+    if (!client) {
+      getLogger().warn('Gemini API client is null - not configured');
+      return null;
+    }
+
+    const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
+
+    // Use AbortController for timeout
+    // eslint-disable-next-line no-undef
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await geminiAPICircuitBreaker.execute(async () => {
+        // Use centralized Gemini client (respects USE_VERTEX_AI setting)
+        const model = (
+          client as {
+            models: {
+              generateContent: (params: {
+                model: string;
+                contents: string;
+                config?: { maxOutputTokens?: number; temperature?: number };
+              }) => Promise<{ text?: string }>;
+            };
+          }
+        ).models.generateContent({
+          model: getDefaultModel(),
+          contents: prompt,
+          config: {
+            maxOutputTokens: maxTokens,
+            temperature,
+          },
+        });
+        const result = await model;
+        return result?.text?.trim() || null;
+      });
+
+      clearTimeout(timeoutId);
+      return typeof response === 'string' ? response : null;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if ((error as Error).name === 'AbortError') {
+        getLogger().debug('Gemini API call timed out');
+        return null;
+      }
+      if (error instanceof CircuitOpenError) {
+        getLogger().debug('Gemini API circuit breaker opened');
+        return null;
+      }
+      throw error;
+    }
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Gemini API call failed');
+    return null;
+  }
+}
+
+// ============================================================================
 // OPENAI (Fallback)
 // ============================================================================
 
@@ -270,7 +353,9 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
 /**
  * Make a supplementary LLM call with automatic fallback
  *
- * Priority: Vertex AI (enterprise tier) → OpenAI → null
+ * Priority depends on USE_VERTEX_AI setting:
+ * - If USE_VERTEX_AI=true (default): Vertex AI → OpenAI → null
+ * - If USE_VERTEX_AI=false: Gemini API (consumer) → OpenAI → null
  *
  * Use this for:
  * - Emotion inference when keyword detection is uncertain
@@ -283,9 +368,15 @@ export async function callLLM(
   prompt: string,
   options: LLMCallOptions = {}
 ): Promise<string | null> {
-  // Try Vertex AI first (enterprise tier with higher quotas)
-  const vertexResult = await callVertexAI(prompt, options);
-  if (vertexResult) return vertexResult;
+  if (USE_VERTEX_AI) {
+    // Try Vertex AI first (enterprise tier with higher quotas)
+    const vertexResult = await callVertexAI(prompt, options);
+    if (vertexResult) return vertexResult;
+  } else {
+    // USE_VERTEX_AI=false: Use consumer Gemini API
+    const geminiResult = await callGeminiAPI(prompt, options);
+    if (geminiResult) return geminiResult;
+  }
 
   // Fall back to OpenAI
   const openAIResult = await callOpenAI(prompt, options);

@@ -385,7 +385,6 @@ export function getTimeContext(): TimeContext {
   const isHolidaySeason = month === 10 || month === 11 || (month === 0 && now.getDate() <= 7);
 
   // Special days (simplified - could be expanded)
-  let specialDay: string | undefined;
   const dayMonth = `${now.getMonth() + 1}-${now.getDate()}`;
   const specialDays: Record<string, string> = {
     '12-25': 'Christmas',
@@ -394,7 +393,7 @@ export function getTimeContext(): TimeContext {
     '2-14': "Valentine's Day",
     '7-4': 'Independence Day',
   };
-  specialDay = specialDays[dayMonth];
+  const specialDay = specialDays[dayMonth];
 
   return {
     timeOfDay,

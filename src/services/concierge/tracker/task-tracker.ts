@@ -417,6 +417,113 @@ export class TaskTracker {
   }
 
   /**
+   * Find a request by target phone number (for incoming call/SMS matching)
+   */
+  async findRequestByTargetPhone(
+    phone: string
+  ): Promise<{ request: ConciergeRequest; target: ConciergeTarget } | null> {
+    // Normalize phone number (remove non-digits for comparison)
+    const normalizedPhone = phone.replace(/\D/g, '');
+
+    // Search active requests in memory first
+    for (const request of activeRequests.values()) {
+      if (request.status !== 'pending' && request.status !== 'in_progress') continue;
+
+      for (const target of request.targets) {
+        if (target.phone) {
+          const targetPhone = target.phone.replace(/\D/g, '');
+          if (targetPhone === normalizedPhone || targetPhone.endsWith(normalizedPhone.slice(-10))) {
+            return { request, target };
+          }
+        }
+      }
+    }
+
+    // Search Firestore for active requests
+    const db = getFirestoreDb();
+    if (db) {
+      try {
+        const snapshot = await db
+          .collection('concierge_requests')
+          .where('status', 'in', ['pending', 'in_progress', 'awaiting_user'])
+          .orderBy('createdAt', 'desc')
+          .limit(50)
+          .get();
+
+        for (const doc of snapshot.docs) {
+          const request = doc.data() as ConciergeRequest;
+          for (const target of request.targets) {
+            if (target.phone) {
+              const targetPhone = target.phone.replace(/\D/g, '');
+              if (
+                targetPhone === normalizedPhone ||
+                targetPhone.endsWith(normalizedPhone.slice(-10))
+              ) {
+                // Cache in memory
+                activeRequests.set(request.id, request);
+                return { request, target };
+              }
+            }
+          }
+        }
+      } catch (error) {
+        log.error({ error: String(error), phone }, 'Failed to search requests by phone');
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Find a request by target email address (for incoming email matching)
+   */
+  async findRequestByTargetEmail(
+    email: string
+  ): Promise<{ request: ConciergeRequest; target: ConciergeTarget } | null> {
+    // Normalize email (lowercase)
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Search active requests in memory first
+    for (const request of activeRequests.values()) {
+      if (request.status !== 'pending' && request.status !== 'in_progress') continue;
+
+      for (const target of request.targets) {
+        if (target.email && target.email.toLowerCase() === normalizedEmail) {
+          return { request, target };
+        }
+      }
+    }
+
+    // Search Firestore for active requests
+    const db = getFirestoreDb();
+    if (db) {
+      try {
+        const snapshot = await db
+          .collection('concierge_requests')
+          .where('status', 'in', ['pending', 'in_progress', 'awaiting_user'])
+          .orderBy('createdAt', 'desc')
+          .limit(50)
+          .get();
+
+        for (const doc of snapshot.docs) {
+          const request = doc.data() as ConciergeRequest;
+          for (const target of request.targets) {
+            if (target.email && target.email.toLowerCase() === normalizedEmail) {
+              // Cache in memory
+              activeRequests.set(request.id, request);
+              return { request, target };
+            }
+          }
+        }
+      } catch (error) {
+        log.error({ error: String(error), email }, 'Failed to search requests by email');
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Clean up completed requests from memory
    */
   cleanup(): void {

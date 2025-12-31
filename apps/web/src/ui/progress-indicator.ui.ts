@@ -793,47 +793,13 @@ function injectStyles(): void {
     }
     
     /* ========================================================================
-       MOBILE
+       MOBILE - Hide progress indicator on mobile devices
+       Too intrusive and conflicts with mobile bottom sheet trigger button.
+       Users can still access stage info via the settings menu.
        ======================================================================== */
-    @media (max-width: 480px) {
+    @media (max-width: 768px) {
       .progress-indicator {
-        bottom: var(--space-20, 80px);
-        left: var(--space-3, 12px);
-        right: var(--space-3, 12px);
-      }
-      
-      .progress-expanded {
-        width: 100%;
-        max-width: none;
-      }
-      
-      .progress-collapsed {
-        gap: var(--space-2, 8px);
-        padding: var(--space-2, 8px) var(--space-3, 12px);
-      }
-      
-      .progress-ring {
-        width: 36px;
-        height: 36px;
-      }
-      
-      .progress-ring-icon svg {
-        width: 16px;
-        height: 16px;
-      }
-      
-      .progress-stage-name {
-        font-size: 14px;
-      }
-    }
-    
-    /* ========================================================================
-       SMALL PHONES - Hide progress indicator on very small screens
-       Users can still access stage info via the settings menu
-       ======================================================================== */
-    @media (max-width: 390px) {
-      .progress-indicator {
-        display: none;
+        display: none !important;
       }
     }
   `;

@@ -4,6 +4,7 @@
  * Tests for the TTS caching layer that checks speculative cache before Cartesia.
  */
 
+import { ReadableStream } from 'node:stream/web';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getCacheAwareTTSMetrics,
@@ -13,11 +14,11 @@ import {
 } from '../cache-aware-tts.js';
 
 // Mock the speculative TTS module
-vi.mock('../speculative-tts.js', () => ({
+vi.mock('../../../../services/performance/speculative-tts.js', () => ({
   getTTSWithSpeculation: vi.fn(),
 }));
 
-import { getTTSWithSpeculation } from '../speculative-tts.js';
+import { getTTSWithSpeculation } from '../../../../services/performance/speculative-tts.js';
 
 const mockedGetTTSWithSpeculation = vi.mocked(getTTSWithSpeculation);
 

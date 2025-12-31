@@ -20,6 +20,7 @@
 
   <!-- Design System -->
   <link rel="stylesheet" href="master-tokens.css">
+  <link rel="stylesheet" href="brand-components.css">
 
   <style>
     /* ============================================
@@ -445,49 +446,7 @@
       height: 16px;
     }
 
-    /* Footer */
-    footer {
-      background: var(--color-bg-secondary);
-      border-top: 1px solid var(--color-border-subtle);
-      padding: var(--space-16) var(--space-6);
-      text-align: center;
-    }
-
-    .footer-logo {
-      width: 48px;
-      height: 48px;
-      margin: 0 auto var(--space-4);
-    }
-
-    .footer-tagline {
-      font-size: var(--text-lg);
-      color: var(--color-text-secondary);
-      margin-bottom: var(--space-6);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: var(--space-6);
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: var(--space-8);
-    }
-
-    .footer-links a {
-      font-size: var(--text-sm);
-      color: var(--color-text-muted);
-      text-decoration: none;
-      transition: color var(--duration-fast) var(--ease-out);
-    }
-
-    .footer-links a:hover {
-      color: var(--color-accent);
-    }
-
-    .footer-copyright {
-      font-size: var(--text-xs);
-      color: var(--color-text-disabled);
-    }
+    /* Footer - uses styles from master-tokens.css */
 
     /* Scroll Progress */
     .scroll-progress {
@@ -500,58 +459,147 @@
       transform-origin: left;
       transform: scaleX(0);
     }
+
+    /* ============================================
+       REVEAL ANIMATIONS
+       ============================================ */
+
+    /* Base reveal state - hidden, shifted down */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition:
+        opacity 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Revealed state */
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Hero content reveal animation */
+    .hero .avatar-container {
+      animation: heroReveal 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .hero-overline {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+    }
+
+    .hero-title {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    }
+
+    .hero-subtitle {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+    }
+
+    .hero-cta {
+      animation: heroReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
+    }
+
+    @keyframes heroReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Section headers reveal */
+    .section-header {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: sectionReveal 0.6s ease-out forwards;
+      animation-play-state: paused;
+    }
+
+    .section-header.visible {
+      animation-play-state: running;
+    }
+
+    @keyframes sectionReveal {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Persona cards stagger animation */
+    .persona-card {
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+      transition:
+        opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.3s ease-out,
+        border-color 0.3s ease-out;
+    }
+
+    .persona-card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Stagger delays for persona grid */
+    .persona-grid .persona-card:nth-child(1) { transition-delay: 0s; }
+    .persona-grid .persona-card:nth-child(2) { transition-delay: 0.08s; }
+    .persona-grid .persona-card:nth-child(3) { transition-delay: 0.16s; }
+    .persona-grid .persona-card:nth-child(4) { transition-delay: 0.24s; }
+    .persona-grid .persona-card:nth-child(5) { transition-delay: 0.32s; }
+    .persona-grid .persona-card:nth-child(6) { transition-delay: 0.4s; }
+
+    /* Quick links reveal */
+    .quick-link {
+      opacity: 0;
+      transform: translateY(15px);
+      transition:
+        opacity 0.4s ease-out,
+        transform 0.4s ease-out,
+        background 0.2s ease-out,
+        border-color 0.2s ease-out,
+        color 0.2s ease-out,
+        box-shadow 0.2s ease-out;
+    }
+
+    .quick-links.visible .quick-link {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .quick-links .quick-link:nth-child(1) { transition-delay: 0s; }
+    .quick-links .quick-link:nth-child(2) { transition-delay: 0.05s; }
+    .quick-links .quick-link:nth-child(3) { transition-delay: 0.1s; }
+    .quick-links .quick-link:nth-child(4) { transition-delay: 0.15s; }
+    .quick-links .quick-link:nth-child(5) { transition-delay: 0.2s; }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal,
+      .hero .avatar-container,
+      .hero-overline,
+      .hero-title,
+      .hero-subtitle,
+      .hero-cta,
+      .persona-card,
+      .quick-link,
+      .section-header {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- Skip to Content -->
-  <a href="#main" class="skip-link">Skip to content</a>
-
-  <!-- Scroll Progress -->
-  <div class="scroll-progress" id="scrollProgress"></div>
-
-  <!-- Navigation -->
-  <nav class="nav" role="navigation" aria-label="Main navigation">
-    <a href="index.html" class="nav-logo" aria-label="Ferni Brand Library Home">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="46" fill="url(#navGrad)"/>
-        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-        <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-      </svg>
-      <span>Ferni</span>
-    </a>
-
-    <div class="nav-links">
-      <a href="capabilities/index.html" class="nav-link">Capabilities</a>
-      <a href="characters/ferni/expressions.html" class="nav-link">Expressions</a>
-      <a href="motion/demo.html" class="nav-link">Motion</a>
-      <a href="brand-book.html" class="nav-link">Brand Book</a>
-    </div>
-
-    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
-      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="5"/>
-        <line x1="12" y1="1" x2="12" y2="3"/>
-        <line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/>
-        <line x1="21" y1="12" x2="23" y2="12"/>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-      </svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
-    </button>
-  </nav>
+  <!-- Shared Navigation (injected by nav.js) -->
+  <div id="nav-placeholder"></div>
 
   <!-- Hero -->
   <section class="hero" aria-labelledby="hero-title">
@@ -560,8 +608,8 @@
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <defs>
           <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
+            <stop offset="0%" stop-color="var(--color-ferni-light)"/>
+            <stop offset="100%" stop-color="var(--color-ferni-dark)"/>
           </linearGradient>
         </defs>
         <circle cx="50" cy="50" r="46" fill="url(#heroGrad)"/>
@@ -687,7 +735,7 @@
           </a>
 
           <!-- Universe Bible -->
-          <a href="FERNI-UNIVERSE-BIBLE.md" class="library-card reveal" style="--card-accent: var(--color-nayan);">
+          <a href="universe-bible.html" class="library-card reveal" style="--card-accent: var(--color-nayan);">
             <div class="card-icon" style="background: var(--color-nayan-subtle); color: var(--color-nayan);">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M12 3L2 12h3v9h6v-6h2v6h6v-9h3L12 3z"/>
@@ -704,7 +752,7 @@
           </a>
 
           <!-- Logo Assets -->
-          <a href="logos/logo-preview.html" class="library-card reveal" style="--card-accent: var(--color-alex);">
+          <a href="brand-kit.html" class="library-card reveal" style="--card-accent: var(--color-alex);">
             <div class="card-icon" style="background: var(--color-alex-subtle); color: var(--color-alex);">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -716,6 +764,120 @@
             <p class="card-description">Two-eye expressive avatar in all variants. SVG, PNG, animated, and persona-colored versions.</p>
             <span class="card-link">
               Download logos
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Brand Kit -->
+          <a href="brand-kit.html" class="library-card reveal" style="--card-accent: var(--color-ferni);">
+            <div class="card-icon" style="background: var(--color-ferni-subtle); color: var(--color-ferni);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Brand Kit</h3>
+            <p class="card-description">Download all brand assets in one place. Logos, colors, typography, and persona avatars.</p>
+            <span class="card-link">
+              Download kit
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Icon Library -->
+          <a href="icons.html" class="library-card reveal" style="--card-accent: var(--color-maya);">
+            <div class="card-icon" style="background: var(--color-maya-subtle); color: var(--color-maya);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Icon Library</h3>
+            <p class="card-description">56+ consistent SVG icons across 8 categories. Click to copy, ready for any project.</p>
+            <span class="card-link">
+              Browse icons
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Data Visualizations -->
+          <a href="visualizations/index.html" class="library-card reveal" style="--card-accent: var(--color-peter);">
+            <div class="card-icon" style="background: var(--color-peter-subtle); color: var(--color-peter);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+                <line x1="2" y1="20" x2="22" y2="20"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Data Visualizations</h3>
+            <p class="card-description">20+ chart types for storytelling with data. Activity rings, projections, heatmaps, and more.</p>
+            <span class="card-link">
+              Explore charts
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Components -->
+          <a href="components.html" class="library-card reveal" style="--card-accent: var(--color-jordan);">
+            <div class="card-icon" style="background: var(--color-jordan-subtle); color: var(--color-jordan);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+                <line x1="12" y1="22" x2="12" y2="15.5"/>
+                <polyline points="22 8.5 12 15.5 2 8.5"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Component Library</h3>
+            <p class="card-description">Production-ready UI components. Buttons, inputs, cards, toasts, modals, and more.</p>
+            <span class="card-link">
+              View components
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Accessibility -->
+          <a href="accessibility.html" class="library-card reveal" style="--card-accent: #2C2520;">
+            <div class="card-icon" style="background: rgba(44, 37, 32, 0.1); color: #2C2520;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l2 2"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Accessibility</h3>
+            <p class="card-description">WCAG 2.1 AA guidelines. Color contrast, focus states, touch targets, and motion preferences.</p>
+            <span class="card-link">
+              View guidelines
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </a>
+
+          <!-- Sound Design -->
+          <a href="sound-design.html" class="library-card reveal" style="--card-accent: var(--color-nayan);">
+            <div class="card-icon" style="background: var(--color-nayan-subtle); color: var(--color-nayan);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+            </div>
+            <h3 class="card-title">Sound Design</h3>
+            <p class="card-description">Audio identity specifications. UI sounds, voice profiles, and technical requirements.</p>
+            <span class="card-link">
+              Explore sounds
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -740,10 +902,9 @@
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#4a6741"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Ferni</h3>
@@ -755,10 +916,9 @@
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#a67a6a"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Maya</h3>
@@ -766,14 +926,13 @@
           </a>
 
           <!-- Peter -->
-          <a href="#" class="persona-card" style="--card-color: var(--color-peter); --card-shadow: var(--shadow-peter);">
+          <a href="characters/peter/expressions.html" class="persona-card" style="--card-color: var(--color-peter); --card-shadow: var(--shadow-peter);">
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#3a6b73"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Peter</h3>
@@ -781,14 +940,13 @@
           </a>
 
           <!-- Jordan -->
-          <a href="#" class="persona-card" style="--card-color: var(--color-jordan); --card-shadow: var(--shadow-jordan);">
+          <a href="characters/jordan/expressions.html" class="persona-card" style="--card-color: var(--color-jordan); --card-shadow: var(--shadow-jordan);">
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#c4856a"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Jordan</h3>
@@ -796,14 +954,13 @@
           </a>
 
           <!-- Alex -->
-          <a href="#" class="persona-card" style="--card-color: var(--color-alex); --card-shadow: var(--shadow-alex);">
+          <a href="characters/alex/expressions.html" class="persona-card" style="--card-color: var(--color-alex); --card-shadow: var(--shadow-alex);">
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#5a6b8a"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Alex</h3>
@@ -811,14 +968,13 @@
           </a>
 
           <!-- Nayan -->
-          <a href="#" class="persona-card" style="--card-color: var(--color-nayan); --card-shadow: var(--shadow-nayan);">
+          <a href="characters/nayan/expressions.html" class="persona-card" style="--card-color: var(--color-nayan); --card-shadow: var(--shadow-nayan);">
             <div class="persona-avatar">
               <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle cx="50" cy="50" r="46" fill="#b8956a"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
                 <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-                <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-                <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
               </svg>
             </div>
             <h3 class="persona-name">Nayan</h3>
@@ -836,7 +992,7 @@
         </header>
 
         <nav class="quick-links" aria-label="Quick links">
-          <a href="social/quote-cards.html" class="quick-link">
+          <a href="../design-system/assets/social/quote-cards.html" class="quick-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             </svg>
@@ -874,77 +1030,19 @@
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="footer-logo">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
-        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="36" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-        <ellipse cx="64" cy="50" rx="3.5" ry="4.5" fill="#2c2520"/>
-      </svg>
-    </div>
-    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
 
-    <nav class="footer-links" aria-label="Footer navigation">
-      <a href="capabilities/index.html">Capabilities</a>
-      <a href="characters/ferni/expressions.html">Expressions</a>
-      <a href="motion/demo.html">Motion</a>
-      <a href="brand-book.html">Brand Book</a>
-      <a href="FERNI-UNIVERSE-BIBLE.md">Universe Bible</a>
-    </nav>
-
-    <p class="footer-copyright">Ferni Brand Library v2.0</p>
-  </footer>
+  <!-- Shared Navigation Component -->
+  <script src="shared/nav.js" defer></script>
 
   <script>
-    // Theme Toggle
-    function toggleTheme() {
-      const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('ferni-theme', next);
-    }
-
-    // Load saved theme
-    const savedTheme = localStorage.getItem('ferni-theme');
-    if (savedTheme) {
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    }
-
-    // Scroll Progress
-    const scrollProgress = document.getElementById('scrollProgress');
-    window.addEventListener('scroll', () => {
-      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = (winScroll / height);
-      scrollProgress.style.transform = `scaleX(${scrolled})`;
-    });
-
-    // Nav scroll state
-    const nav = document.querySelector('.nav');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 50) {
-        nav.classList.add('scrolled');
-      } else {
-        nav.classList.remove('scrolled');
-      }
-    });
-
-    // Scroll Reveal
+    // Page-specific: Scroll Reveal for library cards
     const revealElements = document.querySelectorAll('.reveal');
     const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry, index) => {
         if (entry.isIntersecting) {
-          entry.target.style.transitionDelay = `${index * 100}ms`;
+          entry.target.style.transitionDelay = `${index * 80}ms`;
           entry.target.classList.add('visible');
           revealObserver.unobserve(entry.target);
         }
@@ -952,6 +1050,47 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     revealElements.forEach(el => revealObserver.observe(el));
+
+    // Scroll Reveal for section headers
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    const headerObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          headerObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '0px 0px -30px 0px' });
+
+    sectionHeaders.forEach(el => headerObserver.observe(el));
+
+    // Scroll Reveal for persona cards
+    const personaCards = document.querySelectorAll('.persona-card');
+    const personaObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          personaObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
+
+    personaCards.forEach(el => personaObserver.observe(el));
+
+    // Scroll Reveal for quick links container
+    const quickLinksContainer = document.querySelector('.quick-links');
+    if (quickLinksContainer) {
+      const quickLinksObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            quickLinksObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.2 });
+
+      quickLinksObserver.observe(quickLinksContainer);
+    }
 
     // Avatar expression cycle
     const expressions = ['neutral', 'happy', 'curious', 'warm', 'listening'];

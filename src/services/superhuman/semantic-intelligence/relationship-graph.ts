@@ -14,6 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
+import { onRelationshipNetworkChange } from '../../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'relationship-graph' });
 
@@ -47,15 +48,18 @@ export interface PersonNode {
   name: string;
   aliases: string[]; // "mom", "mother", "Carol"
   relationship: RelationshipType;
+  type?: string; // Alternative relationship type descriptor
 
   // Metrics
   mentionCount: number;
+  interactionCount?: number; // Total interaction count
   emotionalImpact: number; // -1 (draining) to 1 (energizing)
   supportScore: number; // 0-1, how supportive
 
   // Topics
   associatedTopics: string[];
   recentTopics: string[]; // Last 5 topics
+  topics?: string[]; // Flattened topic list for indexing
 
   // Temporal
   firstMentioned: Date;
@@ -617,6 +621,21 @@ async function saveNode(userId: string, node: PersonNode): Promise<void> {
       .collection('relationship_nodes')
       .doc(node.id)
       .set(cleanForFirestore(node));
+
+    // Index to semantic memory for relationship awareness
+    void onRelationshipNetworkChange(
+      userId,
+      node.id,
+      {
+        person: node.name,
+        relationship: node.type || 'unknown',
+        connectionStrength:
+          node.interactionCount && node.interactionCount > 10 ? 'core' : 'moderate',
+        lastContact: node.lastMentioned?.toISOString() || new Date().toISOString(),
+        notes: node.topics?.join(', '),
+      },
+      'update'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save relationship node');
   }

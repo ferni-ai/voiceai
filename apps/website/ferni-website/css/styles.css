@@ -2192,7 +2192,7 @@ button {
   border-color: var(--color-accent);
 }
 .developer-card--featured {
-  background: linear-gradient(135deg, #4a6741 0, #5c7a52 100%);
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
   border: none;
   color: #fff;
 }

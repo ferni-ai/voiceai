@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onCoachingInsightChange } from '../data-layer/hooks/coaching-hooks.js';
 
 const log = createLogger({ module: 'PerfectTiming' });
 
@@ -652,6 +653,25 @@ async function saveTimingProfile(userId: string, profile: TimingIntelligence): P
       .collection('timing_intelligence')
       .doc('profile')
       .set(cleanForFirestore(profile));
+
+    // Index timing patterns as coaching insights
+    if (profile.optimalWindows) {
+      // Index deep conversation windows
+      if (profile.optimalWindows.deepConversations?.length) {
+        void onCoachingInsightChange(
+          userId,
+          `timing_deep`,
+          {
+            insight: `User is most receptive to deep conversations during optimal windows`,
+            context: `Timing intelligence - ${profile.optimalWindows.deepConversations.length} optimal windows identified`,
+            personaId: 'ferni',
+            category: 'behavior',
+            actionable: true,
+          },
+          'update'
+        );
+      }
+    }
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save timing profile');
   }

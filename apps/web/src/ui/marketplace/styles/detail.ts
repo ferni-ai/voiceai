@@ -364,6 +364,141 @@ export function getDetailStyles(): string {
       color: var(--color-semantic-error);
       background: var(--color-semantic-error-glow);
     }
+
+    /* ========================================
+       WRITE REVIEW FORM
+       ======================================== */
+
+    .review-form-section {
+      border-top: 1px solid var(--color-border-subtle);
+      padding-top: var(--space-lg);
+      margin-top: var(--space-lg);
+    }
+
+    .review-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .review-rating-select {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .review-rating-label {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    .star-selector {
+      display: flex;
+      gap: var(--space-xs);
+    }
+
+    .star-btn {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      transition: color ${DURATION.FAST}ms ease, transform ${DURATION.FAST}ms ease;
+      border-radius: var(--radius-sm);
+    }
+
+    .star-btn:hover,
+    .star-btn:focus-visible {
+      color: var(--color-accent-text);
+      transform: scale(1.15);
+    }
+
+    .star-btn:focus-visible {
+      outline: 2px solid var(--persona-primary);
+      outline-offset: 2px;
+    }
+
+    .star-btn.selected {
+      color: var(--color-accent-text);
+    }
+
+    .star-btn svg {
+      display: block;
+      transition: fill ${DURATION.FAST}ms ease;
+    }
+
+    .review-title-input,
+    .review-body-input {
+      width: 100%;
+      padding: var(--space-sm) var(--space-md);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--color-text-primary);
+      background: var(--color-bg-secondary);
+      border: 2px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      transition: border-color ${DURATION.FAST}ms ease;
+    }
+
+    .review-title-input:focus,
+    .review-body-input:focus {
+      outline: none;
+      border-color: var(--persona-primary, var(--color-accent-primary));
+    }
+
+    .review-title-input::placeholder,
+    .review-body-input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .review-body-input {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .char-count {
+      position: absolute;
+      bottom: var(--space-sm);
+      right: var(--space-md);
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      color: var(--color-text-dimmed);
+      pointer-events: none;
+    }
+
+    .review-submit-btn {
+      align-self: flex-start;
+      padding: var(--space-sm) var(--space-lg);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: white;
+      background: var(--persona-primary, var(--color-accent-primary));
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: background ${DURATION.FAST}ms ease, opacity ${DURATION.FAST}ms ease;
+    }
+
+    .review-submit-btn:hover:not(:disabled) {
+      background: var(--persona-secondary, var(--color-accent-hover));
+    }
+
+    .review-submit-btn:focus-visible {
+      outline: 2px solid var(--persona-primary);
+      outline-offset: 2px;
+    }
+
+    .review-submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   `;
 }
 

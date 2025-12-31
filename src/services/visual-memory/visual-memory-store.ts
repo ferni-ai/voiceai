@@ -11,6 +11,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { analyzeImage, generateImageDescription, categorizeImage } from './vision-analysis.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onVisualMemoryChange } from '../data-layer/hooks/index.js';
 import type {
   VisualMemory,
   VisualUploadRequest,
@@ -212,6 +213,16 @@ export async function uploadVisualMemory(
       { userId, memoryId, category, labelsCount: detectedLabels.length },
       'Visual memory stored'
     );
+
+    // Index to semantic memory
+    void onVisualMemoryChange(userId, memoryId, {
+      description: aiDescription || description || 'Visual memory',
+      imageType: category === 'documents' ? 'document' : 'photo',
+      context: source,
+      emotions: undefined,
+      people: facesDetected > 0 ? [`${facesDetected} people`] : undefined,
+      timestamp: new Date().toISOString(),
+    }, 'create');
 
     return {
       success: true,

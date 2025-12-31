@@ -209,9 +209,7 @@ export class BreathingSyncEngine {
     const cycleDuration = pattern.cycleDuration;
     const exhaleStart = pattern.inhaleDuration;
 
-    for (let i = 0; i < breakPoints.length; i++) {
-      const breakPoint = breakPoints[i];
-
+    for (const breakPoint of breakPoints) {
       // Estimate timing at this break point (rough approximation)
       // In practice, this would use actual speech timing
       const estimatedTimeMs = (breakPoint.position / text.length) * (text.length * 50); // ~50ms per char

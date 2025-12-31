@@ -618,7 +618,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       }
 
       // Record silence if we had an analysis (user broke the silence by self-initiating)
-      const userId = userData.userId;
+      const { userId } = userData;
       if (userId && userData.lastSilenceAnalysis) {
         try {
           // User self-initiated speaking - record how they broke the silence
@@ -797,30 +797,29 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
           if (!conversationManager.isAgentSpeaking()) {
             const timeSinceStop = Date.now() - userStoppedAt;
             if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-              // Dead air prevention: Use stage directions pattern for contextual check-ins
-              // Behavioral instructions are used to guide the LLM's response style
-              // without leaking into speech (uses [INTERNAL GUIDANCE] format internally).
+              // Dead air prevention: Use STRUCTURED commands (not conversational text)
+              // CRITICAL: Conversational instructions can be echoed by Gemini!
               const lastTranscript = (userData.recentTranscripts ?? []).slice(-1)[0] ?? '';
               const turnCount = userData.turnCount ?? 0;
 
-              // Build contextual stage directions
+              // Build STRUCTURED meta-commands that cannot be mistaken for speech
               const contextParts = [
-                `The user has been silent for ${Math.round(timeSinceStop / 1000)} seconds after speaking.`,
-                'Check in briefly to show you are present and listening.',
-                'Keep it SHORT (under 10 words). Be warm but not needy.',
-                "Don't ask questions - just acknowledge you're here.",
+                `[SITUATION: ${Math.round(timeSinceStop / 1000)}s silence]`,
+                '[TYPE: soft_acknowledgment]',
+                '[MAX: 8 words]',
+                '[NO: questions]',
               ];
 
-              // Add context about what they were discussing if available
+              // Add context reference if available
               if (lastTranscript && lastTranscript.length > 10) {
-                contextParts.push(`They were talking about: "${lastTranscript.slice(0, 100)}..."`);
+                contextParts.push(`[CONTEXT: "${lastTranscript.slice(0, 80)}..."]`);
               }
 
-              // Adjust tone based on conversation stage
+              // Tone based on conversation stage
               if (turnCount < 3) {
-                contextParts.push('This is early in the conversation - be welcoming.');
+                contextParts.push('[TONE: welcoming]');
               } else if (turnCount > 10) {
-                contextParts.push('You have rapport now - be casual and natural.');
+                contextParts.push('[TONE: casual]');
               }
 
               // PROMINENT LOG: Show dead air timing
@@ -908,7 +907,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // Analyze the silence to understand what type it is
       // ----------------------------------------------------------------
       let silenceAnalysis: SilenceAnalysis | null = null;
-      const userId = userData.userId;
+      const { userId } = userData;
       if (userId && silenceDurationMs >= 1500) {
         // Only analyze meaningful silences (>1.5s)
         try {

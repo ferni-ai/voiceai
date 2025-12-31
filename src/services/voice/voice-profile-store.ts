@@ -35,6 +35,7 @@ import admin from 'firebase-admin';
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { onVoiceRecognitionChange } from '../data-layer/hooks/better-than-human-hooks.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
 
 const log = getLogger().child({ module: 'VoiceProfileStore' });
@@ -221,6 +222,28 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
       }
       await addBatch.commit();
     }
+
+    // Index to semantic memory for "Better Than Human" recall
+    // "We know your voice"
+    void onVoiceRecognitionChange(
+      profile.userId,
+      `voice_profile_${profile.userId}`,
+      {
+        voiceId: profile.userId,
+        voiceCharacteristics: {
+          pitchRange: profile.metadata?.enrollmentDurationMs
+            ? `${Math.round(profile.metadata.enrollmentDurationMs / 1000)}s enrollment`
+            : undefined,
+          speakingPace: profile.qualityScore >= 0.9 ? 'high quality' : 'standard quality',
+          uniqueFeatures: profile.metadata?.deviceTypes,
+        },
+        confidenceScore: profile.qualityScore,
+        enrolledAt: profile.enrolledAt.toISOString(),
+        lastVerified: profile.lastVerifiedAt?.toISOString() || profile.updatedAt.toISOString(),
+        verificationCount: profile.verificationCount,
+      },
+      profile.verificationCount > 1 ? 'update' : 'create'
+    );
 
     log.info({ userId: profile.userId }, 'Voice profile saved');
   } catch (error) {

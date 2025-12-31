@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('LegacyStories');
 
@@ -385,7 +386,7 @@ function render(): string {
             <span class="legacy-stories-eyebrow">Preserving Their Memory</span>
             <h2 class="legacy-stories-name" id="legacy-title">${currentAgent.displayName || currentAgent.name}'s Stories</h2>
           </div>
-          <button class="legacy-close-btn" aria-label="Close stories">
+          <button class="legacy-close-btn" aria-label="${t('accessibility.closeStories')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -403,7 +404,7 @@ function render(): string {
                 </svg>
                 Their Wisdom
               </h3>
-              <button aria-label="Add Saying" class="legacy-add-btn" data-action="add-wisdom">
+              <button aria-label="${t('accessibility.addSaying')}" class="legacy-add-btn" data-action="add-wisdom">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -426,11 +427,11 @@ function render(): string {
                 <p class="legacy-wisdom-quote">"${w.quote}"</p>
                 ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
-                  <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}" aria-label="Edit wisdom">
+                  <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}" aria-label="${t('accessibility.editWisdom')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}" aria-label="Delete wisdom">
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}" aria-label="${t('accessibility.deleteWisdom')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -449,7 +450,7 @@ function render(): string {
                 </svg>
                 Their Stories
               </h3>
-              <button aria-label="Add Story" class="legacy-add-btn" data-action="add-story">
+              <button aria-label="${t('accessibility.addStory')}" class="legacy-add-btn" data-action="add-story">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -473,11 +474,11 @@ function render(): string {
                 <p class="legacy-story-content">${s.content}</p>
                 ${s.date ? `<span class="legacy-story-meta">${new Date(s.date).toLocaleDateString()}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
-                  <button class="legacy-action-btn" data-action="edit-story" data-index="${i}" aria-label="Edit story">
+                  <button class="legacy-action-btn" data-action="edit-story" data-index="${i}" aria-label="${t('accessibility.editStory')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                   </button>
-                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}" aria-label="Delete story">
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}" aria-label="${t('accessibility.deleteStory')}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     Delete
                   </button>
@@ -628,7 +629,7 @@ async function handleAddWisdom(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Wisdom captured!');
+    toast.success(t('toasts.wisdomCaptured'));
     
     // Refresh
     await openLegacyStories(currentAgent.id);
@@ -654,7 +655,7 @@ async function handleAddStory(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Story saved!');
+    toast.success(t('toasts.storySaved'));
     
     // Refresh
     await openLegacyStories(currentAgent.id);
@@ -684,7 +685,7 @@ async function handleEditWisdom(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, wisdom: updatedWisdom as unknown as typeof currentAgent.memories.wisdom }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit wisdom:', err);
@@ -705,7 +706,7 @@ async function handleDeleteWisdom(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, wisdom: updatedWisdom as unknown as typeof currentAgent.memories.wisdom }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Deleted');
+    toast.success(t('toasts.deleted'));
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete wisdom:', err);
@@ -731,7 +732,7 @@ async function handleEditStory(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, stories: updatedStories as unknown as typeof currentAgent.memories.stories }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit story:', err);
@@ -752,7 +753,7 @@ async function handleDeleteStory(index: number): Promise<void> {
     await updateCustomAgent(currentAgent.id, {
       memories: { ...currentAgent.memories, stories: updatedStories as unknown as typeof currentAgent.memories.stories }
     } as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Deleted');
+    toast.success(t('toasts.deleted'));
     await openLegacyStories(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete story:', err);

@@ -13,9 +13,11 @@
  * @module services/scheduling/workflow-notifications
  */
 
+import { EventEmitter } from 'events';
+
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBackgroundTaskService, type Workflow, type PendingAction } from './background-tasks.js';
-import { EventEmitter } from 'events';
 
 const log = createLogger({ module: 'WorkflowNotifications' });
 
@@ -109,10 +111,8 @@ class WorkflowNotificationService extends EventEmitter {
   }
 
   shutdown(): void {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
+    clearNamedInterval('workflow-stalled-checker');
+    this.checkInterval = null;
     this.initialized = false;
     log.info('🔔 Workflow notification service shut down');
   }
@@ -224,9 +224,11 @@ class WorkflowNotificationService extends EventEmitter {
       }
     };
 
-    this.checkInterval = setInterval(() => {
-      void checkStalled();
-    }, this.config.checkIntervalMs);
+    registerInterval(
+      'workflow-stalled-checker',
+      () => void checkStalled(),
+      this.config.checkIntervalMs
+    );
   }
 
   /**
@@ -269,10 +271,7 @@ class WorkflowNotificationService extends EventEmitter {
 
     // Check if workflow should be auto-cancelled
     if (pauseHours >= this.config.maxPauseDurationHours) {
-      log.info(
-        { workflowId: workflow.id, pauseHours },
-        'Auto-cancelling expired workflow'
-      );
+      log.info({ workflowId: workflow.id, pauseHours }, 'Auto-cancelling expired workflow');
 
       // Mark workflow as failed/expired
       workflow.status = 'failed';
@@ -319,17 +318,16 @@ class WorkflowNotificationService extends EventEmitter {
       }
 
       // Send email for important notifications or if push failed
-      if (this.config.enableEmail && (sentVia.length === 0 || notification.type === 'input_needed')) {
+      if (
+        this.config.enableEmail &&
+        (sentVia.length === 0 || notification.type === 'input_needed')
+      ) {
         const emailSent = await this.sendEmailNotification(notification);
         if (emailSent) sentVia.push('email');
       }
 
       // SMS only for truly urgent cases
-      if (
-        this.config.enableSms &&
-        sentVia.length === 0 &&
-        notification.type === 'expiring_soon'
-      ) {
+      if (this.config.enableSms && sentVia.length === 0 && notification.type === 'expiring_soon') {
         const smsSent = await this.sendSmsNotification(notification);
         if (smsSent) sentVia.push('sms');
       }

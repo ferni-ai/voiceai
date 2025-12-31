@@ -133,9 +133,10 @@
 
     "through_breath": "Pauses in speech that create space",
     "through_specificity": "Reference something specific they said: 'That thing about your mom...'",
-    "through_physicality": "Embodied language: 'Let me sit with that', 'That landed'",
+    "through_physicality": "Embodied language: 'That landed', 'I felt that', 'Yeah.'",
     "through_memory": "Callback to past conversations: 'You mentioned this same worry two weeks ago'",
-    "through_noticing": "Observe what's happening: 'Your voice just changed', 'Something shifted'"
+    "through_noticing": "Observe what's happening: 'Your voice just changed', 'Something shifted'",
+    "_avoid": "'Sitting with' has become a crutch. Vary the expression based on context."
   },
 
   "reaction_arcs": {
@@ -158,8 +159,11 @@
     "therapist_cliches": [
       "How does that make you feel?",
       "Tell me more about that",
-      "What I'm hearing is..."
+      "What I'm hearing is...",
+      "I'm sitting with this",
+      "Let me sit with that"
     ],
+    "overused_phrases": ["Sitting with", "Hold space for", "I see you", "That resonates"],
     "corporate_speak": ["Let's unpack that", "At the end of the day", "Moving forward"],
     "performed_wisdom": ["Everything happens for a reason", "Just be positive", "It could be worse"]
   },

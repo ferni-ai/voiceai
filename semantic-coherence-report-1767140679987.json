@@ -1,0 +1,799 @@
+{
+  "timestamp": "2025-12-31T00:24:39.985Z",
+  "config": {
+    "model": "gemini-2.0-flash",
+    "passingThreshold": 70,
+    "categories": [
+      "domain-naming",
+      "semantic-memory",
+      "integration-wiring",
+      "architectural-philosophy"
+    ],
+    "generateSuggestions": true,
+    "verbose": true
+  },
+  "overallScore": 75,
+  "categoryScores": {
+    "domain-naming": 75,
+    "semantic-memory": 75,
+    "integration-wiring": 75,
+    "architectural-philosophy": 75
+  },
+  "results": [
+    {
+      "probeId": "naming-superhuman-commitment-keeper",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-emotional-first-aid",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-predictive-coaching",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-capacity-guardian",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-dream-keeper",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-relationship-network",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-life-narrative",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-values-alignment",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-seasonal-awareness",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-superhuman-relationship-milestones",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-emotional",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-crisis",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-celebration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-deep-relationship",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-pacing",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-better-than-human-direct",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-peter-research-insights",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-builder-maya-coaching-insights",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-ferni",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-peter-john",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-maya-santos",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-alex-chen",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-jordan-taylor",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-persona-nayan",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-antipattern-utils",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-antipattern-helpers",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-antipattern-misc",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-antipattern-common",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-consistency-superhuman-vs-better-than-human",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-consistency-persona-format",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "naming-consistency-service-suffix",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "boundary-tool-vs-service",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "boundary-intelligence-vs-services",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "boundary-memory-vs-data-layer",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-retrieval-by-emotion",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-retrieval-by-relationship",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-retrieval-by-time-context",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-retrieval-by-topic",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-org-vector-vs-structured",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-org-consolidation",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-org-decay",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-org-priming",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-persona-specialization",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-persona-handoff",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-perf-cache-naming",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "memory-perf-rust-accelerator",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-persona-handoff-discovery",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-cross-persona-intelligence",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-team-coordination",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-tool-service-connection",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-tool-registration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-tool-dependencies",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-builder-loading",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-builder-to-persona",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-builder-categories",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-memory-to-superhuman",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-data-layer-routing",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-calendar-integration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "wiring-payment-integration",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-superhuman-folder",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-superhuman-completeness",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-eq-implementation",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-persona-humanity",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-toast-humanity",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-meaningful-silence",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-relationship-services",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-memory-relationship",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-handoff-continuity",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-coaching-gentleness",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-crisis-handling",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-glidepath",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-layer-naming",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-import-rules",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-domain-driven",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-terminology-consistency",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-documentation-alignment",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    },
+    {
+      "probeId": "philosophy-newcomer-onboarding",
+      "coherenceScore": 75,
+      "passed": true,
+      "reasoning": "Mock evaluation - run with GOOGLE_API_KEY or OPENAI_API_KEY for real LLM analysis",
+      "suggestions": [
+        "Configure LLM API key for real evaluation"
+      ],
+      "alignmentGaps": []
+    }
+  ],
+  "criticalGaps": [],
+  "summary": "Overall semantic coherence: 75%\nPass rate: 100%\n\nCategory Breakdown:\n  domain-naming: 75%\n  semantic-memory: 75%\n  integration-wiring: 75%\n  architectural-philosophy: 75%",
+  "recommendations": [
+    "Configure LLM API key for real evaluation"
+  ]
+}

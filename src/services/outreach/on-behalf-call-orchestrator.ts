@@ -10,10 +10,10 @@
 
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import type { ResolvedContact } from '../../tools/domains/telephony/types.js';
 import type {
   OnBehalfCallRequest,
   CallOutcome,
-  ResolvedContact,
 } from '../../tools/domains/telephony/call-on-behalf.js';
 import { selectScript, buildCallScript } from '../../tools/domains/telephony/scripts/index.js';
 import {
@@ -21,8 +21,12 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from '../../servers/api/routes/twilio-call-status.js';
-import { enrichMessage, enrichVoicemailMessage } from './message-enrichment.js';
-import type { EnrichedMessage, EnrichmentContext } from './message-enrichment.js';
+import {
+  enrichMessage,
+  enrichVoicemailMessage,
+  type EnrichedMessage,
+  type EnrichmentContext,
+} from './message-enrichment.js';
 
 const log = getLogger().child({ service: 'on-behalf-call-orchestrator' });
 

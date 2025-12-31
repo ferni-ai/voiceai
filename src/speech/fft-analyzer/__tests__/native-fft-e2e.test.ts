@@ -265,8 +265,7 @@ describe('Native FFT Module E2E', () => {
 
       // bandEnergies can be Float32Array or number[] depending on native/JS path
       expect(
-        features.bandEnergies instanceof Float32Array ||
-        Array.isArray(features.bandEnergies)
+        features.bandEnergies instanceof Float32Array || Array.isArray(features.bandEnergies)
       ).toBe(true);
     });
 

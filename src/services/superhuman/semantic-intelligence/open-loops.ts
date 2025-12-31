@@ -14,6 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
+import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
 const log = createLogger({ module: 'open-loops' });
 
@@ -40,6 +41,7 @@ export interface OpenLoop {
   // Content
   content: string;
   context: string;
+  description?: string; // Human-readable description of the open loop
 
   // Timing
   created: Date;
@@ -550,6 +552,20 @@ async function saveOpenLoop(userId: string, loop: OpenLoop): Promise<void> {
       .collection('open_loops')
       .doc(loop.id)
       .set(cleanForFirestore(loop));
+
+    // Index open loop to semantic memory for follow-up tracking
+    void onCoachingInsightChange(
+      userId,
+      `open_loop_${loop.id}`,
+      {
+        insight: `Open loop (${loop.type}): ${loop.description || loop.content?.substring(0, 100)}`,
+        context: `Priority: ${loop.priority}, Status: ${loop.status}`,
+        personaId: 'ferni',
+        category: 'follow_up',
+        actionable: loop.status === 'open',
+      },
+      loop.status === 'open' ? 'create' : 'update'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save open loop');
   }

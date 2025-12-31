@@ -11,6 +11,8 @@
 
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 
 import { seededPick } from '../utils/rng.js';
@@ -57,6 +59,7 @@ export type {
 };
 
 const logger = createLogger({ module: 'PredictiveAnticipation' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // PREDICTIVE ANTICIPATION ENGINE
@@ -308,7 +311,10 @@ export class PredictiveAnticipationEngine {
       }
     }
 
-    const wordCount = userMessage.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(userMessage)
+      : userMessage.split(/\s+/).length;
     if (wordCount > 80 && primaryNeed === 'unknown') {
       primaryNeed = 'venting';
       confidence = 0.5;

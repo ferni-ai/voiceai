@@ -25,32 +25,32 @@ const log = createLogger({ module: 'LanguageService' });
  * Supported language codes (BCP-47 format)
  */
 export type SupportedLanguage =
-  | 'en'      // English (default)
-  | 'en-US'   // American English
-  | 'en-GB'   // British English
-  | 'en-AU'   // Australian English
-  | 'en-IN'   // Indian English
-  | 'es'      // Spanish
-  | 'es-ES'   // Castilian Spanish
-  | 'es-MX'   // Mexican Spanish
-  | 'fr'      // French
-  | 'fr-FR'   // French (France)
-  | 'de'      // German
-  | 'de-DE'   // German (Germany)
-  | 'it'      // Italian
-  | 'pt'      // Portuguese
-  | 'pt-BR'   // Brazilian Portuguese
-  | 'ja'      // Japanese
-  | 'ko'      // Korean
-  | 'zh'      // Chinese (Mandarin)
-  | 'zh-CN'   // Simplified Chinese
-  | 'hi'      // Hindi
-  | 'ar'      // Arabic
-  | 'ru'      // Russian
-  | 'nl'      // Dutch
-  | 'pl'      // Polish
-  | 'tr'      // Turkish
-  | 'sv'      // Swedish;
+  | 'en' // English (default)
+  | 'en-US' // American English
+  | 'en-GB' // British English
+  | 'en-AU' // Australian English
+  | 'en-IN' // Indian English
+  | 'es' // Spanish
+  | 'es-ES' // Castilian Spanish
+  | 'es-MX' // Mexican Spanish
+  | 'fr' // French
+  | 'fr-FR' // French (France)
+  | 'de' // German
+  | 'de-DE' // German (Germany)
+  | 'it' // Italian
+  | 'pt' // Portuguese
+  | 'pt-BR' // Brazilian Portuguese
+  | 'ja' // Japanese
+  | 'ko' // Korean
+  | 'zh' // Chinese (Mandarin)
+  | 'zh-CN' // Simplified Chinese
+  | 'hi' // Hindi
+  | 'ar' // Arabic
+  | 'ru' // Russian
+  | 'nl' // Dutch
+  | 'pl' // Polish
+  | 'tr' // Turkish
+  | 'sv'; // Swedish;
 
 /**
  * Language configuration for a session
@@ -109,7 +109,7 @@ export interface SessionLanguageState {
  */
 export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   // English variants (fully supported)
-  'en': {
+  en: {
     spokenLanguage: 'en',
     sttLanguage: 'en-US',
     ttsLanguage: 'en',
@@ -151,7 +151,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Spanish (fully supported)
-  'es': {
+  es: {
     spokenLanguage: 'es',
     sttLanguage: 'es-ES',
     ttsLanguage: 'es',
@@ -177,7 +177,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // French
-  'fr': {
+  fr: {
     spokenLanguage: 'fr',
     sttLanguage: 'fr-FR',
     ttsLanguage: 'fr',
@@ -195,7 +195,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // German
-  'de': {
+  de: {
     spokenLanguage: 'de',
     sttLanguage: 'de-DE',
     ttsLanguage: 'de',
@@ -213,7 +213,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Italian
-  'it': {
+  it: {
     spokenLanguage: 'it',
     sttLanguage: 'it-IT',
     ttsLanguage: 'it',
@@ -223,7 +223,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Portuguese
-  'pt': {
+  pt: {
     spokenLanguage: 'pt',
     sttLanguage: 'pt-PT',
     ttsLanguage: 'pt',
@@ -241,7 +241,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Japanese
-  'ja': {
+  ja: {
     spokenLanguage: 'ja',
     sttLanguage: 'ja-JP',
     ttsLanguage: 'ja',
@@ -251,7 +251,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Korean
-  'ko': {
+  ko: {
     spokenLanguage: 'ko',
     sttLanguage: 'ko-KR',
     ttsLanguage: 'ko',
@@ -261,7 +261,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Chinese
-  'zh': {
+  zh: {
     spokenLanguage: 'zh',
     sttLanguage: 'zh-CN',
     ttsLanguage: 'zh',
@@ -279,7 +279,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Hindi
-  'hi': {
+  hi: {
     spokenLanguage: 'hi',
     sttLanguage: 'hi-IN',
     ttsLanguage: 'hi',
@@ -289,7 +289,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Arabic
-  'ar': {
+  ar: {
     spokenLanguage: 'ar',
     sttLanguage: 'ar-SA',
     ttsLanguage: 'ar',
@@ -299,7 +299,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Russian
-  'ru': {
+  ru: {
     spokenLanguage: 'ru',
     sttLanguage: 'ru-RU',
     ttsLanguage: 'ru',
@@ -309,7 +309,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Dutch
-  'nl': {
+  nl: {
     spokenLanguage: 'nl',
     sttLanguage: 'nl-NL',
     ttsLanguage: 'nl',
@@ -319,7 +319,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Polish
-  'pl': {
+  pl: {
     spokenLanguage: 'pl',
     sttLanguage: 'pl-PL',
     ttsLanguage: 'pl',
@@ -329,7 +329,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Turkish
-  'tr': {
+  tr: {
     spokenLanguage: 'tr',
     sttLanguage: 'tr-TR',
     ttsLanguage: 'tr',
@@ -339,7 +339,7 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
   },
 
   // Swedish
-  'sv': {
+  sv: {
     spokenLanguage: 'sv',
     sttLanguage: 'sv-SE',
     ttsLanguage: 'sv',
@@ -416,10 +416,7 @@ export function initializeSessionLanguage(
 
   sessionLanguageStates.set(sessionId, state);
 
-  log.info(
-    { sessionId, userId, language },
-    '🌍 Session language initialized'
-  );
+  log.info({ sessionId, userId, language }, '🌍 Session language initialized');
 
   return state;
 }
@@ -519,49 +516,49 @@ export function clearSessionLanguage(sessionId: string): void {
  * Language detection patterns for common phrases
  */
 const LANGUAGE_INDICATORS: Record<string, RegExp[]> = {
-  'es': [
+  es: [
     /\b(hola|gracias|por favor|buenos días|qué tal|cómo estás)\b/i,
     /\b(necesito|quiero|puedo|tengo|estoy|vamos)\b/i,
     /[áéíóúüñ¿¡]/,
   ],
-  'fr': [
+  fr: [
     /\b(bonjour|merci|s'il vous plaît|comment allez-vous|je suis|c'est)\b/i,
     /\b(oui|non|peut-être|d'accord|alors|donc)\b/i,
     /[àâäéèêëïîôùûüÿœæç]/,
   ],
-  'de': [
+  de: [
     /\b(hallo|danke|bitte|guten tag|wie geht es|ich bin)\b/i,
     /\b(ja|nein|vielleicht|aber|und|oder|nicht)\b/i,
     /[äöüß]/,
   ],
-  'it': [
+  it: [
     /\b(ciao|grazie|prego|buongiorno|come stai|sono)\b/i,
     /\b(sì|no|forse|però|perché|quando)\b/i,
     /[àèéìòù]/,
   ],
-  'pt': [
+  pt: [
     /\b(olá|obrigado|por favor|bom dia|como vai|eu sou)\b/i,
     /\b(sim|não|talvez|mas|porque|quando)\b/i,
     /[àáâãéêíóôõú]/,
   ],
-  'ja': [
+  ja: [
     /[\u3040-\u309f\u30a0-\u30ff]/, // Hiragana and Katakana
     /[\u4e00-\u9faf]/, // Kanji
   ],
-  'ko': [
+  ko: [
     /[\uac00-\ud7af\u1100-\u11ff]/, // Hangul
   ],
-  'zh': [
+  zh: [
     /[\u4e00-\u9fff]/, // Chinese characters
     /[\u3400-\u4dbf]/, // CJK Extension A
   ],
-  'hi': [
+  hi: [
     /[\u0900-\u097f]/, // Devanagari
   ],
-  'ar': [
+  ar: [
     /[\u0600-\u06ff]/, // Arabic
   ],
-  'ru': [
+  ru: [
     /[\u0400-\u04ff]/, // Cyrillic
     /\b(привет|спасибо|пожалуйста|да|нет)\b/i,
   ],
@@ -618,7 +615,10 @@ export function detectLanguageFromText(text: string): LanguageDetectionResult {
  */
 const utteranceBuffers = new Map<string, string[]>();
 
-export function accumulateForDetection(sessionId: string, transcript: string): LanguageDetectionResult | null {
+export function accumulateForDetection(
+  sessionId: string,
+  transcript: string
+): LanguageDetectionResult | null {
   // Get or create buffer
   let buffer = utteranceBuffers.get(sessionId);
   if (!buffer) {
@@ -663,84 +663,84 @@ export function clearUtteranceBuffer(sessionId: string): void {
  */
 const LANGUAGE_NAME_MAP: Record<string, SupportedLanguage> = {
   // English
-  'english': 'en',
+  english: 'en',
   'american english': 'en-US',
   'british english': 'en-GB',
   'australian english': 'en-AU',
   'indian english': 'en-IN',
-  'american': 'en-US',
-  'british': 'en-GB',
-  'australian': 'en-AU',
+  american: 'en-US',
+  british: 'en-GB',
+  australian: 'en-AU',
 
   // Spanish
-  'spanish': 'es',
-  'español': 'es',
-  'espanol': 'es',
+  spanish: 'es',
+  español: 'es',
+  espanol: 'es',
   'mexican spanish': 'es-MX',
-  'castellano': 'es-ES',
-  'castilian': 'es-ES',
+  castellano: 'es-ES',
+  castilian: 'es-ES',
 
   // French
-  'french': 'fr',
-  'français': 'fr',
-  'francais': 'fr',
+  french: 'fr',
+  français: 'fr',
+  francais: 'fr',
 
   // German
-  'german': 'de',
-  'deutsch': 'de',
+  german: 'de',
+  deutsch: 'de',
 
   // Italian
-  'italian': 'it',
-  'italiano': 'it',
+  italian: 'it',
+  italiano: 'it',
 
   // Portuguese
-  'portuguese': 'pt',
-  'português': 'pt',
-  'portugues': 'pt',
+  portuguese: 'pt',
+  português: 'pt',
+  portugues: 'pt',
   'brazilian portuguese': 'pt-BR',
-  'brazilian': 'pt-BR',
+  brazilian: 'pt-BR',
 
   // Japanese
-  'japanese': 'ja',
-  '日本語': 'ja',
+  japanese: 'ja',
+  日本語: 'ja',
 
   // Korean
-  'korean': 'ko',
-  '한국어': 'ko',
+  korean: 'ko',
+  한국어: 'ko',
 
   // Chinese
-  'chinese': 'zh',
-  'mandarin': 'zh',
-  '中文': 'zh',
+  chinese: 'zh',
+  mandarin: 'zh',
+  中文: 'zh',
   'simplified chinese': 'zh-CN',
 
   // Hindi
-  'hindi': 'hi',
-  'हिन्दी': 'hi',
+  hindi: 'hi',
+  हिन्दी: 'hi',
 
   // Arabic
-  'arabic': 'ar',
-  'العربية': 'ar',
+  arabic: 'ar',
+  العربية: 'ar',
 
   // Russian
-  'russian': 'ru',
-  'русский': 'ru',
+  russian: 'ru',
+  русский: 'ru',
 
   // Dutch
-  'dutch': 'nl',
-  'nederlands': 'nl',
+  dutch: 'nl',
+  nederlands: 'nl',
 
   // Polish
-  'polish': 'pl',
-  'polski': 'pl',
+  polish: 'pl',
+  polski: 'pl',
 
   // Turkish
-  'turkish': 'tr',
-  'türkçe': 'tr',
+  turkish: 'tr',
+  türkçe: 'tr',
 
   // Swedish
-  'swedish': 'sv',
-  'svenska': 'sv',
+  swedish: 'sv',
+  svenska: 'sv',
 };
 
 /**

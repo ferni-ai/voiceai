@@ -17,6 +17,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('VisualizationStorytelling');
 
@@ -401,7 +402,7 @@ export function renderNarrativeStat(
       <span class="narrative-stat__value">${value}</span>
       <span class="narrative-stat__narrative">${escapeHtml(narrative.narrative)}</span>
       ${narrative.deeperInsight ? `
-        <span class="narrative-stat__deeper" aria-label="Deeper insight">
+        <span class="narrative-stat__deeper" aria-label="${t('accessibility.deeperInsight')}">
           ${escapeHtml(narrative.deeperInsight)}
         </span>
       ` : ''}
@@ -879,7 +880,7 @@ export function createMirrorInsightElement(
 
   const surfaceLabel = document.createElement('span');
   surfaceLabel.className = 'mirror-insight__label';
-  surfaceLabel.textContent = 'What you said';
+  surfaceLabel.textContent = t('visualizations.whatYouSaid');
   surfaceSection.appendChild(surfaceLabel);
 
   const surfaceText = document.createElement('p');
@@ -912,7 +913,7 @@ export function createMirrorInsightElement(
 
   const deeperLabel = document.createElement('span');
   deeperLabel.className = 'mirror-insight__label';
-  deeperLabel.textContent = 'What I notice';
+  deeperLabel.textContent = t('visualizations.whatINotice');
   deeperSection.appendChild(deeperLabel);
 
   const deeperText = document.createElement('p');

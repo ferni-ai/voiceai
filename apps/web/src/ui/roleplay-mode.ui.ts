@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('RoleplayMode');
 
@@ -434,7 +435,7 @@ function render(): string {
             <span class="roleplay-mode-eyebrow">Roleplay with</span>
             <h2 class="roleplay-mode-name" id="roleplay-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
-          <button class="roleplay-close-btn" aria-label="Close">
+          <button class="roleplay-close-btn" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -477,7 +478,7 @@ function render(): string {
           
           <div class="roleplay-scenarios-grid">
             ${SCENARIO_TEMPLATES.map(scenario => `
-              <button aria-label="Play" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+              <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
                 <div class="roleplay-scenario-icon">${scenario.icon}</div>
                 <p class="roleplay-scenario-name">${scenario.name}</p>
                 <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -504,10 +505,10 @@ function render(): string {
           ` : ''}
 
           <div class="roleplay-actions" role="button" tabindex="0">
-            <button aria-label="Cancel" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+            <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button aria-label="Begin Scene" 
+            <button aria-label="${t('accessibility.beginScene')}" 
               class="roleplay-btn roleplay-btn--primary" 
               data-action="start-roleplay"
               ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
@@ -668,7 +669,7 @@ function renderContent(): string {
     
     <div class="roleplay-scenarios-grid">
       ${SCENARIO_TEMPLATES.map(scenario => `
-        <button aria-label="Play" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+        <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
           <div class="roleplay-scenario-icon">${scenario.icon}</div>
           <p class="roleplay-scenario-name">${scenario.name}</p>
           <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -695,10 +696,10 @@ function renderContent(): string {
     ` : ''}
 
     <div class="roleplay-actions" role="button" tabindex="0">
-      <button aria-label="Cancel" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+      <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
         Cancel
       </button>
-      <button aria-label="Begin Scene" 
+      <button aria-label="${t('accessibility.beginScene')}" 
         class="roleplay-btn roleplay-btn--primary" 
         data-action="start-roleplay"
         ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}

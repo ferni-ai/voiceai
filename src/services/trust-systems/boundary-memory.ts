@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexBoundary } from '../data-layer/integrations/index.js';
 
 const log = createLogger({ module: 'BoundaryMemory' });
 
@@ -197,6 +198,21 @@ export function detectNewBoundary(
     };
 
     profile.boundaries.push(boundary);
+
+    // Index to semantic memory - boundaries are ALWAYS indexed (critical trust data)
+    indexBoundary(
+      userId,
+      {
+        id: boundary.id,
+        topic: boundary.topic,
+        type: boundary.type,
+        strength: boundary.strength,
+        relatedTerms: boundary.relatedTerms,
+        context: boundary.context,
+      },
+      'create'
+    );
+
     log.info({ userId, topic, type: 'explicit' }, '🚫 New boundary established');
 
     return boundary;
@@ -224,6 +240,21 @@ export function detectNewBoundary(
     };
 
     profile.boundaries.push(boundary);
+
+    // Index to semantic memory - boundaries are ALWAYS indexed (critical trust data)
+    indexBoundary(
+      userId,
+      {
+        id: boundary.id,
+        topic: boundary.topic,
+        type: boundary.type,
+        strength: boundary.strength,
+        relatedTerms: boundary.relatedTerms,
+        context: boundary.context,
+      },
+      'create'
+    );
+
     log.info({ userId, topic, type: 'inferred_distress' }, '🚫 Distress boundary detected');
 
     return boundary;

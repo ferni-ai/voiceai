@@ -15,6 +15,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
+import { onCommitmentKeeperChange } from '../../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'ferni-commitments' });
 
@@ -573,6 +574,19 @@ async function saveCommitment(userId: string, commitment: FerniCommitment): Prom
       .collection('ferni_commitments')
       .doc(commitment.id)
       .set(cleanForFirestore(commitment));
+
+    // Index to semantic memory for commitment tracking
+    void onCommitmentKeeperChange(
+      userId,
+      commitment.id,
+      {
+        commitment: commitment.commitment,
+        madeOn: new Date(commitment.madeAt).toISOString(),
+        status: commitment.fulfilled ? 'completed' : 'pending',
+        remindersSent: 0, // FerniCommitment doesn't track reminders
+      },
+      commitment.fulfilled ? 'update' : 'create'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save commitment');
   }

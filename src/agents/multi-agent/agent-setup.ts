@@ -151,12 +151,23 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     deferHandlers = false, // ⚡ FAST-AGENT-JOIN: defer handler wiring for faster startup
   } = config;
 
+  // 📊 TIMING INSTRUMENTATION - Track every step
+  const timings: Record<string, number> = {};
+  const mark = (name: string) => {
+    timings[name] = Date.now();
+    const elapsed = setupStart ? Date.now() - setupStart : 0;
+    log.info({ personaId: persona.id, step: name, elapsedMs: elapsed }, `⏱️ [TIMING] ${name}`);
+    process.stderr.write(`⏱️ [${elapsed}ms] ${name}\n`);
+  };
+
+  const setupStart = Date.now();
+  mark('setup_start');
+
   log.info(
     { personaId: persona.id, sessionId, isHandoff, enableFullHandlers, deferHandlers },
     '🎭 Setting up persona agent'
   );
 
-  const setupStart = Date.now();
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
 
   // =========================================================================
@@ -174,14 +185,17 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let systemPrompt: string;
   let modelBaseInstructions: string;
   try {
+    mark('import_prompt_loader');
     const { loadSystemPrompt, loadModelBaseInstructions } =
       await import('../personas/prompt-loader.js');
 
+    mark('load_prompts_start');
     // Load both levels of instructions in parallel
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id),
     ]);
+    mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
 
@@ -500,16 +514,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // These operations are independent and can run concurrently.
   // This reduces agent startup time by ~30-50% (1-2 seconds saved).
 
+  mark('parallel_start');
   const parallelStart = Date.now();
 
   // 1. TTS creation promise
-  const ttsPromise = createPersonaTTS(persona.id);
+  mark('tts_start');
+  const ttsPromise = createPersonaTTS(persona.id).then((tts) => {
+    mark('tts_done');
+    return tts;
+  });
 
   // 2. Tool loading promise
+  mark('tools_start');
   const toolsPromise = (async (): Promise<Record<string, unknown>> => {
     try {
       const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
         await import('../../tools/orchestrator/voice-agent-integration.js');
+      mark('tools_orchestrator_imported');
 
       // Initialize orchestrator if needed
       if (!isOrchestratorInitialized()) {
@@ -553,11 +574,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // =========================================================================
   // LLM SELECTION: OpenAI Realtime vs Gemini Live
   // =========================================================================
+  mark('llm_selection_start');
   const geminiConfig = modelConfig.getDefault();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let llmModel: any;
 
   if (USE_OPENAI_REALTIME) {
+    mark('openai_model_start');
     // =====================================================================
     // OpenAI Realtime API - Native function calling, no JSON workarounds!
     // Using text-only mode so Cartesia TTS handles the persona voice.
@@ -608,6 +631,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // =====================================================================
     // Gemini Live API (default)
     // =====================================================================
+    mark('gemini_model_start');
     // CRITICAL: modalities: TEXT ensures Gemini outputs text (not audio directly)
     // This text then goes through our Cartesia TTS with the persona's voice.
     // Without this, Gemini outputs audio with its default male voice!
@@ -645,11 +669,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const vertexProject = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
     const vertexLocation = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
 
-    // Determine STT language: use preferred language if set, otherwise let Gemini auto-detect
-    const sttLanguage = config.preferredLanguage || userData.preferredLanguage;
-    const inputAudioTranscriptionOptions = sttLanguage
-      ? { languageCode: sttLanguage }
-      : {}; // Empty = auto-detect
+    // Determine STT language: use preferred language if set, otherwise default to en-US
+    // NOTE: languageCode is NOT supported in inputAudioTranscription (Gemini rejects it!)
+    // Just pass {} to enable transcription - language is set via speechConfig.languageCode
+    const sttLanguage = config.preferredLanguage || userData.preferredLanguage || 'en-US';
+    // FIX: Gemini Live API doesn't accept languageCode in inputAudioTranscription
+    // See error: "Unknown name 'languageCode' at 'setup.input_audio_transcription'"
+    const inputAudioTranscriptionOptions = {}; // Empty object enables transcription
 
     const realtimeModelOptions = {
       model: geminiConfig.model,
@@ -701,6 +727,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     );
 
     llmModel = new google.beta.realtime.RealtimeModel(realtimeModelOptions as any);
+    mark('gemini_model_created');
 
     // Try to access internal _options to verify
     const internalOptions = (llmModel as unknown as { _options?: Record<string, unknown> })
@@ -717,6 +744,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
     }
   }
+  mark('llm_model_done');
 
   // =========================================================================
   // VAD FALLBACK: Load Silero VAD if USE_LOCAL_VAD=true for redundancy
@@ -746,6 +774,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Turn detection: OpenAI uses its model config, Gemini uses 'realtime_llm'
   // TTS: OpenAI text-only mode uses Cartesia TTS for persona voice
   // VAD: Optional Silero fallback when USE_LOCAL_VAD=true
+  mark('session_create_start');
   const session = new voice.AgentSession<UserData>({
     turnDetection: USE_OPENAI_REALTIME ? undefined : 'realtime_llm',
     vad, // Silero VAD fallback (undefined by default, loaded when USE_LOCAL_VAD=true)
@@ -761,6 +790,64 @@ Reference past context when relevant, but don't force it. Let the conversation f
       preemptiveGeneration: true,
     },
   });
+
+  mark('session_created');
+
+  // =========================================================================
+  // 🔍 ENHANCED ERROR LOGGING: Capture underlying Gemini connection errors
+  // =========================================================================
+  // The "generateReply timed out waiting for generation_created event" error
+  // often masks an underlying issue (429, auth error, connection failure).
+  // These handlers log the REAL error before it becomes a timeout.
+  // =========================================================================
+
+  // Listen for errors on the LLM model itself
+  if (llmModel && typeof (llmModel as { on?: unknown }).on === 'function') {
+    const llmWithEvents = llmModel as {
+      on: (event: string, handler: (...args: unknown[]) => void) => void;
+    };
+
+    llmWithEvents.on('error', (error: unknown) => {
+      log.error(
+        { personaId: persona.id, error: String(error), errorObj: error },
+        '🚨 [LLM MODEL ERROR] Gemini RealtimeModel emitted error'
+      );
+      process.stderr.write(
+        `\n🚨 [LLM ERROR] Gemini model error: ${JSON.stringify(error, null, 2)}\n`
+      );
+    });
+
+    llmWithEvents.on('close', (code: unknown, reason: unknown) => {
+      log.warn({ personaId: persona.id, code, reason }, '🔌 [LLM CLOSE] Gemini connection closed');
+      process.stderr.write(
+        `\n🔌 [LLM CLOSE] Gemini connection closed: code=${code}, reason=${reason}\n`
+      );
+    });
+
+    llmWithEvents.on('connection_error', (error: unknown) => {
+      log.error(
+        { personaId: persona.id, error: String(error) },
+        '🚨 [LLM CONNECTION ERROR] Gemini WebSocket connection failed'
+      );
+      process.stderr.write(`\n🚨 [LLM CONNECTION ERROR] ${JSON.stringify(error, null, 2)}\n`);
+    });
+  }
+
+  // Listen for errors on the session
+  const sessionWithEvents = session as unknown as {
+    on?: (event: string, handler: (...args: unknown[]) => void) => void;
+  };
+  if (sessionWithEvents.on) {
+    sessionWithEvents.on('error', (error: unknown) => {
+      log.error(
+        { personaId: persona.id, sessionId, error: String(error) },
+        '🚨 [SESSION ERROR] AgentSession emitted error'
+      );
+      process.stderr.write(`\n🚨 [SESSION ERROR] ${JSON.stringify(error, null, 2)}\n`);
+    });
+  }
+
+  log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
   // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
   // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
@@ -932,6 +1019,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
         }
         handlersStatus.music = musicResult.initialized;
         diag.entry(`🎭 [${persona.id}] Music handler wired: ${musicResult.initialized}`);
+      } else {
+        // 🐛 FIX: Log when music handler is skipped - this helps debug music failures
+        log.warn(
+          { personaId: persona.id, sessionId },
+          '⚠️ Music handler SKIPPED - conversationManager is null! Music tools will NOT work.'
+        );
+        handlersStatus.music = false;
       }
     } catch (err) {
       log.warn({ error: String(err), personaId: persona.id }, '⚠️ Some handlers failed to wire');
@@ -963,6 +1057,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
   if (isHandoff && previousPersonaId) {
     diag.entry(`🎭 Handoff context: ${previousPersonaId} → ${persona.id}`);
   }
+
+  // Final timing summary
+  mark('setup_complete');
+  const totalSetupMs = Date.now() - setupStart;
+  log.info(
+    { personaId: persona.id, totalSetupMs, timings },
+    `🏁 [TIMING] Agent setup complete in ${totalSetupMs}ms`
+  );
+  process.stderr.write(`\n🏁 TOTAL SETUP: ${totalSetupMs}ms\n`);
+  process.stderr.write(`📊 Timings: ${JSON.stringify(timings, null, 2)}\n`);
 
   return {
     session,

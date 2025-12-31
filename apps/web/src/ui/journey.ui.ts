@@ -512,7 +512,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">Connection lost</span>
             <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
           </div>
-          <button aria-label="Reconnect" class="journey-connect-btn journey-connect-btn--retry">
+          <button aria-label="${t('accessibility.reconnect')}" class="journey-connect-btn journey-connect-btn--retry">
             ${ICONS.phone}
             <span>Reconnect</span>
           </button>
@@ -529,7 +529,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">We're not connected</span>
             <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
           </div>
-          <button aria-label="Start talking" class="journey-connect-btn">
+          <button aria-label="${t('accessibility.startTalking')}" class="journey-connect-btn">
             ${ICONS.phone}
             <span>Start talking</span>
           </button>

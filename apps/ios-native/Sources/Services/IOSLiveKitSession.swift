@@ -81,6 +81,17 @@ class IOSLiveKitSession: ObservableObject {
     /// Emotion events from backend
     @Published private(set) var emotionEvent: EmotionEvent? = nil
 
+    // MARK: - Expression State (100-expression system)
+
+    /// Current avatar expression from the 100-expression system
+    @Published private(set) var currentExpression: AvatarExpression = .neutral
+
+    /// Whether the avatar is currently speaking (for mouth animation)
+    @Published private(set) var isAgentSpeaking: Bool = false
+
+    /// Current agent audio volume for mouth animation (0-1)
+    @Published private(set) var agentAudioLevel: CGFloat = 0
+
     var currentPersona: Persona {
         PersonaRegistry.get(currentPersonaId)
     }
@@ -651,8 +662,96 @@ class IOSLiveKitSession: ObservableObject {
                 userInfo: json
             )
 
+        case "expression_update", "humanization_signal", "anticipation_signal":
+            // Process through expression mapper for 100-expression system
+            handleExpressionEvent(json)
+
+        case "speech_state":
+            // Handle speech state for avatar mouth animation
+            handleSpeechState(json)
+
         default:
             break
+        }
+    }
+
+    // MARK: - Expression Event Handling
+
+    private func handleExpressionEvent(_ json: [String: Any]) {
+        guard let result = ExpressionEventMapper.shared.processMessage(json) else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            // Update expression with animation
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                self.currentExpression = result.expression
+            }
+
+            sessionLog.debug("Expression updated: \(result.expression.rawValue)")
+
+            // Handle micro-expression with haptics
+            if let microExpression = result.microExpression {
+                self.handleMicroExpression(microExpression)
+            }
+        }
+    }
+
+    private func handleMicroExpression(_ type: MicroExpressionType) {
+        // Trigger haptic feedback for micro-expressions
+        switch type {
+        case .recognition:
+            emotionalHaptics.playMicroExpression(.recognition)
+        case .delight:
+            emotionalHaptics.playMicroExpression(.delight)
+        case .warmth:
+            emotionalHaptics.playMicroExpression(.warmth)
+        case .interest:
+            emotionalHaptics.playMicroExpression(.interest)
+        case .concern, .protective:
+            emotionalHaptics.playConcern(level: .mild)
+        case .noticing, .contemplation:
+            // Subtle or no haptic for these
+            break
+        }
+    }
+
+    // MARK: - Speech State Handling
+
+    private func handleSpeechState(_ json: [String: Any]) {
+        guard let state = json["state"] as? String else { return }
+
+        DispatchQueue.main.async {
+            switch state {
+            case "speaking":
+                self.isAgentSpeaking = true
+                // Set listening expression when agent starts speaking
+                if self.currentExpression == .neutral {
+                    self.currentExpression = .speaking
+                }
+
+            case "listening", "idle":
+                self.isAgentSpeaking = false
+                self.agentAudioLevel = 0
+                // Return to listening expression
+                if self.currentExpression == .speaking {
+                    self.currentExpression = .listening
+                }
+
+            case "processing", "thinking":
+                self.isAgentSpeaking = false
+                self.currentExpression = .thinking
+
+            default:
+                break
+            }
+        }
+
+        // Handle audio level if present
+        if let level = json["level"] as? Float {
+            DispatchQueue.main.async {
+                self.agentAudioLevel = CGFloat(level)
+            }
         }
     }
 }

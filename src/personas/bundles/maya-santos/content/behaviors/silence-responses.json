@@ -157,23 +157,24 @@
   },
 
   "llm_guidance": {
+    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
     "presence": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Just offer warm presence. Short, supportive. One sentence max.",
+      "instruction_template": "[TYPE: warm_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: supportive]",
       "examples": ["I'm here.", "No pressure.", "Take your time."]
     },
     "memory_callback": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with warmth. Show you noticed. One sentence.",
+      "instruction_template": "[TYPE: memory_reference] [DURATION: {duration}s] [REF: something they shared] [TONE: warm] [MAX: 1 sentence]",
       "examples": [
         "I keep thinking about what you said about {topic}.",
         "That thing you mentioned earlier - it felt important."
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE supportive question. Based on what they've shared, ask something that invites gentle reflection. Keep it warm.",
+      "instruction_template": "[TYPE: supportive_question] [DURATION: {duration}s] [ABOUT: their situation] [MAX: 1 question]",
       "examples": ["What's one small thing that might help?", "What's already working?"]
     },
     "check_in": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Gentle, warm check-in. No pressure. Keep it open.",
+      "instruction_template": "[TYPE: gentle_checkin] [DURATION: {duration}s] [STYLE: warm open] [MAX: 10 words]",
       "examples": ["What's on your mind?", "What do you need right now?"]
     }
   },

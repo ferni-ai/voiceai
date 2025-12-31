@@ -38,28 +38,28 @@ export interface HomeKitDevice {
 export interface HomeKitDeviceState {
   // Common
   reachable: boolean;
-  
+
   // Lights
   on?: boolean;
   brightness?: number;
   hue?: number;
   saturation?: number;
   colorTemperature?: number;
-  
+
   // Thermostat
   currentTemperature?: number;
   targetTemperature?: number;
   heatingCoolingState?: 'off' | 'heat' | 'cool' | 'auto';
-  
+
   // Locks
   lockState?: 'locked' | 'unlocked' | 'jammed' | 'unknown';
-  
+
   // Sensors
   motionDetected?: boolean;
   contactState?: 'open' | 'closed';
   currentHumidity?: number;
   lightLevel?: number;
-  
+
   // Speakers/TV
   volume?: number;
   muted?: boolean;
@@ -128,30 +128,42 @@ export async function syncHomeKitState(userId: string, home: HomeKitHome): Promi
 
   // Save home config
   const homeRef = db.doc(`${getHomeKitPath(userId)}/config`);
-  batch.set(homeRef, {
-    id: home.id,
-    name: home.name,
-    isPrimary: home.isPrimary,
-    rooms: home.rooms,
-    deviceCount: home.devices.length,
-    sceneCount: home.scenes.length,
-    lastSync: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  batch.set(
+    homeRef,
+    {
+      id: home.id,
+      name: home.name,
+      isPrimary: home.isPrimary,
+      rooms: home.rooms,
+      deviceCount: home.devices.length,
+      sceneCount: home.scenes.length,
+      lastSync: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   // Save scenes
   const scenesRef = db.doc(`${getHomeKitPath(userId)}/scenes`);
-  batch.set(scenesRef, {
-    scenes: home.scenes,
-    lastSync: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  batch.set(
+    scenesRef,
+    {
+      scenes: home.scenes,
+      lastSync: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   // Save each device
   for (const device of home.devices) {
     const deviceRef = db.doc(`${getDevicesPath(userId)}/${device.id}`);
-    batch.set(deviceRef, {
-      ...device,
-      lastSync: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    batch.set(
+      deviceRef,
+      {
+        ...device,
+        lastSync: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   await batch.commit();
@@ -169,11 +181,14 @@ export async function updateDeviceState(
   const db = getFirestore();
   const deviceRef = db.doc(`${getDevicesPath(userId)}/${deviceId}`);
 
-  await deviceRef.set({
-    state,
-    lastSeen: new Date().toISOString(),
-    lastSync: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  await deviceRef.set(
+    {
+      state,
+      lastSeen: new Date().toISOString(),
+      lastSync: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
 
 // ============================================================================
@@ -193,7 +208,10 @@ export async function getDevices(userId: string): Promise<HomeKitDevice[]> {
 /**
  * Get devices by type
  */
-export async function getDevicesByType(userId: string, type: HomeKitDevice['type']): Promise<HomeKitDevice[]> {
+export async function getDevicesByType(
+  userId: string,
+  type: HomeKitDevice['type']
+): Promise<HomeKitDevice[]> {
   const devices = await getDevices(userId);
   return devices.filter((d) => d.type === type);
 }
@@ -375,11 +393,14 @@ export async function activateHomeKitVibe(
   const thermostats = await getDevicesByType(userId, 'thermostat');
 
   // Vibe presets
-  const vibeSettings: Record<string, {
-    brightness: number;
-    colorTemp: number;
-    targetTemp: number;
-  }> = {
+  const vibeSettings: Record<
+    string,
+    {
+      brightness: number;
+      colorTemp: number;
+      targetTemp: number;
+    }
+  > = {
     relax: { brightness: 40, colorTemp: 2700, targetTemp: 72 },
     focus: { brightness: 80, colorTemp: 4000, targetTemp: 70 },
     sleep: { brightness: 10, colorTemp: 2200, targetTemp: 68 },
@@ -416,7 +437,10 @@ export async function activateHomeKitVibe(
     }
   }
 
-  log.info({ userId, vibe, lightCount: lights.length, thermostatCount: thermostats.length }, 'Activated HomeKit vibe');
+  log.info(
+    { userId, vibe, lightCount: lights.length, thermostatCount: thermostats.length },
+    'Activated HomeKit vibe'
+  );
 
   return {
     success: commandIds.length > 0,
@@ -487,7 +511,7 @@ export async function processSiriCommand(
   // Light control
   if (lowercased.includes('light')) {
     const lights = await getDevicesByType(userId, 'light');
-    
+
     if (lowercased.includes('off') || lowercased.includes('turn off')) {
       for (const light of lights) {
         await queueDeviceCommand(userId, light.id, { on: false });
@@ -525,7 +549,7 @@ export async function processSiriCommand(
   // Temperature control
   if (lowercased.includes('temperature') || lowercased.includes('thermostat')) {
     const thermostats = await getDevicesByType(userId, 'thermostat');
-    
+
     // Extract temperature number
     const tempMatch = lowercased.match(/(\d{2})\s*(degrees?)?/);
     if (tempMatch) {

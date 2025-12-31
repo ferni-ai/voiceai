@@ -19,6 +19,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -741,7 +742,7 @@ function renderConnectedState(status: AppleHealthStatus, summary: AppleHealthSum
   // Show data or "no data" message
   if (!summary) {
     const noData = createElement('div', { className: 'apple-health-settings__no-data' });
-    noData.textContent = 'No health data synced yet. Open the iOS app to sync.';
+    noData.textContent = t('ui.applehealthsettings.noHealthDataSynced');
     content.appendChild(noData);
   } else {
     // Steps (large)
@@ -1086,7 +1087,7 @@ async function handleDisconnect(): Promise<void> {
 
   try {
     await apiDelete('/api/apple-health/disconnect');
-    toast.success('Apple Health disconnected');
+    toast.success(t('toasts.appleHealthDisconnected'));
     callbacks.onDisconnected?.();
     renderNotConnected();
   } catch {

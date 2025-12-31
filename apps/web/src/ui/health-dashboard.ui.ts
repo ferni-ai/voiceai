@@ -18,6 +18,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
 import { healthDashboardAnalytics } from '../services/feature-analytics.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('HealthDashboard');
 
@@ -801,7 +802,7 @@ function ensureModalExists(): HTMLElement {
             <p class="health-dashboard-subtitle">Apple Health data</p>
           </div>
         </div>
-        <button class="health-dashboard-close" data-action="close" aria-label="Close">
+        <button class="health-dashboard-close" data-action="close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
       </header>

@@ -54,7 +54,7 @@ docs/
 └── archive/               # 📦 Completed/outdated docs (20 docs)
 
 brand/                     # Brand ASSETS (logos, icons)
-design-system/brand/       # Brand DOCUMENTATION
+design-system/docs/brand/       # Brand DOCUMENTATION
 apps/web/       # Frontend code & CLAUDE.md
 marketplace-agents/        # Agent marketplace
 ```
@@ -76,7 +76,7 @@ marketplace-agents/        # Agent marketplace
 | **API Docs** | `docs/api/` | REST API, OpenAPI specs |
 | **Features** | `docs/features/` | Feature specifications |
 | **Deployment** | `docs/deployment/` | Deploy guides, CI/CD setup |
-| **Brand** | `design-system/brand/` | Brand guidelines, voice guide |
+| **Brand** | `design-system/docs/brand/` | Brand guidelines, voice guide |
 | **Module Docs** | `src/*/CLAUDE.md`, `src/*/README.md` | In-source context for AI & devs |
 
 ### Scattered Documentation (Intentionally In-Place)
@@ -89,7 +89,7 @@ These docs stay with their code because they're project-specific:
 | `apps/website/ferni-website/docs/` | Website-specific (marketing pipeline, assets) |
 | `apps/website/ferni-website/*.md` | Website plans (LAUNCH-PLAN, POLISH-PLAN) |
 | `design-system/README.md` | Design system setup |
-| `design-system/brand/` | Brand guidelines, voice, imagery |
+| `design-system/docs/brand/` | Brand guidelines, voice, imagery |
 | `src/personas/bundles/*/` | Persona content (identity, commands, etc.) |
 | `src/*/CLAUDE.md` | AI coding context for each module |
 | `src/*/README.md` | Module-specific documentation |
@@ -194,7 +194,7 @@ Feature specifications and roadmaps.
 
 | Doc                                                                                       | Description                        |
 | ----------------------------------------------------------------------------------------- | ---------------------------------- |
-| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)   | EQ specification (source of truth) |
+| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)   | EQ specification (source of truth) |
 | [BETTER-THAN-HUMAN-INTEGRATION-PLAN.md](./plans/BETTER-THAN-HUMAN-INTEGRATION-PLAN.md)    | Implementation plan                |
 | [BETTER-THAN-PHD-ROADMAP.md](./plans/BETTER-THAN-PHD-ROADMAP.md)                          | PhD-level EQ roadmap               |
 | [BETTER-THAN-PHD-SYSTEMS.md](./architecture/BETTER-THAN-PHD-SYSTEMS.md)                   | Systems implementation             |
@@ -318,13 +318,13 @@ Implementation plans and roadmaps. See [archive/](./archive/) for completed plan
 | File                                                                                                 | Purpose                      |
 | ---------------------------------------------------------------------------------------------------- | ---------------------------- |
 | [brand/README.md](../brand/README.md)                                                                | Brand assets (logos, icons)  |
-| [design-system/brand/FERNI-BRAND-GUIDELINES.md](../design-system/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
-| [design-system/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
-| [design-system/brand/FERNI-SONIC-IDENTITY.md](../design-system/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
-| [design-system/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
-| [design-system/brand/BETTER-THAN-HUMAN.md](../design-system/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
+| [design-system/docs/brand/FERNI-BRAND-GUIDELINES.md](../design-system/docs/brand/FERNI-BRAND-GUIDELINES.md)    | Core brand guidelines        |
+| [design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md](../design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md)  | Screen design system         |
+| [design-system/docs/brand/FERNI-SONIC-IDENTITY.md](../design-system/docs/brand/FERNI-SONIC-IDENTITY.md)        | Audio branding               |
+| [design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md](../design-system/docs/brand/FERNI-UNIVERSE-BIBLE.md)        | Brand universe & personality |
+| [design-system/docs/brand/BETTER-THAN-HUMAN.md](../design-system/docs/brand/BETTER-THAN-HUMAN.md)              | EQ specification             |
 
-See [design-system/brand/README.md](../design-system/brand/README.md) for complete brand documentation index.
+See [design-system/docs/brand/README.md](../design-system/docs/brand/README.md) for complete brand documentation index.
 
 ---
 

@@ -69,7 +69,7 @@ export interface SharedTelemetrySnapshot {
     expressionTheme?: ThemeCategory;
     expressionIntimacy?: number;
     expressionTiming?: string;
-    expressionSource: 'building_blocks' | 'resonance_match' | 'none';
+    expressionSource: 'llm' | 'building_blocks' | 'resonance_match' | 'none';
 
     // Why (human-readable)
     decisionReason: string;

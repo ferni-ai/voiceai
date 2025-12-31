@@ -138,7 +138,7 @@ async function processTurn(ctx: TurnContext) {
 interface PersonalityTurnResult {
   // Personality expression to weave in
   expression: {
-    content: string;            // "Second coffee. Don't judge."
+    content: string;            // "Mint tea. Morocco habit."
     theme: ThemeCategory;       // "warm_drinks"
     intimacyLevel: number;      // 0.3
     compositionReason: string;  // "Morning time + cruising momentum"

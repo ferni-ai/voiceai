@@ -208,7 +208,7 @@ export async function syncMemoriesToOutreachContext(
       switch (memory.type) {
         case 'event':
           if (memory.expectedFollowUpAt) {
-            await addLifeEvent(userId, {
+            addLifeEvent(userId, {
               type: 'other',
               description: memory.content,
               date: memory.expectedFollowUpAt,
@@ -218,7 +218,7 @@ export async function syncMemoriesToOutreachContext(
           break;
 
         case 'goal':
-          await addCommitment(userId, {
+          addCommitment(userId, {
             what: memory.content,
             when: memory.expectedFollowUpAt || new Date(),
             status: 'pending',
@@ -226,9 +226,9 @@ export async function syncMemoriesToOutreachContext(
           });
           break;
 
-        case 'struggle':
+        case 'struggle': {
           // Struggles inform emotional support decisions
-          const context = await getUserContext(userId);
+          const context = getUserContext(userId);
           if (!context.progress.currentStruggles.some((s) => s.description === memory.content)) {
             // Add to struggles (this is handled by context aggregator)
             logger.debug(
@@ -237,6 +237,7 @@ export async function syncMemoriesToOutreachContext(
             );
           }
           break;
+        }
       }
     }
 
@@ -259,7 +260,7 @@ export async function processConcernForOutreach(
   }
 
   // Check if they might need support
-  const userNeedsSupport = await needsSupport(userId);
+  const userNeedsSupport = needsSupport(userId);
 
   if (concernLevel === 'crisis') {
     return {

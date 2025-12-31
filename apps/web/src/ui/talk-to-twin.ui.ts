@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 import {
   getCustomAgent,
   listMemories,
@@ -115,7 +116,7 @@ function ensureModalExists(): HTMLElement {
             <p class="twin-subtitle">Based on your journals & profile</p>
           </div>
         </div>
-        <button class="twin-close" data-action="close" aria-label="Close">
+        <button class="twin-close" data-action="close" aria-label="${t('accessibility.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -135,7 +136,7 @@ function ensureModalExists(): HTMLElement {
             placeholder="Ask your past self something..."
             rows="1"
           ></textarea>
-          <button class="twin-send" id="twin-send" aria-label="Send">
+          <button class="twin-send" id="twin-send" aria-label="${t('accessibility.send')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -174,7 +175,7 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
     if (!agent) {
       log.error('Agent not found:', agentId);
       const { toast } = await import('./toast.ui.js');
-      toast.error('Agent not found');
+      toast.error(t('toasts.agentNotFound'));
       return;
     }
 
@@ -212,7 +213,7 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
   } catch (error) {
     log.error('Failed to open Talk to Twin:', error);
     const { toast } = await import('./toast.ui.js');
-    toast.error('Could not start conversation');
+    toast.error(t('toasts.couldNotStartConversation'));
   }
 }
 

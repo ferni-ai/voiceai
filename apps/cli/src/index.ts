@@ -1987,7 +1987,7 @@ async function handleDesign(args: string[]): Promise<void> {
     } else {
       console.log();
       log.warn('Review the above and replace with brand-compliant language');
-      console.log(`${colors.dim}See: design-system/brand/FERNI-BRAND-GUIDELINES.md${colors.reset}`);
+      console.log(`${colors.dim}See: design-system/docs/brand/FERNI-BRAND-GUIDELINES.md${colors.reset}`);
     }
   }
 

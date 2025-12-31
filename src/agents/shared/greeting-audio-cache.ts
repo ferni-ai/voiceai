@@ -15,8 +15,10 @@
  * @module agents/shared/greeting-audio-cache
  */
 
+import { ReadableStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getVoiceIdForPersona } from '../../speech/tts/cartesia-core.js';
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 
 const log = createLogger({ module: 'GreetingAudioCache' });
 
@@ -112,7 +114,7 @@ const COMMON_GREETINGS: Record<string, string[]> = {
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
 const CARTESIA_API_VERSION = '2024-06-10';
-const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-2-2025-03-07';
+// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Generate TTS audio directly via Cartesia API.
@@ -193,7 +195,7 @@ export async function prewarmGreetingAudio(): Promise<number> {
   let cachedCount = 0;
 
   // Generate audio for each persona's greetings in parallel
-  const tasks: Promise<void>[] = [];
+  const tasks: Array<Promise<void>> = [];
 
   for (const [personaId, greetings] of Object.entries(COMMON_GREETINGS)) {
     const voiceId = getVoiceIdForPersona(personaId);
@@ -226,7 +228,9 @@ export async function prewarmGreetingAudio(): Promise<number> {
   // Wait for all with a timeout (don't block warmup too long)
   await Promise.race([
     Promise.all(tasks),
-    new Promise<void>((resolve) => setTimeout(resolve, 5000)), // 5s max
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, 5000);
+    }), // 5s max
   ]);
 
   warmupComplete = true;

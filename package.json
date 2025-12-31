@@ -118,6 +118,12 @@
     "test:agents:gate": "npx tsx src/cli/commands/test-agents.ts --gate",
     "test:agents:verbose": "npx tsx src/cli/commands/test-agents.ts --verbose --report",
     "test:synthetic": "npx tsx src/cli/commands/synthetic-e2e.ts",
+    "test:semantic": "npx tsx src/tests/semantic-coherence/run-tests.ts",
+    "test:semantic:naming": "npx tsx src/tests/semantic-coherence/run-tests.ts --category domain-naming",
+    "test:semantic:memory": "npx tsx src/tests/semantic-coherence/run-tests.ts --category semantic-memory",
+    "test:semantic:wiring": "npx tsx src/tests/semantic-coherence/run-tests.ts --category integration-wiring",
+    "test:semantic:philosophy": "npx tsx src/tests/semantic-coherence/run-tests.ts --category architectural-philosophy",
+    "test:semantic:report": "npx tsx src/tests/semantic-coherence/run-tests.ts --quiet",
     "test:synthetic:weather": "npx tsx src/cli/commands/synthetic-e2e.ts --weather --execute --verbose",
     "test:synthetic:music": "npx tsx src/cli/commands/synthetic-e2e.ts --music --execute --verbose",
     "test:synthetic:memory": "npx tsx src/cli/commands/synthetic-e2e.ts --storage --retrieve --memory --predict --verbose",
@@ -330,6 +336,14 @@
     "ops:disk:setup-cron": "npx tsx apps/cli/src/commands/ops/cleanup-gce.ts --setup-cron",
     "ops:diagnose": "npx tsx apps/cli/src/commands/ops/diagnose-disconnects.ts",
     "ops:setup-scheduler": "npx tsx apps/cli/src/commands/ops/setup-health-scheduler.ts",
+    "ops:semantic-deploy": "npx tsx scripts/deploy-semantic-store.ts",
+    "ops:semantic-deploy:dry-run": "npx tsx scripts/deploy-semantic-store.ts --dry-run",
+    "ops:semantic-deploy:skip-deploy": "npx tsx scripts/deploy-semantic-store.ts --skip-deploy",
+    "ops:semantic-backfill": "npx tsx scripts/backfill-semantic-index.ts",
+    "ops:semantic-backfill:dry-run": "npx tsx scripts/backfill-semantic-index.ts --dry-run",
+    "ops:semantic-health": "curl -s https://app.ferni.ai/api/semantic-store/health | jq",
+    "ops:profiles": "npx tsx scripts/analyze-profiles.ts",
+    "ops:profiles:clean": "npx tsx scripts/delete-stale-profiles.ts",
     "seed:memory": "npx tsx scripts/seed-memory-data.ts",
     "seed:memory:clear": "npx tsx scripts/seed-memory-data.ts test-user-dev --clear",
     "setup:llm-scheduler": "npx tsx apps/cli/src/commands/setup/setup-llm-content-scheduler.ts",
@@ -392,12 +406,12 @@
     "@google-cloud/vertexai": "1.10.0",
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "0.24.1",
-    "@livekit/agents": "^1.0.31",
-    "@livekit/agents-plugin-cartesia": "^1.0.31",
-    "@livekit/agents-plugin-deepgram": "1.0.31",
-    "@livekit/agents-plugin-google": "^1.0.31",
-    "@livekit/agents-plugin-openai": "^1.0.31",
-    "@livekit/agents-plugin-silero": "^1.0.31",
+    "@livekit/agents": "file:../agents-js/agents",
+    "@livekit/agents-plugin-cartesia": "file:../agents-js/plugins/cartesia",
+    "@livekit/agents-plugin-deepgram": "file:../agents-js/plugins/deepgram",
+    "@livekit/agents-plugin-google": "file:../agents-js/plugins/google",
+    "@livekit/agents-plugin-openai": "file:../agents-js/plugins/openai",
+    "@livekit/agents-plugin-silero": "file:../agents-js/plugins/silero",
     "@livekit/noise-cancellation-node": "^0.1.9",
     "@livekit/protocol": "1.43.4",
     "@livekit/rtc-node": "0.13.22",
@@ -470,9 +484,9 @@
     "node": ">=18.0.0"
   },
   "pnpm": {
-    "patchedDependencies": {
-      "@livekit/agents": "patches/@livekit__agents.patch",
-      "@livekit/agents-plugin-google@1.0.31": "patches/@livekit__agents-plugin-google@1.0.31.patch"
+    "overrides": {
+      "@livekit/agents": "file:../agents-js/agents",
+      "@livekit/agents-plugin-google": "file:../agents-js/plugins/google"
     }
   }
 }

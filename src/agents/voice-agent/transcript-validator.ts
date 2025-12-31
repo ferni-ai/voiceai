@@ -65,26 +65,26 @@ const SCRIPT_PATTERNS: Record<string, RegExp> = {
 
 /** Map language codes to their expected scripts */
 const LANGUAGE_SCRIPTS: Record<string, string[]> = {
-  'en': ['latin'],
-  'es': ['latin'],
-  'fr': ['latin'],
-  'de': ['latin'],
-  'it': ['latin'],
-  'pt': ['latin'],
-  'nl': ['latin'],
-  'pl': ['latin'],
-  'tr': ['latin'],
-  'sv': ['latin'],
-  'ja': ['japanese', 'chinese'], // Japanese uses kanji (Chinese chars) + kana
-  'ko': ['korean'],
-  'zh': ['chinese'],
-  'hi': ['devanagari'],
-  'ar': ['arabic'],
-  'ru': ['cyrillic'],
-  'he': ['hebrew'],
-  'th': ['thai'],
-  'el': ['greek'],
-  'vi': ['vietnamese', 'latin'],
+  en: ['latin'],
+  es: ['latin'],
+  fr: ['latin'],
+  de: ['latin'],
+  it: ['latin'],
+  pt: ['latin'],
+  nl: ['latin'],
+  pl: ['latin'],
+  tr: ['latin'],
+  sv: ['latin'],
+  ja: ['japanese', 'chinese'], // Japanese uses kanji (Chinese chars) + kana
+  ko: ['korean'],
+  zh: ['chinese'],
+  hi: ['devanagari'],
+  ar: ['arabic'],
+  ru: ['cyrillic'],
+  he: ['hebrew'],
+  th: ['thai'],
+  el: ['greek'],
+  vi: ['vietnamese', 'latin'],
 };
 
 /** Get allowed scripts for a language code */

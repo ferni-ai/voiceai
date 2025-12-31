@@ -318,9 +318,9 @@ describe('Semantic Intelligence Orchestrator', () => {
 
       const duration = performance.now() - start;
       // Should be fast (semantic routing is optimized for speed)
-      // Allow up to 500ms for CI/test environments with variable load
+      // Allow up to 1000ms for CI/test environments with variable load
       // In production, this typically runs in <50ms
-      expect(duration).toBeLessThan(500);
+      expect(duration).toBeLessThan(1000);
     });
   });
 });

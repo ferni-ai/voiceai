@@ -453,7 +453,40 @@ export default [
           selector: "Literal[value=/box-shadow:.*rgba/]",
           message: '🌫️ Hardcoded box-shadow! Use CSS variable: var(--shadow-sm), var(--shadow-md), var(--shadow-lg), etc. See tokens.css',
         },
+        // ============================================================================
+        // 🌍 i18n ENFORCEMENT - Prevent hardcoded user-facing strings
+        // ============================================================================
+        // ❌ Prevent hardcoded toast messages (should use t())
+        {
+          selector: "CallExpression[callee.object.name='toast'][callee.property.name=/^(success|error|info|warning)$/][arguments.0.type='Literal']",
+          message: "🌍 Hardcoded toast message! Use t('toasts.yourKey') instead. Add key to apps/web/src/i18n/locales/en-US.json",
+        },
+        // ❌ Prevent hardcoded textContent assignments (common pattern)
+        {
+          selector: "AssignmentExpression[left.property.name='textContent'][right.type='Literal'][right.value=/^[A-Z][a-z]/]",
+          message: "🌍 Hardcoded textContent! Use t('yourKey') instead for user-facing text.",
+        },
       ],
+    },
+  },
+
+  // ============================================================================
+  // UI FILES - i18n ENFORCEMENT (Stricter rules for new files)
+  // Skip existing files with many violations, but enforce on new code
+  // ============================================================================
+  {
+    files: ['apps/web/src/ui/**/*.ts'],
+    ignores: [
+      // Legacy files with many hardcoded strings - fix these separately
+      'apps/web/src/ui/dev-panel.ui.ts',
+      'apps/web/src/ui/admin.ui.ts',
+      'apps/web/src/ui/smart-home-settings.ui.ts',
+      'apps/web/src/ui/marketplace.ui.ts',
+      'apps/web/src/ui/custom-agent-editor.ui.ts',
+      'apps/web/src/ui/evalops-dashboard.ui.ts',
+    ],
+    rules: {
+      // These will be warnings for now, can be upgraded to errors after cleanup
     },
   },
 ];

@@ -14,15 +14,22 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock dependencies
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock dependencies - must export both getLogger and createLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 vi.mock('../firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),

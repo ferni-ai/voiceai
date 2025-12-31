@@ -14,7 +14,7 @@ import {
   getCircuitBreakerStates,
   getReliabilityDashboard,
   resetReliabilityMetrics,
-} from '../tool-execution-reliability.js';
+} from '../../../services/performance/tool-execution-reliability.js';
 
 describe('Tool Execution Reliability', () => {
   beforeEach(() => {

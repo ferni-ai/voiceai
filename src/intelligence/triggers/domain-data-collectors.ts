@@ -192,8 +192,8 @@ async function getRecentConversationContext(
 // ============================================================================
 
 /**
- * Collect sleep-related data from conversation history and habits
- * NOTE: Full implementation pending habit tracking service
+ * Collect sleep-related data from health summaries and conversation history
+ * Uses real health data when available, falls back to conversation signals
  */
 export const sleepDataCollector: DomainDataCollector<SleepDomainData> = {
   domain: 'sleep',
@@ -201,10 +201,26 @@ export const sleepDataCollector: DomainDataCollector<SleepDomainData> = {
 
   async collect(userId: string, windowDays: number): Promise<SleepDomainData | null> {
     try {
+      // Try to get real health data first
+      let healthSummaries: Array<{
+        sleepHours?: number;
+        sleepQuality?: 'poor' | 'fair' | 'good' | 'excellent';
+        date: string;
+      }> = [];
+
+      try {
+        const healthStore = await import('../../services/health/health-data-store.js');
+        if (typeof healthStore.getRecentHealthSummaries === 'function') {
+          healthSummaries = await healthStore.getRecentHealthSummaries(userId, windowDays);
+        }
+      } catch {
+        log.debug({ userId }, 'Health data store not available, using conversation fallback');
+      }
+
       // Get recent conversation context for fatigue detection
       const recentContext = await getRecentConversationContext(userId, windowDays);
 
-      // Check for fatigue mentions
+      // Check for fatigue mentions in conversation
       let mentionedFatigue = false;
       if (recentContext) {
         const fatigueKeywords = ['tired', 'exhausted', 'fatigue', 'sleepy', 'drained', 'burnt out'];
@@ -213,11 +229,47 @@ export const sleepDataCollector: DomainDataCollector<SleepDomainData> = {
         );
       }
 
-      // TODO: When habit tracking service is available, get actual sleep data
-      // For now, return partial data based on conversation signals
+      // If we have real health data, use it
+      const summariesWithSleep = healthSummaries.filter((s) => s.sleepHours !== undefined);
+      if (summariesWithSleep.length > 0) {
+        // Calculate actual sleep statistics
+        const sleepHours = summariesWithSleep.map((s) => s.sleepHours!);
+        const avgSleep = sleepHours.reduce((a, b) => a + b, 0) / sleepHours.length;
 
+        // Count poor sleep nights (< 6 hours or poor quality)
+        const poorNights = summariesWithSleep.filter(
+          (s) => (s.sleepHours && s.sleepHours < 6) || s.sleepQuality === 'poor'
+        ).length;
+
+        // Determine trend by comparing first half to second half
+        let trend: 'improving' | 'stable' | 'declining' = 'stable';
+        if (sleepHours.length >= 4) {
+          const midpoint = Math.floor(sleepHours.length / 2);
+          const firstHalf = sleepHours.slice(0, midpoint);
+          const secondHalf = sleepHours.slice(midpoint);
+          const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+          const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+          if (secondAvg - firstAvg > 0.5) {
+            trend = 'improving';
+          } else if (firstAvg - secondAvg > 0.5) {
+            trend = 'declining';
+          }
+        }
+
+        return {
+          averageSleepHours: Math.round(avgSleep * 10) / 10, // 1 decimal place
+          poorSleepNights: poorNights,
+          trend,
+          nightsAnalyzed: summariesWithSleep.length,
+          mentionedFatigue,
+          lastUpdated: new Date(),
+          confidence: summariesWithSleep.length >= 5 ? 0.9 : 0.7, // High confidence with real data
+        };
+      }
+
+      // Fall back to conversation-only analysis
       if (!recentContext && !mentionedFatigue) {
-        // No data available
         return null;
       }
 

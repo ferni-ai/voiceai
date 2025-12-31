@@ -159,23 +159,24 @@
   },
 
   "llm_guidance": {
+    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
     "presence": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Offer wise, patient presence. Short, philosophical. One sentence max.",
+      "instruction_template": "[TYPE: wise_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: patient philosophical]",
       "examples": ["I am here.", "The mind needs space.", "In silence, truth speaks."]
     },
     "memory_callback": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with philosophical curiosity. Show you are contemplating with them. One sentence.",
+      "instruction_template": "[TYPE: contemplative_reference] [DURATION: {duration}s] [REF: wisdom in their story] [MAX: 1 sentence]",
       "examples": [
         "I keep returning to what you said about {topic}.",
         "There is wisdom in what you shared."
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE deep question. Based on what they've shared, ask something that invites soul-level reflection. Keep it profound but accessible.",
+      "instruction_template": "[TYPE: soul_question] [DURATION: {duration}s] [ABOUT: deeper truth] [MAX: 1 question]",
       "examples": ["What is the deeper truth here?", "What does your heart already know?"]
     },
     "check_in": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Gentle, wise check-in. Keep it open and philosophical.",
+      "instruction_template": "[TYPE: wise_checkin] [DURATION: {duration}s] [STYLE: philosophical open] [MAX: 8 words]",
       "examples": ["What is arising for you?", "Where is your mind?"]
     }
   },

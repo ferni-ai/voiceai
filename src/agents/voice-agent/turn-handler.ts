@@ -45,8 +45,8 @@ import {
   startTurnProfiling,
   markTurnCheckpoint,
   completeTurnProfiling,
-} from '../shared/performance/turn-profiler.js';
-import { speculateTTS } from '../shared/performance/speculative-tts.js';
+} from '../../services/performance/turn-profiler.js';
+import { speculateTTS } from '../../services/performance/speculative-tts.js';
 
 // "Better Than Human" emotion dispatch for frontend EQ system
 import {
@@ -84,6 +84,13 @@ import {
   type TurnSemanticData,
 } from '../../services/superhuman/semantic-intelligence/integration.js';
 import { getPrimaryPersonName } from '../../services/superhuman/semantic-intelligence/person-extractor.js';
+
+// NEW: Unified Intelligence System (Levels 2-5)
+import {
+  getUnifiedIntelligence,
+  processTurnLearning,
+  markProactiveInsightSurfaced,
+} from '../integrations/unified-intelligence-integration.js';
 
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
@@ -427,7 +434,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // ================================================================
     void (async () => {
       try {
-        const { predictAndPreload } = await import('../shared/performance/predictive-tool-preload.js');
+        const { predictAndPreload } =
+          await import('../shared/performance/predictive-tool-preload.js');
         predictAndPreload(userText);
       } catch {
         // Non-critical - tools will load normally if preload fails
@@ -494,6 +502,26 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       }
     }, 200); // Check every 200ms for responsive filler injection
 
+    // ================================================================
+    // 🧠 UNIFIED INTELLIGENCE: Get context, correlations, proactive insights
+    // This runs in parallel with turn processing for minimal latency impact
+    // ================================================================
+    const intelligencePromise = services.userId
+      ? getUnifiedIntelligence({
+          userId: services.userId,
+          sessionId: services.sessionId,
+          turnNumber,
+          transcript: userText,
+          voiceEmotion: ctx.voiceEmotion
+            ? { emotion: ctx.voiceEmotion.primary, confidence: ctx.voiceEmotion.confidence }
+            : undefined,
+          detectedTopics: [], // Will be populated from analysis
+        }).catch((err) => {
+          diag.debug('Unified intelligence failed (non-fatal)', { error: String(err) });
+          return null;
+        })
+      : Promise.resolve(null);
+
     // Process the turn with adaptive hard timeout
     const result = await Promise.race([
       processTurn(turnContext),
@@ -510,6 +538,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       // Record turn latency for future adaptive calculations
       completeTurnProfile(services.sessionId, turnNumber);
     });
+
+    // Get unified intelligence result (should be ready by now)
+    const intelligence = await intelligencePromise;
 
     // ================================================================
     // PERFORMANCE: Mark analysis complete, trigger speculative TTS
@@ -593,15 +624,14 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // - Speech rate changes, pause irregularity
     // - Energy level drops
     // ================================================================
-    const voiceEmotion = (userData as UserData).voiceEmotion;
+    const { voiceEmotion } = userData as UserData;
     // ================================================================
     // "BETTER THAN HUMAN" - Anticipatory Distress Detection
     // This flag is set by audio-processor.ts when real-time prosody
     // analysis detects falling pitch + high energy variance DURING speech.
     // This enables us to respond with care BEFORE the user even finishes.
     // ================================================================
-    const anticipatedDistress = (userData as UserData & { anticipatedDistress?: boolean })
-      .anticipatedDistress;
+    const { anticipatedDistress } = userData as UserData & { anticipatedDistress?: boolean };
 
     if (voiceEmotion?.prosody || anticipatedDistress) {
       fireAndForget(async () => {
@@ -1077,6 +1107,22 @@ You are their lifeline right now. Be fully present.`,
     // ================================================================
     markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
 
+    // ================================================================
+    // 🧠 UNIFIED INTELLIGENCE: Inject proactive insight if ready
+    // ================================================================
+    if (intelligence?.insightToSurface && turnNumber === 1 && services.userId) {
+      // Surface proactive insight at session start
+      turnCtx.addMessage({
+        role: 'system',
+        content: `[PROACTIVE INSIGHT - Consider sharing naturally]\n${intelligence.insightToSurface.message}${intelligence.insightToSurface.followUp ? `\nFollow-up: ${intelligence.insightToSurface.followUp}` : ''}`,
+      });
+      markProactiveInsightSurfaced(services.userId, intelligence.insightToSurface.id);
+      diag.session('💡 Proactive insight injected', {
+        category: intelligence.insightToSurface.category,
+        userId: services.userId,
+      });
+    }
+
     // Inject context into LLM
     injectTurnContext(turnCtx, result);
 
@@ -1280,7 +1326,20 @@ IMPORTANT:
       };
 
       // Fire-and-forget to not block turn completion
-      fireAndForget(() => processSemanticIntelligence(semanticData), 'semantic-intelligence');
+      fireAndForget(async () => processSemanticIntelligence(semanticData), 'semantic-intelligence');
+
+      // NEW: Unified intelligence turn learning (cross-domain correlation & pattern detection)
+      if (services.userId) {
+        processTurnLearning({
+          userId: services.userId,
+          sessionId: services.sessionId,
+          turnNumber,
+          transcript: userText,
+          emotion: result.emotional.primary,
+          topics: result.analysis.analysis.topics?.detected || [],
+          reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
+        });
+      }
     }
 
     // ================================================================

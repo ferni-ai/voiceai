@@ -273,7 +273,8 @@ export class AudioProsodyAnalyzer {
    */
   private mapNativeToJsFeatures(native: NativeFullProsodyFeatures): ProsodyFeatures {
     // Determine pitch contour from variance/range ratio
-    const varianceToRangeRatio = native.pitchRange > 0 ? native.pitchVariance / native.pitchRange : 0;
+    const varianceToRangeRatio =
+      native.pitchRange > 0 ? native.pitchVariance / native.pitchRange : 0;
     let pitchContour: 'rising' | 'falling' | 'flat' | 'dynamic' = 'flat';
     if (varianceToRangeRatio > 0.3) {
       pitchContour = 'dynamic';

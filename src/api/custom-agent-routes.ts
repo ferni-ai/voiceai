@@ -51,6 +51,10 @@ import {
   removeMemoryFromAgent,
   updateAgentVoice,
 } from '../services/custom-agent/custom-agent-persistence.service.js';
+import {
+  processVoiceUpload,
+  createVoiceClone,
+} from '../services/custom-agent/voice-clone.service.js';
 import type {
   CreateCustomAgentRequest,
   CustomAgent,
@@ -346,13 +350,46 @@ router.post('/:agentId/voice/clone', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Agent not found' });
     }
 
-    // TODO: Call Cartesia API for voice cloning
-    // For now, simulate a cloned voice
+    // Download audio from URL
+    log.info({ userId, agentId, audioSampleUrl }, 'Downloading audio for voice clone');
+    const audioResponse = await fetch(audioSampleUrl);
+    if (!audioResponse.ok) {
+      return res.status(400).json({ error: 'Failed to download audio from URL' });
+    }
+
+    const audioBuffer = await audioResponse.arrayBuffer();
+    const contentType = audioResponse.headers.get('content-type') || 'audio/wav';
+
+    // Extract filename from URL or use default
+    const urlParts = audioSampleUrl.split('/');
+    const filename = urlParts[urlParts.length - 1] || `voice_sample_${Date.now()}.wav`;
+
+    // Process the voice upload (analyze and store)
+    const uploadResult = await processVoiceUpload(
+      agentId,
+      [{ filename, buffer: audioBuffer, mimeType: contentType }],
+      userId
+    );
+
+    log.info(
+      { uploadId: uploadResult.uploadId, quality: uploadResult.quality },
+      'Voice upload processed'
+    );
+
+    // Create the voice clone with Cartesia
+    const cloneResult = await createVoiceClone(
+      agentId,
+      userId,
+      uploadResult.uploadId,
+      `${userName}_custom_voice`
+    );
+
+    // Build the voice configuration
     const voice: CustomAgentVoice = {
       type: 'cloned',
-      voiceId: `cartesia_clone_${agentId}_${Date.now()}`,
+      voiceId: cloneResult.voiceId,
       audioSampleUrl,
-      status: 'ready', // Cartesia is instant
+      status: cloneResult.status,
       settings: {
         speed: 1.0,
         stability: 0.8,
@@ -371,8 +408,23 @@ router.post('/:agentId/voice/clone', async (req: Request, res: Response) => {
 
     await updateAgentVoice(userId, agentId, voice);
 
-    log.info({ userId, agentId, voiceId: voice.voiceId }, 'Voice clone created');
-    return res.json({ message: 'Voice clone created', voice });
+    log.info(
+      {
+        userId,
+        agentId,
+        voiceId: voice.voiceId,
+        isSimulated: cloneResult.isSimulated,
+        qualityScore: cloneResult.qualityScore,
+      },
+      'Voice clone created'
+    );
+
+    return res.json({
+      message: 'Voice clone created',
+      voice,
+      qualityScore: cloneResult.qualityScore,
+      isSimulated: cloneResult.isSimulated,
+    });
   } catch (error) {
     log.error({ error, userId, agentId }, 'Failed to create voice clone');
     return res.status(500).json({

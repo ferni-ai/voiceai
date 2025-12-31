@@ -11,6 +11,7 @@
 
 import { EventEmitter } from 'events';
 import type { Room } from '@livekit/rtc-node';
+import Twilio, { type Twilio as TwilioClient } from 'twilio';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { GroupConversationManager } from './group-conversation-manager.js';
@@ -131,6 +132,7 @@ export class ConferenceCallManager extends EventEmitter {
   private readonly manager: GroupConversationManager;
   private readonly externalParticipants = new Map<string, ExternalParticipantInfo>();
   private readonly agentBehavior: GroupAgentConfig;
+  private readonly twilioClient: TwilioClient | null = null;
 
   private state: ConferenceCallState = {
     activeCalls: new Map(),
@@ -143,6 +145,22 @@ export class ConferenceCallManager extends EventEmitter {
     super();
     this.config = config;
     this.agentBehavior = config.agentBehavior ?? DEFAULT_AGENT_BEHAVIOR;
+
+    // Initialize Twilio client if credentials are provided
+    if (config.twilio) {
+      try {
+        this.twilioClient = Twilio(config.twilio.accountSid, config.twilio.authToken);
+        log.info(
+          { sessionId: config.sessionId },
+          '✅ Twilio client initialized for conference calls'
+        );
+      } catch (error) {
+        log.error(
+          { error: String(error), sessionId: config.sessionId },
+          'Failed to initialize Twilio client'
+        );
+      }
+    }
 
     // Use existing manager or create new one
     if (config.manager) {
@@ -162,6 +180,7 @@ export class ConferenceCallManager extends EventEmitter {
       {
         sessionId: config.sessionId,
         hasTwilio: !!config.twilio,
+        hasTwilioClient: !!this.twilioClient,
         hasSip: !!config.sip,
       },
       '📞 ConferenceCallManager created'
@@ -297,7 +316,7 @@ export class ConferenceCallManager extends EventEmitter {
         break;
 
       case 'in-progress':
-      case 'answered':
+      case 'answered': {
         participant.status = 'connected';
         participant.connectedAt = new Date();
 
@@ -312,6 +331,7 @@ export class ConferenceCallManager extends EventEmitter {
 
         this.emit('participant_connected', { participant });
         break;
+      }
 
       case 'completed':
       case 'busy':
@@ -505,8 +525,8 @@ export class ConferenceCallManager extends EventEmitter {
     relationship?: string,
     introduction?: string
   ): Promise<{ success: boolean; callSid?: string; error?: string }> {
-    // Check if Twilio is configured
-    if (!this.config.twilio) {
+    // Check if Twilio is configured and client is available
+    if (!this.config.twilio || !this.twilioClient) {
       log.warn('📞 Twilio not configured - simulating call');
       return this.simulateCall(callId, phoneNumber, name);
     }
@@ -515,10 +535,29 @@ export class ConferenceCallManager extends EventEmitter {
       // Build TwiML URL for when they answer
       const twimlUrl = this.buildAnswerTwimlUrl(name, introduction);
 
-      // TODO: Use actual Twilio client to make the call
-      // For now, simulate
-      return this.simulateCall(callId, phoneNumber, name);
+      // Build status callback URL
+      const statusCallbackUrl = `${this.config.webhookBaseUrl}/api/group/call/status`;
+
+      log.info({ callId, phoneNumber, name, twimlUrl }, '📞 Initiating Twilio call');
+
+      // Create the outbound call using Twilio client
+      const call = await this.twilioClient.calls.create({
+        to: phoneNumber,
+        from: this.config.twilio.phoneNumber,
+        url: twimlUrl,
+        statusCallback: statusCallbackUrl,
+        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+        statusCallbackMethod: 'POST',
+        machineDetection: 'DetectMessageEnd',
+        machineDetectionTimeout: 5,
+        timeout: 45, // 45 seconds to answer
+      });
+
+      log.info({ callId, callSid: call.sid, phoneNumber, name }, '📞 Twilio call created');
+
+      return { success: true, callSid: call.sid };
     } catch (error) {
+      log.error({ error: String(error), callId, phoneNumber }, '📞 Failed to create Twilio call');
       return { success: false, error: String(error) };
     }
   }
@@ -556,8 +595,18 @@ export class ConferenceCallManager extends EventEmitter {
       return;
     }
 
-    // TODO: Use actual Twilio client to hang up
-    // await twilioClient.calls(callSid).update({ status: 'completed' });
+    // Use Twilio client to hang up the call
+    if (!this.twilioClient) {
+      log.warn({ callSid }, '📞 Cannot hang up - Twilio client not available');
+      return;
+    }
+
+    try {
+      await this.twilioClient.calls(callSid).update({ status: 'completed' });
+      log.info({ callSid }, '📞 Call ended via Twilio');
+    } catch (error) {
+      log.error({ error: String(error), callSid }, '📞 Failed to hang up call');
+    }
   }
 
   /**

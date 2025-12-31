@@ -63,7 +63,7 @@ describe('homeExecutor', () => {
   describe('execute - no userId', () => {
     it('should return sign-in message when userId is missing', async () => {
       const result = await homeExecutor.execute('setLights', {}, createMockContext());
-      
+
       expect(result).toContain('sign in');
     });
   });
@@ -73,7 +73,7 @@ describe('homeExecutor', () => {
       vi.mocked(userCredentials.hasAnySmartHomeIntegration).mockResolvedValue(false);
 
       const result = await homeExecutor.execute('setLights', {}, createMockContext('test-user'));
-      
+
       expect(result).toContain('Settings');
       expect(result).toContain('Your Home');
     });
@@ -81,8 +81,12 @@ describe('homeExecutor', () => {
     it('should return setup message for getHomeStatus when no smart home', async () => {
       vi.mocked(userCredentials.hasAnySmartHomeIntegration).mockResolvedValue(false);
 
-      const result = await homeExecutor.execute('getHomeStatus', {}, createMockContext('test-user'));
-      
+      const result = await homeExecutor.execute(
+        'getHomeStatus',
+        {},
+        createMockContext('test-user')
+      );
+
       expect(result).toContain("haven't connected");
     });
   });
@@ -94,7 +98,10 @@ describe('homeExecutor', () => {
 
     describe('setLights', () => {
       it('should set brightness for all lights when no room specified', async () => {
-        vi.mocked(smartHome.setLightsForVibe).mockResolvedValue({ success: true, devices: ['Living Room', 'Bedroom'] });
+        vi.mocked(smartHome.setLightsForVibe).mockResolvedValue({
+          success: true,
+          devices: ['Living Room', 'Bedroom'],
+        });
 
         const result = await homeExecutor.execute(
           'setLights',
@@ -133,7 +140,12 @@ describe('homeExecutor', () => {
           createMockContext('test-user')
         );
 
-        expect(smartHome.controlDevice).toHaveBeenCalledWith('light.1', 'off', undefined, 'test-user');
+        expect(smartHome.controlDevice).toHaveBeenCalledWith(
+          'light.1',
+          'off',
+          undefined,
+          'test-user'
+        );
         expect(result).toContain('Turned off');
       });
     });
@@ -145,7 +157,11 @@ describe('homeExecutor', () => {
           { id: '2', name: 'Thermostat', type: 'thermostat', state: '72°F', platform: 'ecobee' },
         ]);
 
-        const result = await homeExecutor.execute('getHomeStatus', {}, createMockContext('test-user'));
+        const result = await homeExecutor.execute(
+          'getHomeStatus',
+          {},
+          createMockContext('test-user')
+        );
 
         expect(result).toContain('Smart Home');
         expect(result).toContain('Living Room Light');
@@ -175,7 +191,11 @@ describe('homeExecutor', () => {
       });
 
       it('should ask for temperature when not provided', async () => {
-        const result = await homeExecutor.execute('setThermostat', {}, createMockContext('test-user'));
+        const result = await homeExecutor.execute(
+          'setThermostat',
+          {},
+          createMockContext('test-user')
+        );
 
         expect(result).toContain('temperature');
       });
@@ -185,11 +205,7 @@ describe('homeExecutor', () => {
       it('should turn on a device', async () => {
         vi.mocked(smartHome.controlDevice).mockResolvedValue('✅ TV turned on');
 
-        await homeExecutor.execute(
-          'turnOn',
-          { device: 'TV' },
-          createMockContext('test-user')
-        );
+        await homeExecutor.execute('turnOn', { device: 'TV' }, createMockContext('test-user'));
 
         expect(smartHome.controlDevice).toHaveBeenCalledWith('TV', 'on', undefined, 'test-user');
       });
@@ -197,17 +213,17 @@ describe('homeExecutor', () => {
       it('should turn off a device', async () => {
         vi.mocked(smartHome.controlDevice).mockResolvedValue('✅ TV turned off');
 
-        await homeExecutor.execute(
-          'turnOff',
-          { device: 'TV' },
-          createMockContext('test-user')
-        );
+        await homeExecutor.execute('turnOff', { device: 'TV' }, createMockContext('test-user'));
 
         expect(smartHome.controlDevice).toHaveBeenCalledWith('TV', 'off', undefined, 'test-user');
       });
 
       it('should ask for device when not specified', async () => {
-        const result = await homeExecutor.execute('controlDevice', {}, createMockContext('test-user'));
+        const result = await homeExecutor.execute(
+          'controlDevice',
+          {},
+          createMockContext('test-user')
+        );
 
         expect(result).toContain('Which device');
       });
@@ -236,7 +252,13 @@ describe('homeExecutor', () => {
     describe('lockDoors', () => {
       it('should lock all doors', async () => {
         vi.mocked(smartHome.getAllDevices).mockResolvedValue([
-          { id: 'lock.1', name: 'Front Door', type: 'lock', state: 'unlocked', platform: 'homekit' },
+          {
+            id: 'lock.1',
+            name: 'Front Door',
+            type: 'lock',
+            state: 'unlocked',
+            platform: 'homekit',
+          },
           { id: 'lock.2', name: 'Back Door', type: 'lock', state: 'unlocked', platform: 'homekit' },
         ]);
         vi.mocked(smartHome.controlDevice)
@@ -258,7 +280,7 @@ describe('homeExecutor', () => {
   describe('execute - unknown tool', () => {
     it('should return null for unknown tools', async () => {
       const result = await homeExecutor.execute('unknownTool', {}, createMockContext('test-user'));
-      
+
       expect(result).toBeNull();
     });
   });

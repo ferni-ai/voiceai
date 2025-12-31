@@ -273,7 +273,7 @@ AnticipatedEmotion.visualShift:
 
 ### Implementation Fidelity
 
-All five capabilities from `design-system/brand/BETTER-THAN-HUMAN.md` are now implemented in Swift for native iOS:
+All five capabilities from `design-system/docs/brand/BETTER-THAN-HUMAN.md` are now implemented in Swift for native iOS:
 
 ```
 ✅ Micro-Expressions (40-150ms subliminal flashes)

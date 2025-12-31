@@ -10,6 +10,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { trapFocus, announce } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('KeyboardShortcuts');
 
@@ -541,7 +542,7 @@ function createPanel(): HTMLElement {
           <div class="shortcuts-panel__icon">${ICONS.keyboard}</div>
           <h3 class="shortcuts-panel__title">Keyboard Shortcuts</h3>
         </div>
-        <button class="shortcuts-panel__close" aria-label="Close">${ICONS.close}</button>
+        <button class="shortcuts-panel__close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </header>
       <div class="shortcuts-panel__content">
         ${categoriesHtml}

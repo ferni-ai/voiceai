@@ -73,6 +73,10 @@ import {
   initializeSpeechCoordination,
   cleanupSpeechCoordination,
 } from '../speech/coordination/index.js';
+// Centralized generateReply gateway - handles session readiness
+import { prewarmSessionAsync, generateReply } from './shared/generate-reply-gateway.js';
+// Inject generateReply into semantic router (avoids architecture violation)
+import { setGenerateReplyFunction } from '../tools/semantic-router/integration/transcript-integration.js';
 
 // Development telemetry for E2E observability
 import { logPipelineStage, type StageType } from './shared/dev-telemetry.js';
@@ -114,6 +118,10 @@ if (MULTI_AGENT_MODE) {
     `[voice-agent-entry] ⚠️ MULTI_AGENT_MODE disabled - Handoffs will NOT update LLM persona!\n`
   );
 }
+
+// Inject generateReply into semantic router at module load
+// This resolves the architecture violation: tools (Level 70) must not import from agents (Level 100)
+setGenerateReplyFunction(generateReply);
 
 /**
  * Dev telemetry helper - logs pipeline stages in development mode
@@ -342,11 +350,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // ON-BEHALF CALL DETECTION
     // =========================================================================
     // If this is an on-behalf call (calling someone on behalf of user),
-    // delegate to the specialized outbound call handler
+    // set up the outbound call context and let the standard voice agent handle it.
+    // The outbound-call-context builder will inject call purpose, script, etc.
     const callType = metadata.type as string | undefined;
     if (callType === 'on_behalf_call') {
       process.stderr.write(
-        `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - delegating to outbound handler\n`
+        `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - using standard agent with outbound context\n`
       );
       process.stderr.write(
         `[voice-agent-entry] 📞 Call context: ${JSON.stringify({
@@ -357,19 +366,38 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         })}\n`
       );
 
+      // Set up outbound call context for the context builder to pick up
+      // The outbound-call-context builder will inject call purpose, script, compliance, etc.
       try {
-        // Use the INTELLIGENT outbound agent with full user/contact context
-        const { runIntelligentOutboundAgent } =
-          await import('./outbound/intelligent-outbound-agent.js');
-        await runIntelligentOutboundAgent(ctx, metadata);
-        process.stderr.write(`[voice-agent-entry] 📞 Intelligent on-behalf call completed\n`);
-        return; // Exit early - the intelligent agent handled everything
-      } catch (error) {
+        const { setOutboundCallContext } =
+          await import('../intelligence/context-builders/outbound-call-context.js');
+        const roomName = ctx.job.room?.name || `call-${metadata.callId}`;
+        setOutboundCallContext(roomName, {
+          callId: metadata.callId as string,
+          recipientName:
+            ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
+          recipientPhone: ((metadata.contact as Record<string, unknown>)?.phone as string) || '',
+          purpose: (metadata.purpose as string) || 'General call',
+          callType:
+            (metadata.callType as 'healthcare' | 'restaurant' | 'business' | 'personal') ||
+            'business',
+          objective: (metadata.objective as string) || (metadata.purpose as string) || '',
+          script: (metadata.script as string) || '',
+          complianceScript: (metadata.complianceScript as string) || '',
+          mustConfirm: (metadata.mustConfirm as string[]) || [],
+          mustNotDo: (metadata.mustNotDo as string[]) || [],
+          informationToGather: (metadata.informationToGather as string[]) || [],
+          userName: (metadata.userName as string) || 'the user',
+          originalSessionId: (metadata.originalSessionId as string) || '',
+        });
         process.stderr.write(
-          `[voice-agent-entry] ❌ Intelligent on-behalf call failed: ${error}\n`
+          `[voice-agent-entry] 📞 Outbound call context set for room: ${roomName}\n`
         );
-        throw error;
+      } catch (error) {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
+        // Continue anyway - the agent will still work, just without specialized context
       }
+      // Continue with standard voice agent flow - don't return early
     }
 
     const personaId = (metadata.persona_id as string) || process.env.PERSONA_ID || 'ferni';
@@ -632,9 +660,40 @@ If someone asks what day it is, what time it is, or what the date is, you know t
         (customData?.lastTopicsPerPersona as Record<string, string> | undefined),
     });
 
-    process.stderr.write(
-      `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
-    );
+    // =========================================================================
+    // DIAGNOSTIC: Comprehensive identity diagnostics at session start
+    // This helps debug why Ferni might not "remember" the user
+    // =========================================================================
+    try {
+      const { logDiagnostics, generateDiagnostics } =
+        await import('../services/identity/identity-error-handler.js');
+      logDiagnostics(userId ?? undefined, services.userProfile ?? null, sessionId);
+
+      // Also log detailed diagnostics to stderr for debugging
+      const diagnostics = generateDiagnostics(userId ?? undefined, services.userProfile ?? null);
+      process.stderr.write(
+        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+      );
+      process.stderr.write(
+        `[voice-agent-entry] 🔍 IDENTITY DIAGNOSTICS:\n` +
+          `  - userId: ${userId || 'MISSING!'}\n` +
+          `  - userIdFormat: ${diagnostics.userIdFormat}\n` +
+          `  - hasProfile: ${diagnostics.hasProfile ? 'YES' : 'NO!'}\n` +
+          `  - hasName: ${diagnostics.hasName ? `YES (${services.userProfile?.name || services.userProfile?.preferredName || userName})` : 'NO!'}\n` +
+          `  - hasVoiceSketch: ${diagnostics.hasVoiceSketch ? 'YES (cross-device ready)' : 'NO'}\n` +
+          `  - isReturningUser: ${diagnostics.isReturningUser}\n` +
+          `  - totalConversations: ${diagnostics.totalConversations}\n` +
+          `  - onboardingComplete: ${diagnostics.onboardingComplete}\n` +
+          `  - lastConversationSummary: ${services.userProfile?.lastConversationSummary ? `YES (${services.userProfile.lastConversationSummary.slice(0, 40)}...)` : 'NO!'}\n` +
+          `  - lastContact: ${services.userProfile?.lastContact || 'NEVER'}\n` +
+          `  - issues: ${diagnostics.issues.length > 0 ? diagnostics.issues.join(', ') : 'NONE ✅'}\n`
+      );
+    } catch (diagError) {
+      // Non-fatal - just log basic info if diagnostics fail
+      process.stderr.write(
+        `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
+      );
+    }
 
     // =========================================================================
     // USER AWARENESS - Enhance model instructions with user context
@@ -896,6 +955,99 @@ Reference past context when relevant, but don't force it. Let the conversation f
             );
           }
         })();
+      }
+    } else {
+      // NO USER PROFILE - This is why Ferni doesn't "remember" the user!
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ NO USER PROFILE! Ferni cannot remember this user.\n` +
+          `  - userId was: ${userId || 'NONE PROVIDED'}\n` +
+          `  - This means: No name, no conversation history, no memory.\n` +
+          `  - Check: Is userId being passed from the frontend? Is it valid format?\n`
+      );
+    }
+
+    // =========================================================================
+    // BETTER THAN HUMAN #6: Cross-Channel Thread Continuity
+    // When user responds to our outreach (SMS, push, email) via voice call,
+    // we pick up exactly where we left off - across channels.
+    // =========================================================================
+    if (userId) {
+      try {
+        const { buildThreadContext } =
+          await import('../intelligence/context-builders/thread-context.js');
+        const threadContext = await buildThreadContext(
+          userId,
+          personaId as import('../personas/types.js').PersonaId,
+          {
+            sessionId,
+            fromNotification: metadata.fromNotification === true,
+          }
+        );
+
+        if (threadContext) {
+          // Store thread context for injection on first turn
+          userData.threadContext = threadContext.content;
+          userData.threadId = threadContext.threadId;
+          userData.isOutreachResponse = threadContext.isOutreachResponse;
+
+          process.stderr.write(
+            `[voice-agent-entry] 🧵 THREAD CONTEXT - Cross-channel continuity enabled:\n` +
+              `  - threadId: ${threadContext.threadId || 'new'}\n` +
+              `  - isOutreachResponse: ${threadContext.isOutreachResponse}\n` +
+              `  - priority: ${threadContext.priority}\n`
+          );
+
+          // Also inject into model instructions for immediate awareness
+          if (threadContext.isOutreachResponse) {
+            modelBaseInstructions += `
+---
+
+## Conversation Thread Context
+
+${threadContext.content}
+`;
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 Thread context injected into model instructions (outreach response)\n`
+            );
+          }
+        } else {
+          process.stderr.write(`[voice-agent-entry] 🧵 No active thread context for user\n`);
+        }
+      } catch (threadErr) {
+        process.stderr.write(
+          `[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`
+        );
+      }
+
+      // Initialize thread recording for this session
+      try {
+        const { initializeThreadRecording, cleanupThreadRecording } =
+          await import('../services/conversation-thread/thread-recorder.js');
+        const threadInit = await initializeThreadRecording(
+          userId,
+          sessionId,
+          personaId as import('../personas/types.js').PersonaId,
+          {
+            existingThreadId: userData.threadId,
+            isOutreachResponse: userData.isOutreachResponse,
+          }
+        );
+
+        // Store thread ID in userData for use in transcript/response recording
+        userData.threadId = threadInit.threadId;
+
+        // Add cleanup handler
+        cleanupHandlers.push(() => {
+          cleanupThreadRecording(sessionId);
+        });
+
+        process.stderr.write(
+          `[voice-agent-entry] 🧵 Thread recording initialized (threadId: ${threadInit.threadId}, isNew: ${threadInit.isNew})\n`
+        );
+      } catch (threadRecordErr) {
+        process.stderr.write(
+          `[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`
+        );
       }
     }
 
@@ -1244,11 +1396,13 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // Agent-level: Full persona prompt (identity, detailed tools, personality)
       //   - Sent via LiveKit's updateInstructions() after session starts
       //   - Contains full persona identity and detailed tool catalog
-      // Determine STT language: use preferred language if set, otherwise let Gemini auto-detect
-      const sttLanguage = userData.preferredLanguage;
-      const inputAudioTranscriptionOptions = sttLanguage
-        ? { languageCode: sttLanguage }
-        : {}; // Empty = auto-detect
+      // Determine STT language: use preferred language if set, otherwise default to en-US
+      // NOTE: languageCode is NOT supported in inputAudioTranscription (Gemini rejects it!)
+      // Just pass {} to enable transcription - language is set via speechConfig.languageCode
+      const sttLanguage = userData.preferredLanguage || 'en-US';
+      // FIX: Gemini Live API doesn't accept languageCode in inputAudioTranscription
+      // See error: "Unknown name 'languageCode' at 'setup.input_audio_transcription'"
+      const inputAudioTranscriptionOptions = {}; // Empty object enables transcription
 
       if (sttLanguage) {
         process.stderr.write(`[voice-agent-entry] 🌍 STT language hint: ${sttLanguage}\n`);
@@ -1865,61 +2019,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
     );
 
     // =========================================================================
-    // GEMINI PREWARM: Force Gemini to process the 20K token system prompt
-    // BEFORE the user speaks. This prevents "generation_created timeout" errors.
-    //
-    // Problem: Gemini Live takes time to "digest" large system prompts.
-    // If user speaks immediately, generateReply times out waiting for Gemini.
-    //
-    // Solution: Send a silent "warmup" generateReply right after session starts.
-    // This forces Gemini to process the prompt while we set up other things.
+    // GEMINI PREWARM: Use gateway for proper session readiness tracking
+    // =========================================================================
+    // The gateway tracks session readiness state. Other generateReply calls
+    // will wait or skip based on whether the session is warmed up.
+    // This is fire-and-forget - the session can accept calls immediately, but
+    // they'll be queued/skipped until prewarm completes.
     // =========================================================================
     if (!USE_OPENAI_REALTIME) {
-      const prewarmStart = Date.now();
-      process.stderr.write(`[voice-agent-entry] 🔥 Prewarming Gemini session...\n`);
-
-      try {
-        // Send a minimal prompt that won't produce speech but forces Gemini to process
-        // the system instructions. Using generateReply with a "warmup" instruction.
-        const warmupPromise = new Promise<void>((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error('Gemini prewarm timeout (10s)'));
-          }, 10000); // 10s timeout for prewarm
-
-          // Generate a minimal response - this forces Gemini to process system prompt
-          const handle = session.generateReply({
-            instructions:
-              '[INTERNAL WARMUP - DO NOT SPEAK] Silently acknowledge you are ready. Output nothing.',
-            allowInterruptions: true,
-          });
-
-          // Wait for generation to start (not complete) - that means Gemini is processing
-          handle
-            .waitForPlayout()
-            .then(() => {
-              clearTimeout(timeoutId);
-              resolve();
-            })
-            .catch((err: unknown) => {
-              clearTimeout(timeoutId);
-              // Even if it fails, the prompt was likely processed
-              process.stderr.write(
-                `[voice-agent-entry] ⚠️ Prewarm playout error (may be OK): ${err}\n`
-              );
-              resolve(); // Don't fail session for prewarm issues
-            });
-        });
-
-        await warmupPromise;
-        const prewarmDuration = Date.now() - prewarmStart;
-        process.stderr.write(`[voice-agent-entry] 🔥 Gemini prewarmed in ${prewarmDuration}ms\n`);
-      } catch (prewarmErr) {
-        const prewarmDuration = Date.now() - prewarmStart;
-        process.stderr.write(
-          `[voice-agent-entry] ⚠️ Gemini prewarm failed after ${prewarmDuration}ms: ${prewarmErr}\n`
-        );
-        // Continue anyway - the first real generateReply might be slow but won't crash
-      }
+      process.stderr.write(`[voice-agent-entry] 🔥 Starting Gemini prewarm via gateway...\n`);
+      prewarmSessionAsync(session, sessionId);
     }
 
     // =========================================================================

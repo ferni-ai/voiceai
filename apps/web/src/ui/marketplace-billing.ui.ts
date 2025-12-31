@@ -298,7 +298,7 @@ function renderDashboard(): void {
         <span class="tier-name">${tierConfig.name} Plan</span>
         <span class="tier-desc">${tierConfig.description}</span>
       </div>
-      ${state.tier === 'free' ? `<button aria-label="Upgrade" class="tier-upgrade">Upgrade</button>` : ''}
+      ${state.tier === 'free' ? `<button aria-label="${t('accessibility.upgrade')}" class="tier-upgrade">Upgrade</button>` : ''}
     </div>
 
     <!-- Overall Usage Summary -->

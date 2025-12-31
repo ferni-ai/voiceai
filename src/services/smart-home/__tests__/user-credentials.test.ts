@@ -167,7 +167,10 @@ describe('user-credentials', () => {
 
     it('should return true when at least one integration configured', async () => {
       mockGet
-        .mockResolvedValueOnce({ exists: true, data: () => ({ bridgeIp: '192.168.1.100', username: 'test' }) })
+        .mockResolvedValueOnce({
+          exists: true,
+          data: () => ({ bridgeIp: '192.168.1.100', username: 'test' }),
+        })
         .mockResolvedValueOnce({ exists: false })
         .mockResolvedValueOnce({ exists: false })
         .mockResolvedValueOnce({ exists: false });

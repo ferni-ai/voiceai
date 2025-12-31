@@ -20,6 +20,7 @@ import { openRelationshipInsights } from './relationship-insights.ui.js';
 import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('YourPeopleUI');
 
@@ -744,8 +745,8 @@ function renderHeader(): string {
           <h2 class="yp-title" id="yp-title">Your People</h2>
         </div>
         <div class="yp-header-actions" role="button" tabindex="0">
-          <button class="yp-action-btn" id="yp-insights-btn" aria-label="View relationship insights" title="Insights">${ICONS.chart}</button>
-          <button class="yp-close" aria-label="Close">${ICONS.close}</button>
+          <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="Insights">${ICONS.chart}</button>
+          <button class="yp-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
         </div>
       </div>
       
@@ -756,19 +757,19 @@ function renderHeader(): string {
           class="yp-search-input" 
           placeholder="Search your people..."
           value="${escapeHtml(state.searchQuery)}"
-          aria-label="Search contacts"
+          aria-label="${t('accessibility.searchContacts')}"
           autocomplete="off"
         />
       </div>
       
       <div class="yp-filters">
-        <button aria-label="All" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+        <button aria-label="${t('accessibility.all')}" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
           All
         </button>
-        <button aria-label="Needs attention" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
+        <button aria-label="${t('accessibility.needsAttention')}" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
           Needs attention
         </button>
-        <button aria-label="Recent" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
+        <button aria-label="${t('accessibility.recent')}" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
           Recent
         </button>
       </div>
@@ -858,10 +859,10 @@ function renderPeopleList(): string {
             <div class="yp-empty-title">No one here yet</div>
             <p class="yp-empty-text">Add people you care about and we'll help you nurture those relationships.</p>
           </div>
-          <button aria-label="Add" class="yp-add-btn" data-action="add-person">
+          <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
             ${ICONS.plus} Add Someone
           </button>
-          <button aria-label="Upload" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
+          <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
             ${ICONS.upload} Import from Google or CSV
           </button>
         </div>
@@ -892,10 +893,10 @@ function renderPeopleList(): string {
 
   html += `
     <div class="yp-section yp-action-buttons" role="button" tabindex="0">
-      <button aria-label="Add" class="yp-add-btn" data-action="add-person">
+      <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} Add Someone
       </button>
-      <button aria-label="Upload" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+      <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
         ${ICONS.upload} Import Contacts
       </button>
     </div>
@@ -1032,7 +1033,7 @@ function bindEvents(): void {
     btn.addEventListener('click', () => {
       openImportContacts({
         onSuccess: (count) => {
-          toast.success(`Imported ${count} contacts!`);
+          toast.success(t('toasts.importedCountContacts'));
           loadPeopleData();
         },
       });

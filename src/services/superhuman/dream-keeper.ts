@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { indexDream } from '../data-layer/integrations/index.js';
 
 const log = createLogger({ module: 'dream-keeper' });
 
@@ -223,6 +224,21 @@ export async function saveDream(dream: Dream): Promise<void> {
       .doc(dream.id)
       .set(cleanForFirestore(dream));
   }
+
+  // Index to semantic memory for contextual retrieval
+  indexDream(
+    dream.userId,
+    {
+      id: dream.id,
+      dream: dream.statement,
+      category: dream.type,
+      timeframe: undefined, // Dream type doesn't have duration
+      status: dream.status === 'alive' ? 'active' : dream.status,
+      steps: dream.progressNotes,
+      obstacles: dream.obstacles,
+    },
+    'update'
+  );
 
   // Update cache
   const dreams = dreamCache.get(dream.userId) || [];

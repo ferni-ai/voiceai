@@ -40,6 +40,7 @@ import {
   getDashboardData as getSemanticDashboardData,
 } from '../tools/semantic-router/integration/metrics.js';
 import { getProactiveStats } from '../tools/semantic-router/advanced/proactive-suggestions.js';
+import { getAggregateRoutingStats } from '../tools/semantic-router/integration/routing-observability.js';
 import { getAgentEvolution } from '../intelligence/agent-evolution.js';
 import {
   getAllCircuitStats,
@@ -211,8 +212,29 @@ function getSemanticRoutingMetrics() {
     lastAggregation: null as string | null,
   };
 
+  // ================================================================
+  // 📊 ROUTING PATH BREAKDOWN (semantic vs JSON workaround vs native)
+  // This shows which tool calling path handles each request
+  // ================================================================
+  const routingPathStats = getAggregateRoutingStats();
+  const routingPaths = {
+    totalToolCalls: routingPathStats.totalToolCalls,
+    semanticAutoExecute: routingPathStats.totalSemanticAutoExecute,
+    jsonWorkaround: routingPathStats.totalJsonFallback,
+    // Native function calling = total - (semantic + json workaround)
+    // This is the "blind spot" that can cause issues with SSML tools
+    nativeFunctionCalling:
+      routingPathStats.totalToolCalls -
+      routingPathStats.totalSemanticAutoExecute -
+      routingPathStats.totalJsonFallback,
+    efficiency: `${routingPathStats.avgEfficiency.toFixed(1)}%`,
+    activeSessions: routingPathStats.totalSessions,
+    note: 'Native function calling may fail for SSML tools (news, weather)',
+  };
+
   return {
     aggregate,
+    routingPaths,
     learning,
     abTests,
     proactive,

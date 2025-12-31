@@ -17,13 +17,13 @@
 import { Firestore, FieldValue, Timestamp } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import type {
-  SuperhumanCapability,
-  CapabilityUsageEvent,
-  CapabilityEffectivenessEvent,
-  CapabilityStats,
+import {
+  ALL_CAPABILITIES,
+  type SuperhumanCapability,
+  type CapabilityUsageEvent,
+  type CapabilityEffectivenessEvent,
+  type CapabilityStats,
 } from './analytics.js';
-import { ALL_CAPABILITIES } from './analytics.js';
 
 const log = createLogger({ module: 'bth-analytics-persistence' });
 

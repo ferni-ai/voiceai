@@ -646,7 +646,7 @@ function renderItemAction(
 
   if (isOwned) {
     return `
-      <button aria-label="Use This" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -654,7 +654,7 @@ function renderItemAction(
 
   if (item.priceInSeeds === null) {
     return `
-      <button aria-label="Use This" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         Use This
       </button>
     `;
@@ -662,14 +662,14 @@ function renderItemAction(
 
   if (!canBuy) {
     return `
-      <button aria-label="Need more Seeds" class="personalize-item-action" disabled>
+      <button aria-label="${t('accessibility.needMoreSeeds')}" class="personalize-item-action" disabled>
         Need more Seeds
       </button>
     `;
   }
 
   return `
-    <button aria-label="Get This" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
+    <button aria-label="${t('accessibility.getThis')}" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
       Get This
     </button>
   `;
@@ -713,14 +713,14 @@ function handlePurchase(itemId: string): void {
     toast.success("It's yours!");
     equipCosmetic(itemId);
   } else {
-    toast.error('Could not complete');
+    toast.error(t('toasts.couldNotComplete'));
   }
 }
 
 function handleEquip(itemId: string): void {
   const success = equipCosmetic(itemId);
   if (success) {
-    toast.success('Updated!');
+    toast.success(t('toasts.updated'));
   }
 }
 

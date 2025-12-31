@@ -9,6 +9,7 @@
  * @module voice-agent/audio-processor
  */
 
+import type { ReadableStream } from 'node:stream/web';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { log } from '@livekit/agents';
 import { getDJBooth } from '../../audio/index.js';
@@ -24,6 +25,11 @@ import {
   resetSessionUnifiedAnalyzer,
   type UnifiedAudioAnalyzer,
 } from '../../speech/audio-prosody/native-analyzer.js';
+// Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
+import {
+  initializePreSTTIntegration,
+  type PreSTTIntegrationResult,
+} from '../integrations/pre-stt-audio-integration.js';
 import { getBreathPauseDetector } from '../../speech/live-backchanneling/index.js';
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 import { getEmotionModulation } from '../../speech/emotion-matching.js';
@@ -105,6 +111,12 @@ export async function processAudioStream(
     isExperimentalEnabled('nativeAudioProcessing') && isNativeAudioAvailable();
   let nativeAnalyzer: UnifiedAudioAnalyzer | null = null;
 
+  // Pre-STT audio analysis (Rust: AGC, noise suppression, bandwidth extension)
+  // Runs in PARALLEL - monitors audio quality without modifying STT stream
+  const preSTTEnabled = isExperimentalEnabled('preSTTAudioProcessing');
+  let preSTTIntegration: PreSTTIntegrationResult | null = null;
+  let preSTTInitializing = false;
+
   // Gemini multimodal emotion analysis
   const geminiEmotionEnabled = isExperimentalEnabled('geminiEmotionAnalysis');
   let geminiEmotionStream: Awaited<ReturnType<typeof startEmotionStream>> | null = null;
@@ -137,7 +149,7 @@ export async function processAudioStream(
           // Initialize analyzer (native or JS fallback)
           if (nativeAudioEnabled && !nativeAnalyzer) {
             try {
-              nativeAnalyzer = await getSessionUnifiedAnalyzer(sessionId, frame.sampleRate);
+              nativeAnalyzer = getSessionUnifiedAnalyzer(sessionId, frame.sampleRate);
               if (nativeAnalyzer?.isNative) {
                 logger.debug({ sessionId }, '🦀 Native audio analyzer initialized');
               } else {
@@ -198,6 +210,79 @@ export async function processAudioStream(
               } catch {
                 // Non-critical, anticipation is enhancement only
               }
+            }
+          }
+        }
+
+        // =========================================================================
+        // PRE-STT AUDIO ANALYSIS: Quality monitoring with Rust pipeline
+        // Runs in parallel - doesn't modify audio sent to STT
+        // =========================================================================
+        if (preSTTEnabled && sessionId && !preSTTIntegration && !preSTTInitializing) {
+          preSTTInitializing = true;
+          // Detect if this is telephony (8kHz = Twilio)
+          const isTelephony = frame.sampleRate === 8000;
+
+          initializePreSTTIntegration({
+            sessionId,
+            userId,
+            isTelephony,
+            verbose: false, // Enable for detailed logs
+          })
+            .then((integration) => {
+              preSTTIntegration = integration;
+              logger.info(
+                {
+                  sessionId,
+                  isTelephony,
+                  usingRust: integration.isUsingRust(),
+                },
+                '🎤 Pre-STT audio analysis initialized (parallel mode)'
+              );
+            })
+            .catch((err) => {
+              logger.warn(
+                { error: String(err), sessionId },
+                'Pre-STT integration failed to initialize'
+              );
+            })
+            .finally(() => {
+              preSTTInitializing = false;
+            });
+        }
+
+        // Process frame through Pre-STT analyzer (parallel - doesn't block)
+        // Note: preSTTIntegration is assigned asynchronously via .then() callback above
+        if (preSTTIntegration !== null) {
+          const integration = preSTTIntegration as PreSTTIntegrationResult;
+          const analysis = integration.processFrame(frame);
+
+          // Log quality issues
+          if (analysis) {
+            // Store analysis in userData for context builders
+            if (userData) {
+              (userData as Record<string, unknown>).audioQuality = {
+                agcGainDb: analysis.agcGainDb,
+                peakLevel: analysis.peakLevel,
+                isTelephony: analysis.isTelephonyAudio,
+                processingLatencyMs: analysis.processingLatencyMs,
+              };
+            }
+
+            // Warn on clipping (user mic too loud)
+            if (analysis.clippingDetected && frameCount % 100 === 0) {
+              logger.warn(
+                { sessionId, peakLevel: analysis.peakLevel.toFixed(3) },
+                '🎤 Audio clipping detected - user mic may be too loud'
+              );
+            }
+
+            // Detect low volume (user too quiet)
+            if (analysis.peakLevel < 0.05 && frameCount % 100 === 0) {
+              logger.debug(
+                { sessionId, peakLevel: analysis.peakLevel.toFixed(3) },
+                '🎤 Low audio level - user may be speaking quietly'
+              );
             }
           }
         }
@@ -306,6 +391,24 @@ export async function processAudioStream(
       logger.debug('Native audio analyzer reset');
     }
 
+    // Cleanup Pre-STT integration (logs final stats)
+    if (preSTTIntegration !== null) {
+      const integration = preSTTIntegration as PreSTTIntegrationResult;
+      const stats = integration.getStats();
+      logger.info(
+        {
+          sessionId,
+          totalFrames: stats.framesProcessed,
+          avgLatencyMs: stats.processingLatencyMs.toFixed(2),
+          clippingDetected: stats.clippingDetected,
+          isTelephony: stats.isTelephonyAudio,
+          usingRust: integration.isUsingRust(),
+        },
+        '🎤 Pre-STT audio analysis cleanup'
+      );
+      integration.cleanup();
+    }
+
     // Analyze final prosody results
     const voiceEmotion = prosodyAnalyzer?.analyze() ?? null;
     if (voiceEmotion && userData) {
@@ -401,6 +504,37 @@ async function processVoiceEmotion(
       );
     } catch (e) {
       logger.debug({ error: e }, 'Better Than Human prosody failed (non-critical)');
+    }
+  }
+
+  // 🧠 SUPERHUMAN OUTREACH: Accumulate voice distress signals for intelligent outreach
+  if (userId && voiceEmotion.confidence > 0.5) {
+    const isDistressEmotion = ['distressed', 'anxious', 'fearful', 'crying', 'panicked', 'sad'].includes(
+      voiceEmotion.primary?.toLowerCase() || ''
+    );
+    const hasHighStress = (voiceEmotion.stressLevel ?? 0) > 0.6;
+    const hasHighArousal = (voiceEmotion.arousal ?? 0) > 0.7;
+    const hasLowValence = (voiceEmotion.valence ?? 0.5) < 0.3;
+
+    // Only accumulate signals for concerning voice patterns
+    if (isDistressEmotion || (hasHighStress && hasLowValence) || (hasHighArousal && hasLowValence)) {
+      try {
+        const { accumulateSignal, signalFromVoiceDistress } = await import(
+          '../../services/conversation-thread/superhuman-outreach-intelligence.js'
+        );
+        const signal = signalFromVoiceDistress({
+          hasStrain: (voiceEmotion.prosody?.breathiness ?? 0) > 0.5,
+          hasTremor: isDistressEmotion,
+          arousal: voiceEmotion.arousal ?? 0.5,
+          valence: voiceEmotion.valence ?? 0.5,
+        });
+        if (signal) {
+          accumulateSignal(userId, signal);
+          logger.debug({ userId, voicePrimary: voiceEmotion.primary }, '🧠 Voice distress signal accumulated');
+        }
+      } catch {
+        // Non-blocking
+      }
     }
   }
 

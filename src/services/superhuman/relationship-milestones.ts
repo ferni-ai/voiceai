@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onRelationshipMilestoneChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'relationship-milestones' });
 
@@ -248,6 +249,20 @@ async function saveMilestone(milestone: RelationshipMilestone): Promise<void> {
       .doc(milestone.id)
       .set(cleanForFirestore(milestone));
   }
+
+  // Index to semantic memory
+  void onRelationshipMilestoneChange(
+    milestone.userId,
+    milestone.id,
+    {
+      milestone: milestone.title,
+      relationship: 'Ferni',
+      significance: milestone.description,
+      date: new Date(milestone.achievedAt).toISOString(),
+      celebrated: milestone.acknowledged,
+    },
+    'create'
+  );
 
   // Update cache
   const milestones = milestoneCache.get(milestone.userId) || [];

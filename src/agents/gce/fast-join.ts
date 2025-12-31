@@ -151,12 +151,11 @@ async function prewarmGreetingTexts(): Promise<void> {
   log.info({ personas: config.personas.length }, '📝 Pre-caching greeting texts...');
 
   // Import greeting generator
-  const { prewarmGreetingsForAllPersonas, getPrewarmedGreetingForPersona } = await import(
-    '../shared/warm-greeting.js'
-  );
+  const { prewarmGreetingsForAllPersonas, getPrewarmedGreetingForPersona } =
+    await import('../shared/warm-greeting.js');
 
   // First, ensure greeting TEXT is pre-generated
-  await prewarmGreetingsForAllPersonas();
+  prewarmGreetingsForAllPersonas();
 
   // Cache greeting variants per persona
   for (const personaId of config.personas) {
@@ -363,7 +362,7 @@ export function createDeferredInit(): {
   defer: (name: string, fn: () => Promise<void>) => void;
   waitForAll: () => Promise<void>;
 } {
-  const tasks: Promise<void>[] = [];
+  const tasks: Array<Promise<void>> = [];
   const taskNames: string[] = [];
 
   return {

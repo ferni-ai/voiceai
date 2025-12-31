@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, updateCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ProfessionalTasks');
 
@@ -466,7 +467,7 @@ function render(): string {
             <span class="professional-tasks-eyebrow">Professional Assistant</span>
             <h2 class="professional-tasks-name" id="professional-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
-          <button class="professional-close-btn" aria-label="Close tasks">
+          <button class="professional-close-btn" aria-label="${t('accessibility.closeTasks')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -486,7 +487,7 @@ function render(): string {
               </h3>
             </div>
             <div class="professional-quick-actions" role="button" tabindex="0">
-              <button aria-label="Brainstorm" class="professional-quick-action" data-action="start-task" data-task="brainstorm">
+              <button aria-label="${t('accessibility.brainstorm')}" class="professional-quick-action" data-action="start-task" data-task="brainstorm">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -496,7 +497,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">Brainstorm</span>
               </button>
-              <button aria-label="Review Work" class="professional-quick-action" data-action="start-task" data-task="review">
+              <button aria-label="${t('accessibility.reviewWork')}" class="professional-quick-action" data-action="start-task" data-task="review">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -507,7 +508,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">Review Work</span>
               </button>
-              <button aria-label="Draft Content" class="professional-quick-action" data-action="start-task" data-task="draft">
+              <button aria-label="${t('accessibility.draftContent')}" class="professional-quick-action" data-action="start-task" data-task="draft">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -516,7 +517,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">Draft Content</span>
               </button>
-              <button aria-label="Analyze Data" class="professional-quick-action" data-action="start-task" data-task="analyze">
+              <button aria-label="${t('accessibility.analyzeData')}" class="professional-quick-action" data-action="start-task" data-task="analyze">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
@@ -539,7 +540,7 @@ function render(): string {
                 </svg>
                 Skills & Expertise
               </h3>
-              <button aria-label="Add Skill" class="professional-add-btn" data-action="add-skill">
+              <button aria-label="${t('accessibility.addSkill')}" class="professional-add-btn" data-action="add-skill">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -567,13 +568,13 @@ function render(): string {
                     </svg>
                     ${s}
                     <span class="skill-actions" role="button" tabindex="0">
-                      <button aria-label="Delete" class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
+                      <button aria-label="${t('accessibility.delete')}" class="skill-action-btn edit" data-action="edit-skill" data-index="${idx}" title="Edit skill">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                       </button>
-                      <button aria-label="Delete" class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
+                      <button aria-label="${t('accessibility.delete')}" class="skill-action-btn delete" data-action="delete-skill" data-index="${idx}" title="Delete skill">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18"/>
                           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -597,7 +598,7 @@ function render(): string {
                 </svg>
                 Domain Knowledge
               </h3>
-              <button aria-label="Add Domain" class="professional-add-btn" data-action="add-domain">
+              <button aria-label="${t('accessibility.addDomain')}" class="professional-add-btn" data-action="add-domain">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -621,13 +622,13 @@ function render(): string {
                 <div class="professional-domain-header">
                   <h4 class="professional-domain-title">${d.name}</h4>
                   <div class="professional-domain-actions" role="button" tabindex="0">
-                    <button aria-label="Delete" class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
+                    <button aria-label="${t('accessibility.delete')}" class="professional-domain-action-btn edit" data-action="edit-domain" data-index="${idx}" title="Edit domain">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                       </svg>
                     </button>
-                    <button aria-label="Delete" class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
+                    <button aria-label="${t('accessibility.delete')}" class="professional-domain-action-btn delete" data-action="delete-domain" data-index="${idx}" title="Delete domain">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 6h18"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -832,7 +833,7 @@ async function handleAddSkill(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates);
-    toast.success('Skill added!');
+    toast.success(t('toasts.skillAdded'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to add skill:', err);
@@ -858,7 +859,7 @@ async function handleAddDomain(): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Domain added!');
+    toast.success(t('toasts.domainAdded'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to add domain:', err);
@@ -892,7 +893,7 @@ async function handleEditSkill(e: Event): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates);
-    toast.success('Skill updated!');
+    toast.success(t('toasts.skillUpdated'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit skill:', err);
@@ -923,7 +924,7 @@ async function handleDeleteSkill(e: Event): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates);
-    toast.success('Skill removed');
+    toast.success(t('toasts.skillRemoved'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete skill:', err);
@@ -959,7 +960,7 @@ async function handleEditDomain(e: Event): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Domain updated!');
+    toast.success(t('toasts.domainUpdated'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit domain:', err);
@@ -990,7 +991,7 @@ async function handleDeleteDomain(e: Event): Promise<void> {
     };
 
     await updateCustomAgent(currentAgent.id, updates as Parameters<typeof updateCustomAgent>[1]);
-    toast.success('Domain removed');
+    toast.success(t('toasts.domainRemoved'));
     await openProfessionalTasks(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete domain:', err);

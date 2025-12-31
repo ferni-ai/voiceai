@@ -69,6 +69,8 @@ import type { UserData } from '../shared/types.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // Safe fire-and-forget pattern for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+// Centralized generateReply gateway - NEVER use session.generateReply directly!
+import { generateReply } from '../shared/generate-reply-gateway.js';
 
 // ============================================================================
 // TYPES
@@ -98,8 +100,8 @@ export interface MusicHandlerResult {
   djBooth: DJBooth | null;
   /** Music humanization controller (for spontaneous offers) */
   musicHumanization: MusicHumanizationController | null;
-  /** Cleanup function to clear timers */
-  clearTimers: () => void;
+  /** Cleanup function to clear timers and dispose music player */
+  clearTimers: () => void | Promise<void>;
   /** Whether music was initialized */
   initialized: boolean;
   /**
@@ -258,11 +260,42 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
   let appreciationTimer: NodeJS.Timeout | null = null;
   let readTheRoomTimer: NodeJS.Timeout | null = null;
 
-  const clearTimers = () => {
+  // Track if we need to dispose the music player on cleanup
+  let musicPlayerInitialized = false;
+
+  // 🐛 FIX: Split into two functions to avoid race condition
+  // clearIntervalTimers() - for normal music state transitions (playing/stopped)
+  // clearTimers() - for full session cleanup (includes music player reset)
+
+  /**
+   * Clear appreciation/readTheRoom interval timers only.
+   * Safe to call during normal music state transitions.
+   */
+  const clearIntervalTimers = () => {
     if (appreciationTimer) clearInterval(appreciationTimer);
     if (readTheRoomTimer) clearInterval(readTheRoomTimer);
     appreciationTimer = null;
     readTheRoomTimer = null;
+  };
+
+  /**
+   * Full session cleanup - clears timers AND resets music player singleton.
+   * Only call this on session end, NOT during normal music state transitions.
+   */
+  const clearTimers = async () => {
+    clearIntervalTimers();
+
+    // Reset music player singleton to prevent pollution in next session
+    if (musicPlayerInitialized) {
+      try {
+        const { resetMusicPlayer } = await import('../../audio/index.js');
+        await resetMusicPlayer();
+        diag.session('🎵 Music player reset on session cleanup');
+      } catch (err) {
+        diag.warn('🎵 Music player reset failed (non-fatal)', { error: String(err) });
+      }
+      musicPlayerInitialized = false;
+    }
   };
 
   // 🔍 DIAGNOSTIC LOGGING
@@ -302,6 +335,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // Pass the agent session for proper audio mixing with voice
     // Also pass session ID to detect and handle singleton reuse
     await initializeMusicPlayer(room, session, musicPlayerSessionId);
+    musicPlayerInitialized = true; // 🐛 FIX: Track for cleanup
 
     diag.session('🎵 [DIAG] initializeMusicPlayer completed successfully');
 
@@ -457,24 +491,27 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
             eventId: ambientTransition.eventId,
           });
 
-          try {
-            // 🎤 LLM-DRIVEN: Let the LLM generate a natural response
-            const instructions = buildMusicTransitionInstructions({
-              trackName: track.name,
-              trackArtist: track.artist,
-              transitionType: ambientTransition.transitionType,
-              musicContext: effectiveContext,
-              personaId: sessionPersona.id,
-              wasUserRequest: false,
-            });
+          // 🎤 LLM-DRIVEN: Let the LLM generate a natural response
+          const instructions = buildMusicTransitionInstructions({
+            trackName: track.name,
+            trackArtist: track.artist,
+            transitionType: ambientTransition.transitionType,
+            musicContext: effectiveContext,
+            personaId: sessionPersona.id,
+            wasUserRequest: false,
+          });
 
-            session.generateReply({
+          // Use gateway for proper error handling and session readiness checks
+          // IMPORTANT: waitForPlayout: false to prevent circular wait if a tool is executing
+          fireAndForget(async () => {
+            await generateReply(session, sessionId, {
               instructions,
-              allowInterruptions: true,
+              context: 'ambient-music-transition',
+              fallbackMessage: 'That was nice.',
+              priority: 'low',
+              waitForPlayout: false, // Prevents circular wait error with tool execution
             });
-          } catch (e) {
-            diag.warn('Failed to generate ambient transition', { error: String(e) });
-          }
+          }, 'ambient-music-transition');
         } else {
           diag.state('🧠 Ambient music - intelligent transition (silence)', {
             track: track.name,
@@ -545,33 +582,36 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
           const pauseMs = 600 + Math.floor(Math.random() * 400);
 
           setTimeout(() => {
-            try {
-              diag.state('🧠 LLM-driven music transition', {
-                track: track.name,
-                transitionType: transitionResult.transitionType,
-                reasoning: transitionResult.reasoning,
-                confidence: transitionResult.confidence,
-                usedUserLearning: transitionResult.usedUserLearning,
-                eventId: transitionResult.eventId,
-              });
+            diag.state('🧠 LLM-driven music transition', {
+              track: track.name,
+              transitionType: transitionResult.transitionType,
+              reasoning: transitionResult.reasoning,
+              confidence: transitionResult.confidence,
+              usedUserLearning: transitionResult.usedUserLearning,
+              eventId: transitionResult.eventId,
+            });
 
-              // 🎤 LLM-DRIVEN: Let the LLM generate a natural response instead of static phrases
-              const instructions = buildMusicTransitionInstructions({
-                trackName: track.name,
-                trackArtist: track.artist,
-                transitionType: transitionResult.transitionType,
-                musicContext,
-                personaId: sessionPersona.id,
-                wasUserRequest: musicContext?.startReason === 'user_request',
-              });
+            // 🎤 LLM-DRIVEN: Let the LLM generate a natural response instead of static phrases
+            const instructions = buildMusicTransitionInstructions({
+              trackName: track.name,
+              trackArtist: track.artist,
+              transitionType: transitionResult.transitionType,
+              musicContext,
+              personaId: sessionPersona.id,
+              wasUserRequest: musicContext?.startReason === 'user_request',
+            });
 
-              session.generateReply({
+            // Use gateway for proper error handling and session readiness checks
+            // IMPORTANT: waitForPlayout: false to prevent circular wait if a tool is executing
+            fireAndForget(async () => {
+              await generateReply(session, sessionId, {
                 instructions,
-                allowInterruptions: true,
+                context: 'music-transition',
+                fallbackMessage: 'That was nice.',
+                priority: 'low',
+                waitForPlayout: false, // Prevents circular wait error with tool execution
               });
-            } catch (e) {
-              diag.warn('Failed to generate music transition', { error: String(e) });
-            }
+            }, 'music-transition');
           }, pauseMs);
         } else {
           diag.state('🧠 Intelligent music transition - silence chosen', {
@@ -616,13 +656,15 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     });
 
     // Set up music state change callback
+    // 🐛 FIX: Pass clearIntervalTimers (not clearTimers) to avoid resetting music player
+    // during normal music state transitions. clearTimers resets the singleton!
     setupMusicStateCallback(
       player,
       session,
       sessionPersona,
       djBooth,
       room,
-      clearTimers,
+      clearIntervalTimers,
       (timer) => {
         appreciationTimer = timer;
       },
@@ -737,7 +779,7 @@ function setupMusicStateCallback(
   sessionPersona: PersonaConfig,
   djBooth: DJBooth | null,
   room: Room,
-  clearTimers: () => void,
+  clearIntervalTimers: () => void, // 🐛 FIX: Use clearIntervalTimers, NOT clearTimers (avoids race condition)
   setAppreciationTimer: (timer: NodeJS.Timeout | null) => void,
   setReadTheRoomTimer: (timer: NodeJS.Timeout | null) => void,
   sessionId: string,
@@ -909,7 +951,7 @@ function setupMusicStateCallback(
           diag.warn('🎧 Failed to track music', { error: String(e) });
         }
 
-        clearTimers();
+        clearIntervalTimers();
 
         // Set up appreciation timer
         const appreciationTimer = setInterval(() => {
@@ -943,65 +985,15 @@ function setupMusicStateCallback(
         setReadTheRoomTimer(readTheRoomTimer);
       }
 
-      // Clear timers when music stops
+      // Clear timers when music stops (use clearIntervalTimers to avoid resetting music player)
       if (state === 'stopped' || state === 'paused' || state === 'idle') {
-        clearTimers();
+        clearIntervalTimers();
         musicPlaybackStartTime = null;
       }
 
       // Notify frontend for avatar dancing
-      // Check connection state before sending to avoid "Cannot send after disconnect" errors
-      diag.state('🎧 [MUSIC→FRONTEND] Attempting to send music state to frontend', {
-        state,
-        trackName: track?.name,
-        isAmbient,
-      });
-
-      try {
-        const { getFrontendPublisher } = await import('../realtime/index.js');
-        const publisher = getFrontendPublisher();
-
-        diag.state('🎧 [MUSIC→FRONTEND] Publisher status check', {
-          hasPublisher: !!publisher,
-          isConnected: publisher?.isConnected(),
-          hasRoomLocalParticipant: !!room?.localParticipant,
-        });
-
-        // Double-check connection: both room exists AND publisher reports connected
-        if (publisher?.isConnected() && room?.localParticipant) {
-          const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
-
-          diag.state('🎧 [MUSIC→FRONTEND] Sending music state message', {
-            state,
-            trackInfo,
-            isAmbient,
-          });
-
-          const success = await publisher.sendMusicState(state, trackInfo, isAmbient);
-
-          diag.state('🎧 [MUSIC→FRONTEND] Music state message sent', {
-            success,
-            state,
-            trackName: trackInfo?.name,
-          });
-        } else if (state !== 'stopped' && state !== 'idle') {
-          // Only log non-stop states since stopped/idle at disconnect is expected
-          diag.warn('🎧 [MUSIC→FRONTEND] Skipping music state publish - room disconnected', {
-            state,
-            hasPublisher: !!publisher,
-            isConnected: publisher?.isConnected(),
-            hasRoomLocalParticipant: !!room?.localParticipant,
-          });
-        }
-      } catch (pubError) {
-        // Gracefully handle disconnect race condition
-        const errorStr = String(pubError);
-        if (errorStr.includes('disconnect') || errorStr.includes('closed')) {
-          diag.debug('Music state publish skipped - connection closed', { state });
-        } else {
-          diag.warn('Failed to publish music state', { error: errorStr });
-        }
-      }
+      // 🔧 FIX: Added retry logic for transient failures
+      await sendMusicStateToFrontendWithRetry(room, state, track, isAmbient, diag);
     }, 'music-state-change-handler');
   });
 }
@@ -1011,6 +1003,112 @@ function setupMusicStateCallback(
 // ============================================================================
 // Note: DJ outro and crossfade phrases are now handled inline in the callback
 // using static imports for immediate response (no async latency)
+
+/**
+ * 🔧 FIX: Send music state to frontend with retry logic
+ *
+ * Retries transient failures to ensure frontend stays in sync with music state.
+ * Critical states (playing, stopped) get more retries than transitional states.
+ */
+async function sendMusicStateToFrontendWithRetry(
+  room: Room,
+  state: MusicState,
+  track: MusicTrack | null,
+  isAmbient: boolean,
+  diag: typeof import('../../services/diagnostic-logger.js').diag
+): Promise<void> {
+  // Critical states deserve more retries
+  const isCriticalState = state === 'playing' || state === 'stopped';
+  const maxRetries = isCriticalState ? 3 : 1;
+  const retryDelayMs = 200;
+
+  diag.state('🎧 [MUSIC→FRONTEND] Attempting to send music state to frontend', {
+    state,
+    trackName: track?.name,
+    isAmbient,
+  });
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const { getFrontendPublisher } = await import('../realtime/index.js');
+      const publisher = getFrontendPublisher();
+
+      diag.state('🎧 [MUSIC→FRONTEND] Publisher status check', {
+        hasPublisher: !!publisher,
+        isConnected: publisher?.isConnected(),
+        hasRoomLocalParticipant: !!room?.localParticipant,
+        attempt,
+      });
+
+      // Double-check connection: both room exists AND publisher reports connected
+      if (publisher?.isConnected() && room?.localParticipant) {
+        const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
+
+        diag.state('🎧 [MUSIC→FRONTEND] Sending music state message', {
+          state,
+          trackInfo,
+          isAmbient,
+        });
+
+        const success = await publisher.sendMusicState(state, trackInfo, isAmbient);
+
+        if (success) {
+          diag.state('🎧 [MUSIC→FRONTEND] Music state message sent', {
+            success: true,
+            state,
+            trackName: trackInfo?.name,
+            attempt,
+          });
+          return; // Success - exit retry loop
+        }
+
+        // Send returned false - retry for critical states
+        if (attempt < maxRetries) {
+          diag.debug('🎧 [MUSIC→FRONTEND] Retrying music state send', {
+            state,
+            attempt,
+            maxRetries,
+          });
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      } else if (state !== 'stopped' && state !== 'idle') {
+        // Only log non-stop states since stopped/idle at disconnect is expected
+        diag.warn('🎧 [MUSIC→FRONTEND] Skipping music state publish - room disconnected', {
+          state,
+          hasPublisher: !!publisher,
+          isConnected: publisher?.isConnected(),
+          hasRoomLocalParticipant: !!room?.localParticipant,
+        });
+        return; // No point retrying if disconnected
+      } else {
+        return; // Normal disconnect during stopped/idle
+      }
+    } catch (pubError) {
+      // Gracefully handle disconnect race condition
+      const errorStr = String(pubError);
+      if (errorStr.includes('disconnect') || errorStr.includes('closed')) {
+        diag.debug('Music state publish skipped - connection closed', { state });
+        return; // No point retrying if disconnected
+      }
+
+      // Transient error - retry for critical states
+      if (attempt < maxRetries) {
+        diag.debug('🎧 [MUSIC→FRONTEND] Error, retrying', {
+          state,
+          attempt,
+          maxRetries,
+          error: errorStr,
+        });
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      } else {
+        diag.warn('Failed to publish music state after retries', {
+          error: errorStr,
+          attempts: maxRetries,
+        });
+      }
+    }
+  }
+}
 
 async function handleAppreciationInterval(
   sessionId: string,

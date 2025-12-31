@@ -446,7 +446,7 @@ export function startSpeculativePrefetch(
   });
 
   // Store result when ready
-  prefetchPromise.then((result) => {
+  void prefetchPromise.then((result) => {
     const state = sessionPrefetchState.get(sessionId);
     if (state && state.partialText === partialText) {
       state.prefetchedContext = result;

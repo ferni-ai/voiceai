@@ -112,7 +112,10 @@ export async function getHouseholds(credentials: SonosCredentials): Promise<Sono
 /**
  * Get all player groups in a household
  */
-export async function getGroups(credentials: SonosCredentials, householdId: string): Promise<SonosGroup[]> {
+export async function getGroups(
+  credentials: SonosCredentials,
+  householdId: string
+): Promise<SonosGroup[]> {
   interface GroupsResponse {
     groups: Array<{
       id: string;
@@ -124,7 +127,10 @@ export async function getGroups(credentials: SonosCredentials, householdId: stri
     players: SonosPlayer[];
   }
 
-  const response = await sonosRequest<GroupsResponse>(credentials, `/households/${householdId}/groups`);
+  const response = await sonosRequest<GroupsResponse>(
+    credentials,
+    `/households/${householdId}/groups`
+  );
 
   // Get volume for each group
   const groupsWithVolume: SonosGroup[] = await Promise.all(
@@ -158,12 +164,18 @@ export async function getGroups(credentials: SonosCredentials, householdId: stri
 /**
  * Get all players in a household
  */
-export async function getPlayers(credentials: SonosCredentials, householdId: string): Promise<SonosPlayer[]> {
+export async function getPlayers(
+  credentials: SonosCredentials,
+  householdId: string
+): Promise<SonosPlayer[]> {
   interface GroupsResponse {
     players: SonosPlayer[];
   }
 
-  const response = await sonosRequest<GroupsResponse>(credentials, `/households/${householdId}/groups`);
+  const response = await sonosRequest<GroupsResponse>(
+    credentials,
+    `/households/${householdId}/groups`
+  );
   return response.players;
 }
 
@@ -193,14 +205,20 @@ export async function skipToNext(credentials: SonosCredentials, groupId: string)
 /**
  * Skip to previous track
  */
-export async function skipToPrevious(credentials: SonosCredentials, groupId: string): Promise<void> {
+export async function skipToPrevious(
+  credentials: SonosCredentials,
+  groupId: string
+): Promise<void> {
   await sonosRequest(credentials, `/groups/${groupId}/playback/skipToPreviousTrack`, 'POST');
 }
 
 /**
  * Get current playback status
  */
-export async function getPlaybackStatus(credentials: SonosCredentials, groupId: string): Promise<{
+export async function getPlaybackStatus(
+  credentials: SonosCredentials,
+  groupId: string
+): Promise<{
   playbackState: string;
   positionMillis: number;
   playModes: {
@@ -216,7 +234,10 @@ export async function getPlaybackStatus(credentials: SonosCredentials, groupId: 
 /**
  * Get current track info
  */
-export async function getCurrentTrack(credentials: SonosCredentials, groupId: string): Promise<SonosTrack | null> {
+export async function getCurrentTrack(
+  credentials: SonosCredentials,
+  groupId: string
+): Promise<SonosTrack | null> {
   interface MetadataResponse {
     currentItem?: {
       track?: {
@@ -230,10 +251,13 @@ export async function getCurrentTrack(credentials: SonosCredentials, groupId: st
   }
 
   try {
-    const response = await sonosRequest<MetadataResponse>(credentials, `/groups/${groupId}/playbackMetadata`);
-    
+    const response = await sonosRequest<MetadataResponse>(
+      credentials,
+      `/groups/${groupId}/playbackMetadata`
+    );
+
     if (!response.currentItem?.track) return null;
-    
+
     const track = response.currentItem.track;
     return {
       name: track.name,
@@ -254,7 +278,10 @@ export async function getCurrentTrack(credentials: SonosCredentials, groupId: st
 /**
  * Get group volume
  */
-export async function getGroupVolume(credentials: SonosCredentials, groupId: string): Promise<{
+export async function getGroupVolume(
+  credentials: SonosCredentials,
+  groupId: string
+): Promise<{
   volume: number;
   muted: boolean;
   fixed: boolean;
@@ -265,16 +292,26 @@ export async function getGroupVolume(credentials: SonosCredentials, groupId: str
 /**
  * Set group volume (0-100)
  */
-export async function setGroupVolume(credentials: SonosCredentials, groupId: string, volume: number): Promise<void> {
+export async function setGroupVolume(
+  credentials: SonosCredentials,
+  groupId: string,
+  volume: number
+): Promise<void> {
   const clampedVolume = Math.max(0, Math.min(100, Math.round(volume)));
-  await sonosRequest(credentials, `/groups/${groupId}/groupVolume`, 'POST', { volume: clampedVolume });
+  await sonosRequest(credentials, `/groups/${groupId}/groupVolume`, 'POST', {
+    volume: clampedVolume,
+  });
   log.info({ groupId, volume: clampedVolume }, 'Set Sonos volume');
 }
 
 /**
  * Set group mute state
  */
-export async function setGroupMute(credentials: SonosCredentials, groupId: string, muted: boolean): Promise<void> {
+export async function setGroupMute(
+  credentials: SonosCredentials,
+  groupId: string,
+  muted: boolean
+): Promise<void> {
   await sonosRequest(credentials, `/groups/${groupId}/groupVolume/mute`, 'POST', { muted });
   log.info({ groupId, muted }, 'Set Sonos mute');
 }
@@ -282,8 +319,14 @@ export async function setGroupMute(credentials: SonosCredentials, groupId: strin
 /**
  * Adjust volume relative (positive to increase, negative to decrease)
  */
-export async function adjustVolume(credentials: SonosCredentials, groupId: string, delta: number): Promise<void> {
-  await sonosRequest(credentials, `/groups/${groupId}/groupVolume/relative`, 'POST', { volumeDelta: delta });
+export async function adjustVolume(
+  credentials: SonosCredentials,
+  groupId: string,
+  delta: number
+): Promise<void> {
+  await sonosRequest(credentials, `/groups/${groupId}/groupVolume/relative`, 'POST', {
+    volumeDelta: delta,
+  });
 }
 
 // ============================================================================
@@ -293,13 +336,18 @@ export async function adjustVolume(credentials: SonosCredentials, groupId: strin
 /**
  * Get user's Sonos favorites
  */
-export async function getFavorites(credentials: SonosCredentials, householdId: string): Promise<Array<{
-  id: string;
-  name: string;
-  description?: string;
-  imageUrl?: string;
-  service?: string;
-}>> {
+export async function getFavorites(
+  credentials: SonosCredentials,
+  householdId: string
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    description?: string;
+    imageUrl?: string;
+    service?: string;
+  }>
+> {
   interface FavoritesResponse {
     items: Array<{
       id: string;
@@ -310,8 +358,11 @@ export async function getFavorites(credentials: SonosCredentials, householdId: s
     }>;
   }
 
-  const response = await sonosRequest<FavoritesResponse>(credentials, `/households/${householdId}/favorites`);
-  
+  const response = await sonosRequest<FavoritesResponse>(
+    credentials,
+    `/households/${householdId}/favorites`
+  );
+
   return response.items.map((item) => ({
     id: item.id,
     name: item.name,
@@ -324,7 +375,11 @@ export async function getFavorites(credentials: SonosCredentials, householdId: s
 /**
  * Play a favorite
  */
-export async function playFavorite(credentials: SonosCredentials, groupId: string, favoriteId: string): Promise<void> {
+export async function playFavorite(
+  credentials: SonosCredentials,
+  groupId: string,
+  favoriteId: string
+): Promise<void> {
   await sonosRequest(credentials, `/groups/${groupId}/favorites`, 'POST', {
     favoriteId,
     playOnCompletion: true,
@@ -339,15 +394,16 @@ export async function playFavorite(credentials: SonosCredentials, groupId: strin
 /**
  * Set volume across all groups for a vibe
  */
-export async function setAllGroupsVolume(credentials: SonosCredentials, volume: number): Promise<void> {
+export async function setAllGroupsVolume(
+  credentials: SonosCredentials,
+  volume: number
+): Promise<void> {
   const households = await getHouseholds(credentials);
-  
+
   for (const household of households) {
     const groups = await getGroups(credentials, household.id);
-    
-    await Promise.all(
-      groups.map((group) => setGroupVolume(credentials, group.id, volume))
-    );
+
+    await Promise.all(groups.map((group) => setGroupVolume(credentials, group.id, volume)));
   }
 
   log.info({ volume, householdCount: households.length }, 'Set volume on all Sonos groups');
@@ -374,25 +430,24 @@ export async function playVibeMusic(
   const keywords = vibeKeywords[vibe.toLowerCase()] || [vibe];
 
   const households = await getHouseholds(credentials);
-  
+
   for (const household of households) {
     const favorites = await getFavorites(credentials, household.id);
     const groups = await getGroups(credentials, household.id);
 
     // Find matching favorite
     const matchingFavorite = favorites.find((fav) =>
-      keywords.some((keyword) =>
-        fav.name.toLowerCase().includes(keyword) ||
-        (fav.description?.toLowerCase().includes(keyword) ?? false)
+      keywords.some(
+        (keyword) =>
+          fav.name.toLowerCase().includes(keyword) ||
+          (fav.description?.toLowerCase().includes(keyword) ?? false)
       )
     );
 
     // Find target group (by room name or first available)
     let targetGroup = groups[0];
     if (targetRoom) {
-      const roomMatch = groups.find((g) =>
-        g.name.toLowerCase().includes(targetRoom.toLowerCase())
-      );
+      const roomMatch = groups.find((g) => g.name.toLowerCase().includes(targetRoom.toLowerCase()));
       if (roomMatch) targetGroup = roomMatch;
     }
 
@@ -452,7 +507,7 @@ export async function exchangeCodeForTokens(
     throw new Error(`Failed to exchange code: ${error}`);
   }
 
-  const data = await response.json() as {
+  const data = (await response.json()) as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -490,7 +545,7 @@ export async function refreshAccessToken(
     throw new Error(`Failed to refresh token: ${error}`);
   }
 
-  const data = await response.json() as {
+  const data = (await response.json()) as {
     access_token: string;
     refresh_token: string;
     expires_in: number;
@@ -518,7 +573,7 @@ export async function testConnection(credentials: SonosCredentials): Promise<{
 }> {
   try {
     const households = await getHouseholds(credentials);
-    
+
     let totalPlayers = 0;
     for (const household of households) {
       const players = await getPlayers(credentials, household.id);

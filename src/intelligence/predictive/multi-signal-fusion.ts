@@ -26,7 +26,10 @@ import {
   type ObservableState,
 } from './markov-sequence-predictor.js';
 import { forecast, analyzeTrend, type Forecast } from './time-series-forecaster.js';
-import { predictOptimalTiming, type TimingPrediction } from '../../services/trust-systems/outreach-timing-ml.js';
+import {
+  predictOptimalTiming,
+  type TimingPrediction,
+} from '../../services/trust-systems/outreach-timing-ml.js';
 
 const log = createLogger({ module: 'MultiSignalFusion' });
 
@@ -598,11 +601,20 @@ function getOrCreateProfile(userId: string): UserSignalProfile {
 
 function getRelevantStatesForTarget(target: PredictionTarget): ObservableState[] {
   const stateMap: Record<PredictionTarget, ObservableState[]> = {
-    needs_support_now: ['emotion:stressed', 'emotion:anxious', 'emotion:sad', 'emotion:overwhelmed'],
+    needs_support_now: [
+      'emotion:stressed',
+      'emotion:anxious',
+      'emotion:sad',
+      'emotion:overwhelmed',
+    ],
     will_struggle_soon: ['emotion:anxious', 'emotion:stressed', 'topic:work', 'behavior:avoiding'],
     ready_for_challenge: ['emotion:excited', 'emotion:calm', 'behavior:planning', 'emotion:happy'],
     optimal_outreach_window: ['emotion:calm', 'emotion:neutral', 'behavior:reflecting'],
-    high_engagement_period: ['behavior:seeking_advice', 'behavior:processing', 'behavior:reflecting'],
+    high_engagement_period: [
+      'behavior:seeking_advice',
+      'behavior:processing',
+      'behavior:reflecting',
+    ],
     burnout_risk: ['emotion:overwhelmed', 'emotion:stressed', 'topic:work'],
     relationship_tension: ['topic:relationships', 'topic:family', 'emotion:frustrated'],
     habit_slip_likely: ['topic:habits', 'behavior:avoiding', 'emotion:overwhelmed'],
@@ -611,7 +623,9 @@ function getRelevantStatesForTarget(target: PredictionTarget): ObservableState[]
   return stateMap[target] || [];
 }
 
-function mapTargetToSeries(target: PredictionTarget): 'mood' | 'energy' | 'engagement' | 'stress' | null {
+function mapTargetToSeries(
+  target: PredictionTarget
+): 'mood' | 'energy' | 'engagement' | 'stress' | null {
   switch (target) {
     case 'needs_support_now':
     case 'will_struggle_soon':
@@ -641,7 +655,13 @@ function generateExplanation(
   const topSignal = sortedSignals[0];
 
   const probabilityDesc =
-    probability > 0.7 ? 'high' : probability > 0.5 ? 'moderate' : probability > 0.3 ? 'some' : 'low';
+    probability > 0.7
+      ? 'high'
+      : probability > 0.5
+        ? 'moderate'
+        : probability > 0.3
+          ? 'some'
+          : 'low';
 
   const targetDesc = {
     needs_support_now: 'needing support right now',
@@ -654,13 +674,14 @@ function generateExplanation(
     habit_slip_likely: 'a habit slip',
   }[target];
 
-  const signalDesc = {
-    markov_sequence: 'behavioral patterns',
-    time_series_forecast: 'historical trends',
-    temporal_pattern: 'time of day/week',
-    thompson_sampling_timing: 'learned engagement patterns',
-    trend_direction: 'recent trajectory',
-  }[topSignal.name] || topSignal.name;
+  const signalDesc =
+    {
+      markov_sequence: 'behavioral patterns',
+      time_series_forecast: 'historical trends',
+      temporal_pattern: 'time of day/week',
+      thompson_sampling_timing: 'learned engagement patterns',
+      trend_direction: 'recent trajectory',
+    }[topSignal.name] || topSignal.name;
 
   return `${probabilityDesc} probability of ${targetDesc}, primarily based on ${signalDesc}.`;
 }

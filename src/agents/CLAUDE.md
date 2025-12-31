@@ -6,6 +6,28 @@ The agents module contains the voice agent implementation - the core of Ferni's 
 
 ---
 
+## ✅ Audit Status (December 2024)
+
+| Area | Status | Notes |
+|------|--------|-------|
+| **Architecture** | ✅ Clean | All imports respect layer levels |
+| **Deprecations** | ✅ Cleaned | Removed 6 unused re-export files |
+| **Outbound Agent** | ✅ Removed | Deleted - see `docs/architecture/BIDIRECTIONAL-AGENT-ENGAGEMENT.md` |
+| **Multi-Agent** | ✅ Complete | E2E tests passing, handoff flow validated |
+| **Group Conversation** | ✅ Enhanced | LLM-based summary generation added |
+| **Console.log** | ✅ Clean | Only legitimate uses (early-logger, docs) |
+| **Circular Deps** | ✅ None | Verified, no circular imports |
+
+### Files Removed (December 2024 Cleanup)
+- `agents/realtime/behavior-types.ts` (re-export → use `types/behavior-types.js`)
+- `agents/shared/performance/edge-cache.ts` (re-export)
+- `agents/shared/performance/turn-profiler.ts` (re-export)
+- `agents/shared/performance/tool-response-cache.ts` (re-export)
+- `agents/shared/performance/speculative-tts.ts` (re-export)
+- `agents/shared/tool-execution-reliability.ts` (re-export)
+
+---
+
 ## Architecture Level
 
 Agents are at **Level 100** (Application layer) in the clean architecture:
@@ -28,21 +50,26 @@ Level 10:  config/, utils/, types/
 agents/
 ├── voice-agent/           # Main voice agent implementation
 │   ├── phases/            # Session lifecycle phases
-│   ├── handlers/          # Event handlers
-│   └── index.ts           # VoiceAgent class
-├── gce/                   # GCE-specific deployment
-├── core/                  # Shared agent core
+│   └── *-handler.ts       # Event handlers (music, transcript, etc.)
+├── multi-agent/           # ✨ Multi-persona sessions (handoffs)
+│   ├── orchestrator.ts    # Coordinates persona agents
+│   ├── persona-agent-factory.ts
+│   └── agent-setup.ts     # LLM/TTS setup per persona
+├── group-conversation/    # 🎙️ Multi-participant conversations
+│   ├── group-conversation-manager.ts
+│   ├── turn-taking.ts     # Turn management
+│   └── transcript-service.ts
+├── (outbound deleted)     # ✅ Removed - use services/outreach/ instead
 ├── processors/            # Turn processing pipeline
-├── realtime/              # Real-time streaming
+├── realtime/              # Real-time streaming events
 ├── integrations/          # Service integrations
-├── session/               # Session management
-├── handlers/              # Shared handlers
+├── session/               # Session state management
 ├── shared/                # Shared utilities
 ├── personas/              # Persona agent wrappers
-├── safety/                # Safety guardrails
-├── trust/                 # Trust system integration
-├── _legacy/               # Deprecated code (do not use)
-└── index.ts               # Main exports
+├── safety/                # Crisis guard, safety checks
+├── trust/                 # Trust enforcement
+├── core/                  # Result types, pipeline base
+└── __tests__/             # Test suites
 ```
 
 ---
@@ -233,13 +260,66 @@ See `__tests__/README.md` for test helpers and mock factories.
 
 ---
 
+---
+
+## Multi-Agent Mode
+
+Enables seamless handoffs between Ferni team members:
+
+```typescript
+import { initializeMultiAgentSession } from './multi-agent/multi-agent-entry.js';
+
+const { orchestrator, cleanup } = await initializeMultiAgentSession({
+  ctx, room, userParticipant,
+  initialPersonaId: 'ferni',
+  services, userData, sessionId,
+});
+
+// Handle handoff
+await orchestrator.handoff({
+  targetPersonaId: 'peter-john',
+  reason: 'User wants research help',
+});
+```
+
+See `multi-agent/CLAUDE.md` for details.
+
+---
+
+## Group Conversations
+
+Manages multi-participant sessions (Team Roundtable, Conference Calls):
+
+```typescript
+import { createGroupConversation } from './group-conversation/group-conversation-manager.js';
+
+const { conversation, cleanup } = await createGroupConversation({
+  room, userParticipant, sessionId, userId,
+  mode: 'team_roundtable',
+  topic: 'Career planning session',
+});
+
+// Add team member
+conversation.addTeamMember('peter-john', 'Peter', 'expert');
+
+// Get summary (uses LLM for key points extraction)
+const summary = await conversation.getSummary();
+```
+
+See `group-conversation/CLAUDE.md` for details.
+
+---
+
 ## Reference Docs
 
 - Deployment: `docs/architecture/GCE-CLEAN-ARCHITECTURE.md`
+- Multi-Agent: `multi-agent/CLAUDE.md`
+- Group Conversation: `group-conversation/CLAUDE.md`
 - Voice Processing: `src/speech/CLAUDE.md`
+- Pre-STT Audio Enhancement: `docs/architecture/PRE-STT-AUDIO-ENHANCEMENT.md`
 - Tool Development: `src/tools/CLAUDE.md`
 - Context Builders: `src/intelligence/context-builders/CLAUDE.md`
 
 ---
 
-*Last updated: December 2024*
+*Last updated: December 30, 2024*

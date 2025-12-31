@@ -62,6 +62,9 @@ import { startThinkingOfYouEngine } from '../../services/outreach/thinking-of-yo
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
 
+// NEW: Unified Intelligence System (Levels 2-5)
+import { initializeIntelligence } from '../integrations/unified-intelligence-integration.js';
+
 // Context builder prewarming - load intelligence builders before first turn
 import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
@@ -231,15 +234,17 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   // ================================================================
   // CREATE SESSION SERVICES
+  // FIX: Pass userName so it gets saved to Firestore profile!
   // ================================================================
-  const services = await createSessionServices(
+  const services = await createSessionServices({
     sessionId,
     userId,
-    undefined, // isReturningUser determined from profile
-    sessionPersona.speechCharacteristics,
-    sessionPersona.personality?.energy ?? 0.6, // Default energy if personality not loaded
-    sessionPersona.id
-  );
+    userName, // CRITICAL: Pass name from onboarding/auth for profile persistence
+    isReturningUser: undefined, // Determined from profile
+    personaSpeech: sessionPersona.speechCharacteristics,
+    personaEnergy: sessionPersona.personality?.energy ?? 0.6, // Default energy if personality not loaded
+    personaId: sessionPersona.id,
+  });
 
   // ================================================================
   // ⚡ OPTIMIZATION: BACKGROUND PROFILE LOADING (Non-blocking!)
@@ -266,6 +271,16 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           .catch((deepErr) =>
             diag.warn('Failed to load deep understanding profiles (non-fatal)', {
               error: String(deepErr),
+            })
+          ),
+
+        // NEW: Unified Intelligence System (Levels 2-5)
+        // Context assembly, cross-domain correlation, proactive surfacing
+        Promise.resolve(initializeIntelligence(userId, sessionId))
+          .then(() => diag.session('Unified intelligence initialized', { userId, sessionId }))
+          .catch((intErr) =>
+            diag.warn('Failed to initialize unified intelligence (non-fatal)', {
+              error: String(intErr),
             })
           ),
 

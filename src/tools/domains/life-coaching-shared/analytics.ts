@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { getFirestoreDb, cleanForFirestore } from '../../../services/superhuman/firestore-utils.js';
 import type { EmotionalState, FourTendency } from './types.js';
 
 const log = createLogger({ module: 'LifeCoachingAnalytics' });
@@ -299,6 +300,61 @@ export function getUserDomainJourney(userId: string): string[] {
     .map((e) => e.domain);
 }
 
+/**
+ * Get historical analytics from Firestore
+ * Returns events from the past N days
+ */
+export async function getHistoricalAnalytics(
+  userId: string,
+  options: { daysBack?: number; eventType?: LifeCoachingEvent['eventType']; limit?: number } = {}
+): Promise<LifeCoachingEvent[]> {
+  const db = getFirestoreDb();
+  if (!db) {
+    return []; // Firestore not available - return empty
+  }
+
+  const { daysBack = 30, eventType, limit = 100 } = options;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - daysBack);
+
+  let query = db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('life_coaching_analytics')
+    .where('timestamp', '>=', startDate.toISOString())
+    .orderBy('timestamp', 'desc')
+    .limit(limit);
+
+  if (eventType) {
+    query = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('life_coaching_analytics')
+      .where('eventType', '==', eventType)
+      .where('timestamp', '>=', startDate.toISOString())
+      .orderBy('timestamp', 'desc')
+      .limit(limit);
+  }
+
+  try {
+    const snapshot = await query.get();
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        eventType: data.eventType as LifeCoachingEvent['eventType'],
+        domain: data.domain as string,
+        toolId: data.toolId as string,
+        userId,
+        timestamp: new Date(data.timestamp as string),
+        metadata: data.metadata as Record<string, unknown>,
+      };
+    });
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to retrieve historical analytics');
+    return [];
+  }
+}
+
 // ============================================================================
 // INTERNAL HELPERS
 // ============================================================================
@@ -311,7 +367,44 @@ function storeEvent(event: LifeCoachingEvent): void {
     eventStore.splice(0, eventStore.length - MAX_STORE_SIZE);
   }
 
-  // TODO: Persist to Firestore asynchronously
+  // Persist to Firestore asynchronously (fire-and-forget)
+  persistEventToFirestore(event).catch((error) => {
+    log.debug(
+      { error: String(error), eventType: event.eventType },
+      'Failed to persist event to Firestore'
+    );
+  });
+}
+
+/**
+ * Persist a life coaching event to Firestore
+ * Collection: bogle_users/{userId}/life_coaching_analytics
+ */
+async function persistEventToFirestore(event: LifeCoachingEvent): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) {
+    return; // Firestore not available - graceful degradation
+  }
+
+  const docData = cleanForFirestore({
+    eventType: event.eventType,
+    domain: event.domain,
+    toolId: event.toolId,
+    timestamp: event.timestamp.toISOString(),
+    metadata: event.metadata ?? {},
+    createdAt: new Date().toISOString(),
+  });
+
+  await db
+    .collection('bogle_users')
+    .doc(event.userId)
+    .collection('life_coaching_analytics')
+    .add(docData);
+
+  log.debug(
+    { userId: event.userId, eventType: event.eventType },
+    'Life coaching event persisted to Firestore'
+  );
 }
 
 // Types are already exported with their interface definitions above

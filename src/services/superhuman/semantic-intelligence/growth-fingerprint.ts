@@ -15,6 +15,10 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type { GrowthFingerprint, SemanticSnapshot, GrowthMetrics, GrowthShift } from './types.js';
+import {
+  onGrowthEdgeChange,
+  onCoachingInsightChange,
+} from '../../data-layer/hooks/coaching-hooks.js';
 
 const log = createLogger({ module: 'growth-fingerprint' });
 
@@ -695,6 +699,40 @@ async function saveFingerprint(userId: string, fingerprint: GrowthFingerprint): 
       .collection('semantic_intelligence')
       .doc('growth_fingerprint')
       .set(cleanForFirestore(fingerprint));
+
+    // Index growth metrics to semantic memory
+    if (fingerprint.growth) {
+      void onGrowthEdgeChange(
+        userId,
+        'growth_fingerprint',
+        {
+          area: 'overall',
+          currentState: `Emotional range growth: ${fingerprint.growth.emotionalRangeGrowth || 0}`,
+          targetState: 'Continued growth and self-awareness',
+          obstacles: [],
+          strategies: [],
+        },
+        'update'
+      );
+    }
+
+    // Index significant shifts as insights
+    if (fingerprint.significantShifts?.length) {
+      for (const shift of fingerprint.significantShifts.slice(0, 3)) {
+        void onCoachingInsightChange(
+          userId,
+          `shift_${shift.domain}`,
+          {
+            insight: `Growth shift in ${shift.domain}: ${shift.description || 'positive trend'}`,
+            context: `Change magnitude: ${shift.magnitude}`,
+            personaId: 'ferni',
+            category: 'growth',
+            actionable: false,
+          },
+          'update'
+        );
+      }
+    }
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save growth fingerprint');
   }

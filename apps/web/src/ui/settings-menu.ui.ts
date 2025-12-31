@@ -35,6 +35,9 @@ import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 import { transcriptUI } from './transcript.ui.js';
 // i18n for translations
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('SettingsMenu');
 
 // ============================================================================
 // TYPES
@@ -87,6 +90,7 @@ export interface SettingsMenuUICallbacks {
   onYourStoryClick?: () => void;
   onYourYearClick?: () => void;
   onFutureInsightsClick?: () => void;
+  onDeepInsightsClick?: () => void;
   onShareFerniClick?: () => void;
   onAccentSettingsClick?: () => void;
   onWearableSettingsClick?: () => void;
@@ -461,8 +465,14 @@ class SettingsMenuUI {
   ): void {
     if (!element) return;
 
+    const elementId = (element as HTMLElement).dataset?.action || element.className;
+    log.info('Adding tap listener to element', { elementId });
+
     // Standard click event
-    element.addEventListener('click', handler);
+    element.addEventListener('click', (e) => {
+      log.info('Click event fired on element', { elementId, target: (e.target as HTMLElement)?.tagName });
+      handler(e);
+    });
 
     // iOS Safari: touchend as backup (handles taps that don't trigger click)
     element.addEventListener('touchend', (e: Event) => {
@@ -696,20 +706,24 @@ class SettingsMenuUI {
         ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
-          <!-- PINNED ITEMS (Quick Access) -->
+          <!-- PINNED ITEMS (Your Favorites) -->
           ${pinnedItemsHtml}
 
           <!-- ============================================================
-               WARM MENU STRUCTURE - Human-Centered, Relationship-Focused
-               1. Your Practices - The habit loop (core engagement)
-               2. Understanding You - All insights in one place
-               3. Ways to Connect - Warm engagement activities  
-               4. Your People - Relationships & family
-               5. Your Connected Life - All integrations (one entry → panel)
-               6. Settings - Preferences & account combined
+               FERNI MENU - Relationship-First, Warm & Human
+               
+               Philosophy: The menu should feel like asking a friend 
+               "What shall we do?" not navigating software.
+               
+               1. Let's Practice - Daily rituals and guided moments
+               2. How You're Doing - Our story, memories, reflections
+               3. Let's Do Something - Active engagement & play
+               4. Your World - People, places, connections in your life
+               5. What We're Connected To - Apps and integrations
+               6. How This Works - Minimal settings, preferences
                ============================================================ -->
 
-          <!-- SECTION 1: Your Practices - The habit loop -->
+          <!-- SECTION 1: Let's Practice - Daily rituals and guided moments -->
           ${
             this.isSectionVisible('yourPractices')
               ? this.renderCollapsibleSection(
@@ -725,7 +739,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 2: Understanding You - All insights consolidated -->
+          <!-- SECTION 2: How You're Doing - Our story, memories, reflections -->
           ${
             this.isSectionVisible('understandingYou')
               ? this.renderCollapsibleSection(
@@ -736,6 +750,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
             ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
+            ${this.renderMenuItemWithBadge('deep-insights', ICONS.brain, t('menu.items.whatINotice') || 'What I Notice', t('common.new'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
@@ -743,7 +758,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 3: Ways to Connect - Warm engagement activities -->
+          <!-- SECTION 3: Let's Do Something - Active engagement & play -->
           ${
             this.isSectionVisible('waysToConnect')
               ? this.renderCollapsibleSection(
@@ -765,7 +780,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 4: Your People - Relationships & family -->
+          <!-- SECTION 4: Your World - People, places, connections in your life -->
           ${
             this.isSectionVisible('yourPeople')
               ? this.renderCollapsibleSection(
@@ -780,7 +795,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 5: Your Connected Life - One entry opens tabbed panel -->
+          <!-- SECTION 5: What We're Connected To - Apps and integrations -->
           ${
             this.isSectionVisible('connectedLife')
               ? this.renderCollapsibleSection(
@@ -794,7 +809,7 @@ class SettingsMenuUI {
               : ''
           }
 
-          <!-- SECTION 6: Settings - Preferences & account combined (UPDATED 2024-12-24 v2) -->
+          <!-- SECTION 6: How This Works - Minimal settings and preferences -->
           ${(() => {
             // Debug log removed - use browser DevTools if needed
             return this.isSectionVisible('settings')
@@ -851,6 +866,7 @@ class SettingsMenuUI {
     });
 
     // Menu item tap handlers (iOS Safari compatible)
+    log.info('Binding menu item handlers', { itemCount: this.panel.querySelectorAll('.settings-menu__item').length });
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
       this.addTapListener(btn, (e) => {
         const target = e.target as HTMLElement;
@@ -859,6 +875,7 @@ class SettingsMenuUI {
 
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
+        log.info('Menu item clicked', { action });
         const isLocked = htmlBtn.dataset.locked === 'true';
         const isRoadmap = htmlBtn.dataset.roadmap === 'true';
         const isToggle = htmlBtn.dataset.toggle === 'true';
@@ -1184,6 +1201,7 @@ class SettingsMenuUI {
   }
 
   private handleAction(action: string | undefined): void {
+    log.info('📍 handleAction called', { action });
     this.hide();
 
     switch (action) {
@@ -1296,11 +1314,20 @@ class SettingsMenuUI {
       case 'future-insights':
         this.callbacks.onFutureInsightsClick?.();
         break;
+      case 'deep-insights':
+        this.callbacks.onDeepInsightsClick?.();
+        break;
       case 'share-ferni':
         this.callbacks.onShareFerniClick?.();
         break;
       case 'support-ferni':
-        this.callbacks.onSupportFerniClick?.();
+        log.info('🎯 support-ferni action triggered - calling onSupportFerniClick callback');
+        if (this.callbacks.onSupportFerniClick) {
+          log.info('✅ onSupportFerniClick callback exists, invoking...');
+          this.callbacks.onSupportFerniClick();
+        } else {
+          log.error('❌ onSupportFerniClick callback is not defined!');
+        }
         break;
       case 'accent-settings':
         this.callbacks.onAccentSettingsClick?.();

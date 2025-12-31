@@ -131,7 +131,7 @@ describe('Edge Cases', () => {
   it.each(cases)('$name', async ({ run, timeout }) => {
     const result = await run();
     expect(result.passed).toBe(true);
-  }, 15000);
+  }, 30000); // 30s timeout for edge cases including high latency home tests
 });
 
 // ============================================================================

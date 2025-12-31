@@ -13,6 +13,7 @@ import {
   PERFORMANCE_THRESHOLDS,
 } from './performance/turn-profiler.js';
 import { getReliabilityDashboard } from './performance/tool-execution-reliability.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'PerformanceAlerts' });
 
@@ -272,31 +273,185 @@ class PerformanceAlertingService {
   }
 
   /**
-   * Send email notification
+   * Send email notification via SendGrid
    */
   private async sendEmailAlert(alert: Alert): Promise<void> {
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const fromEmail = process.env.ALERT_FROM_EMAIL || 'alerts@ferni.ai';
+
+    if (!sendgridApiKey) {
+      log.warn({}, 'SendGrid API key not configured, skipping email alert');
+      return;
+    }
+
     try {
-      // Use SendGrid or similar email service
-      // For now, we'll just log the intent
-      log.info(
-        {
-          recipients: this.config.emailRecipients,
-          subject: `[${alert.severity.toUpperCase()}] Ferni Voice Agent: ${alert.type}`,
-          message: alert.message,
-        },
-        '📧 Email alert would be sent (email integration pending)'
+      const subject = `[${alert.severity.toUpperCase()}] Ferni Voice Agent: ${alert.type.replace(/_/g, ' ')}`;
+      const html = this.formatAlertEmailHtml(alert);
+      const text = this.formatAlertEmailText(alert);
+
+      // Use circuit breaker to prevent hammering SendGrid on failures
+      const circuitBreaker = getCircuitBreaker('sendgrid-alerts', {
+        failureThreshold: 3,
+        resetTimeout: 120_000,
+        successThreshold: 2,
+      });
+
+      const response = await circuitBreaker.execute(() =>
+        fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${sendgridApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            personalizations: [
+              {
+                to: this.config.emailRecipients.map((email) => ({ email })),
+                subject,
+              },
+            ],
+            from: {
+              email: fromEmail,
+              name: 'Ferni Alerts',
+            },
+            content: [
+              { type: 'text/plain', value: text },
+              { type: 'text/html', value: html },
+            ],
+            categories: ['performance-alert', alert.severity, alert.type],
+          }),
+        })
       );
 
-      // TODO: Implement actual email sending
-      // const { sendEmail } = await import('./email-service.js');
-      // await sendEmail({
-      //   to: this.config.emailRecipients,
-      //   subject: `[${alert.severity.toUpperCase()}] Ferni Voice Agent: ${alert.type}`,
-      //   html: this.formatEmailBody(alert),
-      // });
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`SendGrid error: ${response.status} - ${errorBody}`);
+      }
+
+      log.info(
+        { type: alert.type, recipients: this.config.emailRecipients.length },
+        '✅ Email alert sent'
+      );
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to send email alert');
     }
+  }
+
+  /**
+   * Format alert email as HTML
+   */
+  private formatAlertEmailHtml(alert: Alert): string {
+    const severityColor = alert.severity === 'critical' ? '#ef4444' : '#f59e0b';
+    const severityEmoji = alert.severity === 'critical' ? '🔴' : '⚠️';
+
+    const detailsRows = Object.entries(alert.details)
+      .map(
+        ([key, value]) => `
+        <tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; font-weight: 500; color: #666;">
+            ${key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+          </td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e5e5; color: #333;">
+            ${typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+          </td>
+        </tr>
+      `
+      )
+      .join('');
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <!-- Header -->
+    <div style="background: ${severityColor}; padding: 24px; text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">${severityEmoji}</div>
+      <div style="color: white; font-size: 18px; font-weight: 600;">
+        ${alert.severity.toUpperCase()} Alert
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div style="padding: 24px;">
+      <h2 style="margin: 0 0 16px 0; color: #333; font-size: 20px;">
+        ${alert.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+      </h2>
+
+      <p style="margin: 0 0 24px 0; color: #555; font-size: 16px; line-height: 1.5;">
+        ${alert.message}
+      </p>
+
+      <!-- Details Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        <thead>
+          <tr>
+            <th style="padding: 8px 12px; background: #f8f8f8; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e5e5e5;">
+              Metric
+            </th>
+            <th style="padding: 8px 12px; background: #f8f8f8; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #e5e5e5;">
+              Value
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detailsRows}
+        </tbody>
+      </table>
+
+      <!-- Timestamp -->
+      <p style="margin: 0; color: #888; font-size: 13px;">
+        Detected at: ${alert.timestamp.toISOString()}
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background: #f8f8f8; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e5e5;">
+      <p style="margin: 0; color: #888; font-size: 12px;">
+        Ferni Voice Agent Performance Monitoring<br>
+        <a href="https://console.cloud.google.com/monitoring" style="color: #4a6741; text-decoration: none;">View GCP Monitoring Dashboard</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim();
+  }
+
+  /**
+   * Format alert email as plain text
+   */
+  private formatAlertEmailText(alert: Alert): string {
+    const severityEmoji = alert.severity === 'critical' ? '🔴 CRITICAL' : '⚠️ WARNING';
+
+    const detailsText = Object.entries(alert.details)
+      .map(([key, value]) => {
+        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+        const val = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return `  - ${label}: ${val}`;
+      })
+      .join('\n');
+
+    return `
+${severityEmoji} - Ferni Voice Agent Alert
+
+Type: ${alert.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+
+${alert.message}
+
+Details:
+${detailsText}
+
+Detected at: ${alert.timestamp.toISOString()}
+
+---
+Ferni Voice Agent Performance Monitoring
+https://console.cloud.google.com/monitoring
+    `.trim();
   }
 
   /**

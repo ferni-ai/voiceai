@@ -11,10 +11,10 @@
 		087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A943E77BFDBA802900FA6014 /* HomeKitService.swift */; };
 		09092237862D6F73171C9F4A /* InteractiveMoodWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8C78DB6D8406DE65F35C3B /* InteractiveMoodWidget.swift */; };
 		0E2BABBD74DF3EF11307D6A6 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32C66869D0C603CFFE687E45 /* WatchConnectivityManager.swift */; };
-		1280C2A0239C82BC7EFFD916 /* CarPlay.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 07898F430099BCE617A604FF /* CarPlay.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1624863B6F46D82F39D1918E /* FerniCarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE836CB1EBB530884FAEAC6 /* FerniCarPlaySceneDelegate.swift */; };
 		1979BB5FF1EEC3061F24B628 /* FerniAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCE15D61BE583A97D8949108 /* FerniAppIntents.swift */; };
 		1CDCF6AEA8221C5C3BA32246 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20933E62906112CEBE251D0 /* LocationService.swift */; };
+		2834B7417B33162D4A883F17 /* FerniSpeakingAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10BC848739C12D7AEAD082E /* FerniSpeakingAvatar.swift */; };
 		2A3E516A7784E94BFC4AD896 /* BetterThanHumanIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2AF779500BF6520526BF175 /* BetterThanHumanIntegration.swift */; };
 		2DCA4B11ACEF88B772E81F4B /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CF3335E8145651A381AF91F /* ShareViewController.swift */; };
 		314AC7A45277FF0020B11B9C /* FerniWatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89DA2E05840532330359EA25 /* FerniWatchContentView.swift */; };
@@ -30,6 +30,7 @@
 		505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */; };
 		508D1E8B4967CF2734566569 /* ProactiveNotificationsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE5757EB868FB283604549B /* ProactiveNotificationsService.swift */; };
 		51DC6622C9FAD4A93A3FCC13 /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */; };
+		572B046BC5DDAD8D64701737 /* SpeakingSystemIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FBDEF8A38DC867FD244396 /* SpeakingSystemIntegration.swift */; };
 		57DE7CF2E6546CEE347C0A4D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 96C325A386230CA06BECAE25 /* FirebaseAuth */; };
 		61BEB49A3052CE32B516731C /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BB5080485676C54DDDF79C /* CalendarService.swift */; };
 		6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */; };
@@ -37,6 +38,7 @@
 		6D5395233E5005AE6DB2C840 /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 3B631CB053C6EB9371773D9B /* FerniShared */; };
 		6D70535586BC24CC68BB4047 /* SiriShortcutsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75739E78205CF9DE365E596F /* SiriShortcutsService.swift */; };
 		71DBFCDCB93508C117E88BC4 /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = C0D1614C00172F95BE68DF38 /* FerniShared */; };
+		722784CB69BD446BD3EB1EAF /* ExpressionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = D33174D5164ECFE22A7E8F51 /* ExpressionConfig.swift */; };
 		81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */; };
 		8FF75B8B56A24D6680C59E67 /* FerniWatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 183B5FD5B7D7FF9C6C82A709 /* FerniWatchWidgets.swift */; };
 		9133B68F95123BD1F321C265 /* CarPlay.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07898F430099BCE617A604FF /* CarPlay.framework */; };
@@ -44,9 +46,10 @@
 		97E4359846FF1AA1C905476F /* FerniWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1E200EF528FAF22F00BECA35 /* FerniWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A1B55779BE949A39FE4602B1 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6FD9C87E3433EDE46EB029 /* OnboardingView.swift */; };
 		A41ACBCEB7816D5E8CBE7053 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF709012D71F089D59346C57 /* AuthService.swift */; };
+		A8D2096180D51DDFD9142D77 /* TeamUnlockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55594305D2D8851704B9F42C /* TeamUnlockService.swift */; };
+		A8D906ACEC7CF7804F8A5452 /* expressions.json in Resources */ = {isa = PBXBuildFile; fileRef = 5FE38A50FB1F65540AB93C9A /* expressions.json */; };
 		AA355F5E82F027DDB45CD428 /* FerniShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3958C2DBD5D008D1CA7522B1 /* FerniShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B185B1425C438BD21426CD1C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C2A4EE1254C12E979F450573 /* Assets.xcassets */; };
-		B59AD7B94ECD934CBE50C155 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 029C517F1ACF2914581ADA38 /* Info.plist */; };
 		B8A057B12C22DFEC335D6D11 /* PersonaPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7209647670485E81A61C468 /* PersonaPickerSheet.swift */; };
 		B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C8E9F7817349C526B5FE3DC /* ConnectingView.swift */; };
 		BBC326381A4910D1163CD599 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */; };
@@ -59,6 +62,7 @@
 		E30644C2BED1939D518A623B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 24D5FB024B86FDBD253D973B /* PrivacyInfo.xcprivacy */; };
 		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
 		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
+		EC8EF364A992CFCF0EEBED45 /* FerniWindowAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B34628F1094466859A41B59 /* FerniWindowAvatar.swift */; };
 		ED8512C6774680019D03F987 /* AccountSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */; };
 		F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03DE09C41C69126019ADA01 /* SettingsView.swift */; };
 		F4E13C526196F79F7F2E0C2C /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 8C505BC4CC69B1F692F97697 /* FerniShared */; };
@@ -120,23 +124,11 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F74E43956FC922FF99B57065 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				1280C2A0239C82BC7EFFD916 /* CarPlay.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		029C517F1ACF2914581ADA38 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceiOSTests.swift; sourceTree = "<group>"; };
-		07898F430099BCE617A604FF /* CarPlay.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = CarPlay.framework; sourceTree = "<group>"; };
+		07898F430099BCE617A604FF /* CarPlay.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CarPlay.framework; path = System/Library/Frameworks/CarPlay.framework; sourceTree = SDKROOT; };
 		0A8C78DB6D8406DE65F35C3B /* InteractiveMoodWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveMoodWidget.swift; sourceTree = "<group>"; };
 		102C31505053144B48576C2E /* FerniVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniVoice.entitlements; sourceTree = "<group>"; };
 		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
@@ -164,12 +156,15 @@
 		505851F69FD089CE7650DEFF /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsService.swift; sourceTree = "<group>"; };
 		52D686533AA45C1925F88A5B /* AmbientModeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmbientModeService.swift; sourceTree = "<group>"; };
 		531E78BEC3733500965F8FB8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		55594305D2D8851704B9F42C /* TeamUnlockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamUnlockService.swift; sourceTree = "<group>"; };
 		5A14EDF0CFC3A724B79B9969 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		5F50555303ADF2940EFA244D /* FerniVoice.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FerniVoice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5FE38A50FB1F65540AB93C9A /* expressions.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = expressions.json; sourceTree = "<group>"; };
 		6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		75739E78205CF9DE365E596F /* SiriShortcutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriShortcutsService.swift; sourceTree = "<group>"; };
 		76626BFFF99251B574EA46E0 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		7B34628F1094466859A41B59 /* FerniWindowAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWindowAvatar.swift; sourceTree = "<group>"; };
 		829D2CA84D4E4CD78E578527 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		89DA2E05840532330359EA25 /* FerniWatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchContentView.swift; sourceTree = "<group>"; };
 		8D708901B1EDA0A559D6914E /* FerniWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniWatch.entitlements; sourceTree = "<group>"; };
@@ -187,10 +182,13 @@
 		BBE5757EB868FB283604549B /* ProactiveNotificationsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveNotificationsService.swift; sourceTree = "<group>"; };
 		BCC596556B7D8A8EC66681E8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		C042064D8386AD5E095ADE89 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C10BC848739C12D7AEAD082E /* FerniSpeakingAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniSpeakingAvatar.swift; sourceTree = "<group>"; };
 		C2A4EE1254C12E979F450573 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceView.swift; sourceTree = "<group>"; };
 		CCE15D61BE583A97D8949108 /* FerniAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniAppIntents.swift; sourceTree = "<group>"; };
+		D0FBDEF8A38DC867FD244396 /* SpeakingSystemIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakingSystemIntegration.swift; sourceTree = "<group>"; };
 		D2AF779500BF6520526BF175 /* BetterThanHumanIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterThanHumanIntegration.swift; sourceTree = "<group>"; };
+		D33174D5164ECFE22A7E8F51 /* ExpressionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpressionConfig.swift; sourceTree = "<group>"; };
 		DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityService.swift; sourceTree = "<group>"; };
 		DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSection.swift; sourceTree = "<group>"; };
 		DDDB5F8AF3AA6E96F26FF9D1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -286,9 +284,17 @@
 			isa = PBXGroup;
 			children = (
 				4DE836CB1EBB530884FAEAC6 /* FerniCarPlaySceneDelegate.swift */,
-				029C517F1ACF2914581ADA38 /* Info.plist */,
 			);
 			path = FerniCarPlay;
+			sourceTree = "<group>";
+		};
+		24A893C68925585F4D33EDC9 /* Avatar */ = {
+			isa = PBXGroup;
+			children = (
+				D33174D5164ECFE22A7E8F51 /* ExpressionConfig.swift */,
+				7B34628F1094466859A41B59 /* FerniWindowAvatar.swift */,
+			);
+			path = Avatar;
 			sourceTree = "<group>";
 		};
 		25A7B5C3E64DE76E84F2F428 /* Packages */ = {
@@ -310,6 +316,15 @@
 			path = FerniShareExtension;
 			sourceTree = "<group>";
 		};
+		45799CA4486B56E6929C1331 /* Ferni */ = {
+			isa = PBXGroup;
+			children = (
+				744FAC4E68CAD52D7A61A408 /* Resources */,
+				AE7980081F6D3C928230A578 /* UI */,
+			);
+			path = Ferni;
+			sourceTree = "<group>";
+		};
 		73AF971D42914269E00DDEA4 /* FerniWidgets */ = {
 			isa = PBXGroup;
 			children = (
@@ -322,9 +337,18 @@
 			path = FerniWidgets;
 			sourceTree = "<group>";
 		};
+		744FAC4E68CAD52D7A61A408 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				5FE38A50FB1F65540AB93C9A /* expressions.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		7BF7A55AF4BC8A78A83193E9 = {
 			isa = PBXGroup;
 			children = (
+				45799CA4486B56E6929C1331 /* Ferni */,
 				1C205EE6CB8BA7DF23F6B587 /* FerniCarPlay */,
 				38243610339D40508F33E4FB /* FerniShareExtension */,
 				0345ED12B44D3F986EBEDFF6 /* FerniVoice */,
@@ -370,12 +394,30 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		AE7980081F6D3C928230A578 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				24A893C68925585F4D33EDC9 /* Avatar */,
+				C1485E43F1062B56FB208A78 /* SpeakingSystem */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
 		BFD4BEBD78ADEBADCC352FA1 /* FerniVoiceiOSTests */ = {
 			isa = PBXGroup;
 			children = (
 				057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */,
 			);
 			path = FerniVoiceiOSTests;
+			sourceTree = "<group>";
+		};
+		C1485E43F1062B56FB208A78 /* SpeakingSystem */ = {
+			isa = PBXGroup;
+			children = (
+				C10BC848739C12D7AEAD082E /* FerniSpeakingAvatar.swift */,
+				D0FBDEF8A38DC867FD244396 /* SpeakingSystemIntegration.swift */,
+			);
+			path = SpeakingSystem;
 			sourceTree = "<group>";
 		};
 		CEEF1241B9C1A2E3259EDEF4 /* Frameworks */ = {
@@ -422,6 +464,7 @@
 				B6C6980AD2DD079FCE318E81 /* SharedItemsService.swift */,
 				75739E78205CF9DE365E596F /* SiriShortcutsService.swift */,
 				6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */,
+				55594305D2D8851704B9F42C /* TeamUnlockService.swift */,
 				DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */,
 			);
 			path = Services;
@@ -483,7 +526,6 @@
 				AB77E93CE10C039A4655A879 /* Resources */,
 				DAF91C6A1AB64AE1FA932C13 /* Frameworks */,
 				2862D2B825434E9AAAF70364 /* Embed Foundation Extensions */,
-				F74E43956FC922FF99B57065 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -632,10 +674,10 @@
 			files = (
 				D3C80696A4CDAD54CE9C0511 /* Assets.xcassets in Resources */,
 				DCFABF9EE4A54F5003FD8FEF /* GoogleService-Info.plist in Resources */,
-				B59AD7B94ECD934CBE50C155 /* Info.plist in Resources */,
 				6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */,
 				933A06C859C1BCF3759BECA2 /* Preview Assets.xcassets in Resources */,
 				4CB744CF9F673D26DF1AFF56 /* PrivacyInfo.xcprivacy in Resources */,
+				A8D906ACEC7CF7804F8A5452 /* expressions.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -688,9 +730,12 @@
 				61BEB49A3052CE32B516731C /* CalendarService.swift in Sources */,
 				B93B80BA369079B320F74101 /* ConnectingView.swift in Sources */,
 				67228DEE2B28C781DB7B04F3 /* ContactsService.swift in Sources */,
+				722784CB69BD446BD3EB1EAF /* ExpressionConfig.swift in Sources */,
 				1624863B6F46D82F39D1918E /* FerniCarPlaySceneDelegate.swift in Sources */,
 				4078804CAAF53E42D093BEF3 /* FerniColors.swift in Sources */,
+				2834B7417B33162D4A883F17 /* FerniSpeakingAvatar.swift in Sources */,
 				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
+				EC8EF364A992CFCF0EEBED45 /* FerniWindowAvatar.swift in Sources */,
 				35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */,
 				087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */,
 				81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */,
@@ -703,8 +748,10 @@
 				F22925FC29B40832E7BFC503 /* SettingsView.swift in Sources */,
 				C3AA98D630D34C35BEAD3E35 /* SharedItemsService.swift in Sources */,
 				6D70535586BC24CC68BB4047 /* SiriShortcutsService.swift in Sources */,
+				572B046BC5DDAD8D64701737 /* SpeakingSystemIntegration.swift in Sources */,
 				38E526878C1ED96B7D5BBB97 /* SplashView.swift in Sources */,
 				BBC326381A4910D1163CD599 /* SubscriptionService.swift in Sources */,
+				A8D2096180D51DDFD9142D77 /* TeamUnlockService.swift in Sources */,
 				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
 				DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */,
 				FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */,
@@ -1066,10 +1113,6 @@
 				CODE_SIGN_ENTITLEMENTS = FerniVoice/FerniVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"\".\"",
-				);
 				INFOPLIST_FILE = FerniVoice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1112,10 +1155,6 @@
 				CODE_SIGN_ENTITLEMENTS = FerniVoice/FerniVoice.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"\".\"",
-				);
 				INFOPLIST_FILE = FerniVoice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (

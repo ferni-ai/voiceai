@@ -23,9 +23,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 
 // New coordinator system
-import type { HandoffCoordinator } from '../../../tools/handoff/handoff-coordinator.js';
 import {
   createHandoffCoordinator,
+  type HandoffCoordinator,
   type BanterContext,
   type CoordinatorConfig,
 } from '../../../tools/handoff/handoff-coordinator.js';
@@ -57,7 +57,11 @@ import { getNextMessageSeqSync } from './session-state.js';
 import { getCachedAudioForPersona } from '../conversational-audio-cache.js';
 
 // Team Huddle for cross-persona intelligence (Better Than Human)
-import { generateTeamHuddle, type TeamHuddleSummary, type TeamRecommendation } from '../../../services/cross-persona/team-huddle.js';
+import {
+  generateTeamHuddle,
+  type TeamHuddleSummary,
+  type TeamRecommendation,
+} from '../../../services/cross-persona/team-huddle.js';
 
 const log = getLogger();
 
@@ -473,10 +477,7 @@ export class CoordinatorAdapter {
       // If team huddle has a high-priority recommendation for this persona, weave it in
       if (teamContext?.enhancedGreeting) {
         finalGreeting = teamContext.enhancedGreeting;
-        log.info(
-          { toPersonaId, hasTeamContext: true },
-          '🤝 Using Team Huddle enhanced greeting'
-        );
+        log.info({ toPersonaId, hasTeamContext: true }, '🤝 Using Team Huddle enhanced greeting');
       }
 
       log.info(

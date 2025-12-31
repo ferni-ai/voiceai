@@ -8,6 +8,7 @@
 
 import { getModal, getEntries, getCalendarMonth, setCalendarMonth, getFilterDate, setFilterDate } from './state.js';
 import { renderEntries } from './entries.js';
+import { t } from '../../i18n/index.js';
 
 // ============================================================================
 // MONTH NAMES
@@ -86,13 +87,13 @@ export function renderCalendar(): void {
 
   let calendarHtml = `
     <div class="calendar-header">
-      <button class="calendar-nav" data-action="prev-month" aria-label="Previous month">
+      <button class="calendar-nav" data-action="prev-month" aria-label="${t('accessibility.previousMonth')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </button>
       <span class="calendar-title">${MONTH_NAMES[month]} ${year}</span>
-      <button class="calendar-nav" data-action="next-month" aria-label="Next month">
+      <button class="calendar-nav" data-action="next-month" aria-label="${t('accessibility.nextMonth')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
@@ -149,7 +150,7 @@ export function renderCalendar(): void {
     calendarHtml += `
       <div class="calendar-filter-active">
         <span>Showing entries from ${filterDateFormatted}</span>
-        <button class="calendar-clear-filter" data-action="clear-filter" aria-label="Clear filter">
+        <button class="calendar-clear-filter" data-action="clear-filter" aria-label="${t('accessibility.clearFilter')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>

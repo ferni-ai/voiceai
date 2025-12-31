@@ -413,7 +413,7 @@ async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<v
       { getQualityStats, getRecentAlerts },
       { getSpeechMetricsSnapshot },
     ] = await Promise.all([
-      import('./performance/turn-profiler.js'),
+      import('../../services/performance/turn-profiler.js'),
       import('../voice-agent/quality-degradation-monitor.js'),
       import('../../speech/metrics/index.js'),
     ]);
@@ -437,7 +437,7 @@ async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<v
                 totalTurns: turnPerf.totalTurns,
                 avgTurnMs: Math.round(turnPerf.avgTurnMs),
                 avgTimeToFirstAudioMs: Math.round(turnPerf.avgTtfaMs),
-                slowTurnPercentage: turnPerf.slowTurnPercentage.toFixed(1) + '%',
+                slowTurnPercentage: `${turnPerf.slowTurnPercentage.toFixed(1)}%`,
               },
               topBottlenecks: turnPerf.topBottlenecks,
               latency: {
@@ -483,12 +483,12 @@ async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<v
               quality: {
                 gemini: {
                   avgLatencyMs: Math.round(qualityStats.gemini.avgLatencyMs),
-                  errorRate: (qualityStats.gemini.errorRate * 100).toFixed(1) + '%',
+                  errorRate: `${(qualityStats.gemini.errorRate * 100).toFixed(1)}%`,
                   samples: qualityStats.gemini.sampleCount,
                 },
                 cartesia: {
                   avgLatencyMs: Math.round(qualityStats.cartesia.avgLatencyMs),
-                  errorRate: (qualityStats.cartesia.errorRate * 100).toFixed(1) + '%',
+                  errorRate: `${(qualityStats.cartesia.errorRate * 100).toFixed(1)}%`,
                   samples: qualityStats.cartesia.sampleCount,
                 },
                 response: qualityStats.response,
@@ -776,13 +776,19 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
             const injectionDedup = perfModule.isInjectionDeduplicationNativeAvailable?.() ?? false;
             const messageAnalysis = perfModule.isMessageAnalysisNativeAvailable?.() ?? false;
             const emotionalState = perfModule.isEmotionalStateNativeAvailable?.() ?? false;
-            const conversationDynamics = perfModule.isConversationDynamicsNativeAvailable?.() ?? false;
+            const conversationDynamics =
+              perfModule.isConversationDynamicsNativeAvailable?.() ?? false;
 
             // Consider native available if ANY function is available
-            const isPerfNative = batchToolScoring || injectionDedup || messageAnalysis || emotionalState || conversationDynamics;
+            const isPerfNative =
+              batchToolScoring ||
+              injectionDedup ||
+              messageAnalysis ||
+              emotionalState ||
+              conversationDynamics;
 
             nativeStatus.modules = {
-              ...nativeStatus.modules as object,
+              ...(nativeStatus.modules as object),
               'rust-perf': {
                 available: isPerfNative,
                 functions: {
@@ -802,17 +808,19 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
             const fftMetrics = fftModule.getFftMetrics?.();
 
             nativeStatus.modules = {
-              ...nativeStatus.modules as object,
+              ...(nativeStatus.modules as object),
               'rust-audio': {
                 available: fftModule.isNativeFftAvailable?.() ?? false,
                 loadError: fftModule.getNativeFftLoadError?.() ?? null,
                 libraryInfo: fftInfo ?? null,
-                metrics: fftMetrics ? {
-                  calls: fftMetrics.calls,
-                  totalSamples: fftMetrics.totalSamples,
-                  totalTimeMs: fftMetrics.totalTimeMs?.toFixed(3),
-                  avgTimeMs: fftMetrics.avgTimeMs?.toFixed(3),
-                } : null,
+                metrics: fftMetrics
+                  ? {
+                      calls: fftMetrics.calls,
+                      totalSamples: fftMetrics.totalSamples,
+                      totalTimeMs: fftMetrics.totalTimeMs?.toFixed(3),
+                      avgTimeMs: fftMetrics.avgTimeMs?.toFixed(3),
+                    }
+                  : null,
               },
             };
           }
@@ -831,18 +839,26 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
           }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            ...nativeStatus,
-            timestamp: new Date().toISOString(),
-          }, null, 2));
+          res.end(
+            JSON.stringify(
+              {
+                ...nativeStatus,
+                timestamp: new Date().toISOString(),
+              },
+              null,
+              2
+            )
+          );
         } catch (err) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            status: 'error',
-            error: 'Could not get native module metrics',
-            message: String(err),
-            timestamp: new Date().toISOString(),
-          }));
+          res.end(
+            JSON.stringify({
+              status: 'error',
+              error: 'Could not get native module metrics',
+              message: String(err),
+              timestamp: new Date().toISOString(),
+            })
+          );
         }
         return;
       }

@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibility Guidelines | Ferni Brand</title>
+  <link rel="stylesheet" href="master-tokens.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-warm-white, #FAF8F5);
+      color: var(--color-natural-ink, #2C2520);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .logo-text {
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav a {
+      color: var(--color-natural-ink);
+      text-decoration: none;
+      font-weight: 500;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      opacity: 1;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #2C2520 0%, #1a1512 100%);
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .hero p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+    }
+
+    .wcag-badges {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .wcag-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .wcag-badge.aa {
+      background: rgba(74, 103, 65, 0.3);
+      border-color: rgba(74, 103, 65, 0.5);
+    }
+
+    /* Main Content */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Section */
+    .section {
+      background: var(--color-bg-elevated);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.06);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--color-ferni, #4a6741);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: white;
+    }
+
+    .section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .section-intro {
+      font-size: 1.1rem;
+      color: rgba(44, 37, 32, 0.8);
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+
+    /* Color Contrast */
+    .contrast-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .contrast-card {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(44, 37, 32, 0.1);
+    }
+
+    .contrast-preview {
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .contrast-preview .sample-text {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .contrast-preview .sample-small {
+      font-size: 0.875rem;
+    }
+
+    .contrast-info {
+      background: var(--color-warm-white);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .contrast-ratio {
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .contrast-level {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .level-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .level-badge::after {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    .level-badge.pass {
+      background: var(--color-ferni-subtle);
+      color: var(--color-ferni);
+    }
+
+    .level-badge.pass::after {
+      background: currentColor;
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    .level-badge.fail {
+      background: var(--color-error-subtle);
+      color: var(--color-error);
+    }
+
+    .level-badge.fail::after {
+      background: currentColor;
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M18 6L6 18M6 6l12 12' stroke='currentColor' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    /* Typography */
+    .type-scale {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .type-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 120px;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+    }
+
+    .type-size {
+      font-weight: 600;
+      color: var(--color-ferni);
+    }
+
+    .type-sample {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .type-use {
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.6);
+      text-align: right;
+    }
+
+    /* Focus States */
+    .focus-demo {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .focus-item {
+      text-align: center;
+    }
+
+    .focus-item label {
+      display: block;
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.6);
+      margin-bottom: 1rem;
+    }
+
+    .demo-button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .demo-button.primary {
+      background: var(--color-ferni);
+      color: white;
+    }
+
+    .demo-button.primary:focus {
+      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline-offset: 2px;
+    }
+
+    .demo-button.secondary {
+      background: transparent;
+      color: var(--color-ferni);
+      border: 2px solid var(--color-ferni);
+    }
+
+    .demo-button.secondary:focus {
+      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline-offset: 2px;
+    }
+
+    .demo-input {
+      padding: 0.75rem 1rem;
+      border: 2px solid rgba(44, 37, 32, 0.2);
+      border-radius: 8px;
+      font-size: 1rem;
+      width: 100%;
+      max-width: 200px;
+      transition: all 0.2s;
+    }
+
+    .demo-input:focus {
+      border-color: var(--color-ferni);
+      outline: 3px solid rgba(74, 103, 65, 0.2);
+      outline-offset: 0;
+    }
+
+    .demo-link {
+      color: var(--color-ferni);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+
+    .demo-link:focus {
+      outline: 3px solid rgba(74, 103, 65, 0.5);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* Touch Targets */
+    .touch-targets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .target-demo {
+      text-align: center;
+      padding: 2rem;
+      background: var(--color-warm-white);
+      border-radius: 12px;
+    }
+
+    .target-demo .size-label {
+      display: block;
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.6);
+      margin-bottom: 1rem;
+    }
+
+    .target-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-ferni);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .target-box.minimum {
+      width: 44px;
+      height: 44px;
+    }
+
+    .target-box.recommended {
+      width: 48px;
+      height: 48px;
+    }
+
+    .target-box.comfortable {
+      width: 56px;
+      height: 56px;
+    }
+
+    .target-status {
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .target-status::after {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      background: currentColor;
+    }
+
+    .target-status.ok {
+      color: var(--color-ferni);
+    }
+
+    .target-status.ok::after {
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 6L9 17l-5-5' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    .target-status.best {
+      color: var(--color-ferni);
+    }
+
+    .target-status.best::after {
+      mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' fill='currentColor'/%3E%3C/svg%3E");
+      mask-size: contain;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' fill='currentColor'/%3E%3C/svg%3E");
+      -webkit-mask-size: contain;
+    }
+
+    /* Motion */
+    .motion-preferences {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .motion-card {
+      background: var(--color-warm-white);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+
+    .motion-card h3 {
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+    }
+
+    .motion-demo {
+      height: 80px;
+      background: var(--color-bg-elevated);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .motion-ball {
+      width: 24px;
+      height: 24px;
+      background: var(--color-ferni);
+      border-radius: 50%;
+    }
+
+    .motion-card.standard .motion-ball {
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    .motion-card.reduced .motion-ball {
+      animation: none;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-30px); }
+      50% { transform: translateX(30px); }
+    }
+
+    .motion-code {
+      background: var(--color-text-primary);
+      color: var(--color-text-inverse);
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      overflow-x: auto;
+    }
+
+    /* Screen Reader */
+    .sr-examples {
+      display: grid;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .sr-example {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: var(--color-warm-white);
+      border-radius: 12px;
+    }
+
+    .sr-wrong, .sr-right {
+      padding: 1rem;
+      border-radius: 8px;
+    }
+
+    .sr-wrong {
+      background: var(--color-error-subtle);
+      border-left: 4px solid var(--color-error);
+    }
+
+    .sr-right {
+      background: var(--color-ferni-subtle);
+      border-left: 4px solid var(--color-ferni);
+    }
+
+    .sr-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .sr-wrong .sr-label { color: var(--color-error); }
+    .sr-right .sr-label { color: var(--color-ferni); }
+
+    .sr-code {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.9);
+    }
+
+    /* Checklist */
+    .checklist {
+      display: grid;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--color-warm-white);
+      border-radius: 8px;
+    }
+
+    .checklist-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--color-ferni);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .checklist-icon svg {
+      width: 14px;
+      height: 14px;
+      stroke: white;
+    }
+
+    .checklist-content h4 {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .checklist-content p {
+      font-size: 0.875rem;
+      color: rgba(44, 37, 32, 0.7);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--color-natural-ink);
+      color: white;
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-top: 4rem;
+    }
+
+    .footer p {
+      opacity: 0.7;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .type-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+
+      .type-use {
+        text-align: left;
+      }
+
+      .motion-preferences {
+        grid-template-columns: 1fr;
+      }
+
+      .sr-example {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="index.html" class="logo">
+        <svg viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          <!-- LUXO STYLE: no mouth, expression through eyes only -->
+        </svg>
+        <span class="logo-text">Ferni Brand</span>
+      </a>
+      <nav class="nav" role="navigation" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="capabilities/index.html">Capabilities</a>
+        <a href="brand-book.html">Brand Book</a>
+        <a href="brand-kit.html">Brand Kit</a>
+        <a href="icons.html">Icons</a>
+        <a href="components.html">Components</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Accessibility Guidelines</h1>
+    <p>Ferni is designed to be accessible to everyone. These guidelines ensure our products meet WCAG 2.1 standards and provide an inclusive experience for all users.</p>
+    <div class="wcag-badges">
+      <span class="wcag-badge aa">WCAG 2.1 AA Compliant</span>
+      <span class="wcag-badge">Color Contrast: 4.5:1+</span>
+      <span class="wcag-badge">Touch Targets: 44px+</span>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Color Contrast -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2v20"/>
+          </svg>
+        </div>
+        <h2>Color Contrast</h2>
+      </div>
+      <p class="section-intro">All text must meet WCAG AA minimum contrast ratios: 4.5:1 for normal text and 3:1 for large text (18px+ or 14px+ bold). AAA requires 7:1 and 4.5:1 respectively.</p>
+
+      <div class="contrast-grid">
+        <!-- Primary on White -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: white; color: #2C2520;">
+            <div class="sample-text">Natural Ink on White</div>
+            <div class="sample-small">Regular paragraph text sample</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">14.4:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge pass">AAA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ferni on White -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: white; color: #4a6741;">
+            <div class="sample-text">Ferni Green on White</div>
+            <div class="sample-small">Accent text and links</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">5.9:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge fail">AAA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- White on Ferni -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: #4a6741; color: white;">
+            <div class="sample-text">White on Ferni Green</div>
+            <div class="sample-small">Buttons and CTAs</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">5.9:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge fail">AAA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- White on Dark -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: #2C2520; color: white;">
+            <div class="sample-text">White on Natural Ink</div>
+            <div class="sample-small">Dark mode and footers</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">14.4:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge pass">AAA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Muted on White -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: white; color: rgba(44, 37, 32, 0.6);">
+            <div class="sample-text">Muted Text (60%)</div>
+            <div class="sample-small">Secondary information</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">4.7:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge fail">AAA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warning -->
+        <div class="contrast-card">
+          <div class="contrast-preview" style="background: #FAF8F5; color: #b43c3c;">
+            <div class="sample-text">Error Red on Warm White</div>
+            <div class="sample-small">Error messages</div>
+          </div>
+          <div class="contrast-info">
+            <span class="contrast-ratio">5.2:1</span>
+            <div class="contrast-level">
+              <span class="level-badge pass">AA</span>
+              <span class="level-badge fail">AAA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Typography Sizing -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 7 4 4 20 4 20 7"/>
+            <line x1="9" y1="20" x2="15" y2="20"/>
+            <line x1="12" y1="4" x2="12" y2="20"/>
+          </svg>
+        </div>
+        <h2>Typography Minimum Sizes</h2>
+      </div>
+      <p class="section-intro">All text must be legible and scalable. Body text should never be smaller than 16px on web or 14px on mobile. Users must be able to zoom to 200% without loss of content.</p>
+
+      <div class="type-scale">
+        <div class="type-row">
+          <span class="type-size">48px</span>
+          <span class="type-sample" style="font-size: 48px; font-weight: 700; line-height: 1.1;">Hero Headlines</span>
+          <span class="type-use">Page titles</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">32px</span>
+          <span class="type-sample" style="font-size: 32px; font-weight: 600; line-height: 1.2;">Section Titles</span>
+          <span class="type-use">H1, H2</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">24px</span>
+          <span class="type-sample" style="font-size: 24px; font-weight: 600; line-height: 1.3;">Subsection Headers</span>
+          <span class="type-use">H3</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">18px</span>
+          <span class="type-sample" style="font-size: 18px; font-weight: 500; line-height: 1.4;">Lead Paragraphs</span>
+          <span class="type-use">Intro text</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">16px</span>
+          <span class="type-sample" style="font-size: 16px; line-height: 1.6;">Body text is the foundation of all readable content.</span>
+          <span class="type-use">Body (minimum)</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">14px</span>
+          <span class="type-sample" style="font-size: 14px; line-height: 1.5;">Captions and helper text - use sparingly</span>
+          <span class="type-use">Captions only</span>
+        </div>
+        <div class="type-row">
+          <span class="type-size">12px</span>
+          <span class="type-sample" style="font-size: 12px; line-height: 1.4;">Legal text only - never for primary content</span>
+          <span class="type-use">Legal / footnotes</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Focus States -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <h2>Focus States</h2>
+      </div>
+      <p class="section-intro">All interactive elements must have visible focus indicators for keyboard navigation. Focus rings should be at least 3px with sufficient contrast against the background.</p>
+
+      <div class="focus-demo">
+        <div class="focus-item">
+          <label>Primary Button</label>
+          <button class="demo-button primary">Click Me</button>
+        </div>
+        <div class="focus-item">
+          <label>Secondary Button</label>
+          <button class="demo-button secondary">Click Me</button>
+        </div>
+        <div class="focus-item">
+          <label>Text Input</label>
+          <input type="text" class="demo-input" placeholder="Type here...">
+        </div>
+        <div class="focus-item">
+          <label>Text Link</label>
+          <a href="#" class="demo-link">Learn more</a>
+        </div>
+      </div>
+
+      <p style="margin-top: 2rem; font-size: 0.875rem; color: rgba(44, 37, 32, 0.7);">
+        <strong>Try it:</strong> Use Tab to navigate through the elements above and see the focus states.
+      </p>
+    </section>
+
+    <!-- Touch Targets -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+        </div>
+        <h2>Touch Target Sizes</h2>
+      </div>
+      <p class="section-intro">Interactive elements must be large enough to tap accurately. WCAG 2.1 requires a minimum of 44x44 pixels. We recommend 48px for most buttons.</p>
+
+      <div class="touch-targets">
+        <div class="target-demo">
+          <span class="size-label">WCAG Minimum</span>
+          <div class="target-box minimum">44</div>
+          <div class="target-status ok">Passes AA</div>
+        </div>
+        <div class="target-demo">
+          <span class="size-label">Recommended</span>
+          <div class="target-box recommended">48</div>
+          <div class="target-status best">Optimal</div>
+        </div>
+        <div class="target-demo">
+          <span class="size-label">Comfortable</span>
+          <div class="target-box comfortable">56</div>
+          <div class="target-status best">Best UX</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Motion & Animation -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+        </div>
+        <h2>Motion & Animation</h2>
+      </div>
+      <p class="section-intro">Respect user preferences for reduced motion. Use the <code>prefers-reduced-motion</code> media query to disable or minimize animations for users who have enabled this setting.</p>
+
+      <div class="motion-preferences">
+        <div class="motion-card standard">
+          <h3>Standard Motion</h3>
+          <div class="motion-demo">
+            <div class="motion-ball"></div>
+          </div>
+          <div class="motion-code">
+            <pre>animation: bounce 2s ease-in-out infinite;</pre>
+          </div>
+        </div>
+        <div class="motion-card reduced">
+          <h3>Reduced Motion</h3>
+          <div class="motion-demo">
+            <div class="motion-ball"></div>
+          </div>
+          <div class="motion-code">
+            <pre>@media (prefers-reduced-motion: reduce) {
+  animation: none;
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen Reader Support -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </div>
+        <h2>Screen Reader Support</h2>
+      </div>
+      <p class="section-intro">All interactive elements and images must have appropriate text alternatives. Use semantic HTML and ARIA labels to ensure content is accessible to screen readers.</p>
+
+      <div class="sr-examples">
+        <div class="sr-example">
+          <div class="sr-wrong">
+            <div class="sr-label">Avoid</div>
+            <code class="sr-code">&lt;div onclick="..."&gt;Click&lt;/div&gt;</code>
+          </div>
+          <div class="sr-right">
+            <div class="sr-label">Use</div>
+            <code class="sr-code">&lt;button aria-label="Submit form"&gt;Submit&lt;/button&gt;</code>
+          </div>
+        </div>
+        <div class="sr-example">
+          <div class="sr-wrong">
+            <div class="sr-label">Avoid</div>
+            <code class="sr-code">&lt;img src="ferni.png"&gt;</code>
+          </div>
+          <div class="sr-right">
+            <div class="sr-label">Use</div>
+            <code class="sr-code">&lt;img src="ferni.png" alt="Ferni avatar smiling"&gt;</code>
+          </div>
+        </div>
+        <div class="sr-example">
+          <div class="sr-wrong">
+            <div class="sr-label">Avoid</div>
+            <code class="sr-code">&lt;a href="..."&gt;Click here&lt;/a&gt;</code>
+          </div>
+          <div class="sr-right">
+            <div class="sr-label">Use</div>
+            <code class="sr-code">&lt;a href="..."&gt;View accessibility guidelines&lt;/a&gt;</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Checklist -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <h2>Accessibility Checklist</h2>
+      </div>
+      <p class="section-intro">Use this checklist when reviewing designs and implementations to ensure accessibility compliance.</p>
+
+      <div class="checklist">
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Color contrast meets WCAG AA (4.5:1 for text)</h4>
+            <p>Test all text/background combinations using a contrast checker tool.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>All images have alt text</h4>
+            <p>Decorative images use empty alt="", informative images describe content.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Interactive elements are keyboard accessible</h4>
+            <p>All buttons, links, and form controls can be accessed with Tab key.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Focus states are visible</h4>
+            <p>Focused elements have a clear visual indicator (3px ring minimum).</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Touch targets are at least 44x44 pixels</h4>
+            <p>All tappable elements are large enough for accurate touch input.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Page zooms to 200% without content loss</h4>
+            <p>All content remains readable and functional when zoomed.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Animations respect prefers-reduced-motion</h4>
+            <p>Provide fallbacks for users who prefer minimal motion.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Form fields have labels</h4>
+            <p>Every input has an associated label element or aria-label.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Error messages are clear and helpful</h4>
+            <p>Errors describe the problem and how to fix it, linked to the field.</p>
+          </div>
+        </div>
+        <div class="checklist-item">
+          <div class="checklist-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="checklist-content">
+            <h4>Content doesn't rely solely on color</h4>
+            <p>Use icons, text, or patterns in addition to color for meaning.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2024 Ferni. Committed to building accessible products for everyone.</p>
+  </footer>
+</body>
+</html>

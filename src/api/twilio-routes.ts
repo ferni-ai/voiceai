@@ -15,7 +15,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import {
   getTwilioStreamBridge,
   generateStreamTwiml,
-  TwilioStreamBridge,
+  type TwilioStreamBridge,
   type BridgeConfig,
 } from '../services/voice/twilio-stream-bridge.js';
 import {
@@ -24,7 +24,10 @@ import {
   type AMDWebhookPayload,
   type DetectionResult,
 } from '../services/voice/call-detection.service.js';
-import { recordCallOutcome, getCallSession } from '../services/voice/conversational-call.service.js';
+import {
+  recordCallOutcome,
+  getCallSession,
+} from '../services/voice/conversational-call.service.js';
 import {
   createPhoneBridgeParticipant,
   cleanupBridgeSession,
@@ -185,7 +188,10 @@ async function handleAMDCallback(req: IncomingMessage, res: ServerResponse): Pro
     humanAnsweredAudioUrl: callInfo.humanAnsweredAudioUrl,
   });
 
-  log.info({ callSid: detection.callSid, action: routing.action, reason: routing.reason }, '📞 Routing call');
+  log.info(
+    { callSid: detection.callSid, action: routing.action, reason: routing.reason },
+    '📞 Routing call'
+  );
 
   res.writeHead(200, { 'Content-Type': 'text/xml' });
   res.end(routing.twiml);
@@ -217,7 +223,12 @@ async function handleStatusCallback(req: IncomingMessage, res: ServerResponse): 
   // Update call session if we have one
   const session = getCallSession(CallSid);
   if (session) {
-    if (CallStatus === 'completed' || CallStatus === 'failed' || CallStatus === 'busy' || CallStatus === 'no-answer') {
+    if (
+      CallStatus === 'completed' ||
+      CallStatus === 'failed' ||
+      CallStatus === 'busy' ||
+      CallStatus === 'no-answer'
+    ) {
       recordCallOutcome(session.callId, {
         success: CallStatus === 'completed',
         summary: `Call ${CallStatus}. Duration: ${CallDuration || 0}s`,
@@ -251,92 +262,112 @@ function getBridgeConfig(): BridgeConfig {
  * Register bridge event handlers (shared between standalone and attached modes)
  */
 function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
-  bridge.on('callStarted', async (event: { callSid: string; roomName: string; customParameters: Record<string, unknown> }) => {
-    const { callSid, roomName, customParameters } = event;
-    log.info({ callSid, roomName }, '📞 Stream call started');
+  bridge.on(
+    'callStarted',
+    (event: { callSid: string; roomName: string; customParameters: Record<string, unknown> }) => {
+      void (async () => {
+        const { callSid, roomName, customParameters } = event;
+        log.info({ callSid, roomName }, '📞 Stream call started');
 
-    // Create phone bridge participant (connects Twilio audio to LiveKit room)
-    try {
-      const recipientName = (customParameters as Record<string, string>)?.recipientName || 'Phone';
-      const phoneBridge = await createPhoneBridgeParticipant(callSid, roomName, bridge, recipientName);
-
-      if (phoneBridge) {
-        log.info({ callSid, roomName }, '✅ Phone bridge participant created');
-      } else {
-        log.warn({ callSid, roomName }, '⚠️ Failed to create phone bridge participant');
-      }
-    } catch (error) {
-      log.error({ error: String(error), roomName }, 'Failed to create phone bridge');
-    }
-
-    // Dispatch the REAL Ferni voice agent (runs on GCE)
-    const params = customParameters as Record<string, string>;
-    try {
-      const { AgentDispatchClient } = await import('livekit-server-sdk');
-
-      const agentDispatch = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
-
-      // Determine agent name based on environment
-      const agentName = process.env.AGENT_NAME || 'voice-agent';
-
-      // Dispatch with on_behalf_call metadata so the agent knows this is an outbound call
-      await agentDispatch.createDispatch(roomName, agentName, {
-        metadata: JSON.stringify({
-          type: 'on_behalf_call',
-          callId: params.callId || roomName,
-          originalSessionId: params.sessionId || roomName,
-          userId: params.userId || 'unknown',
-          userName: params.userName || 'User',
-          contact: {
-            name: params.recipientName || 'Friend',
-            phone: params.phone,
-            relationship: params.relationship || 'contact',
-          },
-          purpose: params.purpose || 'Check in',
-          objective: params.objective || 'Have a conversation',
-          callType: params.callType || 'personal',
-        }),
-      });
-
-      log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
-    } catch (error) {
-      log.error({ error: String(error), roomName }, 'Failed to dispatch agent, falling back to local');
-
-      // Fall back to local agent if dispatch fails (e.g., no workers available)
-      try {
-        startOutboundAgent(
-          {
+        // Create phone bridge participant (connects Twilio audio to LiveKit room)
+        try {
+          const recipientName =
+            (customParameters as Record<string, string>)?.recipientName || 'Phone';
+          const phoneBridge = await createPhoneBridgeParticipant(
+            callSid,
             roomName,
-            callId: params.callId || roomName,
-            recipientName: params.recipientName || 'Friend',
-            purpose: params.purpose || 'Check in',
-            objective: params.objective || 'Have a conversation',
-            callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
-            userId: params.userId,
-            userName: params.userName,
-          },
-          bridge,
-          callSid
-        ).catch((err: unknown) => log.error({ error: String(err) }, 'Local agent error'));
+            bridge,
+            recipientName
+          );
 
-        log.info({ roomName, callSid }, '⚠️ Using local fallback agent');
-      } catch (fallbackError) {
-        log.error({ error: String(fallbackError), roomName }, 'Both agent strategies failed');
+          if (phoneBridge) {
+            log.info({ callSid, roomName }, '✅ Phone bridge participant created');
+          } else {
+            log.warn({ callSid, roomName }, '⚠️ Failed to create phone bridge participant');
+          }
+        } catch (error) {
+          log.error({ error: String(error), roomName }, 'Failed to create phone bridge');
+        }
+
+        // Dispatch the REAL Ferni voice agent (runs on GCE)
+        const params = customParameters as Record<string, string>;
+        try {
+          const { AgentDispatchClient } = await import('livekit-server-sdk');
+
+          const agentDispatch = new AgentDispatchClient(
+            LIVEKIT_URL,
+            LIVEKIT_API_KEY,
+            LIVEKIT_API_SECRET
+          );
+
+          // Determine agent name based on environment
+          const agentName = process.env.AGENT_NAME || 'voice-agent';
+
+          // Dispatch with on_behalf_call metadata so the agent knows this is an outbound call
+          await agentDispatch.createDispatch(roomName, agentName, {
+            metadata: JSON.stringify({
+              type: 'on_behalf_call',
+              callId: params.callId || roomName,
+              originalSessionId: params.sessionId || roomName,
+              userId: params.userId || 'unknown',
+              userName: params.userName || 'User',
+              contact: {
+                name: params.recipientName || 'Friend',
+                phone: params.phone,
+                relationship: params.relationship || 'contact',
+              },
+              purpose: params.purpose || 'Check in',
+              objective: params.objective || 'Have a conversation',
+              callType: params.callType || 'personal',
+            }),
+          });
+
+          log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');
+        } catch (error) {
+          log.error(
+            { error: String(error), roomName },
+            'Failed to dispatch agent, falling back to local'
+          );
+
+          // Fall back to local agent if dispatch fails (e.g., no workers available)
+          try {
+            startOutboundAgent(
+              {
+                roomName,
+                callId: params.callId || roomName,
+                recipientName: params.recipientName || 'Friend',
+                purpose: params.purpose || 'Check in',
+                objective: params.objective || 'Have a conversation',
+                callType: (params.callType as 'personal' | 'business' | 'emergency') || 'personal',
+                userId: params.userId,
+                userName: params.userName,
+              },
+              bridge,
+              callSid
+            ).catch((err: unknown) => log.error({ error: String(err) }, 'Local agent error'));
+
+            log.info({ roomName, callSid }, '⚠️ Using local fallback agent');
+          } catch (fallbackError) {
+            log.error({ error: String(fallbackError), roomName }, 'Both agent strategies failed');
+          }
+        }
+      })();
+    }
+  );
+
+  bridge.on('callEnded', (event: { callSid: string }) => {
+    void (async () => {
+      const { callSid } = event;
+      log.info({ callSid }, '📴 Stream call ended');
+      pendingCalls.delete(callSid);
+
+      // Clean up phone bridge session
+      try {
+        await cleanupBridgeSession(callSid);
+      } catch (error) {
+        log.debug({ error: String(error), callSid }, 'Error cleaning up bridge session');
       }
-    }
-  });
-
-  bridge.on('callEnded', async (event: { callSid: string }) => {
-    const { callSid } = event;
-    log.info({ callSid }, '📴 Stream call ended');
-    pendingCalls.delete(callSid);
-
-    // Clean up phone bridge session
-    try {
-      await cleanupBridgeSession(callSid);
-    } catch (error) {
-      log.debug({ error: String(error), callSid }, 'Error cleaning up bridge session');
-    }
+    })();
   });
 
   bridge.on('dtmf', (event: { callSid: string; digit: string }) => {

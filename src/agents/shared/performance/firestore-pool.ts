@@ -310,7 +310,7 @@ class FirestorePool {
         }
 
         // Queue the request
-        return await this.queueRequest(() => this.executeInternal(operation));
+        return await this.queueRequest(async () => this.executeInternal(operation));
       }
 
       return await this.executeInternal(operation);
@@ -387,7 +387,7 @@ class FirestorePool {
   /**
    * Queue a request for later execution
    */
-  private queueRequest<T>(operation: () => Promise<T>): Promise<T> {
+  private async queueRequest<T>(operation: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         // Remove from queue

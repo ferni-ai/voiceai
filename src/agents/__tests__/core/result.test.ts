@@ -197,18 +197,22 @@ describe('Result Type', () => {
     });
 
     it('should use custom error mapper', async () => {
-      const result = await fromPromise(Promise.reject('oops'), (e) => new Error(`Wrapped: ${e}`));
+      // Note: `${e}` with an Error calls e.toString() which returns "Error: oops"
+      const result = await fromPromise(
+        Promise.reject(new Error('oops')),
+        (e) => new Error(`Wrapped: ${e}`)
+      );
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.message).toBe('Wrapped: oops');
+        expect(result.error.message).toBe('Wrapped: Error: oops');
       }
     });
   });
 
   describe('collect', () => {
     it('should collect all Ok results', () => {
-      const results: Result<number, Error>[] = [ok(1), ok(2), ok(3)];
+      const results: Array<Result<number, Error>> = [ok(1), ok(2), ok(3)];
       const collected = collect(results);
 
       expect(collected.ok).toBe(true);
@@ -218,7 +222,7 @@ describe('Result Type', () => {
     });
 
     it('should return first Err', () => {
-      const results: Result<number, Error>[] = [ok(1), err(new Error('fail')), ok(3)];
+      const results: Array<Result<number, Error>> = [ok(1), err(new Error('fail')), ok(3)];
       const collected = collect(results);
 
       expect(collected.ok).toBe(false);
@@ -230,7 +234,7 @@ describe('Result Type', () => {
 
   describe('collectAll', () => {
     it('should collect all Ok results', () => {
-      const results: Result<number, Error>[] = [ok(1), ok(2), ok(3)];
+      const results: Array<Result<number, Error>> = [ok(1), ok(2), ok(3)];
       const collected = collectAll(results);
 
       expect(collected.ok).toBe(true);
@@ -240,7 +244,7 @@ describe('Result Type', () => {
     });
 
     it('should collect all Err results', () => {
-      const results: Result<number, Error>[] = [
+      const results: Array<Result<number, Error>> = [
         ok(1),
         err(new Error('first')),
         err(new Error('second')),

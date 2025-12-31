@@ -617,7 +617,7 @@ function renderImpactSection(): string {
         </div>
 
         <div class="founders-stories-controls">
-          <button class="founders-stories-nav" data-action="prev-story" aria-label="Previous story">
+          <button class="founders-stories-nav" data-action="prev-story" aria-label="${t('accessibility.previousStory')}">
             ${ICONS.chevronLeft}
           </button>
           <div class="founders-stories-dots">
@@ -626,7 +626,7 @@ function renderImpactSection(): string {
                       data-story-index="${i}" aria-label="Go to story ${i + 1}"></button>
             `).join('')}
           </div>
-          <button class="founders-stories-nav" data-action="next-story" aria-label="Next story">
+          <button class="founders-stories-nav" data-action="next-story" aria-label="${t('accessibility.nextStory')}">
             ${ICONS.chevronRight}
           </button>
         </div>

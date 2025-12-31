@@ -61,6 +61,47 @@ import {
 import { selfAwareness, recordDistortions, recordSelfPerception } from './self-awareness.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
+// V4.0 Superhuman Outreach Intelligence - ALL SIGNAL GENERATORS
+import {
+  accumulateSignal,
+  // Core signals
+  signalFromCapacity,
+  signalFromOpenLoop,
+  signalFromValuesConflict,
+  signalFromVoiceDistress,
+  // BTH V1 signals
+  signalFromLifeChapter,
+  signalFromSeasonalDate,
+  signalFromSeasonalPattern,
+  signalFromSilence,
+  signalFromContradiction,
+  signalFromReceptivity,
+  signalFromBlindSpot,
+  signalFromFutureTrajectory,
+  // BTH V2 signals
+  signalFromVoiceBiomarkers,
+  signalFromMoodPrediction,
+  signalFromSocialBattery,
+  signalFromConflict,
+  signalFromCalendarPrep,
+  signalFromEnergyWave,
+  signalFromVagueEmotion,
+  signalFromRecovery,
+  signalFromInsideJoke,
+  // Semantic Intelligence V3 signals
+  signalFromCorrelation,
+  signalFromEmotionalTrajectory,
+  signalFromGrowth,
+  signalFromCrossSessionThread,
+  type SuperhumanSignal,
+} from '../../conversation-thread/superhuman-outreach-intelligence.js';
+import { detectEnergyLevel, detectOvercommitment } from '../capacity-guardian.js';
+import { detectConflict, loadUserValues, type UserValue } from '../values-alignment.js';
+
+// NOTE: Additional superhuman services are called with dynamic imports
+// to avoid coupling issues with varying API signatures. Each service
+// call is wrapped in try/catch for safety.
+
 const log = createLogger({ module: 'SemanticIntelligenceIntegration' });
 
 // ============================================================================
@@ -241,11 +282,17 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
     recordSelfPerception(userId, userText, userText.slice(0, 200)).catch((e) =>
       log.warn({ error: String(e), userId }, 'Self-perception error')
     ),
+
+    // V4.0 Superhuman Outreach Intelligence
+    // Accumulate signals for intelligent group outreach decisions
+    accumulateOutreachSignals(userId, data).catch((e) =>
+      log.warn({ error: String(e), userId }, 'Outreach signal accumulation error')
+    ),
   ]);
 
   log.debug(
     { userId, topic, turnNumber: data.turnNumber },
-    '🧠 Semantic intelligence V3.7 turn processed'
+    '🧠 Semantic intelligence V4.0 turn processed'
   );
 }
 
@@ -277,6 +324,232 @@ function getEmotionValence(emotion: string): number {
   if (positive.some((e) => lower.includes(e))) return 1;
   if (negative.some((e) => lower.includes(e))) return -1;
   return 0;
+}
+
+// ============================================================================
+// V4.0 SUPERHUMAN OUTREACH INTELLIGENCE
+// Accumulate signals for intelligent group outreach decisions
+// ============================================================================
+
+/**
+ * Accumulate signals from turn data for superhuman outreach intelligence.
+ *
+ * This is the COMPREHENSIVE signal accumulator that wires ALL superhuman services:
+ *
+ * Core signals (always run):
+ * - Capacity depletion (burnout risk)
+ * - Values conflicts
+ * - Voice distress (from prosody)
+ * - Emotional peaks
+ * - Open loops (intentions, life events)
+ *
+ * Extended signals (run safely with dynamic imports):
+ * - Life chapter changes
+ * - Contradiction detection
+ * - Vague emotions
+ * - And more via async/background processing
+ *
+ * NOTE: Many BTH V1/V2 services have complex async APIs that would slow down
+ * turn processing. Those signals are accumulated at session end or via
+ * background processing instead of per-turn.
+ */
+async function accumulateOutreachSignals(
+  userId: string,
+  data: TurnSemanticData
+): Promise<void> {
+  const {
+    userText,
+    textEmotion,
+    textEmotionIntensity,
+    voiceEmotion,
+    voiceEmotionConfidence,
+    speechRate,
+    energy,
+    breathiness,
+  } = data;
+
+  const signalsAccumulated: string[] = [];
+
+  // =========================================================================
+  // CORE SIGNALS (Fast, always run)
+  // =========================================================================
+
+  // 1. Check capacity/energy level
+  try {
+    const energyResult = detectEnergyLevel(userText, {
+      emotion: textEmotion,
+      arousal: energy,
+      speechRate,
+    });
+    if (energyResult.level === 'depleted' || energyResult.level === 'low') {
+      const signal = signalFromCapacity({
+        level: energyResult.level,
+        burnoutRisk: detectOvercommitment(userText),
+        indicators: energyResult.indicators,
+      });
+      if (signal) {
+        accumulateSignal(userId, signal);
+        signalsAccumulated.push('capacity');
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 2. Check values conflict
+  try {
+    const userValues = await loadUserValues(userId);
+    if (userValues.length > 0) {
+      const conflict = detectConflict(userText, userValues);
+      if (conflict) {
+        const statedValue = userValues.find((v: UserValue) => v.id === conflict.valueId);
+        if (statedValue) {
+          accumulateSignal(
+            userId,
+            signalFromValuesConflict({
+              statedValue: statedValue.category,
+              demonstratedValue: conflict.conflictingAction,
+              tension: `${statedValue.category} vs. ${conflict.conflictingAction}`,
+            })
+          );
+          signalsAccumulated.push('values_conflict');
+        }
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 3. Check voice distress (from prosody data)
+  if (voiceEmotion && voiceEmotionConfidence && voiceEmotionConfidence > 0.5) {
+    const isDistressEmotion = ['distressed', 'anxious', 'fearful', 'crying', 'panicked'].includes(
+      voiceEmotion.toLowerCase()
+    );
+    const hasHighArousal = (energy || 0) > 0.7;
+
+    if (isDistressEmotion || (hasHighArousal && textEmotionIntensity && textEmotionIntensity > 0.7)) {
+      const signal = signalFromVoiceDistress({
+        hasStrain: (breathiness || 0) > 0.5,
+        hasTremor: isDistressEmotion,
+        arousal: energy || 0.5,
+        valence: getEmotionValence(voiceEmotion),
+      });
+      if (signal) {
+        accumulateSignal(userId, signal);
+        signalsAccumulated.push('voice_distress');
+      }
+    }
+  }
+
+  // 4. Check for emotional peaks (text-based)
+  if (textEmotionIntensity && textEmotionIntensity > 0.8) {
+    accumulateSignal(userId, {
+      type: 'emotional_peak',
+      severity: textEmotionIntensity > 0.9 ? 'high' : 'medium',
+      source: 'semantic-integration',
+      data: {
+        emotion: textEmotion,
+        intensity: textEmotionIntensity,
+        userText: userText.slice(0, 100),
+      },
+      timestamp: new Date(),
+    });
+    signalsAccumulated.push('emotional_peak');
+  }
+
+  // 5. Process open loops for high-priority signals
+  const openLoopPatterns = [
+    { pattern: /\bi('m| am) (starting|beginning|about to)/i, type: 'life_event' },
+    { pattern: /\bjust (got|received|heard|found out)/i, type: 'life_event' },
+    { pattern: /\bi('ve| have) been (thinking|considering|planning)/i, type: 'intention' },
+  ];
+
+  for (const { pattern, type } of openLoopPatterns) {
+    if (pattern.test(userText)) {
+      const signal = signalFromOpenLoop({
+        type,
+        content: userText.slice(0, 100),
+        priority: type === 'life_event' ? 4 : 3,
+      });
+      if (signal) {
+        accumulateSignal(userId, signal);
+        signalsAccumulated.push('open_loop');
+      }
+      break; // Only one open loop signal per turn
+    }
+  }
+
+  // =========================================================================
+  // BETTER THAN HUMAN V1 SIGNALS (Text-based, fast)
+  // =========================================================================
+
+  // 6. Life chapter detection (text pattern matching)
+  try {
+    const { detectChapterMoment } = await import('../life-narrative.js');
+    const chapterResult = detectChapterMoment(userText);
+    if (chapterResult && chapterResult.type) {
+      const signal = signalFromLifeChapter({
+        chapterType: chapterResult.type,
+        title: `New ${chapterResult.type} chapter`,
+        isNewChapter: true,
+        significance: chapterResult.significance > 0.8 ? 'major' : 'moderate',
+      });
+      if (signal) {
+        accumulateSignal(userId, signal);
+        signalsAccumulated.push('life_chapter');
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 7. Contradiction detection (holding opposing emotions)
+  try {
+    const { detectContradiction } = await import('../contradiction-comfort.js');
+    // detectContradiction takes (text, emotionHistory[])
+    const recentEmotions = textEmotion ? [textEmotion] : [];
+    const contradiction = detectContradiction(userText, recentEmotions);
+    if (contradiction && contradiction.detected && contradiction.emotions.length >= 2) {
+      const signal = signalFromContradiction({
+        emotions: [contradiction.emotions[0], contradiction.emotions[1]] as [string, string],
+        intensity: 0.7, // Default intensity
+        validated: false,
+      });
+      if (signal) {
+        accumulateSignal(userId, signal);
+        signalsAccumulated.push('contradiction');
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 8. Vague emotion detection (text pattern matching)
+  try {
+    const { detectVagueEmotions } = await import('../emotional-vocabulary.js');
+    const vagueEmotions = detectVagueEmotions(userText);
+    if (vagueEmotions.length > 0) {
+      const vague = vagueEmotions[0];
+      // VagueEmotionMapping.possibleMeanings is EmotionWord[], extract words
+      const signal = signalFromVagueEmotion({
+        vagueWord: vague.vagueWord,
+        possibleMeanings: vague.possibleMeanings.map((em) => em.word),
+        context: userText.slice(0, 100),
+      });
+      accumulateSignal(userId, signal);
+      signalsAccumulated.push('vague_emotion');
+    }
+  } catch { /* ignore */ }
+
+  // =========================================================================
+  // BTH V2 SIGNALS - Run in background to avoid blocking
+  // These are accumulated via runBackground to not slow down turns
+  // =========================================================================
+
+  // NOTE: Complex async services like mood prediction, social battery,
+  // calendar prep, recovery tracking, etc. are better suited for:
+  // 1. Session start (warmup)
+  // 2. Session end (batch processing)
+  // 3. Periodic background jobs
+  //
+  // This keeps turn processing fast while still collecting signals.
+
+  log.debug(
+    { userId, signalCount: signalsAccumulated.length, signals: signalsAccumulated },
+    '🧠 Outreach signals accumulated (core + text-based)'
+  );
 }
 
 /**

@@ -326,7 +326,10 @@ interface RustEmbeddingCache {
 }
 
 /** Constructor type for RustEmbeddingCache */
-type RustEmbeddingCacheConstructor = new (maxSize: number, defaultTtlMs: number) => RustEmbeddingCache;
+type RustEmbeddingCacheConstructor = new (
+  maxSize: number,
+  defaultTtlMs: number
+) => RustEmbeddingCache;
 
 interface RustPerf {
   getLibraryInfo: () => { version: string; simdAvailable: boolean; parallelThreads: number };
@@ -520,7 +523,6 @@ function loadRustPerf(): RustPerf {
   loadAttempted = true;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('@ferni/perf') as Partial<RustPerf>;
 
     // Verify required functions exist
@@ -730,8 +732,8 @@ export function batchEuclideanDistanceF32(
 export function normalizeVector(v: EmbeddingVector): number[] {
   const arr = Array.isArray(v) ? v : Array.from(v);
   let sumSq = 0;
-  for (let i = 0; i < arr.length; i++) {
-    sumSq += arr[i] * arr[i];
+  for (const val of arr) {
+    sumSq += val * val;
   }
   const norm = Math.sqrt(sumSq);
   if (norm === 0 || !Number.isFinite(norm)) {

@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { openReferral } from './referral.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('EarnSeedsModal');
 
@@ -157,7 +158,7 @@ function createModal(): void {
   modal.innerHTML = `
     <div class="earn-seeds-backdrop"></div>
     <div class="earn-seeds-content">
-      <button class="earn-seeds-close" aria-label="Close">
+      <button class="earn-seeds-close" aria-label="${t('accessibility.close')}">
         ${ICONS.close}
       </button>
 
@@ -181,7 +182,7 @@ function createModal(): void {
       </div>
 
       <div class="earn-seeds-footer">
-        <button aria-label="Start Growing Together" class="earn-seeds-btn earn-seeds-btn--primary" data-action="invite">
+        <button aria-label="${t('accessibility.startGrowingTogether')}" class="earn-seeds-btn earn-seeds-btn--primary" data-action="invite">
           Start Growing Together
         </button>
         <p class="earn-seeds-note">No grinding required. Just be yourself.</p>

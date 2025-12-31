@@ -23,11 +23,17 @@ vi.mock('../../utils/safe-logger.js', () => {
 
 // Mock embeddings
 const mockEmbed = vi.fn();
-const mockCosineSimilarity = vi.fn();
 
 vi.mock('../embeddings.js', () => ({
   embed: (...args: unknown[]) => mockEmbed(...args),
-  cosineSimilarity: (...args: unknown[]) => mockCosineSimilarity(...args),
+}));
+
+// Mock rust-accelerator - the cache uses topKSimilar from here, NOT cosineSimilarity from embeddings
+// This is the key mock that makes tests work correctly
+const mockTopKSimilar = vi.fn();
+
+vi.mock('../rust-accelerator.js', () => ({
+  topKSimilar: (...args: unknown[]) => mockTopKSimilar(...args),
 }));
 
 // Import after mocks
@@ -57,7 +63,8 @@ describe('Semantic Memory Cache', () => {
 
     // Default mock implementations
     mockEmbed.mockResolvedValue(mockEmbedding);
-    mockCosineSimilarity.mockReturnValue(0.5); // Default: below threshold
+    // Default: no matches found (empty result)
+    mockTopKSimilar.mockReturnValue({ indices: [], similarities: [] });
   });
 
   afterEach(() => {
@@ -76,8 +83,8 @@ describe('Semantic Memory Cache', () => {
       // Store a query first
       await storeInSemanticCache(testUserId, 'Different query', testResult, mockEmbedding);
 
-      // Search for a different query - similarity below threshold
-      mockCosineSimilarity.mockReturnValue(0.5);
+      // Search for a different query - no matches above threshold
+      mockTopKSimilar.mockReturnValue({ indices: [], similarities: [] });
       const result = await findSimilarCached(testUserId, testQuery);
 
       expect(result.hit).toBe(false);
@@ -87,8 +94,8 @@ describe('Semantic Memory Cache', () => {
       // Store a query
       await storeInSemanticCache(testUserId, 'What are my interests?', testResult, mockEmbedding);
 
-      // Search for similar query - similarity above threshold
-      mockCosineSimilarity.mockReturnValue(0.9);
+      // Search for similar query - match found above threshold
+      mockTopKSimilar.mockReturnValue({ indices: [0], similarities: [0.9] });
       const result = await findSimilarCached(testUserId, testQuery);
 
       expect(result.hit).toBe(true);
@@ -102,16 +109,12 @@ describe('Semantic Memory Cache', () => {
       const result1 = [{ memory: 'First result' }];
       const result2 = [{ memory: 'Second result - better match' }];
 
-      // Store two queries
+      // Store two queries (topKSimilar returns empty for duplicate check during store)
       await storeInSemanticCache(testUserId, 'Tell me about hobbies', result1, [0.1, 0.2]);
       await storeInSemanticCache(testUserId, 'What are your hobbies?', result2, [0.3, 0.4]);
 
-      // Return different similarities for each
-      mockCosineSimilarity.mockImplementation((_, cachedEmbed) => {
-        if (cachedEmbed[0] === 0.1) return 0.86; // First query
-        if (cachedEmbed[0] === 0.3) return 0.95; // Second query - higher
-        return 0.5;
-      });
+      // topKSimilar returns the best match (index 1 with 0.95 similarity)
+      mockTopKSimilar.mockReturnValue({ indices: [1], similarities: [0.95] });
 
       const result = await findSimilarCached(testUserId, testQuery);
 
@@ -141,10 +144,13 @@ describe('Semantic Memory Cache', () => {
       const result1 = [{ memory: 'First' }];
       const result2 = [{ memory: 'Updated' }];
 
-      // Same embedding = very similar query (>0.95)
-      mockCosineSimilarity.mockReturnValue(0.98);
-
+      // First store: cache is empty, so topKSimilar is NOT called
+      // (duplicate check only happens when userCache.length > 0)
       await storeInSemanticCache(testUserId, testQuery, result1, mockEmbedding);
+
+      // Second store: cache has 1 entry, topKSimilar IS called for duplicate check
+      // >0.95 similarity triggers update instead of new entry
+      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.98] });
       await storeInSemanticCache(testUserId, testQuery, result2, mockEmbedding);
 
       const info = getUserCacheInfo(testUserId);
@@ -154,8 +160,12 @@ describe('Semantic Memory Cache', () => {
     it('should evict oldest entries when at capacity', async () => {
       configureSemanticCache({ maxEntriesPerUser: 3 });
 
-      // Different embeddings = not similar
-      mockCosineSimilarity.mockReturnValue(0.1);
+      // topKSimilar is only called when cache is non-empty (for duplicate check)
+      // So: store 1 = no call, stores 2-4 = calls with no duplicates
+      mockTopKSimilar
+        .mockReturnValueOnce({ indices: [], similarities: [] }) // Store 2
+        .mockReturnValueOnce({ indices: [], similarities: [] }) // Store 3
+        .mockReturnValueOnce({ indices: [], similarities: [] }); // Store 4
 
       // Store 4 queries (capacity is 3)
       await storeInSemanticCache(testUserId, 'Query 1', ['R1'], [0.1]);
@@ -184,11 +194,11 @@ describe('Semantic Memory Cache', () => {
     it('should return cached result on cache hit', async () => {
       const queryFn = vi.fn().mockResolvedValue([{ memory: 'Fresh result' }]);
 
-      // First call - cache miss
+      // Store in cache (cache empty, so topKSimilar NOT called)
       await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
 
-      // Set high similarity for cache hit
-      mockCosineSimilarity.mockReturnValue(0.92);
+      // findSimilarCached will call topKSimilar (cache has entries)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.92] });
 
       const result = await withSemanticCache(testUserId, 'What are my hobbies?', queryFn);
 
@@ -213,7 +223,8 @@ describe('Semantic Memory Cache', () => {
 
   describe('invalidateSemanticCache', () => {
     it('should invalidate entries matching pattern', async () => {
-      mockCosineSimilarity.mockReturnValue(0.1); // Different queries
+      // No duplicates found (different queries)
+      mockTopKSimilar.mockReturnValue({ indices: [], similarities: [] });
 
       await storeInSemanticCache(testUserId, 'What are my hobbies?', ['R1'], [0.1]);
       await storeInSemanticCache(testUserId, 'Tell me about my work', ['R2'], [0.2]);
@@ -226,10 +237,12 @@ describe('Semantic Memory Cache', () => {
     });
 
     it('should clear all entries when no pattern provided', async () => {
+      // No duplicates found (different queries)
+      mockTopKSimilar.mockReturnValue({ indices: [], similarities: [] });
+
       await storeInSemanticCache(testUserId, 'Query 1', ['R1'], [0.1]);
       await storeInSemanticCache(testUserId, 'Query 2', ['R2'], [0.2]);
 
-      mockCosineSimilarity.mockReturnValue(0.1);
       const invalidated = invalidateSemanticCache(testUserId);
 
       expect(invalidated).toBe(2);
@@ -239,18 +252,18 @@ describe('Semantic Memory Cache', () => {
 
   describe('getSemanticCacheStats', () => {
     it('should track hits and misses', async () => {
-      // Store a query
+      // Store a query (cache empty, so topKSimilar NOT called)
       await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
 
-      // Cache miss (different user)
+      // Cache miss (different user - no entries, topKSimilar NOT called, returns early)
       await findSimilarCached('other-user', testQuery);
 
-      // Cache hit
-      mockCosineSimilarity.mockReturnValue(0.9);
+      // Cache hit (cache has entry, topKSimilar IS called)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.9] });
       await findSimilarCached(testUserId, testQuery);
 
-      // Another miss
-      mockCosineSimilarity.mockReturnValue(0.5);
+      // Another miss (topKSimilar IS called but no match found)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [], similarities: [] });
       await findSimilarCached(testUserId, 'Unrelated query');
 
       const stats = getSemanticCacheStats();
@@ -262,11 +275,15 @@ describe('Semantic Memory Cache', () => {
     });
 
     it('should track total entries and user count', async () => {
+      // topKSimilar only called when cache non-empty for that user:
+      // user-1 Query 1: cache empty → no call
+      // user-1 Query 2: cache has 1 → call (needs mock)
+      // user-2 Query 1: cache empty for user-2 → no call
+      mockTopKSimilar.mockReturnValueOnce({ indices: [], similarities: [] });
+
       await storeInSemanticCache('user-1', 'Query 1', ['R1'], [0.1]);
       await storeInSemanticCache('user-1', 'Query 2', ['R2'], [0.2]);
       await storeInSemanticCache('user-2', 'Query 1', ['R3'], [0.3]);
-
-      mockCosineSimilarity.mockReturnValue(0.1); // Not similar
 
       const stats = getSemanticCacheStats();
 
@@ -280,10 +297,11 @@ describe('Semantic Memory Cache', () => {
       // Configure short TTL for testing
       configureSemanticCache({ ttlMs: 100 });
 
+      // Store entry (cache empty, so topKSimilar NOT called)
       await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
 
-      // Immediately should find it
-      mockCosineSimilarity.mockReturnValue(0.9);
+      // Immediately should find it (cache has entry, topKSimilar IS called)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.9] });
       const before = await findSimilarCached(testUserId, testQuery);
       expect(before.hit).toBe(true);
 
@@ -292,7 +310,8 @@ describe('Semantic Memory Cache', () => {
         setTimeout(resolve, 150);
       });
 
-      // Should be expired now
+      // Should be expired now (pruneExpiredEntries removes entry, then
+      // findSimilarCached returns early because cache is empty - no topKSimilar call)
       const after = await findSimilarCached(testUserId, testQuery);
       expect(after.hit).toBe(false);
 
@@ -305,10 +324,13 @@ describe('Semantic Memory Cache', () => {
     it('should respect custom similarity threshold', async () => {
       configureSemanticCache({ similarityThreshold: 0.95 });
 
+      // Store entry (no duplicates)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [], similarities: [] });
       await storeInSemanticCache(testUserId, testQuery, testResult, mockEmbedding);
 
-      // 0.9 is now below threshold
-      mockCosineSimilarity.mockReturnValue(0.9);
+      // topKSimilar with 0.95 threshold won't return 0.9 matches
+      // (threshold is passed to topKSimilar as minSimilarity)
+      mockTopKSimilar.mockReturnValue({ indices: [], similarities: [] });
       const result = await findSimilarCached(testUserId, testQuery);
 
       expect(result.hit).toBe(false);
@@ -320,6 +342,11 @@ describe('Semantic Memory Cache', () => {
 
   describe('edge cases', () => {
     it('should handle embedding generation failure gracefully', async () => {
+      // Store an entry first so cache is non-empty for the lookup
+      // Note: topKSimilar is NOT called during store when cache is empty
+      await storeInSemanticCache(testUserId, 'some query', testResult, mockEmbedding);
+
+      // Now fail embedding generation for the lookup
       mockEmbed.mockRejectedValue(new Error('Embedding API error'));
 
       const result = await findSimilarCached(testUserId, testQuery);
@@ -328,19 +355,25 @@ describe('Semantic Memory Cache', () => {
     });
 
     it('should handle empty query', async () => {
+      // Store entry (cache empty, so topKSimilar NOT called)
       await storeInSemanticCache(testUserId, '', testResult, mockEmbedding);
-      mockCosineSimilarity.mockReturnValue(0.9);
 
+      // Find it (cache has entry, topKSimilar IS called)
+      mockTopKSimilar.mockReturnValueOnce({ indices: [0], similarities: [0.9] });
       const result = await findSimilarCached(testUserId, '');
 
       expect(result.hit).toBe(true);
     });
 
     it('should isolate caches between users', async () => {
+      // Store for both users (both caches start empty, so topKSimilar NOT called)
       await storeInSemanticCache('user-a', testQuery, ['Result A'], mockEmbedding);
       await storeInSemanticCache('user-b', testQuery, ['Result B'], mockEmbedding);
 
-      mockCosineSimilarity.mockReturnValue(0.9);
+      // Each user finds their own cache entry (topKSimilar IS called for each)
+      mockTopKSimilar
+        .mockReturnValueOnce({ indices: [0], similarities: [0.9] })
+        .mockReturnValueOnce({ indices: [0], similarities: [0.9] });
 
       const resultA = await findSimilarCached('user-a', testQuery);
       const resultB = await findSimilarCached('user-b', testQuery);

@@ -255,3 +255,10 @@ export {
   onTransitionFeedbackRecorded,
   onMusicMemoryStored,
 } from './music-learning-persistence.js';
+
+// 🎵 Music Preference Extractor - Learn preferences from natural conversation
+export {
+  extractMusicPreferences,
+  hasMusicContext,
+  type ExtractedMusicPreference,
+} from './music-preference-extractor.js';

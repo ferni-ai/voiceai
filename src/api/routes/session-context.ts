@@ -162,12 +162,14 @@ export async function handleGetContextForApp(
 
     if (!context) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        bridgeMessage: null,
-        insights: [],
-        pendingTopics: [],
-        emotionalState: 'neutral',
-      }));
+      res.end(
+        JSON.stringify({
+          bridgeMessage: null,
+          insights: [],
+          pendingTopics: [],
+          emotionalState: 'neutral',
+        })
+      );
       return;
     }
 

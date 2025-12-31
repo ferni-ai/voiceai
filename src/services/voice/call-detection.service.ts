@@ -162,7 +162,11 @@ export function routeBasedOnDetection(
       const voicemailMessage =
         context.voicemailMessage ||
         VOICEMAIL_TEMPLATES.generic(
-          { recipientName: context.recipientName, personaId: context.personaId, purpose: context.purpose },
+          {
+            recipientName: context.recipientName,
+            personaId: context.personaId,
+            purpose: context.purpose,
+          },
           personaName
         );
       return {
@@ -177,7 +181,11 @@ export function routeBasedOnDetection(
       const silenceVoicemail =
         context.voicemailMessage ||
         VOICEMAIL_TEMPLATES.generic(
-          { recipientName: context.recipientName, personaId: context.personaId, purpose: context.purpose },
+          {
+            recipientName: context.recipientName,
+            personaId: context.personaId,
+            purpose: context.purpose,
+          },
           personaName
         );
       return {
@@ -220,7 +228,9 @@ export function routeBasedOnDetection(
       }
       return {
         action: 'play_message',
-        twiml: generateSayTwiml(`Hi ${context.recipientName}, this is ${personaName}. I'll try calling back later.`),
+        twiml: generateSayTwiml(
+          `Hi ${context.recipientName}, this is ${personaName}. I'll try calling back later.`
+        ),
         reason: 'Detection unknown - playing brief message',
       };
   }
@@ -238,7 +248,10 @@ export async function generateVoicemailAudio(
 
   const message = context.customMessage || templateFn(context, personaName);
 
-  log.debug({ template, personaId: context.personaId, messageLength: message.length }, 'Generating voicemail audio');
+  log.debug(
+    { template, personaId: context.personaId, messageLength: message.length },
+    'Generating voicemail audio'
+  );
 
   // Generate audio with persona voice
   const audioBuffer = await generatePersonaVoice(message, context.personaId);
@@ -312,11 +325,7 @@ function generateWaitTwiml(message: string): string {
 </Response>`;
 }
 
-function generateVoicemailTwiml(
-  message: string,
-  personaId: string,
-  initialPause = 1
-): string {
+function generateVoicemailTwiml(message: string, personaId: string, initialPause = 1): string {
   const voice = getPersonaFallbackVoice(personaId);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -329,7 +338,10 @@ function generateVoicemailTwiml(
 // UTILITIES
 // ============================================================================
 
-async function uploadVoicemailAudio(audioBuffer: Buffer, personaId: string): Promise<string | null> {
+async function uploadVoicemailAudio(
+  audioBuffer: Buffer,
+  personaId: string
+): Promise<string | null> {
   if (!GCS_BUCKET) {
     return null;
   }

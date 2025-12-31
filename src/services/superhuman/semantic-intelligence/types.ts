@@ -111,6 +111,10 @@ export interface EmotionalArc {
   // The emotion or theme being tracked
   theme: string; // e.g., "career anxiety", "relationship joy"
   themeEmbedding?: number[];
+  emotion?: string; // Primary emotion of the arc
+  triggers?: string[]; // What triggers this emotional pattern
+  frequency?: 'rare' | 'occasional' | 'frequent' | 'constant';
+  intensity?: number; // 0-1, overall intensity level
 
   // The trajectory
   waypoints: EmotionalWaypoint[];
@@ -226,6 +230,7 @@ export interface DecisionPoint {
   // Learning
   lesson?: string;
   patternId?: string; // Links to broader pattern
+  domain?: string; // Domain area (e.g., 'work', 'life', 'relationships')
 }
 
 export interface CounterfactualOutcome {
@@ -318,6 +323,7 @@ export interface GrowthFingerprint {
 export interface GrowthMetrics {
   emotionalRangeGrowth: number; // Change in emotional vocabulary diversity
   topicEvolution: Array<{ topic: string; trend: 'growing' | 'shrinking' | 'stable' }>;
+  topicDiversityGrowth?: number; // Change in topic diversity over time
   languageMaturation: {
     questionToStatementShift: number;
     certaintyGrowth: number;
@@ -335,6 +341,8 @@ export interface GrowthShift {
   description: string;
   magnitude: number; // 0-1
   domain: 'emotional' | 'cognitive' | 'relational' | 'behavioral';
+  dimension?: string; // Specific dimension within the domain
+  interpretation?: string; // Human-readable interpretation
   embedding?: number[];
 }
 

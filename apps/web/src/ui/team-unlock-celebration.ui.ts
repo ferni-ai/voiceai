@@ -196,11 +196,11 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       
       <!-- Action -->
       <div class="unlock-actions" role="button" tabindex="0">
-        <button aria-label="Say Hello" class="unlock-button unlock-button--primary" data-action="meet">
+        <button aria-label="${t('accessibility.sayHello')}" class="unlock-button unlock-button--primary" data-action="meet">
           ${ICONS.heart}
           <span>Say Hello</span>
         </button>
-        <button aria-label="Maybe Later" class="unlock-button unlock-button--secondary" data-action="later">
+        <button aria-label="${t('accessibility.maybeLater')}" class="unlock-button unlock-button--secondary" data-action="later">
           Maybe Later
         </button>
       </div>

@@ -10,6 +10,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('RelationshipInsightsUI');
 
@@ -663,18 +664,18 @@ function render(): void {
             <h2 class="ri-title">Your People Insights</h2>
           </div>
         </div>
-        <button class="ri-close" aria-label="Close">${ICONS.close}</button>
+        <button class="ri-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
     </div>
     
     <div class="ri-tabs">
-      <button aria-label="Overview" class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+      <button aria-label="${t('accessibility.overview')}" class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
         ${ICONS.chart} Overview
       </button>
-      <button aria-label="Insights" class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
+      <button aria-label="${t('accessibility.insights')}" class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
         ${ICONS.sparkles} Insights
       </button>
-      <button aria-label="Activity" class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
+      <button aria-label="${t('accessibility.activity')}" class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
         ${ICONS.activity} Activity
       </button>
     </div>
@@ -1026,7 +1027,7 @@ export function openRelationshipInsights(options: RelationshipInsightsOptions = 
   modalContainer.className = 'relationship-insights-overlay';
   modalContainer.innerHTML = `
     <div class="relationship-insights-backdrop"></div>
-    <div class="relationship-insights-modal" role="dialog" aria-modal="true" aria-label="Relationship insights">
+    <div class="relationship-insights-modal" role="dialog" aria-modal="true" aria-label="${t('accessibility.relationshipInsights')}">
     </div>
   `;
   document.body.appendChild(modalContainer);

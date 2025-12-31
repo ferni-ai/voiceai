@@ -145,7 +145,7 @@ describe('Pipeline', () => {
     it('should timeout slow steps', async () => {
       const logger = createMockLogger();
 
-      const pipeline = new Pipeline<{}>('test').add(
+      const pipeline = new Pipeline<Record<string, unknown>>('test').add(
         createStep('slow', async () => {
           await new Promise<void>((r) => {
             setTimeout(r, 1000);
@@ -169,7 +169,7 @@ describe('Pipeline', () => {
       const logger = createMockLogger();
       let attempts = 0;
 
-      const pipeline = new Pipeline<{}>('test').add(
+      const pipeline = new Pipeline<Record<string, unknown>>('test').add(
         createStep('flaky', async () => {
           attempts++;
           if (attempts < 3) {
@@ -190,7 +190,7 @@ describe('Pipeline', () => {
       const logger = createMockLogger();
       let attempts = 0;
 
-      const pipeline = new Pipeline<{}>('test').add(
+      const pipeline = new Pipeline<Record<string, unknown>>('test').add(
         createStep('always-fail', async () => {
           attempts++;
           return err(new PipelineStepError('always-fail', 0, 'nope'));
@@ -207,7 +207,7 @@ describe('Pipeline', () => {
 
   describe('getStepNames', () => {
     it('should return step names for debugging', () => {
-      const pipeline = new Pipeline<{}>('test')
+      const pipeline = new Pipeline<Record<string, unknown>>('test')
         .add(createStep('first', async (ctx) => ok(ctx)))
         .add(createStep('second', async (ctx) => ok(ctx)))
         .add(createStep('third', async (ctx) => ok(ctx)));

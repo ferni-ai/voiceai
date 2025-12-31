@@ -29,9 +29,8 @@ describe('greeting-audio-prewarm', () => {
 
   describe('getPrewarmedGreetingAudio', () => {
     it('should return null for non-cached greetings', async () => {
-      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 
@@ -40,9 +39,8 @@ describe('greeting-audio-prewarm', () => {
     });
 
     it('should handle personaId lookup (resolves to voiceId)', async () => {
-      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
       const { getVoiceIdForPersona } = await import('../../../../speech/tts/cartesia-core.js');
 
       clearGreetingAudioCache();
@@ -55,9 +53,8 @@ describe('greeting-audio-prewarm', () => {
     });
 
     it('should return cache stats', async () => {
-      const { getGreetingAudioCacheStats, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { getGreetingAudioCacheStats, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 
@@ -67,9 +64,8 @@ describe('greeting-audio-prewarm', () => {
     });
 
     it('should check if greeting is cached', async () => {
-      const { isGreetingAudioCached, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { isGreetingAudioCached, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 
@@ -78,9 +74,8 @@ describe('greeting-audio-prewarm', () => {
     });
 
     it('should handle unknown personaId gracefully', async () => {
-      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 
@@ -90,9 +85,8 @@ describe('greeting-audio-prewarm', () => {
     });
 
     it('should normalize text (strip SSML) for cache key', async () => {
-      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { getPrewarmedGreetingAudio, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 
@@ -120,9 +114,8 @@ describe('greeting-audio-prewarm', () => {
       const originalKey = process.env.CARTESIA_API_KEY;
       delete process.env.CARTESIA_API_KEY;
 
-      const { prewarmGreetingAudio, clearGreetingAudioCache } = await import(
-        '../greeting-audio-prewarm.js'
-      );
+      const { prewarmGreetingAudio, clearGreetingAudioCache } =
+        await import('../greeting-audio-prewarm.js');
 
       clearGreetingAudioCache();
 

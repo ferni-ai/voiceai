@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251224">
+  <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
   <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
   
   
@@ -195,10 +196,10 @@
     </a>
     
     <ul class="nav__links">
-      <li><a href="#story" class="nav__link">Our Story</a></li>
-      <li><a href="#team" class="nav__link">Team</a></li>
-      <li><a href="#founders" class="nav__link">Support</a></li>
-      <li><a href="#faq" class="nav__link">FAQ</a></li>
+      <li><a href="/features/" class="nav__link">Features</a></li>
+      <li><a href="/team/" class="nav__link">Team</a></li>
+      <li><a href="/support/" class="nav__link">Support</a></li>
+      <li><a href="/about/" class="nav__link">About</a></li>
     </ul>
     
     <a href="https://app.ferni.ai" class="nav__cta nav__cta--desktop">
@@ -226,10 +227,12 @@
     </button>
   </div>
   <nav class="mobile-menu__nav">
-    <a href="#story">Our Story</a>
-    <a href="#team">Meet the Team</a>
-    <a href="#founders">Support</a>
-    <a href="#faq">FAQ</a>
+    <a href="/features/">Features</a>
+    <a href="/team/">Meet the Team</a>
+    <a href="/support/">Support</a>
+    <a href="/about/">About</a>
+    <a href="/blog/">Blog</a>
+    <a href="/contact/">Contact</a>
     <a href="tel:+14844813081">Call 1 (484) 481-3081</a>
   </nav>
   <div class="mobile-menu__cta">
@@ -257,25 +260,49 @@
     <div class="hero__content">
       
       
-      <div class="hero-ferni hero-ferni--breathing" aria-hidden="true">
-        <div class="hero-ferni__glow"></div>
-        <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
-        <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
-        <div class="hero-ferni__orb">
-          <svg class="hero-ferni__eyes" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="heroEyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#ffffff"/>
-                <stop offset="100%" stop-color="#f0f0f0"/>
-              </linearGradient>
-            </defs>
-            <ellipse class="ferni-eye ferni-eye--left" cx="36" cy="50" rx="10" ry="12" fill="url(#heroEyeFill)"/>
-            <circle class="ferni-sparkle" cx="33" cy="45" r="2.5" fill="white"/>
-            <ellipse class="ferni-eye ferni-eye--right" cx="64" cy="50" rx="10" ry="12" fill="url(#heroEyeFill)"/>
-            <circle class="ferni-sparkle" cx="61" cy="45" r="2.5" fill="white"/>
-          </svg>
-        </div>
-        <div class="hero-ferni__pulse"></div>
+      
+      <div class="ferni-avatar breathing gazing" data-mood="neutral" id="heroFerni" aria-hidden="true">
+        <svg class="avatar-svg" viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#f0ebe4"/>
+            </linearGradient>
+            <clipPath id="orbClip">
+              <circle cx="50" cy="50" r="40"/>
+            </clipPath>
+          </defs>
+          
+          <circle class="glow-ring" cx="50" cy="50" r="46" id="glowRing"/>
+          
+          <circle class="presence-ring" cx="50" cy="50" r="44"/>
+          
+          <g clip-path="url(#orbClip)">
+            
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+            
+            <g class="eyes-group">
+              
+              <ellipse class="eye-white eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse class="eye-white eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+            </g>
+            
+            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="url(#orbGrad)"/>
+            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="url(#orbGrad)"/>
+            
+            <path class="smile-crease crease-left" d="M 26,56 Q 30,58 34,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+            <path class="smile-crease crease-right" d="M 66,56 Q 70,58 74,56" fill="none" stroke="rgba(61,90,53,0.25)" stroke-width="1" stroke-linecap="round"/>
+            
+            <g class="sparkle-group">
+              <path class="sparkle-star sparkle-1" d="M 72,38 L 73,40 L 75,40 L 73.5,41.5 L 74,44 L 72,42.5 L 70,44 L 70.5,41.5 L 69,40 L 71,40 Z" fill="white"/>
+              <path class="sparkle-star sparkle-2" d="M 78,44 L 78.5,45 L 80,45 L 79,46 L 79.3,47.5 L 78,46.8 L 76.7,47.5 L 77,46 L 76,45 L 77.5,45 Z" fill="white" transform="scale(0.7) translate(32, 20)"/>
+            </g>
+          </g>
+        </svg>
       </div>
       
       <p class="hero__tagline">Better than human.</p>
@@ -1672,9 +1699,9 @@
       <div>
         <h4 class="footer__column-title">Product</h4>
         <ul class="footer__links">
-          <li><a href="#team">Meet the Team</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#founders">Support</a></li>
+          <li><a href="/team/">Meet the Team</a></li>
+          <li><a href="/features/">Features</a></li>
+          <li><a href="/support/">Support</a></li>
         </ul>
       </div>
       
@@ -1690,9 +1717,9 @@
       <div>
         <h4 class="footer__column-title">Connect</h4>
         <ul class="footer__links">
-          <li><a href="https://app.ferni.ai">Web App</a></li>
+          <li><a href="https://app.ferni.ai" target="_blank" rel="noopener">Web App</a></li>
           <li><a href="tel:+14844813081">Call Ferni</a></li>
-          <li><a href="https://twitter.com/ferniAI">Twitter</a></li>
+          <li><a href="https://twitter.com/ferniAI" target="_blank" rel="noopener">Twitter</a></li>
         </ul>
       </div>
     </div>
@@ -2000,6 +2027,9 @@
   <script src="/js/better-than-human.js"></script>
   <script src="/js/ferni-sentience.js"></script>
   <script src="/js/ferni-sounds.js"></script>
+  
+  
+  <script src="/js/ferni-showcase.js"></script>
   
   
   

@@ -158,23 +158,24 @@
   },
 
   "llm_guidance": {
+    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
     "presence": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Just offer warm, enthusiastic presence. Short. One sentence max. Keep the energy positive but not overwhelming.",
+      "instruction_template": "[TYPE: enthusiastic_presence] [DURATION: {duration}s] [MAX: 8 words] [TONE: positive warm]",
       "examples": ["I'm here!", "Take your time.", "Good ideas need space."]
     },
     "memory_callback": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with genuine enthusiasm. Show you're excited about their plans. One sentence.",
+      "instruction_template": "[TYPE: excited_reference] [DURATION: {duration}s] [REF: their plans] [TONE: enthusiastic] [MAX: 1 sentence]",
       "examples": [
         "I keep thinking about what you said about {topic}!",
         "That thing you mentioned - sounds exciting!"
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE forward-looking question. Based on what they've shared, ask something that invites dreaming or planning. Keep it warm.",
+      "instruction_template": "[TYPE: forward_question] [DURATION: {duration}s] [ABOUT: dreams or plans] [MAX: 1 question]",
       "examples": ["What are you looking forward to?", "What would make this memorable?"]
     },
     "check_in": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Warm, curious check-in. Keep the energy positive.",
+      "instruction_template": "[TYPE: warm_checkin] [DURATION: {duration}s] [STYLE: curious positive] [MAX: 8 words]",
       "examples": ["What's on your mind?", "What's exciting you?"]
     }
   },

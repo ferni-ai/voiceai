@@ -11,6 +11,7 @@
  * @module services/session-cache
  */
 
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SessionCache' });
@@ -240,10 +241,10 @@ export class SessionCache<T = unknown> {
    * Shutdown the cache
    */
   async shutdown(): Promise<void> {
-    if (this.cleanupTimer) {
-      clearInterval(this.cleanupTimer);
-      this.cleanupTimer = null;
-    }
+    // Clear the named interval
+    const intervalName = `session-cache-cleanup-${this.config.keyPrefix.replace(/[^a-z0-9]/gi, '')}`;
+    clearNamedInterval(intervalName);
+    this.cleanupTimer = null;
 
     if (this.redisCache) {
       try {
@@ -294,12 +295,9 @@ export class SessionCache<T = unknown> {
 
   private startCleanupTimer(): void {
     // Clean up expired entries every 5 minutes
-    this.cleanupTimer = setInterval(
-      () => {
-        this.cleanupExpired();
-      },
-      5 * 60 * 1000
-    );
+    // Use keyPrefix to make interval name unique per cache instance
+    const intervalName = `session-cache-cleanup-${this.config.keyPrefix.replace(/[^a-z0-9]/gi, '')}`;
+    registerInterval(intervalName, () => this.cleanupExpired(), 5 * 60 * 1000);
   }
 
   private cleanupExpired(): void {

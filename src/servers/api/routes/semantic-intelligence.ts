@@ -540,8 +540,9 @@ export async function handleSemanticIntelligenceRoutes(
   // GET /api/semantic-intelligence/team-observations
   // Returns real-time observations from cross-persona coordination
   // ============================================================================
-  if (path === '/api/semantic-intelligence/team-observations' && method === 'GET') {
-    const userId = url.searchParams.get('userId');
+  if (pathname === '/api/semantic-intelligence/team-observations' && req.method === 'GET') {
+    const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+    const userId = parsedUrl.searchParams.get('userId');
     if (!userId) {
       sendJson(res, 400, { error: 'userId is required' });
       return true;
@@ -569,15 +570,17 @@ export async function handleSemanticIntelligenceRoutes(
       sendJson(res, 200, {
         observations,
         byPersona,
-        synthesis: synthesis ? {
-          generatedAt: synthesis.generatedAt,
-          connectionCount: synthesis.connections.length,
-          recommendationCount: synthesis.recommendations.length,
-          overallSynthesis: synthesis.synthesis,
-          userState: synthesis.userStateAssessment,
-          topConnections: synthesis.connections.slice(0, 3),
-          topRecommendations: synthesis.recommendations.slice(0, 3),
-        } : null,
+        synthesis: synthesis
+          ? {
+              generatedAt: synthesis.generatedAt,
+              connectionCount: synthesis.connections.length,
+              recommendationCount: synthesis.recommendations.length,
+              overallSynthesis: synthesis.synthesis,
+              userState: synthesis.userStateAssessment,
+              topConnections: synthesis.connections.slice(0, 3),
+              topRecommendations: synthesis.recommendations.slice(0, 3),
+            }
+          : null,
         total: observations.length,
         timestamp: new Date().toISOString(),
       });

@@ -342,14 +342,14 @@ class CalendarSettingsUI {
               : ''
           }
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="Refresh" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
+            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="Settings" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="Choose calendars">
               ${ICONS.settings}
             </button>
-            <button aria-label="Disconnect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
+            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
               <span>Disconnect</span>
             </button>
           </div>
@@ -366,7 +366,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">Sync your existing events</span>
             </div>
           </div>
-          <button aria-label="Connect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
+          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
             ${ICONS.link}
             <span>Connect</span>
           </button>
@@ -390,14 +390,14 @@ class CalendarSettingsUI {
             <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="Refresh" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
+            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="Settings" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="Choose calendars">
               ${ICONS.settings}
             </button>
-            <button aria-label="Disconnect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
+            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
               <span>Disconnect</span>
             </button>
           </div>
@@ -414,7 +414,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">iCloud sync via app-specific password</span>
             </div>
           </div>
-          <button aria-label="Connect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
+          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
             ${ICONS.link}
             <span>Connect</span>
           </button>
@@ -438,14 +438,14 @@ class CalendarSettingsUI {
             <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="Refresh" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
+            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
-            <button aria-label="Settings" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="Choose calendars">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="Choose calendars">
               ${ICONS.settings}
             </button>
-            <button aria-label="Disconnect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
+            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
               <span>Disconnect</span>
             </button>
           </div>
@@ -463,7 +463,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">Microsoft 365 sync</span>
             </div>
           </div>
-          <button aria-label="Connect" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
+          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
             ${ICONS.link}
             <span>Connect</span>
           </button>
@@ -507,7 +507,7 @@ class CalendarSettingsUI {
 
         ${this.hasAnyProviderConnected() ? `
         <div class="calendar-settings__conflicts-section">
-          <button aria-label="View Sync Conflicts" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
+          <button aria-label="${t('accessibility.viewSyncConflicts')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
             ${ICONS.alert}
             <span>View Sync Conflicts</span>
           </button>
@@ -537,7 +537,7 @@ class CalendarSettingsUI {
       </header>
       <div class="calendar-settings__error">
         <p>${this.escapeHtml(message)}</p>
-        <button aria-label="Try Again" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
+        <button aria-label="${t('accessibility.tryAgain')}" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
           Try Again
         </button>
       </div>
@@ -702,7 +702,7 @@ class CalendarSettingsUI {
 
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
-        <button class="calendar-settings__back" aria-label="Back">
+        <button class="calendar-settings__back" aria-label="${t('accessibility.back')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
             <path d="m15 18-6-6 6-6"/>
           </svg>
@@ -753,10 +753,10 @@ class CalendarSettingsUI {
               <small>This is NOT your Apple ID password. Generate an app-specific password above.</small>
             </div>
             <div class="calendar-settings__apple-actions" role="button" tabindex="0">
-              <button aria-label="Cancel" type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
+              <button aria-label="${t('accessibility.cancel')}" type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
                 Cancel
               </button>
-              <button aria-label="Connect" type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
+              <button aria-label="${t('accessibility.connect')}" type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
                 Connect
               </button>
             </div>
@@ -797,7 +797,7 @@ class CalendarSettingsUI {
     const submitBtn = form.querySelector('#apple-connect-btn') as HTMLButtonElement;
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Connecting...';
+      submitBtn.textContent = t('calendar.connecting');
     }
 
     try {
@@ -819,7 +819,7 @@ class CalendarSettingsUI {
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Connect';
+        submitBtn.textContent = t('common.connect');
       }
     }
   }

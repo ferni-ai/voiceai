@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 import {
   type CustomAgent,
   listCustomAgents,
@@ -743,7 +744,7 @@ function renderOnboarding(): string {
         </div>
       </div>
 
-      <button aria-label="Add" class="digital-twin-create-btn" data-action="create">
+      <button aria-label="${t('accessibility.add')}" class="digital-twin-create-btn" data-action="create">
         ${ICONS.plus}
         Create Your Digital Twin
       </button>
@@ -780,7 +781,7 @@ function renderTwinsList(): string {
         : '';
 
       return `
-        <button aria-label="Go forward" class="digital-twin-card" data-twin-id="${twin.id}">
+        <button aria-label="${t('accessibility.goForward')}" class="digital-twin-card" data-twin-id="${twin.id}">
           <div class="digital-twin-card__avatar">
             ${ICONS.journal}
             ${streakBadge}
@@ -812,7 +813,7 @@ function renderTwinsList(): string {
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button aria-label="Add" class="digital-twin-add-btn" data-action="create">
+    <button aria-label="${t('accessibility.add')}" class="digital-twin-add-btn" data-action="create">
       ${ICONS.plus}
       Create Another Journal
     </button>
@@ -841,11 +842,11 @@ function renderAutoCaptureCard(): string {
           breakthroughs, decisions, gratitude - and add them to your journal. 
           You're always in control.
         </p>
-        <button aria-label="Confirm" class="digital-twin-consent__btn" data-action="enable-capture">
+        <button aria-label="${t('accessibility.confirm')}" class="digital-twin-consent__btn" data-action="enable-capture">
           ${ICONS.check}
           Yes, remember what matters
         </button>
-        <button aria-label="Maybe later" class="digital-twin-consent__skip" data-action="skip-capture">
+        <button aria-label="${t('accessibility.maybeLater')}" class="digital-twin-consent__skip" data-action="skip-capture">
           Maybe later
         </button>
       </div>
@@ -992,7 +993,7 @@ function ensureModalExists(): HTMLElement {
     <div class="digital-twin-modal__backdrop"></div>
     <div class="digital-twin-modal__container">
       <header class="digital-twin-modal__header">
-        <button class="digital-twin-modal__close" aria-label="Close">
+        <button class="digital-twin-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
         <div class="digital-twin-modal__eyebrow">Your Journey</div>
@@ -1135,7 +1136,7 @@ export async function openDigitalTwinUI(): Promise<void> {
     updateContent();
 
     const { toast } = await import('./toast.ui.js');
-    toast.error('Could not load your journals');
+    toast.error(t('toasts.couldNotLoadJournals'));
   }
 }
 

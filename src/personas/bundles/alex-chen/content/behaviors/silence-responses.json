@@ -156,23 +156,24 @@
   },
 
   "llm_guidance": {
+    "_NOTE": "STRUCTURED COMMANDS ONLY - conversational text WILL BE ECHOED by Gemini!",
     "presence": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Just offer efficient, warm presence. Short. One sentence max.",
+      "instruction_template": "[TYPE: efficient_presence] [DURATION: {duration}s] [MAX: 6 words] [TONE: warm direct]",
       "examples": ["I'm here.", "Take your time.", "Processing mode."]
     },
     "memory_callback": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Reference something they shared earlier with practical curiosity. Show you're tracking. One sentence.",
+      "instruction_template": "[TYPE: practical_reference] [DURATION: {duration}s] [REF: next step on topic] [MAX: 1 sentence]",
       "examples": [
         "I keep thinking about what you said about {topic}.",
         "What's the next step on {topic}?"
       ]
     },
     "thoughtful_question": {
-      "instruction_template": "Respond to the user's silence ({duration} seconds) with ONE action-oriented question. Based on what they've shared, ask something that clarifies next steps. Keep it efficient.",
+      "instruction_template": "[TYPE: action_question] [DURATION: {duration}s] [ABOUT: next steps] [MAX: 1 question]",
       "examples": ["What's the next action?", "What's blocking progress?"]
     },
     "check_in": {
-      "instruction_template": "Respond briefly to the user's silence ({duration} seconds). Direct but warm check-in. Keep it open.",
+      "instruction_template": "[TYPE: direct_checkin] [DURATION: {duration}s] [STYLE: efficient] [MAX: 8 words]",
       "examples": ["What's on your mind?", "What do you need?"]
     }
   },

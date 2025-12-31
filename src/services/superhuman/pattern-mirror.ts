@@ -12,6 +12,10 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import {
+  onPatternInsightChange,
+  onBehavioralPatternChange,
+} from '../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'PatternMirror' });
 
@@ -564,6 +568,52 @@ export async function savePatternProfile(userId: string): Promise<void> {
       .collection('pattern_mirror')
       .doc('profile')
       .set(cleanForFirestore(profile));
+
+    // Index significant patterns to semantic memory
+    // "We see patterns you can't see yourself"
+    for (const pattern of profile.cyclicalPatterns.filter((p) => p.confidence >= 0.6)) {
+      void onPatternInsightChange(
+        userId,
+        pattern.id,
+        {
+          pattern: pattern.pattern,
+          category: 'temporal',
+          evidence: pattern.triggers || [],
+          frequency: pattern.confidence >= 0.8 ? 'strong' : 'consistent',
+          significance: pattern.dataPoints >= 5 ? 'important' : 'curious',
+          surfacedGently: pattern.surfacedToUser,
+          discoveredAt: profile.updatedAt?.toISOString() || new Date().toISOString(),
+          lastObserved: profile.updatedAt?.toISOString() || new Date().toISOString(),
+        },
+        pattern.surfacedToUser ? 'update' : 'create'
+      );
+    }
+
+    // Index behavioral patterns from energizing/draining topics
+    for (const topic of [...profile.energizingTopics, ...profile.drainingTopics].filter(
+      (t) => t.mentionCount >= 3
+    )) {
+      void onBehavioralPatternChange(
+        userId,
+        `topic_${topic.topic.replace(/\s+/g, '_')}`,
+        {
+          behavior: `Discussion of "${topic.topic}"`,
+          trigger: undefined,
+          context: [],
+          frequency: topic.mentionCount >= 10 ? 'consistent' : 'occasional',
+          impact: topic.avgEnergyIncrease > 0 ? 'positive' : 'negative',
+          relatedPatterns: [],
+          observations: [
+            `Energy ${topic.avgEnergyIncrease > 0 ? 'increases' : 'decreases'} when discussing ${topic.topic}`,
+            `Sentiment: ${topic.sentiment}`,
+          ],
+          firstObserved: profile.updatedAt?.toISOString() || new Date().toISOString(),
+          lastObserved: topic.lastMentioned?.toISOString() || new Date().toISOString(),
+        },
+        'update'
+      );
+    }
+
     log.debug({ userId }, 'Saved pattern mirror profile');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save pattern profile');

@@ -5,29 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Expression Library - 100 Luxo-Style Expressions</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../master-tokens.css">
   <style>
-    /* ============================================
-       DESIGN TOKENS (from design-system)
-       ============================================ */
+    /* Page-specific overrides - base tokens from master-tokens.css */
     :root {
-      /* Zen Garden Theme (Light) */
-      --bg-primary: #faf8f5;
-      --bg-elevated: #fffdfb;
-      --bg-glass: rgba(139, 119, 91, 0.03);
-      --text-primary: #2c2520;
-      --text-secondary: #5c544a;
-      --text-muted: #756a5e;
-      --accent: #3D5A45;
-
-      /* Persona Colors (from design tokens) */
-      --color-ferni: #4a6741;
-      --color-maya: #a67a6a;
-      --color-peter: #3a6b73;
-      --color-jordan: #c4856a;
-      --color-alex: #5a6b8a;
-      --color-nayan: #b8956a;
-
-      /* Persona Gradients */
+      /* Persona Gradients for expressions */
       --ferni-start: #5a7a51;
       --ferni-end: #3d5a35;
       --maya-start: #b88a7a;
@@ -41,15 +24,6 @@
       --nayan-start: #c8a57a;
       --nayan-end: #b8956a;
 
-      /* Animation */
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-spring-heavy: cubic-bezier(0.68, -0.6, 0.32, 1.6);
-      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
-      --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      --duration-fast: 150ms;
-      --duration-normal: 300ms;
-      --duration-slow: 500ms;
-
       /* Expression Glow Colors */
       --glow-sage: rgba(74, 103, 65, 0.5);
       --glow-golden: rgba(196, 162, 101, 0.5);
@@ -60,7 +34,7 @@
       --glow-alert: rgba(181, 69, 58, 0.4);
       --glow-calm: rgba(90, 107, 138, 0.4);
 
-      /* Active persona */
+      /* Active persona tracking */
       --active-start: var(--ferni-start);
       --active-end: var(--ferni-end);
       --active-color: var(--color-ferni);
@@ -79,7 +53,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-display);
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.6;
@@ -88,47 +62,7 @@
                   color var(--duration-normal) var(--ease-gentle);
     }
 
-    /* ============================================
-       NAVIGATION
-       ============================================ */
-    .brand-nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      background: var(--bg-primary);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .brand-nav a {
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-size: 13px;
-      transition: color var(--duration-fast) ease;
-    }
-
-    .brand-nav a:hover { color: var(--text-primary); }
-
-    .brand-nav .home-link {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--text-primary);
-      font-weight: 600;
-      font-size: 14px;
-    }
-
-    .brand-nav .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
+    /* Navigation styles inherited from master-tokens.css (.nav, .nav-back, .nav-links, .nav-link) */
 
     .theme-toggle {
       width: 36px;
@@ -585,7 +519,7 @@
       background: rgba(44, 37, 32, 0.05);
       padding: 3px 8px;
       border-radius: 4px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-family: var(--font-mono);
     }
 
     .timing-micro {
@@ -655,7 +589,7 @@
     }
 
     .timing-cell {
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-family: var(--font-mono);
       font-size: 13px;
     }
 
@@ -697,20 +631,23 @@
   </style>
 </head>
 <body>
+  <!-- Skip to Content (Accessibility) -->
+  <a href="#main" class="skip-link">Skip to content</a>
+
   <!-- Brand Navigation -->
-  <nav class="brand-nav">
-    <a href="../index.html" class="home-link">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
+    <a href="../index.html" class="nav-back" aria-label="Back to Brand Library">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M15 18l-6-6 6-6"/>
       </svg>
       Brand Library
     </a>
     <div class="nav-links">
-      <a href="../capabilities/gallery.html">Capabilities</a>
-      <a href="../motion/demo.html">Motion</a>
-      <a href="../brand-book.html">Guidelines</a>
+      <a href="../capabilities/gallery.html" class="nav-link">Capabilities</a>
+      <a href="../motion/demo.html" class="nav-link">Motion</a>
+      <a href="../brand-book.html" class="nav-link">Guidelines</a>
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="12" cy="12" r="5"/>
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
         </svg>
@@ -718,7 +655,7 @@
     </div>
   </nav>
 
-  <div class="container">
+  <main id="main" class="container">
     <header>
       <h1>Expression Library</h1>
       <p class="subtitle">Luxo-style expressions using CSS transforms on opaque eyes. No pupils - the eye shape IS the expression, just like Luxo Jr.</p>
@@ -818,7 +755,7 @@
     </div>
 
     <!-- Category Navigation (18 families) -->
-    <nav class="category-nav">
+    <nav class="category-nav" role="navigation" aria-label="Expression category filters">
       <button class="category-btn active" data-category="all">All (100)</button>
       <button class="category-btn" data-category="core">Core</button>
       <button class="category-btn" data-category="happy">Happy</button>
@@ -925,7 +862,7 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </main>
 
   <script>
     // ============================================
@@ -1408,5 +1345,33 @@
     generateSections();
     setPersona('ferni');
   </script>
+
+  <footer>
+    <div class="footer-logo">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#5a7751"/>
+            <stop offset="100%" style="stop-color:#3d5a35"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+        <!-- LUXO STYLE: opaque white eyes, no pupils -->
+        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+      </svg>
+    </div>
+    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="../capabilities/index.html">Capabilities</a>
+      <a href="../brand-book.html">Brand Book</a>
+      <a href="../brand-kit.html">Brand Kit</a>
+      <a href="../icons.html">Icons</a>
+      <a href="../components.html">Components</a>
+      <a href="../accessibility.html">Accessibility</a>
+      <a href="../sound-design.html">Sound</a>
+    </nav>
+    <p class="footer-copyright">Ferni Brand Library v2.0</p>
+  </footer>
 </body>
 </html>

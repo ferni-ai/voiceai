@@ -253,14 +253,21 @@ export class CognitiveLoadDetector {
     // Use first 5 observations as baseline (assuming start of conversation is "normal")
     const baseline = this.observations.slice(0, 5);
 
-    // Calculate baseline WPM
+    // Calculate baseline WPM (guard against division by zero)
     const totalWords = baseline.reduce((sum, o) => sum + o.wordCount, 0);
     const totalDuration = baseline.reduce((sum, o) => sum + o.durationMs, 0);
-    this.baselineWPM = (totalWords / totalDuration) * 60000;
+    
+    // Only calculate WPM if we have meaningful duration and words
+    if (totalDuration > 0 && totalWords > 0) {
+      this.baselineWPM = (totalWords / totalDuration) * 60000;
+    } else {
+      // Use population average WPM when data insufficient
+      this.baselineWPM = 150;
+    }
 
-    // Calculate baseline filler rate (per 100 words)
+    // Calculate baseline filler rate (per 100 words) - guard against division by zero
     const totalFillers = baseline.reduce((sum, o) => sum + o.fillerCount, 0);
-    this.baselineFillerRate = (totalFillers / totalWords) * 100;
+    this.baselineFillerRate = totalWords > 0 ? (totalFillers / totalWords) * 100 : 3.0; // Population average
 
     log.debug(
       {

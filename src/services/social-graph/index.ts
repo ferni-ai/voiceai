@@ -19,6 +19,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { onCorrelationInsightChange } from '../data-layer/hooks/better-than-human-hooks.js';
+import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'SocialGraph' });
 
@@ -793,6 +795,53 @@ export async function persistGraphToFirestore(
         },
         { merge: true }
       );
+
+    // Index key relationships for "Better Than Human" recall
+    // "We know who matters to you"
+    const importantPeople = Array.from(graph.people.values()).filter(
+      (p) => p.importance >= 0.5 || p.isConfirmedImportant
+    );
+    for (const person of importantPeople.slice(0, 10)) {
+      void onRelationshipNetworkChange(
+        userId,
+        `person_${person.id}`,
+        {
+          person: person.name,
+          relationship: person.relationship,
+          connectionStrength:
+            person.importance >= 0.8
+              ? 'core'
+              : person.importance >= 0.6
+                ? 'strong'
+                : person.importance >= 0.4
+                  ? 'moderate'
+                  : 'weak',
+          lastContact: person.lastMentioned?.toISOString(),
+          notes: person.notes?.join('. '),
+        },
+        'update'
+      );
+    }
+
+    // Index relationship patterns as correlations
+    for (const pattern of graph.patterns.filter((p) => p.confidence >= 0.7)) {
+      void onCorrelationInsightChange(
+        userId,
+        `rel_pattern_${pattern.personId}`,
+        {
+          connection: pattern.description,
+          domainA: 'relationships',
+          domainB: 'emotional_state',
+          strength: pattern.confidence >= 0.85 ? 'strong' : 'moderate',
+          examples: [
+            `${pattern.personName}: ${pattern.pattern === 'positive_correlation' ? 'positive' : 'negative'} effect on mood`,
+          ],
+          implications: pattern.description,
+          discoveredAt: new Date().toISOString(),
+        },
+        'update'
+      );
+    }
 
     log.debug({ userId, peopleCount: graph.people.size }, 'Social graph persisted');
   } catch (error) {

@@ -59,6 +59,7 @@ export interface UserContext {
   userId: string;
   emotionalState: EmotionalState;
   lastSessionAt?: Date;
+  lastOutreachAt?: Date;
   preferredTimes?: {
     morning?: boolean;
     afternoon?: boolean;

@@ -14,6 +14,7 @@
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('CalendarQuickWidget');
 
@@ -461,7 +462,7 @@ function renderCard(): string {
           ${ICONS.calendar}
           Today's Calendar
         </div>
-        <button class="cqw-collapse-btn" aria-label="Collapse">${ICONS.chevronDown}</button>
+        <button class="cqw-collapse-btn" aria-label="${t('accessibility.collapse')}">${ICONS.chevronDown}</button>
       </div>
 
       <div class="cqw-next-meeting">
@@ -513,7 +514,7 @@ function renderCard(): string {
       </div>
 
       <div class="cqw-actions" role="button" tabindex="0">
-        <button aria-label="Block Focus Time" class="cqw-action-btn" data-action="block-focus">
+        <button aria-label="${t('accessibility.blockFocusTime')}" class="cqw-action-btn" data-action="block-focus">
           ${ICONS.focus}
           Block Focus Time
         </button>
@@ -617,7 +618,7 @@ async function blockFocusTime(): Promise<void> {
       
       // Show toast
       const { toast } = await import('./toast.ui.js');
-      toast.success('Focus time blocked!');
+      toast.success(t('toasts.focusTimeBlocked'));
       
       // Refresh data
       await fetchCalendarData();

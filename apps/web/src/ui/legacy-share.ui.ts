@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('LegacyShare');
 
@@ -385,7 +386,7 @@ function render(): string {
             <span class="legacy-share-eyebrow">Share Their Memory</span>
             <h2 class="legacy-share-name" id="share-title">Invite Family</h2>
           </div>
-          <button class="legacy-share-close" aria-label="Close">
+          <button class="legacy-share-close" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -454,7 +455,7 @@ function render(): string {
                 readonly 
                 id="share-link"
               />
-              <button aria-label="Copy" class="legacy-share-copy-btn" data-action="copy-link">
+              <button aria-label="${t('accessibility.copy')}" class="legacy-share-copy-btn" data-action="copy-link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -466,10 +467,10 @@ function render(): string {
           </div>
 
           <div class="legacy-share-actions" role="button" tabindex="0">
-            <button aria-label="Cancel" class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
+            <button aria-label="${t('accessibility.cancel')}" class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
               Cancel
             </button>
-            <button aria-label="Send Invite" class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
+            <button aria-label="${t('accessibility.sendInvite')}" class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
               Send Invite
             </button>
           </div>
@@ -592,11 +593,11 @@ async function handleCopyLink(): Promise<void> {
   if (linkInput) {
     try {
       await navigator.clipboard.writeText(linkInput.value);
-      toast.success('Link copied!');
+      toast.success(t('toasts.linkCopied'));
     } catch {
       linkInput.select();
       document.execCommand('copy');
-      toast.success('Link copied!');
+      toast.success(t('toasts.linkCopied'));
     }
   }
 }
@@ -610,7 +611,7 @@ async function handleSendInvite(): Promise<void> {
 
   const email = emailInput?.value?.trim();
   if (!email) {
-    toast.warning('Enter an email address');
+    toast.warning(t('toasts.enterAnEmailAddress'));
     emailInput?.focus();
     return;
   }
@@ -618,7 +619,7 @@ async function handleSendInvite(): Promise<void> {
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    toast.warning('Enter a valid email');
+    toast.warning(t('toasts.enterValidEmail'));
     emailInput?.focus();
     return;
   }
@@ -627,7 +628,7 @@ async function handleSendInvite(): Promise<void> {
   // For now, we'll simulate the success
   log.info('Sending invite to:', email, nameInput?.value, messageInput?.value);
 
-  toast.success(`Invite sent to ${email}!`);
+  toast.success(t('toasts.inviteSentToEmail'));
   closeLegacyShare();
 }
 

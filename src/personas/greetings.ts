@@ -46,9 +46,16 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'warm-friend':
       // HUMAN GREETINGS - Not a formula. Real variety. Real speech patterns.
       // Key: Humans don't say "Hey. I'm X. Question?" - they're messy, incomplete, varied
+      // BETTER THAN HUMAN: A real friend ALWAYS asks your name when meeting you!
       return {
         newUser: [
-          // Caught mid-thought
+          // BETTER THAN HUMAN: ~50% of new user greetings ask for their name
+          // A real friend would always ask - this makes Ferni more human!
+          `<break time="250ms"/>Hey.<break time="400ms"/>I'm ${name}.<break time="350ms"/>What's your name?`,
+          `<break time="200ms"/><emotion value="curious"/>Hey there.<break time="400ms"/>I'm ${name}.<break time="300ms"/>What should I call you?`,
+          `<break time="300ms"/>Hey.<break time="450ms"/>I'm ${name}.<break time="350ms"/>And you are...?`,
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="400ms"/>I'm ${name}.<break time="300ms"/>Who am I talking to?`,
+          // Caught mid-thought (keep some variety without name ask)
           `<break time="300ms"/>...oh. Hey.<break time="400ms"/>Sorry, I was—<break time="200ms"/>I'm ${name}.<break time="350ms"/>Come in.`,
           `<break time="200ms"/>Hmm?<break time="300ms"/>Oh, hey.<break time="400ms"/>I'm ${name}.`,
           // Settling in
@@ -74,10 +81,15 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
           `<break time="250ms"/><emotion value="affectionate"/>{name}.<break time="450ms"/>I was thinking about you.`,
         ],
         returningNoName: [
-          `<break time="200ms"/>Oh, hey.<break time="400ms"/>You're back.`,
-          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="450ms"/>Good to see you.`,
+          // BETTER THAN HUMAN: Ask for name when we don't have it!
+          // A human friend who forgets your name would ask again - so should Ferni.
+          `<break time="200ms"/>Oh, hey.<break time="400ms"/>You're back.<break time="300ms"/>I don't think I got your name last time—what should I call you?`,
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="450ms"/>Good to see you again.<break time="300ms"/>What's your name?`,
+          `<break time="300ms"/>Hey.<break time="400ms"/>I realized I never asked—what should I call you?`,
+          `<break time="200ms"/>There you are.<break time="350ms"/>Hey.<break time="300ms"/>By the way, what's your name?`,
+          // Keep a couple without name prompt for variety (30% of the time)
           `<break time="300ms"/>Hey.<break time="400ms"/>How've you been?`,
-          `<break time="200ms"/>There you are.<break time="350ms"/>Hey.`,
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="450ms"/>Good to see you.`,
         ],
         timeAware: {
           earlyMorning: [
@@ -114,9 +126,11 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'professional':
       return {
         newUser: [
-          `Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>It's good to meet you.`,
-          `Good to connect with you. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's going on?`,
+          // BETTER THAN HUMAN: Ask for name in professional settings too
+          `Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>And you are?`,
+          `Good to connect with you. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's your name?`,
           `<break time="100ms"/>Hello there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you here?`,
+          `Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>It's good to meet you.`,
         ],
         returningUser: [
           `{name}, <break time="200ms"/>good to see you again. <break time="150ms"/>How have you been?`,
@@ -124,8 +138,10 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
           `{name}! <break time="200ms"/>Welcome back. <break time="150ms"/>What's on your mind?`,
         ],
         returningNoName: [
+          // BETTER THAN HUMAN: Ask for name when missing
+          `Good to see you again. <break time="200ms"/>I don't believe I got your name—what should I call you?`,
+          `Welcome back! <break time="200ms"/>May I ask your name?`,
           `Good to see you again. <break time="200ms"/>What's on your mind?`,
-          `Welcome back! <break time="200ms"/>What's on your mind?`,
         ],
         timeAware: {
           earlyMorning: [
@@ -155,10 +171,15 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
     case 'enthusiastic':
       // NOTE: Rewrote to be less choppy - flowing sentences, fewer breaks
       // Use "excited" sparingly, "curious" for engagement (not "happy" which sounds fake)
+      // BETTER THAN HUMAN: Ask for name like a real excited friend would!
       return {
         newUser: [
-          `<emotion value="excited"/>Hey, great to meet you.<break time="300ms"/>I'm ${name}. What's on your mind?`,
-          `<emotion value="curious"/>Oh hello.<break time="250ms"/>I'm ${name}.<break time="350ms"/>What brings you by?`,
+          // BETTER THAN HUMAN: Ask for name with enthusiasm
+          `<emotion value="excited"/>Hey, great to meet you!<break time="300ms"/>I'm ${name}. What's your name?`,
+          `<emotion value="curious"/>Oh hello!<break time="250ms"/>I'm ${name}.<break time="350ms"/>Who am I talking to?`,
+          `Hey there!<break time="300ms"/>I'm ${name}.<break time="250ms"/>What's your name?`,
+          `<emotion value="excited"/>Hey!<break time="300ms"/>I'm ${name}. What should I call you?`,
+          // Keep some variety
           `Hey there.<break time="300ms"/>I'm ${name}. I'm excited to dig in.<break time="250ms"/>What do you want to talk about?`,
         ],
         returningUser: [
@@ -167,8 +188,10 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
           `<emotion value="curious"/>Hey {name}.<break time="300ms"/>I've been thinking about our last conversation. Catch me up.`,
         ],
         returningNoName: [
+          // BETTER THAN HUMAN: Ask for name when missing
+          `<emotion value="excited"/>Hey, you're back!<break time="350ms"/>I never got your name—what is it?`,
+          `Oh good, welcome back!<break time="300ms"/>Wait, what's your name again?`,
           `<emotion value="excited"/>Hey, you're back.<break time="350ms"/>What's been happening?`,
-          `Oh good, welcome back.<break time="300ms"/>How are things?`,
         ],
         timeAware: {
           earlyMorning: [
@@ -237,11 +260,15 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
       };
 
     case 'casual-peer':
+      // BETTER THAN HUMAN: Even casual friends ask for names!
       return {
         newUser: [
+          // Ask for name casually
+          `Hey! <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's your name?`,
+          `Oh hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>Who are you?`,
+          `Hey there! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What should I call you?`,
+          // Keep some variety
           `Hey! <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's up?`,
-          `Oh hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>Good to meet you.`,
-          `Hey there! <break time="200ms"/>I'm ${name}. <break time="150ms"/>How's it going?`,
         ],
         returningUser: [
           `Hey {name}! <break time="200ms"/>What's going on?`,
@@ -249,8 +276,10 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
           `Oh hey, {name}! <break time="200ms"/>How've you been?`,
         ],
         returningNoName: [
+          // BETTER THAN HUMAN: Ask for name when missing
+          `Hey, you're back! <break time="200ms"/>Wait, what's your name?`,
+          `Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's your name, by the way?`,
           `Hey, you're back! <break time="200ms"/>Good to see you. <break time="150ms"/>What's up?`,
-          `Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>How's it going?`,
         ],
         timeAware: {
           earlyMorning: [
@@ -279,10 +308,15 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
 
     case 'wise-mentor':
     default:
+      // BETTER THAN HUMAN: A wise mentor always wants to know who they're guiding
       return {
         newUser: [
+          // Ask for name with wisdom
+          `<break time="200ms"/>Ah. <break time="150ms"/>Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>And who might you be?`,
+          `<emotion value="curious"/>Well now. <break time="200ms"/>A new face. <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's your name?`,
+          `<break time="150ms"/>Hello there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Before we begin, what should I call you?`,
+          // Keep some variety
           `<break time="200ms"/>Ah. <break time="150ms"/>Hello. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Come, sit down.`,
-          `<emotion value="curious"/>Well now. <break time="200ms"/>A new face. <break time="150ms"/>I'm ${name}. <break time="200ms"/>Tell me about yourself.`,
           `<break time="150ms"/>Hello there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>I've been looking forward to meeting you.`,
         ],
         returningUser: [
@@ -291,8 +325,10 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
           `{name}. <break time="250ms"/>Welcome back. <break time="200ms"/>What's on your mind?`,
         ],
         returningNoName: [
+          // BETTER THAN HUMAN: Ask for name thoughtfully
+          `<break time="200ms"/>You've returned. <break time="250ms"/>Good. <break time="200ms"/>I realize I never asked—what's your name?`,
+          `Ah, welcome back. <break time="300ms"/>Forgive me, I should have asked sooner—what should I call you?`,
           `<break time="200ms"/>You've returned. <break time="250ms"/>Good. <break time="200ms"/>What's on your mind?`,
-          `Ah, welcome back. <break time="300ms"/>I was hoping we'd talk again. <break time="200ms"/>How have you been?`,
         ],
         timeAware: {
           earlyMorning: [

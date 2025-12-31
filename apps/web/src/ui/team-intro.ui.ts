@@ -277,7 +277,7 @@ function createMemberCard(member: TeamMemberInfo): string {
               ${isInRoster ? `
                 <span class="team-member-card__added">${ICONS.check} In your roster</span>
               ` : `
-                <button aria-label="Add" class="team-member-card__action" data-member="${member.id}">
+                <button aria-label="${t('accessibility.add')}" class="team-member-card__action" data-member="${member.id}">
                   ${ICONS.plus} Add to Roster
                 </button>
               `}

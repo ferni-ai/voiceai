@@ -640,7 +640,7 @@ function render(): void {
             ` : ''}
           </div>
           ${!state.contactInfo.phoneVerified && state.contactInfo.phone ? `
-            <button aria-label="Settings" type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
+            <button aria-label="${t('accessibility.settings')}" type="button" class="contact-settings-verify-btn" id="verify-phone-btn" ${state.isVerifying ? 'disabled' : ''}>
               ${state.isVerifying ? 'Sending code...' : 'Verify with code'}
             </button>
           ` : ''}
@@ -747,10 +747,10 @@ function render(): void {
     </div>
     
     <div class="contact-settings-actions" role="button" tabindex="0">
-      <button aria-label="Maybe later" class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
+      <button aria-label="${t('accessibility.maybeLater')}" class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
         Maybe later
       </button>
-      <button aria-label="Save" class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.save')}" class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
         ${state.isSaving ? t('common.saving') : 'Save'}
       </button>
     </div>

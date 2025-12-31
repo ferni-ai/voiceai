@@ -188,6 +188,71 @@ async function persistToolWithRetry(manifest: ToolManifest, attempt = 1): Promis
 }
 
 /**
+ * Update an existing tool manifest in the marketplace.
+ * Unlike registerTool, this allows in-place updates without version bump.
+ * Useful for updating verification status, metadata, etc.
+ *
+ * @param id - Tool ID to update
+ * @param updates - Partial updates to merge with existing manifest
+ * @param authContext - Optional auth context for audit
+ * @returns Result with success/failure
+ */
+export function updateTool(
+  id: MarketplaceId,
+  updates: Partial<ToolManifest>,
+  authContext?: AuthContext
+): { success: boolean; error?: string; validationErrors?: string[] } {
+  // Get existing tool
+  const existingTool = cache.tools.get(id);
+  if (!existingTool) {
+    return { success: false, error: `Tool ${id} not found` };
+  }
+
+  // Merge updates with existing manifest
+  const updatedManifest: ToolManifest = {
+    ...existingTool,
+    ...updates,
+    // Preserve ID and version unless explicitly provided
+    id: existingTool.id,
+    version: updates.version || existingTool.version,
+    // Deep merge nested objects
+    publisher: { ...existingTool.publisher, ...updates.publisher },
+    verification: { ...existingTool.verification, ...updates.verification },
+    metadata: { ...existingTool.metadata, ...updates.metadata },
+  };
+
+  // Validate the merged manifest
+  const validationResult = validateToolManifest(updatedManifest);
+  if (!validationResult.success) {
+    const errors = formatValidationErrors(validationResult.errors);
+    log.warn({ toolId: id, errors }, 'Tool update validation failed');
+    return { success: false, error: 'Manifest validation failed', validationErrors: errors };
+  }
+
+  // Update cache
+  cache.tools.set(id, updatedManifest);
+  log.info({ toolId: id }, 'Tool updated');
+
+  // Audit log
+  if (authContext) {
+    logAuditEvent({
+      userId: authContext.userId,
+      sessionId: authContext.sessionId,
+      action: 'tool:update',
+      resource: 'tool',
+      resourceId: id,
+      success: true,
+      details: { updatedFields: Object.keys(updates) },
+    });
+  }
+
+  // Persist to store
+  void persistToolWithRetry(updatedManifest);
+
+  return { success: true };
+}
+
+/**
  * Get a tool manifest by ID (sync, from cache)
  */
 export function getTool(id: MarketplaceId): ToolManifest | undefined {

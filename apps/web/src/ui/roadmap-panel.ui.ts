@@ -404,7 +404,7 @@ class RoadmapPanelUI {
     const confidenceIcon = rec.confidence === 'high' ? ICONS.target : rec.confidence === 'medium' ? ICONS.lightbulb : ICONS.seed;
 
     return `
-      <button aria-label="Close" class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
+      <button aria-label="${t('accessibility.close')}" class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
         <div class="roadmap-recommendation__badge">${confidenceIcon}</div>
         <div class="roadmap-recommendation__content">
           <div class="roadmap-recommendation__header">
@@ -438,7 +438,7 @@ class RoadmapPanelUI {
     const totalSeeds = feature.totalSeeds || 0;
 
     return `
-      <button aria-label="Go forward" class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
+      <button aria-label="${t('accessibility.goForward')}" class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
         <div class="roadmap-card__header">
           <div class="roadmap-card__icon">${featureIcon}</div>
           <span class="roadmap-card__stage ${stageInfo.colorClass}">
@@ -574,7 +574,7 @@ class RoadmapPanelUI {
                     ${t('roadmap.plantSeeds') || 'Plant seeds on this feature'}
                   </label>
                   <div class="roadmap-detail__slider-row">
-                    <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="Decrease">−</button>
+                    <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="${t('accessibility.decrease')}">−</button>
                     <div class="roadmap-detail__slider-container">
                       <input type="range"
                              class="roadmap-detail__slider"
@@ -584,7 +584,7 @@ class RoadmapPanelUI {
                              data-feature="${feature.id}">
                       <div class="roadmap-detail__slider-track"></div>
                     </div>
-                    <button class="roadmap-detail__slider-btn" data-action="increase" aria-label="Increase">+</button>
+                    <button class="roadmap-detail__slider-btn" data-action="increase" aria-label="${t('accessibility.increase')}">+</button>
                   </div>
                   <div class="roadmap-detail__slider-value">
                     <span class="roadmap-detail__slider-seeds">${ICONS.seed}</span>
@@ -700,7 +700,7 @@ class RoadmapPanelUI {
               </span>
             </div>
 
-            <button aria-label="Submit"
+            <button aria-label="${t('accessibility.submit')}"
               type="submit"
               class="roadmap-suggestion__submit"
               ${seedBalance < 5 ? 'disabled' : ''}>

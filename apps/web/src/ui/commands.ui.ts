@@ -17,6 +17,7 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import {
   createAnimationConfig,
   escapeHtml,
@@ -302,7 +303,7 @@ class CommandsPanelUI {
       <div class="ferni-commands__error">
         <h3>${COMMANDS_COPY.error.title}</h3>
         <p>${COMMANDS_COPY.error.message}</p>
-        <button aria-label="Copy" class="ferni-commands__retry engagement-btn-primary" type="button">
+        <button aria-label="${t('accessibility.copy')}" class="ferni-commands__retry engagement-btn-primary" type="button">
           ${COMMANDS_COPY.error.retry}
         </button>
       </div>

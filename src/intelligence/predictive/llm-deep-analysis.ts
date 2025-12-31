@@ -223,7 +223,10 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
   const { userId } = input;
   const startTime = Date.now();
 
-  log.info({ userId, conversationCount: input.conversationSummaries.length }, '🧠 Starting deep analysis');
+  log.info(
+    { userId, conversationCount: input.conversationSummaries.length },
+    '🧠 Starting deep analysis'
+  );
 
   // Skip if not enough data
   if (input.conversationSummaries.length < 3) {
@@ -249,7 +252,14 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
     const result = await model.generateContent({
       contents: [
         { role: 'user', parts: [{ text: DEEP_ANALYSIS_SYSTEM_PROMPT }] },
-        { role: 'model', parts: [{ text: 'I understand. I will analyze the user data and return structured JSON insights.' }] },
+        {
+          role: 'model',
+          parts: [
+            {
+              text: 'I understand. I will analyze the user data and return structured JSON insights.',
+            },
+          ],
+        },
         { role: 'user', parts: [{ text: prompt }] },
       ],
       generationConfig: {
@@ -261,7 +271,7 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
 
     const response = result.response;
     const text = response.text();
-    
+
     // Parse JSON response
     let parsed: Partial<DeepAnalysisResult>;
     try {
@@ -403,7 +413,9 @@ export async function getDeepAnalysisContextForTurn(userId: string): Promise<str
   }
 
   // Only include high-confidence insights
-  const relevantInsights = analysis.insights.filter((i) => i.confidence > 0.6 && i.surfacingContext !== 'crisis_only');
+  const relevantInsights = analysis.insights.filter(
+    (i) => i.confidence > 0.6 && i.surfacingContext !== 'crisis_only'
+  );
 
   if (relevantInsights.length === 0) return '';
 

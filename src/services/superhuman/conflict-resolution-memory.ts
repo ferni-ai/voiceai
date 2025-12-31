@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onConflictMemoryChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'ConflictResolution' });
 
@@ -125,6 +126,20 @@ export async function recordConflict(
       .doc(userId)
       .collection('conflict_history')
       .add(cleanForFirestore(record));
+
+    // Index to semantic memory for cross-domain correlation
+    void onConflictMemoryChange(
+      userId,
+      docRef.id,
+      {
+        conflict: `${conflict.conflictType} conflict with ${conflict.withPerson}`,
+        parties: [conflict.withPerson],
+        resolution: conflict.outcome === 'resolved' ? 'Resolved' : undefined,
+        lessonsLearned: conflict.effectiveApproaches?.[0],
+        status: conflict.outcome === 'resolved' ? 'resolved' : 'active',
+      },
+      'create'
+    );
 
     log.debug(
       { userId, withPerson: conflict.withPerson, type: conflict.conflictType },

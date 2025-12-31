@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run sync:promo
- * Generated: 2025-12-29T19:28:23.143Z
+ * Generated: 2025-12-31T03:51:53.004Z
  */
 
 :root {
@@ -61,6 +61,11 @@
   --color-ferni-secondary: #3d5a35;
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
   --color-ferni-text: #4a6741;
+
+  --color-jack: #9a7b5a;
+  --color-jack-secondary: #7d6348;
+  --color-jack-glow: rgba(154, 123, 90, 0.28);
+  --color-jack-text: #9a7b5a;
 
   --color-peter: #3a6b73;
   --color-peter-secondary: #2d5359;
@@ -304,6 +309,7 @@
 
     /* Persona Text Colors - WCAG AA on dark backgrounds */
     --color-ferni-text: #a5c99a;
+    --color-jack-text: #d4c4a8;
     --color-peter-text: #8bc4cf;
     --color-alex-text: #a8b8d8;
     --color-maya-text: #e0b8a8;

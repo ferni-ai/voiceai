@@ -7,7 +7,7 @@
  * @module tools/domains/telephony/scripts/healthcare
  */
 
-import type { CallScriptTemplate } from '../call-on-behalf.js';
+import type { CallScriptTemplate } from '../types.js';
 
 export const healthcareScript: CallScriptTemplate = {
   type: 'healthcare',

@@ -27,11 +27,7 @@ export {
 } from './insights.js';
 
 // Import token persistence (used internally)
-import {
-  persistTokens,
-  loadTokens,
-  clearPersistedTokens,
-} from './token-persistence.js';
+import { persistTokens, loadTokens, clearPersistedTokens } from './token-persistence.js';
 
 // Import insight helpers (used internally in public API wrappers)
 import {

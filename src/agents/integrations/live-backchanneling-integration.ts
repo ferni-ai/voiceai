@@ -145,7 +145,7 @@ export function initializeLiveBackchanneling<T>(
 
     // Check for breath pause and potentially emit backchannel
     if (breathDetector.isBreathPause()) {
-      tryEmitLiveBackchannel();
+      void tryEmitLiveBackchannel();
     }
   };
 

@@ -22,8 +22,11 @@
 
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const logger = createLogger({ module: 'ConcernDetection' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -484,7 +487,8 @@ export class ConcernDetectionEngine {
       currentTopic?: string;
     }
   ): void {
-    const wordCount = text.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting
+    const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
 
     // Track response length history
     this.responseLengthHistory.push(wordCount);

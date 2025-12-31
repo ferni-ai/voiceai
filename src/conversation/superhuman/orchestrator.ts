@@ -26,6 +26,8 @@
 
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import {
   getBetterThanHumanContentSync,
   loadBetterThanHumanContent,
@@ -68,6 +70,7 @@ import { type TeamCoherenceEngine, getTeamCoherence } from './team-coherence.js'
 import { type TemporalEmotionalEngine, getTemporalEmotional } from './temporal-emotional.js';
 
 const logger = createLogger({ module: 'BetterThanHuman' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // BETTER THAN HUMAN ORCHESTRATOR
@@ -435,7 +438,7 @@ export class BetterThanHumanOrchestrator {
         case 'interrupt':
           result = `${action.content} <break time="300ms"/> ${result}`;
           break;
-        case 'inline':
+        case 'inline': {
           // Insert after first sentence
           const firstSentence = result.match(/^[^.!?]+[.!?]/);
           if (firstSentence) {
@@ -444,6 +447,7 @@ export class BetterThanHumanOrchestrator {
             result = `${action.content} ${result}`;
           }
           break;
+        }
         case 'standalone':
           result = action.content;
           break;
@@ -475,7 +479,7 @@ export class BetterThanHumanOrchestrator {
           case 'spontaneous_delight':
             void humanizationSignalEmitter.spontaneousDelight(action.reason, action.priority);
             break;
-          case 'bond_phrase':
+          case 'bond_phrase': {
             // Extract bond type from reason
             const bondMatch = action.reason.match(/Bond phrase: (\w+)/);
             if (bondMatch) {
@@ -485,6 +489,7 @@ export class BetterThanHumanOrchestrator {
               );
             }
             break;
+          }
           case 'inside_joke':
             void humanizationSignalEmitter.insideJokeCallback(
               (insight.jokeCallback?.joke?.phase as 'new' | 'established' | 'legacy') ||
@@ -659,8 +664,12 @@ export class BetterThanHumanOrchestrator {
     if (lowEnergy.test(message)) return 'low';
 
     // Also check message length
-    if (message.split(/\s+/).length < 5) return 'low';
-    if (message.split(/\s+/).length > 50) return 'high';
+    // 🦀 Rust-accelerated word counting (compute once)
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(message)
+      : message.split(/\s+/).length;
+    if (wordCount < 5) return 'low';
+    if (wordCount > 50) return 'high';
 
     return 'medium';
   }

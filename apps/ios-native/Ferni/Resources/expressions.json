@@ -1,96 +1,114 @@
 {
   "version": "1.0.0",
-  "generated": "2025-12-29T19:28:22.490Z",
+  "generated": "2025-12-30T20:40:55.660Z",
   "expressions": {
     "neutral": {
       "family": "core",
       "topCutoff": 0,
-      "topCurve": 0,
+      "topCurve": 0.12,
       "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "bottomCurve": 0.12,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 1,
+      "eyeScaleX": 1
     },
     "listening": {
       "family": "core",
-      "topCutoff": 0.02,
-      "topCurve": -0.05,
+      "topCutoff": 0,
+      "topCurve": 0.08,
       "bottomCutoff": 0,
       "bottomCurve": 0.1,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 1.05,
+      "eyeScaleX": 1.02
     },
     "speaking": {
       "family": "core",
-      "topCutoff": 0.06,
-      "topCurve": 0.15,
+      "topCutoff": 0.01,
+      "topCurve": 0.1,
       "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "bottomCurve": null,
       "asymmetry": 0,
-      "animation": "speakPulse",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.98,
+      "eyeScaleX": 1.01
     },
     "happy": {
       "family": "happy",
       "topCutoff": 0.1,
       "topCurve": 0.25,
-      "bottomCutoff": 0.08,
+      "bottomCutoff": 0,
       "bottomCurve": -0.15,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.8,
+      "eyeScaleX": 1.06
     },
     "joyful": {
       "family": "happy",
-      "topCutoff": 0.16,
+      "topCutoff": 0.15,
       "topCurve": 0.35,
-      "bottomCutoff": 0.12,
+      "bottomCutoff": 0.09,
       "bottomCurve": -0.25,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.7,
+      "eyeScaleX": 1.12
     },
     "delighted": {
       "family": "happy",
-      "topCutoff": 0.22,
+      "topCutoff": 0.2,
       "topCurve": 0.42,
-      "bottomCutoff": 0.14,
+      "bottomCutoff": 0.12,
       "bottomCurve": -0.28,
       "asymmetry": 0,
       "animation": "delightedBounce",
-      "sparkle": true
+      "sparkle": false,
+      "eyeScaleY": 0.6,
+      "eyeScaleX": 1.15
     },
     "amused": {
       "family": "happy",
-      "topCutoff": 0.1,
+      "topCutoff": 0.11,
       "topCurve": 0.26,
-      "bottomCutoff": 0,
+      "bottomCutoff": 0.07,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
+      "asymmetry": 0.03,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.78,
+      "eyeScaleX": 1.06
     },
     "pleased": {
       "family": "happy",
-      "topCutoff": 0.08,
+      "topCutoff": 0.09,
       "topCurve": 0.22,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.82,
+      "eyeScaleX": 1.04
     },
     "content": {
       "family": "happy",
-      "topCutoff": 0.06,
+      "topCutoff": 0.08,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.02
     },
     "excited": {
       "family": "happy",
@@ -100,7 +118,9 @@
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": "excitedBounce",
-      "sparkle": true
+      "sparkle": false,
+      "eyeScaleY": 1.15,
+      "eyeScaleX": 1.08
     },
     "grateful": {
       "family": "happy",
@@ -110,117 +130,141 @@
       "bottomCurve": -0.15,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.72,
+      "eyeScaleX": 1.08
     },
     "proud": {
       "family": "happy",
+      "topCutoff": 0.06,
+      "topCurve": 0.15,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.04
+    },
+    "warm": {
+      "family": "warmth",
+      "topCutoff": 0.05,
+      "topCurve": 0.18,
+      "bottomCutoff": 0,
+      "bottomCurve": -0.1,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.03
+    },
+    "caring": {
+      "family": "warmth",
+      "topCutoff": 0.06,
+      "topCurve": 0.2,
+      "bottomCutoff": 0,
+      "bottomCurve": -0.08,
+      "asymmetry": 0,
+      "animation": "caringSettle",
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.02
+    },
+    "loving": {
+      "family": "warmth",
+      "topCutoff": 0.13,
+      "topCurve": 0.3,
+      "bottomCutoff": 0.08,
+      "bottomCurve": -0.18,
+      "asymmetry": 0,
+      "animation": "lovingGlow",
+      "sparkle": false,
+      "eyeScaleY": 0.75,
+      "eyeScaleX": 1.08
+    },
+    "tender": {
+      "family": "warmth",
+      "topCutoff": 0.09,
+      "topCurve": 0.24,
+      "bottomCutoff": 0,
+      "bottomCurve": -0.1,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.82,
+      "eyeScaleX": 1.04
+    },
+    "supportive": {
+      "family": "warmth",
       "topCutoff": 0.04,
       "topCurve": 0.15,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
-    },
-    "warm": {
-      "family": "warmth",
-      "topCutoff": 0.06,
-      "topCurve": 0.18,
-      "bottomCutoff": 0.05,
-      "bottomCurve": -0.1,
-      "asymmetry": 0,
-      "animation": null,
-      "sparkle": false
-    },
-    "caring": {
-      "family": "warmth",
-      "topCutoff": 0.07,
-      "topCurve": 0.2,
-      "bottomCutoff": 0.04,
-      "bottomCurve": -0.08,
-      "asymmetry": 0,
-      "animation": "warmPulse",
-      "sparkle": false
-    },
-    "loving": {
-      "family": "warmth",
-      "topCutoff": 0.12,
-      "topCurve": 0.3,
-      "bottomCutoff": 0.09,
-      "bottomCurve": -0.18,
-      "asymmetry": 0,
-      "animation": "lovingGlow",
-      "sparkle": false
-    },
-    "tender": {
-      "family": "warmth",
-      "topCutoff": 0.09,
-      "topCurve": 0.24,
-      "bottomCutoff": 0.05,
-      "bottomCurve": -0.1,
-      "asymmetry": 0,
-      "animation": null,
-      "sparkle": false
-    },
-    "supportive": {
-      "family": "warmth",
-      "topCutoff": 0.05,
-      "topCurve": 0.15,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.01
     },
     "compassionate": {
       "family": "warmth",
-      "topCutoff": 0.07,
+      "topCutoff": 0.06,
       "topCurve": 0.2,
-      "bottomCutoff": 0.04,
+      "bottomCutoff": 0,
       "bottomCurve": -0.08,
-      "asymmetry": 0.03,
-      "animation": "warmPulse",
-      "sparkle": false
+      "asymmetry": 0.02,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.03
     },
     "empathetic": {
       "family": "warmth",
-      "topCutoff": 0.06,
+      "topCutoff": 0.05,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "empathyMirror",
-      "sparkle": false
+      "asymmetry": 0.02,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.02
     },
     "nurturing": {
       "family": "warmth",
       "topCutoff": 0.1,
       "topCurve": 0.26,
-      "bottomCutoff": 0.06,
+      "bottomCutoff": 0,
       "bottomCurve": -0.12,
       "asymmetry": 0,
-      "animation": "nurturingSwell",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.8,
+      "eyeScaleX": 1.06
     },
     "playful": {
       "family": "playful",
-      "topCutoff": 0.05,
+      "topCutoff": 0.04,
       "topCurve": 0.14,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
+      "asymmetry": 0.04,
       "animation": "playfulSway",
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.06
     },
     "mischievous": {
       "family": "playful",
-      "topCutoff": 0.07,
+      "topCutoff": 0.08,
       "topCurve": 0.2,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.08,
+      "asymmetry": 0.05,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.05
     },
     "cheeky": {
       "family": "playful",
@@ -230,37 +274,45 @@
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.82,
+      "eyeScaleX": 1.06
     },
     "silly": {
       "family": "playful",
-      "topCutoff": 0.12,
-      "topCurve": 0.3,
+      "topCutoff": 0.03,
+      "topCurve": 0.08,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.1,
+      "asymmetry": 0.15,
       "animation": "sillyWobble",
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.95,
+      "eyeScaleX": 1.08
     },
     "winking": {
       "family": "playful",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
+      "topCutoff": 0.05,
+      "topCurve": 0.2,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.9,
-      "animation": "winkBounce",
-      "sparkle": false
+      "asymmetry": 0.75,
+      "animation": "winkPop",
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.04
     },
     "teasing": {
       "family": "playful",
-      "topCutoff": 0.05,
-      "topCurve": 0.16,
+      "topCutoff": 0.06,
+      "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.08,
+      "asymmetry": 0.06,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.05
     },
     "surprised": {
       "family": "surprised",
@@ -270,47 +322,57 @@
       "bottomCurve": 0.15,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 1.15,
+      "eyeScaleX": 1.05
     },
     "shocked": {
       "family": "surprised",
       "topCutoff": 0,
-      "topCurve": -0.35,
+      "topCurve": -0.25,
       "bottomCutoff": 0,
-      "bottomCurve": 0.25,
+      "bottomCurve": 0.22,
       "asymmetry": 0,
-      "animation": "shockPop",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.25,
+      "eyeScaleX": 1.1
     },
     "amazed": {
       "family": "surprised",
       "topCutoff": 0,
-      "topCurve": -0.28,
+      "topCurve": -0.18,
       "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "bottomCurve": 0.12,
       "asymmetry": 0,
-      "animation": "amazedFloat",
-      "sparkle": true
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.18,
+      "eyeScaleX": 1.08
     },
     "intrigued": {
       "family": "surprised",
       "topCutoff": 0,
-      "topCurve": -0.12,
+      "topCurve": -0.05,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
+      "asymmetry": 0.03,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 1.08,
+      "eyeScaleX": 1.04
     },
     "astonished": {
       "family": "surprised",
       "topCutoff": 0,
-      "topCurve": -0.3,
+      "topCurve": -0.2,
       "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "bottomCurve": 0.2,
       "asymmetry": 0,
-      "animation": "astonishedPop",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.2,
+      "eyeScaleX": 1.06
     },
     "curious": {
       "family": "surprised",
@@ -318,59 +380,71 @@
       "topCurve": -0.08,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
-      "animation": "curiousTilt",
-      "sparkle": false
+      "asymmetry": 0.04,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.06,
+      "eyeScaleX": 1.05
     },
     "thinking": {
       "family": "thinking",
-      "topCutoff": 0.05,
+      "topCutoff": 0.03,
       "topCurve": 0.15,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.95,
+      "eyeScaleX": 1
     },
     "pondering": {
       "family": "thinking",
-      "topCutoff": 0.06,
+      "topCutoff": 0.04,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "ponderDrift",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.01
     },
     "contemplating": {
+      "family": "thinking",
+      "topCutoff": 0.06,
+      "topCurve": 0.2,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1
+    },
+    "focused": {
       "family": "thinking",
       "topCutoff": 0.05,
       "topCurve": 0.16,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "contemplateSway",
-      "sparkle": false
-    },
-    "focused": {
-      "family": "thinking",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.02
     },
     "processing": {
       "family": "thinking",
-      "topCutoff": 0.05,
+      "topCutoff": 0.03,
       "topCurve": 0.14,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "processingBody",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.94,
+      "eyeScaleX": 1.01
     },
     "reflecting": {
       "family": "thinking",
@@ -379,118 +453,142 @@
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "reflectingSway",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1
     },
     "analyzing": {
       "family": "thinking",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
+      "topCutoff": 0.09,
+      "topCurve": 0.22,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "analyzingScan",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.82,
+      "eyeScaleX": 1.03
     },
     "attentive": {
       "family": "listening",
-      "topCutoff": 0.01,
-      "topCurve": 0.02,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.02,
-      "animation": "attentiveLean",
-      "sparkle": false
-    },
-    "engaged": {
-      "family": "listening",
-      "topCutoff": 0.02,
-      "topCurve": 0.05,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "engagedNod",
-      "sparkle": false
-    },
-    "interested": {
-      "family": "listening",
-      "topCutoff": 0.02,
+      "topCutoff": 0,
       "topCurve": 0.06,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "interestedTilt",
-      "sparkle": false
-    },
-    "absorbing": {
-      "family": "listening",
-      "topCutoff": 0.01,
-      "topCurve": 0.04,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "absorbingBreathe",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.02,
+      "eyeScaleX": 1.03
     },
-    "receptive": {
+    "engaged": {
       "family": "listening",
-      "topCutoff": 0.03,
+      "topCutoff": 0,
       "topCurve": 0.08,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "receptiveOpen",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1,
+      "eyeScaleX": 1.04
     },
-    "present": {
-      "family": "presence",
+    "interested": {
+      "family": "listening",
       "topCutoff": 0,
-      "topCurve": -0.05,
+      "topCurve": 0.04,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "presentBreathe",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.04,
+      "eyeScaleX": 1.03
     },
-    "grounded": {
-      "family": "presence",
-      "topCutoff": 0.02,
+    "absorbing": {
+      "family": "listening",
+      "topCutoff": 0,
+      "topCurve": 0.02,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.06,
+      "eyeScaleX": 1.02
+    },
+    "receptive": {
+      "family": "listening",
+      "topCutoff": 0,
       "topCurve": 0.05,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "groundedSettle",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.02,
+      "eyeScaleX": 1.01
     },
-    "calm": {
+    "present": {
       "family": "presence",
-      "topCutoff": 0.03,
+      "topCutoff": 0,
       "topCurve": 0.1,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "calmFloat",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1,
+      "eyeScaleX": 1
+    },
+    "grounded": {
+      "family": "presence",
+      "topCutoff": 0.01,
+      "topCurve": 0.12,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.98,
+      "eyeScaleX": 1
+    },
+    "calm": {
+      "family": "presence",
+      "topCutoff": 0.04,
+      "topCurve": 0.16,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": "calmBreathe",
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1
     },
     "serene": {
       "family": "presence",
-      "topCutoff": 0.05,
-      "topCurve": 0.14,
+      "topCutoff": 0.1,
+      "topCurve": 0.25,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "sereneFloat",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.8,
+      "eyeScaleX": 1
     },
     "peaceful": {
       "family": "presence",
-      "topCutoff": 0.06,
-      "topCurve": 0.18,
-      "bottomCutoff": 0.02,
-      "bottomCurve": -0.05,
+      "topCutoff": 0.08,
+      "topCurve": 0.2,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "peacefulDrift",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.01
     },
     "encouraging": {
       "family": "coaching",
@@ -499,108 +597,130 @@
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "encouragingBounce",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.06
     },
     "cheering": {
       "family": "coaching",
-      "topCutoff": 0.1,
-      "topCurve": 0.25,
-      "bottomCutoff": 0,
+      "topCutoff": 0.13,
+      "topCurve": 0.3,
+      "bottomCutoff": 0.08,
       "bottomCurve": 0,
       "asymmetry": 0,
       "animation": "cheeringBounce",
-      "sparkle": true
+      "sparkle": false,
+      "eyeScaleY": 0.75,
+      "eyeScaleX": 1.08
     },
     "guiding": {
       "family": "coaching",
       "topCutoff": 0.03,
-      "topCurve": 0.1,
+      "topCurve": 0.12,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "guidingLean",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.94,
+      "eyeScaleX": 1.02
     },
     "wise": {
-      "family": "coaching",
-      "topCutoff": 0.05,
-      "topCurve": 0.16,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "wiseTilt",
-      "sparkle": false
-    },
-    "knowing": {
       "family": "coaching",
       "topCutoff": 0.06,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "knowingNod",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1
+    },
+    "knowing": {
+      "family": "coaching",
+      "topCutoff": 0.05,
+      "topCurve": 0.16,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0.04,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.02
     },
     "sleepy": {
       "family": "tired",
-      "topCutoff": 0.28,
-      "topCurve": 0.55,
+      "topCutoff": 0.25,
+      "topCurve": 0.5,
       "bottomCutoff": 0.15,
-      "bottomCurve": -0.3,
+      "bottomCurve": 0.3,
       "asymmetry": 0,
       "animation": null,
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.5,
+      "eyeScaleX": 1
     },
     "drowsy": {
       "family": "tired",
-      "topCutoff": 0.26,
-      "topCurve": 0.52,
-      "bottomCutoff": 0.12,
-      "bottomCurve": -0.25,
+      "topCutoff": 0.43,
+      "topCurve": 0.5,
+      "bottomCutoff": 0.27,
+      "bottomCurve": 0.35,
       "asymmetry": 0,
-      "animation": null,
-      "sparkle": false
+      "animation": "drowsyBlink",
+      "sparkle": false,
+      "eyeScaleY": 0.45,
+      "eyeScaleX": 1
     },
     "exhausted": {
       "family": "tired",
-      "topCutoff": 0.35,
-      "topCurve": 0.68,
-      "bottomCutoff": 0.2,
-      "bottomCurve": -0.38,
-      "asymmetry": 0.08,
-      "animation": "exhaustedSlump",
-      "sparkle": false
+      "topCutoff": 0.48,
+      "topCurve": 0.5,
+      "bottomCutoff": 0.3,
+      "bottomCurve": 0.4,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.35,
+      "eyeScaleX": 1
     },
     "yawning": {
       "family": "tired",
-      "topCutoff": 0.4,
-      "topCurve": 0.78,
-      "bottomCutoff": 0.22,
-      "bottomCurve": -0.45,
+      "topCutoff": 0.5,
+      "topCurve": 0.5,
+      "bottomCutoff": 0.32,
+      "bottomCurve": -0.35,
       "asymmetry": 0,
-      "animation": "yawnStretch",
-      "sparkle": false
+      "animation": "yawnCycle",
+      "sparkle": false,
+      "eyeScaleY": 0.25,
+      "eyeScaleX": 0.95
     },
     "resting": {
       "family": "tired",
-      "topCutoff": 0.22,
-      "topCurve": 0.45,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "topCutoff": 0.45,
+      "topCurve": 0.5,
+      "bottomCutoff": 0.28,
+      "bottomCurve": 0.25,
       "asymmetry": 0,
-      "animation": "restingFloat",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.4,
+      "eyeScaleX": 1
     },
     "blissful": {
       "family": "tired",
-      "topCutoff": 0.25,
+      "topCutoff": 0.22,
       "topCurve": 0.5,
-      "bottomCutoff": 0.09,
-      "bottomCurve": -0.18,
+      "bottomCutoff": 0.13,
+      "bottomCurve": 0.15,
       "asymmetry": 0,
-      "animation": "blissfulFloat",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.55,
+      "eyeScaleX": 1.02
     },
     "concerned": {
       "family": "concern",
@@ -608,119 +728,143 @@
       "topCurve": 0.08,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "concernedTilt",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.95,
+      "eyeScaleX": 1.02
     },
     "worried": {
       "family": "concern",
-      "topCutoff": 0.02,
+      "topCutoff": 0,
       "topCurve": 0.05,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0.04,
-      "animation": "worriedFidget",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.02,
+      "eyeScaleX": 1.03
     },
     "sympathetic": {
       "family": "concern",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "sympatheticLean",
-      "sparkle": false
-    },
-    "understanding": {
-      "family": "concern",
-      "topCutoff": 0.05,
-      "topCurve": 0.14,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.03,
-      "animation": "understandingNod",
-      "sparkle": false
-    },
-    "comforting": {
-      "family": "concern",
-      "topCutoff": 0.05,
-      "topCurve": 0.16,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "comfortingWarmth",
-      "sparkle": false
-    },
-    "sad": {
-      "family": "sad",
-      "topCutoff": 0.07,
-      "topCurve": 0.2,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.05,
-      "animation": "sadDroop",
-      "sparkle": false
-    },
-    "crying": {
-      "family": "sad",
-      "topCutoff": 0.28,
-      "topCurve": 0.55,
-      "bottomCutoff": 0.12,
-      "bottomCurve": -0.25,
-      "asymmetry": 0,
-      "animation": "cryingShake",
-      "sparkle": false
-    },
-    "melancholy": {
-      "family": "sad",
-      "topCutoff": 0.1,
-      "topCurve": 0.25,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "melancholyDrift",
-      "sparkle": false
-    },
-    "disappointed": {
-      "family": "sad",
-      "topCutoff": 0.12,
-      "topCurve": 0.3,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "disappointedSink",
-      "sparkle": false
-    },
-    "dejected": {
-      "family": "sad",
-      "topCutoff": 0.2,
-      "topCurve": 0.4,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.08,
-      "animation": "dejectedSlump",
-      "sparkle": false
-    },
-    "frustrated": {
-      "family": "frustrated",
       "topCutoff": 0.05,
       "topCurve": 0.15,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "frustratedTense",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.02
     },
-    "annoyed": {
-      "family": "frustrated",
+    "understanding": {
+      "family": "concern",
+      "topCutoff": 0.04,
+      "topCurve": 0.14,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.01
+    },
+    "comforting": {
+      "family": "concern",
       "topCutoff": 0.06,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.08,
-      "animation": "annoyedTwitch",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.03
+    },
+    "sad": {
+      "family": "sad",
+      "topCutoff": 0.05,
+      "topCurve": 0.18,
+      "bottomCutoff": 0,
+      "bottomCurve": 0.08,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1
+    },
+    "crying": {
+      "family": "sad",
+      "topCutoff": 0.2,
+      "topCurve": 0.45,
+      "bottomCutoff": 0.12,
+      "bottomCurve": 0.2,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.6,
+      "eyeScaleX": 0.98
+    },
+    "melancholy": {
+      "family": "sad",
+      "topCutoff": 0.06,
+      "topCurve": 0.2,
+      "bottomCutoff": 0,
+      "bottomCurve": 0.05,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1
+    },
+    "disappointed": {
+      "family": "sad",
+      "topCutoff": 0.04,
+      "topCurve": 0.16,
+      "bottomCutoff": 0,
+      "bottomCurve": 0.06,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1
+    },
+    "dejected": {
+      "family": "sad",
+      "topCutoff": 0.08,
+      "topCurve": 0.22,
+      "bottomCutoff": 0,
+      "bottomCurve": 0.08,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 0.99
+    },
+    "frustrated": {
+      "family": "frustrated",
+      "topCutoff": 0.06,
+      "topCurve": 0.2,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.02
+    },
+    "annoyed": {
+      "family": "frustrated",
+      "topCutoff": 0.05,
+      "topCurve": 0.18,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.01
     },
     "irritated": {
       "family": "frustrated",
@@ -729,68 +873,82 @@
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "irritatedJitter",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.02
     },
     "exasperated": {
       "family": "frustrated",
-      "topCutoff": 0.16,
-      "topCurve": 0.35,
+      "topCutoff": 0.1,
+      "topCurve": 0.28,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "exasperatedSigh",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.8,
+      "eyeScaleX": 1
     },
     "eyeroll": {
       "family": "frustrated",
+      "topCutoff": 0.05,
+      "topCurve": 0.15,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": "eyerollArc",
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1
+    },
+    "confused": {
+      "family": "confused",
+      "topCutoff": 0,
+      "topCurve": 0.08,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1,
+      "eyeScaleX": 1.03
+    },
+    "skeptical": {
+      "family": "confused",
       "topCutoff": 0.04,
       "topCurve": 0.12,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "eyerollGaze",
-      "sparkle": false
-    },
-    "confused": {
-      "family": "confused",
-      "topCutoff": 0.02,
-      "topCurve": 0.05,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.1,
-      "animation": "confusedTilt",
-      "sparkle": false
-    },
-    "skeptical": {
-      "family": "confused",
-      "topCutoff": 0.07,
-      "topCurve": 0.2,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.2,
-      "animation": "skepticalSquint",
-      "sparkle": false
+      "asymmetry": 0.17,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.02
     },
     "puzzled": {
       "family": "confused",
       "topCutoff": 0.01,
-      "topCurve": 0.03,
+      "topCurve": 0.06,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.1,
-      "animation": "puzzledBob",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.98,
+      "eyeScaleX": 1.02
     },
     "perplexed": {
       "family": "confused",
-      "topCutoff": 0.03,
-      "topCurve": 0.1,
+      "topCutoff": 0,
+      "topCurve": 0.04,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.12,
-      "animation": "perplexedWobble",
-      "sparkle": false
+      "asymmetry": 0.04,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.02,
+      "eyeScaleX": 1.04
     },
     "bewildered": {
       "family": "confused",
@@ -798,322 +956,363 @@
       "topCurve": -0.02,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "bewilderedSpin",
-      "sparkle": false
+      "asymmetry": 0.06,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.08,
+      "eyeScaleX": 1.06
     },
     "nervous": {
       "family": "nervous",
-      "topCutoff": 0.01,
-      "topCurve": 0.02,
+      "topCutoff": 0,
+      "topCurve": 0.06,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "nervousShake",
-      "sparkle": false
+      "animation": "nervousLook",
+      "sparkle": false,
+      "eyeScaleY": 1.02,
+      "eyeScaleX": 1.04
     },
     "anxious": {
       "family": "nervous",
       "topCutoff": 0,
-      "topCurve": 0,
+      "topCurve": 0.04,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
-      "animation": "anxiousTremble",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": "anxiousDart",
+      "sparkle": false,
+      "eyeScaleY": 1.06,
+      "eyeScaleX": 1.05
     },
     "scared": {
       "family": "nervous",
       "topCutoff": 0,
-      "topCurve": -0.05,
+      "topCurve": -0.12,
       "bottomCutoff": 0,
-      "bottomCurve": 0.05,
+      "bottomCurve": 0.1,
       "asymmetry": 0,
-      "animation": "scaredRecoil",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.15,
+      "eyeScaleX": 1.08
     },
     "fearful": {
       "family": "nervous",
       "topCutoff": 0,
-      "topCurve": -0.08,
+      "topCurve": -0.18,
       "bottomCutoff": 0,
-      "bottomCurve": 0,
+      "bottomCurve": 0.15,
       "asymmetry": 0,
-      "animation": "fearfulCower",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 1.2,
+      "eyeScaleX": 1.1
     },
     "uneasy": {
       "family": "nervous",
       "topCutoff": 0.01,
-      "topCurve": 0.04,
+      "topCurve": 0.1,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.05,
-      "animation": "uneasyShift",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.98,
+      "eyeScaleX": 1.02
     },
     "embarrassed": {
       "family": "embarrassed",
-      "topCutoff": 0,
-      "topCurve": -0.03,
+      "topCutoff": 0.08,
+      "topCurve": 0.22,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "embarrassedShrink",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.02
     },
     "awkward": {
       "family": "embarrassed",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0.08,
-      "animation": "awkwardSquirm",
-      "sparkle": false
-    },
-    "cringing": {
-      "family": "embarrassed",
-      "topCutoff": 0.22,
-      "topCurve": 0.45,
-      "bottomCutoff": 0.1,
-      "bottomCurve": -0.2,
-      "asymmetry": 0,
-      "animation": "cringingSqueeze",
-      "sparkle": false
-    },
-    "sheepish": {
-      "family": "embarrassed",
-      "topCutoff": 0.06,
+      "topCutoff": 0.05,
       "topCurve": 0.18,
       "bottomCutoff": 0,
       "bottomCurve": 0,
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.01
+    },
+    "cringing": {
+      "family": "embarrassed",
+      "topCutoff": 0.15,
+      "topCurve": 0.35,
+      "bottomCutoff": 0.09,
+      "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "sheepishLean",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.7,
+      "eyeScaleX": 0.98
+    },
+    "sheepish": {
+      "family": "embarrassed",
+      "topCutoff": 0.04,
+      "topCurve": 0.16,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.03
     },
     "flustered": {
       "family": "embarrassed",
-      "topCutoff": 0.02,
-      "topCurve": 0.05,
+      "topCutoff": 0.03,
+      "topCurve": 0.12,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.06,
-      "animation": "flusteredBounce",
-      "sparkle": false
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.95,
+      "eyeScaleX": 1.04
     },
     "confident": {
       "family": "cool",
       "topCutoff": 0.05,
-      "topCurve": 0.14,
+      "topCurve": 0.16,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "confidentStance",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.03
     },
     "smirking": {
       "family": "cool",
-      "topCutoff": 0.07,
+      "topCutoff": 0.06,
       "topCurve": 0.2,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.12,
-      "animation": "smirkingTilt",
-      "sparkle": false
+      "asymmetry": 0.06,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.04
     },
     "cool": {
-      "family": "cool",
-      "topCutoff": 0.12,
-      "topCurve": 0.28,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "coolLean",
-      "sparkle": false
-    },
-    "sassy": {
       "family": "cool",
       "topCutoff": 0.09,
       "topCurve": 0.24,
       "bottomCutoff": 0,
       "bottomCurve": 0,
-      "asymmetry": 0.1,
-      "animation": "sassyBounce",
-      "sparkle": false
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.82,
+      "eyeScaleX": 1.02
+    },
+    "sassy": {
+      "family": "cool",
+      "topCutoff": 0.08,
+      "topCurve": 0.22,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.04
     },
     "smug": {
       "family": "cool",
-      "topCutoff": 0.12,
-      "topCurve": 0.3,
+      "topCutoff": 0.08,
+      "topCurve": 0.22,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0.05,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.85,
+      "eyeScaleX": 1.03
+    },
+    "determined": {
+      "family": "intense",
+      "topCutoff": 0.04,
+      "topCurve": 0.14,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "smugSettle",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.92,
+      "eyeScaleX": 1.03
     },
-    "determined": {
+    "fierce": {
+      "family": "intense",
+      "topCutoff": 0.06,
+      "topCurve": 0.18,
+      "bottomCutoff": 0,
+      "bottomCurve": 0,
+      "asymmetry": 0,
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.88,
+      "eyeScaleX": 1.05
+    },
+    "intense": {
       "family": "intense",
       "topCutoff": 0.05,
       "topCurve": 0.16,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "determinedStance",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.9,
+      "eyeScaleX": 1.04
     },
-    "fierce": {
+    "resolute": {
       "family": "intense",
-      "topCutoff": 0.08,
-      "topCurve": 0.22,
+      "topCutoff": 0.03,
+      "topCurve": 0.12,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "fierceIntensity",
-      "sparkle": false
+      "animation": null,
+      "sparkle": false,
+      "eyeScaleY": 0.94,
+      "eyeScaleX": 1.02
     },
-    "intense": {
+    "passionate": {
       "family": "intense",
       "topCutoff": 0.03,
       "topCurve": 0.1,
       "bottomCutoff": 0,
       "bottomCurve": 0,
       "asymmetry": 0,
-      "animation": "intenseStare",
-      "sparkle": false
-    },
-    "resolute": {
-      "family": "intense",
-      "topCutoff": 0.05,
-      "topCurve": 0.14,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
-      "animation": "resoluteStand",
-      "sparkle": false
-    },
-    "passionate": {
-      "family": "intense",
-      "topCutoff": 0.04,
-      "topCurve": 0.12,
-      "bottomCutoff": 0,
-      "bottomCurve": 0,
-      "asymmetry": 0,
       "animation": "passionatePulse",
-      "sparkle": false
+      "sparkle": false,
+      "eyeScaleY": 0.95,
+      "eyeScaleX": 1.06
     }
   },
   "families": {
     "core": {
-      "displayName": "Core",
-      "description": "Fundamental conversational states"
+      "displayName": "Core States",
+      "description": "Fundamental expressions for conversation: neutral, listening, speaking"
     },
     "happy": {
       "displayName": "Happy",
-      "description": "Joy, delight, and positive emotions"
+      "description": "Joy spectrum from pleased to delighted - warmth, gratitude, excitement"
     },
     "warmth": {
-      "displayName": "Warmth",
-      "description": "Care, love, and supportive emotions"
+      "displayName": "Warmth & Care",
+      "description": "Emotional warmth: caring, loving, tender, supportive, compassionate"
     },
     "playful": {
       "displayName": "Playful",
-      "description": "Fun, mischievous, and lighthearted"
+      "description": "Lighthearted expressions: mischievous, cheeky, silly, winking, teasing"
     },
     "surprised": {
       "displayName": "Surprised",
-      "description": "Amazement, curiosity, and wonder"
+      "description": "Discovery and reaction: surprised, shocked, amazed, intrigued, curious"
     },
     "thinking": {
       "displayName": "Thinking",
-      "description": "Contemplation and deep thought"
+      "description": "Cognitive states: pondering, contemplating, focused, processing, analyzing"
     },
     "listening": {
       "displayName": "Listening",
-      "description": "Active attention and receptivity"
+      "description": "Active engagement: attentive, engaged, interested, absorbing, receptive"
     },
     "presence": {
       "displayName": "Presence",
-      "description": "Groundedness and inner peace"
+      "description": "Grounded states: present, grounded, calm, serene, peaceful"
     },
     "coaching": {
       "displayName": "Coaching",
-      "description": "Guidance, wisdom, and encouragement"
+      "description": "Supportive guidance: encouraging, cheering, guiding, wise, knowing"
     },
     "tired": {
       "displayName": "Tired",
-      "description": "Sleepy, restful, and exhausted states"
+      "description": "Fatigue spectrum: sleepy, drowsy, exhausted, yawning, resting, blissful"
     },
     "concern": {
       "displayName": "Concern",
-      "description": "Worry, sympathy, and care for others"
+      "description": "Empathetic worry: concerned, worried, sympathetic, understanding, comforting"
     },
     "sad": {
       "displayName": "Sad",
-      "description": "Sadness, disappointment, and grief"
+      "description": "Sadness spectrum: sad, crying, melancholy, disappointed, dejected"
     },
     "frustrated": {
       "displayName": "Frustrated",
-      "description": "Annoyance, irritation, and exasperation"
+      "description": "Irritation expressions: frustrated, annoyed, irritated, exasperated, eyeroll"
     },
     "confused": {
       "displayName": "Confused",
-      "description": "Puzzlement, skepticism, and bewilderment"
+      "description": "Uncertainty: confused, skeptical, puzzled, perplexed, bewildered"
     },
     "nervous": {
       "displayName": "Nervous",
-      "description": "Anxiety, fear, and unease"
+      "description": "Anxiety states: nervous, anxious, scared, fearful, uneasy"
     },
     "embarrassed": {
       "displayName": "Embarrassed",
-      "description": "Awkwardness, cringing, and sheepishness"
+      "description": "Self-conscious: embarrassed, awkward, cringing, sheepish, flustered"
     },
     "cool": {
       "displayName": "Cool",
-      "description": "Confidence, smugness, and sass"
+      "description": "Confidence expressions: confident, smirking, cool, sassy, smug"
     },
     "intense": {
       "displayName": "Intense",
-      "description": "Determination, passion, and fierceness"
+      "description": "Focused determination: determined, fierce, intense, resolute, passionate"
     }
   },
   "microExpressions": {
     "recognition": {
+      "description": "Brief flash of recognition - 'I hear you'",
+      "expression": "attentive",
       "duration": 80,
-      "eyeWhite": {
-        "scaleY": 1.08
-      }
+      "returnTo": "listening"
     },
     "concern": {
+      "description": "Quick flash of empathy when detecting distress",
+      "expression": "concerned",
       "duration": 100,
-      "lidTop": {
-        "curve": 5
-      }
+      "returnTo": "listening"
     },
     "delight": {
+      "description": "Micro-flash of joy in response to user happiness",
+      "expression": "delighted",
       "duration": 120,
-      "smileCrease": {
-        "opacity": 0.8
-      }
+      "returnTo": "happy"
     },
     "warmth": {
+      "description": "Brief warmth flash - building connection",
+      "expression": "warm",
       "duration": 100,
-      "smileCrease": {
-        "opacity": 0.6
-      }
+      "returnTo": "listening"
     },
     "interest": {
+      "description": "Quick flash of curiosity",
+      "expression": "interested",
       "duration": 90,
-      "eyeWhite": {
-        "scaleY": 1.05
-      }
+      "returnTo": "listening"
     },
     "surprise": {
-      "duration": 150,
-      "eyeWhite": {
-        "scaleY": 1.12,
-        "scaleX": 1.05
-      }
+      "description": "Brief surprise micro-expression",
+      "expression": "surprised",
+      "duration": 80,
+      "returnTo": "listening"
     }
   }
 }

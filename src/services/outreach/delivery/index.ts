@@ -257,14 +257,17 @@ export async function deliverOutreach(
         // Initiate proactive voice call via conversational call service
         log.info({ userId, personaId: persona }, 'Initiating proactive voice call');
         try {
-          const { makeConversationalCall, isConversationalCallingConfigured } = await import(
-            '../../voice/conversational-call.service.js'
-          );
+          const { makeConversationalCall, isConversationalCallingConfigured } =
+            await import('../../voice/conversational-call.service.js');
 
           const callConfig = isConversationalCallingConfigured();
           if (!callConfig.configured) {
             log.warn({ missing: callConfig.missing }, 'Conversational calling not configured');
-            return { success: false, channel, error: `Missing config: ${callConfig.missing.join(', ')}` };
+            return {
+              success: false,
+              channel,
+              error: `Missing config: ${callConfig.missing.join(', ')}`,
+            };
           }
 
           // Get user's phone and name for the call

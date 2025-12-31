@@ -23,6 +23,7 @@ import {
   type PushNotificationPayload,
   type NotificationType,
 } from '../../services/push-notifications.js';
+import { getUserContactInfo } from '../../services/outreach/user-contact.js';
 
 const log = createLogger({ module: 'CalendarBriefingJob' });
 
@@ -132,8 +133,13 @@ async function getAllUserIdsWithCalendar(): Promise<string[]> {
 
 // Get user timezone from preferences or default
 async function getUserTimezone(userId: string): Promise<string> {
-  // TODO: Get from user preferences
-  return 'America/New_York';
+  try {
+    const contactInfo = await getUserContactInfo(userId);
+    return contactInfo?.timezone ?? 'America/New_York';
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Failed to get user timezone, using default');
+    return 'America/New_York';
+  }
 }
 
 // ============================================================================

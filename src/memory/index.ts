@@ -678,65 +678,52 @@ export interface MemorySystemResult {
   usePersistentVectors: boolean;
 }
 
+// ============================================================================
+// REHYDRATION - DEPRECATED
+// ============================================================================
+//
+// ⚠️ THIS FUNCTION IS DEPRECATED AND SHOULD NOT BE USED
+//
+// Historical context (Dec 2024):
+// - This function was designed for in-memory VectorStore in development
+// - In production, we use FirestoreVectorStore which is PERSISTENT
+// - Embeddings are stored directly in Firestore's `vectors` collection
+// - They survive restarts - NO REHYDRATION NEEDED
+//
+// Why it was removed:
+// 1. UNNECESSARY: FirestoreVectorStore already persists embeddings
+// 2. DOESN'T SCALE: O(users × summaries) queries at startup
+// 3. BLOCKS STARTUP: Prevented workers from accepting calls
+// 4. CAUSED OUTAGE: Dec 2024 startup hang incident
+//
+// If you need embeddings for a specific user, load them on-demand:
+// - User connects → Load their embeddings into session cache
+// - NOT: Startup → Load ALL users' embeddings
+//
+// See: docs/architecture/MEMORY-MANAGEMENT.md
+// ============================================================================
+
 /**
- * Rehydrate conversation embeddings from Firestore into vector store
- * This ensures semantic search works across server restarts
+ * @deprecated DO NOT USE - FirestoreVectorStore is persistent, no rehydration needed.
+ *
+ * This function only existed for the in-memory VectorStore used in development.
+ * In production, embeddings are stored in Firestore and persist across restarts.
+ *
+ * If you need to pre-warm embeddings for a specific user, use:
+ * - `loadUserEmbeddingsIntoSession(userId)` (when user connects)
+ *
+ * NOT this function (which tried to load ALL users at startup).
  */
 export async function rehydrateConversationEmbeddings(
-  store: MemoryStore,
-  vectorStore: VectorStore | FirestoreVectorStore
+  _store: MemoryStore,
+  _vectorStore: VectorStore | FirestoreVectorStore
 ): Promise<number> {
-  getLogger().info('Rehydrating conversation embeddings from storage...');
-
-  let rehydratedCount = 0;
-
-  try {
-    // Get all user profiles (with pagination for scale)
-    const profiles = await store.listProfiles({ limit: 500 });
-
-    for (const profile of profiles) {
-      try {
-        // Get summaries for this user
-        const summaries = await store.getSummaries(profile.id, { limit: 100 });
-
-        for (const summary of summaries) {
-          // Only rehydrate if summary has an embedding
-          if (summary.embedding && summary.embedding.length > 0) {
-            const summaryText = [
-              ...summary.mainTopics,
-              ...summary.keyPoints,
-              summary.emotionalArc,
-            ].join(' ');
-
-            // Add to vector store (either persistent or in-memory)
-            if ('addDocument' in vectorStore) {
-              await vectorStore.addDocument({
-                id: `conversation_${summary.id}`,
-                text: summaryText,
-                embedding: summary.embedding,
-                metadata: {
-                  source: 'conversation',
-                  category: 'summary',
-                  userId: profile.id,
-                  topics: summary.mainTopics,
-                  timestamp: summary.timestamp,
-                },
-              });
-              rehydratedCount++;
-            }
-          }
-        }
-      } catch (profileError) {
-        getLogger().debug(`Error rehydrating for user ${profile.id}: ${profileError}`);
-      }
-    }
-
-    getLogger().info(`Rehydrated ${rehydratedCount} conversation embeddings`);
-  } catch (error) {
-    getLogger().warn(`Conversation rehydration failed (non-blocking): ${error}`);
-  }
-
-  return rehydratedCount;
+  getLogger().warn(
+    '⚠️ rehydrateConversationEmbeddings() is DEPRECATED and does nothing. ' +
+      'FirestoreVectorStore is persistent - no rehydration needed. ' +
+      'This function will be removed in a future version.'
+  );
+  return 0;
 }
 
 // Cache for memory system result (idempotent initialization)
@@ -890,18 +877,10 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
     }
   }
 
-  // Rehydrate conversation embeddings from storage
-  // This ensures semantic search for past conversations works after restart
-  if (config?.rehydrateConversations !== false) {
-    try {
-      const rehydrated = await rehydrateConversationEmbeddings(store, vectorStore);
-      if (rehydrated > 0) {
-        getLogger().info(`Rehydrated ${rehydrated} conversation embeddings for semantic search`);
-      }
-    } catch (error) {
-      getLogger().warn(`Conversation embedding rehydration failed (non-blocking): ${error}`);
-    }
-  }
+  // NOTE: Rehydration is deprecated and disabled.
+  // FirestoreVectorStore is persistent - embeddings survive restarts.
+  // The rehydrateConversations config option is kept for backward compatibility
+  // but does nothing. See rehydrateConversationEmbeddings() JSDoc for details.
 
   getLogger().info(
     `Memory system initialized (store: ${storeType}, vectors: ${usePersistentVectors ? 'persistent' : 'ephemeral'}, redis: ${!!redisCache})`

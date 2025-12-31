@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onMoodPatternChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'MoodCalendar' });
 
@@ -134,11 +135,20 @@ export async function recordMoodEntry(
   };
 
   try {
-    await db
+    const docRef = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('mood_calendar')
       .add(cleanForFirestore(entry));
+
+    // Index to semantic memory for pattern detection
+    void onMoodPatternChange(userId, docRef.id, {
+      mood: entry.mood,
+      intensity: entry.intensity,
+      dayOfWeek: entry.dayOfWeek,
+      hourOfDay: entry.hourOfDay,
+      context: entry.context,
+    });
 
     log.debug({ userId, mood, dayOfWeek: entry.dayOfWeek }, 'Recorded mood entry');
   } catch (error) {
@@ -456,7 +466,7 @@ export async function buildMoodCalendarContext(userId: string): Promise<string> 
     sections.push('\n⚠️ Upcoming challenging times predicted:');
     for (const pred of significantPredictions.slice(0, 2)) {
       sections.push(
-        `• ${DAY_NAMES[pred.dayOfWeek]} around ${pred.hourOfDay}:00 - ` + `${pred.historicalBasis}`
+        `• ${DAY_NAMES[pred.dayOfWeek]} around ${pred.hourOfDay}:00 - ${pred.historicalBasis}`
       );
     }
   }

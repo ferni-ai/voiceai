@@ -14,6 +14,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getVoiceIdForPersona } from '../../../speech/tts/cartesia-core.js';
 import { generateWarmGreeting, type GreetingContext } from '../warm-greeting.js';
+import { CARTESIA_MODEL } from '../../../config/voice-ids.js';
 
 const log = createLogger({ module: 'GreetingAudioPrewarm' });
 
@@ -23,7 +24,7 @@ const log = createLogger({ module: 'GreetingAudioPrewarm' });
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
 const CARTESIA_API_VERSION = '2024-06-10';
-const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-2-2025-03-07';
+// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /** Primary personas to pre-warm (most likely to be used) */
 const PRIMARY_PERSONAS = ['ferni', 'maya-santos'] as const;
@@ -256,10 +257,22 @@ export function clearGreetingAudioCache(): void {
   greetingAudioCache.clear();
 }
 
+/**
+ * Get metrics for integration.ts
+ */
+export function getGreetingAudioPrewarmMetrics(): {
+  cacheSize: number;
+  totalAudioDurationMs: number;
+  hitRate?: number;
+} {
+  return getGreetingAudioCacheStats();
+}
+
 export default {
   prewarmGreetingAudio,
   getPrewarmedGreetingAudio,
   isGreetingAudioCached,
   getGreetingAudioCacheStats,
+  getGreetingAudioPrewarmMetrics,
   clearGreetingAudioCache,
 };

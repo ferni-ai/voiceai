@@ -29,8 +29,12 @@ import {
 import {
   getUncelebratedWins,
   generateCelebration,
+  getOverdueIntentions,
+  getPendingIntentions,
+  generateIntentionFollowUp,
   type SmallWin,
   type CelebrationOpportunity,
+  type PendingIntention,
 } from '../trust-systems/small-wins.js';
 
 import {
@@ -47,13 +51,6 @@ import {
 } from '../trust-systems/reading-between-lines.js';
 
 import { getProactiveRememberWhen, type SongCallback } from '../trust-systems/our-songs.js';
-
-import {
-  getOverdueIntentions,
-  getPendingIntentions,
-  generateIntentionFollowUp,
-  type PendingIntention,
-} from '../trust-systems/small-wins.js';
 
 import {
   checkBoundary,

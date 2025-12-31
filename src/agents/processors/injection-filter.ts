@@ -405,7 +405,7 @@ export function deduplicateInjections(injections: ContextInjection[]): ContextIn
   const sorted = [...injections].sort((a, b) => b.priority - a.priority);
 
   const kept: ContextInjection[] = [];
-  const skipped: Set<number> = new Set();
+  const skipped = new Set<number>();
 
   for (let i = 0; i < sorted.length; i++) {
     if (skipped.has(i)) continue;

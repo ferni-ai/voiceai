@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -834,7 +835,7 @@ async function handleDisconnect(): Promise<void> {
 
   try {
     await apiDelete('/api/oura/disconnect');
-    toast.success('Oura disconnected');
+    toast.success(t('toasts.ouraDisconnected'));
     callbacks.onDisconnected?.();
     renderConnectState();
   } catch {
@@ -933,7 +934,7 @@ export async function showOuraSettings(): Promise<void> {
   const urlParams = new URLSearchParams(window.location.search);
   const ouraResult = urlParams.get('oura');
   if (ouraResult === 'success') {
-    toast.success('Oura Ring connected!');
+    toast.success(t('toasts.ouraRingConnected'));
     callbacks.onConnected?.();
     // Clean up URL
     const url = new URL(window.location.href);

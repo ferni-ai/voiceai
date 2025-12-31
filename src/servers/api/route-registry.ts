@@ -140,6 +140,7 @@ import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features
 import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
+import { handleUtilitiesRoutes } from './routes/utilities.js';
 
 // =============================================================================
 // Route Registry
@@ -653,6 +654,12 @@ export const routes: RouteDefinition[] = [
     handler: handleTwinProfileRoutes,
     category: 'api',
     description: 'Digital Twin profile management',
+  },
+  {
+    prefix: '/api/utilities',
+    handler: handleUtilitiesRoutes,
+    category: 'api',
+    description: 'Common utilities (reminders, lists, alarms, voice memos)',
   },
   {
     prefix: '/api/relationship',

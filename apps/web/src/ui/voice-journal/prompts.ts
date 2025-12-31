@@ -9,6 +9,7 @@
 import { createLogger } from '../../utils/logger.js';
 import type { JournalPrompt } from './types.js';
 import { getModal, getCurrentPrompt, setCurrentPrompt, getCurrentAgent } from './state.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('VoiceJournalPrompts');
 
@@ -291,7 +292,7 @@ export function renderPromptSection(): void {
       </div>
       <p class="prompt-text">${currentPrompt.prompt}</p>
       ${currentPrompt.followUp ? `<p class="prompt-followup">${currentPrompt.followUp}</p>` : ''}
-      <button class="prompt-shuffle" data-action="shuffle-prompt" aria-label="Get new prompt">
+      <button class="prompt-shuffle" data-action="shuffle-prompt" aria-label="${t('accessibility.getNewPrompt')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="16 3 21 3 21 8"></polyline>
           <line x1="4" y1="20" x2="21" y2="3"></line>

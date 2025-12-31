@@ -23,28 +23,20 @@ import { log, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
-  getDJBooth,
-  hasPendingMusicFeedback,
-  recordMusicFeedback,
   detectFeedbackFromResponse,
   extractMusicPreferences,
+  getDJBooth,
   hasMusicContext,
+  hasPendingMusicFeedback,
+  recordMusicFeedback,
 } from '../../audio/index.js';
+import { getSessionFlags } from '../../config/voice-humanization-flags.js';
+import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
 import {
   extractPreferences,
   hasPreferenceContent,
   type ExtractedPreference,
 } from '../../intelligence/preference-extractor.js';
-import {
-  addFavoriteTeam,
-  addToWatchlist,
-  addNewsInterest,
-  addAvoidTopic,
-  saveLocation,
-  setAllergies,
-} from '../../tools/domains/information/preferences/index.js';
-import { getSessionFlags } from '../../config/voice-humanization-flags.js';
-import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
 import {
   extractMemorableMoments,
   mergeMemorableMoments,
@@ -65,60 +57,63 @@ import {
   processPartialTranscript as processSesamePartial,
   startNewTurn as startSesameTurn,
 } from '../../speech/sesame-inspired/index.js';
+import {
+  addAvoidTopic,
+  addFavoriteTeam,
+  addNewsInterest,
+  addToWatchlist,
+  saveLocation,
+  setAllergies,
+} from '../../tools/domains/information/preferences/index.js';
 import type { ConversationContext as FeedbackContext } from '../../tools/optimization/feedback-collector.js';
+import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
-import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
-import {
-  validateTranscript,
-  isLikelyNoise,
-  type ValidationContext,
-} from './transcript-validator.js';
 import {
   analyzeTurnSignals,
-  updateSessionState,
   handleInterruption,
+  updateSessionState,
   type TurnContext,
 } from './human-turn-intelligence.js';
+import {
+  isLikelyNoise,
+  validateTranscript,
+  type ValidationContext,
+} from './transcript-validator.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+import {
+  createTeamHuddleTrigger,
+  detectTeamHuddleRequest,
+} from '../../services/engagement/engagement-conversation-triggers.js';
+import { getTrailingSsml, senseInterrupt } from '../../speech/graceful-interrupt/index.js';
+import {
+  cleanupStaleCheckIns,
+  processDailyCheckIn,
+  type DailyCheckInContext,
+} from './daily-checkin-handler.js';
 
 // Check Rust availability at module load
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
-import { senseInterrupt, getTrailingSsml } from '../../speech/graceful-interrupt/index.js';
-import {
-  processDailyCheckIn,
-  cleanupStaleCheckIns,
-  type DailyCheckInContext,
-} from './daily-checkin-handler.js';
-import {
-  detectTeamHuddleRequest,
-  createTeamHuddleTrigger,
-} from '../../services/engagement/engagement-conversation-triggers.js';
 // Better Than Human - Transcript processing integration
 import { processTranscriptForBetterThanHuman } from '../integrations/better-than-human-integration.js';
 // Phase 5: Anticipatory Triggers - "Better than Human" early signal detection
 import {
+  learnFromUtterance,
   processPartialInput as processAnticipatoryInput,
   recordAnticipatoryOutcome,
-  clearAnticipatorySession,
-  learnFromUtterance,
-  type AnticipatoryEngineResult,
   type VoiceProsodyCue,
 } from '../../intelligence/triggers/index.js';
 // Semantic Router - pre-LLM tool routing for high-confidence requests
 import {
-  routeTranscript,
   isSemanticRoutingEnabled,
+  routeTranscript,
 } from '../../tools/semantic-router/integration/index.js';
 // Unified Anticipation Pipeline - "Better Than Human" anticipation during speech
 import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
-import {
-  isOrchestratorEnabled,
-  processAnticipation,
-} from '../integrations/speech-orchestrator-integration.js';
+import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
@@ -1283,7 +1278,7 @@ async function processFinalTranscript(
       }
       diag.state('🎵 Extracted music preferences from conversation', {
         count: extractedPrefs.length,
-        preferences: extractedPrefs.map(p => `${p.type} ${p.category}: ${p.value}`),
+        preferences: extractedPrefs.map((p) => `${p.type} ${p.category}: ${p.value}`),
       });
     }
   }
@@ -1302,7 +1297,7 @@ async function processFinalTranscript(
       }
       diag.state('🧠 Extracted general preferences from conversation', {
         count: extractedPrefs.length,
-        preferences: extractedPrefs.map(p => `${p.category}: ${p.value}`),
+        preferences: extractedPrefs.map((p) => `${p.category}: ${p.value}`),
       });
     }
   }
@@ -1852,6 +1847,9 @@ function processTeamHuddleDetection(
 async function saveExtractedPreference(userId: string, pref: ExtractedPreference): Promise<void> {
   try {
     switch (pref.category) {
+      // =======================================================================
+      // ORIGINAL CATEGORIES (specific storage functions)
+      // =======================================================================
       case 'sports_team':
         await addFavoriteTeam(userId, {
           name: pref.value,
@@ -1901,6 +1899,115 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         });
         break;
 
+      // =======================================================================
+      // NEW "BETTER THAN HUMAN" LIFESTYLE PREFERENCES
+      // Stored in Firestore: bogle_users/{userId}/lifestyle_preferences/{category}
+      // =======================================================================
+      case 'music_genre':
+      case 'music_artist':
+        await saveLifestylePreference(userId, 'music', pref.category, pref.value, pref.isNegative);
+        diag.info(`🎵 Learned music preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'movie_genre':
+      case 'tv_show':
+        await saveLifestylePreference(
+          userId,
+          'entertainment',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🎬 Learned entertainment preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'cuisine_preference':
+      case 'dietary_restriction':
+      case 'drink_preference':
+      case 'restaurant_favorite':
+        await saveLifestylePreference(userId, 'food', pref.category, pref.value, pref.isNegative);
+        diag.info(`🍽️ Learned food preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+          isNegative: pref.isNegative,
+        });
+        break;
+
+      case 'exercise_routine':
+      case 'wellness_practice':
+      case 'sleep_pattern':
+        await saveLifestylePreference(
+          userId,
+          'wellness',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🏋️ Learned wellness preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'travel_style':
+      case 'bucket_list_destination':
+      case 'favorite_place':
+        await saveLifestylePreference(userId, 'travel', pref.category, pref.value, pref.isNegative);
+        diag.info(`✈️ Learned travel preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'learning_goal':
+      case 'skill_building':
+        await saveLifestylePreference(
+          userId,
+          'learning',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`📚 Learned learning goal from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'communication_preference':
+      case 'social_style':
+      case 'pet_preference':
+        await saveLifestylePreference(userId, 'social', pref.category, pref.value, pref.isNegative);
+        diag.info(`👥 Learned social preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
+      case 'productivity_style':
+      case 'morning_routine':
+      case 'shopping_preference':
+        await saveLifestylePreference(
+          userId,
+          'daily_life',
+          pref.category,
+          pref.value,
+          pref.isNegative
+        );
+        diag.info(`🛠️ Learned daily life preference from conversation`, {
+          type: pref.category,
+          value: pref.value,
+        });
+        break;
+
       default:
         diag.debug('Unknown preference category', { category: pref.category, value: pref.value });
     }
@@ -1908,6 +2015,88 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
     diag.warn('Failed to save extracted preference', {
       category: pref.category,
       value: pref.value,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Save a lifestyle preference to Firestore
+ * Stores in: bogle_users/{userId}/lifestyle_preferences/{domain}
+ *
+ * Each domain (music, food, wellness, etc.) has arrays for:
+ * - likes: things the user enjoys
+ * - dislikes: things the user doesn't enjoy
+ * - preferences: specific preference items with metadata
+ */
+async function saveLifestylePreference(
+  userId: string,
+  domain: string,
+  category: string,
+  value: string,
+  isNegative?: boolean
+): Promise<void> {
+  try {
+    const { getFirestoreStore } = await import('../../memory/firestore-store.js');
+    const store = getFirestoreStore();
+    const db = await store.getDatabase();
+
+    const docRef = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('lifestyle_preferences')
+      .doc(domain);
+
+    const doc = await docRef.get();
+    const data = doc.exists ? (doc.data() as Record<string, unknown>) : {};
+
+    // Get or initialize arrays
+    const likes = (data.likes as string[]) || [];
+    const dislikes = (data.dislikes as string[]) || [];
+    const preferences =
+      (data.preferences as Array<{ category: string; value: string; timestamp: string }>) || [];
+
+    // Add to appropriate list
+    if (isNegative) {
+      if (!dislikes.includes(value)) {
+        dislikes.push(value);
+      }
+    } else {
+      if (!likes.includes(value)) {
+        likes.push(value);
+      }
+    }
+
+    // Also store with metadata
+    const existingPrefIndex = preferences.findIndex(
+      (p) => p.category === category && p.value === value
+    );
+    if (existingPrefIndex === -1) {
+      preferences.push({
+        category,
+        value,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await docRef.set(
+      {
+        likes,
+        dislikes,
+        preferences,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, value });
+  } catch (error) {
+    // Non-fatal - preference saving shouldn't break the session
+    diag.debug('Could not save lifestyle preference to Firestore', {
+      userId,
+      domain,
+      category,
+      value,
       error: String(error),
     });
   }

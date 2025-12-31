@@ -56,7 +56,7 @@ export function renderError(errorType: string, _onRetry: () => void): string {
       ${
         errorConfig.showRetry
           ? `
-        <button aria-label="Refresh" class="trust-journey-retry-btn" data-action="retry">
+        <button aria-label="${t('accessibility.refresh')}" class="trust-journey-retry-btn" data-action="retry">
           ${ICONS.refresh}
           <span>${t('common.tryAgain')}</span>
         </button>
@@ -278,7 +278,7 @@ export function renderContent(data: TrustJourneyData, state: TrustJourneyState):
           hasMoreTimeline
             ? `
           <div class="timeline-load-more">
-            <button aria-label="Move down" class="timeline-load-more-btn" data-action="load-more">
+            <button aria-label="${t('accessibility.moveDown')}" class="timeline-load-more-btn" data-action="load-more">
               ${ICONS.chevronDown}
               <span>${t('trustJourney.loadMore', { count: Math.min(TIMELINE_PAGE_SIZE, data.timeline.length - visibleTimeline.length) })}</span>
             </button>

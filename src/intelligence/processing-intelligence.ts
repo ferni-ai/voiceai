@@ -20,7 +20,7 @@ import type {
   ProcessingResult,
   ProcessingType,
   ProcessingWeight,
-} from '../agents/realtime/behavior-types.js';
+} from '../types/behavior-types.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ProcessingIntelligence' });

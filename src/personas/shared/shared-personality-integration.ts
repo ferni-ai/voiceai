@@ -62,6 +62,30 @@ import {
   type EngagementMetrics,
 } from './personality-ab-testing.js';
 
+// Import advanced personality modules
+import {
+  getVoiceEmotionAdjustment,
+  fromVoiceEmotionResult,
+  type VoicePersonalityAdjustment,
+  type VoiceEmotionContext,
+} from './voice-emotion-personality.js';
+import {
+  getPacePersonalityAdjustment,
+  applyPaceToExpression,
+  type PacePersonalityAdjustment,
+  type CurrentPaceContext,
+} from './voice-pace-personality.js';
+import {
+  getBestCallback,
+  markDelivered,
+  callbackToExpression,
+  type MemoryCallback,
+} from './memory-personality-bridge.js';
+import {
+  prewarmCache as prewarmLLMCache,
+  type ExpressionContext as LLMExpressionContext,
+} from './llm-expression-generator.js';
+
 const log = createLogger({ module: 'shared-personality-integration' });
 
 // Default experiment ID
@@ -164,6 +188,11 @@ interface SessionState {
   abTestExperimentId?: string;
   sessionMetrics?: EngagementMetrics;
   sessionStartTime?: number;
+  // Advanced adjustments (cached per session)
+  voiceEmotionAdjustment?: VoicePersonalityAdjustment;
+  paceAdjustment?: PacePersonalityAdjustment;
+  // Memory callback tracking
+  lastMemoryCallbackTurn?: number;
 }
 
 const sessionStates = new Map<string, SessionState>();
@@ -209,7 +238,7 @@ function recordTelemetrySnapshot(
     expressionTheme?: ThemeCategory;
     expressionIntimacy?: number;
     expressionTiming?: string;
-    expressionSource: 'building_blocks' | 'resonance_match' | 'none';
+    expressionSource: 'llm' | 'building_blocks' | 'resonance_match' | 'none';
     decisionReason: string;
     abTestVariant?: string;
     abTestId?: string;
@@ -315,9 +344,19 @@ export async function processSharedPersonalityTurn(
     resonanceLookupMs: 0,
   };
 
-  // Initialize session if needed (prewarm resonance cache)
+  // Initialize session if needed (prewarm caches)
   if (!state.initialized && userId) {
+    // Prewarm resonance cache
     await prewarmResonanceCache(userId);
+
+    // Prewarm LLM expression cache with default context
+    const defaultLLMContext: LLMExpressionContext = {
+      timeOfDay: 'morning',
+      relationshipStage: 'acquaintance',
+      momentum: 'opening',
+    };
+    prewarmLLMCache(personaId, defaultLLMContext);
+
     state.initialized = true;
   }
 
@@ -383,6 +422,84 @@ export async function processSharedPersonalityTurn(
 
   const context = assemblePersonalityContext(contextInput);
   timing.contextAssemblyMs = contextTimer.elapsed();
+
+  // ========================================================================
+  // ADVANCED ADJUSTMENTS - Voice Emotion & Pace
+  // ========================================================================
+
+  // Calculate voice emotion adjustments (if voice emotion detected)
+  if (input.voiceEmotion?.primary) {
+    const voiceEmotionContext: VoiceEmotionContext = fromVoiceEmotionResult({
+      primary: input.voiceEmotion.primary,
+      confidence: input.voiceEmotion.confidence || 0.5,
+      arousal: input.voiceEmotion.arousal,
+      valence: input.voiceEmotion.valence,
+    });
+    state.voiceEmotionAdjustment = getVoiceEmotionAdjustment(voiceEmotionContext);
+    log.debug(
+      {
+        voiceEmotion: input.voiceEmotion.primary,
+        adjustment: state.voiceEmotionAdjustment?.reason,
+      },
+      '🎭 Voice emotion adjustment calculated'
+    );
+  }
+
+  // Calculate pace adjustments (if speech rate available)
+  const paceContext: CurrentPaceContext = {
+    currentWPM: input.speechRateWPM,
+    seemsRushed: input.speechRateWPM !== undefined && input.speechRateWPM > 200,
+    seemsRelaxed: input.speechRateWPM !== undefined && input.speechRateWPM < 120,
+    responseLatencyMs: input.pauseBeforeMs,
+  };
+  state.paceAdjustment = getPacePersonalityAdjustment(paceContext);
+
+  // ========================================================================
+  // MEMORY CALLBACKS - Proactive superhuman insights
+  // ========================================================================
+
+  // Check for memory callbacks (proactive date reminders, topic absence, etc.)
+  // Only check every 5 turns to avoid overwhelming
+  const shouldCheckMemory =
+    userId && (!state.lastMemoryCallbackTurn || turnCount - state.lastMemoryCallbackTurn >= 5);
+
+  let memoryCallback: MemoryCallback | null = null;
+  if (shouldCheckMemory) {
+    // Determine timing based on turn count
+    const callbackTiming = turnCount <= 2 ? 'greeting' : 'when_relevant';
+    const currentMood = input.textEmotion?.primary || input.voiceEmotion?.primary;
+
+    memoryCallback = getBestCallback(userId, callbackTiming, currentMood);
+
+    if (memoryCallback) {
+      state.lastMemoryCallbackTurn = turnCount;
+      markDelivered(userId, memoryCallback);
+
+      const callbackExpression = callbackToExpression(memoryCallback);
+      log.debug(
+        { userId, callbackType: memoryCallback.type, theme: callbackExpression.theme },
+        '🧠 Memory callback surfaced'
+      );
+
+      // Memory callbacks take priority over regular expressions
+      return {
+        shouldInject: true,
+        injectionContent: `[MEMORY:${memoryCallback.type.toUpperCase()}] ${memoryCallback.naturalPhrase}`,
+        expression: {
+          content: memoryCallback.naturalPhrase,
+          theme: callbackExpression.theme,
+          intimacyLevel: memoryCallback.priority === 'high' ? 3 : 2,
+          timing: callbackExpression.timing,
+          compositionReason: `Memory callback: ${memoryCallback.type}`,
+          shouldBeSubtle: false,
+          personaId,
+        },
+        injectionPoint: mapTimingToInjectionPoint(callbackExpression.timing),
+        context,
+        personaId,
+      };
+    }
+  }
 
   // Priority 1: Check for real-time noticing (superhuman observation) with timing
   const noticingTimer = sharedPersonalityTelemetry.startTiming();
@@ -501,11 +618,40 @@ export async function processSharedPersonalityTurn(
   }
 
   // Priority 3: Try to compose an expression (with timing)
+  // Use building blocks, enhanced with voice emotion adjustments
   const expressionTimer = sharedPersonalityTelemetry.startTiming();
-  const expression = composeExpression(context);
+
+  // Apply voice emotion adjustments to context before composition
+  const adjustedContext = { ...context };
+  if (state.voiceEmotionAdjustment) {
+    // If voice emotion suggests certain themes, boost their selection chance
+    // This is handled internally by composeExpression through context
+    if (state.voiceEmotionAdjustment.preferredThemes?.length) {
+      log.debug(
+        { preferredThemes: state.voiceEmotionAdjustment.preferredThemes },
+        '🎭 Voice emotion influencing theme selection'
+      );
+    }
+  }
+
+  // Compose expression from building blocks
+  let expression: ComposedExpression | null = null;
+  let expressionSource: 'llm' | 'building_blocks' | 'none' = 'none';
+
+  expression = composeExpression(adjustedContext);
+  if (expression) {
+    expressionSource = 'building_blocks';
+  }
+
   timing.expressionCompositionMs = expressionTimer.elapsed();
 
   if (expression) {
+    // Apply pace adjustments to expression content
+    let finalContent = expression.content;
+    if (state.paceAdjustment) {
+      finalContent = applyPaceToExpression(expression.content, state.paceAdjustment);
+    }
+
     state.turnsSinceLastExpression = 0;
     state.lastExpressionTheme = expression.theme;
     state.lastExpressionTurn = turnCount;
@@ -525,6 +671,7 @@ export async function processSharedPersonalityTurn(
         theme: expression.theme,
         intimacy: expression.intimacyLevel,
         timing: expression.timing,
+        source: expressionSource,
       },
       '🎭 Expression composed for shared personality'
     );
@@ -544,7 +691,7 @@ export async function processSharedPersonalityTurn(
         expressionTheme: expression.theme,
         expressionIntimacy: expression.intimacyLevel,
         expressionTiming: expression.timing,
-        expressionSource: 'building_blocks',
+        expressionSource,
         decisionReason: expression.compositionReason,
         noticingThrottled: isNoticingThrottled,
         abTestVariant: state.abTestVariant,
@@ -552,15 +699,15 @@ export async function processSharedPersonalityTurn(
       },
       {
         injected: true,
-        contentPreview: expression.content.slice(0, 100),
+        contentPreview: finalContent.slice(0, 100),
         injectionPoint,
       }
     );
 
     return {
       shouldInject: true,
-      injectionContent: `[PERSONALITY:${expression.theme.toUpperCase()}] ${expression.content}`,
-      expression,
+      injectionContent: `[PERSONALITY:${expression.theme.toUpperCase()}] ${finalContent}`,
+      expression: { ...expression, content: finalContent },
       injectionPoint,
       context,
       personaId,

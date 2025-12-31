@@ -161,10 +161,7 @@ function getOrCreateBundle(userId: string): SemanticIntelligenceBundle {
 /**
  * Save an execution record
  */
-export async function saveExecutionRecord(
-  userId: string,
-  record: ExecutionRecord
-): Promise<void> {
+export async function saveExecutionRecord(userId: string, record: ExecutionRecord): Promise<void> {
   // Update in-memory cache immediately
   const bundle = getOrCreateBundle(userId);
   bundle.executionRecords.push(record);
@@ -228,12 +225,10 @@ export async function getExecutionRecords(userId: string): Promise<ExecutionReco
     const data = doc.data();
     if (!data?.records) return [];
 
-    const records: ExecutionRecord[] = data.records.map(
-      (r: Record<string, unknown>) => ({
-        ...r,
-        timestamp: new Date(r.timestamp as string),
-      })
-    );
+    const records: ExecutionRecord[] = data.records.map((r: Record<string, unknown>) => ({
+      ...r,
+      timestamp: new Date(r.timestamp as string),
+    }));
 
     // Update cache
     const bundle = getOrCreateBundle(userId);
@@ -253,10 +248,7 @@ export async function getExecutionRecords(userId: string): Promise<ExecutionReco
 /**
  * Save tool patterns for a user
  */
-export async function saveToolPatterns(
-  userId: string,
-  patterns: ToolPattern[]
-): Promise<void> {
+export async function saveToolPatterns(userId: string, patterns: ToolPattern[]): Promise<void> {
   // Update in-memory cache immediately
   const bundle = getOrCreateBundle(userId);
   bundle.patterns = patterns;
@@ -316,13 +308,11 @@ export async function getToolPatterns(userId: string): Promise<ToolPattern[]> {
     const data = doc.data();
     if (!data?.patterns) return [];
 
-    const patterns: ToolPattern[] = data.patterns.map(
-      (p: Record<string, unknown>) => ({
-        ...p,
-        lastUsed: new Date(p.lastUsed as string),
-        firstSeen: new Date(p.firstSeen as string),
-      })
-    );
+    const patterns: ToolPattern[] = data.patterns.map((p: Record<string, unknown>) => ({
+      ...p,
+      lastUsed: new Date(p.lastUsed as string),
+      firstSeen: new Date(p.firstSeen as string),
+    }));
 
     // Update cache
     const bundle = getOrCreateBundle(userId);
@@ -460,12 +450,10 @@ export async function getTimingPatterns(userId: string): Promise<TimingPattern[]
     const data = doc.data();
     if (!data?.patterns) return [];
 
-    const patterns: TimingPattern[] = data.patterns.map(
-      (p: Record<string, unknown>) => ({
-        ...p,
-        lastObserved: new Date(p.lastObserved as string),
-      })
-    );
+    const patterns: TimingPattern[] = data.patterns.map((p: Record<string, unknown>) => ({
+      ...p,
+      lastObserved: new Date(p.lastObserved as string),
+    }));
 
     // Update cache
     const bundle = getOrCreateBundle(userId);
@@ -473,12 +461,10 @@ export async function getTimingPatterns(userId: string): Promise<TimingPattern[]
 
     // Also load recent executions
     if (data.recentExecutions) {
-      bundle.recentExecutions = data.recentExecutions.map(
-        (e: Record<string, unknown>) => ({
-          toolId: e.toolId as string,
-          timestamp: new Date(e.timestamp as string),
-        })
-      );
+      bundle.recentExecutions = data.recentExecutions.map((e: Record<string, unknown>) => ({
+        toolId: e.toolId as string,
+        timestamp: new Date(e.timestamp as string),
+      }));
     }
 
     return patterns;
@@ -491,9 +477,7 @@ export async function getTimingPatterns(userId: string): Promise<TimingPattern[]
 /**
  * Get recent executions for sequence detection
  */
-export async function getRecentExecutions(
-  userId: string
-): Promise<RecentExecution[]> {
+export async function getRecentExecutions(userId: string): Promise<RecentExecution[]> {
   // Check cache first
   const cached = memoryCache.get(userId);
   if (cached) {

@@ -18,8 +18,11 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const logger = createLogger({ module: 'EnergyRegulation' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -222,7 +225,10 @@ export class EnergyRegulationEngine {
     valence -= negativeMatches * 0.2;
 
     // Message length hints
-    const wordCount = userMessage.split(/\s+/).length;
+    // 🦀 Use Rust for O(1) word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(userMessage)
+      : userMessage.split(/\s+/).length;
     if (wordCount > 80) level += 0.1; // Long = engaged
     if (wordCount < 5) level -= 0.1; // Short = disengaged
 

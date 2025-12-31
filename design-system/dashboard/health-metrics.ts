@@ -111,7 +111,7 @@ const CONFIG = {
     src: ['src/**/*.ts', 'src/**/*.tsx'],
     frontend: ['apps/web/src/**/*.ts'],
     styles: ['**/*.css', '!node_modules/**'],
-    docs: ['design-system/brand/**/*.md', 'docs/**/*.md'],
+    docs: ['design-system/docs/brand/**/*.md', 'docs/**/*.md'],
   },
   thresholds: {
     tokenCoverage: 90,

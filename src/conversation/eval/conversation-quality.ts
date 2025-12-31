@@ -6,6 +6,11 @@
  * dev tooling without model calls.
  */
 
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
+
 export interface ConversationQualityInput {
   userMessage: string;
   responseText: string;
@@ -37,7 +42,8 @@ function clamp01(value: number): number {
 function countWords(text: string): number {
   const trimmed = text.trim();
   if (!trimmed) return 0;
-  return trimmed.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  return RUST_COUNTING_AVAILABLE ? countWordsRust(trimmed) : trimmed.split(/\s+/).length;
 }
 
 function countQuestions(text: string): number {

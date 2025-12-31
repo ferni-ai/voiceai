@@ -275,7 +275,7 @@ class WearableSettingsUI {
               Coming Soon
             </span>
           ` : `
-            <button aria-label="Settings"
+            <button aria-label="${t('accessibility.settings')}"
               class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
               data-provider="${provider.id}"
               data-connected="${isConnected}"
@@ -343,7 +343,7 @@ class WearableSettingsUI {
       </header>
       <div class="wearable-settings__error">
         <p>${message}</p>
-        <button aria-label="Settings" class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
+        <button aria-label="${t('accessibility.settings')}" class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
       </div>
     `;
 

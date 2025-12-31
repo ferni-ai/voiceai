@@ -13,6 +13,7 @@ import { callLLM } from '../llm-utils.js';
 import { getContact, recordInteraction } from './contact-relationship-service.js';
 import type { Firestore } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onGiftIdeaChange } from '../data-layer/hooks/contacts-hooks.js';
 
 const log = createLogger({ module: 'GiftTrackingService' });
 
@@ -193,6 +194,20 @@ export async function recordGift(userId: string, gift: Omit<Gift, 'id' | 'userId
 
   // Save to Firestore for persistence
   await saveGiftToFirestore(userId, newGift);
+
+  // Index to semantic memory for gift search
+  void onGiftIdeaChange(
+    userId,
+    newGift.id,
+    {
+      forContact: newGift.contactName,
+      idea: newGift.item,
+      occasion: newGift.occasion,
+      priceRange: newGift.price ? `$${newGift.price}` : undefined,
+      status: 'given',
+    },
+    'create'
+  );
 
   // "Better Than Human" - Automatically record as an interaction
   // This ensures gifts show up in interaction history and affect relationship strength

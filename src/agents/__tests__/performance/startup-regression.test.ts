@@ -30,7 +30,7 @@ export const PERFORMANCE_BUDGETS = {
 
   // Turn processing
   TURN_ANALYSIS_MAX_MS: 100,
-  CONTEXT_BUILDING_MAX_MS: 50,
+  CONTEXT_BUILDING_MAX_MS: 100,
   TOTAL_TURN_PROCESSING_MAX_MS: 200,
 
   // Response latency

@@ -295,9 +295,10 @@ describe('Smart Home Domain', () => {
       const result = await controlDevice('nonexistent-device', 'on');
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
-      // Should mention configuration or not found
+      // When no devices exist, returns setup help mentioning "connected"
+      // When devices exist but specific one not found, mentions "find"
       expect(
-        result.toLowerCase().includes('configured') || result.toLowerCase().includes('find')
+        result.toLowerCase().includes('connected') || result.toLowerCase().includes('find')
       ).toBe(true);
     });
 

@@ -332,6 +332,26 @@ export async function processResponse(
   }
 
   // ============================================================
+  // 4b. THREAD RECORDING (for cross-channel continuity)
+  // Records agent message to conversation thread for SMS/push continuity
+  // ============================================================
+  if (sessionId && userData?.userId && ctx.rawText) {
+    try {
+      const { recordAgentMessage } =
+        await import('../../services/conversation-thread/thread-recorder.js');
+      void recordAgentMessage({
+        userId: userData.userId,
+        sessionId,
+        personaId: (persona?.id || 'ferni') as import('../../personas/types.js').PersonaId,
+        threadId: userData.threadId,
+        content: ctx.rawText,
+      });
+    } catch {
+      // Non-fatal - thread recording is enhancement
+    }
+  }
+
+  // ============================================================
   // 5. SESAME-INSPIRED PROSODY ENHANCEMENT
   // Apply anticipatory prosody from partial transcript analysis
   // Adds micro-reactions, speed/volume, contextual pauses, disfluencies
@@ -913,24 +933,20 @@ async function applyDynamicSpeedControl(
     // These values are set by audio-processor.ts DURING user speech,
     // giving us insight into their emotional state before they finish.
     // ================================================================
-    const realtimeProsody = (
-      userData as UserData & {
-        realtimeProsody?: {
-          pitchTrend: 'rising' | 'falling' | 'stable';
-          energyVariance: number;
-        };
-      }
-    ).realtimeProsody;
+    const { realtimeProsody } = userData as UserData & {
+      realtimeProsody?: {
+        pitchTrend: 'rising' | 'falling' | 'stable';
+        energyVariance: number;
+      };
+    };
 
     // Anticipatory prosody from the anticipation pipeline (transcript-handler)
-    const anticipatedProsody = (
-      userData as UserData & {
-        anticipatedProsody?: {
-          speedMultiplier: number;
-          volumeMultiplier: number;
-        };
-      }
-    ).anticipatedProsody;
+    const { anticipatedProsody } = userData as UserData & {
+      anticipatedProsody?: {
+        speedMultiplier: number;
+        volumeMultiplier: number;
+      };
+    };
 
     // Derive emotional intensity
     const arcData = emotionalArc.getArc();

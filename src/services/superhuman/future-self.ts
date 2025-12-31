@@ -11,6 +11,10 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import {
+  onWisdomInsightChange,
+  onPerspectiveShiftChange,
+} from '../data-layer/hooks/wisdom-hooks.js';
 
 const log = createLogger({ module: 'FutureSelf' });
 
@@ -531,6 +535,35 @@ async function saveLetter(userId: string, letter: FutureSelfLetter): Promise<voi
       .collection('future_self_letters')
       .doc(letter.id)
       .set(cleanForFirestore(letter));
+
+    // Index letter insights to semantic memory
+    void onWisdomInsightChange(
+      userId,
+      `future_self_${letter.id}`,
+      {
+        insight: `Future self letter (${letter.timeframe}): ${letter.keyInsights?.slice(0, 3).join('. ') || 'Life trajectory projection'}`,
+        source: 'future_self_projection',
+        category: 'self',
+        resonanceLevel: 8,
+      },
+      'create'
+    );
+
+    // Track perspective shifts from optimistic vs cautionary paths
+    if (letter.optimisticPath || letter.cautionaryPath) {
+      void onPerspectiveShiftChange(
+        userId,
+        `trajectory_${letter.id}`,
+        {
+          from: letter.cautionaryPath?.warningSignals?.join('; ') || 'current patterns',
+          to: letter.optimisticPath?.assumptions?.join('; ') || 'growth trajectory',
+          catalyst: 'future self reflection',
+          impact: `Projected ${letter.timeframe} forward`,
+          permanent: false,
+        },
+        'create'
+      );
+    }
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to save letter');
   }

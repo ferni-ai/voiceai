@@ -150,7 +150,7 @@ class MusicDashboardUI {
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
         <p class="music-dashboard__error-title">${message}</p>
         <p class="music-dashboard__error-hint">${t('musicDashboard.error.hint')}</p>
-        <button aria-label="Play" class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
+        <button aria-label="${t('accessibility.play')}" class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
       </div>
     `;
 
@@ -242,7 +242,7 @@ class MusicDashboardUI {
           <p class="music-dashboard__empty-hint">
             ${t('musicDashboard.empty.hint', { count: insights.gamesNeededForFullInsights })}
           </p>
-          <button aria-label="Play" class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
+          <button aria-label="${t('accessibility.play')}" class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
         </div>
       </div>
     `;
@@ -266,11 +266,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} Connected</span>`
-      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
 
     return `
       <section class="music-sources music-sources--compact">
@@ -414,11 +414,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.spotify.trackCount || 0} tracks</span>`
-      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} Connect</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${sources.appleMusic.trackCount || 0} tracks</span>`
-      : `<button aria-label="Connect" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
+      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} Connect</button>`;
 
     return `
       <section class="music-dashboard__section music-sources">
@@ -706,7 +706,7 @@ class MusicDashboardUI {
             <span>${Math.round(challenge.completionRate * 100)}% completion</span>
             <span>${challenge.participantCount} playing</span>
           </div>
-          <button aria-label="Play" class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
+          <button aria-label="${t('accessibility.play')}" class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
             ${ICONS.play} Start Challenge
           </button>
         </div>
@@ -805,7 +805,7 @@ class MusicDashboardUI {
             <span class="music-dashboard__social-label">Received</span>
           </div>
         </div>
-        <button aria-label="View Leaderboard" class="music-dashboard__leaderboard-btn">
+        <button aria-label="${t('accessibility.viewLeaderboard')}" class="music-dashboard__leaderboard-btn">
           ${ICONS.trophy} View Leaderboard
         </button>
       </section>
@@ -821,10 +821,10 @@ class MusicDashboardUI {
         </h3>
         <p class="music-dashboard__share-intro">Show off your musical personality!</p>
         <div class="music-dashboard__share-buttons" role="button" tabindex="0">
-          <button aria-label="Musical DNA Card" class="music-dashboard__share-btn" data-card-type="musical-dna">
+          <button aria-label="${t('accessibility.musicalDnaCard')}" class="music-dashboard__share-btn" data-card-type="musical-dna">
             ${ICONS.sparkles} Musical DNA Card
           </button>
-          <button aria-label="Desert Island Card" class="music-dashboard__share-btn" data-card-type="desert-island">
+          <button aria-label="${t('accessibility.desertIslandCard')}" class="music-dashboard__share-btn" data-card-type="desert-island">
             ${ICONS.heart} Desert Island Card
           </button>
         </div>
@@ -900,11 +900,12 @@ class MusicDashboardUI {
         const userToken = await music.authorize();
 
         // Send user token to our server to sync library
+        const userId = localStorage.getItem('ferni_user_id') || 'dev-user';
         const connectResponse = await fetch('/api/musical/apple/connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: 'dev-user', // TODO: Get actual user ID
+            userId,
             userToken,
           }),
         });

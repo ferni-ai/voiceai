@@ -112,6 +112,17 @@ data:
         retryCount: 2
         minBackoffDuration: "60s"
 
+    - name: semantic-ttl-cleanup
+      description: "Clean up expired documents from semantic data store based on TTL policies"
+      schedule: "0 1 * * *"  # 1 AM daily
+      timezone: "America/Los_Angeles"
+      uri: "https://ui-server-xxxxx.run.app/api/jobs/ttl-cleanup"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 2
+        minBackoffDuration: "60s"
+        maxBackoffDuration: "300s"
+
     # ==========================================================================
     # COLLECTIVE LEARNING JOBS
     # ==========================================================================

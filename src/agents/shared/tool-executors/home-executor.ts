@@ -61,7 +61,7 @@ async function execute(
     return null;
   }
 
-  const userId = ctx.userId;
+  const { userId } = ctx;
 
   // Need userId for smart home operations
   if (!userId) {
@@ -115,13 +115,13 @@ async function execute(
     // Generic on/off for all lights
     const devices = await getAllDevices(userId);
     const lights = devices.filter((d) => d.type === 'light');
-    
+
     if (lights.length === 0) {
       return 'No lights found. Make sure they are connected in Settings → Your Home.';
     }
 
     const results = await Promise.all(
-      lights.map((light) => controlDevice(light.id, controlAction, undefined, userId))
+      lights.map(async (light) => controlDevice(light.id, controlAction, undefined, userId))
     );
 
     const successCount = results.filter((r) => !r.includes('trouble')).length;
@@ -225,7 +225,7 @@ async function execute(
       }
 
       const results = await Promise.all(
-        locks.map((lock) => controlDevice(lock.id, controlAction, undefined, userId))
+        locks.map(async (lock) => controlDevice(lock.id, controlAction, undefined, userId))
       );
 
       const successCount = results.filter((r) => !r.includes('trouble')).length;
@@ -244,7 +244,11 @@ async function execute(
   if (fnLower === 'controldevice' || fnLower === 'turnon' || fnLower === 'turnoff') {
     const device = args.device as string;
     const action =
-      fnLower === 'turnon' ? 'on' : fnLower === 'turnoff' ? 'off' : (args.action as 'on' | 'off' | 'toggle');
+      fnLower === 'turnon'
+        ? 'on'
+        : fnLower === 'turnoff'
+          ? 'off'
+          : (args.action as 'on' | 'off' | 'toggle');
 
     log.info({ device, action, userId }, '🔌 Controlling device');
 

@@ -14,8 +14,7 @@
  * @module voice-agent/greeting-handler
  */
 
-import type { voice } from '@livekit/agents';
-import { log } from '@livekit/agents';
+import { log, type voice } from '@livekit/agents';
 import { isMusicEnabled } from '../../config/environment.js';
 import {
   getPersonaMemories,

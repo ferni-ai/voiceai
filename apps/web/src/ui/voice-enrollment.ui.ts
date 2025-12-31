@@ -643,7 +643,7 @@ function renderNotAvailableState(): string {
         This may be a temporary issue—please try again later.
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="Got it" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button aria-label="${t('accessibility.gotIt')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Got it
         </button>
       </div>
@@ -679,10 +679,10 @@ function renderAlreadyEnrolledState(profile: VoiceProfile): string {
       </div>
       
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="Delete" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
+        <button aria-label="${t('accessibility.delete')}" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
           ${ICONS.trash} Delete voiceprint
         </button>
-        <button aria-label="Done" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button aria-label="${t('accessibility.done')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Done
         </button>
       </div>
@@ -713,10 +713,10 @@ function renderReadyState(): string {
     </div>
     
     <div class="voice-enrollment-actions" role="button" tabindex="0">
-      <button aria-label="Maybe later" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
+      <button aria-label="${t('accessibility.maybeLater')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
         Maybe later
       </button>
-      <button aria-label="Start enrollment" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
+      <button aria-label="${t('accessibility.startEnrollment')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
         Start enrollment
       </button>
     </div>
@@ -788,7 +788,7 @@ function renderCompleteState(): string {
         It's like you've become a familiar friend.
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="Let's talk!" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
+        <button aria-label="${t('accessibility.letSTalk')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
           Let's talk!
         </button>
       </div>
@@ -805,10 +805,10 @@ function renderErrorState(message: string): string {
       <h3 class="voice-enrollment-status-title">Something went wrong</h3>
       <p class="voice-enrollment-status-message">${message}</p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="Try again" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
+        <button aria-label="${t('accessibility.tryAgain')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
           Try again
         </button>
-        <button aria-label="Close" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button aria-label="${t('accessibility.close')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           Close
         </button>
       </div>
@@ -1032,7 +1032,7 @@ async function handleDeleteProfile(): Promise<void> {
 
   const success = await voiceAuth.deleteProfile();
   if (success) {
-    toast.success('Voice profile cleared');
+    toast.success(t('toasts.voiceProfileCleared'));
     setState('ready');
   } else {
     toast.error("Couldn't delete that. Try again?");

@@ -23,22 +23,37 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
+/**
+ * Ring colors for SVG stroke attributes.
+ * Uses design-system aligned colors from DEFAULT_COLORS.
+ * @design-tokens-ignore - SVG stroke requires literal color values
+ */
 const RING_COLORS = {
   emotional: DEFAULT_COLORS.energy.emotional,
   mental: DEFAULT_COLORS.energy.mental,
   physical: DEFAULT_COLORS.energy.physical,
 };
 
+/**
+ * CSS variable references for DOM elements (not SVG).
+ */
+const RING_CSS_VARS = {
+  emotional: CSS_COLOR_VARS.energyEmotional,
+  mental: CSS_COLOR_VARS.energyMental,
+  physical: CSS_COLOR_VARS.energyPhysical,
+};
+
 const RING_LABELS = {
-  emotional: 'Emotional',
-  mental: 'Mental',
-  physical: 'Physical',
+  emotional: t('visualizations.energy.emotional', 'Emotional'),
+  mental: t('visualizations.energy.mental', 'Mental'),
+  physical: t('visualizations.energy.physical', 'Physical'),
 };
 
 // ============================================================================
@@ -150,23 +165,24 @@ function buildMobile(
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
 
-  // Header
+  // Header with proper viz-header classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Energy Levels'));
-  header.appendChild(createElement('p', '', 'Your current capacity'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.energyRings.title', 'Energy Levels'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.energyRings.subtitle', 'Your current capacity'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Rings visualization card
-  const ringsCard = createElement('div', 'mobile-card');
-  if (isAndroid) {
-    setStyles(ringsCard, { borderLeft: '3px solid var(--color-accent)' });
-  }
+  // Main rings visualization card with glass styling
+  const ringsCard = createElement('div', `viz-card viz-animate-slide${isAndroid ? ' viz-card--accent-primary' : ''}`);
 
-  const ringsContent = createFlexContainer('row', '16px', 'center', 'center');
+  const ringsContent = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--gap-pause');
+  setStyles(ringsContent, { justifyContent: 'center' });
 
-  // SVG rings
+  // SVG rings with improved styling
   const svg = createSvgElement('svg');
   svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('class', 'viz-ring__svg');
   setStyles(svg as unknown as HTMLElement, {
     width: '100px',
     height: '100px',
@@ -182,17 +198,18 @@ function buildMobile(
   ] as const;
 
   rings.forEach((ring) => {
-    // Background
+    // Background ring with softer color
     const bgCircle = createSvgElement('circle');
     bgCircle.setAttribute('cx', String(centerX));
     bgCircle.setAttribute('cy', String(centerY));
     bgCircle.setAttribute('r', String(ring.radius));
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+    bgCircle.setAttribute('stroke', 'rgba(44, 37, 32, 0.06)');
     bgCircle.setAttribute('stroke-width', String(ring.width));
+    bgCircle.setAttribute('class', 'viz-ring__bg');
     svg.appendChild(bgCircle);
 
-    // Progress
+    // Progress arc
     if (ring.value > 0) {
       const endAngle = -90 + (ring.value / 100) * 360;
       const arcPath = createSvgElement('path');
@@ -201,41 +218,39 @@ function buildMobile(
       arcPath.setAttribute('stroke', RING_COLORS[ring.key]);
       arcPath.setAttribute('stroke-width', String(ring.width));
       arcPath.setAttribute('stroke-linecap', 'round');
+      arcPath.setAttribute('class', `viz-ring__progress viz-ring__progress--${ring.key}`);
       svg.appendChild(arcPath);
     }
   });
 
-  // Center overall
+  // Center overall percentage
   const centerText = createSvgElement('text');
   centerText.setAttribute('x', String(centerX));
   centerText.setAttribute('y', String(centerY + 4));
   centerText.setAttribute('text-anchor', 'middle');
   centerText.setAttribute('font-size', '14');
   centerText.setAttribute('font-weight', '600');
-  centerText.setAttribute('fill', 'var(--color-text-primary)');
+  centerText.setAttribute('fill', DEFAULT_COLORS.textPrimary);
   centerText.textContent = `${data.overall}%`;
   svg.appendChild(centerText);
 
   ringsContent.appendChild(svg);
 
-  // Legend
-  const legend = createElement('div');
-  setStyles(legend, { display: 'flex', flexDirection: 'column', gap: '8px' });
+  // Legend with proper classes
+  const legend = createElement('div', 'viz-flex viz-flex--col');
+  setStyles(legend, { gap: 'var(--viz-space-breath)' });
 
   (['emotional', 'mental', 'physical'] as const).forEach((key) => {
-    const row = createFlexContainer('row', '8px', 'flex-start', 'center');
+    const row = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
 
-    const dot = createElement('div');
-    setStyles(dot, {
-      width: '12px',
-      height: '12px',
-      borderRadius: '50%',
-      background: RING_COLORS[key],
-    });
+    const dot = createElement('div', `viz-dot viz-dot--${key}`);
     row.appendChild(dot);
 
     const label = createElement('span');
-    setStyles(label, { fontSize: '0.85rem' });
+    setStyles(label, {
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+    });
     label.textContent = `${RING_LABELS[key]}: ${data[key]}%`;
     row.appendChild(label);
 
@@ -246,52 +261,49 @@ function buildMobile(
   ringsCard.appendChild(ringsContent);
   container.appendChild(ringsCard);
 
-  // Individual energy cards
-  (['emotional', 'mental', 'physical'] as const).forEach((key) => {
+  // Individual energy cards with stagger animation
+  (['emotional', 'mental', 'physical'] as const).forEach((key, index) => {
     const value = data[key];
-    const card = createElement('div', 'mobile-card');
+    const accentClass = isAndroid ? ` viz-card--accent-${key}` : '';
+    const card = createElement('div', `viz-card viz-animate-slide viz-stagger-${index + 2}${accentClass}`);
 
-    if (isAndroid) {
-      setStyles(card, { borderLeft: `3px solid ${RING_COLORS[key]}` });
-    }
+    // Card header with flex layout
+    const cardHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
 
-    const cardHeader = createElement('div', 'mobile-card-header');
-    cardHeader.appendChild(createElement('span', 'mobile-card-title', RING_LABELS[key]));
+    const titleEl = createElement('span');
+    setStyles(titleEl, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    titleEl.textContent = RING_LABELS[key];
+    cardHeader.appendChild(titleEl);
 
-    const badge = createElement('span', 'mobile-card-badge', `${value}%`);
-    setStyles(badge, { background: RING_COLORS[key] });
+    // Badge with energy color
+    const badge = createElement('span', 'viz-badge');
+    setStyles(badge, {
+      background: RING_CSS_VARS[key],
+      color: 'white',
+    });
+    badge.textContent = `${value}%`;
     cardHeader.appendChild(badge);
     card.appendChild(cardHeader);
 
-    // Progress bar
-    const bar = createElement('div');
-    setStyles(bar, {
-      height: '8px',
-      background: 'rgba(44, 37, 32, 0.1)',
-      borderRadius: isAndroid ? '0' : '4px',
-      overflow: 'hidden',
-      marginTop: '8px',
-    });
+    // Progress bar with design system classes
+    const barContainer = createElement('div', 'viz-progress');
+    setStyles(barContainer, { marginTop: 'var(--viz-space-breath)' });
 
-    const fill = createElement('div');
-    setStyles(fill, {
-      width: `${value}%`,
-      height: '100%',
-      background: RING_COLORS[key],
-      borderRadius: isAndroid ? '0' : '4px',
-    });
-    bar.appendChild(fill);
-    card.appendChild(bar);
+    const fill = createElement('div', `viz-progress__fill viz-progress__fill--${key}`);
+    setStyles(fill, { width: `${value}%` });
+    barContainer.appendChild(fill);
+    card.appendChild(barContainer);
 
-    // Status text
-    const status = createElement('div');
-    setStyles(status, {
-      fontSize: '0.85rem',
-      color: 'var(--color-text-secondary)',
-      marginTop: '8px',
-    });
-    status.textContent = getEnergyInsight(key, value);
-    card.appendChild(status);
+    // Insight text
+    const insight = createElement('p', 'viz-insight');
+    setStyles(insight, { marginTop: 'var(--viz-space-breath)' });
+    insight.textContent = getEnergyInsight(key, value);
+    card.appendChild(insight);
 
     container.appendChild(card);
   });
@@ -325,30 +337,29 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Energy Rings'));
-  header.appendChild(createElement('p', '', 'Your capacity across dimensions'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.energyRings.title', 'Energy Rings'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.energyRings.subtitle', 'Your capacity across dimensions'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Main content
-  const contentGrid = createFlexContainer('row', '32px');
-  setStyles(contentGrid, { padding: '16px' });
+  // Main content with proper spacing
+  const contentGrid = createElement('div', 'viz-flex viz-flex--row viz-flex--gap-rest viz-animate-fade');
+  setStyles(contentGrid, { padding: 'var(--viz-space-pause)' });
 
   // Left: Large rings visualization
-  const ringsSection = createElement('div');
-  setStyles(ringsSection, {
-    flex: '1',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  });
+  const ringsSection = createElement('div', 'viz-flex viz-flex--col viz-flex--center');
+  setStyles(ringsSection, { flex: '1' });
 
   const svg = createSvgElement('svg');
   svg.setAttribute('viewBox', '0 0 200 200');
+  svg.setAttribute('class', 'viz-ring__svg');
   setStyles(svg as unknown as HTMLElement, {
     width: '200px',
     height: '200px',
+    transform: 'rotate(0deg)', // Override rotation for tablet
   });
 
   const centerX = 100;
@@ -361,14 +372,15 @@ function buildTablet(
   ] as const;
 
   rings.forEach((ring) => {
-    // Background
+    // Background ring
     const bgCircle = createSvgElement('circle');
     bgCircle.setAttribute('cx', String(centerX));
     bgCircle.setAttribute('cy', String(centerY));
     bgCircle.setAttribute('r', String(ring.radius));
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', 'rgba(44, 37, 32, 0.1)');
+    bgCircle.setAttribute('stroke', 'rgba(44, 37, 32, 0.06)');
     bgCircle.setAttribute('stroke-width', String(ring.width));
+    bgCircle.setAttribute('class', 'viz-ring__bg');
     svg.appendChild(bgCircle);
 
     // Progress arc
@@ -380,9 +392,10 @@ function buildTablet(
       arcPath.setAttribute('stroke', RING_COLORS[ring.key]);
       arcPath.setAttribute('stroke-width', String(ring.width));
       arcPath.setAttribute('stroke-linecap', 'round');
+      arcPath.setAttribute('class', `viz-ring__progress viz-ring__progress--${ring.key}`);
       svg.appendChild(arcPath);
 
-      // End cap glow effect
+      // End cap glow effect for 100%
       if (ring.value >= 100) {
         const glowCircle = createSvgElement('circle');
         const angle = (-90 + (ring.value / 100) * 360) * (Math.PI / 180);
@@ -396,12 +409,12 @@ function buildTablet(
     }
   });
 
-  // Center overall display
+  // Center overall display with glass effect
   const centerBg = createSvgElement('circle');
   centerBg.setAttribute('cx', String(centerX));
   centerBg.setAttribute('cy', String(centerY));
   centerBg.setAttribute('r', '25');
-  centerBg.setAttribute('fill', 'var(--color-bg-elevated)');
+  centerBg.setAttribute('fill', DEFAULT_COLORS.backgroundElevated);
   svg.appendChild(centerBg);
 
   const overallText = createSvgElement('text');
@@ -416,100 +429,60 @@ function buildTablet(
 
   ringsSection.appendChild(svg);
 
-  // Overall status below rings
-  const statusBadge = createElement('div');
-  setStyles(statusBadge, {
-    marginTop: '12px',
-    padding: '6px 16px',
-    background: 'var(--color-background)',
-    borderRadius: '16px',
-    fontSize: '0.9rem',
-    fontWeight: '600',
-    color: getStatusColor(data.overall),
-  });
+  // Overall status badge below rings
+  const statusBadge = createElement('span', `viz-badge viz-badge--status-${getStatusKey(data.overall)}`);
+  setStyles(statusBadge, { marginTop: 'var(--viz-space-pause)' });
   statusBadge.textContent = getStatusLabel(data.overall);
   ringsSection.appendChild(statusBadge);
 
   contentGrid.appendChild(ringsSection);
 
-  // Right: Details
-  const detailsSection = createElement('div');
-  setStyles(detailsSection, { flex: '1' });
+  // Right: Details section
+  const detailsSection = createElement('div', 'viz-flex viz-flex--col');
+  setStyles(detailsSection, { flex: '1', gap: 'var(--viz-space-pause)' });
 
-  // Individual energy panels
-  (['emotional', 'mental', 'physical'] as const).forEach((key) => {
+  // Individual energy panels with glass treatment
+  (['emotional', 'mental', 'physical'] as const).forEach((key, index) => {
     const value = data[key];
 
-    const panel = createElement('div');
-    setStyles(panel, {
-      padding: '16px',
-      background: 'var(--color-bg-elevated)',
-      borderRadius: '12px',
-      border: '1px solid var(--color-border-subtle)',
-      marginBottom: '12px',
-    });
+    const panel = createElement('div', `viz-card viz-card--elevated viz-animate-slide viz-stagger-${index + 1}`);
 
     // Header row
-    const headerRow = createFlexContainer('row', '8px', 'flex-start', 'center');
-    setStyles(headerRow, { marginBottom: '8px' });
+    const headerRow = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
 
-    const colorDot = createElement('div');
-    setStyles(colorDot, {
-      width: '12px',
-      height: '12px',
-      borderRadius: '50%',
-      background: RING_COLORS[key],
-    });
-    headerRow.appendChild(colorDot);
+    const leftGroup = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+    const colorDot = createElement('div', `viz-dot viz-dot--lg viz-dot--${key}`);
+    leftGroup.appendChild(colorDot);
 
-    const title = createElement('span');
-    setStyles(title, {
-      fontSize: '1rem',
+    const titleEl = createElement('span');
+    setStyles(titleEl, {
+      fontSize: 'var(--viz-text-lg)',
       fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
     });
-    title.textContent = RING_LABELS[key];
-    headerRow.appendChild(title);
+    titleEl.textContent = RING_LABELS[key];
+    leftGroup.appendChild(titleEl);
+    headerRow.appendChild(leftGroup);
 
-    const valueLabel = createElement('span');
-    setStyles(valueLabel, {
-      marginLeft: 'auto',
-      fontSize: '1.2rem',
-      fontWeight: '600',
-      color: RING_COLORS[key],
-    });
+    const valueLabel = createElement('span', 'viz-metric__value viz-metric__value--sm');
+    setStyles(valueLabel, { color: RING_CSS_VARS[key] });
     valueLabel.textContent = `${value}%`;
     headerRow.appendChild(valueLabel);
 
     panel.appendChild(headerRow);
 
     // Progress bar
-    const progressBar = createElement('div');
-    setStyles(progressBar, {
-      height: '8px',
-      background: 'var(--color-border-subtle)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-    });
+    const progressBar = createElement('div', 'viz-progress');
+    setStyles(progressBar, { marginTop: 'var(--viz-space-breath)' });
 
-    const progressFill = createElement('div');
-    setStyles(progressFill, {
-      width: `${value}%`,
-      height: '100%',
-      background: RING_COLORS[key],
-      borderRadius: '4px',
-      transition: 'width 300ms ease',
-    });
+    const progressFill = createElement('div', `viz-progress__fill viz-progress__fill--${key}`);
+    setStyles(progressFill, { width: `${value}%` });
     progressBar.appendChild(progressFill);
     panel.appendChild(progressBar);
 
     // Insight
-    const insight = createElement('p');
-    setStyles(insight, {
-      fontSize: '0.85rem',
-      color: 'var(--color-text-secondary)',
-      marginTop: '8px',
-      lineHeight: '1.4',
-    });
+    const insight = createElement('p', 'viz-insight');
+    setStyles(insight, { marginTop: 'var(--viz-space-breath)' });
     insight.textContent = getEnergyInsight(key, value);
     panel.appendChild(insight);
 
@@ -517,30 +490,14 @@ function buildTablet(
   });
 
   // Recommendation panel
-  const recPanel = createElement('div');
-  setStyles(recPanel, {
-    padding: '12px',
-    background: 'var(--color-background)',
-    borderRadius: '8px',
-  });
+  const recPanel = createElement('div', 'viz-card viz-animate-slide viz-stagger-4');
 
-  const recLabel = createElement('div');
-  setStyles(recLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  });
-  recLabel.textContent = 'Recommendation';
+  const recLabel = createElement('div', 'viz-label');
+  setStyles(recLabel, { marginBottom: 'var(--viz-space-breath)' });
+  recLabel.textContent = t('visualizations.recommendation', 'Recommendation');
   recPanel.appendChild(recLabel);
 
-  const recText = createElement('p');
-  setStyles(recText, {
-    fontSize: '0.85rem',
-    color: 'var(--color-text-secondary)',
-  });
+  const recText = createElement('p', 'viz-insight');
   recText.textContent = getRecommendation(data);
   recPanel.appendChild(recText);
 
@@ -589,15 +546,27 @@ export function buildEnergyRings(
  * Get status label based on overall energy.
  */
 function getStatusLabel(overall: number): string {
-  if (overall >= 80) return 'Thriving';
-  if (overall >= 60) return 'Balanced';
-  if (overall >= 40) return 'Stretched';
-  if (overall >= 20) return 'Depleted';
-  return 'Critical';
+  if (overall >= 80) return t('visualizations.status.thriving', 'Thriving');
+  if (overall >= 60) return t('visualizations.status.balanced', 'Balanced');
+  if (overall >= 40) return t('visualizations.status.stretched', 'Stretched');
+  if (overall >= 20) return t('visualizations.status.depleted', 'Depleted');
+  return t('visualizations.status.critical', 'Critical');
+}
+
+/**
+ * Get status key for CSS class mapping.
+ */
+function getStatusKey(overall: number): string {
+  if (overall >= 80) return 'thriving';
+  if (overall >= 60) return 'balanced';
+  if (overall >= 40) return 'stretched';
+  if (overall >= 20) return 'depleted';
+  return 'critical';
 }
 
 /**
  * Get status color based on overall energy.
+ * @design-tokens-ignore - SVG fill requires literal color values
  */
 function getStatusColor(overall: number): string {
   if (overall >= 80) return DEFAULT_COLORS.status.thriving;

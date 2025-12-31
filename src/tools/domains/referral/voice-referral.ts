@@ -31,6 +31,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { callWithPersonaVoice } from '../../../services/voice/voice-call.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 import {
   makeConversationalCall,
   isConversationalCallsConfigured,
@@ -201,12 +202,14 @@ export async function makeVoiceReferralCall(params: {
   }
 }
 
-// In-memory referral tracking
-// TODO: Persist to Firestore for production analytics
-const referralHistory = new Map<string, VoiceReferral[]>();
+// Firestore collection for voice referrals
+const REFERRALS_COLLECTION = 'voice_referrals';
+
+// In-memory cache (fallback if Firestore unavailable, also for fast reads)
+const referralCache = new Map<string, VoiceReferral[]>();
 
 /**
- * Track a voice referral
+ * Track a voice referral - persists to Firestore for analytics
  */
 async function trackVoiceReferral(params: {
   referrerId: string;
@@ -216,40 +219,172 @@ async function trackVoiceReferral(params: {
   personalNote?: string;
   callSid?: string;
 }): Promise<void> {
+  const referralId = `vref_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+  const referral: VoiceReferral = {
+    id: referralId,
+    referrerId: params.referrerId,
+    referrerName: params.referrerName,
+    recipientName: params.recipientName,
+    recipientPhone: params.recipientPhone,
+    personalNote: params.personalNote,
+    callSid: params.callSid,
+    status: 'called',
+    createdAt: new Date(),
+    calledAt: new Date(),
+  };
+
+  // Always update in-memory cache for fast reads
+  const cached = referralCache.get(params.referrerId) || [];
+  cached.push(referral);
+  referralCache.set(params.referrerId, cached);
+
+  // Persist to Firestore
   try {
-    const referralId = `vref_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-    const referral: VoiceReferral = {
-      id: referralId,
-      referrerId: params.referrerId,
-      referrerName: params.referrerName,
-      recipientName: params.recipientName,
-      recipientPhone: params.recipientPhone,
-      personalNote: params.personalNote,
-      callSid: params.callSid,
-      status: 'called',
-      createdAt: new Date(),
-      calledAt: new Date(),
-    };
-
-    // Track in memory for this session
-    const history = referralHistory.get(params.referrerId) || [];
-    history.push(referral);
-    referralHistory.set(params.referrerId, history);
-
-    log.info(
-      {
-        referralId,
-        referrerId: params.referrerId,
-        recipientName: params.recipientName,
-        callSid: params.callSid,
-      },
-      '📞 Voice referral tracked'
-    );
+    const db = getFirestoreDb();
+    if (db) {
+      await db
+        .collection(REFERRALS_COLLECTION)
+        .doc(referralId)
+        .set(
+          cleanForFirestore({
+            ...referral,
+            // Store dates as ISO strings for Firestore compatibility
+            createdAt: referral.createdAt.toISOString(),
+            calledAt: referral.calledAt?.toISOString(),
+          })
+        );
+      log.info(
+        {
+          referralId,
+          referrerId: params.referrerId,
+          recipientName: params.recipientName,
+          callSid: params.callSid,
+        },
+        '📞 Voice referral tracked (Firestore + cache)'
+      );
+    } else {
+      log.warn({ referralId }, '📞 Voice referral tracked (cache only - Firestore unavailable)');
+    }
   } catch (error) {
-    // Don't fail the call if tracking fails
-    log.warn({ error }, 'Failed to track voice referral');
+    // Don't fail the call if persistence fails - cache still has it
+    log.warn({ error: String(error), referralId }, 'Firestore persistence failed, using cache');
   }
+}
+
+/**
+ * Get referral history for a user
+ */
+export async function getReferralHistory(referrerId: string): Promise<VoiceReferral[]> {
+  // Check cache first
+  const cached = referralCache.get(referrerId);
+  if (cached && cached.length > 0) {
+    return cached;
+  }
+
+  // Load from Firestore
+  try {
+    const db = getFirestoreDb();
+    if (!db) {
+      return cached || [];
+    }
+
+    const snapshot = await db
+      .collection(REFERRALS_COLLECTION)
+      .where('referrerId', '==', referrerId)
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    const referrals: VoiceReferral[] = [];
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      referrals.push({
+        id: data.id,
+        referrerId: data.referrerId,
+        referrerName: data.referrerName,
+        recipientName: data.recipientName,
+        recipientPhone: data.recipientPhone,
+        personalNote: data.personalNote,
+        callSid: data.callSid,
+        status: data.status,
+        createdAt: new Date(data.createdAt),
+        calledAt: data.calledAt ? new Date(data.calledAt) : undefined,
+      });
+    }
+
+    // Update cache
+    referralCache.set(referrerId, referrals);
+    return referrals;
+  } catch (error) {
+    log.warn({ error: String(error), referrerId }, 'Failed to load referral history');
+    return cached || [];
+  }
+}
+
+/**
+ * Update referral status (e.g., when call is answered or user converts)
+ */
+export async function updateReferralStatus(
+  referralId: string,
+  status: VoiceReferral['status']
+): Promise<boolean> {
+  try {
+    const db = getFirestoreDb();
+    if (!db) {
+      log.warn({ referralId }, 'Cannot update referral - Firestore unavailable');
+      return false;
+    }
+
+    await db.collection(REFERRALS_COLLECTION).doc(referralId).update({
+      status,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Update cache if present
+    for (const [userId, referrals] of referralCache.entries()) {
+      const referral = referrals.find((r) => r.id === referralId);
+      if (referral) {
+        referral.status = status;
+        break;
+      }
+    }
+
+    log.info({ referralId, status }, 'Referral status updated');
+    return true;
+  } catch (error) {
+    log.error({ error: String(error), referralId }, 'Failed to update referral status');
+    return false;
+  }
+}
+
+/**
+ * Get referral analytics for a user
+ */
+export async function getReferralAnalytics(referrerId: string): Promise<{
+  totalReferrals: number;
+  called: number;
+  answered: number;
+  converted: number;
+  conversionRate: number;
+}> {
+  const referrals = await getReferralHistory(referrerId);
+
+  const called = referrals.filter((r) => r.status === 'called').length;
+  const answered = referrals.filter((r) => r.status === 'answered').length;
+  const converted = referrals.filter((r) => r.status === 'converted').length;
+
+  return {
+    totalReferrals: referrals.length,
+    called,
+    answered,
+    converted,
+    conversionRate: referrals.length > 0 ? (converted / referrals.length) * 100 : 0,
+  };
 }
 
 // ============================================================================
@@ -461,4 +596,8 @@ export default {
   createVoiceReferralTools,
   REFERRAL_PROMPT_INJECTION,
   INTRO_TEMPLATES,
+  // Firestore persistence (added)
+  getReferralHistory,
+  updateReferralStatus,
+  getReferralAnalytics,
 };

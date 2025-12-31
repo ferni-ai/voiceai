@@ -14,6 +14,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { onCalendarEventChange } from '../data-layer/hooks/calendar-hooks.js';
+import { recordCalendarSignal } from '../data-layer/domain-signals.js';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -288,6 +290,14 @@ export async function createEvent(
 
   // Persist to Firestore
   await persistEvent(userId, event);
+
+  // Record domain signal for cross-domain intelligence
+  recordCalendarSignal(userId, 'meeting_scheduled', {
+    title: event.title,
+    duration: event.endTime
+      ? Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000)
+      : undefined,
+  });
 
   log.info({ userId, eventId: event.id, title: event.title, source }, 'Created calendar event');
   return event;
@@ -743,6 +753,24 @@ async function persistEvent(userId: string, event: CalendarEvent): Promise<void>
       .collection(getUserEventsCollection(userId))
       .doc(event.id)
       .set(cleanForFirestore(stored));
+
+    // Index to semantic memory for calendar awareness
+    void onCalendarEventChange(
+      userId,
+      event.id,
+      {
+        title: event.title,
+        date: event.startTime.toISOString(),
+        time: event.startTime.toTimeString().slice(0, 5),
+        duration: event.endTime
+          ? Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000)
+          : undefined,
+        attendees: event.attendees,
+        notes: event.description,
+        importance: 'medium',
+      },
+      event.syncStatus === 'local' ? 'create' : 'update'
+    );
   } catch (error) {
     log.error({ error: String(error), eventId: event.id }, 'Failed to persist event');
   }

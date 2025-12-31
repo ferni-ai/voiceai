@@ -83,7 +83,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
               placeholder="${t('placeholders.emailExample')}"
             />
           </div>
-          <button aria-label="Send Reset Link" type="submit" class="submit-btn">Send Reset Link</button>
+          <button aria-label="${t('accessibility.sendResetLink')}" type="submit" class="submit-btn">Send Reset Link</button>
         </form>
       </div>
       
@@ -100,7 +100,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
       
       <div class="password-reset-error" style="display: none;">
         <p class="error-message"></p>
-        <button aria-label="Try Again" class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;

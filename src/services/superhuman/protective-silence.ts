@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onProtectiveMomentChange } from '../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'ProtectiveSilence' });
 
@@ -99,6 +100,24 @@ export async function recordBoundary(
       .doc(userId)
       .collection('protective_boundaries')
       .add(cleanForFirestore(record));
+
+    // Index to semantic memory for "Better Than Human" recall
+    // "We know when NOT to say something"
+    void onProtectiveMomentChange(
+      userId,
+      docRef.id,
+      {
+        situation: `Topic: ${boundary.topic} (${boundary.category})`,
+        whatWeDidntSay: boundary.triggerKeywords.join(', '),
+        whyWeHeld: boundary.reason || `This is a ${boundary.severity} boundary`,
+        userState: boundary.source === 'detected_reaction' ? 'showed discomfort' : 'stated boundary',
+        outcome: boundary.safeAlternatives?.length
+          ? `Can redirect to: ${boundary.safeAlternatives.join(', ')}`
+          : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'create'
+    );
 
     log.info(
       { userId, topic: boundary.topic, severity: boundary.severity },

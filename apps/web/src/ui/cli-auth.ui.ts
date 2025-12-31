@@ -7,6 +7,7 @@
  */
 
 import { getAuth, signInWithPopup, GoogleAuthProvider, type User } from 'firebase/auth';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -149,19 +150,19 @@ function renderAuthPage(status: AuthStatus, message?: string): void {
 
   switch (status) {
     case 'loading':
-      statusText.textContent = 'Preparing authentication...';
+      statusText.textContent = t('auth.preparing');
       break;
     case 'ready':
-      statusText.textContent = 'Click below to sign in with Google';
+      statusText.textContent = t('auth.clickToSignIn');
       break;
     case 'authenticating':
-      statusText.textContent = 'Authenticating with Google...';
+      statusText.textContent = t('auth.authenticating');
       break;
     case 'success':
-      statusText.textContent = 'Authentication successful!';
+      statusText.textContent = t('auth.authenticationSuccessful');
       break;
     case 'error':
-      statusText.textContent = 'Authentication failed';
+      statusText.textContent = t('auth.authenticationFailed');
       break;
   }
 

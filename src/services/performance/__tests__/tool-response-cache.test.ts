@@ -47,12 +47,13 @@ describe('ToolResponseCache', () => {
 
   describe('TTL_BY_TOOL configuration', () => {
     it('should have expected TTL values for common tools', () => {
-      expect(TTL_BY_TOOL.getweather).toBe(30000);
-      expect(TTL_BY_TOOL.getcurrenttime).toBe(1000);
-      expect(TTL_BY_TOOL.getnews).toBe(60000);
-      expect(TTL_BY_TOOL.getquote).toBe(10000);
-      expect(TTL_BY_TOOL.getcalendartoday).toBe(30000);
-      expect(TTL_BY_TOOL.gethomestatus).toBe(10000);
+      // Extended TTLs for better cache performance
+      expect(TTL_BY_TOOL.getweather).toBe(300_000); // 5 min
+      expect(TTL_BY_TOOL.getcurrenttime).toBe(5_000); // 5 sec
+      expect(TTL_BY_TOOL.getnews).toBe(180_000); // 3 min
+      expect(TTL_BY_TOOL.getquote).toBe(30_000); // 30 sec
+      expect(TTL_BY_TOOL.getcalendartoday).toBe(120_000); // 2 min
+      expect(TTL_BY_TOOL.gethomestatus).toBe(30_000); // 30 sec
     });
 
     it('should define TTLs for all cacheable read tools', () => {
@@ -165,40 +166,40 @@ describe('ToolResponseCache', () => {
       // Check immediately - should hit
       expect(checkToolCache('session-1', 'getweather', {}).hit).toBe(true);
 
-      // Advance time past TTL (30 seconds for weather)
-      vi.advanceTimersByTime(31000);
+      // Advance time past TTL (5 minutes for weather)
+      vi.advanceTimersByTime(301_000);
 
       // Now should miss
       expect(checkToolCache('session-1', 'getweather', {}).hit).toBe(false);
     });
 
     it('should respect tool-specific TTL', () => {
-      // getcurrenttime has 1 second TTL
+      // getcurrenttime has 5 second TTL
       cacheToolResult('session-1', 'getcurrenttime', {}, { time: '12:00' });
 
-      // Still valid after 500ms
-      vi.advanceTimersByTime(500);
+      // Still valid after 2.5 seconds
+      vi.advanceTimersByTime(2500);
       expect(checkToolCache('session-1', 'getcurrenttime', {}).hit).toBe(true);
 
-      // Expired after 1.5 seconds
-      vi.advanceTimersByTime(1000);
+      // Expired after 5+ seconds
+      vi.advanceTimersByTime(3000);
       expect(checkToolCache('session-1', 'getcurrenttime', {}).hit).toBe(false);
     });
 
     it('should handle longer TTLs (like getrelationshipsummary)', () => {
-      // 2 minute TTL
+      // 5 minute TTL (extended from 2min for better cache hits)
       cacheToolResult('session-1', 'getrelationshipsummary', {}, { summary: 'data' });
 
-      // Still valid after 1 minute
-      vi.advanceTimersByTime(60000);
+      // Still valid after 2 minutes
+      vi.advanceTimersByTime(120_000);
       expect(checkToolCache('session-1', 'getrelationshipsummary', {}).hit).toBe(true);
 
-      // Still valid after 1:30
-      vi.advanceTimersByTime(30000);
+      // Still valid after 4 minutes
+      vi.advanceTimersByTime(120_000);
       expect(checkToolCache('session-1', 'getrelationshipsummary', {}).hit).toBe(true);
 
-      // Expired after 2+ minutes
-      vi.advanceTimersByTime(31000);
+      // Expired after 5+ minutes
+      vi.advanceTimersByTime(61_000);
       expect(checkToolCache('session-1', 'getrelationshipsummary', {}).hit).toBe(false);
     });
   });

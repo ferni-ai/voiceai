@@ -189,7 +189,7 @@ export {
   getOrLoadPersonaBundle,
   getPersonaBundleCache,
   warmCommonCaches,
-} from './shared/performance/edge-cache.js';
+} from '../services/cache/edge-cache.js';
 
 export {
   WebSocketKeepAlive,

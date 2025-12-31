@@ -269,7 +269,7 @@ async function buildStoreAssets(options: BuildOptions): Promise<boolean> {
   }
 
   const generatedDir = join(PROJECT_ROOT, 'apps/website/ferni-website/images/generated');
-  const brandIcons = join(PROJECT_ROOT, 'brand/icons/png');
+  const brandIcons = join(PROJECT_ROOT, 'design-system/assets/icons/png');
   const outputDir = join(PROJECT_ROOT, 'apps/marketing');
   const graphicsDir = join(outputDir, 'graphics');
   const socialDir = join(outputDir, 'social');
@@ -322,7 +322,7 @@ async function buildStoreAssets(options: BuildOptions): Promise<boolean> {
   const pressFiles = [
     { src: join(brandIcons, 'ios-1024.png'), dest: join(pressDir, 'app-icon-1024.png') },
     { src: join(generatedDir, 'social/og-image.jpg'), dest: join(pressDir, 'og-image.jpg') },
-    { src: join(PROJECT_ROOT, 'brand/logos/logo-primary.svg'), dest: join(pressDir, 'logo-primary.svg') },
+    { src: join(PROJECT_ROOT, 'design-system/assets/logos/logo-primary.svg'), dest: join(pressDir, 'logo-primary.svg') },
   ];
 
   for (const { src, dest } of pressFiles) {

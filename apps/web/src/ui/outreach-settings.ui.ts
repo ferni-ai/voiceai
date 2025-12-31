@@ -359,7 +359,7 @@ function createSettingsPanel(): HTMLElement {
       </div>
       
       <footer class="outreach-settings-footer">
-        <button aria-label="Save Preferences" class="outreach-settings-save">Save Preferences</button>
+        <button aria-label="${t('accessibility.savePreferences')}" class="outreach-settings-save">Save Preferences</button>
       </footer>
     </div>
   `;

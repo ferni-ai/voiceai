@@ -134,9 +134,7 @@ export function recordObservation(
 
   // Prune old observations
   const cutoff = Date.now() - OBSERVATION_TTL_MS;
-  observations = observations.filter(
-    (obs) => obs.detectedAt.getTime() > cutoff
-  );
+  observations = observations.filter((obs) => obs.detectedAt.getTime() > cutoff);
 
   // Keep within limit
   if (observations.length > MAX_OBSERVATIONS_PER_USER) {
@@ -182,9 +180,7 @@ export function clearObservations(userId: string): void {
  * Detect connections between observations from different personas.
  * This is the "superhuman" part - seeing patterns humans can't.
  */
-function detectConnections(
-  observations: PersonaObservation[]
-): CrossDomainConnection[] {
+function detectConnections(observations: PersonaObservation[]): CrossDomainConnection[] {
   const connections: CrossDomainConnection[] = [];
 
   // Group by persona
@@ -244,9 +240,7 @@ function findConnection(
   }
 
   // Temporal connection (both happened around same time)
-  const timeDiff = Math.abs(
-    obs1.detectedAt.getTime() - obs2.detectedAt.getTime()
-  );
+  const timeDiff = Math.abs(obs1.detectedAt.getTime() - obs2.detectedAt.getTime());
   if (timeDiff < 24 * 60 * 60 * 1000) {
     // Within 24 hours
     // Check for known causal patterns
@@ -279,7 +273,8 @@ function detectCausalPattern(
       domain2: 'research',
       keywords1: ['sleep', 'rest', 'tired'],
       keywords2: ['stress', 'anxiety', 'overwhelmed'],
-      synthesis: 'Sleep disruption and stress often feed each other. Addressing one may help the other.',
+      synthesis:
+        'Sleep disruption and stress often feed each other. Addressing one may help the other.',
     },
     {
       domain1: 'habits',
@@ -307,14 +302,10 @@ function detectCausalPattern(
   for (const pattern of patterns) {
     const obs1Match =
       obs1.domain === pattern.domain1 &&
-      pattern.keywords1.some((kw) =>
-        obs1.content.toLowerCase().includes(kw)
-      );
+      pattern.keywords1.some((kw) => obs1.content.toLowerCase().includes(kw));
     const obs2Match =
       obs2.domain === pattern.domain2 &&
-      pattern.keywords2.some((kw) =>
-        obs2.content.toLowerCase().includes(kw)
-      );
+      pattern.keywords2.some((kw) => obs2.content.toLowerCase().includes(kw));
 
     if (obs1Match && obs2Match) {
       return {
@@ -329,14 +320,10 @@ function detectCausalPattern(
     // Check reverse
     const obs1MatchRev =
       obs1.domain === pattern.domain2 &&
-      pattern.keywords2.some((kw) =>
-        obs1.content.toLowerCase().includes(kw)
-      );
+      pattern.keywords2.some((kw) => obs1.content.toLowerCase().includes(kw));
     const obs2MatchRev =
       obs2.domain === pattern.domain1 &&
-      pattern.keywords1.some((kw) =>
-        obs2.content.toLowerCase().includes(kw)
-      );
+      pattern.keywords1.some((kw) => obs2.content.toLowerCase().includes(kw));
 
     if (obs1MatchRev && obs2MatchRev) {
       return {
@@ -379,11 +366,15 @@ function synthesizeInsights(
   }
 
   if (connections.length > 0) {
-    parts.push(`${connections.length} cross-domain connection${connections.length > 1 ? 's' : ''} detected.`);
+    parts.push(
+      `${connections.length} cross-domain connection${connections.length > 1 ? 's' : ''} detected.`
+    );
   }
 
   if (opportunities.length > 0) {
-    parts.push(`${opportunities.length} growth opportunit${opportunities.length > 1 ? 'ies' : 'y'} identified.`);
+    parts.push(
+      `${opportunities.length} growth opportunit${opportunities.length > 1 ? 'ies' : 'y'} identified.`
+    );
   }
 
   // Add top connection insight
@@ -422,10 +413,7 @@ function generateRecommendations(
   // Cross-domain connections → Suggest coordination
   if (connections.length > 0) {
     const topConnection = connections[0];
-    const personas = [
-      topConnection.observation1.personaId,
-      topConnection.observation2.personaId,
-    ];
+    const personas = [topConnection.observation1.personaId, topConnection.observation2.personaId];
 
     recommendations.push({
       type: 'coordinate',
@@ -449,7 +437,9 @@ function generateRecommendations(
         targetPersona: opp.personaId,
         reason: opp.content,
         priority: 'low',
-        suggestedApproach: opp.suggestedAction || `Would you like to talk to ${getPersonaDisplayName(opp.personaId)}?`,
+        suggestedApproach:
+          opp.suggestedAction ||
+          `Would you like to talk to ${getPersonaDisplayName(opp.personaId)}?`,
         shouldMentionTeam: false,
       });
     }
@@ -475,7 +465,7 @@ function assessUserState(
   const totalObs = observations.length || 1;
   const wellbeing = Math.max(
     0.2,
-    Math.min(0.9, 0.5 + (opportunities.length - concerns.length) / totalObs * 0.3)
+    Math.min(0.9, 0.5 + ((opportunities.length - concerns.length) / totalObs) * 0.3)
   );
 
   // Extract concerns and strengths
@@ -502,7 +492,8 @@ function assessUserState(
   for (const d of domains) {
     domainCounts.set(d, (domainCounts.get(d) || 0) + 1);
   }
-  const topDomain = Array.from(domainCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'general';
+  const topDomain =
+    Array.from(domainCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'general';
 
   return {
     wellbeing,
@@ -567,7 +558,9 @@ export function formatTeamHuddleForLLM(huddle: TeamHuddleSummary): string {
 
   // User state
   const state = huddle.userStateAssessment;
-  lines.push(`User wellbeing: ${(state.wellbeing * 100).toFixed(0)}% | Trajectory: ${state.trajectory}`);
+  lines.push(
+    `User wellbeing: ${(state.wellbeing * 100).toFixed(0)}% | Trajectory: ${state.trajectory}`
+  );
   if (state.concerns.length > 0) {
     lines.push(`Areas of concern: ${state.concerns.join('; ')}`);
   }
@@ -599,8 +592,10 @@ export function formatTeamHuddleForLLM(huddle: TeamHuddleSummary): string {
 
   // Guidance
   lines.push('GUIDANCE:');
-  lines.push('- You can reference team insights naturally: "I was talking with Maya about..." or "Peter mentioned..."');
-  lines.push('- Don\'t list observations - weave them into conversation');
+  lines.push(
+    '- You can reference team insights naturally: "I was talking with Maya about..." or "Peter mentioned..."'
+  );
+  lines.push("- Don't list observations - weave them into conversation");
   lines.push('- If trajectory is declining, show extra care');
   lines.push('- Cross-domain insights make you seem wise, not surveillance-y');
 
@@ -611,7 +606,4 @@ export function formatTeamHuddleForLLM(huddle: TeamHuddleSummary): string {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export {
-  getObservations as getTeamObservations,
-  recordObservation as recordTeamObservation,
-};
+export { getObservations as getTeamObservations, recordObservation as recordTeamObservation };

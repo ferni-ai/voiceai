@@ -24,13 +24,13 @@ export interface PipelineStep<TContext, TResult = TContext> {
   readonly name: string;
 
   /** Execute the step */
-  execute(context: TContext, logger: Logger): Promise<Result<TResult>>;
+  execute: (context: TContext, logger: Logger) => Promise<Result<TResult>>;
 
   /** Optional: Check if step should be skipped */
-  shouldSkip?(context: TContext): boolean;
+  shouldSkip?: (context: TContext) => boolean;
 
   /** Optional: Cleanup on error */
-  cleanup?(context: TContext, error: Error): Promise<void>;
+  cleanup?: (context: TContext, error: Error) => Promise<void>;
 }
 
 /**
@@ -271,7 +271,7 @@ export abstract class SideEffectStep<TContext> extends BaseStep<TContext, TConte
 // UTILITIES
 // ============================================================================
 
-function sleep(ms: number): Promise<void> {
+async function sleep(ms: number): Promise<void> {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });

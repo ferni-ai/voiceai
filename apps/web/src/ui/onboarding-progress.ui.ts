@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('OnboardingProgressUI');
 
@@ -652,7 +653,7 @@ function createModal(progress: OnboardingProgress): HTMLElement {
 
   const title = document.createElement('h2');
   title.id = 'onboarding-progress-title';
-  title.textContent = 'Your Journey';
+  title.textContent = t('onboarding.yourJourney');
   header.appendChild(title);
 
   const subtitle = document.createElement('p');

@@ -637,7 +637,7 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button aria-label="Confirm" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button aria-label="${t('accessibility.confirm')}" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
@@ -655,7 +655,7 @@ function render(): void {
               <span class="accent-auto-detect-icon">${ICONS.globe}</span>
               <span class="accent-auto-detect-label">Auto-detect from location</span>
             </div>
-            <button aria-label="Toggle" class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
+            <button aria-label="${t('accessibility.toggle')}" class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
               <span class="accent-toggle-knob" role="button" tabindex="0"></span>
             </button>
           </div>
@@ -663,7 +663,7 @@ function render(): void {
           ${state.error ? `<div class="accent-message error">${state.error}</div>` : ''}
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
-          <button aria-label="Save" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
+          <button aria-label="${t('accessibility.save')}" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
             ${state.isSaving ? t('common.saving') : 'Save Preference'}
           </button>
         </div>

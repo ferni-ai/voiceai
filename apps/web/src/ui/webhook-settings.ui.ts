@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 import { toast } from './toast.ui.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -431,7 +432,7 @@ class WebhookSettingsUI {
       copyBtn.addEventListener('click', async () => {
         if (this.newTokenValue) {
           await navigator.clipboard.writeText(this.newTokenValue);
-          toast.success('Token copied!');
+          toast.success(t('toasts.tokenCopied'));
         }
       });
       tokenDisplay.appendChild(copyBtn);
@@ -525,7 +526,7 @@ class WebhookSettingsUI {
       const res = await apiPost<WebhookConfig>('/api/webhooks', data);
       if (res.ok && res.data) {
         this.webhooks.push(res.data);
-        toast.success('Webhook created!');
+        toast.success(t('toasts.webhookCreated'));
         this.callbacks.onWebhookCreated?.(res.data);
         this.renderContent();
       } else {
@@ -550,11 +551,11 @@ class WebhookSettingsUI {
   }
 
   private async testWebhook(webhookId: string): Promise<void> {
-    toast.info('Testing...');
+    toast.info(t('toasts.testing'));
     try {
       const res = await apiPost<{ success: boolean; error?: string }>(`/api/webhooks/${webhookId}/test`, {});
       if (res.ok && res.data?.success) {
-        toast.success('Webhook works!');
+        toast.success(t('toasts.webhookWorks'));
       } else {
         toast.error(res.data?.error || "Webhook test failed");
       }
@@ -570,7 +571,7 @@ class WebhookSettingsUI {
       const res = await apiDelete(`/api/webhooks/${webhookId}`);
       if (res.ok) {
         this.webhooks = this.webhooks.filter((w) => w.id !== webhookId);
-        toast.success('Webhook deleted');
+        toast.success(t('toasts.webhookDeleted'));
         this.callbacks.onWebhookDeleted?.(webhookId);
         this.renderContent();
       }
@@ -592,7 +593,7 @@ class WebhookSettingsUI {
       if (res.ok && res.data) {
         this.newTokenValue = res.data.token;
         await this.fetchData();
-        toast.success('Token created! Copy it now.');
+        toast.success(t('toasts.tokenCreated'));
         this.renderContent();
       } else {
         toast.error(res.error || "Couldn't create token");
@@ -609,7 +610,7 @@ class WebhookSettingsUI {
       const res = await apiDelete(`/api/webhooks/siri-tokens/${tokenId}`);
       if (res.ok) {
         this.siriTokens = this.siriTokens.filter((t) => t.id !== tokenId);
-        toast.success('Token deleted');
+        toast.success(t('toasts.tokenDeleted'));
         this.renderContent();
       }
     } catch (error) {

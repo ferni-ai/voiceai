@@ -195,9 +195,8 @@ async function ensureSemanticRouterInitialized(): Promise<void> {
   initializationPromise = (async () => {
     try {
       // Try to initialize the semantic router with tool definitions
-      const { initializeSemanticRouter } = await import(
-        '../../tools/semantic-router/integration/init.js'
-      );
+      const { initializeSemanticRouter } =
+        await import('../../tools/semantic-router/integration/init.js');
       await initializeSemanticRouter();
       semanticRouterInitialized = true;
       log.info('Semantic router initialized for tool hints');

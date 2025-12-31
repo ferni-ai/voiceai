@@ -16,6 +16,7 @@
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
 import { toast } from '../toast.ui.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
 
@@ -979,7 +980,7 @@ export const bthDashboard = {
   async refreshAggregates(): Promise<void> {
     try {
       await triggerAggregateRefresh();
-      toast.success('Aggregates refreshing...');
+      toast.success(t('toasts.aggregatesRefreshing'));
       setTimeout(() => this.refresh(), 2000);
     } catch (error) {
       log.error({ error: String(error) }, 'Failed to trigger aggregate refresh');
@@ -1019,7 +1020,7 @@ export const bthDashboard = {
   async searchUser(): Promise<void> {
     const userId = state.userIdInput.trim();
     if (!userId || userId.length < 5) {
-      toast.warning('Enter a valid user ID');
+      toast.warning(t('toasts.enterValidUserId'));
       return;
     }
 

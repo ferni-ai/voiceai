@@ -17,10 +17,11 @@
  */
 
 import admin from 'firebase-admin';
+
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getLifeDataStore } from '../stores/life-data-store.js';
 import { getFinancialStore } from '../stores/financial-store.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLifeDataStore } from '../stores/life-data-store.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -136,14 +137,15 @@ class ProactiveInsightsService {
     this.isRunning = true;
 
     // Run daily scans every 6 hours (for active users)
-    this.scanInterval = setInterval(
+    registerInterval(
+      'proactive-insights-scanner',
       () => {
         this.runScheduledScans().catch((err) => {
           getLogger().error({ error: err }, 'Error running scheduled insight scans');
         });
       },
-      6 * 60 * 60 * 1000
-    ); // 6 hours
+      6 * 60 * 60 * 1000 // 6 hours
+    );
 
     getLogger().info('🔬 Proactive Insights Service started');
   }
@@ -154,10 +156,8 @@ class ProactiveInsightsService {
   stop(): void {
     if (!this.isRunning) return;
 
-    if (this.scanInterval) {
-      clearInterval(this.scanInterval);
-      this.scanInterval = null;
-    }
+    clearNamedInterval('proactive-insights-scanner');
+    this.scanInterval = null;
 
     this.isRunning = false;
     getLogger().info('🔬 Proactive Insights Service stopped');

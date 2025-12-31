@@ -25,6 +25,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('StorytellingVisualizations');
 
@@ -131,7 +132,7 @@ export function createLifeSeasonsElement(seasons: SeasonData[]): HTMLElement {
   // Title
   const title = document.createElement('h3');
   title.className = 'life-seasons__title';
-  title.textContent = 'Your Life Seasons';
+  title.textContent = t('visualizations.lifeSeasons');
   container.appendChild(title);
 
   // Seasons wheel
@@ -207,7 +208,7 @@ export function createConversationRiverElement(topics: ConversationTopic[]): HTM
 
   const title = document.createElement('h3');
   title.className = 'conversation-river__title';
-  title.textContent = 'Your Conversation Currents';
+  title.textContent = t('visualizations.conversationCurrents');
   container.appendChild(title);
 
   // River container with SVG
@@ -288,12 +289,12 @@ export function createMirrorElement(insights: MirrorInsight[]): HTMLElement {
 
   const title = document.createElement('h3');
   title.className = 'the-mirror__title';
-  title.textContent = 'The Mirror';
+  title.textContent = t('visualizations.theMirror');
   container.appendChild(title);
 
   const subtitle = document.createElement('p');
   subtitle.className = 'the-mirror__subtitle';
-  subtitle.textContent = 'What you say... and what I notice';
+  subtitle.textContent = t('visualizations.whatYouSayAnd');
   container.appendChild(subtitle);
 
   insightsArray.forEach(insight => {
@@ -306,7 +307,7 @@ export function createMirrorElement(insights: MirrorInsight[]): HTMLElement {
 
     const surfaceLabel = document.createElement('span');
     surfaceLabel.className = 'the-mirror__label';
-    surfaceLabel.textContent = 'You said';
+    surfaceLabel.textContent = t('visualizations.youSaid');
     surface.appendChild(surfaceLabel);
 
     const surfaceText = document.createElement('p');
@@ -327,7 +328,7 @@ export function createMirrorElement(insights: MirrorInsight[]): HTMLElement {
 
     const deeperLabel = document.createElement('span');
     deeperLabel.className = 'the-mirror__label';
-    deeperLabel.textContent = 'I notice';
+    deeperLabel.textContent = t('visualizations.iNotice');
     deeper.appendChild(deeperLabel);
 
     const deeperText = document.createElement('p');
@@ -374,7 +375,7 @@ export function createEnergyFlowElement(nodes: EnergyNode[], flows: EnergyFlow[]
 
   const title = document.createElement('h3');
   title.className = 'energy-flow__title';
-  title.textContent = 'Your Energy Flow';
+  title.textContent = t('visualizations.yourEnergyFlow');
   container.appendChild(title);
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -483,18 +484,18 @@ export function createUnsaidElement(topics: UnsaidTopic[]): HTMLElement {
 
   const title = document.createElement('h3');
   title.className = 'the-unsaid__title';
-  title.textContent = 'The Unsaid';
+  title.textContent = t('visualizations.theUnsaid');
   container.appendChild(title);
 
   const subtitle = document.createElement('p');
   subtitle.className = 'the-unsaid__subtitle';
-  subtitle.textContent = 'Things that might be on your mind...';
+  subtitle.textContent = t('visualizations.thingsThatMightBe');
   container.appendChild(subtitle);
 
   if (topicsArray.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'the-unsaid__empty';
-    empty.textContent = 'I\'m still learning your patterns. Keep talking.';
+    empty.textContent = t('visualizations.stillLearning');
     container.appendChild(empty);
     return container;
   }
@@ -557,12 +558,12 @@ export function createGrowthRingsElement(rings: GrowthRing[]): HTMLElement {
 
   const title = document.createElement('h3');
   title.className = 'growth-rings__title';
-  title.textContent = 'Your Growth Rings';
+  title.textContent = t('visualizations.yourGrowthRings');
   container.appendChild(title);
 
   const subtitle = document.createElement('p');
   subtitle.className = 'growth-rings__subtitle';
-  subtitle.textContent = 'Each ring marks a season of growth';
+  subtitle.textContent = t('visualizations.eachRingMarksA');
   container.appendChild(subtitle);
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -642,12 +643,12 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
 
   const title = document.createElement('h3');
   title.className = 'values-alignment__title';
-  title.textContent = 'Values Alignment';
+  title.textContent = t('visualizations.valuesAlignment');
   container.appendChild(title);
 
   const subtitle = document.createElement('p');
   subtitle.className = 'values-alignment__subtitle';
-  subtitle.textContent = 'What you say matters vs. what your actions show';
+  subtitle.textContent = t('visualizations.whatYouSayMatters');
   container.appendChild(subtitle);
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -728,12 +729,12 @@ export function createValuesAlignmentElement(values: ValueAlignment[]): HTMLElem
 
   const statedLegend = document.createElement('span');
   statedLegend.className = 'values-alignment__legend-item values-alignment__legend-item--stated';
-  statedLegend.textContent = 'What you say matters';
+  statedLegend.textContent = t('visualizations.whatYouSayMatters');
   legend.appendChild(statedLegend);
 
   const livedLegend = document.createElement('span');
   livedLegend.className = 'values-alignment__legend-item values-alignment__legend-item--lived';
-  livedLegend.textContent = 'What your actions show';
+  livedLegend.textContent = t('visualizations.whatYourActionsShow');
   legend.appendChild(livedLegend);
 
   container.appendChild(legend);
@@ -773,18 +774,18 @@ export function createUnfinishedStoriesElement(stories: UnfinishedStory[]): HTML
 
   const title = document.createElement('h3');
   title.className = 'unfinished-stories__title';
-  title.textContent = 'Unfinished Stories';
+  title.textContent = t('visualizations.unfinishedStories');
   container.appendChild(title);
 
   const subtitle = document.createElement('p');
   subtitle.className = 'unfinished-stories__subtitle';
-  subtitle.textContent = 'Threads waiting to be woven...';
+  subtitle.textContent = t('visualizations.threadsWaitingToBe');
   container.appendChild(subtitle);
 
   if (storiesArray.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'unfinished-stories__empty';
-    empty.textContent = 'No open loops detected. You\'re present in the moment.';
+    empty.textContent = t('visualizations.noOpenLoops');
     container.appendChild(empty);
     return container;
   }
@@ -868,7 +869,7 @@ export function createRippleEffectsElement(ripple: RippleEffect): HTMLElement {
 
   const title = document.createElement('h3');
   title.className = 'ripple-effects__title';
-  title.textContent = 'Ripple Effects';
+  title.textContent = t('visualizations.rippleEffects');
   container.appendChild(title);
 
   // Trigger (center)

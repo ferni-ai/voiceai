@@ -198,6 +198,91 @@
         "lidScale": 1.2,
         "note": "Maximum detail - hero, onboarding"
       }
+    },
+
+    "notificationBadge": {
+      "description": "Notification indicators that appear on or near the avatar",
+      "positioning": {
+        "topRight": { "top": "-4px", "right": "-4px" },
+        "topLeft": { "top": "-4px", "left": "-4px" },
+        "bottomRight": { "bottom": "-4px", "right": "-4px" },
+        "bottomLeft": { "bottom": "-4px", "left": "-4px" }
+      },
+      "sizes": {
+        "dot": {
+          "width": "8px",
+          "height": "8px",
+          "fontSize": "0",
+          "description": "Simple presence indicator, no count"
+        },
+        "small": {
+          "minWidth": "16px",
+          "height": "16px",
+          "fontSize": "10px",
+          "padding": "0 4px",
+          "description": "1-2 digit counts"
+        },
+        "default": {
+          "minWidth": "20px",
+          "height": "20px",
+          "fontSize": "11px",
+          "padding": "0 6px",
+          "description": "Standard notification count"
+        }
+      },
+      "variants": {
+        "default": {
+          "background": "var(--color-semantic-error)",
+          "color": "white",
+          "description": "Urgent notifications, unread messages"
+        },
+        "subtle": {
+          "background": "var(--color-bg-elevated)",
+          "border": "1px solid var(--color-border-medium)",
+          "color": "var(--color-text-secondary)",
+          "description": "Non-urgent counts"
+        },
+        "success": {
+          "background": "var(--color-semantic-success)",
+          "color": "white",
+          "description": "Positive notifications, completed tasks"
+        },
+        "persona": {
+          "background": "var(--persona-primary)",
+          "color": "white",
+          "description": "Persona-specific notifications"
+        }
+      },
+      "animation": {
+        "entrance": {
+          "keyframes": "badgeEntrance",
+          "duration": "300ms",
+          "easing": "var(--ease-out-back)"
+        },
+        "pulse": {
+          "keyframes": "badgePulse",
+          "duration": "1.5s",
+          "iteration": "infinite",
+          "description": "Draws attention to new notifications"
+        },
+        "bounce": {
+          "keyframes": "badgeBounce",
+          "duration": "400ms",
+          "easing": "var(--ease-spring)",
+          "description": "Plays when count increases"
+        }
+      },
+      "states": {
+        "hidden": {
+          "opacity": 0,
+          "transform": "scale(0)",
+          "pointerEvents": "none"
+        },
+        "visible": {
+          "opacity": 1,
+          "transform": "scale(1)"
+        }
+      }
     }
   }
 }

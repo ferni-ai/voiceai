@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onSeasonalPatternChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'seasonal-awareness' });
 
@@ -329,6 +330,19 @@ export async function recordSeasonalObservation(
       .doc(newObs.id)
       .set(cleanForFirestore(newObs));
   }
+
+  // Index to semantic memory for pattern correlation
+  void onSeasonalPatternChange(
+    userId,
+    newObs.id,
+    {
+      pattern: newObs.type,
+      season: newObs.season,
+      observation: newObs.observation || `${newObs.type} observed in month ${newObs.month}`,
+      recommendation: undefined,
+    },
+    'create'
+  );
 
   observations.push(newObs);
   observationCache.set(userId, observations);

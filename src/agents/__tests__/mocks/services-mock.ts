@@ -172,7 +172,7 @@ export function createMockLearningEngine(): Record<string, Mock> {
  * Create mock history tracker
  */
 export function createMockHistoryTracker(): Record<string, Mock> {
-  const turns: { role: string; content: string; timestamp: number }[] = [];
+  const turns: Array<{ role: string; content: string; timestamp: number }> = [];
 
   return {
     addTurn: vi.fn((role: string, content: string) => {
@@ -316,7 +316,7 @@ export function createMockCommunicationMirroring(): Record<string, Mock> {
 /**
  * Mock session services type - use Record for flexibility in tests
  */
-export type MockSessionServices = {
+export interface MockSessionServices {
   sessionId: string;
   userId: string;
   personaId: string;
@@ -342,7 +342,7 @@ export type MockSessionServices = {
   isReturningUser: boolean;
   relationshipTurns: number;
   reset: any;
-};
+}
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

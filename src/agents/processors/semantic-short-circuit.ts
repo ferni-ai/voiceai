@@ -15,8 +15,10 @@
  * @module agents/processors/semantic-short-circuit
  */
 
-import type { TurnRouterResult } from '../../tools/semantic-router/integration/index.js';
-import { applyRoutingResult } from '../../tools/semantic-router/integration/index.js';
+import {
+  applyRoutingResult,
+  type TurnRouterResult,
+} from '../../tools/semantic-router/integration/index.js';
 import type {
   TurnContext,
   TurnProcessorResult,
@@ -165,7 +167,7 @@ export async function checkSemanticShortCircuit(
   }
 
   // Check if tool is safe to short-circuit
-  const toolId = semanticRouting.toolResult.toolId;
+  const { toolId } = semanticRouting.toolResult;
   if (!SAFE_TO_SHORT_CIRCUIT_TOOLS.has(toolId)) {
     return {
       shortCircuited: false,

@@ -58,18 +58,15 @@ import type {
 } from './types.js';
 
 // 🎯 SEMANTIC ROUTER: Pre-LLM tool routing (replaces JSON workaround)
+// 🧠 INTELLIGENT ROUTING: Advanced 6-strategy cascade (A/B tested)
 import {
   startSemanticRouting,
   applyRoutingResult,
   isRoutingEnabled,
-  type TurnRouterResult,
-} from '../../tools/semantic-router/integration/index.js';
-
-// 🧠 INTELLIGENT ROUTING: Advanced 6-strategy cascade (A/B tested)
-import {
   startIntelligentRouting,
   isIntelligentRouterInitialized,
   recordIntelligentOutcome,
+  type TurnRouterResult,
 } from '../../tools/semantic-router/integration/index.js';
 import { shouldUseIntelligentRouting } from '../../tools/semantic-router/advanced/intelligent/index.js';
 
@@ -130,7 +127,7 @@ import { filterBuildersByTopic, skipBuilder, type BuilderName } from './topic-bu
 import { checkSemanticShortCircuit } from './semantic-short-circuit.js';
 
 // Speculative TTS pre-warming - start TTS generation early based on emotional state
-import { speculateTTS } from '../shared/performance/speculative-tts.js';
+import { speculateTTS } from '../../services/performance/speculative-tts.js';
 
 // Message analysis - extracted for maintainability
 import { analyzeMessage, updateConversationState } from './message-analyzer.js';
@@ -399,9 +396,8 @@ async function buildContextInjections(
   // Only on first turn to set context (don't repeat every turn)
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
-      const { generateTeamHuddle, formatTeamHuddleForLLM } = await import(
-        '../../services/cross-persona/team-huddle.js'
-      );
+      const { generateTeamHuddle, formatTeamHuddleForLLM } =
+        await import('../../services/cross-persona/team-huddle.js');
       const huddle = await generateTeamHuddle(services.userId);
       if (huddle.observations.length > 0) {
         const huddleContext = formatTeamHuddleForLLM(huddle);
@@ -426,9 +422,8 @@ async function buildContextInjections(
   // Only on first turn to establish context
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
-      const { buildOutreachBridgeInjection } = await import(
-        '../../services/outreach/conversation-context-bridge.js'
-      );
+      const { buildOutreachBridgeInjection } =
+        await import('../../services/outreach/conversation-context-bridge.js');
       const bridgeInjection = await buildOutreachBridgeInjection(services.userId);
       if (bridgeInjection) {
         injections.push({
@@ -449,9 +444,8 @@ async function buildContextInjections(
   // Only on first turn to establish context
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
-      const { getActiveUserContext, formatContextForVoiceCall } = await import(
-        '../../services/session-context/session-summary.js'
-      );
+      const { getActiveUserContext, formatContextForVoiceCall } =
+        await import('../../services/session-context/session-summary.js');
       const activeContext = await getActiveUserContext(services.userId);
       if (activeContext) {
         const crossChannelContext = formatContextForVoiceCall(activeContext);
@@ -514,7 +508,7 @@ async function buildContextInjections(
   }
 
   // Helper: run builder only if not skipped, otherwise return fallback immediately
-  const runIfRelevant = <T>(
+  const runIfRelevant = async <T>(
     builder: BuilderName,
     builderFn: () => Promise<T>,
     fallback: T
@@ -595,7 +589,7 @@ async function buildContextInjections(
     // Scientific coaching - skip if topic is emotional/personal
     runIfRelevant(
       'scientific-coaching',
-      () =>
+      async () =>
         withTimeout(
           buildScientificCoachingInjections(builderInput),
           IMPORTANT_TIMEOUT_MS,
@@ -607,7 +601,7 @@ async function buildContextInjections(
     // Life coaching - skip if topic is market/financial data
     runIfRelevant(
       'life-coaching',
-      () =>
+      async () =>
         withTimeout(
           buildLifeCoachingInjections(builderInput),
           IMPORTANT_TIMEOUT_MS,
@@ -626,7 +620,7 @@ async function buildContextInjections(
     // Boundary check - skip if topic doesn't involve personal/emotional
     runIfRelevant(
       'boundary-check',
-      () =>
+      async () =>
         withTimeout(
           buildBoundaryCheckInjections({
             userId: services.userId || 'unknown',
@@ -643,7 +637,7 @@ async function buildContextInjections(
     // each turn, not just at session start.
     runIfRelevant(
       'live-superhuman',
-      () =>
+      async () =>
         withTimeout(
           buildLiveSuperhumanInjections({
             userId: services.userId || 'unknown',
@@ -701,7 +695,7 @@ async function buildContextInjections(
       // System health - skip unless health topic or keywords
       runIfRelevant(
         'health-awareness',
-        () =>
+        async () =>
           withTimeout(
             buildHealthAwarenessInjections(),
             OPTIONAL_TIMEOUT_MS,
@@ -713,7 +707,7 @@ async function buildContextInjections(
       // User health (Apple HealthKit) - skip unless health keywords
       runIfRelevant(
         'user-health',
-        () =>
+        async () =>
           withTimeout(
             buildUserHealthInjection(services.userId || 'unknown'),
             OPTIONAL_TIMEOUT_MS,
@@ -725,7 +719,7 @@ async function buildContextInjections(
       // Visual memory - skip unless visual/photo keywords
       runIfRelevant(
         'visual-memory',
-        () =>
+        async () =>
           withTimeout(
             buildVisualMemoryInjections(services.userId || 'unknown'),
             OPTIONAL_TIMEOUT_MS,
@@ -737,7 +731,7 @@ async function buildContextInjections(
       // Ambient mode - skip unless location keywords
       runIfRelevant(
         'ambient-mode',
-        () =>
+        async () =>
           withTimeout(
             buildAmbientModeInjections(services.userId || 'unknown'),
             OPTIONAL_TIMEOUT_MS,
@@ -824,7 +818,7 @@ async function buildContextInjections(
     // 📊 QUEUE RESONANCE CHECKS - Track which superhuman insights to validate
     // When capabilities are surfaced, queue them for voice-native feedback
     // ========================================================================
-    const sessionId = services.sessionId;
+    const { sessionId } = services;
     const turnCount = userData.turnCount || 0;
     const { signals } = liveSuperhumanResult;
 
@@ -1518,6 +1512,27 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       indicators: crisisResult.indicators,
       shouldOverride: preResponseGuard.shouldBlock,
     });
+
+    // 🧠 SUPERHUMAN OUTREACH: Accumulate crisis signal for intelligent outreach
+    if (userData.userId) {
+      try {
+        const { accumulateSignal, signalFromCrisis } = await import(
+          '../../services/conversation-thread/superhuman-outreach-intelligence.js'
+        );
+        const severityLevel =
+          crisisResult.severity > 0.7 ? 'severe' : crisisResult.severity > 0.5 ? 'high' : 'moderate';
+        accumulateSignal(
+          userData.userId,
+          signalFromCrisis({
+            type: crisisResult.indicators.join(', ') || 'crisis',
+            severity: severityLevel,
+            context: userText.slice(0, 100),
+          })
+        );
+      } catch {
+        // Non-blocking
+      }
+    }
   }
 
   // Enable verbose timing with DEBUG_TURN_TIMING=true
@@ -1632,7 +1647,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // 🧠 TRUE PREDICTIVE INTELLIGENCE: Feed ML models in real-time
     // This trains Markov chains, time-series forecasters, and signal fusion
     // =========================================================================
-    const userId = services.userId; // Capture for closure (narrows type)
+    const { userId } = services; // Capture for closure (narrows type)
     // Capture previous state for Markov chain transitions (before updating)
     const previousEmotion = userData?.lastEmotionAnalysis?.primary;
     const previousTopic = userData?.lastTopic;
@@ -1642,8 +1657,12 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           text: userText,
           emotion: analysisResult.analysis.emotion.primary,
           topic: analysisResult.currentTopic || 'general',
-          mood: analysisResult.analysis.emotion.valence === 'positive' ? 0.7 :
-                analysisResult.analysis.emotion.valence === 'negative' ? 0.3 : 0.5,
+          mood:
+            analysisResult.analysis.emotion.valence === 'positive'
+              ? 0.7
+              : analysisResult.analysis.emotion.valence === 'negative'
+                ? 0.3
+                : 0.5,
           energy: userData?.voiceEmotion?.confidence || 0.5,
           timestamp: new Date(),
           // Previous state for Markov chain transitions
@@ -1741,18 +1760,20 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // 🤝 TEAM HUDDLE: Record observations for cross-persona coordination
     // "Better than Human" - personas share insights like a real care team
     // ============================================================================
-    safeFireAndForget(
-      async () => {
-        await recordTeamHuddleObservation(
-          services.userId,
-          ctx.persona?.id || 'ferni',
-          userText,
-          analysisResult,
-          userData
-        );
-      },
-      { context: 'team-huddle-observation' }
-    );
+    if (services.userId) {
+      safeFireAndForget(
+        async () => {
+          await recordTeamHuddleObservation(
+            services.userId!,
+            ctx.persona?.id || 'ferni',
+            userText,
+            analysisResult,
+            userData as unknown as ContextUserData // UserData has compatible shape
+          );
+        },
+        { context: 'team-huddle-observation' }
+      );
+    }
   }
 
   // ============================================================================
@@ -2055,8 +2076,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (debugTiming) diag.info(`⏱️ [TIMING] context_injections: ${contextInjectionsMs}ms`);
 
   // Extract injections and trust context from the result
-  const injections = contextInjectionsResult.injections;
-  const trustContextSummary = contextInjectionsResult.trustContextSummary;
+  const { injections } = contextInjectionsResult;
+  const { trustContextSummary } = contextInjectionsResult;
 
   // Add advanced humanization injections
   if (advancedHumanizationResult) {
@@ -2069,7 +2090,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // Enable with LOG_CONTEXT_BUILDS=true for verbose logging
   const shouldRecordContext =
     process.env.LOG_CONTEXT_BUILDS === 'true' || process.env.DEBUG_INJECTIONS === 'true';
-  if (shouldRecordContext || true) {
+  if (shouldRecordContext) {
     // Always record, but only log if enabled
     try {
       const inspectionData = createInspectionData({
@@ -2203,7 +2224,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // 13. INTELLIGENT OUTREACH: Extract commitments, emotions, life events
   // This feeds the "Better Than Human" proactive outreach system
   // Publishes to intelligence worker for async processing
-  const userId = services.userId;
+  const { userId } = services;
   if (userId && userText.length > 10) {
     publishOutreachExtraction(userId, services.sessionId, {
       message: userText,
@@ -2243,7 +2264,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     currentTurnCount % AUTO_SAVE_INTERVAL === 0
   ) {
     // Safe fire-and-forget profile save
-    safeFireAndForget(() => services.saveProfile!(), {
+    safeFireAndForget(async () => services.saveProfile!(), {
       context: 'periodic-auto-save',
       critical: true,
     });
@@ -2359,7 +2380,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     } else if (semanticRouting.routed && routingResult.routeResult?.matches?.length) {
       // Medium confidence: Add hint to LLM context (helps guide the response)
       const topMatch = routingResult.routeResult.matches[0];
-      const confidence = semanticRouting.metrics.confidence;
+      const { confidence } = semanticRouting.metrics;
 
       diag.state('🎯 Semantic routing: Tool hint added to context', {
         toolId: topMatch.toolId,
@@ -2556,11 +2577,7 @@ async function recordTeamHuddleObservation(
     // =========================================================================
     // 1. USE PERSONA-SPECIFIC PATTERNS FOR INTELLIGENT OBSERVATION
     // =========================================================================
-    const patternMatches = analyzeTextForPersona(
-      canonicalPersonaId,
-      userText,
-      emotionIntensity
-    );
+    const patternMatches = analyzeTextForPersona(canonicalPersonaId, userText, emotionIntensity);
 
     // Record top 2 pattern matches (avoid noise)
     for (const match of patternMatches.slice(0, 2)) {
@@ -2599,7 +2616,11 @@ async function recordTeamHuddleObservation(
     if (isHighIntensity && patternMatches.length === 0) {
       // High emotion but no pattern match - record generic observation
       const domain = PERSONA_DOMAINS[personaId] || 'general';
-      const observationType = isNegativeEmotion ? 'concern' : isPositiveEmotion ? 'opportunity' : 'insight';
+      const observationType = isNegativeEmotion
+        ? 'concern'
+        : isPositiveEmotion
+          ? 'opportunity'
+          : 'insight';
       const content = isNegativeEmotion
         ? buildConcernObservation(domain, analysisResult, userText)
         : buildOpportunityObservation(domain, analysisResult, userText);
@@ -2632,7 +2653,8 @@ async function recordTeamHuddleObservation(
     const handoffCues = detectHandoffCues(canonicalPersonaId, userText);
     if (handoffCues.length > 0) {
       // Record as insight for Ferni's coordination
-      for (const cue of handoffCues.slice(0, 1)) { // Top 1 cue only
+      for (const cue of handoffCues.slice(0, 1)) {
+        // Top 1 cue only
         recordTeamObservation(userId, {
           personaId: canonicalPersonaId,
           observationType: 'insight',
@@ -2665,7 +2687,15 @@ function detectDomainRelevantPattern(text: string, domain: string): boolean {
   const domainPatterns: Record<string, string[]> = {
     habits: ['sleep', 'exercise', 'routine', 'habit', 'morning', 'night', 'tired', 'energy'],
     research: ['stress', 'work', 'career', 'money', 'finance', 'market', 'research', 'learn'],
-    milestones: ['goal', 'achieve', 'celebrate', 'birthday', 'anniversary', 'milestone', 'deadline'],
+    milestones: [
+      'goal',
+      'achieve',
+      'celebrate',
+      'birthday',
+      'anniversary',
+      'milestone',
+      'deadline',
+    ],
     communication: ['meeting', 'calendar', 'schedule', 'email', 'call', 'busy', 'overwhelm'],
     wisdom: ['meaning', 'purpose', 'values', 'life', 'important', 'legacy', 'death', 'reflect'],
     life_coaching: ['change', 'stuck', 'help', 'support', 'growth', 'better', 'improve'],

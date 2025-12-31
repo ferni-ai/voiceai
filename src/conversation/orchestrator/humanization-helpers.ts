@@ -8,6 +8,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // Humanization systems
 import { getActiveListeningEngine } from '../active-listening.js';
@@ -344,9 +348,15 @@ export function applyAdvancedHumanization(
     const rawEnergy = analysis.context.energy;
     const userEnergy: 'high' | 'medium' | 'low' = rawEnergy === 'subdued' ? 'low' : rawEnergy;
 
+    // 🦀 Rust-accelerated word counting
+    const userWordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(input.userMessage)
+      : input.userMessage.split(/\s+/).length;
+    const textWordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
+
     const context: Omit<OrchestratorContext, 'responseText' | 'responseWordCount'> = {
       userMessage: input.userMessage,
-      userWordCount: input.userMessage.split(/\s+/).length,
+      userWordCount,
       userEnergy,
       userEmotion: input.userEmotion,
       turnCount: input.turnNumber,
@@ -357,7 +367,7 @@ export function applyAdvancedHumanization(
       recentTopics: input.topic ? [input.topic] : [],
       recentHumanizations: [],
       isEmotionalContent: analysis.context.needsSupport,
-      responseComplexity: text.split(/\s+/).length > 50 ? 0.7 : 0.3,
+      responseComplexity: textWordCount > 50 ? 0.7 : 0.3,
       isGivingAdvice: detectAdviceGiving(text),
     };
 

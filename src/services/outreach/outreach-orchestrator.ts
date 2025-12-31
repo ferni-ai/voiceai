@@ -284,10 +284,7 @@ export class OutreachOrchestrator extends EventEmitter {
   ): Promise<OutreachEvent | null> {
     // Validate confidence threshold (voice calls are high-touch)
     if (context.confidence < 0.75) {
-      log.debug(
-        { userId, confidence: context.confidence },
-        'Proactive call confidence too low'
-      );
+      log.debug({ userId, confidence: context.confidence }, 'Proactive call confidence too low');
       return null;
     }
 
@@ -297,7 +294,14 @@ export class OutreachOrchestrator extends EventEmitter {
       await storeOutreachContext({
         outreachId: `call_${userId}_${Date.now()}`,
         userId,
-        type: context.trigger as 'ml_prediction' | 'thinking_of_you' | 'hard_date' | 'follow_up' | 'life_rhythm' | 'habit_support' | 'celebration',
+        type: context.trigger as
+          | 'ml_prediction'
+          | 'thinking_of_you'
+          | 'hard_date'
+          | 'follow_up'
+          | 'life_rhythm'
+          | 'habit_support'
+          | 'celebration',
         personaId,
         message: context.message || "I've been thinking about you and wanted to check in.",
         channel: 'voice_message',
@@ -787,7 +791,7 @@ export function getOutreachOrchestrator(): OutreachOrchestrator {
     // This is the critical bridge that makes "Thinking of You" actually execute!
     // When the orchestrator decides it's time to reach out, we deliver the message.
     // ==========================================================================
-    instance.on('outreach:ready', async (event: OutreachEvent) => {
+    instance.on('outreach:ready', (event: OutreachEvent) => {
       log.info(
         {
           type: event.type,
@@ -798,34 +802,37 @@ export function getOutreachOrchestrator(): OutreachOrchestrator {
         '💌 Executing outreach delivery'
       );
 
-      try {
-        const result = await deliverOutreach({
-          userId: event.userId,
-          channel: event.channel === 'voice_message' ? 'push' : event.channel, // Map voice_message to push
-          message: event.message,
-          personaId: event.personaId,
-          outreachId: event.metadata?.triggerId as string | undefined,
-        });
+      // Use void to explicitly handle the promise and satisfy TypeScript
+      void (async () => {
+        try {
+          const result = await deliverOutreach({
+            userId: event.userId,
+            channel: event.channel === 'voice_message' ? 'push' : event.channel, // Map voice_message to push
+            message: event.message,
+            personaId: event.personaId,
+            outreachId: event.metadata?.triggerId as string | undefined,
+          });
 
-        if (result.success) {
-          log.info(
-            { userId: event.userId, channel: event.channel, messageId: result.messageId },
-            '✅ Outreach delivered successfully'
-          );
-          // Update telemetry
-          instance?.recordDeliverySuccess();
-        } else {
-          log.warn(
-            { userId: event.userId, channel: event.channel, error: result.error },
-            '⚠️ Outreach delivery failed'
+          if (result.success) {
+            log.info(
+              { userId: event.userId, channel: event.channel, messageId: result.messageId },
+              '✅ Outreach delivered successfully'
+            );
+            // Update telemetry
+            instance?.recordDeliverySuccess();
+          } else {
+            log.warn(
+              { userId: event.userId, channel: event.channel, error: result.error },
+              '⚠️ Outreach delivery failed'
+            );
+          }
+        } catch (error) {
+          log.error(
+            { userId: event.userId, channel: event.channel, error: String(error) },
+            '❌ Outreach delivery error'
           );
         }
-      } catch (error) {
-        log.error(
-          { userId: event.userId, channel: event.channel, error: String(error) },
-          '❌ Outreach delivery error'
-        );
-      }
+      })();
     });
 
     log.info('📤 OutreachOrchestrator initialized with delivery listener');

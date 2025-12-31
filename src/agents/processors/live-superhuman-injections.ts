@@ -354,7 +354,7 @@ function analyzeVoiceBiomarkers(voiceEmotion?: LiveSuperhumanContext['voiceEmoti
   }
 
   const insights: string[] = [];
-  let confidence = voiceEmotion.confidence;
+  const { confidence } = voiceEmotion;
 
   // High stress detected - LOWERED threshold from 0.6 → 0.5 to catch more signals
   if (voiceEmotion.stressLevel && voiceEmotion.stressLevel > 0.5) {
@@ -487,7 +487,7 @@ Human friends forget promises. You don't.`,
       });
 
       // Fire-and-forget: Save to commitment keeper
-      saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
+      void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
     }
 
     // 2. VALUES ALIGNMENT
@@ -668,7 +668,7 @@ Your superpower: You notice cycles before they hit.
 
       // 🚀 ACTUALLY SCHEDULE THE OUTREACH (fire-and-forget)
       // This is the "Better Than Human" moment - we don't just notice, we ACT
-      schedulePatternOutreachAsync(
+      void schedulePatternOutreachAsync(
         {
           pattern: patternTrigger.pattern,
           patternDescription: patternTrigger.patternDescription,

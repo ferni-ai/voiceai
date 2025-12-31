@@ -15,6 +15,10 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type { EmotionalArc, EmotionalWaypoint, ArcPhase } from './types.js';
+import { onEmotionalPatternChange } from '../../data-layer/hooks/wisdom-hooks.js';
+
+// Re-export types for external consumers
+export type { EmotionalArc, EmotionalWaypoint, ArcPhase };
 
 const log = createLogger({ module: 'emotional-trajectories' });
 
@@ -508,6 +512,20 @@ async function saveArc(userId: string, arc: EmotionalArc): Promise<void> {
       .collection('emotional_arcs')
       .doc(arc.id)
       .set(cleanForFirestore(arc));
+
+    // Index emotional arc to semantic memory
+    void onEmotionalPatternChange(
+      userId,
+      `arc_${arc.id}`,
+      {
+        pattern: `Emotional arc: ${arc.emotion || 'mixed'} - ${arc.phase || 'ongoing'}`,
+        triggers: arc.triggers || [],
+        frequency: 'frequent', // 'ongoing' maps to 'frequent' - arc is actively tracked
+        impact: arc.intensity && arc.intensity > 0.5 ? 'negative' : 'mixed',
+        awareness: 'moderate',
+      },
+      arc.phase === 'resolving' ? 'update' : 'create'
+    );
 
     log.debug({ userId, arcId: arc.id }, '💾 Emotional arc saved');
   } catch (error) {

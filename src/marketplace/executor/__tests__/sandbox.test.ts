@@ -4,21 +4,22 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger
-vi.mock('../../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock logger - must include both getLogger and createLogger
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 // Mock fetch
 const mockFetch = vi.fn();

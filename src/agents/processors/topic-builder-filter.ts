@@ -221,7 +221,7 @@ export interface BuilderFilterResult {
 export function filterBuildersByTopic(
   topicCategory: TopicCategory | undefined,
   userText: string,
-  turnCount: number = 0
+  turnCount = 0
 ): BuilderFilterResult {
   const category = topicCategory || 'general';
   const lowerText = userText.toLowerCase();
@@ -307,6 +307,6 @@ export function shouldRunBuilder(builder: BuilderName, filterResult: BuilderFilt
  * Create a no-op promise that resolves immediately.
  * Used to replace skipped builders in Promise.all.
  */
-export function skipBuilder<T>(fallback: T): Promise<T> {
+export async function skipBuilder<T>(fallback: T): Promise<T> {
   return Promise.resolve(fallback);
 }

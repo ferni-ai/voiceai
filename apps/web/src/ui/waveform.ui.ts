@@ -307,6 +307,10 @@ export function setSpeaking(speaking: boolean): void {
     targetShape =
       currentEmotion !== 'neutral' ? EMOTION_SHAPES[currentEmotion] : EMOTION_SHAPES.speaking;
     startAnimation();
+    // Reset the volume timer to give the audio visualization time to attach
+    // (attachAudioVisualization is async, so there's a race condition)
+    lastNonZeroVolumeTime = Date.now();
+    volumeDropWarningLogged = false;
   } else {
     container.classList.remove('speaking');
     targetShape =

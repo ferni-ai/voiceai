@@ -5,30 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ferni Capabilities - Everything Your Best Friend Can't Do</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Design System: Single source of truth -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
   <style>
+    /* Page-specific overrides - base tokens from master-tokens.css */
     :root {
-      /* Zen Garden (Light) */
-      --bg-primary: #F5F1E8;
-      --bg-elevated: #FFFDFB;
-      --bg-warm: #FAF8F3;
-      --text-primary: #2C2520;
-      --text-secondary: #5C544A;
-      --text-muted: #756A5E;
-      --border-subtle: rgba(44, 37, 32, 0.08);
-      --border-medium: rgba(44, 37, 32, 0.12);
-
-      /* Brand Colors */
-      --accent: #3D5A45;
-      --ferni: #4a6741;
-      --ferni-light: #5a7a51;
-      --ferni-dark: #3d5a35;
-      --maya: #a67a6a;
-      --peter: #2d6a6a;
-      --jordan: #d4944c;
-      --alex: #5c6b99;
-      --nayan: #9a7b4f;
-
-      /* Category Colors */
+      /* Capabilities-specific category colors */
       --communication: #5c6b99;
       --calendar: #d4944c;
       --productivity: #2d6a6a;
@@ -40,27 +23,23 @@
       --home: #8b7355;
       --travel: #6a8a9a;
       --planning: #9a7b4f;
-
-      /* Shadows & Effects */
-      --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.05);
-      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-      --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.12);
-      --shadow-xl: 0 16px 48px rgba(44, 37, 32, 0.16);
+      --bg-warm: #FAF8F3;
+      --border-subtle: rgba(44, 37, 32, 0.08);
+      --border-medium: rgba(44, 37, 32, 0.12);
       --glow-ferni: rgba(74, 103, 65, 0.3);
+      --ferni-light: #5a7a51;
+      --ferni-dark: #3d5a35;
 
-      /* Radii */
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-      --radius-full: 9999px;
-
-      /* Animation */
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      /* Persona color aliases (referencing master-tokens.css) */
+      --ferni: var(--color-ferni);
+      --maya: var(--color-maya);
+      --peter: var(--color-peter);
+      --jordan: var(--color-jordan);
+      --alex: var(--color-alex);
+      --nayan: var(--color-nayan);
     }
 
-    /* Cedar Night (Dark) */
+    /* Cedar Night (Dark) - page-specific dark mode */
     [data-theme="dark"] {
       --bg-primary: #1a1816;
       --bg-elevated: #252220;
@@ -79,7 +58,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: var(--font-body);
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.6;
@@ -128,7 +107,7 @@
     }
 
     .nav-logo span {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-weight: 700;
       font-size: 16px;
     }
@@ -210,7 +189,7 @@
     }
 
     .hero h1 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 56px;
       font-weight: 800;
       letter-spacing: -0.03em;
@@ -247,7 +226,7 @@
     }
 
     .stat-value {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 36px;
       font-weight: 800;
       color: var(--ferni);
@@ -346,7 +325,7 @@
     }
 
     .section-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 28px;
       font-weight: 700;
     }
@@ -399,8 +378,7 @@
       width: 40px;
       height: 40px;
       border-radius: var(--radius-sm);
-      background: var(--card-accent, var(--ferni));
-      opacity: 0.1;
+      background: color-mix(in srgb, var(--card-accent, var(--ferni)) 12%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -411,11 +389,10 @@
       width: 20px;
       height: 20px;
       color: var(--card-accent, var(--ferni));
-      opacity: 10;
     }
 
     .capability-card h3 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 16px;
       font-weight: 600;
       margin-bottom: 8px;
@@ -454,7 +431,7 @@
     }
 
     .superhuman-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 36px;
       font-weight: 800;
       margin-bottom: 12px;
@@ -511,7 +488,7 @@
     }
 
     .superhuman-card h3 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 4px;
@@ -567,7 +544,7 @@
     }
 
     .persona-info h3 {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 20px;
       font-weight: 700;
       margin-bottom: 4px;
@@ -615,7 +592,7 @@
     }
 
     .verticals-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 32px;
       font-weight: 800;
       margin-bottom: 12px;
@@ -652,8 +629,7 @@
       width: 32px;
       height: 32px;
       border-radius: var(--radius-sm);
-      background: var(--ferni);
-      opacity: 0.1;
+      background: color-mix(in srgb, var(--ferni) 12%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -678,7 +654,7 @@
     }
 
     .cta-quote {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: var(--font-display);
       font-size: 32px;
       font-weight: 700;
       font-style: italic;
@@ -766,35 +742,8 @@
   </style>
 </head>
 <body>
-  <!-- Navigation -->
-  <nav class="nav">
-    <div class="nav-left">
-      <a href="../index.html" class="nav-logo">
-        <svg viewBox="0 0 100 100">
-          <defs>
-            <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#5a7a51"/>
-              <stop offset="100%" stop-color="#3d5a35"/>
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="45" fill="url(#navGrad)"/>
-          <ellipse cx="36" cy="48" rx="7" ry="10" fill="white"/>
-          <ellipse cx="64" cy="48" rx="7" ry="10" fill="white"/>
-        </svg>
-        <span>Ferni</span>
-      </a>
-      <div class="nav-links">
-        <a href="../index.html">Brand Library</a>
-        <a href="index.html" class="active">Capabilities</a>
-        <a href="../characters/ferni/expressions.html">Expressions</a>
-        <a href="../FERNI-UNIVERSE-BIBLE.md">Universe Bible</a>
-      </div>
-    </div>
-    <button class="theme-toggle" onclick="toggleTheme()">
-      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-  </nav>
+  <!-- Shared Navigation (injected by nav.js) -->
+  <div id="nav-placeholder"></div>
 
   <!-- Hero -->
   <section class="hero">
@@ -847,7 +796,7 @@
   </div>
 
   <!-- Main Content -->
-  <main class="container">
+  <main id="main" class="container">
 
     <!-- Practical Actions -->
     <section id="actions" class="section">
@@ -1582,34 +1531,20 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M15 18l-6-6 6-6"/></svg>
         Back to Brand Library
       </a>
-      <a href="../FERNI-UNIVERSE-BIBLE.md" class="cta-btn cta-btn-secondary">
+      <a href="../universe-bible.html" class="cta-btn cta-btn-secondary">
         Read the Universe Bible
       </a>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer>
-    <p>Ferni Brand Library &mdash; <a href="../index.html">Home</a></p>
-  </footer>
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
 
   <script>
-    // Theme Toggle
-    function toggleTheme() {
-      const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('ferni-theme', next);
-    }
-
-    // Load saved theme
-    const savedTheme = localStorage.getItem('ferni-theme');
-    if (savedTheme) {
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    }
-
-    // Section Navigation
+    // Section Navigation (page-specific)
     function scrollToSection(id) {
       const el = document.getElementById(id);
       if (el) {

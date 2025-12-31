@@ -11,6 +11,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
 import type {
   CallOutcome,
   OnBehalfCallRequest,
@@ -74,6 +75,17 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
         .collection('on_behalf_calls')
         .doc(result.callId)
         .set(cleanForFirestore(result));
+
+      // Semantic indexing
+      void onCallResultChange(result.userId, result.callId, {
+        callId: result.callId,
+        contactName: result.request.contactName || result.request.contactQuery,
+        purpose: result.request.purpose,
+        outcome: result.outcome.status === 'completed' ? 'answered' : result.outcome.status as 'voicemail' | 'busy' | 'no_answer' | 'failed',
+        summary: result.outcome.transcriptSummary || result.outcome.outcome,
+        nextSteps: result.outcome.actionItems?.join('; '),
+        capturedAt: result.capturedAt,
+      }, 'create');
 
       log.debug({ callId: result.callId }, 'Call result stored in Firestore');
     } else {
@@ -336,6 +348,17 @@ async function createFollowUpActions(
             .collection('follow_up_actions')
             .doc(action.id)
             .set(cleanForFirestore(action));
+
+          // Semantic indexing
+          void onFollowUpActionChange(userId, action.id, {
+            actionType: action.type,
+            description: action.description,
+            relatedCallId: action.callId,
+            scheduledFor: action.scheduledFor,
+            priority: 'medium',
+            status: 'pending',
+            createdAt: action.createdAt,
+          }, 'create');
         }
       } else {
         // In-memory fallback

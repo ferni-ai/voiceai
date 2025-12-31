@@ -21,6 +21,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { updateCustomAgent, getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { saveTwinProfile, getTwinProfile } from '../services/twin-profile.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('DigitalTwinProfileUI');
 
@@ -156,7 +157,7 @@ function ensureModalExists(): HTMLElement {
           <h2 class="profile-title" id="profile-title">Build Your Digital Twin</h2>
           <p class="profile-subtitle">Help me understand who you are</p>
         </div>
-        <button class="profile-close" data-action="close" aria-label="Close">
+        <button class="profile-close" data-action="close" aria-label="${t('accessibility.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -179,10 +180,10 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="profile-footer">
-        <button aria-label="Back" class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
+        <button aria-label="${t('accessibility.back')}" class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
           Back
         </button>
-        <button aria-label="Continue" class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
+        <button aria-label="${t('accessibility.continue')}" class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
           Continue
         </button>
       </footer>
@@ -216,13 +217,13 @@ export async function openTwinProfile(agentId: string): Promise<void> {
     if (!agent) {
       log.error('Agent not found:', agentId);
       const { toast } = await import('./toast.ui.js');
-      toast.error('Agent not found');
+      toast.error(t('toasts.agentNotFound'));
       return;
     }
 
     if (agent.type !== 'twin') {
       const { toast } = await import('./toast.ui.js');
-      toast.warning('Profile setup is only for Digital Twin agents');
+      toast.warning(t('toasts.profileSetupTwinOnly'));
       return;
     }
 
@@ -243,7 +244,7 @@ export async function openTwinProfile(agentId: string): Promise<void> {
   } catch (error) {
     log.error('Failed to open twin profile:', error);
     const { toast } = await import('./toast.ui.js');
-    toast.error('Could not open profile setup');
+    toast.error(t('toasts.couldNotOpenProfileSetup'));
   }
 }
 
@@ -430,13 +431,13 @@ function renderBackgroundSection(): string {
                      value="${chapter.years}" data-field="years">
               <textarea class="chapter-desc" placeholder="What defined this chapter?" 
                         data-field="description">${chapter.description}</textarea>
-              <button aria-label="Remove" class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
+              <button aria-label="${t('accessibility.remove')}" class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="Add a life chapter" class="add-btn" data-action="add-chapter">
+        <button aria-label="${t('accessibility.addALifeChapter')}" class="add-btn" data-action="add-chapter">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -456,13 +457,13 @@ function renderBackgroundSection(): string {
             <div class="relationship-row" data-index="${i}">
               <input type="text" placeholder="Name" value="${rel.name}" data-field="name">
               <input type="text" placeholder="Relationship" value="${rel.relationship}" data-field="relationship">
-              <button aria-label="Close" class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
+              <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="Add a relationship" class="add-btn" data-action="add-relationship">
+        <button aria-label="${t('accessibility.addARelationship')}" class="add-btn" data-action="add-relationship">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -504,13 +505,13 @@ function renderMannerismsSection(): string {
                      value="${phrase.phrase}" data-field="phrase">
               <input type="text" class="phrase-context" placeholder="When do you say this?" 
                      value="${phrase.context}" data-field="context">
-              <button aria-label="Close" class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
+              <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="Add a phrase" class="add-btn" data-action="add-phrase">
+        <button aria-label="${t('accessibility.addAPhrase')}" class="add-btn" data-action="add-phrase">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -674,7 +675,7 @@ function renderValuesSection(): string {
         </div>
         <div class="custom-value-input">
           <input type="text" id="custom-value" placeholder="Add a custom value...">
-          <button aria-label="Add" class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
+          <button aria-label="${t('accessibility.add')}" class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
         </div>
       </div>
 
@@ -1308,11 +1309,11 @@ async function saveProfileToAgent(): Promise<void> {
       saveTwinProfile(profile),
     ]);
 
-    toast.success('Profile saved!');
+    toast.success(t('toasts.profileSaved'));
     closeTwinProfile();
   } catch (error) {
     log.error('Failed to save profile:', error);
-    toast.error('Could not save profile');
+    toast.error(t('toasts.couldNotSaveProfile'));
   } finally {
     // Restore button state
     if (btnNext) {

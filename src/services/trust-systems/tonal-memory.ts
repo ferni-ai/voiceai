@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { indexTonalMemory } from '../data-layer/integrations/trust-integration.js';
 
 const log = createLogger({ module: 'TonalMemory' });
 
@@ -200,6 +201,25 @@ export function recordTonalObservation(params: {
   pattern.signatures.push(signature);
   pattern.occurrenceCount++;
   pattern.lastObserved = new Date();
+
+  // Index to semantic memory when pattern becomes significant
+  if (pattern.occurrenceCount >= 3 && signature.confidence >= 0.6) {
+    const voiceChars = [
+      signature.pitch !== 'normal' ? `pitch: ${signature.pitch}` : '',
+      signature.energy !== 'normal' ? `energy: ${signature.energy}` : '',
+      signature.pace !== 'normal' ? `pace: ${signature.pace}` : '',
+      signature.tremor ? 'tremor detected' : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    indexTonalMemory(userId, {
+      id: `tonal_${normalizedTopic}_${Date.now()}`,
+      pattern: `Voice pattern when discussing ${normalizedTopic}`,
+      voiceCharacteristics: voiceChars || 'subtle changes',
+      communicationStyle: signature.emotion !== 'unknown' ? signature.emotion : undefined,
+    });
+  }
 
   // Keep last 20 signatures per topic
   if (pattern.signatures.length > 20) {

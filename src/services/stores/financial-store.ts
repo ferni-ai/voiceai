@@ -12,10 +12,16 @@
  * All data is user-scoped and persists across sessions.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import {
+  onBudgetChange,
+  onSavingsGoalChange,
+  onSubscriptionChange,
+  onSpendingTriggerChange,
+} from '../data-layer/store-hooks.js';
+import { recordFinancialSignal } from '../data-layer/domain-signals.js';
 
 // ============================================================================
 // TYPES - Maya's Financial Data
@@ -298,9 +304,32 @@ class MayaFinancialStore {
   }
 
   setBudget(userId: string, budget: BudgetData): void {
+    const isNew = !this.budgetMemory.has(budget.id);
     budget.updatedAt = new Date().toISOString();
     this.budgetMemory.set(budget.id, budget);
     this.markDirty(userId);
+
+    // Auto-index to semantic memory
+    onBudgetChange(
+      userId,
+      budget.id,
+      {
+        name: budget.name,
+        monthlyLimit: budget.monthlyLimit,
+        spent: budget.spent,
+        remaining: budget.remaining,
+      },
+      isNew ? 'create' : 'update'
+    );
+
+    // Record domain signal for cross-domain intelligence
+    if (isNew) {
+      recordFinancialSignal(userId, 'budget_set', {
+        category: budget.name,
+        amount: budget.monthlyLimit,
+        budgetRemaining: budget.remaining,
+      });
+    }
   }
 
   deleteBudget(userId: string, budgetId: string): boolean {
@@ -336,9 +365,37 @@ class MayaFinancialStore {
   }
 
   setSavingsGoal(userId: string, goal: SavingsGoalData): void {
+    const isNew = !this.savingsGoalMemory.has(goal.id);
+    const previousAmount = !isNew ? this.savingsGoalMemory.get(goal.id)?.currentAmount : 0;
     goal.updatedAt = new Date().toISOString();
     this.savingsGoalMemory.set(goal.id, goal);
     this.markDirty(userId);
+
+    // Auto-index to semantic memory
+    onSavingsGoalChange(
+      userId,
+      goal.id,
+      {
+        name: goal.name,
+        targetAmount: goal.targetAmount,
+        currentAmount: goal.currentAmount,
+        deadline: goal.deadline,
+        priority: goal.priority,
+      },
+      isNew ? 'create' : 'update'
+    );
+
+    // Record domain signal for cross-domain intelligence
+    if (goal.currentAmount !== previousAmount) {
+      // Savings progress changed
+      const progressPercent =
+        goal.targetAmount > 0 ? Math.round((goal.currentAmount / goal.targetAmount) * 100) : 0;
+      recordFinancialSignal(userId, 'savings_goal_progress', {
+        category: goal.name,
+        amount: goal.currentAmount,
+        savingsProgress: progressPercent,
+      });
+    }
   }
 
   updateSavingsProgress(userId: string, goalId: string, newAmount: number): SavingsGoalData | null {
@@ -390,9 +447,25 @@ class MayaFinancialStore {
   }
 
   setSubscription(userId: string, sub: SubscriptionData): void {
+    const isNew = !this.subscriptionMemory.has(sub.id);
     sub.updatedAt = new Date().toISOString();
     this.subscriptionMemory.set(sub.id, sub);
     this.markDirty(userId);
+
+    // Auto-index to semantic memory
+    onSubscriptionChange(
+      userId,
+      sub.id,
+      {
+        name: sub.name,
+        amount: sub.amount,
+        frequency: sub.frequency,
+        category: sub.category,
+        usefulness: sub.usefulness,
+        isActive: sub.isActive,
+      },
+      isNew ? 'create' : 'update'
+    );
   }
 
   updateSubscriptionUsefulness(

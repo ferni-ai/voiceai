@@ -117,10 +117,10 @@ enum AvatarMood: String, CaseIterable {
     }
 }
 
-// MARK: - Persona Colors
+// MARK: - Window Persona Colors (local type to avoid conflict with FerniShared.Persona)
 
-/// Team member persona colors
-enum Persona {
+/// Team member persona colors for window avatar
+enum WindowPersona {
     case ferni
     case peter
     case maya
@@ -130,23 +130,23 @@ enum Persona {
     
     var primaryColor: Color {
         switch self {
-        case .ferni: return Color(hex: "#4a6741")
-        case .peter: return Color(hex: "#3a6b73")
-        case .maya: return Color(hex: "#a67a6a")
-        case .jordan: return Color(hex: "#c4856a")
-        case .nayan: return Color(hex: "#b8956a")
-        case .alex: return Color(hex: "#5a6b8a")
+        case .ferni: return Color(hexString: "#4a6741")
+        case .peter: return Color(hexString: "#3a6b73")
+        case .maya: return Color(hexString: "#a67a6a")
+        case .jordan: return Color(hexString: "#c4856a")
+        case .nayan: return Color(hexString: "#b8956a")
+        case .alex: return Color(hexString: "#5a6b8a")
         }
     }
     
     var secondaryColor: Color {
         switch self {
-        case .ferni: return Color(hex: "#3d5a35")
-        case .peter: return Color(hex: "#2d5359")
-        case .maya: return Color(hex: "#8a635a")
-        case .jordan: return Color(hex: "#a86d55")
-        case .nayan: return Color(hex: "#9a7a52")
-        case .alex: return Color(hex: "#4a5a73")
+        case .ferni: return Color(hexString: "#3d5a35")
+        case .peter: return Color(hexString: "#2d5359")
+        case .maya: return Color(hexString: "#8a635a")
+        case .jordan: return Color(hexString: "#a86d55")
+        case .nayan: return Color(hexString: "#9a7a52")
+        case .alex: return Color(hexString: "#4a5a73")
         }
     }
 }
@@ -157,35 +157,85 @@ enum Persona {
 /// Creates the illusion of Ferni peeking through the interface
 struct FerniWindowAvatar: View {
     // MARK: - Properties
-    
+
     var size: CGFloat = 120
-    var persona: Persona = .ferni
+    var persona: WindowPersona = .ferni
+
+    /// Expression (new data-driven system with 100 expressions)
+    var expression: AvatarExpression = .neutral
+
+    /// Legacy mood support (for backwards compatibility)
     var mood: AvatarMood = .neutral
-    
+
+    /// Use expression system instead of legacy mood
+    var useExpressionSystem: Bool = true
+
     /// Binding to speaking state (from voice agent)
     @Binding var isSpeaking: Bool
-    
+
     /// Binding to current voice volume (0-1)
     @Binding var volume: CGFloat
-    
+
     // MARK: - Animation State
-    
+
     @State private var animatedVolume: CGFloat = 0
     @State private var breathPhase: CGFloat = 0
     @State private var eyeGazeOffset: CGPoint = .zero
-    
-    // MARK: - Computed Properties
-    
-    /// Top lid cutoff, adjusted for mood
-    private var topCutoff: CGFloat {
-        mood.topCutoff
+    @State private var sparklePhase: CGFloat = 0
+
+    // MARK: - Computed Expression Config
+
+    /// Get the active expression config (from expression or legacy mood)
+    private var activeConfig: ExpressionConfig {
+        if useExpressionSystem {
+            return expression.config
+        } else {
+            return mood.expressionConfig
+        }
     }
     
-    /// Bottom lid cutoff, adjusted for mood and speaking
+    // MARK: - Computed Properties
+
+    /// Top lid cutoff from active expression config
+    private var topCutoff: CGFloat {
+        activeConfig.topCutoff
+    }
+
+    /// Top lid curve from active expression config
+    private var topCurve: CGFloat {
+        activeConfig.topCurve
+    }
+
+    /// Bottom lid cutoff, adjusted for expression and speaking
     private var bottomCutoff: CGFloat {
-        let base = mood.bottomCutoff
+        let base = activeConfig.bottomCutoff
         let speakingAddition = isSpeaking ? animatedVolume * 0.23 : 0
         return min(base + speakingAddition, 0.35) // Max 35% open
+    }
+
+    /// Bottom lid curve from active expression config
+    private var bottomCurve: CGFloat {
+        activeConfig.bottomCurve
+    }
+
+    /// Asymmetry from active expression config
+    private var asymmetry: CGFloat {
+        activeConfig.asymmetry
+    }
+
+    /// Eye vertical scale from active expression config
+    private var eyeScaleY: CGFloat {
+        activeConfig.effectiveEyeScaleY
+    }
+
+    /// Eye horizontal scale from active expression config
+    private var eyeScaleX: CGFloat {
+        activeConfig.effectiveEyeScaleX
+    }
+
+    /// Whether to show sparkle effect
+    private var showSparkle: Bool {
+        activeConfig.sparkle
     }
     
     // MARK: - Body
@@ -198,20 +248,25 @@ struct FerniWindowAvatar: View {
             // Eyes
             eyes
             
+            // Sparkle overlay (for delighted/excited expressions)
+            if showSparkle {
+                SparkleOverlay(size: size, phase: sparklePhase)
+            }
+
             // Top window mask
             WindowMask(
                 edge: .top,
                 cutoff: topCutoff,
-                curve: mood.topCurve,
-                asymmetry: mood.asymmetry
+                curve: topCurve,
+                asymmetry: asymmetry
             )
-            
+
             // Bottom window mask (voice-reactive)
             WindowMask(
                 edge: .bottom,
                 cutoff: bottomCutoff,
-                curve: mood.bottomCurve,
-                asymmetry: mood.asymmetry * 0.5
+                curve: bottomCurve,
+                asymmetry: asymmetry * 0.5
             )
             .animation(
                 .spring(response: 0.08, dampingFraction: 0.8),
@@ -222,6 +277,7 @@ struct FerniWindowAvatar: View {
         .onAppear {
             startBreathing()
             startGazeMovement()
+            startSparkleAnimation()
         }
         .onChange(of: volume) { newVolume in
             updateVolume(newVolume)
@@ -264,11 +320,21 @@ struct FerniWindowAvatar: View {
     }
     
     // MARK: - Eyes
-    
+
     private var eyes: some View {
         HStack(spacing: size * 0.2) {
-            EyeView(size: size * 0.18, gazeOffset: eyeGazeOffset)
-            EyeView(size: size * 0.18, gazeOffset: eyeGazeOffset)
+            EyeView(
+                size: size * 0.18,
+                gazeOffset: eyeGazeOffset,
+                scaleX: eyeScaleX,
+                scaleY: eyeScaleY
+            )
+            EyeView(
+                size: size * 0.18,
+                gazeOffset: eyeGazeOffset,
+                scaleX: eyeScaleX,
+                scaleY: eyeScaleY
+            )
         }
         .offset(y: -size * 0.05)
     }
@@ -299,10 +365,86 @@ struct FerniWindowAvatar: View {
     private func updateVolume(_ newVolume: CGFloat) {
         // Different smoothing for attack vs release
         let smoothing: CGFloat = newVolume > animatedVolume ? 0.25 : 0.12
-        
+
         withAnimation(.linear(duration: 0.05)) {
             animatedVolume += (newVolume - animatedVolume) * smoothing
         }
+    }
+
+    private func startSparkleAnimation() {
+        withAnimation(
+            .easeInOut(duration: 1.5)
+            .repeatForever(autoreverses: true)
+        ) {
+            sparklePhase = 1
+        }
+    }
+}
+
+// MARK: - Sparkle Overlay
+
+/// Animated sparkle effect for delighted/excited expressions
+struct SparkleOverlay: View {
+    let size: CGFloat
+    var phase: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            // Top-right sparkle
+            SparkleShape()
+                .fill(Color.white.opacity(0.6 + phase * 0.3))
+                .frame(width: size * 0.08, height: size * 0.08)
+                .offset(x: size * 0.25, y: -size * 0.2)
+                .scaleEffect(0.8 + phase * 0.4)
+
+            // Top-left sparkle (smaller, offset timing)
+            SparkleShape()
+                .fill(Color.white.opacity(0.4 + (1 - phase) * 0.3))
+                .frame(width: size * 0.05, height: size * 0.05)
+                .offset(x: -size * 0.22, y: -size * 0.15)
+                .scaleEffect(0.6 + (1 - phase) * 0.3)
+
+            // Bottom sparkle (subtle)
+            SparkleShape()
+                .fill(Color.white.opacity(0.3 + phase * 0.2))
+                .frame(width: size * 0.04, height: size * 0.04)
+                .offset(x: size * 0.15, y: size * 0.18)
+                .scaleEffect(0.5 + phase * 0.3)
+        }
+        .animation(.easeInOut(duration: 1.5), value: phase)
+    }
+}
+
+// MARK: - Sparkle Shape
+
+/// Four-pointed star shape for sparkle effects
+struct SparkleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let w = rect.width
+        let h = rect.height
+
+        // Four-pointed star
+        path.move(to: CGPoint(x: center.x, y: rect.minY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX, y: center.y),
+            control: CGPoint(x: center.x + w * 0.1, y: center.y - h * 0.1)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: center.x, y: rect.maxY),
+            control: CGPoint(x: center.x + w * 0.1, y: center.y + h * 0.1)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX, y: center.y),
+            control: CGPoint(x: center.x - w * 0.1, y: center.y + h * 0.1)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: center.x, y: rect.minY),
+            control: CGPoint(x: center.x - w * 0.1, y: center.y - h * 0.1)
+        )
+
+        return path
     }
 }
 
@@ -311,30 +453,30 @@ struct FerniWindowAvatar: View {
 struct EyeView: View {
     let size: CGFloat
     var gazeOffset: CGPoint = .zero
-    
+    var scaleX: CGFloat = 1.0
+    var scaleY: CGFloat = 1.0
+
     var body: some View {
         ZStack {
-            // Sclera (white)
+            // Sclera (white) - opaque, no iris/pupil visible (Luxo style)
             Circle()
                 .fill(Color.white)
                 .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
-            
-            // Iris + Pupil
-            Circle()
-                .fill(Color(hex: "#1a1612"))
-                .frame(width: size * 0.5, height: size * 0.5)
-                .offset(
-                    x: gazeOffset.x * size * 0.1,
-                    y: gazeOffset.y * size * 0.1
-                )
-            
-            // Catchlight
+
+            // Catchlight for life
             Circle()
                 .fill(Color.white.opacity(0.9))
                 .frame(width: size * 0.15, height: size * 0.15)
                 .offset(x: size * 0.1, y: -size * 0.1)
         }
         .frame(width: size, height: size)
+        .scaleEffect(x: scaleX, y: scaleY)
+        .offset(
+            x: gazeOffset.x * size * 0.15,
+            y: gazeOffset.y * size * 0.15
+        )
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: scaleX)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: scaleY)
     }
 }
 
@@ -401,63 +543,123 @@ struct WindowMask: View {
     private var backgroundColor: Color {
         // Use system background color to match the surrounding UI
         colorScheme == .dark
-            ? Color(hex: "#1a1612")
-            : Color(hex: "#F5F1E8") // Paper Cream
+            ? Color(hexString: "#1a1612")
+            : Color(hexString: "#F5F1E8") // Paper Cream
     }
 }
 
-// MARK: - Color Extension
-
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
+// Color extension removed - using FerniShared's Color(hexString:) instead
 
 // MARK: - Preview
 
 struct FerniWindowAvatar_Previews: PreviewProvider {
     static var previews: some View {
-        VStack(spacing: 40) {
-            // Static preview
+        ScrollView {
+            VStack(spacing: 30) {
+                Text("Expression System Preview")
+                    .font(.headline)
+                    .padding(.top)
+
+                // Expression family showcase
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 20) {
+                    // Core expressions
+                    ExpressionPreview(expression: .neutral, label: "Neutral")
+                    ExpressionPreview(expression: .listening, label: "Listening")
+                    ExpressionPreview(expression: .speaking, label: "Speaking")
+
+                    // Happy family
+                    ExpressionPreview(expression: .happy, label: "Happy")
+                    ExpressionPreview(expression: .joyful, label: "Joyful")
+                    ExpressionPreview(expression: .delighted, label: "Delighted")
+
+                    // Warmth family
+                    ExpressionPreview(expression: .warm, label: "Warm")
+                    ExpressionPreview(expression: .caring, label: "Caring")
+                    ExpressionPreview(expression: .empathetic, label: "Empathetic")
+
+                    // Playful family
+                    ExpressionPreview(expression: .playful, label: "Playful")
+                    ExpressionPreview(expression: .winking, label: "Winking")
+                    ExpressionPreview(expression: .mischievous, label: "Mischievous")
+
+                    // Surprised family
+                    ExpressionPreview(expression: .surprised, label: "Surprised")
+                    ExpressionPreview(expression: .curious, label: "Curious")
+                    ExpressionPreview(expression: .amazed, label: "Amazed")
+
+                    // Thinking family
+                    ExpressionPreview(expression: .thinking, label: "Thinking")
+                    ExpressionPreview(expression: .pondering, label: "Pondering")
+                    ExpressionPreview(expression: .focused, label: "Focused")
+
+                    // Tired family
+                    ExpressionPreview(expression: .sleepy, label: "Sleepy")
+                    ExpressionPreview(expression: .drowsy, label: "Drowsy")
+                    ExpressionPreview(expression: .yawning, label: "Yawning")
+
+                    // Sad family
+                    ExpressionPreview(expression: .sad, label: "Sad")
+                    ExpressionPreview(expression: .disappointed, label: "Disappointed")
+                    ExpressionPreview(expression: .melancholy, label: "Melancholy")
+
+                    // Cool family
+                    ExpressionPreview(expression: .confident, label: "Confident")
+                    ExpressionPreview(expression: .smirking, label: "Smirking")
+                    ExpressionPreview(expression: .cool, label: "Cool")
+                }
+                .padding()
+
+                Divider()
+
+                // Persona colors
+                Text("Persona Colors")
+                    .font(.headline)
+
+                HStack(spacing: 20) {
+                    ForEach([WindowPersona.ferni, .peter, .maya, .jordan, .nayan, .alex], id: \.self) { persona in
+                        VStack {
+                            FerniWindowAvatar(
+                                size: 60,
+                                persona: persona,
+                                expression: .happy,
+                                isSpeaking: .constant(false),
+                                volume: .constant(0)
+                            )
+                            Text(String(describing: persona))
+                                .font(.caption)
+                        }
+                    }
+                }
+                .padding()
+            }
+        }
+        .background(Color(hexString: "#F5F1E8"))
+    }
+}
+
+/// Helper view for expression preview grid
+struct ExpressionPreview: View {
+    let expression: AvatarExpression
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 4) {
             FerniWindowAvatar(
-                size: 160,
+                size: 80,
                 persona: .ferni,
-                mood: .happy,
+                expression: expression,
                 isSpeaking: .constant(false),
                 volume: .constant(0)
             )
-            
-            // Speaking preview
-            FerniWindowAvatar(
-                size: 160,
-                persona: .maya,
-                mood: .neutral,
-                isSpeaking: .constant(true),
-                volume: .constant(0.6)
-            )
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.secondary)
         }
-        .padding(40)
-        .background(Color(hex: "#F5F1E8"))
     }
 }
+
+extension WindowPersona: Hashable {}

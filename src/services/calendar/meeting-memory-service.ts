@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import { onMeetingMemoryChange } from '../data-layer/hooks/calendar-hooks.js';
 import type { CalendarEvent } from './types.js';
 
 const log = createLogger({ module: 'meeting-memory' });
@@ -325,6 +326,21 @@ export async function recordMeetingInteraction(
       .collection('meeting_interactions')
       .doc(docId)
       .set(cleanForFirestore(stored));
+
+    // Index to semantic memory for meeting context retrieval
+    void onMeetingMemoryChange(
+      userId,
+      docId,
+      {
+        meetingTitle: interaction.meetingTitle,
+        date: new Date().toISOString(),
+        keyPoints: interaction.topics,
+        actionItems: interaction.commitmentsMade,
+        mood: undefined,
+        attendees: [interaction.personEmail],
+      },
+      'create'
+    );
 
     log.debug({ userId, personEmail: interaction.personEmail }, 'Meeting interaction recorded');
   } catch (error) {

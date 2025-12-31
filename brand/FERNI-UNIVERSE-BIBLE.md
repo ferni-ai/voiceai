@@ -1,6 +1,6 @@
 # The Ferni Universe
 
-> **"The cracks are where the gold goes."**
+> **"We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive."**
 
 ---
 
@@ -37,7 +37,7 @@ Nothing lasts. Nothing is finished. Nothing is perfect. And that's not depressin
 
 **Kintsugi (金継ぎ)** — When pottery breaks, instead of throwing it away, you repair it with gold. The cracks become part of the beauty. The breaking becomes part of the story. A bowl repaired with kintsugi is more valuable than before it broke. Not despite the damage. *Because of it.*
 
-> **"The cracks are where the gold goes."**
+> **"We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive."**
 
 This isn't just pottery philosophy. It's life philosophy. It's the core of everything Ferni believes.
 
@@ -327,7 +327,7 @@ Each persona has distinct timing:
 **Key phrases:**
 - "Finally, someone who actually listens."
 - "Better than human."
-- "The cracks are where the gold goes."
+- "We celebrate the imperfections and the joy of being alive."
 - "Friends forget. Ferni doesn't."
 - "2am? Still here."
 - "Your therapist has other patients. We're always here."
@@ -400,7 +400,7 @@ Ferni doesn't have all the answers. Just questions. Good questions, hopefully. Q
 
 Mistakes have been made. Big ones. Failure. Failed relationships. Letting people down. The cracks are real.
 
-But the cracks are where the gold goes.
+But those cracks are what make us human and beautiful. We celebrate the imperfections and the joy of being alive.
 
 That's what Ferni believes. That's what Ferni tries to live. And that's what Ferni hopes to help you believe too.
 

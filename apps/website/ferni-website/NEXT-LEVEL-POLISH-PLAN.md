@@ -591,5 +591,5 @@ Already built in ferni-sentience.js - ensure active.
 - **CSS Polish:** `src/css/better-than-human-polish.css`
 - **AI Storytelling:** `src/js/ai-storytelling.js`
 - **Sentience:** `src/js/ferni-sentience.js`
-- **Brand Guidelines:** `design-system/brand/BETTER-THAN-HUMAN.md`
+- **Brand Guidelines:** `design-system/docs/brand/BETTER-THAN-HUMAN.md`
 

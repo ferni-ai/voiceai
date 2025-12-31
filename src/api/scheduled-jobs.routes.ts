@@ -95,6 +95,13 @@ export async function handleScheduledJobsRoutes(
       await handleFlushMLState(res);
       return true;
 
+    // ========================================================================
+    // SEMANTIC DATA LAYER JOBS
+    // ========================================================================
+    case '/api/jobs/ttl-cleanup':
+      await handleTTLCleanup(res);
+      return true;
+
     default:
       return false;
   }
@@ -410,10 +417,22 @@ async function handleDailyOutreach(res: ServerResponse): Promise<void> {
     log.info('Running daily outreach job (Cloud Scheduler)');
 
     const { runDailyOutreachJob } = await import('../services/outreach/daily-outreach-job.js');
+    const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
+
+    // Get all user profiles from Firestore
+    const getUserProfiles = async () => {
+      const db = getFirestoreDb();
+      if (!db) return [];
+      const snapshot = await db.collection('bogle_users').limit(1000).get();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as any);
+    };
 
     const result = await runDailyOutreachJob({
+      getUserProfiles,
       dryRun: false,
-      maxUsers: 1000,
+      maxUsersPerRun: 1000,
+      delayBetweenUsersMs: 100,
     });
 
     sendJson(res, 200, {
@@ -421,9 +440,10 @@ async function handleDailyOutreach(res: ServerResponse): Promise<void> {
       job: 'daily-outreach',
       stats: {
         usersEvaluated: result.usersEvaluated,
-        outreachTriggered: result.outreachTriggered,
-        skipped: result.skipped,
-        errors: result.errors,
+        outreachSent: result.outreachSent,
+        byType: result.byType,
+        durationMs: result.durationMs,
+        errorCount: result.errors.length,
       },
       timestamp: new Date().toISOString(),
     });
@@ -454,9 +474,8 @@ async function handleEvaluateThinkingOfYou(res: ServerResponse): Promise<void> {
     let evaluated = 0;
     let triggered = 0;
 
-    const { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } = await import(
-      '../services/outreach/life-rhythm-outreach.js'
-    );
+    const { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } =
+      await import('../services/outreach/life-rhythm-outreach.js');
 
     for (const doc of usersSnap.docs) {
       try {
@@ -544,13 +563,16 @@ async function handleRollupOutreachAnalytics(res: ServerResponse): Promise<void>
   try {
     log.info('Rolling up outreach analytics (Cloud Scheduler)');
 
-    const { rollupDailyAnalytics } = await import('../services/outreach/analytics.js');
+    // Note: rollupDailyAnalytics not yet implemented in analytics module
+    // Using pruneOldAnalyticsData as a maintenance task instead
+    const { pruneOldAnalyticsData } = await import('../services/outreach/analytics.js');
 
-    await rollupDailyAnalytics();
+    const prunedCount = pruneOldAnalyticsData(90); // Keep 90 days of data
 
     sendJson(res, 200, {
       success: true,
       job: 'rollup-outreach-analytics',
+      prunedRecords: prunedCount,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -620,15 +642,12 @@ async function handleFlushMLState(res: ServerResponse): Promise<void> {
 
     // Import persistence and data getters dynamically to avoid circular imports
     const { flushDirtyUsers } = await import('../intelligence/predictive/persistence.js');
-    const { getMarkovDataForPersistence } = await import(
-      '../intelligence/predictive/markov-sequence-predictor.js'
-    );
-    const { getTimeSeriesDataForPersistence } = await import(
-      '../intelligence/predictive/time-series-forecaster.js'
-    );
-    const { getReinforcementDataForPersistence } = await import(
-      '../intelligence/predictive/reinforcement-learner.js'
-    );
+    const { getMarkovDataForPersistence } =
+      await import('../intelligence/predictive/markov-sequence-predictor.js');
+    const { getTimeSeriesDataForPersistence } =
+      await import('../intelligence/predictive/time-series-forecaster.js');
+    const { getReinforcementDataForPersistence } =
+      await import('../intelligence/predictive/reinforcement-learner.js');
 
     const result = await flushDirtyUsers(
       getMarkovDataForPersistence,
@@ -658,9 +677,8 @@ async function handleRunDeepAnalysis(res: ServerResponse): Promise<void> {
   try {
     log.info('Running LLM deep analysis (Cloud Scheduler)');
 
-    const { runDeepAnalysis, getLatestDeepAnalysis } = await import(
-      '../intelligence/predictive/llm-deep-analysis.js'
-    );
+    const { runDeepAnalysis, getLatestDeepAnalysis } =
+      await import('../intelligence/predictive/llm-deep-analysis.js');
 
     // Get active users who need deep analysis
     const admin = await import('firebase-admin');
@@ -766,6 +784,59 @@ async function handleRunDeepAnalysis(res: ServerResponse): Promise<void> {
     });
   } catch (error) {
     log.error({ error: String(error) }, 'Deep analysis job failed');
+    sendJson(res, 500, {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+// ============================================================================
+// TTL CLEANUP JOB
+// ============================================================================
+
+/**
+ * Run TTL cleanup for the semantic data store
+ * Should be triggered daily via Cloud Scheduler
+ */
+async function handleTTLCleanup(res: ServerResponse): Promise<void> {
+  try {
+    log.info('Running TTL cleanup job (Cloud Scheduler)');
+
+    const { runTTLCleanup, getTTLStatistics } =
+      await import('../services/data-layer/ttl-cleanup.js');
+
+    // Get pre-cleanup stats
+    const statsBefore = getTTLStatistics();
+    const entitiesWithTTL = Object.entries(statsBefore).filter(
+      ([, v]) => v.ttlDays !== null
+    ).length;
+
+    // Run the cleanup
+    const result = await runTTLCleanup({ dryRun: false });
+
+    log.info(
+      {
+        entitiesWithTTL,
+        deletedCount: result.totalDocsDeleted,
+        entityTypesAffected: result.results?.length || 0,
+      },
+      'TTL cleanup completed'
+    );
+
+    sendJson(res, 200, {
+      success: true,
+      job: 'ttl-cleanup',
+      stats: {
+        entitiesWithTTL,
+        deletedCount: result.totalDocsDeleted,
+        entityTypesAffected: result.results?.length || 0,
+        details: result.results,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'TTL cleanup job failed');
     sendJson(res, 500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -7,32 +7,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Design System: Single source of truth -->
+    <link rel="stylesheet" href="../../master-tokens.css">
     <style>
-        /* ============================================
-           DESIGN TOKENS - Single Source of Truth
-           ============================================ */
+        /* Page-specific overrides - base tokens from master-tokens.css */
         :root {
-            --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-            --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-
-            /* Zen Garden */
-            --bg-primary: #F5F1E8;
-            --bg-elevated: #FFFDFB;
-            --cream: #F5F1E8;
+            /* Legacy aliases for backward compatibility */
+            --cream: var(--bg-primary);
             --cream-dark: #E8E2D9;
-            --text-primary: #2C2520;
-            --text-secondary: #5C544A;
-            --text-muted: #756A5E;
-            --ink: #2C2520;
-            --ink-light: #5C544A;
-
-            /* Ferni Persona Colors */
-            --ferni: #4a6741;
+            --ink: var(--text-primary);
+            --ink-light: var(--text-secondary);
             --ferni-light: #5a7a51;
             --ferni-dark: #3d5a35;
-            --accent: #c4856a;
 
-            /* Persona Gradients */
+            /* Ferni-specific gradient endpoints */
             --grad-ferni-start: #5a7a51;
             --grad-ferni-end: #3d5a35;
 
@@ -46,24 +34,6 @@
             --glow-cool: rgba(100, 140, 200, 0.4);
             --glow-alert: rgba(200, 100, 100, 0.45);
             --glow-calm: rgba(140, 180, 160, 0.4);
-
-            /* Pixar Animation Easings */
-            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-            --ease-spring-heavy: cubic-bezier(0.34, 1.8, 0.64, 1);
-            --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
-            --ease-organic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-
-            /* Timing */
-            --duration-micro: 80ms;
-            --duration-fast: 150ms;
-            --duration-normal: 300ms;
-            --duration-slow: 500ms;
-
-            /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.05);
-            --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-            --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.12);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -76,45 +46,7 @@
             line-height: 1.6;
         }
 
-        /* ============================================
-           NAVIGATION
-           ============================================ */
-        .brand-nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(245, 241, 232, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(44, 37, 32, 0.08);
-            padding: 12px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .brand-nav a {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .brand-nav a:hover { color: var(--ferni); }
-
-        .brand-nav .home-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .brand-nav .nav-links { display: flex; gap: 20px; }
+        /* Navigation - uses .nav from master-tokens.css */
 
         /* ============================================
            PAGE LAYOUT
@@ -875,8 +807,18 @@
         }
 
         .layer-icon {
-            font-size: 28px;
+            width: 32px;
+            height: 32px;
             margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layer-icon svg {
+            width: 28px;
+            height: 28px;
+            color: var(--ferni);
         }
 
         .layer-name {
@@ -939,20 +881,20 @@
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="brand-nav">
-        <a href="../../index.html" class="home-link">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
+        <a href="../../index.html" class="nav-back" aria-label="Back to Brand Library">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M15 18l-6-6 6-6"/>
             </svg>
             Brand Library
         </a>
         <div class="nav-links">
-            <a href="../../expressions/gallery.html">All Expressions</a>
-            <a href="../maya/expressions.html">Maya</a>
-            <a href="../peter/expressions.html">Peter</a>
-            <a href="../jordan/expressions.html">Jordan</a>
-            <a href="../alex/expressions.html">Alex</a>
-            <a href="../nayan/expressions.html">Nayan</a>
+            <a href="../../expressions/gallery.html" class="nav-link">All Expressions</a>
+            <a href="../maya/expressions.html" class="nav-link">Maya</a>
+            <a href="../peter/expressions.html" class="nav-link">Peter</a>
+            <a href="../jordan/expressions.html" class="nav-link">Jordan</a>
+            <a href="../alex/expressions.html" class="nav-link">Alex</a>
+            <a href="../nayan/expressions.html" class="nav-link">Nayan</a>
         </div>
     </nav>
 
@@ -1088,22 +1030,22 @@
             </div>
             <div class="layers-grid">
                 <div class="layer-card active" data-layer="breathing">
-                    <div class="layer-icon">🫁</div>
+                    <div class="layer-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c0 4 4 8 10 8s10-4 10-8-4-8-10-8-10 4-10 8z"/><path d="M12 4v16"/><path d="M8 8c1.5 2 1.5 6 0 8"/><path d="M16 8c-1.5 2-1.5 6 0 8"/></svg></div>
                     <div class="layer-name">Breathing</div>
                     <div class="layer-timing">4s cycle</div>
                 </div>
                 <div class="layer-card active" data-layer="blinking">
-                    <div class="layer-icon">👁️</div>
+                    <div class="layer-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
                     <div class="layer-name">Blinking</div>
                     <div class="layer-timing">3-7s random</div>
                 </div>
                 <div class="layer-card active" data-layer="gazing">
-                    <div class="layer-icon">👀</div>
+                    <div class="layer-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l-2 2 2 2"/><path d="M19 9l2 2-2 2"/><circle cx="12" cy="11" r="4"/><path d="M12 3v2"/><path d="M12 17v4"/></svg></div>
                     <div class="layer-name">Gaze Drift</div>
                     <div class="layer-timing">8s cycle</div>
                 </div>
                 <div class="layer-card active" data-layer="anticipation">
-                    <div class="layer-icon">⚡</div>
+                    <div class="layer-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
                     <div class="layer-name">Anticipation</div>
                     <div class="layer-timing">Overshoot settle</div>
                 </div>
@@ -1493,5 +1435,33 @@
         }
         scheduleBlink();
     </script>
+
+    <footer>
+      <div class="footer-logo">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#5a7751"/>
+              <stop offset="100%" style="stop-color:#3d5a35"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+      </div>
+      <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="../../capabilities/index.html">Capabilities</a>
+        <a href="../../brand-book.html">Brand Book</a>
+        <a href="../../brand-kit.html">Brand Kit</a>
+        <a href="../../icons.html">Icons</a>
+        <a href="../../components.html">Components</a>
+        <a href="../../accessibility.html">Accessibility</a>
+        <a href="../../sound-design.html">Sound</a>
+      </nav>
+      <p class="footer-copyright">Ferni Brand Library v2.0</p>
+    </footer>
 </body>
 </html>

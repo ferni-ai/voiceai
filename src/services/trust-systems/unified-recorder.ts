@@ -21,6 +21,9 @@ import { recordPersonaInteraction, type PersonaId } from './persona-specific-lea
 import { recordEmotionalSnapshot, type EmotionCategory } from './sentiment-timeline.js';
 import { detectIntention, detectSmallWin, recordCelebrationResponse } from './small-wins.js';
 
+// Import semantic indexing hooks
+import { indexTrustMoment } from '../data-layer/integrations/trust-integration.js';
+
 const log = createLogger({ module: 'UnifiedRecorder' });
 
 // ============================================================================
@@ -103,6 +106,8 @@ export async function recordTrustMoment(
     personaId?: string;
   }
 ): Promise<void> {
+  const momentId = `${moment.type}_${Date.now()}`;
+
   // Write to memory (existing systems)
   // Also write-through to Firestore immediately
   await writeThroughTrustMoment(userId, moment.type, {
@@ -112,6 +117,16 @@ export async function recordTrustMoment(
     intensity: moment.intensity,
     personaId: moment.personaId,
     timestamp: Date.now(),
+  });
+
+  // Index to semantic memory for contextual retrieval
+  indexTrustMoment(userId, {
+    id: momentId,
+    type: moment.type,
+    content: moment.content,
+    context: moment.context,
+    emotion: moment.emotion,
+    personaId: moment.personaId,
   });
 }
 

@@ -193,7 +193,7 @@ describe('Multi-Turn Conversation Scenarios', () => {
     });
 
     it('should maintain context coherence', async () => {
-      const callHistory: { messages: { role: string; content: string }[] }[] = [];
+      const callHistory: Array<{ messages: Array<{ role: string; content: string }> }> = [];
 
       for (let i = 0; i < scenario.turns.length; i++) {
         const turn = scenario.turns[i];

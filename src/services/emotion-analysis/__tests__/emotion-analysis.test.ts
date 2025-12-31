@@ -6,9 +6,25 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock logger
+// Mock logger - must be first
 vi.mock('../../../utils/safe-logger.js', () => ({
   getLogger: () => ({
+    child: () => ({
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    }),
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
     child: () => ({
       debug: vi.fn(),
       info: vi.fn(),
@@ -21,6 +37,17 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 // Mock model-config
 vi.mock('../../model-config.js', () => ({
   getDefaultModel: () => 'gemini-2.0-flash-exp',
+}));
+
+// Mock gemini-config
+vi.mock('../../../config/gemini-config.js', () => ({
+  getGeminiClient: vi.fn(),
+  getGeminiModel: vi.fn(),
+}));
+
+// Mock @google/genai
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn(),
 }));
 
 import {

@@ -21,7 +21,7 @@ import type {
   BehaviorState,
   DEFAULT_BEHAVIOR_STATE,
   SuggestedBehaviorResponse,
-} from './behavior-types.js';
+} from '../../types/behavior-types.js';
 
 const log = createLogger({ module: 'BehaviorEventDispatcher' });
 

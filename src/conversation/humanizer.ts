@@ -30,12 +30,16 @@
 
 import { seededChance, seededPick, seededIndex } from './utils/rng.js';
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 // SSML sanitization - ensures stage directions like "*chuckles*" or "[gentle chuckle]" are handled
 import { sanitizeSsml } from '../ssml/core.js';
 
 // Import all conversation modules
 import { humanizationSignalEmitter } from '../services/humanization/humanization-signal-emitter.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // Advanced Humanization Orchestrator - voice learning, breathing sync, emotional leading
 import { getActiveListeningEngine, type BackchannelContext } from './active-listening.js';
@@ -934,7 +938,9 @@ export class ConversationHumanizer {
         const orchestratorContext: Omit<OrchestratorContext, 'responseText' | 'responseWordCount'> =
           {
             userMessage: context.userMessage,
-            userWordCount: context.userMessage.split(/\s+/).length,
+            userWordCount: RUST_COUNTING_AVAILABLE
+              ? countWordsRust(context.userMessage)
+              : context.userMessage.split(/\s+/).length,
             userEnergy,
             userEmotion: context.userEmotion,
             turnCount: context.turnNumber,
@@ -945,7 +951,12 @@ export class ConversationHumanizer {
             recentTopics: context.topic ? [context.topic] : [],
             recentHumanizations: [],
             isEmotionalContent: context.wasPersonalSharing || false,
-            responseComplexity: enhancedText.split(/\s+/).length > 50 ? 0.7 : 0.3,
+            responseComplexity:
+              (RUST_COUNTING_AVAILABLE
+                ? countWordsRust(enhancedText)
+                : enhancedText.split(/\s+/).length) > 50
+                ? 0.7
+                : 0.3,
             isGivingAdvice: signals.isGivingAdvice,
           };
 

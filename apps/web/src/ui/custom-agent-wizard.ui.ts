@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 import {
   type CustomAgentType,
   type AgentDraft,
@@ -98,7 +99,7 @@ function ensureWizardExists(): HTMLElement {
             <div class="progress-bar-fill"></div>
           </div>
         </div>
-        <button class="wizard-close" data-action="close" aria-label="Close wizard">
+        <button class="wizard-close" data-action="close" aria-label="${t('accessibility.closeWizard')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -111,14 +112,14 @@ function ensureWizardExists(): HTMLElement {
       </main>
 
       <footer class="wizard-footer">
-        <button aria-label="Back" class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
+        <button aria-label="${t('accessibility.back')}" class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           Back
         </button>
-        <button aria-label="Continue" class="wizard-btn wizard-btn--primary" data-action="next">
+        <button aria-label="${t('accessibility.continue')}" class="wizard-btn wizard-btn--primary" data-action="next">
           Continue
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -459,7 +460,7 @@ function renderVoiceStep(): string {
       </div>
       
       <div class="voice-options">
-        <button aria-label="Upload" 
+        <button aria-label="${t('accessibility.upload')}" 
           class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}" 
           data-voice-option="clone"
         >
@@ -539,7 +540,7 @@ function renderVoiceCloneUI(): string {
         </div>
         
         <div class="recording-controls">
-          <button aria-label="Stop" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
+          <button aria-label="${t('accessibility.stop')}" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
             ${isRecording ? 'Stop Recording' : 'Start Recording'}
           </button>
           <p class="recording-hint">Record 10-30 seconds of clear speech</p>
@@ -550,7 +551,7 @@ function renderVoiceCloneUI(): string {
             ? `
           <div class="recorded-preview">
             <audio id="recorded-audio" controls src="${URL.createObjectURL(recordedAudioBlob)}"></audio>
-            <button aria-label="Clear & Re-record" class="preview-action" id="clear-recording">Clear & Re-record</button>
+            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">Clear & Re-record</button>
           </div>
         `
             : ''
@@ -583,7 +584,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
         ${voices
           .map(
             (voice) => `
-          <button aria-label="More information" 
+          <button aria-label="${t('accessibility.moreInformation')}" 
             class="voice-card ${draft.selectedVoiceId === voice.id ? 'voice-card--selected' : ''}" 
             data-voice-id="${voice.id}"
           >
@@ -749,7 +750,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">Empathetic</span>
               <span class="profile-desc">Prioritizes feelings and emotional support</span>
             </button>
-            <button aria-label="Analytical Focuses on logic and problem-solving" 
+            <button aria-label="${t('accessibility.analyticalFocusesOnLogicAndProblemSolving')}" 
               type="button"
               class="profile-option ${personality.cognitiveProfile === 'analytical' ? 'profile-option--selected' : ''}" 
               data-profile="analytical"
@@ -769,7 +770,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">Analytical</span>
               <span class="profile-desc">Focuses on logic and problem-solving</span>
             </button>
-            <button aria-label="Balanced Adapts approach to the situation" 
+            <button aria-label="${t('accessibility.balancedAdaptsApproachToTheSituation')}" 
               type="button"
               class="profile-option ${(personality.cognitiveProfile || 'balanced') === 'balanced' ? 'profile-option--selected' : ''}" 
               data-profile="balanced"
@@ -815,7 +816,7 @@ function renderMemoriesStep(): string {
           <div class="journal-prompt">
             <p class="journal-hint">Record a short entry about how you're feeling today, or what's on your mind. This will be your first journal entry.</p>
             <div class="recording-area" id="memory-recording-area">
-              <button aria-label="Record Journal Entry" class="recording-btn large-btn" id="journal-record-btn">
+              <button aria-label="${t('accessibility.recordJournalEntry')}" class="recording-btn large-btn" id="journal-record-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -827,14 +828,14 @@ function renderMemoriesStep(): string {
         `
             : `
           <div class="memory-types">
-            <button aria-label="Add Story" class="memory-type-btn" data-memory-type="story">
+            <button aria-label="${t('accessibility.addStory')}" class="memory-type-btn" data-memory-type="story">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
               </svg>
               Add Story
             </button>
-            <button aria-label="Add Wisdom" class="memory-type-btn" data-memory-type="wisdom">
+            <button aria-label="${t('accessibility.addWisdom')}" class="memory-type-btn" data-memory-type="wisdom">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -842,7 +843,7 @@ function renderMemoriesStep(): string {
               </svg>
               Add Wisdom
             </button>
-            <button aria-label="Add Moment" class="memory-type-btn" data-memory-type="sharedMoment">
+            <button aria-label="${t('accessibility.addMoment')}" class="memory-type-btn" data-memory-type="sharedMoment">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
@@ -864,7 +865,7 @@ function renderMemoriesStep(): string {
                 <div class="memory-item" data-memory-index="${i}">
                   <span class="memory-type-badge">${mem.type}</span>
                   <p class="memory-preview">${mem.title || mem.phrase || mem.content.substring(0, 50)}...</p>
-                  <button class="memory-remove" data-remove-memory="${i}" aria-label="Remove memory">
+                  <button class="memory-remove" data-remove-memory="${i}" aria-label="${t('accessibility.removeMemory')}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
                       <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1215,7 +1216,7 @@ async function startRecording(): Promise<void> {
     // Update UI
     const recordBtn = wizardModal?.querySelector('#record-btn');
     if (recordBtn) {
-      recordBtn.textContent = 'Stop Recording';
+      recordBtn.textContent = t('ui.customagentwizard.stopRecording');
       recordBtn.classList.add('recording-btn--stop');
     }
     const circle = wizardModal?.querySelector('.recording-circle');
@@ -1225,7 +1226,7 @@ async function startRecording(): Promise<void> {
   } catch (error) {
     log.error('Failed to start recording:', error);
     const { toast } = await import('./toast.ui.js');
-    toast.error('Could not access microphone');
+    toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
 
@@ -1426,7 +1427,7 @@ async function createAgent(): Promise<void> {
     clearAgentDraft();
     
     // Success!
-    toast.success(`${draft.displayName || draft.name} created!`);
+    toast.success(t('toasts.draftdisplaynameDraftnameCreated'));
     soundUI.play('success');
     
     // Dispatch event
@@ -1437,7 +1438,7 @@ async function createAgent(): Promise<void> {
     
   } catch (error) {
     log.error('Failed to create agent:', error);
-    toast.error('Something went wrong. Try again?');
+    toast.error(t('toasts.somethingWentWrong'));
     
     // Reset button
     const nextBtn = wizardModal?.querySelector('[data-action="next"]') as HTMLButtonElement;

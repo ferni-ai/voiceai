@@ -70,7 +70,7 @@ export interface ParallelExecutionResult<T = unknown> {
 // ============================================================================
 
 export class ParallelTurnExecutor<T = unknown> {
-  private operations: TurnOperation<T>[] = [];
+  private operations: Array<TurnOperation<T>> = [];
   private defaultTimeout = 1000;
 
   constructor(defaultTimeout = 1000) {
@@ -88,7 +88,7 @@ export class ParallelTurnExecutor<T = unknown> {
   /**
    * Add multiple operations
    */
-  addAll(operations: TurnOperation<T>[]): this {
+  addAll(operations: Array<TurnOperation<T>>): this {
     this.operations.push(...operations);
     return this;
   }
@@ -230,8 +230,8 @@ export class ParallelTurnExecutor<T = unknown> {
   /**
    * Compute execution tiers based on dependencies
    */
-  private computeTiers(): TurnOperation<T>[][] {
-    const tiers: TurnOperation<T>[][] = [];
+  private computeTiers(): Array<Array<TurnOperation<T>>> {
+    const tiers: Array<Array<TurnOperation<T>>> = [];
     const completed = new Set<string>();
     const remaining = [...this.operations];
 
@@ -239,7 +239,7 @@ export class ParallelTurnExecutor<T = unknown> {
     remaining.sort((a, b) => (a.priority ?? 50) - (b.priority ?? 50));
 
     while (remaining.length > 0) {
-      const tier: TurnOperation<T>[] = [];
+      const tier: Array<TurnOperation<T>> = [];
 
       for (let i = remaining.length - 1; i >= 0; i--) {
         const op = remaining[i];
@@ -313,7 +313,7 @@ export class ParallelTurnExecutor<T = unknown> {
  * ```
  */
 export async function executeParallel<T>(
-  operations: TurnOperation<T>[]
+  operations: Array<TurnOperation<T>>
 ): Promise<ParallelExecutionResult<T>> {
   const executor = new ParallelTurnExecutor<T>();
   executor.addAll(operations);
@@ -342,7 +342,7 @@ export async function executeSimpleParallel<T>(
  * Execute with automatic failure handling
  */
 export async function executeParallelSafe<T>(
-  operations: TurnOperation<T>[],
+  operations: Array<TurnOperation<T>>,
   onCriticalFailure?: (failure: OperationResult<T>) => void
 ): Promise<Map<string, T>> {
   const result = await executeParallel(operations);

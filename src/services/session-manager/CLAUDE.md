@@ -24,14 +24,13 @@ Level 10:  config/, utils/, types/
 
 ```
 services/
-├── session-manager.ts           # Main orchestration (~1000 lines)
+├── session-manager.ts           # Main orchestration (profile loading, services)
 └── session-manager/
     ├── access.ts                # Session access functions (getSession, clearAll)
     ├── cleanup.ts               # TTL and cleanup management
     ├── constants.ts             # Configuration constants
     ├── utils.ts                 # Utility functions (withTimeout)
     ├── validation.ts            # User ID validation
-    ├── profile-loader.ts        # User profile loading/creation
     ├── engine-factory.ts        # Intelligence engine initialization
     ├── session-primer.ts        # Session priming for returning users
     ├── end-session.ts           # Session end lifecycle
@@ -51,10 +50,6 @@ services/
 - ✅ `validation.ts` - validateUserId
 
 ### Session Lifecycle (newly extracted)
-- ✅ `profile-loader.ts` (~170 lines) - User profile loading/creation, intelligence state loading
-  - `loadOrCreateProfile()` - Main entry point
-  - Handles realtime memory enrichment, cross-persona insights, trust persistence
-
 - ✅ `engine-factory.ts` (~200 lines) - Create all intelligence engines
   - `createSessionEngines()` - Creates response quality, pattern analyzer, etc.
   - Handles emotional memory loading, cross-session thread persistence
@@ -77,8 +72,7 @@ services/
 
 | Module | Lines | Purpose |
 |--------|-------|---------|
-| `session-manager.ts` | ~1000 | Main orchestration, SessionServices object |
-| `profile-loader.ts` | ~170 | Profile loading, intelligence state |
+| `session-manager.ts` | ~1000 | Main orchestration, profile loading, SessionServices object |
 | `engine-factory.ts` | ~200 | Intelligence engine creation |
 | `session-primer.ts` | ~230 | Session priming, superhuman context |
 | `end-session.ts` | ~550 | Session end lifecycle |
@@ -88,24 +82,27 @@ services/
 | `utils.ts` | ~90 | Utility functions |
 | `validation.ts` | ~50 | User ID validation |
 
-**Total: ~2570 lines across 10 modules**
+**Total: ~2400 lines across 9 modules**
+
+**Note:** Profile loading is handled directly in `session-manager.ts` (not extracted) because it:
+- Requires `userName` parameter for onboarding integration
+- Needs tight coupling with session services creation
+- Is critical path code that benefits from inline visibility
 
 ---
 
 ## Usage Pattern
 
 ```typescript
-// In session-manager.ts
-import { loadOrCreateProfile } from './session-manager/profile-loader.js';
+// In session-manager.ts - profile loading is inline for userName support:
+const userProfile = await global.store.getProfile(validatedUserId);
+if (!userProfile) {
+  userProfile = createUserProfile(validatedUserId, userName);
+  await global.store.saveProfile(userProfile);
+}
+
+// Engine creation uses extracted module:
 import { createSessionEngines } from './session-manager/engine-factory.js';
-import { generateSessionPriming, buildSuperhumanMemoryContext } from './session-manager/session-primer.js';
-import { handleEndSession } from './session-manager/end-session.js';
-
-// In createSessionServices():
-const { userProfile, validatedUserId, isReturningUser } = await loadOrCreateProfile(
-  userId, sessionId, global
-);
-
 const engines = createSessionEngines({
   engineKey: userId || sessionId,
   sessionId,
@@ -113,10 +110,13 @@ const engines = createSessionEngines({
   isReturningUser,
 });
 
+// Session priming:
+import { generateSessionPriming, buildSuperhumanMemoryContext } from './session-manager/session-primer.js';
 const sessionPriming = await generateSessionPriming({ ... });
 const superhumanContext = buildSuperhumanMemoryContext({ ... });
 
-// In endSession():
+// Session end:
+import { handleEndSession } from './session-manager/end-session.js';
 await handleEndSession({ sessionId, userId, validatedUserId, ... });
 ```
 
@@ -141,7 +141,6 @@ session-manager/__tests__/
 ├── access.test.ts
 ├── cleanup.test.ts
 ├── session-manager-utils.test.ts
-├── profile-loader.test.ts
 ├── engine-factory.test.ts
 ├── session-primer.test.ts
 └── end-session.test.ts

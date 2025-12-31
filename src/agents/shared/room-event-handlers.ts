@@ -23,8 +23,8 @@ export enum ConnectionState {
 
 // Generic room interface for event handling
 interface RoomLike {
-  on(event: string, handler: (...args: unknown[]) => void): void;
-  off(event: string, handler: (...args: unknown[]) => void): void;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+  off: (event: string, handler: (...args: unknown[]) => void) => void;
   remoteParticipants?: { size: number };
   localParticipant?: unknown;
 }

@@ -23,6 +23,8 @@ import {
   updateCalibration,
   calibrateConfidence,
   getFeedbackStats,
+  getAllVocabularyUserIds,
+  saveVocabulary,
   type RoutingFeedback,
   type UserCorrection,
   type UserVocabulary,
@@ -281,7 +283,31 @@ export async function runBatchLearning(): Promise<{
   // 1. Update calibration
   await updateCalibration();
 
-  // 2. Get stats
+  // 2. Consolidate patterns and prune vocabulary for all users
+  let totalConsolidated = 0;
+  let totalPruned = 0;
+
+  // Process all user vocabularies
+  const allUserIds = await getAllVocabularyUserIds();
+
+  for (const userId of allUserIds) {
+    const vocab = await getUserVocabulary(userId);
+    if (!vocab || vocab.phrases.length === 0) continue;
+
+    const { consolidated, pruned, updatedVocab } = consolidateAndPruneVocabulary(vocab);
+    totalConsolidated += consolidated;
+    totalPruned += pruned;
+
+    if (consolidated > 0 || pruned > 0) {
+      await saveVocabulary(updatedVocab);
+      log.debug(
+        { userId, consolidated, pruned, remaining: updatedVocab.phrases.length },
+        'Vocabulary updated'
+      );
+    }
+  }
+
+  // 3. Get stats
   const stats = getFeedbackStats();
 
   log.info(
@@ -289,14 +315,154 @@ export async function runBatchLearning(): Promise<{
       totalFeedback: stats.totalFeedback,
       correctionRate: (stats.correctionRate * 100).toFixed(1) + '%',
       successRate: (stats.successRate * 100).toFixed(1) + '%',
+      patternsConsolidated: totalConsolidated,
+      vocabularyPruned: totalPruned,
     },
     'Batch learning complete'
   );
 
   return {
     calibrationUpdated: true,
-    patternsConsolidated: 0, // TODO: Implement pattern consolidation
-    vocabularyPruned: 0, // TODO: Implement vocabulary pruning
+    patternsConsolidated: totalConsolidated,
+    vocabularyPruned: totalPruned,
+  };
+}
+
+/**
+ * Consolidate similar phrases and prune low-quality entries
+ */
+function consolidateAndPruneVocabulary(vocab: UserVocabulary): {
+  consolidated: number;
+  pruned: number;
+  updatedVocab: UserVocabulary;
+} {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  let consolidated = 0;
+  let pruned = 0;
+
+  // Step 1: Prune low-quality entries
+  const prunedPhrases = vocab.phrases.filter((phrase) => {
+    // Keep if: high confidence, or frequently used, or recently used
+    const isHighConfidence = phrase.confidence >= 0.3;
+    const isFrequentlyUsed = phrase.usageCount >= 2;
+    const isRecentlyUsed = phrase.lastUsed >= thirtyDaysAgo;
+    const isExplicit = phrase.source === 'explicit'; // Always keep explicit corrections
+
+    const shouldKeep = isExplicit || (isHighConfidence && (isFrequentlyUsed || isRecentlyUsed));
+
+    if (!shouldKeep) {
+      pruned++;
+      return false;
+    }
+    return true;
+  });
+
+  // Step 2: Consolidate similar phrases
+  const consolidatedPhrases: typeof prunedPhrases = [];
+  const processed = new Set<number>();
+
+  for (let i = 0; i < prunedPhrases.length; i++) {
+    if (processed.has(i)) continue;
+
+    const phrase = prunedPhrases[i];
+    const similar: typeof prunedPhrases = [phrase];
+    processed.add(i);
+
+    // Find similar phrases
+    for (let j = i + 1; j < prunedPhrases.length; j++) {
+      if (processed.has(j)) continue;
+
+      const other = prunedPhrases[j];
+
+      // Only consolidate if they map to the same tool
+      if (phrase.toolId !== other.toolId) continue;
+
+      if (arePhrasesSimilar(phrase.phrase, other.phrase)) {
+        similar.push(other);
+        processed.add(j);
+        consolidated++;
+      }
+    }
+
+    // Merge similar phrases into one
+    if (similar.length > 1) {
+      const merged = mergePhrases(similar);
+      consolidatedPhrases.push(merged);
+    } else {
+      consolidatedPhrases.push(phrase);
+    }
+  }
+
+  return {
+    consolidated,
+    pruned,
+    updatedVocab: {
+      ...vocab,
+      phrases: consolidatedPhrases,
+      updatedAt: now,
+    },
+  };
+}
+
+/**
+ * Check if two phrases are similar enough to consolidate
+ *
+ * Uses word overlap and edit distance heuristics
+ */
+function arePhrasesSimilar(a: string, b: string): boolean {
+  // Normalize
+  const wordsA = a.toLowerCase().split(/\s+/).filter(Boolean).sort();
+  const wordsB = b.toLowerCase().split(/\s+/).filter(Boolean).sort();
+
+  // If one is much longer, they're not similar
+  if (Math.abs(wordsA.length - wordsB.length) > 2) return false;
+
+  // Calculate word overlap (Jaccard similarity)
+  const setA = new Set(wordsA);
+  const setB = new Set(wordsB);
+  const intersection = [...setA].filter((w) => setB.has(w)).length;
+  const union = new Set([...setA, ...setB]).size;
+
+  const jaccardSimilarity = intersection / union;
+
+  // Consider similar if >= 70% word overlap
+  return jaccardSimilarity >= 0.7;
+}
+
+/**
+ * Merge multiple similar phrases into one
+ */
+function mergePhrases(
+  phrases: UserVocabulary['phrases']
+): UserVocabulary['phrases'][0] {
+  // Use the shortest phrase (usually the most general)
+  const sorted = [...phrases].sort((a, b) => a.phrase.length - b.phrase.length);
+  const base = sorted[0];
+
+  // Take the highest confidence
+  const maxConfidence = Math.max(...phrases.map((p) => p.confidence));
+
+  // Sum usage counts
+  const totalUsage = phrases.reduce((sum, p) => sum + p.usageCount, 0);
+
+  // Take the most recent lastUsed
+  const mostRecent = phrases.reduce(
+    (latest, p) => (p.lastUsed > latest ? p.lastUsed : latest),
+    phrases[0].lastUsed
+  );
+
+  // Prefer explicit source if any
+  const source = phrases.some((p) => p.source === 'explicit') ? 'explicit' : 'implicit';
+
+  return {
+    phrase: base.phrase,
+    toolId: base.toolId,
+    confidence: Math.min(1, maxConfidence + 0.05), // Small boost for consolidation
+    usageCount: totalUsage,
+    lastUsed: mostRecent,
+    source,
   };
 }
 

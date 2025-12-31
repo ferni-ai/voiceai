@@ -44,12 +44,11 @@ const INTENTION_PATTERNS: RegExp[] = [
 
 /**
  * Instruction leakage patterns - system prompt leaking through
+ * NOTE: Start-of-string (^) patterns for definite instruction starts
  */
-const INSTRUCTION_LEAKAGE_PATTERNS: RegExp[] = [
+const INSTRUCTION_LEAKAGE_PATTERNS_START: RegExp[] = [
   /^you are \w+\./i,
   /^style:\s/i,
-  /critical rules:/i,
-  /personality traits:/i,
   /^personality:/i,
   /^role:\s/i,
   /^instructions:/i,
@@ -95,8 +94,36 @@ const INSTRUCTION_LEAKAGE_PATTERNS: RegExp[] = [
   /^note to self:/i,
   /^internal note:/i,
   /^assistant notes:/i,
+];
+
+/**
+ * Mid-text instruction leakage patterns - can appear anywhere in output
+ * CRITICAL: These catch instruction text that Gemini echoes from context
+ */
+const INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE: RegExp[] = [
+  // Bracketed markers that should NEVER be spoken
   /\(internal\)/i,
   /\[end (?:system|instructions|context)\]/i,
+  /\[INTERNAL GUIDANCE\]/i,
+  /\[DO:\s/i,
+  /\[SITUATION:\s/i,
+  /\[TOPIC SHIFT:/i,
+
+  // Instruction meta-language that Gemini sometimes echoes back
+  /don't say ".*" type phrases/i, // "Don't say 'I'm here if you need me' type phrases"
+  /don't be robotic or formulaic/i, // Direct instruction text
+  /respond naturally\s*[-–—]?\s*could be/i, // "Respond naturally - could be a few words"
+  /whatever fits the moment/i, // End of our instruction
+  /critical rules:/i,
+  /personality traits:/i,
+  /HOW TO RESPOND:/i, // Our instruction header
+  /WHAT YOU KNOW:/i, // Our instruction header
+  /Be genuine\s*[-–—]?\s*like a real friend/i, // Our instruction pattern
+
+  // Common instruction fragments that slip through
+  /keep it SHORT \(under \d+ words\)/i,
+  /don't ask questions\s*[-–—]?\s*just acknowledge/i,
+  /be warm but not needy/i,
 ];
 
 /**
@@ -282,17 +309,37 @@ function detectBehavioralMarker(text: string): LeakageDetection {
 }
 
 /**
- * Check for instruction leakage
+ * Check for instruction leakage - both start-of-string and mid-text patterns
  */
 function detectInstructionLeakage(text: string): LeakageDetection {
-  for (const pattern of INSTRUCTION_LEAKAGE_PATTERNS) {
+  // First check start-of-string patterns
+  for (const pattern of INSTRUCTION_LEAKAGE_PATTERNS_START) {
     if (pattern.test(text)) {
+      log.warn(
+        { text: text.slice(0, 80), pattern: String(pattern) },
+        '🚨 Instruction leakage (start pattern)'
+      );
       return {
         detected: true,
         pattern: 'instruction_leakage',
       };
     }
   }
+
+  // Then check anywhere patterns - CRITICAL for catching echoed instructions
+  for (const pattern of INSTRUCTION_LEAKAGE_PATTERNS_ANYWHERE) {
+    if (pattern.test(text)) {
+      log.warn(
+        { text: text.slice(0, 80), pattern: String(pattern) },
+        '🚨 Instruction leakage (mid-text pattern)'
+      );
+      return {
+        detected: true,
+        pattern: 'instruction_leakage',
+      };
+    }
+  }
+
   return { detected: false };
 }
 

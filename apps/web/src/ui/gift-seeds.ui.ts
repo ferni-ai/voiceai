@@ -17,6 +17,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { toast } from './toast.ui.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('GiftSeedsUI');
 
@@ -155,7 +156,7 @@ function renderModalContent(): void {
   modal.innerHTML = `
     <div class="gift-seeds-backdrop"></div>
     <div class="gift-seeds-content">
-      <button class="gift-seeds-close" aria-label="Close">
+      <button class="gift-seeds-close" aria-label="${t('accessibility.close')}">
         ${ICONS.close}
       </button>
 
@@ -185,7 +186,7 @@ function renderModalContent(): void {
         <label class="gift-seeds-label">Amount</label>
         <div class="gift-seeds-tiers">
           ${GIFT_TIERS.map(tier => `
-            <button aria-label="Go forward" 
+            <button aria-label="${t('accessibility.goForward')}" 
               class="gift-seeds-tier ${tier.amount === selectedAmount ? 'gift-seeds-tier--selected' : ''} ${balance < tier.amount ? 'gift-seeds-tier--disabled' : ''}"
               data-amount="${tier.amount}"
               ${balance < tier.amount ? 'disabled' : ''}
@@ -215,7 +216,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Send Button -->
-      <button aria-label="Send Gift" 
+      <button aria-label="${t('accessibility.sendGift')}" 
         class="gift-seeds-send ${!canAfford || !recipientId ? 'gift-seeds-send--disabled' : ''}"
         ${!canAfford || !recipientId ? 'disabled' : ''}
       >
@@ -316,7 +317,7 @@ async function handleSendGift(): Promise<void> {
     }
   } catch (error) {
     log.error({ error }, 'Failed to send gift');
-    toast.error("Something went wrong. Try again?");
+    toast.error(t('toasts.somethingWentWrong'));
   } finally {
     if (sendBtn) {
       sendBtn.classList.remove('gift-seeds-send--loading');

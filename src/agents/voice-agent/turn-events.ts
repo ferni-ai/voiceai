@@ -14,7 +14,10 @@
  */
 
 import { log, type llm } from '@livekit/agents';
-import { dispatchEmotionEvents, dispatchExpressionUpdate } from '../realtime/emotion-event-dispatcher.js';
+import {
+  dispatchEmotionEvents,
+  dispatchExpressionUpdate,
+} from '../realtime/emotion-event-dispatcher.js';
 import {
   dispatchBehaviorEvents,
   type BehaviorDetectionContext,

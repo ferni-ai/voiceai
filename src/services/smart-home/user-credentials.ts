@@ -103,7 +103,16 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
       credentials.homeKit = homeKitDoc.data() as HomeKitCredentials;
     }
 
-    log.debug({ userId, hasHue: !!credentials.hue, hasLifx: !!credentials.lifx, hasSonos: !!credentials.sonos, hasHomeKit: !!credentials.homeKit }, 'Loaded smart home credentials');
+    log.debug(
+      {
+        userId,
+        hasHue: !!credentials.hue,
+        hasLifx: !!credentials.lifx,
+        hasSonos: !!credentials.sonos,
+        hasHomeKit: !!credentials.homeKit,
+      },
+      'Loaded smart home credentials'
+    );
 
     return credentials;
   } catch (error) {
@@ -147,16 +156,19 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
   try {
     const db = getFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
-    
+
     await db
       .collection('bogle_users')
       .doc(userId)
       .collection('smart_home')
       .doc(docId)
-      .set({
-        ...credentials,
-        connectedAt: new Date().toISOString(),
-      }, { merge: true });
+      .set(
+        {
+          ...credentials,
+          connectedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
 
     // Update setup state
     await updateSetupState(userId, type, true);
@@ -172,17 +184,15 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
 /**
  * Delete credentials for a specific integration
  */
-export async function deleteCredential(userId: string, type: keyof SmartHomeCredentials): Promise<boolean> {
+export async function deleteCredential(
+  userId: string,
+  type: keyof SmartHomeCredentials
+): Promise<boolean> {
   try {
     const db = getFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
-    
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('smart_home')
-      .doc(docId)
-      .delete();
+
+    await db.collection('bogle_users').doc(userId).collection('smart_home').doc(docId).delete();
 
     // Update setup state
     await updateSetupState(userId, type, false);
@@ -230,7 +240,11 @@ export async function getSetupState(userId: string): Promise<SmartHomeSetupState
 /**
  * Update setup state when an integration is added/removed
  */
-async function updateSetupState(userId: string, integration: string, connected: boolean): Promise<void> {
+async function updateSetupState(
+  userId: string,
+  integration: string,
+  connected: boolean
+): Promise<void> {
   try {
     const db = getFirestore();
     const stateRef = db
@@ -263,15 +277,13 @@ async function updateSetupState(userId: string, integration: string, connected: 
 export async function markSetupStarted(userId: string): Promise<void> {
   try {
     const db = getFirestore();
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('smart_home')
-      .doc('_setup_state')
-      .set({
+    await db.collection('bogle_users').doc(userId).collection('smart_home').doc('_setup_state').set(
+      {
         setupStartedAt: new Date().toISOString(),
         setupAbandoned: false,
-      }, { merge: true });
+      },
+      { merge: true }
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to mark setup started');
   }
@@ -283,7 +295,7 @@ export async function markSetupStarted(userId: string): Promise<void> {
 export async function markSetupAbandoned(userId: string): Promise<void> {
   try {
     const state = await getSetupState(userId);
-    
+
     // Only mark as abandoned if they started but didn't complete any
     if (state.setupStartedAt && state.completedIntegrations.length === 0) {
       const db = getFirestore();
@@ -314,7 +326,10 @@ export async function hasAnySmartHomeIntegration(userId: string): Promise<boolea
 /**
  * Check if a specific integration is configured
  */
-export async function isIntegrationConfigured(userId: string, type: keyof SmartHomeCredentials): Promise<boolean> {
+export async function isIntegrationConfigured(
+  userId: string,
+  type: keyof SmartHomeCredentials
+): Promise<boolean> {
   const credential = await getCredential(userId, type);
   return credential !== null;
 }

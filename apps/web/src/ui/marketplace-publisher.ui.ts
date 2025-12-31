@@ -212,7 +212,7 @@ export async function openPublisherPortal(session?: { id: string; name: string }
   }
 
   if (!publisherSession) {
-    toast.error('Sign in as a publisher first');
+    toast.error(t('toasts.signInAsAPublisherFirst'));
     return;
   }
 
@@ -301,7 +301,7 @@ function createPortalContainer(): HTMLElement {
       </header>
 
       <nav class="publisher-tabs" role="tablist" aria-label="${t('accessibility.portalSections')}">
-        <button aria-label="My Items"
+        <button aria-label="${t('accessibility.myItems')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'items' ? 'publisher-tab--active' : ''}"
           data-tab="items"
@@ -309,7 +309,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.box} My Items
         </button>
-        <button aria-label="Analytics"
+        <button aria-label="${t('accessibility.analytics')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'analytics' ? 'publisher-tab--active' : ''}"
           data-tab="analytics"
@@ -317,7 +317,7 @@ function createPortalContainer(): HTMLElement {
         >
           ${ICONS.barChart} Analytics
         </button>
-        <button aria-label="Add"
+        <button aria-label="${t('accessibility.add')}"
           role="tab"
           class="publisher-tab ${state.activeTab === 'submit' ? 'publisher-tab--active' : ''}"
           data-tab="submit"
@@ -387,7 +387,7 @@ function renderItemsList(content: Element): void {
         <div class="publisher-empty-icon" aria-hidden="true">${ICONS.box}</div>
         <h3 class="publisher-empty-title">No items yet</h3>
         <p class="publisher-empty-text">Submit your first tool or agent to get started</p>
-        <button aria-label="Add" class="publisher-button publisher-button--primary" data-action="submit">
+        <button aria-label="${t('accessibility.add')}" class="publisher-button publisher-button--primary" data-action="submit">
           ${ICONS.plus} Submit New Item
         </button>
       </div>
@@ -644,10 +644,10 @@ function renderSubmitForm(content: Element): void {
       </div>
 
       <div class="form-actions" role="button" tabindex="0">
-        <button aria-label="Cancel" type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
+        <button aria-label="${t('accessibility.cancel')}" type="button" class="publisher-button publisher-button--secondary" data-action="cancel">
           Cancel
         </button>
-        <button aria-label="Upload" type="submit" class="publisher-button publisher-button--primary">
+        <button aria-label="${t('accessibility.upload')}" type="submit" class="publisher-button publisher-button--primary">
           ${ICONS.upload} Submit for Review
         </button>
       </div>
@@ -752,7 +752,7 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      toast.success(`${name} submitted for review!`);
+      toast.success(t('toasts.nameSubmittedForReview'));
       announceToScreenReader(`Successfully submitted ${name} for review`);
 
       // Reload data and switch to items

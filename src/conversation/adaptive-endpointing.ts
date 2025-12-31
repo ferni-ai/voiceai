@@ -291,9 +291,7 @@ export function estimateSentenceCompleteness(text: string): number {
 
   // Basic heuristic: longer = more likely complete
   // 🦀 Use Rust for O(1) word counting when available
-  const wordCount = RUST_COUNTING_AVAILABLE
-    ? countWordsRust(trimmed)
-    : trimmed.split(/\s+/).length;
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(trimmed) : trimmed.split(/\s+/).length;
   if (wordCount >= 10) return 0.7;
   if (wordCount >= 5) return 0.6;
   if (wordCount >= 3) return 0.5;

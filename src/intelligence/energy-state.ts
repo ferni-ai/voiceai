@@ -15,9 +15,12 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
 
 const log = createLogger({ module: 'EnergyState' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -331,7 +334,8 @@ export function assessEnergyState(
   }
 
   // Check response length/engagement
-  const wordsPerTurn = text.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const wordsPerTurn = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
   if (wordsPerTurn < 10) {
     physicalIndicators.push({
       type: 'engagement',

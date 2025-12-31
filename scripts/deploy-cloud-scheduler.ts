@@ -247,6 +247,17 @@ const SCHEDULER_JOBS: SchedulerJob[] = [
     enabled: true,
   },
   {
+    name: 'semantic-ttl-cleanup',
+    description: 'Clean up expired documents from semantic data store based on TTL policies',
+    schedule: '0 1 * * *', // Daily at 1 AM
+    timezone: 'America/Los_Angeles',
+    uri: `${UI_SERVER_URL}/api/jobs/ttl-cleanup`,
+    httpMethod: 'POST',
+    retryCount: 2,
+    timeout: '300s', // 5 min - may need to process many entities
+    enabled: true,
+  },
+  {
     name: 'outreach-analytics-rollup',
     description: 'Aggregate daily outreach analytics',
     schedule: '0 4 * * *', // Daily at 4 AM

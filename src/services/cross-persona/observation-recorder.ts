@@ -23,11 +23,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  recordObservation,
-  type PersonaObservation,
-  type PersonaId,
-} from './team-huddle.js';
+import { recordObservation, type PersonaObservation, type PersonaId } from './team-huddle.js';
 
 const log = createLogger({ module: 'ObservationRecorder' });
 
@@ -73,10 +69,7 @@ const PERSONA_DOMAINS: Record<PersonaId, string> = {
  * Record an observation from a persona.
  * This is the primary function to call from persona context builders.
  */
-export function recordPersonaObservation(
-  userId: string,
-  observation: SimpleObservation
-): void {
+export function recordPersonaObservation(userId: string, observation: SimpleObservation): void {
   recordObservation(userId, observation);
 
   log.debug(
@@ -206,8 +199,13 @@ export const maya = {
     recordConcern(userId, 'maya', content, confidence, topics),
   pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
     recordPattern(userId, 'maya', content, confidence, topics),
-  opportunity: (userId: string, content: string, confidence: number, action?: string, topics?: string[]) =>
-    recordOpportunity(userId, 'maya', content, confidence, action, topics),
+  opportunity: (
+    userId: string,
+    content: string,
+    confidence: number,
+    action?: string,
+    topics?: string[]
+  ) => recordOpportunity(userId, 'maya', content, confidence, action, topics),
   milestone: (userId: string, content: string, confidence: number, topics?: string[]) =>
     recordMilestone(userId, 'maya', content, confidence, topics),
 };
@@ -228,8 +226,13 @@ export const alex = {
     recordConcern(userId, 'alex', content, confidence, topics),
   pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
     recordPattern(userId, 'alex', content, confidence, topics),
-  opportunity: (userId: string, content: string, confidence: number, action?: string, topics?: string[]) =>
-    recordOpportunity(userId, 'alex', content, confidence, action, topics),
+  opportunity: (
+    userId: string,
+    content: string,
+    confidence: number,
+    action?: string,
+    topics?: string[]
+  ) => recordOpportunity(userId, 'alex', content, confidence, action, topics),
 };
 
 /** Jordan's milestone observations */
@@ -238,8 +241,13 @@ export const jordan = {
     recordMilestone(userId, 'jordan', content, confidence, topics),
   pattern: (userId: string, content: string, confidence: number, topics?: string[]) =>
     recordPattern(userId, 'jordan', content, confidence, topics),
-  opportunity: (userId: string, content: string, confidence: number, action?: string, topics?: string[]) =>
-    recordOpportunity(userId, 'jordan', content, confidence, action, topics),
+  opportunity: (
+    userId: string,
+    content: string,
+    confidence: number,
+    action?: string,
+    topics?: string[]
+  ) => recordOpportunity(userId, 'jordan', content, confidence, action, topics),
 };
 
 /** Nayan's wisdom observations */
@@ -266,7 +274,4 @@ export const ferni = {
 // EXPORTS
 // ============================================================================
 
-export {
-  PERSONA_DOMAINS,
-  type PersonaId,
-};
+export { PERSONA_DOMAINS, type PersonaId };

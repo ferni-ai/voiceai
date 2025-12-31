@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('PerformanceDashboard');
 
@@ -183,7 +184,7 @@ export class PerformanceDashboard {
       <div class="perf-dashboard">
         <header class="perf-header">
           <h2>Voice Agent Performance</h2>
-          <button aria-label="Refresh" class="refresh-btn" onclick="window.perfDashboard?.refresh()">↻ Refresh</button>
+          <button aria-label="${t('accessibility.refresh')}" class="refresh-btn" onclick="window.perfDashboard?.refresh()">↻ Refresh</button>
         </header>
 
         ${this.renderSummaryCards()}
@@ -677,7 +678,7 @@ export class PerformanceDashboard {
       <div class="error-state">
         <p>Failed to load metrics</p>
         <p style="font-size:var(--text-sm)">${error}</p>
-        <button aria-label="Retry" class="refresh-btn" onclick="window.perfDashboard?.refresh()">Retry</button>
+        <button aria-label="${t('accessibility.retry')}" class="refresh-btn" onclick="window.perfDashboard?.refresh()">Retry</button>
       </div>
     `;
   }

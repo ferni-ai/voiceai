@@ -95,6 +95,14 @@ export interface FeatureFlags {
     nativeAudioProcessing: boolean;
     /** Native Rust embedding operations (SIMD-accelerated cosine similarity) */
     nativeEmbeddings: boolean;
+    /** Pre-warm context builders at session start for faster first turn */
+    contextBuilderPrewarm: boolean;
+    /** Use worker threads for embedding operations */
+    embeddingWorkerIntegration: boolean;
+    /** Batch summarization in SummarizationWorker */
+    batchedSummarization: boolean;
+    /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */
+    preSTTAudioProcessing: boolean;
   };
 
   /**
@@ -269,6 +277,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
     embeddingWorkerIntegration: process.env.DISABLE_EMBEDDING_WORKER !== 'true', // Enabled by default
     /** Batch summarization in SummarizationWorker */
     batchedSummarization: process.env.DISABLE_BATCHED_SUMMARIZATION !== 'true', // Enabled by default
+    /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */
+    preSTTAudioProcessing: process.env.USE_PRE_STT_PROCESSING !== 'false', // Enabled by default
   },
   personalJourney: {
     enabled: true,
@@ -358,6 +368,7 @@ const ENV_MAPPINGS: Record<string, string> = {
   ENABLE_AB_TESTING: 'experimental.abTesting',
   ENABLE_VOICE_EMOTION: 'experimental.voiceEmotionDetection',
   ENABLE_GEMINI_EMOTION: 'experimental.geminiEmotionAnalysis',
+  USE_PRE_STT_PROCESSING: 'experimental.preSTTAudioProcessing',
 
   // Audio
   ENABLE_MUSIC: 'audio.musicEnabled',

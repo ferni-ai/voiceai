@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onInsideJokeChange } from '../data-layer/hooks/trust-hooks.js';
 
 const log = createLogger({ module: 'InsideJokeMemory' });
 
@@ -101,6 +102,19 @@ export async function recordSharedMoment(
       .doc(userId)
       .collection('shared_moments')
       .add(cleanForFirestore(moment));
+
+    // Index to semantic memory for callback and connection building
+    void onInsideJokeChange(
+      userId,
+      docRef.id,
+      {
+        joke: callbackPhrase || essence,
+        context: context,
+        sharedMoment: essence,
+        personaId: undefined,
+      },
+      'create'
+    );
 
     log.info({ userId, type, essence }, 'Recorded shared moment');
     return docRef.id;

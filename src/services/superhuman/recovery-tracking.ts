@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onRecoveryMilestoneChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'RecoveryTracking' });
 
@@ -148,6 +149,19 @@ export async function startRecoveryTracking(
       .doc(userId)
       .collection('recovery_events')
       .add(cleanForFirestore(event));
+
+    // Index to semantic memory for recovery pattern analysis
+    void onRecoveryMilestoneChange(
+      userId,
+      docRef.id,
+      {
+        milestone: `Started ${eventType} recovery`,
+        recoveryFrom: eventType,
+        significance: context || `Recovery tracking initiated (intensity: ${intensity})`,
+        date: new Date().toISOString(),
+      },
+      'create'
+    );
 
     log.debug({ userId, eventType, intensity }, 'Started recovery tracking');
     return docRef.id;

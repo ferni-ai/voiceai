@@ -37,6 +37,7 @@ import { trapFocus } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { relationshipStageService } from '../services/relationship-stage.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('FutureInsightsUI');
 
@@ -299,7 +300,7 @@ function createModal(): void {
           <span class="future-insights-eyebrow">YOUR FUTURE WITH FERNI</span>
           <h2 class="future-insights-title">What I'll Know About You</h2>
         </div>
-        <button class="future-insights-close" aria-label="Close">
+        <button class="future-insights-close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
       </header>
@@ -325,7 +326,7 @@ function createModal(): void {
       </div>
 
       <div class="future-insights-nav">
-        <button class="future-insights-nav__btn future-insights-nav__prev" aria-label="Previous">
+        <button class="future-insights-nav__btn future-insights-nav__prev" aria-label="${t('accessibility.previous')}">
           ${ICONS.chevronLeft}
         </button>
         <div class="future-insights-nav__dots">
@@ -337,7 +338,7 @@ function createModal(): void {
             ></button>
           `).join('')}
         </div>
-        <button class="future-insights-nav__btn future-insights-nav__next" aria-label="Next">
+        <button class="future-insights-nav__btn future-insights-nav__next" aria-label="${t('accessibility.next')}">
           ${ICONS.chevronRight}
         </button>
       </div>

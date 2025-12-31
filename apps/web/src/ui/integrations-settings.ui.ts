@@ -254,7 +254,7 @@ class IntegrationsSettingsUI {
             ${this.status.biometrics.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">${this.status.biometrics.platform || 'Connected'}</span>
-                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
+                <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -274,7 +274,7 @@ class IntegrationsSettingsUI {
                     <span class="integrations-settings__coming-soon-badge">Coming Soon</span>
                   </div>
                   ` : `
-                  <button aria-label="Go forward" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
+                  <button aria-label="${t('accessibility.goForward')}" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
                     <span class="integrations-settings__platform-icon">${p.icon}</span>
                     <span>${p.name}</span>
                     ${ICONS.chevronRight}
@@ -299,7 +299,7 @@ class IntegrationsSettingsUI {
             ${this.status.calendar.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">Google Calendar</span>
-                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-calendar">
+                <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-calendar">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -309,7 +309,7 @@ class IntegrationsSettingsUI {
                 ${this.renderCapability('Location awareness', capabilities.locationAwareness)}
               </div>
             ` : `
-              <button aria-label="Connect Google Calendar" class="integrations-settings__connect-btn" data-action="connect-calendar">
+              <button aria-label="${t('accessibility.connectGoogleCalendar')}" class="integrations-settings__connect-btn" data-action="connect-calendar">
                 ${ICONS.link}
                 <span>Connect Google Calendar</span>
               </button>
@@ -338,7 +338,7 @@ class IntegrationsSettingsUI {
                     ? `${this.status.linkedin.profile.firstName} ${this.status.linkedin.profile.lastName}` 
                     : 'LinkedIn Connected'
                 }</span>
-                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-linkedin">
+                <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-linkedin">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -350,7 +350,7 @@ class IntegrationsSettingsUI {
                 ${this.renderCapability('Career milestone awareness', capabilities.careerAwareness)}
               </div>
             ` : `
-              <button aria-label="Connect LinkedIn" class="integrations-settings__connect-btn" data-action="connect-linkedin">
+              <button aria-label="${t('accessibility.connectLinkedin')}" class="integrations-settings__connect-btn" data-action="connect-linkedin">
                 ${ICONS.link}
                 <span>Connect LinkedIn</span>
               </button>
@@ -375,7 +375,7 @@ class IntegrationsSettingsUI {
             ${this.status.banking.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">${this.status.banking.institution || 'Bank Connected'}</span>
-                <button aria-label="Disconnect" class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
+                <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
                   ${ICONS.unlink}
                   <span>Disconnect</span>
                 </button>
@@ -384,7 +384,7 @@ class IntegrationsSettingsUI {
                 ${this.renderCapability('Financial prediction', capabilities.financialPrediction)}
               </div>
             ` : `
-              <button aria-label="Connect via Plaid" class="integrations-settings__connect-btn" data-action="connect-banking">
+              <button aria-label="${t('accessibility.connectViaPlaid')}" class="integrations-settings__connect-btn" data-action="connect-banking">
                 ${ICONS.link}
                 <span>Connect via Plaid</span>
               </button>
@@ -412,11 +412,11 @@ class IntegrationsSettingsUI {
                 <span class="integrations-settings__stat-label">people tracked</span>
               </div>
               <div class="integrations-settings__social-actions" role="button" tabindex="0">
-                <button aria-label="View relationships" class="integrations-settings__text-btn" data-action="view-social-graph">
+                <button aria-label="${t('accessibility.viewRelationships')}" class="integrations-settings__text-btn" data-action="view-social-graph">
                   View relationships
                 </button>
                 ${this.status.socialGraph.peopleTracked > 0 ? `
-                  <button aria-label="Clear data" class="integrations-settings__text-btn integrations-settings__text-btn--danger" data-action="clear-social-graph">
+                  <button aria-label="${t('accessibility.clearData')}" class="integrations-settings__text-btn integrations-settings__text-btn--danger" data-action="clear-social-graph">
                     Clear data
                   </button>
                 ` : ''}

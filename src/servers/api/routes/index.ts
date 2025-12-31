@@ -35,5 +35,12 @@ export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.
 export { handleSemanticIntelligenceRoutes } from './semantic-intelligence.js';
 // Digital Twin Profile API
 export { handleTwinProfileRoutes } from './twin-profile.js';
+// Utilities API (reminders, lists, alarms, voice memos)
+export { handleUtilitiesRoutes } from './utilities.js';
+// "Better Than Human" Intelligence Debug API
+export { handleBTHIntelligenceRoutes } from './bth-intelligence.js';
+// NOTE: Semantic store routes are in health.ts (uses raw HTTP pattern)
+// Available at: /api/semantic-store/health, /api/semantic-store/metrics, /api/semantic-store/dashboard
+//               /api/semantic-store/diagnostics, /api/semantic-store/cleanup, /api/semantic-store/ttl-statistics
 // NOTE: handleOutreachRoutes is registered from src/api/outreach.routes.ts in the main server
 // NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts

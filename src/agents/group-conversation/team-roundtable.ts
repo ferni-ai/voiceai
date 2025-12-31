@@ -550,7 +550,7 @@ export class TeamRoundtable extends EventEmitter {
   /**
    * Sleep utility
    */
-  private sleep(ms: number): Promise<void> {
+  private async sleep(ms: number): Promise<void> {
     return new Promise<void>((resolve) => {
       setTimeout(resolve, ms);
     });
@@ -601,7 +601,7 @@ export class TeamRoundtable extends EventEmitter {
    * Generate opening greeting
    */
   private generateOpeningGreeting(otherNames: string[]): string {
-    const topic = this.config.roundtable.topic;
+    const { topic } = this.config.roundtable;
     const names = otherNames.join(' and ');
 
     if (topic) {
@@ -640,6 +640,6 @@ export async function createTeamRoundtable(
 
   return {
     roundtable,
-    cleanup: () => roundtable.cleanup(),
+    cleanup: async () => roundtable.cleanup(),
   };
 }

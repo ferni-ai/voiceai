@@ -9,7 +9,7 @@ The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This doc
 ### December 2024 Consolidation Complete ✅
 
 **Phase 1 (Dec 13):** Brand documentation and assets consolidation
-- Brand documentation consolidated to `design-system/brand/` (single source of truth)
+- Brand documentation consolidated to `design-system/docs/brand/` (single source of truth)
 - Brand assets separated to `brand/` (logos, icons, favicons only)
 - Root-level plans moved to `docs/plans/`
 - Duplicate files removed (18 duplicate brand docs, frontend copies)
@@ -41,7 +41,7 @@ The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This doc
 | **docs/refactoring/** | 7 | Refactoring guides |
 | **docs/status/** | 5 | Implementation status & health |
 | **docs/archive/** | 20 | Completed/outdated docs |
-| **design-system/brand/** | 19 | All brand documentation (canonical) |
+| **design-system/docs/brand/** | 19 | All brand documentation (canonical) |
 | **brand/** | ~70 assets | Logos, icons, favicons (NO docs) |
 | **marketplace-agents/** | 70+ | Agent knowledge bases |
 | **apps/** | 80+ | Platform-specific docs |
@@ -113,10 +113,10 @@ voiceai/
 | Task | Status |
 |------|--------|
 | Remove 18 duplicate brand docs from `brand/` | ✅ Done |
-| Remove `apps/web/public/design-system/brand/` copies | ✅ Done |
+| Remove `apps/web/public/design-system/docs/brand/` copies | ✅ Done |
 | Move `PLAN.md`, `IMPLEMENTATION-PLAN.md`, `EXTENSIBILITY-COMPLETION-PLAN.md` to `docs/plans/` | ✅ Done |
-| Update `brand/README.md` to reference `design-system/brand/` | ✅ Done |
-| Update `design-system/brand/README.md` as canonical index | ✅ Done |
+| Update `brand/README.md` to reference `design-system/docs/brand/` | ✅ Done |
+| Update `design-system/docs/brand/README.md` as canonical index | ✅ Done |
 | Update `docs/README.md` with correct brand paths | ✅ Done |
 | Add `docs/plans/` section to docs index | ✅ Done |
 | Rename `src/personality/BETTER-THAN-HUMAN.md` → `SUPERHUMAN-FEATURES.md` | ✅ Done |
@@ -134,9 +134,9 @@ voiceai/
 
 | Content Type | Canonical Location |
 |--------------|-------------------|
-| **Brand documentation** | `design-system/brand/*.md` |
+| **Brand documentation** | `design-system/docs/brand/*.md` |
 | **Brand assets** | `brand/` (logos, icons, favicons) |
-| **EQ specification** | `design-system/brand/BETTER-THAN-HUMAN.md` |
+| **EQ specification** | `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
 | **Implementation plans** | `docs/plans/` |
 | **Architecture docs** | `docs/architecture/` |
 | **Feature specs** | `docs/features/` |
@@ -173,7 +173,7 @@ CLAUDE.md (root) - 26KB
 1. **Root CLAUDE.md** = Working memory (quality gates, deploy commands, patterns)
 2. **Subdirectory CLAUDE.md** = Domain expertise (specific to that code area)
 3. **docs/** = Long-term reference (search as needed)
-4. **design-system/brand/** = Design constraints (UI/UX decisions)
+4. **design-system/docs/brand/** = Design constraints (UI/UX decisions)
 
 ---
 
@@ -188,7 +188,7 @@ CLAUDE.md (root) - 26KB
 | How-to guide | `docs/guides/` |
 | Implementation plan | `docs/plans/` |
 | Architecture decision | `docs/architecture/adr/` |
-| Brand guideline | `design-system/brand/` |
+| Brand guideline | `design-system/docs/brand/` |
 | Code pattern | Update relevant CLAUDE.md |
 | Quality audit | `docs/audits/` |
 
@@ -199,7 +199,7 @@ CLAUDE.md (root) - 26KB
 | CLAUDE.md files | Every sprint |
 | docs/architecture/ | Quarterly |
 | docs/guides/ | Monthly |
-| design-system/brand/ | Annually |
+| design-system/docs/brand/ | Annually |
 | TECH-DEBT.md | Weekly (auto-generated) |
 
 ### Naming Conventions

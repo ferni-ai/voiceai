@@ -684,7 +684,7 @@ export class CreativeYouDashboard {
         <div class="episode-detail-backdrop"></div>
         <div class="episode-detail-content">
           <header>
-            <button class="close-episode-btn" aria-label="Close">
+            <button class="close-episode-btn" aria-label="${t('accessibility.close')}">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </header>
@@ -949,7 +949,7 @@ export class CreativeYouDashboard {
             <h2>${track.title}</h2>
             <p class="track-desc">${track.description}</p>
           </div>
-          <button class="close-track-btn" aria-label="Close">
+          <button class="close-track-btn" aria-label="${t('accessibility.close')}">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </header>
@@ -963,7 +963,7 @@ export class CreativeYouDashboard {
                 <h4>${ep.title}</h4>
                 <p>${ep.podcastTitle || 'Episode'}${ep.duration ? ` • ${Math.round(ep.duration / 60)} min` : ''}</p>
               </div>
-              <button class="play-episode-btn" aria-label="Play episode">
+              <button class="play-episode-btn" aria-label="${t('accessibility.playEpisode')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               </button>
             </div>
@@ -972,7 +972,7 @@ export class CreativeYouDashboard {
             .join('')}
         </div>
         <div class="track-cta">
-          <button aria-label="Start with Episode 1" class="start-first-btn">Start with Episode 1</button>
+          <button aria-label="${t('accessibility.startWithEpisode1')}" class="start-first-btn">Start with Episode 1</button>
         </div>
       </div>
     `;

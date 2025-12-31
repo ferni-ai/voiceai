@@ -86,16 +86,22 @@ export declare function clearAllProcessors(): number
 /**
  * Convert Int16 samples to Float32 (standalone function)
  *
+ * SIMD-accelerated: processes 8 samples at a time using f32x8.
  * For when you just need conversion without full processing.
  */
 export declare function convertI16ToF32(samples: Int16Array): Float32Array
-/** Compute energy in dB for a Float32 audio buffer */
+/**
+ * Compute energy in dB for a Float32 audio buffer
+ *
+ * SIMD-accelerated: processes 8 samples at a time for sum-of-squares.
+ */
 export declare function computeEnergyDb(samples: Float32Array): number
 /** Check if audio contains speech (simple threshold check) */
 export declare function isSpeech(samples: Float32Array, thresholdDb?: number | undefined | null): boolean
 /**
  * Compute RMS (Root Mean Square) energy for a Float32 audio buffer
  *
+ * SIMD-accelerated: processes 8 samples at a time for sum-of-squares.
  * Returns linear scale RMS (not dB). Use this for breath detection
  * and energy analysis where linear comparison is needed.
  */
@@ -111,10 +117,15 @@ export declare function computeZcr(samples: Float32Array): number
 /**
  * Compute variance of a Float32 array
  *
+ * SIMD-accelerated: uses two-pass algorithm with SIMD sum and squared-diff.
  * Useful for pitch variance, energy variance calculations.
  */
 export declare function computeVariance(values: Float32Array): number
-/** Compute mean of a Float32 array */
+/**
+ * Compute mean of a Float32 array
+ *
+ * SIMD-accelerated: processes 8 samples at a time.
+ */
 export declare function computeMean(values: Float32Array): number
 /** Compute standard deviation of a Float32 array */
 export declare function computeStdDev(values: Float32Array): number
@@ -317,6 +328,209 @@ export declare function applyCompression(samples: Float32Array, sampleRate: numb
  */
 export declare function injectBreathSounds(samples: Float32Array, sampleRate: number, probability: number): number
 /**
+ * JavaScript-compatible phrase boundary for adaptive breath timing
+ *
+ * Represents a location in the audio where a breath could naturally be injected.
+ */
+export interface NativePhraseBoundary {
+  /** Sample index (absolute position in the utterance) */
+  sampleIndex: number
+  /** Boundary type: 0=SentenceEnd, 1=ClauseBreak, 2=EmphasisBefore, 3=EmotionalRelease */
+  boundaryType: number
+}
+/** Configuration for the stateful post-TTS processor */
+export interface NativePostTtsConfig {
+  /** Sample rate in Hz (default: 24000) */
+  sampleRate?: number
+  /** Enable warmth (low-shelf EQ boost) */
+  enableWarmth?: boolean
+  /** Warmth frequency in Hz (default: 300) */
+  warmthFreq?: number
+  /** Warmth gain in dB (default: 2.5) */
+  warmthGainDb?: number
+  /** Enable presence (peak EQ boost) */
+  enablePresence?: boolean
+  /** Presence frequency in Hz (default: 3000) */
+  presenceFreq?: number
+  /** Presence gain in dB (default: 2.0) */
+  presenceGainDb?: number
+  /** Enable compression */
+  enableCompression?: boolean
+  /** Compression threshold in dB (default: -18) */
+  compThresholdDb?: number
+  /** Compression ratio (default: 2.0) */
+  compRatio?: number
+  /** Compression attack in ms (default: 10) */
+  compAttackMs?: number
+  /** Compression release in ms (default: 100) */
+  compReleaseMs?: number
+  /** Enable de-esser (legacy wideband - DEPRECATED) */
+  enableDeesser?: boolean
+  /** De-esser frequency in Hz (default: 6000) */
+  deesserFreq?: number
+  /** De-esser threshold in dB (default: -20) */
+  deesserThresholdDb?: number
+  /** Enable split-band de-esser (NEW - professional quality) */
+  enableSplitbandDeesser?: boolean
+  /** Split-band crossover frequency in Hz (default: 5000) */
+  splitbandCrossoverFreq?: number
+  /** Split-band threshold in dB (default: -20) */
+  splitbandThresholdDb?: number
+  /** Split-band ratio (default: 4.0) */
+  splitbandRatio?: number
+  /** Enable limiter */
+  enableLimiter?: boolean
+  /** Limiter threshold in dB (default: -1) */
+  limiterThresholdDb?: number
+  /** Enable crossfade between frames */
+  enableCrossfade?: boolean
+  /** Crossfade length in ms (default: 2) */
+  crossfadeMs?: number
+  /** Soft attack duration in ms (default: 15) */
+  softAttackMs?: number
+  /** Soft release duration in ms (default: 15) */
+  softReleaseMs?: number
+  /** Enable breath injection at utterance start */
+  enableBreath?: boolean
+  /** Breath injection probability (0-1) */
+  breathProbability?: number
+  /** Enable micro-pitch modulation (~5Hz wobble) */
+  enableMicroPitch?: boolean
+  /** Micro-pitch modulation depth in cents */
+  microPitchCents?: number
+  /** Enable noise floor (subtle room tone) */
+  enableNoiseFloor?: boolean
+  /** Noise floor level in dB (typically -60 to -50) */
+  noiseFloorDb?: number
+  /** Enable amplitude jitter (volume micro-variations) */
+  enableAmplitudeJitter?: boolean
+  /** Amplitude jitter depth (0-1, typically 0.015) */
+  amplitudeJitterDepth?: number
+  /** Enable pitch drift (slow pitch wandering) */
+  enablePitchDrift?: boolean
+  /** Pitch drift max in cents */
+  pitchDriftCents?: number
+  /**
+   * Use SOLA-based pitch shifting (artifact-free)
+   * When true (default), uses proper overlap-add algorithm instead of
+   * frame-by-frame resampling. This eliminates clicks/crackles from pitch features.
+   */
+  useSolaPitch?: boolean
+  /**
+   * Enable emotion-aware prosody (affects vibrato, pitch drift, breath, pacing)
+   * When true (default), the processor adapts all humanization features based on
+   * the emotional context of the utterance.
+   */
+  enableEmotionProsody?: boolean
+  /**
+   * Current emotional state (0-8)
+   * 0=Neutral, 1=Happy, 2=Sad, 3=Excited, 4=Calm, 5=Tense, 6=Empathetic, 7=Curious, 8=Supportive
+   * This affects vibrato rate/depth, pitch drift direction, breath likelihood, and tempo.
+   */
+  emotion?: number
+  /**
+   * Enable adaptive pacing (time-stretch based on content complexity)
+   * When true, speech rate adjusts to help comprehension of complex content.
+   */
+  enableAdaptivePacing?: boolean
+  /**
+   * Content complexity (0.0-1.0)
+   * 0.0 = simple content (slightly faster pace)
+   * 0.5 = moderate complexity (normal pace)
+   * 1.0 = complex content (slower pace for comprehension)
+   */
+  contentComplexity?: number
+  /**
+   * Enable vocal fry (creaky voice at phrase endings)
+   * Creates natural trailing-off quality like human speakers
+   */
+  enableVocalFry?: boolean
+  /**
+   * Vocal fry depth (0-1, default: 0.4)
+   * How pronounced the creaky modulation is
+   */
+  vocalFryDepth?: number
+  /**
+   * Vocal fry duration in ms (default: 200)
+   * How long the creaky effect lasts at phrase end
+   */
+  vocalFryDurationMs?: number
+  /**
+   * Enable lip smacks (mouth sounds between phrases)
+   * Adds realistic mouth noises at natural pause points
+   */
+  enableLipSmacks?: boolean
+  /**
+   * Lip smack probability (0-1, default: 0.3)
+   * Probability of triggering at each phrase boundary
+   */
+  lipSmackProbability?: number
+  /**
+   * Enable tempo micro-variation (subtle speed changes)
+   * Creates natural rhythm variations within utterances
+   */
+  enableTempoVariation?: boolean
+  /**
+   * Tempo variation depth (0-1, default: 0.03)
+   * How much the tempo can vary (3% typical for natural speech)
+   */
+  tempoVariationDepth?: number
+}
+/** Statistics from processing a frame */
+export interface NativeProcessingStats {
+  frameNumber: number
+  crossfadeApplied: boolean
+  softAttackApplied: boolean
+  softReleaseApplied: boolean
+  warmthApplied: boolean
+  presenceApplied: boolean
+  compressionReductionDb: number
+  deesserReductionDb: number
+  limiterReductionDb: number
+}
+/** Configuration for Pre-STT audio processing */
+export interface NativePreSttConfig {
+  /** Sample rate of input audio (default: 16000) */
+  sampleRate?: number
+  /** Enable AGC (Automatic Gain Control) */
+  enableAgc?: boolean
+  /** Enable noise suppression */
+  enableNoiseSuppression?: boolean
+  /** Enable high-pass filter (DC removal) */
+  enableHighpass?: boolean
+  /** High-pass cutoff frequency in Hz (default: 80) */
+  highpassCutoffHz?: number
+  /** Enable bandwidth extension (for 8kHz input) */
+  enableBandwidthExtension?: boolean
+  /** Input is 8kHz (Twilio) - enables bandwidth extension */
+  inputIs8Khz?: boolean
+}
+/** Statistics from Pre-STT processing */
+export interface NativePreSttStats {
+  /** Number of frames processed */
+  framesProcessed: number
+  /** Current AGC gain (1.0 = no change) */
+  agcGain: number
+  /** Whether noise suppression is ready (has noise floor estimate) */
+  noiseSuppressionReady: boolean
+  /** Whether bandwidth extension was applied this frame */
+  bandwidthExtended: boolean
+}
+/**
+ * Apply AGC to audio samples (standalone function)
+ *
+ * Creates/reuses a session-scoped AGC instance.
+ *
+ * @param sessionId - Session identifier for state management
+ * @param samples - Float32Array to process (modified in place)
+ * @returns Current AGC gain
+ */
+export declare function applyAgc(sessionId: string, samples: Float32Array): number
+/** Reset AGC state for a session */
+export declare function resetAgc(sessionId: string): boolean
+/** Remove AGC instance for a session */
+export declare function removeAgc(sessionId: string): boolean
+/**
  * Native audio processor for real-time voice analysis
  *
  * Pre-allocates all buffers at construction for zero per-frame allocations.
@@ -362,4 +576,194 @@ export declare class NativeAudioProcessor {
   reset(): void
   /** Get session ID */
   get sessionId(): string
+}
+export type NativePostTTSProcessor = NativePostTtsProcessor
+/**
+ * Stateful Post-TTS Audio Processor
+ *
+ * This processor maintains state between frames for seamless audio enhancement.
+ * Create one instance per session and call `processFrame()` for each audio frame.
+ *
+ * Features:
+ * - Stateful biquad filters (no clicks at frame boundaries)
+ * - Stateful compressor (no pumping/breathing)
+ * - De-esser (reduces harsh sibilance)
+ * - Look-ahead soft limiter (prevents clipping)
+ * - Crossfade overlap-add (eliminates frame discontinuities)
+ *
+ * Usage:
+ * ```javascript
+ * const processor = new NativePostTTSProcessor({
+ *   sampleRate: 24000,
+ *   enableWarmth: true,
+ *   enablePresence: true,
+ *   enableCompression: true,
+ *   enableDeesser: true,
+ *   enableLimiter: true,
+ *   enableCrossfade: true,
+ * });
+ *
+ * // Process frames
+ * for (const frame of audioFrames) {
+ *   const isLast = isLastFrame(frame);
+ *   const stats = processor.processFrame(frame.samples, isLast);
+ *   // frame.samples is modified in place
+ * }
+ *
+ * // Reset for new utterance
+ * processor.startUtterance();
+ * ```
+ */
+export declare class NativePostTtsProcessor {
+  /** Create a new processor with the given configuration */
+  constructor(config?: NativePostTtsConfig | undefined | null)
+  /** Create with default configuration (all features enabled) */
+  static withDefaults(): NativePostTtsProcessor
+  /**
+   * Process a frame of audio samples in-place
+   *
+   * Call this for each audio frame. The processor maintains state between calls
+   * for seamless audio without artifacts.
+   *
+   * @param samples - Float32Array of audio samples (modified in place)
+   * @param isLastFrame - Set to true for the last frame of an utterance
+   * @returns Processing statistics
+   */
+  processFrame(samples: Float32Array, isLastFrame: boolean): NativeProcessingStats
+  /**
+   * Mark the start of a new utterance
+   *
+   * Resets crossfade buffer but keeps filter state for continuity.
+   * Call this at the start of each new TTS utterance.
+   */
+  startUtterance(): void
+  /**
+   * Fully reset all state
+   *
+   * Use this when switching personas or at session end.
+   */
+  reset(): void
+  /** Get the number of frames processed */
+  frameCount(): number
+  /**
+   * Set the emotional state (can be called mid-utterance for dynamic expression)
+   *
+   * The emotion smoothly transitions to affect vibrato, pitch drift, and pacing.
+   * Valid values: 0=Neutral, 1=Happy, 2=Sad, 3=Excited, 4=Calm, 5=Tense,
+   *               6=Empathetic, 7=Curious, 8=Supportive
+   *
+   * @param emotion - Emotion state (0-8)
+   */
+  setEmotion(emotion: number): void
+  /**
+   * Set content complexity for adaptive pacing
+   *
+   * 0.0 = simple content (normal/slightly faster pace)
+   * 0.5 = moderate complexity (normal pace)
+   * 1.0 = complex content (slower pace for comprehension)
+   *
+   * @param complexity - Complexity value (0.0 - 1.0)
+   */
+  setContentComplexity(complexity: number): void
+  /**
+   * Get the current emotional state
+   *
+   * @returns Current emotion state (0-8)
+   */
+  getEmotion(): number
+  /**
+   * Set phrase boundaries for adaptive breath placement
+   *
+   * This enables intelligent breath injection at natural pause points (sentence ends,
+   * clause breaks, emphasis points). The processor will probabilistically inject
+   * breaths based on boundary type and emotional context.
+   *
+   * @param boundaries - Array of phrase boundaries with sample positions and types
+   *
+   * Example:
+   * ```javascript
+   * processor.setPhraseBoundaries([
+   *   { sampleIndex: 24000, boundaryType: 0 },  // Sentence end at 1 second
+   *   { sampleIndex: 12000, boundaryType: 1 },  // Clause break at 0.5 seconds
+   * ]);
+   * ```
+   */
+  setPhraseBoundaries(boundaries: Array<NativePhraseBoundary>): void
+  /**
+   * Add a single phrase boundary
+   *
+   * Boundary types:
+   * - 0 = SentenceEnd (80% breath likelihood)
+   * - 1 = ClauseBreak (40% breath likelihood)
+   * - 2 = EmphasisBefore (20% breath likelihood)
+   * - 3 = EmotionalRelease (60% breath likelihood)
+   *
+   * @param sampleIndex - Absolute sample position in the utterance
+   * @param boundaryType - Type of boundary (0-3)
+   */
+  addPhraseBoundary(sampleIndex: number, boundaryType: number): void
+  /**
+   * Clear all phrase boundaries
+   *
+   * Call this when starting a new utterance if you want to disable adaptive
+   * breath timing and only use the standard breath injection.
+   */
+  clearPhraseBoundaries(): void
+  /** Get the number of phrase boundaries currently set */
+  phraseBoundaryCount(): number
+}
+export type NativePreSTTProcessor = NativePreSttProcessor
+/**
+ * Pre-STT Audio Processor
+ *
+ * Enhances inbound user audio before sending to STT (Gemini/Google).
+ *
+ * Features:
+ * - **AGC** - Normalizes levels from quiet/loud speakers
+ * - **Noise Suppression** - Removes background noise (fans, AC, etc.)
+ * - **Bandwidth Extension** - Enhances 8kHz Twilio audio to 16kHz
+ * - **DC Removal** - Removes DC offset and low-frequency rumble
+ *
+ * Usage:
+ * ```javascript
+ * const processor = new NativePreSTTProcessor({
+ *   enableAgc: true,
+ *   enableNoiseSuppression: true,
+ *   enableHighpass: true,
+ * });
+ *
+ * // For each audio frame from LiveKit
+ * const enhanced = processor.processFrame(samples, isSpeech);
+ * // Send enhanced audio to Gemini STT
+ * ```
+ */
+export declare class NativePreSttProcessor {
+  /** Create a new Pre-STT processor with configuration */
+  constructor(config?: NativePreSttConfig | undefined | null)
+  /** Create with default configuration (all features enabled for 16kHz) */
+  static withDefaults(): NativePreSttProcessor
+  /** Create configured for Twilio (8kHz → 16kHz with bandwidth extension) */
+  static forTwilio(): NativePreSttProcessor
+  /**
+   * Process a frame of Float32 audio
+   *
+   * @param samples - Float32Array audio samples (normalized -1 to 1)
+   * @param isSpeech - VAD result (true if speech detected in this frame)
+   * @returns Enhanced audio samples (may be longer if bandwidth extended)
+   */
+  processFrame(samples: Float32Array, isSpeech: boolean): Float32Array
+  /**
+   * Process a frame of Int16 audio (common LiveKit format)
+   *
+   * @param samples - Int16Array audio samples
+   * @param isSpeech - VAD result
+   * @returns Enhanced audio as Float32Array (normalized -1 to 1)
+   */
+  processFrameI16(samples: Int16Array, isSpeech: boolean): Float32Array
+  /** Get processing statistics */
+  getStats(): NativePreSttStats
+  /** Reset noise estimation (call when entering a new environment) */
+  resetNoiseEstimate(): void
+  /** Full reset (call when starting a new session) */
+  reset(): void
 }

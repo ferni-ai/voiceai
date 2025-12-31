@@ -6,6 +6,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UserProfile } from '../../../types/user-profile.js';
+import type {
+  FusedPrediction,
+  PredictionTarget,
+  SignalSource,
+} from '../../../intelligence/predictive/index.js';
 
 // Mock the predictive intelligence module
 vi.mock('../../../intelligence/predictive/index.js', () => ({
@@ -14,6 +19,30 @@ vi.mock('../../../intelligence/predictive/index.js', () => ({
 
 import { getAllPredictions } from '../../../intelligence/predictive/index.js';
 import { evaluatePredictionDrivenOutreach } from '../prediction-driven-outreach.js';
+
+// Helper to create valid FusedPrediction objects
+function makePrediction(
+  target: PredictionTarget,
+  probability: number,
+  confidence: number,
+  explanation: string,
+  sources: string[] = []
+): FusedPrediction {
+  return {
+    target,
+    probability,
+    confidence,
+    explanation,
+    signals: sources.map((name) => ({
+      name,
+      weight: 1,
+      value: probability,
+      confidence,
+      timestamp: new Date(),
+    })) as unknown as SignalSource[],
+    correlations: new Map(),
+  };
+}
 
 const mockGetAllPredictions = vi.mocked(getAllPredictions);
 
@@ -34,12 +63,10 @@ describe('Prediction-Driven Outreach', () => {
         new Map([
           [
             'needs_support_now',
-            {
-              probability: 0.85,
-              confidence: 0.9,
-              explanation: 'Multiple stress signals detected',
-              sources: ['markov', 'time_series'],
-            },
+            makePrediction('needs_support_now', 0.85, 0.9, 'Multiple stress signals detected', [
+              'markov',
+              'time_series',
+            ]),
           ],
         ])
       );
@@ -59,12 +86,9 @@ describe('Prediction-Driven Outreach', () => {
         new Map([
           [
             'burnout_risk',
-            {
-              probability: 0.7,
-              confidence: 0.7,
-              explanation: 'Work patterns suggest burnout risk',
-              sources: ['time_series'],
-            },
+            makePrediction('burnout_risk', 0.7, 0.7, 'Work patterns suggest burnout risk', [
+              'time_series',
+            ]),
           ],
         ])
       );
@@ -86,12 +110,9 @@ describe('Prediction-Driven Outreach', () => {
         new Map([
           [
             'burnout_risk',
-            {
-              probability: 0.6,
-              confidence: 0.55, // Above burnout threshold (0.5), above insight (0.40), below notification (0.60)
-              explanation: 'Some burnout signals detected',
-              sources: ['time_series'],
-            },
+            makePrediction('burnout_risk', 0.6, 0.55, 'Some burnout signals detected', [
+              'time_series',
+            ]),
           ],
         ])
       );
@@ -107,17 +128,12 @@ describe('Prediction-Driven Outreach', () => {
     });
 
     it('should not recommend outreach when no strong predictions', async () => {
-      // Use unrecognized prediction key - should result in no actionable trigger
+      // Low confidence prediction should not trigger outreach
       mockGetAllPredictions.mockResolvedValue(
         new Map([
           [
-            'general_mood',
-            {
-              probability: 0.5,
-              confidence: 0.3, // Below insight threshold (0.40)
-              explanation: 'No strong signal',
-              sources: [],
-            },
+            'high_engagement_period',
+            makePrediction('high_engagement_period', 0.5, 0.3, 'No strong signal', []),
           ],
         ])
       );
@@ -147,21 +163,13 @@ describe('Prediction-Driven Outreach', () => {
         new Map([
           [
             'will_struggle_soon',
-            {
-              probability: 0.7,
-              confidence: 0.65,
-              explanation: 'Moderate struggle predicted',
-              sources: ['time_series'],
-            },
+            makePrediction('will_struggle_soon', 0.7, 0.65, 'Moderate struggle predicted', [
+              'time_series',
+            ]),
           ],
           [
             'burnout_risk',
-            {
-              probability: 0.85,
-              confidence: 0.85, // Higher confidence
-              explanation: 'Burnout signals detected',
-              sources: ['markov'],
-            },
+            makePrediction('burnout_risk', 0.85, 0.85, 'Burnout signals detected', ['markov']),
           ],
         ])
       );

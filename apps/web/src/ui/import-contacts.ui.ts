@@ -12,6 +12,7 @@ import { toast } from './toast.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ImportContactsUI');
 
@@ -467,7 +468,7 @@ function render(): void {
 function renderSourceSelection(): string {
   return `
     <div class="ic-sources">
-      <button aria-label="More information" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
+      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">Google Contacts</div>
@@ -475,7 +476,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
       
-      <button aria-label="More information" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
+      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">CSV File</div>
@@ -483,7 +484,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
       
-      <button aria-label="More information" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
+      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">vCard File</div>
@@ -526,7 +527,7 @@ function renderPreview(): string {
     <div class="ic-preview-section">
       <div class="ic-preview-header">
         <span class="ic-preview-title">${state.selectedCount} of ${state.preview.length} selected</span>
-        <button aria-label="Select All" class="ic-select-all" id="ic-select-all">Select All</button>
+        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">Select All</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -672,7 +673,7 @@ async function startGoogleImport(): Promise<void> {
     }
   } catch (error) {
     log.error('Google import error:', error);
-    toast.error('Could not connect to Google');
+    toast.error(t('toasts.couldNotConnectToGoogle'));
     state.isImporting = false;
     render();
   }
@@ -690,7 +691,7 @@ async function handleFileUpload(file: File): Promise<void> {
     }
   } catch (error) {
     log.error('File upload error:', error);
-    toast.error('Could not read file');
+    toast.error(t('toasts.couldNotReadFile'));
     state.isImporting = false;
     render();
   }
@@ -701,7 +702,7 @@ async function parseCSVFile(file: File): Promise<void> {
   const lines = text.split('\n').filter(line => line.trim());
   
   if (lines.length < 2) {
-    toast.error('CSV file appears to be empty');
+    toast.error(t('toasts.csvFileAppearsToBeEmpty'));
     state.isImporting = false;
     render();
     return;
@@ -767,7 +768,7 @@ async function parseVCardFile(file: File): Promise<void> {
 async function startImport(): Promise<void> {
   const selectedContacts = state.preview.filter(c => c.selected);
   if (selectedContacts.length === 0) {
-    toast.warning('Select at least one contact');
+    toast.warning(t('toasts.selectAtLeastOneContact'));
     return;
   }
 
@@ -796,7 +797,7 @@ async function startImport(): Promise<void> {
       render();
     }
 
-    toast.success(`Imported ${state.imported} contacts!`);
+    toast.success(t('toasts.importedStateimportedContacts'));
     callbacks.onSuccess?.(state.imported);
     
     setTimeout(() => {
@@ -804,7 +805,7 @@ async function startImport(): Promise<void> {
     }, 1500);
   } catch (error) {
     log.error('Import error:', error);
-    toast.error('Import failed');
+    toast.error(t('toasts.importFailed'));
     state.isImporting = false;
     render();
   }
@@ -884,14 +885,14 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
         <div class="ic-eyebrow">Your People</div>
         <h2 class="ic-title" id="ic-title">Import Contacts</h2>
         <p class="ic-subtitle">Bring your network into Ferni</p>
-        <button class="ic-close" aria-label="Close">${ICONS.close}</button>
+        <button class="ic-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
       <div class="ic-content">
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button aria-label="Cancel" class="ic-btn ic-btn-secondary">Cancel</button>
-        <button aria-label="Import Selected" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
+        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">Cancel</button>
+        <button aria-label="${t('accessibility.importSelected')}" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
           Import Selected
         </button>
       </div>

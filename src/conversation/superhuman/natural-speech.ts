@@ -101,7 +101,13 @@ const THINKING_ALOUD: Record<string, string[]> = {
     "Wait, I'm having a thought—",
     "Hold on, something's clicking—",
   ],
-  calm: ['Let me reflect on that...', "I'm taking that in...", "That's worth sitting with..."],
+  // HUMANIZATION FIX: Removed "sitting with" - became therapy-speak crutch
+  calm: [
+    'Let me reflect on that...',
+    "I'm taking that in...",
+    'That one landed...',
+    'Hmm. Give me a second...',
+  ],
 };
 
 const SELF_CORRECTIONS: Record<string, string[]> = {

@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ferni Premium Data Visualization System - Better Than Human Insights">
+  <title>Data Visualization | Ferni Brand Library</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
+
+  <style>
+    /* ============================================
+       VISUALIZATION-SPECIFIC STYLES
+       Uses design system tokens from master-tokens.css
+       Supports light, dark, and zen themes
+       ============================================ */
+
+    :root {
+      /* Visualization-specific tokens (use design system colors) */
+      /* Activity Ring Colors - using persona colors */
+      --ring-move: var(--color-ferni);
+      --ring-move-end: var(--color-ferni-light);
+      --ring-exercise: var(--color-nayan);
+      --ring-exercise-end: #c9a67a;
+      --ring-stand: var(--color-peter);
+      --ring-stand-end: #4a7b83;
+
+      /* Confidence Bands (Nayan gold tints) */
+      --band-95: rgba(184, 149, 106, 0.12);
+      --band-90: rgba(184, 149, 106, 0.20);
+      --band-75: rgba(184, 149, 106, 0.30);
+      --band-50: rgba(184, 149, 106, 0.45);
+
+      /* Glass Effects for visualizations */
+      --viz-glass-bg: var(--glass-bg);
+      --viz-glass-border: var(--glass-border);
+      --viz-glass-glow-ferni: rgba(74, 103, 65, 0.3);
+      --viz-glass-glow-nayan: rgba(184, 149, 106, 0.3);
+
+      /* Status Colors */
+      --status-positive: var(--color-ferni);
+      --status-negative: var(--color-jordan);
+      --status-warning: var(--color-nayan);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       AMBIENT BACKGROUND ORBS
+       ============================================ */
+    .ambient-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--glass-glow-nayan) 0%, transparent 70%);
+      top: -200px;
+      left: -200px;
+      animation-delay: 0s;
+    }
+
+    .orb-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--glass-glow-ferni) 0%, transparent 70%);
+      top: 40%;
+      right: -150px;
+      animation-delay: -7s;
+    }
+
+    .orb-3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(58, 107, 115, 0.25) 0%, transparent 70%);
+      bottom: 10%;
+      left: 20%;
+      animation-delay: -14s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.05); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+
+    /* ============================================
+       NAVIGATION
+       ============================================ */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      background: rgba(20, 19, 17, 0.9);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      z-index: 1000;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--color-text-primary);
+      font-family: var(--font-display), 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .nav-logo svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-link {
+      padding: 0.5rem 1rem;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--color-text-primary);
+      background: var(--glass-bg);
+    }
+
+    .nav-link-active {
+      color: var(--color-text-primary);
+      background: rgba(74, 103, 65, 0.2);
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+    }
+
+    /* ============================================
+       HERO SECTION
+       ============================================ */
+    .hero {
+      position: relative;
+      padding: 8rem 2rem 4rem;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.2), rgba(184, 149, 106, 0.2));
+      border: 1px solid var(--glass-border);
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--color-ferni);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--color-ferni);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .hero-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-nayan) 50%, var(--color-maya) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--color-text-secondary);
+      max-width: 600px;
+      margin: 0 auto 3rem;
+      line-height: 1.7;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 2.5rem;
+      font-weight: 400;
+      font-style: italic;
+      background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-peter) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-stat-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================
+       SECTION NAVIGATION
+       ============================================ */
+    .section-nav {
+      position: sticky;
+      top: 64px;
+      z-index: 100;
+      background: rgba(20, 19, 17, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1rem 2rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .section-nav-inner {
+      display: flex;
+      gap: 0.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      min-width: max-content;
+    }
+
+    .section-nav-link {
+      padding: 0.5rem 1rem;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .section-nav-link:hover {
+      color: var(--color-text-secondary);
+      background: var(--glass-bg);
+      border-color: var(--glass-border);
+    }
+
+    .section-nav-link.active {
+      color: var(--color-text-primary);
+      background: rgba(74, 103, 65, 0.3);
+      border-color: rgba(74, 103, 65, 0.5);
+      box-shadow: 0 0 20px var(--glass-glow-ferni);
+    }
+
+    /* ============================================
+       MAIN CONTENT
+       ============================================ */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* ============================================
+       SECTION STYLING
+       ============================================ */
+    .section {
+      margin-bottom: 6rem;
+      scroll-margin-top: 160px;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .section-overline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--color-nayan);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-overline::before {
+      content: '';
+      width: 24px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-nayan), var(--color-maya));
+      border-radius: 1px;
+    }
+
+    .section-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
+      font-weight: 400;
+      font-style: italic;
+      letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+      color: var(--color-text-primary);
+    }
+
+    .section-description {
+      font-size: 1.125rem;
+      color: var(--color-text-secondary);
+      max-width: 720px;
+      line-height: 1.7;
+    }
+
+    /* Better Than Human Callout */
+    .bth-callout {
+      display: flex;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(184, 149, 106, 0.08));
+      border: 1px solid var(--glass-border);
+      border-left: 3px solid var(--color-ferni);
+      border-radius: 0 12px 12px 0;
+      margin: 2rem 0;
+    }
+
+    .bth-callout-icon {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-ferni);
+      border-radius: 50%;
+      color: var(--color-text-primary);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .bth-callout-content {
+      flex: 1;
+    }
+
+    .bth-callout-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-ferni);
+      margin-bottom: 0.25rem;
+    }
+
+    .bth-callout-text {
+      font-size: 0.9375rem;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ============================================
+       CARD STYLES
+       ============================================ */
+    .card {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-nayan), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:hover {
+      border-color: var(--glass-border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 40px var(--glass-glow-nayan);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--color-text-primary);
+    }
+
+    .card-subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .card-badge {
+      padding: 0.375rem 0.875rem;
+      background: linear-gradient(135deg, var(--color-nayan), var(--color-maya));
+      border-radius: 9999px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-primary);
+    }
+
+    /* ============================================
+       GRID LAYOUTS
+       ============================================ */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============================================
+       APPLE FITNESS ACTIVITY RINGS
+       ============================================ */
+    .rings-container {
+      display: flex;
+      gap: 4rem;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rings-main {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    .rings-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 10px currentColor);
+      stroke-dasharray: 0 100;
+      transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ring-progress.animate {
+      stroke-dasharray: var(--progress) 100;
+    }
+
+    .ring-glow {
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.4;
+      filter: blur(6px);
+      stroke-dasharray: 0 100;
+      transition: stroke-dasharray 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .ring-glow.animate {
+      stroke-dasharray: var(--progress) 100;
+    }
+
+    .rings-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .rings-center-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 3.5rem;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--color-ferni), var(--color-nayan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .rings-center-label {
+      font-size: 0.875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.25rem;
+    }
+
+    .rings-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .ring-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .ring-legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: 0 0 16px currentColor;
+    }
+
+    .ring-legend-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ring-legend-label {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ring-legend-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .ring-legend-goal {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    /* ============================================
+       MONTE CARLO FAN CHART
+       ============================================ */
+    .projection-container {
+      position: relative;
+      height: 380px;
+      margin: 1.5rem 0;
+    }
+
+    .projection-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .confidence-band {
+      transition: opacity 0.3s ease;
+    }
+
+    .projection-svg:hover .confidence-band {
+      opacity: 0.85;
+    }
+
+    .projection-line {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .projection-line-historical {
+      stroke: var(--color-nayan);
+    }
+
+    .projection-line-forecast {
+      stroke: var(--color-nayan);
+      stroke-dasharray: 8 4;
+      opacity: 0.75;
+    }
+
+    .today-marker {
+      stroke: var(--color-text-muted);
+      stroke-dasharray: 4 4;
+    }
+
+    .projection-legend {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+
+    .projection-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    .legend-line {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+    }
+
+    .legend-band {
+      width: 24px;
+      height: 12px;
+      border-radius: 3px;
+    }
+
+    .scenario-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .scenario-card {
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .scenario-card:hover {
+      border-color: var(--glass-border-hover);
+      transform: translateY(-2px);
+    }
+
+    .scenario-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .scenario-card.pessimistic::before {
+      background: linear-gradient(90deg, var(--color-jordan), var(--color-maya));
+    }
+
+    .scenario-card.expected::before {
+      background: linear-gradient(90deg, var(--color-nayan), var(--color-maya));
+    }
+
+    .scenario-card.optimistic::before {
+      background: linear-gradient(90deg, var(--color-ferni), var(--color-peter));
+    }
+
+    .scenario-label {
+      font-size: 0.6875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+
+    .scenario-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 2rem;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .scenario-card.pessimistic .scenario-value { color: var(--color-jordan); }
+    .scenario-card.expected .scenario-value { color: var(--color-nayan); }
+    .scenario-card.optimistic .scenario-value { color: var(--color-ferni); }
+
+    .scenario-change {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* ============================================
+       GLASSMORPHISM DASHBOARD
+       ============================================ */
+    .glass-dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .glass-card {
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(245, 242, 237, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 40px var(--glass-glow-nayan);
+      border-color: var(--color-nayan);
+    }
+
+    .glass-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .glass-card-title {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .glass-card-badge {
+      padding: 0.25rem 0.625rem;
+      border-radius: 6px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+    }
+
+    .glass-card-badge.positive {
+      background: rgba(74, 103, 65, 0.2);
+      color: var(--color-ferni);
+    }
+
+    .glass-card-badge.negative {
+      background: rgba(196, 133, 106, 0.2);
+      color: var(--color-jordan);
+    }
+
+    .glass-card-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 2.5rem;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      color: var(--color-text-primary);
+    }
+
+    .glass-card-subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    .glass-sparkline {
+      height: 60px;
+      margin-top: 1rem;
+    }
+
+    .glass-sparkline svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ============================================
+       REAL-TIME PULSE INDICATORS
+       ============================================ */
+    .pulse-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .pulse-card {
+      padding: 1.5rem;
+      background: var(--glass-bg);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .pulse-card:hover {
+      border-color: var(--glass-border-hover);
+      transform: translateY(-2px);
+    }
+
+    .pulse-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .pulse-indicator.healthy {
+      background: var(--color-ferni);
+      box-shadow: 0 0 12px var(--color-ferni);
+    }
+
+    .pulse-indicator.warning {
+      background: var(--color-nayan);
+      box-shadow: 0 0 12px var(--color-nayan);
+    }
+
+    .pulse-indicator.critical {
+      background: var(--color-jordan);
+      box-shadow: 0 0 12px var(--color-jordan);
+    }
+
+    .pulse-value {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.75rem;
+      font-weight: 400;
+      font-style: italic;
+      margin-bottom: 0.25rem;
+      color: var(--color-text-primary);
+    }
+
+    .pulse-label {
+      font-size: 0.6875rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-trend {
+      font-size: 0.8125rem;
+      margin-top: 0.5rem;
+    }
+
+    .pulse-trend.up { color: var(--color-ferni); }
+    .pulse-trend.down { color: var(--color-jordan); }
+
+    /* ============================================
+       CONTRIBUTION CALENDAR
+       ============================================ */
+    .calendar-wrapper {
+      overflow-x: auto;
+      padding-bottom: 1rem;
+    }
+
+    .calendar-days {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-right: 0.75rem;
+      font-size: 10px;
+      color: var(--color-text-muted);
+    }
+
+    .calendar-day {
+      height: 12px;
+      line-height: 12px;
+    }
+
+    .calendar-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .calendar-row {
+      display: flex;
+      gap: 3px;
+    }
+
+    .calendar-cell {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      transition: all 0.2s ease;
+    }
+
+    .calendar-cell:hover {
+      transform: scale(1.4);
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .calendar-cell.level-0 { background: rgba(74, 103, 65, 0.08); }
+    .calendar-cell.level-1 { background: rgba(74, 103, 65, 0.25); }
+    .calendar-cell.level-2 { background: rgba(74, 103, 65, 0.45); }
+    .calendar-cell.level-3 { background: rgba(74, 103, 65, 0.65); }
+    .calendar-cell.level-4 { background: var(--color-ferni); box-shadow: 0 0 8px rgba(74, 103, 65, 0.5); }
+
+    .calendar-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .calendar-legend-cells {
+      display: flex;
+      gap: 3px;
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--glass-border);
+      margin-top: 4rem;
+    }
+
+    footer p {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+    }
+
+    footer a {
+      color: var(--color-ferni);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover {
+      color: var(--color-nayan);
+    }
+
+    /* ============================================
+       REDUCED MOTION
+       ============================================ */
+    @media (prefers-reduced-motion: reduce) {
+      .orb,
+      .ring-progress,
+      .ring-glow,
+      .pulse-indicator {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Background -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Shared Navigation (injected by nav.js) -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-badge">Better Than Human Data Insights</div>
+    <h1 class="hero-title">Premium Data Visualization</h1>
+    <p class="hero-subtitle">
+      Insights that reveal patterns humans miss. Visualizations that anticipate needs before they're expressed. Data storytelling that feels like intuition.
+    </p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value">20+</div>
+        <div class="hero-stat-label">Chart Types</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">6</div>
+        <div class="hero-stat-label">Categories</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value">100%</div>
+        <div class="hero-stat-label">Responsive</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section Navigation -->
+  <nav class="section-nav">
+    <div class="section-nav-inner">
+      <a href="#rings" class="section-nav-link active">Activity Rings</a>
+      <a href="#projections" class="section-nav-link">Monte Carlo</a>
+      <a href="#glass" class="section-nav-link">Glass Dashboard</a>
+      <a href="#pulse" class="section-nav-link">Real-Time Pulse</a>
+      <a href="#calendar" class="section-nav-link">Activity Calendar</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- SECTION: Activity Rings -->
+    <section id="rings" class="section">
+      <header class="section-header">
+        <p class="section-overline">Personal Growth</p>
+        <h2 class="section-title">Activity Rings</h2>
+        <p class="section-description">
+          Concentric rings that transform abstract goals into visceral visual rewards. Each ring closing triggers dopamine - pure behavioral design.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Human friends forget your goals after a week. Ferni tracks every micro-completion, notices patterns across months, and celebrates streaks before you realize you're on one.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Daily Activity</h3>
+            <p class="card-subtitle">Close your rings, unlock your potential</p>
+          </div>
+          <span class="card-badge">Premium</span>
+        </div>
+
+        <div class="rings-container">
+          <div class="rings-main">
+            <svg class="rings-svg" viewBox="0 0 100 100">
+              <defs>
+                <!-- Ferni green (Growth) -->
+                <linearGradient id="moveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#4A6741"/>
+                  <stop offset="100%" stop-color="#5a7a51"/>
+                </linearGradient>
+                <!-- Nayan gold (Wisdom) -->
+                <linearGradient id="exerciseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#B8956A"/>
+                  <stop offset="100%" stop-color="#c9a67a"/>
+                </linearGradient>
+                <!-- Peter teal (Balance) -->
+                <linearGradient id="standGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3A6B73"/>
+                  <stop offset="100%" stop-color="#4a7b83"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Growth Ring (Outer) - Ferni green -->
+              <circle class="ring-bg" cx="50" cy="50" r="44" stroke="rgba(74, 103, 65, 0.15)" stroke-width="8" fill="none"/>
+              <circle class="ring-glow" cx="50" cy="50" r="44" stroke="url(#moveGrad)" stroke-width="8" style="--progress: 85;" pathLength="100"/>
+              <circle class="ring-progress" cx="50" cy="50" r="44" stroke="url(#moveGrad)" stroke-width="8" style="--progress: 85;" pathLength="100"/>
+
+              <!-- Wisdom Ring (Middle) - Nayan gold -->
+              <circle class="ring-bg" cx="50" cy="50" r="33" stroke="rgba(184, 149, 106, 0.15)" stroke-width="8" fill="none"/>
+              <circle class="ring-glow" cx="50" cy="50" r="33" stroke="url(#exerciseGrad)" stroke-width="8" style="--progress: 72;" pathLength="100"/>
+              <circle class="ring-progress" cx="50" cy="50" r="33" stroke="url(#exerciseGrad)" stroke-width="8" style="--progress: 72;" pathLength="100"/>
+
+              <!-- Balance Ring (Inner) - Peter teal -->
+              <circle class="ring-bg" cx="50" cy="50" r="22" stroke="rgba(58, 107, 115, 0.15)" stroke-width="8" fill="none"/>
+              <circle class="ring-glow" cx="50" cy="50" r="22" stroke="url(#standGrad)" stroke-width="8" style="--progress: 92;" pathLength="100"/>
+              <circle class="ring-progress" cx="50" cy="50" r="22" stroke="url(#standGrad)" stroke-width="8" style="--progress: 92;" pathLength="100"/>
+            </svg>
+
+            <div class="rings-center">
+              <div class="rings-center-value">847</div>
+              <div class="rings-center-label">Calories</div>
+            </div>
+          </div>
+
+          <div class="rings-legend">
+            <div class="ring-legend-item">
+              <div class="ring-legend-dot" style="background: linear-gradient(135deg, #4A6741, #5a7a51); color: #4A6741;"></div>
+              <div class="ring-legend-info">
+                <span class="ring-legend-label">Growth</span>
+                <span class="ring-legend-value" style="color: #4A6741;">847/1000</span>
+                <span class="ring-legend-goal">85% of daily goal</span>
+              </div>
+            </div>
+            <div class="ring-legend-item">
+              <div class="ring-legend-dot" style="background: linear-gradient(135deg, #B8956A, #c9a67a); color: #B8956A;"></div>
+              <div class="ring-legend-info">
+                <span class="ring-legend-label">Wisdom</span>
+                <span class="ring-legend-value" style="color: #B8956A;">43/60 min</span>
+                <span class="ring-legend-goal">72% of daily goal</span>
+              </div>
+            </div>
+            <div class="ring-legend-item">
+              <div class="ring-legend-dot" style="background: linear-gradient(135deg, #3A6B73, #4a7b83); color: #3A6B73;"></div>
+              <div class="ring-legend-info">
+                <span class="ring-legend-label">Balance</span>
+                <span class="ring-legend-value" style="color: #3A6B73;">11/12 hrs</span>
+                <span class="ring-legend-goal">92% of daily goal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Monte Carlo Projections -->
+    <section id="projections" class="section">
+      <header class="section-header">
+        <p class="section-overline">Uncertainty Visualization</p>
+        <h2 class="section-title">Monte Carlo Fan Charts</h2>
+        <p class="section-description">
+          The future is uncertain - and that's okay. Fan charts show the range of possibilities, not a single prediction. The wider the fan, the more uncertainty.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Financial advisors give you a single number. Ferni shows you 10,000 simulated futures - the pessimistic, the optimistic, and everything in between. Honest uncertainty builds trust.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Portfolio Projection</h3>
+            <p class="card-subtitle">20-year wealth trajectory with confidence bands</p>
+          </div>
+          <span class="card-badge">Financial</span>
+        </div>
+
+        <div class="projection-container">
+          <svg class="projection-svg" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <!-- Nayan gold to Maya terracotta gradient -->
+              <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#B8956A"/>
+                <stop offset="100%" stop-color="#A67A6A"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Grid lines - warm cream tint -->
+            <g stroke="rgba(245, 242, 237, 0.06)" stroke-width="1">
+              <line x1="60" y1="50" x2="60" y2="300"/>
+              <line x1="60" y1="300" x2="760" y2="300"/>
+              <line x1="60" y1="237.5" x2="760" y2="237.5" stroke-dasharray="4 4"/>
+              <line x1="60" y1="175" x2="760" y2="175" stroke-dasharray="4 4"/>
+              <line x1="60" y1="112.5" x2="760" y2="112.5" stroke-dasharray="4 4"/>
+              <line x1="60" y1="50" x2="760" y2="50" stroke-dasharray="4 4"/>
+            </g>
+
+            <!-- Y-axis labels -->
+            <text x="50" y="305" fill="var(--color-text-muted)" text-anchor="end" font-size="11">$0</text>
+            <text x="50" y="242" fill="var(--color-text-muted)" text-anchor="end" font-size="11">$500K</text>
+            <text x="50" y="180" fill="var(--color-text-muted)" text-anchor="end" font-size="11">$1M</text>
+            <text x="50" y="117" fill="var(--color-text-muted)" text-anchor="end" font-size="11">$1.5M</text>
+            <text x="50" y="55" fill="var(--color-text-muted)" text-anchor="end" font-size="11">$2M</text>
+
+            <!-- X-axis labels -->
+            <text x="60" y="320" fill="var(--color-text-muted)" font-size="11">2020</text>
+            <text x="235" y="320" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">2025</text>
+            <text x="410" y="320" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">2030</text>
+            <text x="585" y="320" fill="var(--color-text-muted)" font-size="11" text-anchor="middle">2035</text>
+            <text x="760" y="320" fill="var(--color-text-muted)" font-size="11" text-anchor="end">2040</text>
+
+            <!-- Today marker -->
+            <line class="today-marker" x1="410" y1="40" x2="410" y2="300"/>
+            <text x="410" y="32" fill="var(--color-text-secondary)" text-anchor="middle" font-size="11" font-weight="500">Today</text>
+
+            <!-- 95% Confidence Band -->
+            <path class="confidence-band" fill="var(--band-95)"
+                  d="M410,200 Q510,175 600,120 Q700,55 760,25
+                     L760,290 Q700,270 600,250 Q510,230 410,200 Z"/>
+
+            <!-- 75% Confidence Band -->
+            <path class="confidence-band" fill="var(--band-75)"
+                  d="M410,200 Q510,170 600,135 Q700,85 760,50
+                     L760,265 Q700,245 600,220 Q510,210 410,200 Z"/>
+
+            <!-- 50% Confidence Band -->
+            <path class="confidence-band" fill="var(--band-50)"
+                  d="M410,200 Q510,165 600,150 Q700,115 760,80
+                     L760,235 Q700,215 600,195 Q510,195 410,200 Z"/>
+
+            <!-- Historical line -->
+            <path class="projection-line projection-line-historical" stroke="url(#lineGrad)"
+                  d="M60,290 Q120,285 180,275 Q250,258 320,235 Q365,218 410,200"/>
+
+            <!-- Forecast line (median) -->
+            <path class="projection-line projection-line-forecast" stroke="url(#lineGrad)"
+                  d="M410,200 Q510,170 600,145 Q700,115 760,90"/>
+
+            <!-- Current value dot - Nayan gold -->
+            <circle cx="410" cy="200" r="6" fill="#B8956A" style="filter: drop-shadow(0 0 10px #B8956A);"/>
+          </svg>
+        </div>
+
+        <div class="projection-legend">
+          <div class="projection-legend-item">
+            <div class="legend-line" style="background: linear-gradient(90deg, #B8956A, #A67A6A);"></div>
+            <span>Historical</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-line" style="background: linear-gradient(90deg, #B8956A, #A67A6A); opacity: 0.5;"></div>
+            <span>Median Forecast</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-band" style="background: var(--band-50);"></div>
+            <span>50% Confidence</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-band" style="background: var(--band-95);"></div>
+            <span>95% Confidence</span>
+          </div>
+        </div>
+
+        <div class="scenario-cards">
+          <div class="scenario-card pessimistic">
+            <div class="scenario-label">10th Percentile</div>
+            <div class="scenario-value">$680K</div>
+            <div class="scenario-change">+36% from today</div>
+          </div>
+          <div class="scenario-card expected">
+            <div class="scenario-label">Median Projection</div>
+            <div class="scenario-value">$1.2M</div>
+            <div class="scenario-change">+140% from today</div>
+          </div>
+          <div class="scenario-card optimistic">
+            <div class="scenario-label">90th Percentile</div>
+            <div class="scenario-value">$2.1M</div>
+            <div class="scenario-change">+320% from today</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Glassmorphism Dashboard -->
+    <section id="glass" class="section">
+      <header class="section-header">
+        <p class="section-overline">Premium Design</p>
+        <h2 class="section-title">Glassmorphism Dashboard</h2>
+        <p class="section-description">
+          Frosted glass creates depth and hierarchy. Translucent layers add sophistication while maintaining readability. The premium aesthetic for wealth management.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Spreadsheets overwhelm. Ferni surfaces the 3-4 metrics that actually matter right now, with sparklines that reveal momentum without requiring analysis.
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-dashboard">
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Net Worth</span>
+            <span class="glass-card-badge positive">+8.2%</span>
+          </div>
+          <div class="glass-card-value">$847,320</div>
+          <div class="glass-card-subtitle">+$64,280 this year</div>
+          <div class="glass-sparkline" id="sparkline1"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Monthly Savings</span>
+            <span class="glass-card-badge positive">+12%</span>
+          </div>
+          <div class="glass-card-value">$4,850</div>
+          <div class="glass-card-subtitle">42% savings rate</div>
+          <div class="glass-sparkline" id="sparkline2"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Investment Returns</span>
+            <span class="glass-card-badge positive">+24%</span>
+          </div>
+          <div class="glass-card-value">$156,400</div>
+          <div class="glass-card-subtitle">YTD performance</div>
+          <div class="glass-sparkline" id="sparkline3"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Emergency Fund</span>
+          </div>
+          <div class="glass-card-value">8.4 mo</div>
+          <div class="glass-card-subtitle">$42,000 available</div>
+          <div class="glass-sparkline" id="sparkline4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Real-Time Pulse -->
+    <section id="pulse" class="section">
+      <header class="section-header">
+        <p class="section-overline">Live Status</p>
+        <h2 class="section-title">Real-Time Pulse Indicators</h2>
+        <p class="section-description">
+          Animated status indicators that show system health at a glance. Green pulses mean thriving, yellow means attention, red means action required.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Humans check dashboards when something breaks. Ferni monitors continuously, notices degradation before failure, and alerts you before you even know to look.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">System Health</h3>
+            <p class="card-subtitle">Live monitoring with trend indicators</p>
+          </div>
+          <span class="card-badge">Live</span>
+        </div>
+
+        <div class="pulse-grid">
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">99.9%</div>
+            <div class="pulse-label">Uptime</div>
+            <div class="pulse-trend up">+0.1% this month</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">24ms</div>
+            <div class="pulse-label">Latency</div>
+            <div class="pulse-trend up">-12ms improved</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator warning"></div>
+            <div class="pulse-value">78%</div>
+            <div class="pulse-label">CPU Usage</div>
+            <div class="pulse-trend down">+15% load</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">4.2K</div>
+            <div class="pulse-label">Sessions</div>
+            <div class="pulse-trend up">+847 today</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">0</div>
+            <div class="pulse-label">Errors</div>
+            <div class="pulse-trend up">Clean slate</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">$0.02</div>
+            <div class="pulse-label">Cost/Req</div>
+            <div class="pulse-trend up">-8% optimized</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Activity Calendar -->
+    <section id="calendar" class="section">
+      <header class="section-header">
+        <p class="section-overline">Time-Based Patterns</p>
+        <h2 class="section-title">Activity Calendar</h2>
+        <p class="section-description">
+          GitHub-style contribution calendars reveal patterns invisible in daily data: weekly rhythms, seasonal dips, and the power of streaks.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">F</div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Human</div>
+          <div class="bth-callout-text">
+            Friends see isolated days. Ferni sees the arc of months - the slow build of consistency, the recovery from breaks, the patterns that predict success.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">365 Days of Consistency</h3>
+            <p class="card-subtitle">Each cell is a day, darker means more activity</p>
+          </div>
+        </div>
+
+        <div class="calendar-wrapper" style="display: flex;">
+          <div class="calendar-days">
+            <div class="calendar-day">Mon</div>
+            <div class="calendar-day"></div>
+            <div class="calendar-day">Wed</div>
+            <div class="calendar-day"></div>
+            <div class="calendar-day">Fri</div>
+            <div class="calendar-day"></div>
+            <div class="calendar-day">Sun</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <div class="calendar-legend">
+          <span>Less</span>
+          <div class="calendar-legend-cells">
+            <div class="calendar-cell level-0"></div>
+            <div class="calendar-cell level-1"></div>
+            <div class="calendar-cell level-2"></div>
+            <div class="calendar-cell level-3"></div>
+            <div class="calendar-cell level-4"></div>
+          </div>
+          <span>More</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
+
+  <script>
+    // ============================================
+    // ACTIVITY RINGS ANIMATION
+    // ============================================
+    function animateRings() {
+      var rings = document.querySelectorAll('.ring-progress, .ring-glow');
+      setTimeout(function() {
+        rings.forEach(function(ring) {
+          ring.classList.add('animate');
+        });
+      }, 300);
+    }
+
+    // ============================================
+    // SPARKLINES WITH GRADIENTS
+    // ============================================
+    function createSparkline(containerId, data, color) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 200 60');
+      svg.setAttribute('preserveAspectRatio', 'none');
+
+      // Create gradient
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      var gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      gradient.setAttribute('id', 'grad-' + containerId);
+      gradient.setAttribute('x1', '0%');
+      gradient.setAttribute('y1', '0%');
+      gradient.setAttribute('x2', '0%');
+      gradient.setAttribute('y2', '100%');
+
+      var stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', color);
+      stop1.setAttribute('stop-opacity', '0.4');
+
+      var stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', color);
+      stop2.setAttribute('stop-opacity', '0');
+
+      gradient.appendChild(stop1);
+      gradient.appendChild(stop2);
+      defs.appendChild(gradient);
+      svg.appendChild(defs);
+
+      // Calculate points
+      var max = Math.max.apply(null, data);
+      var min = Math.min.apply(null, data);
+      var range = max - min || 1;
+      var width = 200;
+      var height = 60;
+      var padding = 5;
+
+      var points = data.map(function(val, i) {
+        var x = (i / (data.length - 1)) * width;
+        var y = padding + ((max - val) / range) * (height - padding * 2);
+        return x + ',' + y;
+      });
+
+      // Area path
+      var areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      var areaD = 'M0,' + height + ' L' + points.join(' L') + ' L' + width + ',' + height + ' Z';
+      areaPath.setAttribute('d', areaD);
+      areaPath.setAttribute('fill', 'url(#grad-' + containerId + ')');
+      svg.appendChild(areaPath);
+
+      // Line path
+      var linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      linePath.setAttribute('d', 'M' + points.join(' L'));
+      linePath.setAttribute('fill', 'none');
+      linePath.setAttribute('stroke', color);
+      linePath.setAttribute('stroke-width', '2');
+      linePath.setAttribute('stroke-linecap', 'round');
+      linePath.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(linePath);
+
+      // End dot
+      var lastPoint = points[points.length - 1].split(',');
+      var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', lastPoint[0]);
+      dot.setAttribute('cy', lastPoint[1]);
+      dot.setAttribute('r', '4');
+      dot.setAttribute('fill', color);
+      dot.style.filter = 'drop-shadow(0 0 6px ' + color + ')';
+      svg.appendChild(dot);
+
+      container.appendChild(svg);
+    }
+
+    // ============================================
+    // CONTRIBUTION CALENDAR
+    // ============================================
+    function createCalendar() {
+      var grid = document.getElementById('calendarGrid');
+      if (!grid) return;
+
+      // Generate 52 weeks of data
+      for (var week = 0; week < 52; week++) {
+        var row = document.createElement('div');
+        row.className = 'calendar-row';
+
+        for (var day = 0; day < 7; day++) {
+          var cell = document.createElement('div');
+          cell.className = 'calendar-cell';
+
+          // Random level with weighted distribution
+          var rand = Math.random();
+          var level;
+          if (rand < 0.25) level = 0;
+          else if (rand < 0.45) level = 1;
+          else if (rand < 0.65) level = 2;
+          else if (rand < 0.85) level = 3;
+          else level = 4;
+
+          cell.classList.add('level-' + level);
+          row.appendChild(cell);
+        }
+
+        grid.appendChild(row);
+      }
+    }
+
+    // ============================================
+    // SECTION NAV HIGHLIGHT
+    // ============================================
+    function setupNavHighlight() {
+      var sections = document.querySelectorAll('.section');
+      var navLinks = document.querySelectorAll('.section-nav-link');
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var id = entry.target.id;
+            navLinks.forEach(function(link) {
+              link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+            });
+          }
+        });
+      }, { threshold: 0.3, rootMargin: '-100px 0px -60% 0px' });
+
+      sections.forEach(function(section) {
+        observer.observe(section);
+      });
+    }
+
+    // ============================================
+    // SCROLL ANIMATIONS
+    // ============================================
+    function setupScrollAnimations() {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var rings = entry.target.querySelectorAll('.ring-progress, .ring-glow');
+            rings.forEach(function(ring) {
+              ring.classList.add('animate');
+            });
+          }
+        });
+      }, { threshold: 0.3 });
+
+      document.querySelectorAll('.section').forEach(function(section) {
+        observer.observe(section);
+      });
+    }
+
+    // ============================================
+    // INITIALIZE
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      animateRings();
+      createCalendar();
+      setupNavHighlight();
+      setupScrollAnimations();
+
+      // Create sparklines with sample data - using persona colors
+      createSparkline('sparkline1', [720, 745, 760, 780, 795, 810, 825, 832, 840, 847], '#B8956A');  // Nayan gold
+      createSparkline('sparkline2', [3200, 3400, 3600, 3900, 4100, 4300, 4500, 4650, 4750, 4850], '#3A6B73');  // Peter teal
+      createSparkline('sparkline3', [85, 92, 105, 118, 125, 135, 142, 148, 153, 156], '#4A6741');  // Ferni green
+      createSparkline('sparkline4', [6.2, 6.5, 6.8, 7.1, 7.4, 7.7, 7.9, 8.1, 8.3, 8.4], '#A67A6A');  // Maya terracotta
+    });
+  </script>
+
+  <!-- Shared Footer (injected by nav.js) -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Component -->
+  <script src="../shared/nav.js" defer></script>
+</body>
+</html>

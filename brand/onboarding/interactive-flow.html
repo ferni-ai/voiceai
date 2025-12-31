@@ -7,66 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Design System: Single source of truth -->
+    <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../brand-components.css">
     <style>
-        /* ============================================
-           FERNI DESIGN SYSTEM TOKENS
-           Source: design-system/tokens/*.json
-           ============================================ */
+        /* Page-specific overrides only */
         :root {
-            /* Typography */
-            --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
-            --font-body: 'Inter', system-ui, sans-serif;
-            --font-accent: 'Sora', system-ui, sans-serif;
-
-            /* Zen Garden - Light Theme */
-            --bg-primary: #F5F1E8;      /* Paper Cream */
-            --bg-secondary: #f5f2ed;    /* Secondary surface */
-            --bg-elevated: #FFFDFB;     /* Elevated surfaces */
-            --bg-phone: #2C2520;        /* Phone frame - Natural Ink */
-
-            /* Text Colors */
-            --text-primary: #2C2520;    /* Natural Ink */
-            --text-secondary: #5C544A;
-            --text-muted: #756A5E;
-            --text-inverted: #FFFDFB;
-
-            /* Accent Colors */
-            --accent-primary: #3D5A45;  /* Forest Green */
-            --accent-warm: #C4A265;     /* Warm Amber */
-
-            /* Persona Colors */
-            --persona-ferni: #4a6741;
-            --persona-maya: #a67a6a;
-            --persona-peter: #3a6b73;
-            --persona-jordan: #c4856a;
-            --persona-alex: #5a6b8a;
-            --persona-nayan: #b8956a;
-
-            /* Glass & Overlays */
-            --glass-bg: rgba(255, 253, 251, 0.85);
-            --glass-border: rgba(44, 37, 32, 0.08);
-            --overlay-soft: rgba(44, 37, 32, 0.04);
-
-            /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.05);
-            --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
-            --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.12);
-            --shadow-glow: 0 0 60px rgba(74, 103, 65, 0.15);
-
-            /* Border Radius */
-            --radius-sm: 4px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --radius-xl: 16px;
-            --radius-2xl: 24px;
-            --radius-full: 9999px;
-
-            /* Animation */
-            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-            --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            --duration-fast: 150ms;
-            --duration-normal: 300ms;
-            --duration-slow: 500ms;
+            --bg-phone: var(--color-natural-ink);
+            --accent-warm: #C4A265;
         }
 
         * {
@@ -77,13 +25,71 @@
 
         body {
             font-family: var(--font-body);
-            background: var(--bg-primary);
+            background: var(--color-bg-primary);
             min-height: 100vh;
-            color: var(--text-primary);
+            color: var(--color-text-primary);
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        /* ============================================
+           BRAND NAVIGATION
+           ============================================ */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-8);
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-bottom: 1px solid var(--color-border-subtle);
+            z-index: 1000;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            text-decoration: none;
+            color: var(--color-text-primary);
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: var(--font-medium);
+        }
+
+        .nav-logo svg {
+            width: var(--space-10);
+            height: var(--space-10);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: var(--space-6);
+        }
+
+        .nav-link {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            transition: color var(--duration-normal);
+        }
+
+        .nav-link:hover {
+            color: var(--color-text-primary);
+        }
+
+        .nav-current {
+            color: var(--color-ferni);
+            font-weight: var(--font-medium);
+            font-size: var(--text-sm);
         }
 
         /* ============================================
@@ -98,16 +104,14 @@
             height: 812px;
             background: var(--bg-phone);
             border-radius: 50px;
-            padding: 20px;
-            box-shadow:
-                0 50px 100px rgba(44, 37, 32, 0.25),
-                0 0 0 1px rgba(44, 37, 32, 0.1);
+            padding: var(--space-5);
+            box-shadow: var(--shadow-2xl), 0 0 0 1px var(--color-border-subtle);
         }
 
         .phone-screen {
             width: 100%;
             height: 100%;
-            background: var(--bg-elevated);
+            background: var(--color-bg-elevated);
             border-radius: 35px;
             overflow: hidden;
             position: relative;
@@ -126,12 +130,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 40px 30px;
+            padding: var(--space-10) var(--space-8);
             opacity: 0;
             transform: translateX(100%);
             transition: all var(--duration-slow) var(--ease-out);
             text-align: center;
-            background: var(--bg-elevated);
+            background: var(--color-bg-elevated);
         }
 
         .screen.active {
@@ -151,11 +155,11 @@
             width: 120px;
             height: 120px;
             border-radius: var(--radius-full);
-            background: var(--persona-ferni);
-            margin-bottom: 40px;
+            background: var(--color-ferni);
+            margin-bottom: var(--space-10);
             position: relative;
             animation: breathe 4s ease-in-out infinite;
-            box-shadow: var(--shadow-glow);
+            box-shadow: var(--shadow-glow-ferni);
         }
 
         .avatar::after {
@@ -195,30 +199,30 @@
            ============================================ */
         .title {
             font-family: var(--font-display);
-            font-size: 1.8rem;
-            font-weight: 400;
-            margin-bottom: 20px;
-            line-height: 1.4;
-            color: var(--text-primary);
+            font-size: var(--text-2xl);
+            font-weight: var(--font-normal);
+            margin-bottom: var(--space-5);
+            line-height: var(--leading-tight);
+            color: var(--color-text-primary);
         }
 
         .subtitle {
             font-family: var(--font-body);
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 30px;
+            font-size: var(--text-lg);
+            color: var(--color-text-secondary);
+            line-height: var(--leading-relaxed);
+            margin-bottom: var(--space-8);
         }
 
         .copy {
             font-family: var(--font-body);
-            font-size: 1.1rem;
+            font-size: var(--text-lg);
             line-height: 1.8;
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
         }
 
         .copy p {
-            margin-bottom: 12px;
+            margin-bottom: var(--space-3);
             opacity: 0;
             animation: fadeInUp var(--duration-slow) forwards;
         }
@@ -238,16 +242,16 @@
            ============================================ */
         .btn {
             font-family: var(--font-accent);
-            padding: 16px 40px;
-            background: var(--accent-primary);
+            padding: var(--space-4) var(--space-10);
+            background: var(--color-accent);
             border: none;
             border-radius: var(--radius-full);
-            color: var(--text-inverted);
-            font-size: 1rem;
-            font-weight: 500;
+            color: var(--color-text-inverted);
+            font-size: var(--text-base);
+            font-weight: var(--font-medium);
             cursor: pointer;
             transition: all var(--duration-normal) var(--ease-out);
-            margin-top: 30px;
+            margin-top: var(--space-8);
             opacity: 0;
             animation: fadeIn var(--duration-slow) 1.5s forwards;
         }
@@ -266,25 +270,25 @@
            ============================================ */
         .progress {
             position: absolute;
-            bottom: 30px;
+            bottom: var(--space-8);
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 8px;
+            gap: var(--space-2);
         }
 
         .dot {
-            width: 8px;
-            height: 8px;
+            width: var(--space-2);
+            height: var(--space-2);
             border-radius: var(--radius-full);
-            background: var(--overlay-soft);
-            border: 1px solid var(--glass-border);
+            background: var(--color-border-subtle);
+            border: 1px solid var(--color-border-subtle);
             transition: all var(--duration-normal);
         }
 
         .dot.active {
-            background: var(--persona-ferni);
-            width: 24px;
+            background: var(--color-ferni);
+            width: var(--space-6);
             border-radius: var(--radius-sm);
             border-color: transparent;
         }
@@ -293,14 +297,14 @@
            SCREEN 1: WELCOME HOOK
            ============================================ */
         .screen-1 {
-            background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-primary) 100%);
+            background: linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-primary) 100%);
         }
 
         .screen-1 .hook-text {
             font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 300;
-            color: var(--text-primary);
+            font-size: var(--text-xl);
+            font-weight: var(--font-light);
+            color: var(--color-text-primary);
             opacity: 0;
             animation: fadeInUp 0.8s forwards;
         }
@@ -309,8 +313,8 @@
         .screen-1 .hook-text:nth-child(3) { animation-delay: 1s; }
         .screen-1 .hook-text:nth-child(4) {
             animation-delay: 1.8s;
-            font-size: 1.8rem;
-            color: var(--text-secondary);
+            font-size: var(--text-2xl);
+            color: var(--color-text-secondary);
         }
 
         /* ============================================
@@ -320,10 +324,10 @@
             width: 100px;
             height: 100px;
             border-radius: var(--radius-full);
-            background: linear-gradient(135deg, var(--persona-ferni), #5a8751);
+            background: linear-gradient(135deg, var(--color-ferni), #5a8751);
             border: none;
             cursor: pointer;
-            margin: 30px 0;
+            margin: var(--space-8) 0;
             position: relative;
             transition: all var(--duration-normal) var(--ease-out);
             display: flex;
@@ -332,10 +336,10 @@
         }
 
         .mic-btn svg {
-            width: 40px;
-            height: 40px;
+            width: var(--space-10);
+            height: var(--space-10);
             fill: none;
-            stroke: var(--text-inverted);
+            stroke: var(--color-text-inverted);
             stroke-width: 1.5;
             stroke-linecap: round;
             stroke-linejoin: round;
@@ -357,23 +361,23 @@
 
         .waveform {
             display: flex;
-            gap: 4px;
+            gap: var(--space-1);
             align-items: center;
             height: 60px;
-            margin: 20px 0;
+            margin: var(--space-5) 0;
         }
 
         .wave-bar {
             width: 6px;
-            background: var(--persona-ferni);
+            background: var(--color-ferni);
             border-radius: 3px;
             transition: height 0.1s;
         }
 
         .voice-status {
             font-family: var(--font-body);
-            color: var(--text-secondary);
-            margin-top: 20px;
+            color: var(--color-text-secondary);
+            margin-top: var(--space-5);
         }
 
         /* ============================================
@@ -383,8 +387,8 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
+            gap: var(--space-4);
+            margin: var(--space-5) 0;
         }
 
         .team-avatar {
@@ -404,10 +408,16 @@
             width: 28px;
             height: 28px;
             fill: none;
-            stroke: var(--text-inverted);
+            stroke: var(--color-text-inverted);
             stroke-width: 1.5;
             stroke-linecap: round;
             stroke-linejoin: round;
+        }
+
+        /* Accessibility: Dark icons on light persona backgrounds (Jordan, Nayan) */
+        .team-avatar[style*="color-jordan"] svg,
+        .team-avatar[style*="color-nayan"] svg {
+            stroke: var(--color-natural-ink);
         }
 
         .team-avatar.visible {
@@ -422,23 +432,23 @@
 
         .persona-label {
             font-family: var(--font-accent);
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            margin-top: 10px;
-            min-height: 24px;
-            font-weight: 500;
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+            margin-top: var(--space-2);
+            min-height: var(--space-6);
+            font-weight: var(--font-medium);
         }
 
         /* ============================================
            SCREEN 6: COMPLETE
            ============================================ */
         .screen-6 {
-            background: linear-gradient(180deg, var(--bg-elevated) 0%, #e8ebe5 100%);
+            background: linear-gradient(180deg, var(--color-bg-elevated) 0%, #e8ebe5 100%);
         }
 
         .screen-6 .copy p:last-child {
-            font-weight: 500;
-            color: var(--text-primary);
+            font-weight: var(--font-medium);
+            color: var(--color-text-primary);
         }
 
         @keyframes celebrate {
@@ -448,39 +458,39 @@
         }
 
         /* ============================================
-           NAVIGATION
+           NAVIGATION HINTS
            ============================================ */
         .nav-hint {
             position: fixed;
-            bottom: 30px;
+            bottom: var(--space-8);
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 20px;
+            gap: var(--space-5);
             z-index: 100;
         }
 
         .nav-btn {
             font-family: var(--font-body);
-            padding: 10px 25px;
+            padding: var(--space-2) var(--space-6);
             background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
+            border: 1px solid var(--color-border-subtle);
             border-radius: var(--radius-xl);
-            color: var(--text-secondary);
+            color: var(--color-text-secondary);
             cursor: pointer;
             transition: all var(--duration-normal);
-            font-size: 0.9rem;
+            font-size: var(--text-sm);
         }
 
         .nav-btn:hover {
-            background: var(--bg-elevated);
-            border-color: var(--persona-ferni);
-            color: var(--text-primary);
+            background: var(--color-bg-elevated);
+            border-color: var(--color-ferni);
+            color: var(--color-text-primary);
         }
 
         .nav-btn svg {
-            width: 16px;
-            height: 16px;
+            width: var(--space-4);
+            height: var(--space-4);
             vertical-align: middle;
             stroke: currentColor;
             stroke-width: 2;
@@ -489,13 +499,68 @@
 
         .screen-label {
             position: fixed;
-            top: 30px;
+            top: var(--space-18);
             left: 50%;
             transform: translateX(-50%);
             font-family: var(--font-accent);
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
             z-index: 100;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: var(--space-8) var(--space-6);
+            text-align: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border-top: 1px solid var(--color-border-subtle);
+            display: none; /* Hidden during onboarding demo */
+        }
+
+        .footer-logo svg {
+            width: var(--space-12);
+            height: var(--space-12);
+            margin-bottom: var(--space-3);
+        }
+
+        .footer-tagline {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--color-text-secondary);
+            font-style: italic;
+            margin-bottom: var(--space-4);
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+
+        .footer-links a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            transition: color var(--duration-normal);
+        }
+
+        .footer-links a:hover {
+            color: var(--color-ferni);
+        }
+
+        .footer-copyright {
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
         }
 
         /* ============================================
@@ -508,23 +573,24 @@
 </head>
 <body>
     <!-- Brand Navigation -->
-    <nav style="position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: var(--glass-bg); backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border); z-index: 200;">
-        <a href="../brand-book.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-primary); font-family: var(--font-accent); font-weight: 500;">
-            <svg viewBox="0 0 100 100" style="width: 28px; height: 28px;">
-                <circle cx="50" cy="50" r="40" fill="var(--persona-ferni)"/>
+    <nav class="nav" role="navigation" aria-label="Main navigation">
+        <a href="../index.html" class="nav-logo" aria-label="Ferni Brand Library Home">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="40" fill="var(--color-ferni)"/>
+                <!-- LUXO STYLE: opaque white eyes, no pupils -->
                 <ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/>
                 <ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/>
             </svg>
-            Brand Library
+            <span>Brand Library</span>
         </a>
-        <div style="display: flex; gap: 20px; font-size: 0.85rem;">
-            <a href="../expressions/gallery.html" style="color: var(--text-muted); text-decoration: none;">Expressions</a>
-            <a href="../motion/demo.html" style="color: var(--text-muted); text-decoration: none;">Motion</a>
-            <span style="color: var(--accent-primary); font-weight: 500;">Onboarding</span>
+        <div class="nav-links">
+            <a href="../expressions/gallery.html" class="nav-link">Expressions</a>
+            <a href="../motion/demo.html" class="nav-link">Motion</a>
+            <span class="nav-current" aria-current="page">Onboarding</span>
         </div>
     </nav>
 
-    <div class="screen-label" style="top: 70px;">Screen <span id="screenNum">1</span> of 6</div>
+    <div class="screen-label">Screen <span id="screenNum">1</span> of 6</div>
 
     <div class="phone-frame">
         <div class="phone-screen">
@@ -532,7 +598,7 @@
             <div class="screen screen-1 active" data-screen="1">
                 <div class="hook-text">3am.</div>
                 <div class="hook-text">Can't sleep. Mind racing.</div>
-                <div class="hook-text" style="margin-top: 40px;">Who do you text?</div>
+                <div class="hook-text" style="margin-top: var(--space-10);">Who do you text?</div>
                 <button class="btn" id="btn1">Meet Ferni</button>
             </div>
 
@@ -541,7 +607,7 @@
                 <div class="avatar"></div>
                 <div class="title">Hey. I'm Ferni.</div>
                 <div class="copy">
-                    <p>I'm here whenever you need me—</p>
+                    <p>I'm here whenever you need me</p>
                     <p>2am, holidays, whenever.</p>
                     <p>No judgment. Just someone who listens.</p>
                 </div>
@@ -570,7 +636,7 @@
                 <div class="avatar"></div>
                 <div class="title">I remember everything.</div>
                 <div class="copy">
-                    <p>Not to be creepy—to be helpful.</p>
+                    <p>Not to be creepy - to be helpful.</p>
                     <p>Your friend forgets your sister's name.</p>
                     <p>I won't.</p>
                 </div>
@@ -579,17 +645,17 @@
 
             <!-- Screen 5: Meet the Team -->
             <div class="screen" data-screen="5">
-                <div class="title" style="font-size: 1.5rem;">I have a team.</div>
+                <div class="title" style="font-size: var(--text-xl);">I have a team.</div>
                 <div class="team-avatars">
                     <!-- Ferni - Heart/Core (leaf icon) -->
-                    <div class="team-avatar" style="background: var(--persona-ferni); color: var(--persona-ferni);" data-name="Ferni — The Heart">
+                    <div class="team-avatar" style="background: var(--color-ferni); color: var(--color-ferni);" data-name="Ferni - The Heart">
                         <svg viewBox="0 0 24 24">
                             <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
                             <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
                         </svg>
                     </div>
                     <!-- Maya - Habits (seedling/sprout icon) -->
-                    <div class="team-avatar" style="background: var(--persona-maya); color: var(--persona-maya);" data-name="Maya — Habits Coach">
+                    <div class="team-avatar" style="background: var(--color-maya); color: var(--color-maya);" data-name="Maya - Habits Coach">
                         <svg viewBox="0 0 24 24">
                             <path d="M7 20h10"/>
                             <path d="M10 20c5.5-2.5.8-6.4 3-10"/>
@@ -598,7 +664,7 @@
                         </svg>
                     </div>
                     <!-- Peter - Patterns (chart/analytics icon) -->
-                    <div class="team-avatar" style="background: var(--persona-peter); color: var(--persona-peter);" data-name="Peter — The Quant">
+                    <div class="team-avatar" style="background: var(--color-peter); color: var(--color-peter);" data-name="Peter - The Quant">
                         <svg viewBox="0 0 24 24">
                             <line x1="12" y1="20" x2="12" y2="10"/>
                             <line x1="18" y1="20" x2="18" y2="4"/>
@@ -606,14 +672,14 @@
                         </svg>
                     </div>
                     <!-- Jordan - Milestones (flag/target icon) -->
-                    <div class="team-avatar" style="background: var(--persona-jordan); color: var(--persona-jordan);" data-name="Jordan — Lifetime Planner">
+                    <div class="team-avatar" style="background: var(--color-jordan); color: var(--color-jordan);" data-name="Jordan - Lifetime Planner">
                         <svg viewBox="0 0 24 24">
                             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                             <line x1="4" y1="22" x2="4" y2="15"/>
                         </svg>
                     </div>
                     <!-- Alex - Words (message/pen icon) -->
-                    <div class="team-avatar" style="background: var(--persona-alex); color: var(--persona-alex);" data-name="Alex — Chief of Staff">
+                    <div class="team-avatar" style="background: var(--color-alex); color: var(--color-alex);" data-name="Alex - Chief of Staff">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 19l7-7 3 3-7 7-3-3z"/>
                             <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
@@ -622,7 +688,7 @@
                         </svg>
                     </div>
                     <!-- Nayan - Wisdom (sunrise/enlightenment icon) -->
-                    <div class="team-avatar" style="background: var(--persona-nayan); color: var(--persona-nayan);" data-name="Nayan — The Sage">
+                    <div class="team-avatar" style="background: var(--color-nayan); color: var(--color-nayan);" data-name="Nayan - The Sage">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2v8"/>
                             <path d="m4.93 10.93 1.41 1.41"/>
@@ -636,7 +702,7 @@
                     </div>
                 </div>
                 <div class="persona-label" id="personaLabel"></div>
-                <div class="subtitle" style="margin-top: 20px;">Six specialists. One relationship.</div>
+                <div class="subtitle" style="margin-top: var(--space-5);">Six specialists. One relationship.</div>
                 <button class="btn" id="btn5">Continue</button>
             </div>
 
@@ -645,9 +711,9 @@
                 <div class="avatar" style="animation: breathe 4s ease-in-out infinite, celebrate 0.5s ease-out;"></div>
                 <div class="title">You're ready.</div>
                 <div class="copy">
-                    <p>Whenever you want to talk—</p>
+                    <p>Whenever you want to talk</p>
                     <p>just open the app and speak.</p>
-                    <p style="margin-top: 20px;">I'm here. Always.</p>
+                    <p style="margin-top: var(--space-5);">I'm here. Always.</p>
                 </div>
                 <button class="btn" id="btn6">Start talking</button>
             </div>
@@ -807,5 +873,33 @@
             if (e.key === 'ArrowLeft') goToScreen(currentScreen - 1);
         });
     </script>
+
+    <footer>
+      <div class="footer-logo">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#5a7751"/>
+              <stop offset="100%" style="stop-color:#3d5a35"/>
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
+          <!-- LUXO STYLE: opaque white eyes, no pupils -->
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+      </div>
+      <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="../capabilities/index.html">Capabilities</a>
+        <a href="../brand-book.html">Brand Book</a>
+        <a href="../brand-kit.html">Brand Kit</a>
+        <a href="../icons.html">Icons</a>
+        <a href="../components.html">Components</a>
+        <a href="../accessibility.html">Accessibility</a>
+        <a href="../sound-design.html">Sound</a>
+      </nav>
+      <p class="footer-copyright">Ferni Brand Library v2.0</p>
+    </footer>
 </body>
 </html>

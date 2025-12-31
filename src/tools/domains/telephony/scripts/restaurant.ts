@@ -7,7 +7,7 @@
  * @module tools/domains/telephony/scripts/restaurant
  */
 
-import type { CallScriptTemplate } from '../call-on-behalf.js';
+import type { CallScriptTemplate } from '../types.js';
 
 export const restaurantScript: CallScriptTemplate = {
   type: 'restaurant',

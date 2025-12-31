@@ -36,7 +36,10 @@ import {
 } from '../../../services/smart-home/user-credentials.js';
 import * as sonos from '../../../services/smart-home/sonos.js';
 import * as homekit from '../../../services/smart-home/homekit-bridge.js';
-import { getThermostatStatus, setTemperature as setEcobeeTemperature } from '../../../services/identity/ecobee-api.js';
+import {
+  getThermostatStatus,
+  setTemperature as setEcobeeTemperature,
+} from '../../../services/identity/ecobee-api.js';
 import { isEcobeeConfigured } from '../../../services/identity/ecobee-auth.js';
 
 // ============================================================================
@@ -54,10 +57,28 @@ const HOME_ASSISTANT_TOKEN = process.env.HOME_ASSISTANT_TOKEN || '';
 export interface SmartDevice {
   id: string;
   name: string;
-  type: 'light' | 'switch' | 'thermostat' | 'lock' | 'sensor' | 'fan' | 'cover' | 'media' | 'speaker' | 'other';
+  type:
+    | 'light'
+    | 'switch'
+    | 'thermostat'
+    | 'lock'
+    | 'sensor'
+    | 'fan'
+    | 'cover'
+    | 'media'
+    | 'speaker'
+    | 'other';
   state: string;
   attributes?: Record<string, unknown>;
-  platform: 'home_assistant' | 'hue' | 'smartthings' | 'lifx' | 'nest' | 'sonos' | 'homekit' | 'ecobee';
+  platform:
+    | 'home_assistant'
+    | 'hue'
+    | 'smartthings'
+    | 'lifx'
+    | 'nest'
+    | 'sonos'
+    | 'homekit'
+    | 'ecobee';
   room?: string;
 }
 
@@ -358,11 +379,9 @@ async function setLifxLight(
   if (brightness !== undefined) body.brightness = brightness / 100;
   if (colorTemp !== undefined) body.color = `kelvin:${colorTemp}`;
 
-  const { error } = await lifxClient.put(
-    `https://api.lifx.com/v1/lights/${id}/state`,
-    body,
-    { headers: { Authorization: `Bearer ${lifxConfig.token}` } }
-  );
+  const { error } = await lifxClient.put(`https://api.lifx.com/v1/lights/${id}/state`, body, {
+    headers: { Authorization: `Bearer ${lifxConfig.token}` },
+  });
 
   if (error) {
     getLogger().warn({ error: error.message, lightId }, 'LIFX light control failed');
@@ -388,7 +407,7 @@ async function getSonosDevices(credentials: SmartHomeCredentials): Promise<Smart
 
     for (const household of households) {
       const groups = await sonos.getGroups(sonosConfig, household.id);
-      
+
       for (const group of groups) {
         devices.push({
           id: `sonos_${group.id}`,
@@ -452,7 +471,7 @@ async function controlSonos(
 async function getHomeKitDevices(userId: string): Promise<SmartDevice[]> {
   try {
     const devices = await homekit.getDevices(userId);
-    
+
     return devices.map((device) => ({
       id: `homekit_${device.id}`,
       name: device.name,
@@ -474,7 +493,7 @@ async function controlHomeKit(
   changes: Partial<homekit.HomeKitDeviceState>
 ): Promise<boolean> {
   const id = deviceId.replace('homekit_', '');
-  
+
   try {
     await homekit.queueDeviceCommand(userId, id, changes);
     return true;
@@ -490,7 +509,7 @@ async function controlHomeKit(
 
 async function getEcobeeDevices(userId?: string): Promise<SmartDevice[]> {
   if (!userId) return [];
-  
+
   const configured = await isEcobeeConfigured(userId);
   if (!configured) {
     return [];
@@ -503,19 +522,21 @@ async function getEcobeeDevices(userId?: string): Promise<SmartDevice[]> {
     }
 
     const status = result.data;
-    return [{
-      id: 'ecobee_thermostat',
-      name: status.name || 'Ecobee Thermostat',
-      type: 'thermostat' as const,
-      state: status.mode || 'auto',
-      attributes: {
-        currentTemp: status.currentTemp,
-        targetTemp: status.targetHeat || status.targetCool,
-        humidity: status.humidity,
-        hvacMode: status.mode,
+    return [
+      {
+        id: 'ecobee_thermostat',
+        name: status.name || 'Ecobee Thermostat',
+        type: 'thermostat' as const,
+        state: status.mode || 'auto',
+        attributes: {
+          currentTemp: status.currentTemp,
+          targetTemp: status.targetHeat || status.targetCool,
+          humidity: status.humidity,
+          hvacMode: status.mode,
+        },
+        platform: 'ecobee' as const,
       },
-      platform: 'ecobee' as const,
-    }];
+    ];
   } catch (error) {
     getLogger().warn({ error: String(error) }, 'Failed to get Ecobee status');
     return [];
@@ -549,24 +570,34 @@ export async function getAllDevices(userId?: string): Promise<SmartDevice[]> {
   const devices: SmartDevice[] = [];
 
   // Load user credentials if userId provided
-  const credentials = userId ? await getCredentials(userId) : {
-    hue: null,
-    lifx: null,
-    sonos: null,
-    homeKit: null,
-  };
+  const credentials = userId
+    ? await getCredentials(userId)
+    : {
+        hue: null,
+        lifx: null,
+        sonos: null,
+        homeKit: null,
+      };
 
   // Gather from all configured platforms in parallel
-  const [haDevices, hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] = await Promise.all([
-    HOME_ASSISTANT_TOKEN ? getHomeAssistantDevices() : Promise.resolve([]),
-    credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
-    credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
-    credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
-    userId ? getHomeKitDevices(userId) : Promise.resolve([]),
-    getEcobeeDevices(userId),
-  ]);
+  const [haDevices, hueDevices, lifxDevices, sonosDevices, homekitDevices, ecobeeDevices] =
+    await Promise.all([
+      HOME_ASSISTANT_TOKEN ? getHomeAssistantDevices() : Promise.resolve([]),
+      credentials.hue ? getHueLights(credentials) : Promise.resolve([]),
+      credentials.lifx ? getLifxLights(credentials) : Promise.resolve([]),
+      credentials.sonos ? getSonosDevices(credentials) : Promise.resolve([]),
+      userId ? getHomeKitDevices(userId) : Promise.resolve([]),
+      getEcobeeDevices(userId),
+    ]);
 
-  devices.push(...haDevices, ...hueDevices, ...lifxDevices, ...sonosDevices, ...homekitDevices, ...ecobeeDevices);
+  devices.push(
+    ...haDevices,
+    ...hueDevices,
+    ...lifxDevices,
+    ...sonosDevices,
+    ...homekitDevices,
+    ...ecobeeDevices
+  );
 
   return devices;
 }
@@ -578,12 +609,14 @@ export async function controlDevice(
   userId?: string
 ): Promise<string> {
   const devices = await getAllDevices(userId);
-  const credentials = userId ? await getCredentials(userId) : {
-    hue: null,
-    lifx: null,
-    sonos: null,
-    homeKit: null,
-  };
+  const credentials = userId
+    ? await getCredentials(userId)
+    : {
+        hue: null,
+        lifx: null,
+        sonos: null,
+        homeKit: null,
+      };
 
   // Find device by name (fuzzy) or ID
   const device = devices.find(
@@ -817,7 +850,13 @@ export async function setLightsForVibe(
 
     switch (light.platform) {
       case 'hue':
-        success = await setHueLight(credentials, light.id, brightness > 0, brightness, colorTemperature);
+        success = await setHueLight(
+          credentials,
+          light.id,
+          brightness > 0,
+          brightness,
+          colorTemperature
+        );
         break;
       case 'lifx':
         success = await setLifxLight(
@@ -895,7 +934,7 @@ export async function playVibeMusic(
 
     // Try to play matching music
     const played = await sonos.playVibeMusic(credentials.sonos, vibe);
-    
+
     if (played) {
       return { success: true, message: `Playing ${vibe} music on Sonos` };
     } else {

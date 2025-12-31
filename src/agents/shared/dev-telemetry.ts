@@ -360,7 +360,7 @@ export function clearSessionTurnCounter(sessionId: string): void {
 /**
  * Wrap an async function with automatic span tracking
  */
-export function withSpan<T>(
+export async function withSpan<T>(
   trace: Trace,
   spanName: string,
   fn: () => Promise<T>,
@@ -381,7 +381,7 @@ export function withSpan<T>(
 /**
  * Create a timing wrapper for any async function
  */
-export function timed<T>(
+export async function timed<T>(
   name: string,
   fn: () => Promise<T>,
   onComplete?: (durationMs: number, result: T) => void

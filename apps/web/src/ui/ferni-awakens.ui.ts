@@ -19,6 +19,7 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('FerniAwakens');
 
@@ -408,7 +409,7 @@ function getAwakensHTML(): string {
       <p class="awakens-subtext">I'm Ferni, your AI life coach.</p>
       
       <!-- CTA -->
-      <button aria-label="Start talking" class="awakens-cta awakens-cta-btn">
+      <button aria-label="${t('accessibility.startTalking')}" class="awakens-cta awakens-cta-btn">
         Start talking
       </button>
     </div>

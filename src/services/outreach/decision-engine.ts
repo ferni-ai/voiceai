@@ -12,6 +12,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { AgentId } from '../agent-bus.js';
 import {
@@ -173,7 +174,7 @@ const log = getLogger().child({ service: 'outreach-decision-engine' });
 
 class OutreachDecisionEngine extends EventEmitter {
   private config: DecisionEngineConfig;
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: (() => void) | null = null;
   private running = false;
 
   constructor(config: Partial<DecisionEngineConfig> = {}) {
@@ -196,16 +197,18 @@ class OutreachDecisionEngine extends EventEmitter {
     log.info('🧠 Outreach Decision Engine started');
 
     // Process triggers on interval
-    this.intervalId = setInterval(() => {
-      void this.processPendingTriggers();
-    }, this.config.checkIntervalMs);
+    this.intervalId = registerInterval(
+      'outreach-decision-engine-triggers',
+      () => {
+        void this.processPendingTriggers();
+      },
+      this.config.checkIntervalMs
+    );
   }
 
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+    clearNamedInterval('outreach-decision-engine-triggers');
+    this.intervalId = null;
     this.running = false;
     log.info('🧠 Outreach Decision Engine stopped');
   }

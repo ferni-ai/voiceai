@@ -11,7 +11,7 @@ import { healthcareScript } from './healthcare.js';
 import { restaurantScript } from './restaurant.js';
 import { businessScript } from './business.js';
 import { personalScript } from './personal.js';
-import type { CallScriptTemplate, CallObjective, ResolvedContact } from '../call-on-behalf.js';
+import type { CallScriptTemplate, CallObjective, ResolvedContact } from '../types.js';
 
 // ============================================================================
 // SCRIPT SELECTION

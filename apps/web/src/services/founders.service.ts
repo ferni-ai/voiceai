@@ -13,6 +13,7 @@
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/toast.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('FoundersService');
 
@@ -376,7 +377,7 @@ function celebrateMilestone(milestone: CommunityMilestone): void {
   log.info('Celebrating milestone', milestone.id);
 
   // Show a special celebration toast
-  toast.success(`🎉 ${milestone.title}`);
+  toast.success(t('toasts.Milestonetitle'));
 
   // Dispatch event for other components to react
   document.dispatchEvent(

@@ -13,31 +13,29 @@
  * @module voice-agent/data-channel-handler
  */
 
-import type { JobContext, voice } from '@livekit/agents';
-import { log as livekitLog } from '@livekit/agents';
+import { log as livekitLog, type JobContext, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
+import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { getCurrentAgent } from '../../tools/handoff/index.js';
-import type { UserData } from '../shared/types.js';
 import {
-  isHandoffInProgress,
   completeHandoff,
-  getNextMessageSeqSync,
   getHandoffPersonaInfo,
+  getNextMessageSeqSync,
+  isHandoffInProgress,
 } from '../shared/handoff/session-state.js';
-import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
+import type { UserData } from '../shared/types.js';
 
 // New coordinator-based handoff system
-import {
-  getSessionAdapter,
-  removeSessionAdapter,
-  createCoordinatorAdapter,
-  type CoordinatorAdapterConfig,
-} from '../shared/handoff/coordinator-adapter.js';
+import { getSessionAdapter } from '../shared/handoff/coordinator-adapter.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// Centralized generateReply gateway - NEVER use session.generateReply directly!
+import { generateReply } from '../shared/generate-reply-gateway.js';
+// Safe fire-and-forget for non-critical async operations
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 
 // ============================================================================
 // TYPES
@@ -732,15 +730,21 @@ async function handleMacOSContext(
           '🆘 Help me with this - generating response'
         );
 
-        session.generateReply({
-          instructions: `The user pressed "Help me with this" on their Mac while looking at something.
+        // Use gateway for proper error handling and session readiness
+        fireAndForget(async () => {
+          await generateReply(session, sessionId, {
+            instructions: `The user pressed "Help me with this" on their Mac while looking at something.
 
 ${contextString}
 
 They want help understanding or working with this selected text. Provide a helpful, contextual response.
 Be concise but thorough. If it's code, offer to explain or improve it.
 If it's an error, help them understand and fix it.`,
-        });
+            context: 'macos-help-me-with-this',
+            fallbackMessage: "I'd be happy to help with that!",
+            priority: 'high', // User explicitly requested help
+          });
+        }, 'macos-help-request');
       }
 
       getLogger().info('✅ macOS context stored for session');
@@ -847,7 +851,7 @@ export interface DevModeState {
  * Used by handoff unlock validation.
  */
 export function isDevModeBypassEnabled(services: SessionServices): boolean {
-  const devMode = (services as SessionServices & { devMode?: DevModeState }).devMode;
+  const { devMode } = services as SessionServices & { devMode?: DevModeState };
   return devMode?.enabled === true && devMode?.bypassUnlocks === true;
 }
 
@@ -857,7 +861,7 @@ export function isDevModeBypassEnabled(services: SessionServices): boolean {
 export function getDevModeSimulatedTier(
   services: SessionServices
 ): 'free' | 'friend' | 'partner' | undefined {
-  const devMode = (services as SessionServices & { devMode?: DevModeState }).devMode;
+  const { devMode } = services as SessionServices & { devMode?: DevModeState };
   return devMode?.enabled ? devMode.simulatedTier : undefined;
 }
 
@@ -1058,18 +1062,19 @@ async function handleSyntheticText(
       }
     }
 
-    // Step 2: Send to Gemini via generateReply()
+    // Step 2: Send to Gemini via generateReply gateway
     getLogger().info(
       { testId, text: text.slice(0, 50) },
-      '🧪 [SYNTHETIC] Sending to Gemini via generateReply()...'
+      '🧪 [SYNTHETIC] Sending to Gemini via generateReply gateway...'
     );
 
     result.llm.called = true;
 
-    // Use generateReply with the synthetic text as instructions
-    // This simulates what happens when STT sends transcribed text
-    session.generateReply({
-      instructions: `The user said: "${text}"
+    // Use gateway for proper error handling and session readiness checks
+    // Don't await - this is async and streams
+    fireAndForget(async () => {
+      await generateReply(session, sessionId, {
+        instructions: `The user said: "${text}"
 
 IMPORTANT: This is a SYNTHETIC TEST to validate tool execution.
 If this request requires a tool (like weather, music, handoff), you MUST call that tool.
@@ -1079,15 +1084,17 @@ For example:
 - "What's the weather..." → Call getWeather tool
 - "Play some music..." → Call playMusic tool
 - "Transfer me to..." → Call handoff tool`,
-      allowInterruptions: false,
-    });
+        context: 'synthetic-text-test',
+        priority: 'normal', // Test requests use normal priority
+      });
+    }, 'synthetic-text-test');
 
     result.llm.generateReplyInvoked = true;
     result.llm.durationMs = Date.now() - startTime;
 
     getLogger().info(
       { testId, durationMs: result.llm.durationMs },
-      '🧪 [SYNTHETIC] generateReply() invoked - LLM is processing'
+      '🧪 [SYNTHETIC] generateReply gateway invoked - LLM is processing'
     );
 
     // Note: generateReply is async and streams - we can't easily capture the response here

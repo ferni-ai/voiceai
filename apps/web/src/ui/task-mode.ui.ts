@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('TaskMode');
 
@@ -501,7 +502,7 @@ function render(): string {
             <span class="task-mode-eyebrow">Work Mode with</span>
             <h2 class="task-mode-name" id="task-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
-          <button class="task-close-btn" aria-label="Close">
+          <button class="task-close-btn" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -543,7 +544,7 @@ function renderSelectStep(): string {
     
     <div class="task-templates-list">
       ${TASK_TEMPLATES.map(template => `
-        <button aria-label="More information" class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
+        <button aria-label="${t('accessibility.moreInformation')}" class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
           <div class="task-template-icon">${template.icon}</div>
           <div class="task-template-info">
             <p class="task-template-name">${template.name}</p>
@@ -561,8 +562,8 @@ function renderSelectStep(): string {
     </div>
     
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="Cancel" class="task-btn task-btn--secondary" data-action="cancel">Cancel</button>
-      <button aria-label="Continue" class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
+      <button aria-label="${t('accessibility.cancel')}" class="task-btn task-btn--secondary" data-action="cancel">Cancel</button>
+      <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -619,13 +620,13 @@ function renderConfigureStep(): string {
     `).join('')}
     
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="Back" class="task-btn task-btn--secondary" data-action="back">
+      <button aria-label="${t('accessibility.back')}" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Back
       </button>
-      <button aria-label="Continue" class="task-btn task-btn--primary" data-action="next">
+      <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next">
         Continue
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -671,13 +672,13 @@ function renderExecuteStep(): string {
     </div>
     
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="Edit" class="task-btn task-btn--secondary" data-action="back">
+      <button aria-label="${t('accessibility.edit')}" class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         Edit
       </button>
-      <button aria-label="Start Working" class="task-btn task-btn--primary" data-action="start-task">
+      <button aria-label="${t('accessibility.startWorking')}" class="task-btn task-btn--primary" data-action="start-task">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
@@ -808,7 +809,7 @@ function handleNext(): void {
       const missingRequired = template.inputs.find(i => i.required && !taskData.inputs[i.id]);
       if (missingRequired) {
         import('./toast.ui.js').then(({ toast }) => {
-          toast.warning(`Please fill in: ${missingRequired.label}`);
+          toast.warning(t('toasts.pleaseFillInMissingrequiredlabel'));
         });
         return;
       }

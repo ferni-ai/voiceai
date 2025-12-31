@@ -11,6 +11,7 @@
 
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('TriggerDebugPanel');
 
@@ -462,11 +463,11 @@ async function createPanel(): Promise<HTMLElement> {
     <div class="trigger-debug-panel__header" role="button" tabindex="0">
       <div class="trigger-debug-panel__title" role="button" tabindex="0">
         Dynamic Triggers
-        <button aria-label="Refresh" class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
+        <button aria-label="${t('accessibility.refresh')}" class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
           Refresh
         </button>
       </div>
-      <button aria-label="Close" class="trigger-debug-panel__close" id="trigger-close-btn">
+      <button aria-label="${t('accessibility.close')}" class="trigger-debug-panel__close" id="trigger-close-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>

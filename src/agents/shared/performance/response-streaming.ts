@@ -442,7 +442,7 @@ export class LookaheadBuffer<T> {
 
     if (entry.synthesizing && !entry.completed) {
       try {
-        const synthesizing = entry.synthesizing;
+        const { synthesizing } = entry;
         const data = await synthesizing;
         return { chunk: entry.chunk, data };
       } catch {

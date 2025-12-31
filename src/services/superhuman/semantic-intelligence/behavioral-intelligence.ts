@@ -13,6 +13,10 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
+import {
+  onPatternInsightChange,
+  onBehavioralPatternChange,
+} from '../../data-layer/hooks/better-than-human-hooks.js';
 
 const log = createLogger({ module: 'behavioral-intelligence' });
 
@@ -626,6 +630,26 @@ async function savePattern(userId: string, pattern: SelfSabotagePattern): Promis
       .collection('sabotage_patterns')
       .doc(pattern.id)
       .set(cleanForFirestore(pattern));
+
+    // Index self-sabotage pattern to semantic memory
+    // "We understand how you tick"
+    void onBehavioralPatternChange(
+      userId,
+      pattern.id,
+      {
+        behavior: pattern.behavior,
+        trigger: pattern.trigger,
+        context: [pattern.consequence],
+        frequency: pattern.frequency >= 4 ? 'frequent' : pattern.frequency >= 2 ? 'occasional' : 'rare',
+        impact: 'negative',
+        relatedPatterns: [],
+        observations: pattern.instances.slice(0, 3).map((i) => i.context),
+        firstObserved: pattern.instances[pattern.instances.length - 1]?.timestamp?.toISOString() ||
+          new Date().toISOString(),
+        lastObserved: pattern.instances[0]?.timestamp?.toISOString() || new Date().toISOString(),
+      },
+      pattern.surfaced ? 'update' : 'create'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save pattern');
   }
@@ -728,6 +752,26 @@ async function saveTrigger(userId: string, trigger: Trigger): Promise<void> {
       .collection('behavioral_triggers')
       .doc(trigger.id)
       .set(cleanForFirestore(trigger));
+
+    // Index trigger pattern to semantic memory
+    // "We see patterns you can't see yourself"
+    void onPatternInsightChange(
+      userId,
+      trigger.id,
+      {
+        pattern: `When "${trigger.triggerPattern}" occurs, response is: ${trigger.response}${trigger.emotion ? ` (emotion: ${trigger.emotion})` : ''}`,
+        category: trigger.triggerType === 'emotional' ? 'emotional' : 'behavioral',
+        evidence: trigger.instances.slice(0, 5).map(
+          (inst) => inst.context || `Occurred at ${inst.timestamp.toLocaleDateString()}`
+        ),
+        frequency: trigger.confidence >= 0.8 ? 'strong' : 'consistent',
+        significance: trigger.sensitivity >= 0.8 ? 'critical' : trigger.sensitivity >= 0.5 ? 'important' : 'curious',
+        surfacedGently: false,
+        discoveredAt: new Date().toISOString(),
+        lastObserved: trigger.instances[0]?.timestamp?.toISOString() || new Date().toISOString(),
+      },
+      'create'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save trigger');
   }

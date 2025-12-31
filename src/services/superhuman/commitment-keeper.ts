@@ -19,6 +19,7 @@ import {
   type CommitmentFeasibility,
 } from './commitment-calendar-integration.js';
 import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
+import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -410,6 +411,19 @@ export async function saveCommitment(
         .set(cleanForFirestore(fullCommitment));
     }
 
+    // Index to semantic memory for cross-domain awareness
+    void onCommitmentKeeperChange(
+      commitment.userId,
+      id,
+      {
+        commitment: fullCommitment.summary,
+        madeOn: new Date(fullCommitment.createdAt).toISOString(),
+        status: 'pending',
+        remindersSent: 0,
+      },
+      'create'
+    );
+
     // Better Than Human: Create calendar blocks for the commitment
     // Auto-create blocks when there's a target date (better than human by default)
     const shouldCreateBlocks = options?.createCalendarBlocks ?? !!commitment.targetDate;
@@ -541,11 +555,39 @@ export async function updateCommitmentStatus(
     if (idx >= 0) {
       userCommitments[idx].status = status;
       if (reaction) userCommitments[idx].userReactionToFollowUp = reaction;
+
+      // 🎭 TRIGGER GROUP OUTREACH: When a commitment is completed, celebrate with the team!
+      if (status === 'completed') {
+        const commitment = userCommitments[idx];
+        // Only trigger for emotionally significant commitments
+        if (commitment.emotionalWeight > 0.5) {
+          void triggerCommitmentCelebration(userId, commitment);
+        }
+      }
     }
 
     log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
   } catch (error) {
     log.error({ error: String(error), userId, commitmentId }, 'Failed to update commitment');
+  }
+}
+
+/**
+ * Trigger team celebration when a significant commitment is completed.
+ * Fire-and-forget - doesn't block the main flow.
+ */
+async function triggerCommitmentCelebration(userId: string, commitment: Commitment): Promise<void> {
+  try {
+    const { onCommitmentMilestone } = await import(
+      '../conversation-thread/group-outreach-triggers.js'
+    );
+    await onCommitmentMilestone(userId, {
+      commitmentText: commitment.summary,
+      completionRate: 1, // Completed = 100%
+    });
+  } catch (error) {
+    // Non-blocking - just log the error
+    log.debug({ error: String(error), userId }, 'Failed to trigger commitment celebration (non-fatal)');
   }
 }
 

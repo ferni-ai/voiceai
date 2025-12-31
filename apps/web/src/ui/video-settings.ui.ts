@@ -231,12 +231,12 @@ class VideoSettingsUI {
         <div class="video-settings__controls">
           <h3>${t('videoSettings.controls.title')}</h3>
 
-          <button aria-label="Settings" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
+          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
             <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
-          <button aria-label="Settings" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
+          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
             <span class="video-settings__control-icon">${ICONS.screen}</span>
             <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
@@ -249,7 +249,7 @@ class VideoSettingsUI {
             ${modeOptions
               .map(
                 (mode) => `
-              <button aria-label="Settings" class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
+              <button aria-label="${t('accessibility.settings')}" class="video-settings__mode ${this.state?.mode === mode.id ? 'video-settings__mode--active' : ''}" data-mode="${mode.id}">
                 <span class="video-settings__mode-icon">${mode.icon}</span>
                 <span class="video-settings__mode-label">${mode.label}</span>
                 <span class="video-settings__mode-desc">${mode.desc}</span>
@@ -291,7 +291,7 @@ class VideoSettingsUI {
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button aria-label="Settings" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
+        <button aria-label="${t('accessibility.settings')}" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 

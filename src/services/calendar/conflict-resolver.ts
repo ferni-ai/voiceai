@@ -18,6 +18,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import type { CalendarEvent, SyncConflict, ConflictResolution, CalendarProvider } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onCalendarConflictChange } from '../data-layer/hooks/calendar-hooks.js';
 
 const log = getLogger();
 
@@ -162,6 +163,18 @@ export async function storeConflict(
       .collection(`users/${userId}/calendar_conflicts`)
       .doc(conflictId)
       .set(cleanForFirestore(storedConflict));
+
+    // Index to semantic memory for conflict awareness
+    void onCalendarConflictChange(
+      userId,
+      conflictId,
+      {
+        events: [conflict.ferniEvent.title || 'Unknown', conflict.providerEvent.title || 'Unknown'],
+        date: conflict.detectedAt.toISOString(),
+        status: 'unresolved',
+      },
+      'create'
+    );
 
     log.info(
       { userId, conflictId, conflictType: conflict.conflictType },
@@ -315,6 +328,19 @@ export async function resolveConflict(
         resolution,
         resolvedBy,
       })
+    );
+
+    // Update semantic index with resolved status
+    void onCalendarConflictChange(
+      userId,
+      conflictId,
+      {
+        events: [conflict.ferniEvent.title || 'Unknown', conflict.providerEvent.title || 'Unknown'],
+        date: conflict.detectedAt,
+        resolution,
+        status: 'resolved',
+      },
+      'update'
     );
 
     log.info({ userId, conflictId, resolution, resolvedBy }, 'Resolved calendar conflict');

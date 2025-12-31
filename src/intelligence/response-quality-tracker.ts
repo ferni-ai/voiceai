@@ -11,6 +11,10 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
+
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // TYPES
@@ -145,7 +149,10 @@ export class ResponseQualityTracker {
     hadQuestion: boolean;
     hadAdvice: boolean;
   } {
-    const wordCount = response.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(response)
+      : response.split(/\s+/).length;
     const lower = response.toLowerCase();
 
     // Detect response elements
@@ -191,7 +198,10 @@ export class ResponseQualityTracker {
     askedFollowUp: boolean;
     showedEmotion: boolean;
   } {
-    const wordCount = userResponse.split(/\s+/).length;
+    // 🦀 Rust-accelerated word counting
+    const wordCount = RUST_COUNTING_AVAILABLE
+      ? countWordsRust(userResponse)
+      : userResponse.split(/\s+/).length;
     const lower = userResponse.toLowerCase();
 
     // Detect signals
@@ -273,7 +283,10 @@ export class ResponseQualityTracker {
       hadAdvice: responseAnalysis.hadAdvice,
 
       userReaction: reactionAnalysis.reaction,
-      userResponseLength: userResponse.split(/\s+/).length,
+      // 🦀 Rust-accelerated word counting
+      userResponseLength: RUST_COUNTING_AVAILABLE
+        ? countWordsRust(userResponse)
+        : userResponse.split(/\s+/).length,
       userAskedFollowUp: reactionAnalysis.askedFollowUp,
       userShowedEmotion: reactionAnalysis.showedEmotion,
       engagementScore: reactionAnalysis.engagementScore,

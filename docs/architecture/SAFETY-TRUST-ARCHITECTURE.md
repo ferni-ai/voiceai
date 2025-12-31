@@ -197,6 +197,6 @@ The frontend receives these events to adapt the UI/avatar:
 ## Related Documentation
 
 - `docs/architecture/PROCESSING-TIMELINE.md` - Full turn processing timeline
-- `design-system/brand/BETTER-THAN-HUMAN.md` - Trust system philosophy
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md` - Trust system philosophy
 - `docs/TRUST-SYSTEMS.md` - Detailed trust system documentation
 

@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { indexValuesAlignment } from '../data-layer/integrations/index.js';
 
 const log = createLogger({ module: 'values-alignment' });
 
@@ -345,6 +346,19 @@ export async function saveValue(value: UserValue): Promise<void> {
       .doc(value.id)
       .set(cleanForFirestore(value));
   }
+
+  // Index to semantic memory for contextual retrieval
+  indexValuesAlignment(
+    value.userId,
+    {
+      id: value.id,
+      value: value.category,
+      alignment: value.importance > 0.7 ? 'strong' : value.importance > 0.4 ? 'moderate' : 'weak',
+      evidence: value.statement,
+      recentActions: value.contextExamples.slice(-3),
+    },
+    'update'
+  );
 
   // Update cache
   const values = valuesCache.get(value.userId) || [];

@@ -16,6 +16,7 @@ import {
   createFlexContainer,
   setStyles,
   createScreenReaderLabel,
+  getCssVar,
 } from '../utils/dom.js';
 import type {
   OpenLoopsData,
@@ -23,16 +24,30 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
+/**
+ * Literal color values for SVG elements.
+ * @design-tokens-ignore - SVG requires literal color values
+ */
 const PRIORITY_COLORS: Record<OpenLoop['priority'], string> = {
-  high: '#e74c3c',
-  medium: DEFAULT_COLORS.status.stretched,
-  low: '#9a8f85',
+  high: getCssVar('--color-semantic-error', '#e74c3c'),
+  medium: getCssVar('--color-semantic-warning', '#f5a623'),
+  low: getCssVar('--color-text-muted', '#9a8f85'),
+};
+
+/**
+ * CSS variable references for DOM element styling.
+ */
+const PRIORITY_CSS_VARS: Record<OpenLoop['priority'], string> = {
+  high: 'var(--viz-priority-high)',
+  medium: 'var(--viz-priority-medium)',
+  low: 'var(--viz-priority-low)',
 };
 
 const CATEGORY_LABELS: Record<OpenLoop['category'], string> = {
@@ -62,19 +77,17 @@ function buildWatch(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Loops'));
-  header.appendChild(createElement('p', '', 'Open threads'));
+  const title = createElement('h3', 'viz-header__title viz-header__title--compact', t('visualizations.openLoops.titleShort', 'Loops'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.openLoops.subtitleShort', 'Open threads'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Loop count visualization
-  const countContainer = createElement('div');
-  setStyles(countContainer, {
-    display: 'flex',
-    justifyContent: 'center',
-    margin: '8px 0',
-  });
+  // Loop count visualization using viz-ring class
+  const countContainer = createElement('div', 'viz-flex viz-flex--center');
+  setStyles(countContainer, { margin: 'var(--viz-space-breath) 0' });
 
   const svg = createSvgElement('svg');
   svg.setAttribute('viewBox', '0 0 60 60');
@@ -83,7 +96,7 @@ function buildWatch(
     height: '60px',
   });
 
-  // Draw open loop circles
+  // Draw open loop circles - @design-tokens-ignore (SVG)
   const numCircles = Math.min(data.totalOpen, 5);
   for (let i = 0; i < numCircles; i++) {
     const radius = 22 - i * 4;
@@ -92,42 +105,50 @@ function buildWatch(
     circle.setAttribute('cy', '30');
     circle.setAttribute('r', String(radius));
     circle.setAttribute('fill', 'none');
-    circle.setAttribute('stroke', 'var(--color-accent)');
+    circle.setAttribute('stroke', getCssVar('--viz-accent', '#3D5A45'));
     circle.setAttribute('stroke-width', '2');
     circle.setAttribute('opacity', String(1 - i * 0.15));
     circle.setAttribute('stroke-dasharray', '4 2');
     svg.appendChild(circle);
   }
 
-  // Center count
+  // Center count - @design-tokens-ignore (SVG)
   const countText = createSvgElement('text');
   countText.setAttribute('x', '30');
   countText.setAttribute('y', '34');
   countText.setAttribute('text-anchor', 'middle');
   countText.setAttribute('font-size', '14');
   countText.setAttribute('font-weight', '600');
-  countText.setAttribute('fill', 'var(--color-text-primary)');
+  countText.setAttribute('fill', getCssVar('--viz-text-primary', '#2C2520'));
   countText.textContent = String(data.totalOpen);
   svg.appendChild(countText);
 
   countContainer.appendChild(svg);
   container.appendChild(countContainer);
 
-  // Primary status
-  const metric = createElement('div', 'watch-metric', `${data.totalOpen} open`);
+  // Primary status with design system class
+  const metric = createElement('div', 'viz-metric viz-metric--compact');
+  const metricValue = createElement('span', 'viz-metric__value');
+  metricValue.textContent = String(data.totalOpen);
+  const metricLabel = createElement('span', 'viz-metric__label');
+  metricLabel.textContent = t('visualizations.openLoops.open', 'open');
+  metric.appendChild(metricValue);
+  metric.appendChild(metricLabel);
   container.appendChild(metric);
 
   // Recently closed
   if (data.recentlyClosed > 0) {
-    const closedLabel = createElement('div');
-    setStyles(closedLabel, {
-      textAlign: 'center',
-      fontSize: '0.65rem',
-      color: 'var(--color-text-muted)',
-    });
-    closedLabel.textContent = `${data.recentlyClosed} closed recently`;
+    const closedLabel = createElement('div', 'viz-label');
+    closedLabel.textContent = `${data.recentlyClosed} ${t('visualizations.openLoops.closedRecently', 'closed recently')}`;
     container.appendChild(closedLabel);
   }
+
+  // Screen reader label
+  container.appendChild(
+    createScreenReaderLabel(
+      `${data.totalOpen} open loops, ${data.recentlyClosed} recently closed`
+    )
+  );
 
   return {
     element: container,
@@ -152,46 +173,59 @@ function buildMobile(
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Open Loops'));
-  header.appendChild(createElement('p', '', 'Unfinished threads to close'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.openLoops.title', 'Open Loops'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.openLoops.subtitle', 'Threads waiting to be closed'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Summary card
-  const summaryCard = createElement('div', 'mobile-card');
+  // Summary card with glass styling
+  const summaryCard = createElement('div', 'viz-card viz-animate-slide');
   if (isAndroid) {
-    setStyles(summaryCard, { borderLeft: '3px solid var(--color-accent)' });
+    summaryCard.classList.add('viz-card--accent-primary');
   }
 
-  const summaryHeader = createElement('div', 'mobile-card-header');
-  summaryHeader.appendChild(createElement('span', 'mobile-card-title', 'Summary'));
+  const summaryHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+  const summaryTitle = createElement('span');
+  setStyles(summaryTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  summaryTitle.textContent = t('visualizations.openLoops.summary', 'Summary');
+  summaryHeader.appendChild(summaryTitle);
 
-  const countBadge = createElement('span', 'mobile-card-badge', `${data.totalOpen} open`);
+  const countBadge = createElement('span', 'viz-badge');
+  countBadge.textContent = `${data.totalOpen} ${t('visualizations.openLoops.open', 'open')}`;
   summaryHeader.appendChild(countBadge);
   summaryCard.appendChild(summaryHeader);
 
-  // Priority breakdown
+  // Priority breakdown with design system spacing
   const priorityBreakdown = getPriorityBreakdown(data.loops);
-  const priorityRow = createFlexContainer('row', '16px', 'flex-start');
-  setStyles(priorityRow, { marginTop: '8px' });
+  const priorityRow = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(priorityRow, {
+    gap: 'var(--viz-space-pause)',
+    marginTop: 'var(--viz-space-breath)',
+  });
 
   Object.entries(priorityBreakdown).forEach(([priority, count]) => {
     if (count === 0) return;
 
-    const item = createFlexContainer('row', '4px', 'flex-start', 'center');
+    const item = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+    setStyles(item, { gap: 'var(--viz-space-2xs)' });
 
-    const dot = createElement('div');
-    setStyles(dot, {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      background: PRIORITY_COLORS[priority as OpenLoop['priority']],
-    });
+    const dot = createElement('div', `viz-priority-dot viz-priority-dot--${priority}`);
     item.appendChild(dot);
 
-    const label = createElement('span', '', `${count} ${priority}`);
-    setStyles(label, { fontSize: '0.85rem' });
+    const label = createElement('span');
+    setStyles(label, {
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+    });
+    label.textContent = `${count} ${priority}`;
     item.appendChild(label);
 
     priorityRow.appendChild(item);
@@ -201,13 +235,9 @@ function buildMobile(
 
   // Recently closed
   if (data.recentlyClosed > 0) {
-    const closedText = createElement('div');
-    setStyles(closedText, {
-      fontSize: '0.85rem',
-      color: 'var(--color-text-muted)',
-      marginTop: '8px',
-    });
-    closedText.textContent = `${data.recentlyClosed} closed this week`;
+    const closedText = createElement('div', 'viz-label');
+    setStyles(closedText, { marginTop: 'var(--viz-space-breath)' });
+    closedText.textContent = `${data.recentlyClosed} ${t('visualizations.openLoops.closedThisWeek', 'closed this week')}`;
     summaryCard.appendChild(closedText);
   }
 
@@ -216,13 +246,21 @@ function buildMobile(
   // High priority loops
   const highPriority = data.loops.filter((l) => l.priority === 'high').slice(0, 3);
   if (highPriority.length > 0) {
-    const highCard = createElement('div', 'mobile-card');
+    const highCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
     if (isAndroid) {
-      setStyles(highCard, { borderLeft: `3px solid ${PRIORITY_COLORS.high}` });
+      highCard.classList.add('viz-card--priority-high');
     }
 
-    const highHeader = createElement('div', 'mobile-card-header');
-    highHeader.appendChild(createElement('span', 'mobile-card-title', 'High Priority'));
+    const highHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+    const highTitle = createElement('span');
+    setStyles(highTitle, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    highTitle.textContent = t('visualizations.openLoops.highPriority', 'High Priority');
+    highHeader.appendChild(highTitle);
     highCard.appendChild(highHeader);
 
     highPriority.forEach((loop) => {
@@ -239,13 +277,21 @@ function buildMobile(
     .slice(0, 4);
 
   if (otherLoops.length > 0) {
-    const otherCard = createElement('div', 'mobile-card');
+    const otherCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-3');
     if (isAndroid) {
-      setStyles(otherCard, { borderLeft: '3px solid var(--persona-nayan)' });
+      otherCard.classList.add('viz-card--accent-secondary');
     }
 
-    const otherHeader = createElement('div', 'mobile-card-header');
-    otherHeader.appendChild(createElement('span', 'mobile-card-title', 'Other Loops'));
+    const otherHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+    const otherTitle = createElement('span');
+    setStyles(otherTitle, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    otherTitle.textContent = t('visualizations.openLoops.otherLoops', 'Other Loops');
+    otherHeader.appendChild(otherTitle);
     otherCard.appendChild(otherHeader);
 
     otherLoops.forEach((loop) => {
@@ -258,16 +304,24 @@ function buildMobile(
 
   // Oldest loop callout
   if (data.oldestLoop) {
-    const oldestCard = createElement('div', 'mobile-card');
+    const oldestCard = createElement('div', 'viz-card viz-card--warning viz-animate-slide viz-stagger-4');
     if (isAndroid) {
-      setStyles(oldestCard, { borderLeft: '3px solid var(--color-semantic-warning)' });
+      oldestCard.classList.add('viz-card--accent-warning');
     }
 
-    const oldestHeader = createElement('div', 'mobile-card-header');
-    oldestHeader.appendChild(createElement('span', 'mobile-card-title', 'Oldest Open'));
+    const oldestHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+    const oldestTitle = createElement('span');
+    setStyles(oldestTitle, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    oldestTitle.textContent = t('visualizations.openLoops.oldestOpen', 'Oldest Open');
+    oldestHeader.appendChild(oldestTitle);
     oldestCard.appendChild(oldestHeader);
 
-    const insight = createElement('p', 'mobile-insight');
+    const insight = createElement('p', 'viz-insight');
     insight.textContent = `"${truncate(data.oldestLoop.description, 60)}" - ${formatAge(data.oldestLoop.createdAt)}`;
     oldestCard.appendChild(insight);
 
@@ -293,65 +347,42 @@ function buildMobile(
  * Build a mobile loop item row.
  */
 function buildMobileLoopItem(loop: OpenLoop): HTMLElement {
-  const item = createElement('div');
-  setStyles(item, {
-    padding: '8px 0',
-    borderBottom: '1px solid var(--color-border-subtle)',
-  });
+  const item = createElement('div', 'viz-loop-item');
 
-  const topRow = createFlexContainer('row', '8px', 'flex-start', 'center');
+  const topRow = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+  setStyles(topRow, { gap: 'var(--viz-space-breath)' });
 
-  // Category icon
-  const icon = createElement('span');
-  setStyles(icon, {
-    fontSize: '0.9rem',
-    color: PRIORITY_COLORS[loop.priority],
-  });
+  // Category icon with priority color
+  const icon = createElement('span', `viz-loop-icon viz-loop-icon--${loop.priority}`);
   icon.textContent = CATEGORY_ICONS[loop.category];
   topRow.appendChild(icon);
 
   // Description
-  const desc = createElement('span');
-  setStyles(desc, {
-    fontSize: '0.9rem',
-    flex: '1',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  });
+  const desc = createElement('span', 'viz-loop-desc');
   desc.textContent = loop.description;
   topRow.appendChild(desc);
 
   item.appendChild(topRow);
 
   // Meta row
-  const metaRow = createFlexContainer('row', '8px', 'flex-start');
-  setStyles(metaRow, { marginTop: '4px' });
-
-  const categoryLabel = createElement('span');
-  setStyles(categoryLabel, {
-    fontSize: '0.75rem',
-    color: 'var(--color-text-muted)',
+  const metaRow = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(metaRow, {
+    gap: 'var(--viz-space-breath)',
+    marginTop: 'var(--viz-space-2xs)',
   });
+
+  const categoryLabel = createElement('span', 'viz-label');
   categoryLabel.textContent = CATEGORY_LABELS[loop.category];
   metaRow.appendChild(categoryLabel);
 
   if (loop.relatedPerson) {
-    const personLabel = createElement('span');
-    setStyles(personLabel, {
-      fontSize: '0.75rem',
-      color: 'var(--color-text-muted)',
-    });
+    const personLabel = createElement('span', 'viz-label');
     personLabel.textContent = `with ${loop.relatedPerson}`;
     metaRow.appendChild(personLabel);
   }
 
-  const ageLabel = createElement('span');
-  setStyles(ageLabel, {
-    fontSize: '0.75rem',
-    color: 'var(--color-text-muted)',
-    marginLeft: 'auto',
-  });
+  const ageLabel = createElement('span', 'viz-label');
+  setStyles(ageLabel, { marginLeft: 'auto' });
   ageLabel.textContent = formatAge(loop.createdAt);
   metaRow.appendChild(ageLabel);
 
@@ -374,15 +405,20 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Open Loops'));
-  header.appendChild(createElement('p', '', 'Threads waiting to be closed'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.openLoops.title', 'Open Loops'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.openLoops.subtitle', 'Threads waiting to be closed'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Main content
-  const contentGrid = createFlexContainer('row', '24px');
-  setStyles(contentGrid, { padding: '16px' });
+  // Main content grid
+  const contentGrid = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(contentGrid, {
+    gap: 'var(--viz-space-rest)',
+    padding: 'var(--viz-space-pause)',
+  });
 
   // Left: Loops by category
   const loopsSection = createElement('div');
@@ -394,30 +430,25 @@ function buildTablet(
   Object.entries(byCategory).forEach(([category, loops]) => {
     if (loops.length === 0) return;
 
-    const categoryPanel = createElement('div');
-    setStyles(categoryPanel, {
-      marginBottom: '16px',
-      padding: '12px',
-      background: 'var(--color-background)',
-      borderRadius: '8px',
-    });
+    const categoryPanel = createElement('div', 'viz-card viz-animate-slide');
+    setStyles(categoryPanel, { marginBottom: 'var(--viz-space-pause)' });
 
     // Category header
-    const catHeader = createFlexContainer('row', '8px', 'flex-start', 'center');
-    setStyles(catHeader, { marginBottom: '8px' });
-
-    const catIcon = createElement('span');
-    setStyles(catIcon, {
-      fontSize: '1rem',
-      color: 'var(--color-accent)',
+    const catHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+    setStyles(catHeader, {
+      gap: 'var(--viz-space-breath)',
+      marginBottom: 'var(--viz-space-breath)',
     });
+
+    const catIcon = createElement('span', 'viz-category-icon');
     catIcon.textContent = CATEGORY_ICONS[category as OpenLoop['category']];
     catHeader.appendChild(catIcon);
 
     const catTitle = createElement('span');
     setStyles(catTitle, {
-      fontSize: '0.9rem',
+      fontSize: 'var(--viz-text-base)',
       fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
     });
     catTitle.textContent = `${CATEGORY_LABELS[category as OpenLoop['category']]} (${loops.length})`;
     catHeader.appendChild(catTitle);
@@ -426,42 +457,20 @@ function buildTablet(
 
     // Loop items
     loops.slice(0, 5).forEach((loop) => {
-      const row = createFlexContainer('row', '8px', 'flex-start', 'center');
-      setStyles(row, {
-        padding: '8px 0',
-        borderBottom: '1px solid var(--color-border-subtle)',
-      });
+      const row = createElement('div', 'viz-loop-item');
 
       // Priority indicator
-      const priorityDot = createElement('div');
-      setStyles(priorityDot, {
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        background: PRIORITY_COLORS[loop.priority],
-        flexShrink: '0',
-      });
+      const priorityDot = createElement('div', `viz-priority-dot viz-priority-dot--${loop.priority}`);
       row.appendChild(priorityDot);
 
       // Description
-      const desc = createElement('span');
-      setStyles(desc, {
-        fontSize: '0.85rem',
-        flex: '1',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      });
+      const desc = createElement('span', 'viz-loop-desc');
       desc.textContent = loop.description;
       row.appendChild(desc);
 
       // Age
-      const age = createElement('span');
-      setStyles(age, {
-        fontSize: '0.75rem',
-        color: 'var(--color-text-muted)',
-        flexShrink: '0',
-      });
+      const age = createElement('span', 'viz-label');
+      setStyles(age, { flexShrink: '0' });
       age.textContent = formatAge(loop.createdAt);
       row.appendChild(age);
 
@@ -477,79 +486,66 @@ function buildTablet(
   const statsSection = createElement('div');
   setStyles(statsSection, { flex: '1' });
 
-  // Stats panel
-  const statsPanel = createElement('div');
-  setStyles(statsPanel, {
-    padding: '16px',
-    background: 'var(--color-bg-elevated)',
-    borderRadius: '12px',
-    border: '1px solid var(--color-border-subtle)',
-    marginBottom: '12px',
-  });
+  // Stats panel with glass styling
+  const statsPanel = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
+  setStyles(statsPanel, { marginBottom: 'var(--viz-space-pause)' });
 
-  const statsLabel = createElement('div');
-  setStyles(statsLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '12px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  });
-  statsLabel.textContent = 'Overview';
+  const statsLabel = createElement('div', 'viz-label viz-label--section');
+  statsLabel.textContent = t('common.overview', 'Overview');
   statsPanel.appendChild(statsLabel);
 
-  // Total
-  const totalRow = createFlexContainer('row', '8px', 'space-between');
-  setStyles(totalRow, { marginBottom: '8px' });
-  totalRow.appendChild(createElement('span', '', 'Total Open'));
-  const totalValue = createElement('span', '', String(data.totalOpen));
-  setStyles(totalValue, { fontWeight: '600', fontSize: '1.2rem', color: 'var(--color-accent)' });
+  // Total stat
+  const totalRow = createElement('div', 'viz-stat-row');
+  const totalLabel = createElement('span', 'viz-stat-row__label');
+  totalLabel.textContent = t('visualizations.openLoops.totalOpen', 'Total Open');
+  totalRow.appendChild(totalLabel);
+  const totalValue = createElement('span', 'viz-stat-row__value viz-stat-row__value--accent');
+  totalValue.textContent = String(data.totalOpen);
   totalRow.appendChild(totalValue);
   statsPanel.appendChild(totalRow);
 
   // Recently closed
-  const closedRow = createFlexContainer('row', '8px', 'space-between');
-  setStyles(closedRow, { marginBottom: '12px' });
-  closedRow.appendChild(createElement('span', '', 'Closed This Week'));
-  const closedValue = createElement('span', '', String(data.recentlyClosed));
-  setStyles(closedValue, { fontWeight: '600' });
+  const closedRow = createElement('div', 'viz-stat-row');
+  const closedLabel = createElement('span', 'viz-stat-row__label');
+  closedLabel.textContent = t('visualizations.openLoops.closedThisWeek', 'Closed This Week');
+  closedRow.appendChild(closedLabel);
+  const closedValue = createElement('span', 'viz-stat-row__value');
+  closedValue.textContent = String(data.recentlyClosed);
   closedRow.appendChild(closedValue);
   statsPanel.appendChild(closedRow);
 
-  // Priority breakdown
-  const priorityLabel = createElement('div');
-  setStyles(priorityLabel, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
-    marginTop: '12px',
-  });
-  priorityLabel.textContent = 'By Priority';
+  // Priority breakdown section
+  const priorityLabel = createElement('div', 'viz-label viz-label--section');
+  setStyles(priorityLabel, { marginTop: 'var(--viz-space-pause)' });
+  priorityLabel.textContent = t('visualizations.byPriority', 'By Priority');
   statsPanel.appendChild(priorityLabel);
 
   const priorityBreakdown = getPriorityBreakdown(data.loops);
   Object.entries(priorityBreakdown).forEach(([priority, count]) => {
-    const row = createFlexContainer('row', '8px', 'flex-start', 'center');
-    setStyles(row, { marginBottom: '4px' });
-
-    const dot = createElement('div');
-    setStyles(dot, {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      background: PRIORITY_COLORS[priority as OpenLoop['priority']],
+    const row = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
+    setStyles(row, {
+      gap: 'var(--viz-space-breath)',
+      marginBottom: 'var(--viz-space-2xs)',
     });
+
+    const dot = createElement('div', `viz-priority-dot viz-priority-dot--${priority}`);
     row.appendChild(dot);
 
     const label = createElement('span');
-    setStyles(label, { fontSize: '0.85rem', textTransform: 'capitalize', flex: '1' });
+    setStyles(label, {
+      fontSize: 'var(--viz-text-base)',
+      textTransform: 'capitalize',
+      flex: '1',
+      color: CSS_COLOR_VARS.textSecondary,
+    });
     label.textContent = priority;
     row.appendChild(label);
 
     const value = createElement('span');
-    setStyles(value, { fontWeight: '600' });
+    setStyles(value, {
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
     value.textContent = String(count);
     row.appendChild(value);
 
@@ -558,40 +554,25 @@ function buildTablet(
 
   statsSection.appendChild(statsPanel);
 
-  // Oldest loop
+  // Oldest loop card with warning styling
   if (data.oldestLoop) {
-    const oldestPanel = createElement('div');
-    setStyles(oldestPanel, {
-      padding: '12px',
-      background: 'rgba(230, 126, 34, 0.1)',
-      borderRadius: '8px',
-      border: '1px solid var(--color-semantic-warning)',
-    });
+    const oldestPanel = createElement('div', 'viz-card viz-card--warning viz-animate-slide viz-stagger-3');
 
-    const oldestLabel = createElement('div');
-    setStyles(oldestLabel, {
-      fontSize: '0.75rem',
-      fontWeight: '600',
-      color: 'var(--color-semantic-warning)',
-      marginBottom: '8px',
-    });
-    oldestLabel.textContent = 'Oldest Open Loop';
+    const oldestLabel = createElement('div', 'viz-label viz-label--warning');
+    oldestLabel.textContent = t('visualizations.oldestOpenLoop', 'Oldest Open Loop');
     oldestPanel.appendChild(oldestLabel);
 
     const oldestDesc = createElement('p');
     setStyles(oldestDesc, {
-      fontSize: '0.85rem',
-      marginBottom: '4px',
+      fontSize: 'var(--viz-text-base)',
+      marginBottom: 'var(--viz-space-2xs)',
+      color: CSS_COLOR_VARS.textPrimary,
     });
     oldestDesc.textContent = data.oldestLoop.description;
     oldestPanel.appendChild(oldestDesc);
 
-    const oldestAge = createElement('div');
-    setStyles(oldestAge, {
-      fontSize: '0.75rem',
-      color: 'var(--color-text-muted)',
-    });
-    oldestAge.textContent = `Open for ${formatAge(data.oldestLoop.createdAt)}`;
+    const oldestAge = createElement('div', 'viz-label');
+    oldestAge.textContent = `${t('visualizations.openLoops.openFor', 'Open for')} ${formatAge(data.oldestLoop.createdAt)}`;
     oldestPanel.appendChild(oldestAge);
 
     statsSection.appendChild(oldestPanel);
@@ -599,6 +580,13 @@ function buildTablet(
 
   contentGrid.appendChild(statsSection);
   container.appendChild(contentGrid);
+
+  // Screen reader summary
+  container.appendChild(
+    createScreenReaderLabel(
+      `${data.totalOpen} open loops across ${Object.keys(byCategory).length} categories`
+    )
+  );
 
   return {
     element: container,

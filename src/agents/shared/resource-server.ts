@@ -433,7 +433,7 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
   const payload = request.payload as { personaId?: string };
 
   switch (request.action) {
-    case 'get':
+    case 'get': {
       // Check if TTS is available for persona
       const tts = payload.personaId ? reg.getTTS(payload.personaId) : null;
       return {
@@ -441,8 +441,9 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         success: true,
         data: { available: !!tts, personaId: payload.personaId },
       };
+    }
 
-    case 'config':
+    case 'config': {
       // Return TTS configuration for persona (Phase 3: share config, not connection)
       const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       if (personaConfig) {
@@ -468,6 +469,7 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
         success: false,
         error: 'Persona not found',
       };
+    }
 
     default:
       return {
@@ -482,15 +484,16 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
   const payload = request.payload as { personaId?: string };
 
   switch (request.action) {
-    case 'get':
+    case 'get': {
       const config = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       return {
         id: request.id,
         success: true,
         data: config,
       };
+    }
 
-    case 'prompt':
+    case 'prompt': {
       // Return pre-computed system prompt (Phase 3 optimization)
       const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       if (personaConfig) {
@@ -506,6 +509,7 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
         success: false,
         error: 'Persona not found',
       };
+    }
 
     case 'list':
       return {

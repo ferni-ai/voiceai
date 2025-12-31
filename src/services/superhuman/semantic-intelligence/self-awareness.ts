@@ -12,6 +12,10 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
+import {
+  onBlindSpotChange,
+  onCoachingInsightChange,
+} from '../../data-layer/hooks/coaching-hooks.js';
 
 const log = createLogger({ module: 'self-awareness' });
 
@@ -789,6 +793,19 @@ async function saveBlindSpot(userId: string, blindSpot: BlindSpot): Promise<void
       .collection('blind_spots')
       .doc(blindSpot.id)
       .set(cleanForFirestore(blindSpot));
+
+    // Index blind spot to semantic memory
+    void onBlindSpotChange(
+      userId,
+      blindSpot.id,
+      {
+        blindSpot: blindSpot.pattern,
+        observation: `Category: ${blindSpot.category}. Occurrences: ${blindSpot.occurrences}.`,
+        impact: blindSpot.evidence?.join('; ') || 'No evidence yet',
+        surfacedGently: blindSpot.surfaced,
+      },
+      blindSpot.surfaced ? 'update' : 'create'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save blind spot');
   }

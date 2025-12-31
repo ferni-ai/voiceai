@@ -192,19 +192,19 @@ function createModal(): void {
       </div>
 
       <div class="referral-actions" role="button" tabindex="0">
-        <button aria-label="Share" class="referral-btn referral-btn--primary" data-action="share">
+        <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>Share</span>
         </button>
-        <button aria-label="Copy" class="referral-btn" data-action="copy">
+        <button aria-label="${t('accessibility.copy')}" class="referral-btn" data-action="copy">
           ${ICONS.copy}
           <span>Copy Link</span>
         </button>
-        <button aria-label="Email" class="referral-btn" data-action="email">
+        <button aria-label="${t('accessibility.email')}" class="referral-btn" data-action="email">
           ${ICONS.mail}
           <span>Email</span>
         </button>
-        <button aria-label="Text" class="referral-btn" data-action="sms">
+        <button aria-label="${t('accessibility.text')}" class="referral-btn" data-action="sms">
           ${ICONS.message}
           <span>Text</span>
         </button>
@@ -261,7 +261,7 @@ async function handleNativeShare(): Promise<void> {
         url: content.url,
       });
       log.info('Shared via native share');
-      toast.success('Shared!');
+      toast.success(t('toasts.shared'));
       trackShare('native');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
@@ -278,7 +278,7 @@ async function handleCopyLink(): Promise<void> {
   const content = getShareContent();
   try {
     await navigator.clipboard.writeText(`${content.shortMessage}\n\n${content.url}`);
-    toast.success('Link copied!');
+    toast.success(t('toasts.linkCopied'));
     log.info('Link copied to clipboard');
     trackShare('copy');
   } catch {

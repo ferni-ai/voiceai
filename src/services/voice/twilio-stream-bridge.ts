@@ -22,6 +22,13 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { createLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
+import { isExperimentalEnabled } from '../../config/feature-flags.js';
+import {
+  getTwilioEnhancer,
+  removeTwilioEnhancer,
+  float32ToInt16Buffer,
+  type TwilioEnhancer,
+} from './twilio-audio-enhance.js';
 
 const log = createLogger({ module: 'twilio-stream-bridge' });
 
@@ -82,6 +89,8 @@ export interface BridgeSession {
   customParameters: Record<string, string>;
   // Debug tracking
   audioPacketCount?: number;
+  // Rust audio enhancement (AGC, noise suppression, bandwidth extension)
+  audioEnhancer?: TwilioEnhancer;
 }
 
 export interface BridgeConfig {
@@ -101,7 +110,7 @@ export interface BridgeConfig {
  */
 function mulawToLinear(mulawData: Buffer): Buffer {
   const MULAW_BIAS = 33;
-  const MULAW_MAX = 0x1FFF;
+  const MULAW_MAX = 0x1fff;
 
   const linearData = Buffer.alloc(mulawData.length * 2);
 
@@ -134,24 +143,16 @@ function mulawToLinear(mulawData: Buffer): Buffer {
  */
 function linearToMulaw(linearData: Buffer): Buffer {
   const MULAW_BIAS = 33;
-  const MULAW_MAX = 0x7F7F;
+  const MULAW_MAX = 0x7f7f;
   const MULAW_TABLE = [
-    0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+    5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+    7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
   ];
 
   const mulawData = Buffer.alloc(linearData.length / 2);
@@ -175,10 +176,10 @@ function linearToMulaw(linearData: Buffer): Buffer {
     }
 
     // Get exponent
-    const exponent = MULAW_TABLE[(sample >> 7) & 0xFF];
+    const exponent = MULAW_TABLE[(sample >> 7) & 0xff];
 
     // Get mantissa
-    const mantissa = (sample >> (exponent + 3)) & 0x0F;
+    const mantissa = (sample >> (exponent + 3)) & 0x0f;
 
     // Combine and complement
     mulawData[i] = ~(sign | (exponent << 4) | mantissa);
@@ -299,6 +300,10 @@ export class TwilioStreamBridge extends EventEmitter {
     // Close all sessions
     for (const [callSid, session] of this.sessions) {
       try {
+        // Cleanup audio enhancer if it exists
+        if (session.audioEnhancer) {
+          session.audioEnhancer.cleanup();
+        }
         session.twilioWs.close();
         session.status = 'ended';
       } catch {
@@ -334,7 +339,10 @@ export class TwilioStreamBridge extends EventEmitter {
           case 'start':
             if (message.start) {
               session = await this.handleStreamStart(ws, message.start);
-              log.info({ tracks: message.start.tracks, mediaFormat: message.start.mediaFormat }, '🎧 Stream tracks configured');
+              log.info(
+                { tracks: message.start.tracks, mediaFormat: message.start.mediaFormat },
+                '🎧 Stream tracks configured'
+              );
             }
             break;
 
@@ -361,6 +369,10 @@ export class TwilioStreamBridge extends EventEmitter {
           case 'stop':
             if (session) {
               log.info({ callSid: session.callSid }, '📞 Stream stopped');
+              // Cleanup audio enhancer
+              if (session.audioEnhancer) {
+                session.audioEnhancer.cleanup();
+              }
               session.status = 'ended';
               this.sessions.delete(session.callSid);
               this.emit('callEnded', { callSid: session.callSid });
@@ -375,6 +387,10 @@ export class TwilioStreamBridge extends EventEmitter {
     ws.on('close', () => {
       if (session) {
         log.info({ callSid: session.callSid }, '🔌 Twilio stream disconnected');
+        // Cleanup audio enhancer
+        if (session.audioEnhancer) {
+          session.audioEnhancer.cleanup();
+        }
         session.status = 'ended';
         this.sessions.delete(session.callSid);
         this.emit('callEnded', { callSid: session.callSid });
@@ -427,6 +443,28 @@ export class TwilioStreamBridge extends EventEmitter {
       customParameters: customParameters || {},
     };
 
+    // Initialize Rust audio enhancer if enabled
+    if (isExperimentalEnabled('preSTTAudioProcessing')) {
+      try {
+        session.audioEnhancer = await getTwilioEnhancer({
+          sessionId: callSid,
+          enableAgc: true,
+          enableNoiseSuppression: true,
+          enableBandwidthExtension: true,
+          enableHighpass: true,
+        });
+        log.info(
+          { callSid, usingRust: session.audioEnhancer.isUsingRust() },
+          '🎤 Twilio audio enhancement enabled'
+        );
+      } catch (err) {
+        log.warn(
+          { error: String(err), callSid },
+          '⚠️ Failed to initialize audio enhancer, using simple upsampling'
+        );
+      }
+    }
+
     this.sessions.set(callSid, session);
 
     this.emit('callStarted', {
@@ -463,9 +501,17 @@ export class TwilioStreamBridge extends EventEmitter {
     }
 
     // Log audio packet counts
-    if (session.audioPacketCount === 1 || session.audioPacketCount === 10 || session.audioPacketCount % 200 === 0) {
+    if (
+      session.audioPacketCount === 1 ||
+      session.audioPacketCount === 10 ||
+      session.audioPacketCount % 200 === 0
+    ) {
       log.info(
-        { callSid: session.callSid, packetNum: session.audioPacketCount, isAgentSpeaking: session.isAgentSpeaking },
+        {
+          callSid: session.callSid,
+          packetNum: session.audioPacketCount,
+          isAgentSpeaking: session.isAgentSpeaking,
+        },
         '🎵 Audio packet received'
       );
     }
@@ -499,11 +545,32 @@ export class TwilioStreamBridge extends EventEmitter {
     }, SILENCE_THRESHOLD_MS);
 
     // Emit raw audio event (for potential LiveKit bridging)
-    const upsampledBuffer = upsample8to16(linearBuffer);
+    // Use Rust enhancer if available (AGC + noise suppression + bandwidth extension)
+    // Otherwise fall back to simple linear interpolation upsampling
+    let enhancedBuffer: Buffer;
+
+    if (session.audioEnhancer) {
+      // Convert linear PCM buffer to Int16Array for Rust processing
+      const int16Array = new Int16Array(
+        linearBuffer.buffer,
+        linearBuffer.byteOffset,
+        linearBuffer.length / 2
+      );
+
+      // Process through Rust pipeline (8kHz → 16kHz with enhancement)
+      const result = session.audioEnhancer.enhanceFrame(int16Array);
+
+      // Convert Float32 back to Int16 Buffer for LiveKit
+      enhancedBuffer = float32ToInt16Buffer(result.samples);
+    } else {
+      // Fallback: simple linear interpolation (no enhancement)
+      enhancedBuffer = upsample8to16(linearBuffer);
+    }
+
     this.emit('audioFromCaller', {
       callSid: session.callSid,
       roomName: session.livekitRoomName,
-      audio: upsampledBuffer,
+      audio: enhancedBuffer,
       timestamp: media.timestamp,
     });
   }
@@ -526,7 +593,10 @@ export class TwilioStreamBridge extends EventEmitter {
       return;
     }
 
-    log.info({ durationMs: Math.round(durationMs), callSid: session.callSid }, '🎤 Processing buffered audio');
+    log.info(
+      { durationMs: Math.round(durationMs), callSid: session.callSid },
+      '🎤 Processing buffered audio'
+    );
 
     // Combine all audio chunks
     const combinedAudio = Buffer.concat(session.audioBuffer);
@@ -537,7 +607,10 @@ export class TwilioStreamBridge extends EventEmitter {
       const transcript = await this.transcribeAudio(combinedAudio);
 
       if (transcript && transcript.trim()) {
-        log.info({ transcript: transcript.substring(0, 50), callSid: session.callSid }, '📝 Transcript received');
+        log.info(
+          { transcript: transcript.substring(0, 50), callSid: session.callSid },
+          '📝 Transcript received'
+        );
 
         // Emit transcript event for the conversation controller
         this.emit('transcript', {
@@ -661,7 +734,10 @@ export class TwilioStreamBridge extends EventEmitter {
   setAgentSpeaking(callSid: string, isSpeaking: boolean): void {
     const session = this.sessions.get(callSid);
     if (session) {
-      log.info({ callSid, isSpeaking, prevState: session.isAgentSpeaking }, `🔊 Agent speaking: ${isSpeaking}`);
+      log.info(
+        { callSid, isSpeaking, prevState: session.isAgentSpeaking },
+        `🔊 Agent speaking: ${isSpeaking}`
+      );
       session.isAgentSpeaking = isSpeaking;
       if (isSpeaking) {
         // Clear any pending silence timer when agent starts speaking
@@ -684,7 +760,10 @@ export class TwilioStreamBridge extends EventEmitter {
   sendAudioToCaller(callSid: string, linearPcm16k: Buffer): void {
     const session = this.sessions.get(callSid);
     if (!session || session.status !== 'active') {
-      log.warn({ callSid, hasSession: !!session, status: session?.status }, 'No active session for audio send');
+      log.warn(
+        { callSid, hasSession: !!session, status: session?.status },
+        'No active session for audio send'
+      );
       return;
     }
 
@@ -774,13 +853,12 @@ export function generateStreamTwiml(options: {
   voicemailAudioUrl?: string;
   customParameters?: Record<string, string>;
 }): string {
-  const { websocketUrl, roomName, voicemailGreeting, voicemailAudioUrl, customParameters } = options;
+  const { websocketUrl, roomName, voicemailGreeting, voicemailAudioUrl, customParameters } =
+    options;
 
   // Build custom parameters for the stream
-  const params = [
-    `<Parameter name="roomName" value="${escapeXml(roomName)}"/>`,
-  ];
-  
+  const params = [`<Parameter name="roomName" value="${escapeXml(roomName)}"/>`];
+
   if (customParameters) {
     for (const [key, value] of Object.entries(customParameters)) {
       params.push(`<Parameter name="${escapeXml(key)}" value="${escapeXml(value)}"/>`);

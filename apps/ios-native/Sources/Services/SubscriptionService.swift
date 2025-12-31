@@ -530,6 +530,6 @@ final class SubscriptionViewModel: ObservableObject {
         let yearlyMonthly = product.price / 12
         
         let savings = ((monthlyPrice - yearlyMonthly) / monthlyPrice) * 100
-        return Int(savings.rounded())
+        return Int(truncating: NSDecimalNumber(decimal: savings).rounding(accordingToBehavior: nil))
     }
 }

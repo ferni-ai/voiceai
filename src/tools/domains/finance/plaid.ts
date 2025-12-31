@@ -19,6 +19,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getRateLimiter } from '../../rate-limiter.js';
 // Plaid API configuration
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || '';
 const PLAID_SECRET = process.env.PLAID_SECRET || '';
@@ -174,6 +175,13 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
 async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
   if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
     getLogger().warn('Plaid credentials not configured');
+    return null;
+  }
+
+  // Rate limiting to prevent API abuse
+  const rateLimiter = getRateLimiter('plaid');
+  if (!rateLimiter.tryAcquire()) {
+    getLogger().warn({ endpoint }, 'Plaid API rate limited');
     return null;
   }
 

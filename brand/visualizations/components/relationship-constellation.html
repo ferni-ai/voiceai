@@ -1,0 +1,132 @@
+<!-- Relationship Constellation Visualization Component -->
+<!-- People in your life as stars in a night sky -->
+
+<section id="relationship-constellation" class="story-section">
+  <header class="story-section-header">
+    <p class="story-section-overline">Your People</p>
+    <h2 class="story-section-title">Relationship Constellation</h2>
+    <p class="story-section-description">
+      The people in your life form a constellation - some close and bright, others distant but always present. Position reflects emotional closeness.
+    </p>
+  </header>
+
+  <div class="bth-callout">
+    <div class="bth-callout-icon">F</div>
+    <div class="bth-callout-content">
+      <div class="bth-callout-title">Better Than Human</div>
+      <div class="bth-callout-text">
+        Friends know who you mention. Ferni tracks emotional weight - not just frequency, but the care in your voice when you speak of each person.
+      </div>
+    </div>
+  </div>
+
+  <div class="story-card">
+    <div class="story-card-header">
+      <div>
+        <h3 class="story-card-title">Your Personal Universe</h3>
+        <p class="story-card-subtitle">23 people mentioned across 847 conversations</p>
+      </div>
+    </div>
+
+    <div class="constellation-container">
+      <svg class="constellation-svg" viewBox="0 0 500 400">
+        <defs>
+          <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="white" stop-opacity="1"/>
+            <stop offset="50%" stop-color="white" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="white" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="starBlur">
+            <feGaussianBlur stdDeviation="2"/>
+          </filter>
+        </defs>
+
+        <!-- Connection lines -->
+        <g class="constellation-lines">
+          <line class="constellation-line" x1="250" y1="200" x2="180" y2="120"/>
+          <line class="constellation-line" x1="250" y1="200" x2="320" y2="100"/>
+          <line class="constellation-line" x1="250" y1="200" x2="380" y2="180"/>
+          <line class="constellation-line" x1="250" y1="200" x2="350" y2="280"/>
+          <line class="constellation-line" x1="250" y1="200" x2="150" y2="260"/>
+          <line class="constellation-line" x1="250" y1="200" x2="100" y2="180"/>
+        </g>
+
+        <!-- Inner circle stars (closest relationships) -->
+        <g class="constellation-star" transform="translate(180, 120)">
+          <circle class="star-glow" r="12" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="6" fill="white"/>
+          <text y="24" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Mom</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(320, 100)">
+          <circle class="star-glow" r="14" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="7" fill="white"/>
+          <text y="26" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Sarah</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(380, 180)">
+          <circle class="star-glow" r="10" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="5" fill="white"/>
+          <text y="22" text-anchor="middle" fill="var(--text-secondary)" font-size="11">David</text>
+        </g>
+
+        <!-- Middle circle stars -->
+        <g class="constellation-star" transform="translate(350, 280)">
+          <circle class="star-glow" r="8" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="4" fill="white"/>
+          <text y="20" text-anchor="middle" fill="var(--text-secondary)" font-size="11">James</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(150, 260)">
+          <circle class="star-glow" r="9" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="4.5" fill="white"/>
+          <text y="21" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Lisa</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(100, 180)">
+          <circle class="star-glow" r="7" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="3.5" fill="white"/>
+          <text y="19" text-anchor="middle" fill="var(--text-secondary)" font-size="11">Dad</text>
+        </g>
+
+        <!-- Outer stars (more distant but present) -->
+        <g class="constellation-star" transform="translate(420, 80)">
+          <circle class="star-glow" r="5" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="2.5" fill="white"/>
+          <text y="16" text-anchor="middle" fill="var(--text-muted)" font-size="10">Alex</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(450, 250)">
+          <circle class="star-glow" r="4" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="2" fill="white"/>
+          <text y="14" text-anchor="middle" fill="var(--text-muted)" font-size="10">Tom</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(80, 320)">
+          <circle class="star-glow" r="5" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="2.5" fill="white"/>
+          <text y="16" text-anchor="middle" fill="var(--text-muted)" font-size="10">Emma</text>
+        </g>
+
+        <g class="constellation-star" transform="translate(50, 100)">
+          <circle class="star-glow" r="4" filter="url(#starBlur)" fill="url(#starGlow)"/>
+          <circle class="star-core" r="2" fill="white"/>
+          <text y="14" text-anchor="middle" fill="var(--text-muted)" font-size="10">Mike</text>
+        </g>
+
+        <!-- Background stars (ambient) -->
+        <circle cx="30" cy="50" r="1" fill="rgba(255,255,255,0.3)"/>
+        <circle cx="470" cy="30" r="1.5" fill="rgba(255,255,255,0.4)"/>
+        <circle cx="490" cy="350" r="1" fill="rgba(255,255,255,0.3)"/>
+        <circle cx="20" cy="380" r="1" fill="rgba(255,255,255,0.2)"/>
+        <circle cx="280" cy="30" r="1" fill="rgba(255,255,255,0.3)"/>
+        <circle cx="400" cy="350" r="1" fill="rgba(255,255,255,0.25)"/>
+      </svg>
+
+      <div class="constellation-you">
+        <div class="you-marker"></div>
+        <div class="you-label">You</div>
+      </div>
+    </div>
+  </div>
+</section>

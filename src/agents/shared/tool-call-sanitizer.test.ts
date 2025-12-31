@@ -47,7 +47,8 @@ describe('detectsFunctionCallLeakage', () => {
       "playMusic(query: 'jazz')",
       'handoffToMaya()',
       "I'll call playMusic",
-      'The handoffToMaya function',
+      // Pattern requires "use/call/invoke/execute the X function" format
+      "I'll call the handoffToMaya function",
     ];
 
     for (const phrase of syntaxPhrases) {

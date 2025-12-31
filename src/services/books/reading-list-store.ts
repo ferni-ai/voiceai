@@ -9,6 +9,9 @@
 import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onReadingListChange } from '../data-layer/hooks/index.js';
+import { onStoreChange } from '../data-layer/store-hooks.js';
+import type { StoreType, EntityType } from '../data-layer/types.js';
 
 const log = createLogger({ module: 'ReadingListStore' });
 
@@ -162,6 +165,16 @@ export async function addToReadingList(
     const docRef = await collection.add(cleanForFirestore(entry));
     log.info({ userId, bookId: book.bookId, title: book.title }, 'Book added to reading list');
 
+    // Index to semantic memory
+    void onReadingListChange(userId, docRef.id, {
+      title: book.title,
+      authors: book.authors,
+      status: 'want_to_read',
+      notes,
+      listName,
+      priority,
+    }, 'create');
+
     return {
       success: true,
       entry: { id: docRef.id, ...entry } as ReadingListEntry,
@@ -223,9 +236,23 @@ export async function updateReadingStatus(
     log.info({ userId, entryId, status: update.status }, 'Reading status updated');
 
     const updated = await docRef.get();
+    const updatedData = updated.data() as ReadingListEntry;
+
+    // Index update to semantic memory
+    void onReadingListChange(userId, entryId, {
+      title: updatedData.title,
+      authors: updatedData.authors,
+      status: updatedData.status,
+      currentPage: updatedData.currentPage,
+      rating: updatedData.rating,
+      notes: updatedData.notes,
+      listName: updatedData.listName,
+      priority: updatedData.priority,
+    }, 'update');
+
     return {
       success: true,
-      entry: { id: docRef.id, ...updated.data() } as ReadingListEntry,
+      entry: { ...updatedData, id: docRef.id } as ReadingListEntry,
     };
   } catch (error) {
     log.error({ error: String(error), userId, entryId }, 'Failed to update reading status');
@@ -262,6 +289,17 @@ export async function removeFromReadingList(
   try {
     await collection.doc(entryId).delete();
     log.info({ userId, entryId }, 'Book removed from reading list');
+
+    // Remove from semantic index
+    onStoreChange({
+      storeType: 'media' as StoreType,
+      changeType: 'delete',
+      userId,
+      entityType: 'reading_list' as EntityType,
+      entityId: entryId,
+      content: '',
+    });
+
     return { success: true };
   } catch (error) {
     log.error({ error: String(error), userId, entryId }, 'Failed to remove from reading list');
@@ -404,7 +442,7 @@ export async function getReadingStats(userId: string): Promise<{
         booksWantToRead: wantToRead.length,
         pagesRead,
         averageRating: Math.round(averageRating * 10) / 10,
-        readingStreak: 0, // TODO: Calculate based on finish dates
+        readingStreak: calculateReadingStreak(completed),
       },
     };
   } catch (error) {
@@ -416,6 +454,62 @@ export async function getReadingStats(userId: string): Promise<{
 // ============================================================================
 // UTILITY
 // ============================================================================
+
+/**
+ * Calculate reading streak based on finish dates.
+ * A streak is consecutive weeks where at least one book was completed.
+ * Returns 0 if no books completed or streak is broken.
+ */
+function calculateReadingStreak(completed: ReadingListEntry[]): number {
+  // Get books with valid finish dates
+  const withDates = completed
+    .filter((e) => e.finishDate)
+    .map((e) => new Date(e.finishDate!))
+    .filter((d) => !isNaN(d.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime()); // Most recent first
+
+  if (withDates.length === 0) return 0;
+
+  // Group finish dates by week (Sunday-Saturday)
+  const getWeekStart = (date: Date): number => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - d.getDay()); // Go back to Sunday
+    return d.getTime();
+  };
+
+  const weeksWithCompletions = new Set<number>();
+  for (const date of withDates) {
+    weeksWithCompletions.add(getWeekStart(date));
+  }
+
+  // Get unique weeks sorted most recent first
+  const weeks = Array.from(weeksWithCompletions).sort((a, b) => b - a);
+  if (weeks.length === 0) return 0;
+
+  // Check if the most recent completion is from the current or previous week
+  const now = new Date();
+  const currentWeekStart = getWeekStart(now);
+  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+
+  if (weeks[0] < currentWeekStart - oneWeekMs) {
+    // Most recent completion is more than one week old - streak broken
+    return 0;
+  }
+
+  // Count consecutive weeks
+  let streak = 1;
+  for (let i = 1; i < weeks.length; i++) {
+    const expectedPreviousWeek = weeks[i - 1] - oneWeekMs;
+    if (weeks[i] === expectedPreviousWeek) {
+      streak++;
+    } else {
+      break; // Streak broken
+    }
+  }
+
+  return streak;
+}
 
 /**
  * Check if reading list store is available.

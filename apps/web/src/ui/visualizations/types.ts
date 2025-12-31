@@ -326,7 +326,7 @@ export interface VisualizationApiResponse {
 }
 
 // ============================================================================
-// COLOR TOKENS (for native apps)
+// COLOR TOKENS (for native apps and canvas/SVG rendering)
 // ============================================================================
 
 /**
@@ -355,44 +355,114 @@ export interface VisualizationColors {
     depleted: string;
     critical: string;
   };
+  priority: {
+    high: string;
+    medium: string;
+    low: string;
+  };
+  chapter: {
+    growth: string;
+    challenge: string;
+    transition: string;
+    celebration: string;
+    reflection: string;
+  };
 }
 
 /**
  * Default color tokens (matches design system).
  * These are fallback values for canvas/SVG rendering where CSS variables aren't available.
  * @design-tokens-ignore - Canvas rendering requires literal color values
+ *
+ * IMPORTANT: These colors are aligned with design-system/tokens/colors.json
+ * and the CSS variables defined in visualization.css.ts
  */
 export const DEFAULT_COLORS: VisualizationColors = {
-  accent: '#3D5A45',
-  accentSecondary: '#4a6741',
-  background: '#fffdfb',
-  backgroundElevated: '#ffffff',
-  textPrimary: '#2C2520',
-  textSecondary: '#5c544a',
-  textMuted: '#9a8f85',
-  borderSubtle: 'rgba(44, 37, 32, 0.08)',
+  // Core palette - zen theme aligned
+  accent: '#3D5A45',           // --color-accent
+  accentSecondary: '#4a6741',  // --color-accent-hover
+  background: '#faf8f5',       // --color-bg-primary
+  backgroundElevated: '#FFFDFB', // --color-bg-elevated
+  textPrimary: '#2C2520',      // --color-text-primary (Natural Ink)
+  textSecondary: '#5c544a',    // --color-text-secondary
+  textMuted: '#756a5e',        // --color-text-muted
+  borderSubtle: 'rgba(44, 37, 32, 0.06)', // --color-border-subtle
+
+  // Mood colors - warm, earthy palette aligned with personas
   moods: {
-    calm: '#3D5A45',
-    joyful: '#f5a623',
-    anxious: '#e74c3c',
-    tired: '#9a8f85',
-    focused: '#3a6b73',
-    reflective: '#8a7a9a',
-    stressed: '#c0392b',
-    energized: '#27ae60',
-    peaceful: '#5a8b73',
-    uncertain: '#7f8c8d',
+    calm: '#3D5A45',      // Ferni sage - grounded calm
+    joyful: '#c4956a',    // Warm amber - genuine joy
+    anxious: '#b5453a',   // Muted red - concern without alarm
+    tired: '#756a5e',     // Soft gray-brown - gentle fatigue
+    focused: '#3a6b73',   // Peter teal - deep concentration
+    reflective: '#7a6a8a', // Soft purple - thoughtful
+    stressed: '#a54545',  // Deeper red - pressure
+    energized: '#4a7a52', // Brighter sage - vitality
+    peaceful: '#5a8a73',  // Soft teal-green - serenity
+    uncertain: '#6a6a6a', // Neutral gray - ambiguity
   },
+
+  // Energy ring colors - persona-aligned
   energy: {
-    emotional: '#a67a6a',
-    mental: '#3a6b73',
-    physical: '#4a6741',
+    emotional: '#a67a6a', // Maya terracotta - heart energy
+    mental: '#3a6b73',    // Peter teal - mind energy
+    physical: '#4a6741',  // Ferni sage - body energy
   },
+
+  // Status colors - semantic and warm
   status: {
-    thriving: '#27ae60',
-    balanced: '#3D5A45',
-    stretched: '#f5a623',
-    depleted: '#e67e22',
-    critical: '#e74c3c',
+    thriving: '#3d7a52',  // Vibrant green - flourishing
+    balanced: '#3D5A45',  // Sage green - harmony
+    stretched: '#a67c35', // Warm amber - caution
+    depleted: '#c67840',  // Burnt orange - low energy
+    critical: '#b5453a',  // Warm red - urgent attention
+  },
+
+  // Priority colors - semantic
+  priority: {
+    high: '#b5453a',      // Warm red - urgent
+    medium: '#a67c35',    // Amber - moderate
+    low: '#756a5e',       // Muted - can wait
+  },
+
+  // Life chapter colors - narrative types
+  chapter: {
+    growth: '#3D5A45',    // Sage - expansion
+    challenge: '#b5453a', // Warm red - difficulty
+    transition: '#c4956a', // Amber - change
+    celebration: '#4a7a52', // Green - achievement
+    reflection: '#7a6a8a', // Purple - contemplation
   },
 };
+
+/**
+ * CSS variable names for colors that can be used in DOM elements.
+ * Use these when setting styles on HTML elements.
+ */
+export const CSS_COLOR_VARS = {
+  accent: 'var(--color-accent, #3D5A45)',
+  accentGlow: 'var(--color-accent-glow, rgba(61, 90, 69, 0.15))',
+  background: 'var(--color-bg-primary, #faf8f5)',
+  backgroundElevated: 'var(--color-bg-elevated, #FFFDFB)',
+  textPrimary: 'var(--color-text-primary, #2C2520)',
+  textSecondary: 'var(--color-text-secondary, #5c544a)',
+  textMuted: 'var(--color-text-muted, #756a5e)',
+  borderSubtle: 'var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
+
+  // Energy
+  energyEmotional: 'var(--viz-energy-emotional, #a67a6a)',
+  energyMental: 'var(--viz-energy-mental, #3a6b73)',
+  energyPhysical: 'var(--viz-energy-physical, #4a6741)',
+
+  // Status
+  statusThriving: 'var(--viz-status-thriving, #3d7a52)',
+  statusBalanced: 'var(--viz-status-balanced, #3D5A45)',
+  statusStretched: 'var(--viz-status-stretched, #a67c35)',
+  statusDepleted: 'var(--viz-status-depleted, #c67840)',
+  statusCritical: 'var(--viz-status-critical, #b5453a)',
+
+  // Priority
+  priorityHigh: 'var(--viz-priority-high, #b5453a)',
+  priorityMedium: 'var(--viz-priority-medium, #a67c35)',
+  priorityLow: 'var(--viz-priority-low, #756a5e)',
+} as const;

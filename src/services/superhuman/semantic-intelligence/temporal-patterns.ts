@@ -13,6 +13,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { onSeasonalPatternChange } from '../../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'temporal-patterns' });
 
@@ -59,6 +60,7 @@ export interface TemporalSnapshot {
   dayOfWeek: number;
   month: number;
   emotion?: string;
+  dominantEmotion?: string; // Primary emotion for this time period
   emotionIntensity?: number;
   topic?: string;
   energyLevel?: number;
@@ -664,6 +666,22 @@ async function saveSnapshot(userId: string, snapshot: TemporalSnapshot): Promise
       .doc(id)
       .set(cleanForFirestore(snapshot));
 
+    // Index temporal patterns to semantic memory
+    if (snapshot.dominantEmotion || snapshot.energyLevel) {
+      const season = getSeason(snapshot.timestamp);
+      void onSeasonalPatternChange(
+        userId,
+        `temporal_${id}`,
+        {
+          pattern: 'temporal_snapshot',
+          season,
+          observation: `Mood: ${snapshot.dominantEmotion || 'neutral'}, Energy: ${snapshot.energyLevel || 'moderate'}`,
+          recommendation: `Time-based awareness for ${season}`,
+        },
+        'create'
+      );
+    }
+
     // Update cache
     const cached = snapshotCache.get(userId) ?? [];
     cached.unshift(snapshot);
@@ -674,6 +692,15 @@ async function saveSnapshot(userId: string, snapshot: TemporalSnapshot): Promise
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save temporal snapshot');
   }
+}
+
+// Helper to get current season
+function getSeason(date: Date): 'spring' | 'summer' | 'fall' | 'winter' {
+  const month = date.getMonth();
+  if (month >= 2 && month <= 4) return 'spring';
+  if (month >= 5 && month <= 7) return 'summer';
+  if (month >= 8 && month <= 10) return 'fall';
+  return 'winter';
 }
 
 // ============================================================================

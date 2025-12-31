@@ -207,11 +207,11 @@ function updateButtonState(state: AuthState): void {
     button.setAttribute('aria-label', `Account menu for ${state.email ?? 'linked account'}`);
   } else if (state.isAuthenticated) {
     // Anonymous user - warm invitation to be remembered
-    textSpan.textContent = 'Remember me';
+    textSpan.textContent = t('ui.accountbutton.rememberMe');
     button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   } else {
     // Not configured or error
-    textSpan.textContent = 'Remember me';
+    textSpan.textContent = t('ui.accountbutton.rememberMe');
     button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   }
 }
@@ -245,11 +245,11 @@ function showLinkAccountModal(): void {
       
       <div class="account-modal-content">
         <div class="social-buttons" role="button" tabindex="0">
-          <button aria-label="Continue with Google" class="social-btn google-btn" data-provider="google">
+          <button aria-label="${t('accessibility.continueWithGoogle')}" class="social-btn google-btn" data-provider="google">
             ${GOOGLE_ICON}
             <span>Continue with Google</span>
           </button>
-          <button aria-label="Continue with Apple" class="social-btn apple-btn" data-provider="apple">
+          <button aria-label="${t('accessibility.continueWithApple')}" class="social-btn apple-btn" data-provider="apple">
             ${APPLE_ICON}
             <span>Continue with Apple</span>
           </button>
@@ -268,7 +268,7 @@ function showLinkAccountModal(): void {
             <label for="account-password">Password</label>
             <input type="password" id="account-password" name="password" required minlength="6" autocomplete="new-password" />
           </div>
-          <button aria-label="Remember me" type="submit" class="submit-btn">Remember me</button>
+          <button aria-label="${t('accessibility.rememberMe')}" type="submit" class="submit-btn">Remember me</button>
         </form>
         
         <p class="privacy-note">
@@ -288,7 +288,7 @@ function showLinkAccountModal(): void {
       
       <div class="account-modal-error" style="display: none;">
         <p class="error-message"></p>
-        <button aria-label="Try Again" class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
       </div>
     </div>
   `;
@@ -682,7 +682,7 @@ function showAccountMenu(): void {
       <span class="account-label">I'll remember you as</span>
       <span class="account-email">${currentAuthState.email ?? currentAuthState.displayName ?? 'You'}</span>
     </div>
-    <button aria-label="Forget this device" class="account-menu-item" data-action="signout">Forget this device</button>
+    <button aria-label="${t('accessibility.forgetThisDevice')}" class="account-menu-item" data-action="signout">Forget this device</button>
   `;
 
   Object.assign(menu.style, {

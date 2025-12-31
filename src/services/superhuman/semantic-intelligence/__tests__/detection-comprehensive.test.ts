@@ -23,415 +23,611 @@ import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 // MOCK SETUP
 // ============================================================================
 
-// Comprehensive mock response generator
-function createComprehensiveMockResponse(contents: string): { text: string } {
-  const isAdvicePrompt = contents.includes('Analyze if this text contains actionable advice');
-  const isPersonPrompt = contents.includes('Extract all people mentioned');
-  const isOutcomePrompt = contents.includes("Determine if the user's message references");
-
-  // Extract the actual user text from the prompt
-  const textMatch = contents.match(/TEXT:\s*"([^"]*)"/);
-  const userText = textMatch ? textMatch[1].toLowerCase() : contents.toLowerCase();
-
-  // ========== ADVICE DETECTION ==========
-  if (isAdvicePrompt) {
-    // NON-ADVICE FIRST (to prevent false positives)
-    // Pure questions asking for user's opinion
-    if (userText.includes('what do you think') || userText.includes('how do you feel')) {
-      return mockAdviceResponse(false, null, 0.1);
-    }
-
-    // IMPLICIT/SUBTLE ADVICE
-    if (userText.includes('what if we') || userText.includes('another way to think')) {
-      return mockAdviceResponse(true, 'philosophical', 0.75);
-    }
-    if (
-      userText.includes("it's okay to") ||
-      userText.includes("you're allowed") ||
-      userText.includes("you don't have to")
-    ) {
-      return mockAdviceResponse(true, 'emotional', 0.8);
-    }
-    if (userText.includes('some people find') || userText.includes("one thing that's worked")) {
-      return mockAdviceResponse(true, 'practical', 0.7);
-    }
-    if (userText.includes('might be nice') || userText.includes('could help clear')) {
-      return mockAdviceResponse(true, 'behavioral', 0.65);
-    }
-
-    // EXPLICIT ADVICE (from original tests)
-    if (
-      userText.includes('you should') ||
-      userText.includes("i'd suggest") ||
-      userText.includes("i'd recommend")
-    ) {
-      return mockAdviceResponse(true, 'behavioral', 0.9);
-    }
-    if (
-      userText.includes('try setting') ||
-      userText.includes('try keeping') ||
-      userText.includes('gratitude journal')
-    ) {
-      return mockAdviceResponse(true, 'practical', 0.92);
-    }
-    if (userText.includes('pomodoro') || userText.includes('technique')) {
-      return mockAdviceResponse(true, 'practical', 0.88);
-    }
-    if (userText.includes('consider') || userText.includes('have you considered')) {
-      return mockAdviceResponse(true, 'practical', 0.75);
-    }
-    if (userText.includes('take a break') || userText.includes('take a vacation')) {
-      return mockAdviceResponse(true, 'behavioral', 0.8);
-    }
-
-    // DOMAIN-SPECIFIC ADVICE
-    if (userText.includes('drinking enough water') || userText.includes('body might be telling')) {
-      return mockAdviceResponse(true, 'behavioral', 0.85);
-    }
-    if (userText.includes('told them how you feel') || userText.includes('setting that boundary')) {
-      return mockAdviceResponse(true, 'relational', 0.8);
-    }
-    if (userText.includes('linkedin') || userText.includes('mentor could help')) {
-      return mockAdviceResponse(true, 'practical', 0.75);
-    }
-    if (userText.includes('therapist could help') || userText.includes('cbt techniques')) {
-      return mockAdviceResponse(true, 'practical', 0.85);
-    }
-    if (userText.includes('budget might help') || userText.includes('savings')) {
-      return mockAdviceResponse(true, 'practical', 0.8);
-    }
-
-    // NON-ADVICE (false positives to avoid)
-    if (userText.includes('sounds like') || userText.includes("what i'm hearing")) {
-      return mockAdviceResponse(false, null, 0.1);
-    }
-    if (
-      userText.includes('how does that make you feel') ||
-      userText.includes('what do you think')
-    ) {
-      return mockAdviceResponse(false, null, 0.1);
-    }
-    if (userText.includes('you seem to be') || userText.includes('i notice you')) {
-      return mockAdviceResponse(false, null, 0.15);
-    }
-    if (userText.includes('completely reasonable') || userText.includes('anyone would feel')) {
-      return mockAdviceResponse(false, null, 0.1);
-    }
-    if (userText.includes('deadline is') || userText.includes('has been shown to')) {
-      return mockAdviceResponse(false, null, 0.1);
-    }
-    if (userText.includes('i tried that once') || userText.includes('they said it was')) {
-      return mockAdviceResponse(false, null, 0.15);
-    }
-
-    // Default: no advice
-    return mockAdviceResponse(false, null, 0.1);
-  }
-
-  // ========== PERSON EXTRACTION ==========
-  if (isPersonPrompt) {
-    // MULTIPLE PEOPLE
-    if (
-      userText.includes('mom and dad') ||
-      (userText.includes('mom') && userText.includes('dad'))
-    ) {
-      return mockPersonsResponse([
-        { name: 'mom', relationship: 'parent', confidence: 0.95 },
-        { name: 'dad', relationship: 'parent', confidence: 0.95 },
-      ]);
-    }
-    if (userText.includes('sarah') && userText.includes('mike') && userText.includes('jennifer')) {
-      return mockPersonsResponse([
-        { name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 },
-        { name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 },
-        { name: 'Jennifer', relationship: null, isProperName: true, confidence: 0.9 },
-      ]);
-    }
-    if (
-      (userText.includes('boss') || userText.includes('my boss')) &&
-      (userText.includes('wife') || userText.includes('my wife')) &&
-      (userText.includes('therapist') || userText.includes('my therapist'))
-    ) {
-      return mockPersonsResponse([
-        { name: 'boss', relationship: 'coworker', confidence: 0.9 },
-        { name: 'wife', relationship: 'spouse', confidence: 0.95 },
-        { name: 'therapist', relationship: 'professional', confidence: 0.9 },
-      ]);
-    }
-
-    // COMPLEX NAME PATTERNS
-    if (userText.includes('dr. sarah johnson') || userText.includes('dr sarah johnson')) {
-      return mockPersonsResponse([
-        {
-          name: 'Dr. Sarah Johnson',
-          relationship: 'professional',
-          isProperName: true,
-          confidence: 0.95,
-        },
-      ]);
-    }
-    if (userText.includes('professor martinez')) {
-      return mockPersonsResponse([
-        {
-          name: 'Professor Martinez',
-          relationship: 'professional',
-          isProperName: true,
-          confidence: 0.9,
-        },
-      ]);
-    }
-    if (userText.includes('mary-anne') || userText.includes('mary anne')) {
-      return mockPersonsResponse([
-        { name: 'Mary-Anne', relationship: null, isProperName: true, confidence: 0.85 },
-      ]);
-    }
-    if (userText.includes('jean-pierre')) {
-      return mockPersonsResponse([
-        { name: 'Jean-Pierre', relationship: null, isProperName: true, confidence: 0.85 },
-      ]);
-    }
-    if (userText.includes("o'brien")) {
-      return mockPersonsResponse([
-        { name: "O'Brien", relationship: null, isProperName: true, confidence: 0.85 },
-      ]);
-    }
-
-    // STEP/IN-LAW RELATIONSHIPS
-    if (userText.includes('stepmom') || userText.includes('step mom')) {
-      return mockPersonsResponse([
-        { name: 'stepmom', relationship: 'extended_family', confidence: 0.9 },
-      ]);
-    }
-    if (userText.includes('stepdad') || userText.includes('step dad')) {
-      return mockPersonsResponse([
-        { name: 'stepdad', relationship: 'extended_family', confidence: 0.9 },
-      ]);
-    }
-    if (userText.includes('mother-in-law') || userText.includes('mother in law')) {
-      return mockPersonsResponse([
-        { name: 'mother-in-law', relationship: 'extended_family', confidence: 0.9 },
-      ]);
-    }
-    if (userText.includes('father-in-law') || userText.includes('father in law')) {
-      return mockPersonsResponse([
-        { name: 'father-in-law', relationship: 'extended_family', confidence: 0.9 },
-      ]);
-    }
-
-    // WORK RELATIONSHIPS
-    if (userText.includes('team lead')) {
-      return mockPersonsResponse([
-        { name: 'team lead', relationship: 'coworker', confidence: 0.85 },
-      ]);
-    }
-    if (userText.includes('new hire')) {
-      return mockPersonsResponse([
-        { name: 'new hire', relationship: 'coworker', confidence: 0.75 },
-      ]);
-    }
-    if (userText.includes('hr called') || userText.includes('hr ')) {
-      return mockPersonsResponse([{ name: 'HR', relationship: 'professional', confidence: 0.7 }]);
-    }
-
-    // MULTIPLE RELATIONSHIPS IN SAME MESSAGE (check before single)
-    if (userText.includes('my mom') && userText.includes('my therapist')) {
-      return mockPersonsResponse([
-        { name: 'mom', relationship: 'parent', confidence: 0.95 },
-        { name: 'therapist', relationship: 'professional', confidence: 0.9 },
-      ]);
-    }
-
-    // SINGLE RELATIONSHIPS (from original tests)
-    if (userText.includes('my mom') || userText.includes('mom always')) {
-      return mockPersonsResponse([{ name: 'mom', relationship: 'parent', confidence: 0.95 }]);
-    }
-    if (userText.includes('my dad') || userText.includes('dad said')) {
-      return mockPersonsResponse([{ name: 'dad', relationship: 'parent', confidence: 0.95 }]);
-    }
-    if (userText.includes('my boss') || userText.includes('with my boss')) {
-      return mockPersonsResponse([{ name: 'boss', relationship: 'coworker', confidence: 0.92 }]);
-    }
-    if (userText.includes('my wife')) {
-      return mockPersonsResponse([{ name: 'wife', relationship: 'spouse', confidence: 0.95 }]);
-    }
-    if (userText.includes('my husband')) {
-      return mockPersonsResponse([{ name: 'husband', relationship: 'spouse', confidence: 0.95 }]);
-    }
-    if (userText.includes('my therapist')) {
-      return mockPersonsResponse([
-        { name: 'therapist', relationship: 'professional', confidence: 0.9 },
-      ]);
-    }
-
-    // PETS
-    if (userText.includes('my dog') && /\b[A-Z][a-z]+\b/.test(userText)) {
-      const petName = userText.match(/my dog (\w+)/i)?.[1] || 'dog';
-      return mockPersonsResponse([{ name: petName, relationship: 'pet', confidence: 0.85 }]);
-    }
-
-    // PROPER NAMES
-    if (userText.includes('sarah')) {
-      return mockPersonsResponse([
-        { name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 },
-      ]);
-    }
-    if (userText.includes('mike')) {
-      return mockPersonsResponse([
-        { name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 },
-      ]);
-    }
-
-    // NON-PERSON (should return empty)
-    if (userText.includes('called amazon') || userText.includes('google sent')) {
-      return mockPersonsResponse([]);
-    }
-    if (userText.includes('love paris') || userText.includes('paris is')) {
-      return mockPersonsResponse([]);
-    }
-
-    // Default: no persons
-    return mockPersonsResponse([]);
-  }
-
-  // ========== OUTCOME DETECTION ==========
-  if (isOutcomePrompt) {
-    // Extract user message from the prompt structure
-    const messageMatch = contents.match(/USER MESSAGE:\s*"([^"]*)"/i);
-    const userMessage = messageMatch ? messageMatch[1].toLowerCase() : contents.toLowerCase();
-    const lowerContents = userMessage; // Use extracted message for matching
-
-    // SPECIFIC POSITIVE OUTCOMES (check first - most specific patterns)
-    if (
-      lowerContents.includes('sleeping so much better') ||
-      lowerContents.includes('really helped')
-    ) {
-      return mockOutcomeResponse(true, 'followed', 'positive', 0.9);
-    }
-    if (lowerContents.includes('went great') || lowerContents.includes('it worked')) {
-      return mockOutcomeResponse(true, 'followed', 'positive', 0.9);
-    }
-    if (
-      lowerContents.includes('cleared my head') ||
-      lowerContents.includes('thanks for the suggestion')
-    ) {
-      return mockOutcomeResponse(true, 'followed', 'positive', 0.85);
-    }
-    if (
-      lowerContents.includes('really understanding') ||
-      lowerContents.includes('actually understanding')
-    ) {
-      return mockOutcomeResponse(true, 'followed', 'positive', 0.85);
-    }
-
-    // DELAYED POSITIVE
-    if (
-      lowerContents.includes('remember when you suggested') ||
-      (lowerContents.includes('weeks') && lowerContents.includes('every day'))
-    ) {
-      return mockOutcomeResponse(true, 'followed', 'positive', 0.8);
-    }
-
-    // SPECIFIC NEGATIVE OUTCOMES
-    if (lowerContents.includes('made things worse') || lowerContents.includes("didn't work")) {
-      return mockOutcomeResponse(true, 'followed', 'negative', 0.85);
-    }
-
-    // PARTIAL OUTCOMES
-    if (lowerContents.includes("couldn't stick with") || lowerContents.includes("couldn't do it")) {
-      return mockOutcomeResponse(true, 'partial', 'neutral', 0.75);
-    }
-
-    // IGNORED
-    if (lowerContents.includes('i know i should') && lowerContents.includes("can't")) {
-      return mockOutcomeResponse(true, 'ignored', 'neutral', 0.8);
-    }
-    if (lowerContents.includes('not for me') || lowerContents.includes('never been able to')) {
-      return mockOutcomeResponse(true, 'ignored', 'neutral', 0.75);
-    }
-
-    // GENERAL FOLLOW-THROUGH (last resort)
-    if (lowerContents.includes('i tried') || lowerContents.includes('i started')) {
-      return mockOutcomeResponse(true, 'followed', 'neutral', 0.7);
-    }
-
-    // Default: no reference
-    return mockOutcomeResponse(false, null, null, 0.1);
-  }
-
-  // Fallback
-  return { text: JSON.stringify({ containsAdvice: false, persons: [] }) };
-}
-
-// Helper functions for mock responses
-function mockAdviceResponse(containsAdvice: boolean, category: string | null, confidence: number) {
-  return {
-    text: JSON.stringify({
-      containsAdvice,
-      adviceText: containsAdvice ? 'extracted advice text' : null,
-      category,
-      confidence,
-    }),
+// Mock gemini-config.js - the actual source of the Gemini client
+// Must mock this instead of @google/genai because llm-detector imports from gemini-config
+vi.mock('../../../../config/gemini-config.js', () => {
+  // All constant exports that gemini-config.js provides
+  const mockConstants = {
+    USE_VERTEX_AI: false,
+    GOOGLE_CLOUD_PROJECT: 'test-project',
+    GOOGLE_CLOUD_LOCATION: 'us-central1',
+    GEMINI_API_KEY: 'test-api-key',
+    GOOGLE_API_KEY: 'test-api-key',
+    GEMINI_MODEL: 'gemini-2.0-flash-exp',
+    GEMINI_TEMPERATURE: 0.8,
+    GEMINI_TEMPERATURE_LOW: 0.3,
+    GEMINI_TEMPERATURE_HIGH: 0.9,
+    GEMINI_MAX_OUTPUT_TOKENS: 1024,
+    GEMINI_MAX_OUTPUT_TOKENS_SHORT: 500,
+    GEMINI_MAX_OUTPUT_TOKENS_LONG: 2000,
+    GEMINI_LANGUAGE: 'en-US',
+    LLM_TIMEOUT_MS: 5000,
+    LLM_SHORT_TIMEOUT_MS: 2000,
   };
-}
 
-function mockPersonsResponse(
-  persons: Array<{
-    name: string;
-    relationship?: string | null;
-    isProperName?: boolean;
-    confidence: number;
-  }>
-) {
-  return {
-    text: JSON.stringify({
-      persons: persons.map((p) => ({
-        name: p.name,
-        relationship: p.relationship || null,
-        isProperName: p.isProperName ?? false,
-        confidence: p.confidence,
-      })),
-    }),
+  // Inline mock generator (hoisted, can't reference external functions)
+  const generateMockResponse = (contents: string): { text: string } => {
+    const isAdvicePrompt = contents.includes('Analyze if this text contains actionable advice');
+    const isPersonPrompt = contents.includes('Extract all people mentioned');
+    const isOutcomePrompt = contents.includes("Determine if the user's message references");
+
+    // Extract the actual user text from the prompt
+    const textMatch = contents.match(/TEXT:\s*"([^"]*)"/);
+    const userText = textMatch ? textMatch[1].toLowerCase() : contents.toLowerCase();
+
+    // ========== ADVICE DETECTION ==========
+    if (isAdvicePrompt) {
+      // NON-ADVICE FIRST (to prevent false positives)
+      if (userText.includes('what do you think') || userText.includes('how do you feel')) {
+        return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+      }
+
+      // IMPLICIT/SUBTLE ADVICE
+      if (userText.includes('what if we') || userText.includes('another way to think')) {
+        return {
+          text: JSON.stringify({
+            containsAdvice: true,
+            category: 'philosophical',
+            confidence: 0.75,
+          }),
+        };
+      }
+      if (
+        userText.includes("it's okay to") ||
+        userText.includes("you're allowed") ||
+        userText.includes("you don't have to")
+      ) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'emotional', confidence: 0.8 }),
+        };
+      }
+      if (userText.includes('some people find') || userText.includes("one thing that's worked")) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.7 }),
+        };
+      }
+      if (userText.includes('might be nice') || userText.includes('could help clear')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'behavioral', confidence: 0.65 }),
+        };
+      }
+
+      // EXPLICIT ADVICE
+      if (
+        userText.includes('you should') ||
+        userText.includes("i'd suggest") ||
+        userText.includes("i'd recommend")
+      ) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'behavioral', confidence: 0.9 }),
+        };
+      }
+      if (
+        userText.includes('try setting') ||
+        userText.includes('try keeping') ||
+        userText.includes('gratitude journal')
+      ) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.92 }),
+        };
+      }
+      if (userText.includes('pomodoro') || userText.includes('technique')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.88 }),
+        };
+      }
+      if (userText.includes('consider') || userText.includes('have you considered')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.75 }),
+        };
+      }
+      if (userText.includes('take a break') || userText.includes('take a vacation')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'behavioral', confidence: 0.8 }),
+        };
+      }
+
+      // DOMAIN-SPECIFIC ADVICE
+      if (
+        userText.includes('drinking enough water') ||
+        userText.includes('body might be telling')
+      ) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'behavioral', confidence: 0.85 }),
+        };
+      }
+      if (
+        userText.includes('told them how you feel') ||
+        userText.includes('setting that boundary')
+      ) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'relational', confidence: 0.8 }),
+        };
+      }
+      if (userText.includes('linkedin') || userText.includes('mentor could help')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.75 }),
+        };
+      }
+      if (userText.includes('therapist could help') || userText.includes('cbt techniques')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.85 }),
+        };
+      }
+      if (userText.includes('budget might help') || userText.includes('savings')) {
+        return {
+          text: JSON.stringify({ containsAdvice: true, category: 'practical', confidence: 0.8 }),
+        };
+      }
+
+      // NON-ADVICE (false positives to avoid)
+      if (userText.includes('sounds like') || userText.includes("what i'm hearing")) {
+        return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+      }
+      if (
+        userText.includes('how does that make you feel') ||
+        userText.includes('what do you think')
+      ) {
+        return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+      }
+      if (userText.includes('you seem to be') || userText.includes('i notice you')) {
+        return {
+          text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.15 }),
+        };
+      }
+      if (userText.includes('completely reasonable') || userText.includes('anyone would feel')) {
+        return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+      }
+      if (userText.includes('deadline is') || userText.includes('has been shown to')) {
+        return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+      }
+      if (userText.includes('i tried that once') || userText.includes('they said it was')) {
+        return {
+          text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.15 }),
+        };
+      }
+
+      // Default: no advice
+      return { text: JSON.stringify({ containsAdvice: false, category: null, confidence: 0.1 }) };
+    }
+
+    // ========== PERSON EXTRACTION ==========
+    if (isPersonPrompt) {
+      // MULTIPLE PEOPLE
+      if (
+        (userText.includes('mom') && userText.includes('dad')) ||
+        userText.includes('mom and dad')
+      ) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'mom', relationship: 'parent', confidence: 0.95 },
+              { name: 'dad', relationship: 'parent', confidence: 0.95 },
+            ],
+          }),
+        };
+      }
+      if (
+        userText.includes('sarah') &&
+        userText.includes('mike') &&
+        userText.includes('jennifer')
+      ) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 },
+              { name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 },
+              { name: 'Jennifer', relationship: null, isProperName: true, confidence: 0.9 },
+            ],
+          }),
+        };
+      }
+      if (
+        (userText.includes('boss') || userText.includes('my boss')) &&
+        (userText.includes('wife') || userText.includes('my wife')) &&
+        (userText.includes('therapist') || userText.includes('my therapist'))
+      ) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'boss', relationship: 'coworker', confidence: 0.9 },
+              { name: 'wife', relationship: 'spouse', confidence: 0.95 },
+              { name: 'therapist', relationship: 'professional', confidence: 0.9 },
+            ],
+          }),
+        };
+      }
+      // Multiple relationships - check before single
+      if (userText.includes('my mom') && userText.includes('my therapist')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'mom', relationship: 'parent', confidence: 0.95 },
+              { name: 'therapist', relationship: 'professional', confidence: 0.9 },
+            ],
+          }),
+        };
+      }
+
+      // COMPLEX NAME PATTERNS
+      if (userText.includes('dr. sarah johnson') || userText.includes('dr sarah johnson')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              {
+                name: 'Dr. Sarah Johnson',
+                relationship: 'professional',
+                isProperName: true,
+                confidence: 0.95,
+              },
+            ],
+          }),
+        };
+      }
+      if (userText.includes('professor martinez')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              {
+                name: 'Professor Martinez',
+                relationship: 'professional',
+                isProperName: true,
+                confidence: 0.9,
+              },
+            ],
+          }),
+        };
+      }
+      if (userText.includes('mary-anne') || userText.includes('mary anne')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'Mary-Anne', relationship: null, isProperName: true, confidence: 0.85 },
+            ],
+          }),
+        };
+      }
+      if (userText.includes('jean-pierre')) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: 'Jean-Pierre', relationship: null, isProperName: true, confidence: 0.85 },
+            ],
+          }),
+        };
+      }
+      if (userText.includes("o'brien")) {
+        return {
+          text: JSON.stringify({
+            persons: [
+              { name: "O'Brien", relationship: null, isProperName: true, confidence: 0.85 },
+            ],
+          }),
+        };
+      }
+
+      // STEP/IN-LAW RELATIONSHIPS
+      if (userText.includes('stepmom') || userText.includes('step mom')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'stepmom', relationship: 'extended_family', confidence: 0.9 }],
+          }),
+        };
+      }
+      if (userText.includes('stepdad') || userText.includes('step dad')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'stepdad', relationship: 'extended_family', confidence: 0.9 }],
+          }),
+        };
+      }
+      if (userText.includes('mother-in-law') || userText.includes('mother in law')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'mother-in-law', relationship: 'extended_family', confidence: 0.9 }],
+          }),
+        };
+      }
+      if (userText.includes('father-in-law') || userText.includes('father in law')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'father-in-law', relationship: 'extended_family', confidence: 0.9 }],
+          }),
+        };
+      }
+
+      // WORK RELATIONSHIPS
+      if (userText.includes('team lead')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'team lead', relationship: 'coworker', confidence: 0.85 }],
+          }),
+        };
+      }
+      if (userText.includes('new hire')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'new hire', relationship: 'coworker', confidence: 0.75 }],
+          }),
+        };
+      }
+      if (userText.includes('hr called') || userText.includes('hr ')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'HR', relationship: 'professional', confidence: 0.7 }],
+          }),
+        };
+      }
+
+      // SINGLE RELATIONSHIPS
+      if (userText.includes('my mom') || userText.includes('mom always')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'mom', relationship: 'parent', confidence: 0.95 }],
+          }),
+        };
+      }
+      if (userText.includes('my dad') || userText.includes('dad said')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'dad', relationship: 'parent', confidence: 0.95 }],
+          }),
+        };
+      }
+      if (userText.includes('my boss') || userText.includes('with my boss')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'boss', relationship: 'coworker', confidence: 0.92 }],
+          }),
+        };
+      }
+      if (userText.includes('my wife')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'wife', relationship: 'spouse', confidence: 0.95 }],
+          }),
+        };
+      }
+      if (userText.includes('my husband')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'husband', relationship: 'spouse', confidence: 0.95 }],
+          }),
+        };
+      }
+      if (userText.includes('my therapist')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'therapist', relationship: 'professional', confidence: 0.9 }],
+          }),
+        };
+      }
+
+      // PETS
+      if (userText.includes('my dog') && /\b[A-Z][a-z]+\b/.test(userText)) {
+        const petMatch = userText.match(/my dog (\w+)/i);
+        const petName = petMatch ? petMatch[1] : 'dog';
+        return {
+          text: JSON.stringify({
+            persons: [{ name: petName, relationship: 'pet', confidence: 0.85 }],
+          }),
+        };
+      }
+
+      // PROPER NAMES
+      if (userText.includes('sarah')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'Sarah', relationship: null, isProperName: true, confidence: 0.9 }],
+          }),
+        };
+      }
+      if (userText.includes('mike')) {
+        return {
+          text: JSON.stringify({
+            persons: [{ name: 'Mike', relationship: null, isProperName: true, confidence: 0.9 }],
+          }),
+        };
+      }
+
+      // NON-PERSON (should return empty)
+      if (userText.includes('called amazon') || userText.includes('google sent')) {
+        return { text: JSON.stringify({ persons: [] }) };
+      }
+      if (userText.includes('love paris') || userText.includes('paris is')) {
+        return { text: JSON.stringify({ persons: [] }) };
+      }
+
+      // Default: no persons
+      return { text: JSON.stringify({ persons: [] }) };
+    }
+
+    // ========== OUTCOME DETECTION ==========
+    if (isOutcomePrompt) {
+      // Extract user message from the prompt structure
+      const messageMatch = contents.match(/USER MESSAGE:\s*"([^"]*)"/i);
+      const userMessage = messageMatch ? messageMatch[1].toLowerCase() : contents.toLowerCase();
+
+      // SPECIFIC POSITIVE OUTCOMES
+      if (
+        userMessage.includes('sleeping so much better') ||
+        userMessage.includes('really helped')
+      ) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.9,
+          }),
+        };
+      }
+      if (userMessage.includes('went great') || userMessage.includes('it worked')) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.9,
+          }),
+        };
+      }
+      if (
+        userMessage.includes('cleared my head') ||
+        userMessage.includes('thanks for the suggestion')
+      ) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.85,
+          }),
+        };
+      }
+      if (
+        userMessage.includes('really understanding') ||
+        userMessage.includes('actually understanding')
+      ) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.85,
+          }),
+        };
+      }
+
+      // DELAYED POSITIVE
+      if (
+        userMessage.includes('remember when you suggested') ||
+        (userMessage.includes('weeks') && userMessage.includes('every day'))
+      ) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'positive',
+            confidence: 0.8,
+          }),
+        };
+      }
+
+      // SPECIFIC NEGATIVE OUTCOMES
+      if (userMessage.includes('made things worse') || userMessage.includes("didn't work")) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'negative',
+            confidence: 0.85,
+          }),
+        };
+      }
+
+      // PARTIAL OUTCOMES
+      if (userMessage.includes("couldn't stick with") || userMessage.includes("couldn't do it")) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'partial',
+            sentiment: 'neutral',
+            confidence: 0.75,
+          }),
+        };
+      }
+
+      // IGNORED
+      if (userMessage.includes('i know i should') && userMessage.includes("can't")) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'ignored',
+            sentiment: 'neutral',
+            confidence: 0.8,
+          }),
+        };
+      }
+      if (userMessage.includes('not for me') || userMessage.includes('never been able to')) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'ignored',
+            sentiment: 'neutral',
+            confidence: 0.75,
+          }),
+        };
+      }
+
+      // GENERAL FOLLOW-THROUGH
+      if (userMessage.includes('i tried') || userMessage.includes('i started')) {
+        return {
+          text: JSON.stringify({
+            referencesAdvice: true,
+            outcome: 'followed',
+            sentiment: 'neutral',
+            confidence: 0.7,
+          }),
+        };
+      }
+
+      // Default: no reference
+      return {
+        text: JSON.stringify({
+          referencesAdvice: false,
+          outcome: null,
+          sentiment: null,
+          confidence: 0.1,
+        }),
+      };
+    }
+
+    // Fallback
+    return { text: JSON.stringify({ containsAdvice: false, persons: [] }) };
   };
-}
 
-function mockOutcomeResponse(
-  referencesAdvice: boolean,
-  outcome: string | null,
-  sentiment: string | null,
-  confidence: number
-) {
-  return {
-    text: JSON.stringify({
-      referencesAdvice,
-      outcome,
-      sentiment,
-      confidence,
-    }),
-  };
-}
-
-// Mock class
-class MockGoogleGenAI {
-  models = {
-    generateContent: async (params: { model: string; contents: string; config: unknown }) => {
-      return createComprehensiveMockResponse(params.contents);
+  // Create mock client
+  const mockClient = {
+    models: {
+      generateContent: async (params: { model: string; contents: string; config: unknown }) => {
+        return generateMockResponse(params.contents);
+      },
     },
   };
-  constructor(_config: { apiKey: string }) {}
-}
 
-vi.mock('@google/genai', () => ({
-  GoogleGenAI: MockGoogleGenAI,
-}));
+  return {
+    // Spread all constants
+    ...mockConstants,
+    // Client functions
+    getGeminiClient: async () => mockClient,
+    createGeminiClient: async () => mockClient,
+    isGeminiConfigured: () => true,
+    getGeminiConfigStatus: () => ({ hasApiKey: true, hasProjectId: false }),
+    resetGeminiClient: () => {},
+    // Helper functions
+    getDefaultModel: () => mockConstants.GEMINI_MODEL,
+    getLLMTimeout: () => mockConstants.LLM_TIMEOUT_MS,
+    getShortLLMTimeout: () => mockConstants.LLM_SHORT_TIMEOUT_MS,
+  };
+});
 
-vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock logger - must export both getLogger and createLogger for transitive dependencies
+vi.mock('../../../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 vi.mock('../../../../utils/circuit-breaker.js', () => ({
   getCircuitBreaker: () => ({

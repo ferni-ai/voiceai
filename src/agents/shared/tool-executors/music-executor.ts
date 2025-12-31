@@ -73,7 +73,7 @@ async function execute(
         return 'Music stopped.';
       case 'skip':
       case 'next':
-        await musicPlayer.skip();
+        musicPlayer.skip();
         return 'Skipping to the next track.';
       case 'volume': {
         const level = args.level as number;
@@ -158,7 +158,7 @@ async function execute(
     const { getMusicPlayer } = await import('../../../audio/music-player.js');
     const musicPlayer = getMusicPlayer();
     log.info({ fn }, '🎵 Legacy skip tool');
-    await musicPlayer.skip();
+    musicPlayer.skip();
     return 'Skipping to the next track.';
   }
 

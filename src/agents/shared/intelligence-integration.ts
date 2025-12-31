@@ -30,8 +30,10 @@ import {
   type MomentDetectionContext,
 } from '../../personas/moment-detection.js';
 import type { MomentDetectionResult } from '../../personas/unified-moment-detection.js';
-import type { PersonaIntelligenceEngine } from '../../personas/persona-intelligence.js';
-import { getPersonaIntelligence } from '../../personas/persona-intelligence.js';
+import {
+  getPersonaIntelligence,
+  type PersonaIntelligenceEngine,
+} from '../../personas/persona-intelligence.js';
 import {
   analyzePredictively,
   type PatternMatchContext,

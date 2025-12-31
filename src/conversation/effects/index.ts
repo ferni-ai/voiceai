@@ -174,11 +174,11 @@ export function registerDefaultEffects(coordinator: EffectCoordinator, personaId
 /**
  * Create a coordinator with all default effects registered
  */
-export function createCoordinatorWithEffects(
+export async function createCoordinatorWithEffects(
   sessionId: string,
   personaId: string
-): EffectCoordinator {
-  const { getEffectCoordinator } = require('./effect-coordinator.js');
+): Promise<EffectCoordinator> {
+  const { getEffectCoordinator } = await import('./effect-coordinator.js');
   const coordinator = getEffectCoordinator(sessionId, personaId);
   registerDefaultEffects(coordinator, personaId);
   return coordinator;

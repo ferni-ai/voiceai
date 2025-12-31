@@ -437,9 +437,9 @@ src/js/
 - `design-system/tokens/typography.json`
 
 ### Brand Guidelines
-- `design-system/brand/FERNI-BRAND-GUIDELINES.md`
-- `design-system/brand/BETTER-THAN-HUMAN.md`
-- `design-system/brand/FERNI-SCREEN-GUIDELINES.md`
+- `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`
+- `design-system/docs/brand/BETTER-THAN-HUMAN.md`
+- `design-system/docs/brand/FERNI-SCREEN-GUIDELINES.md`
 
 ### Animation Reference
 - `design-system/README.md`

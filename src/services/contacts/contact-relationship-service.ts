@@ -19,6 +19,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 
 const log = getLogger();
 
@@ -1075,6 +1076,20 @@ async function persistContact(contact: ContactRelationship): Promise<void> {
       .collection(CONTACTS_COLLECTION)
       .doc(contact.id)
       .set(cleanForFirestore(cleanContact));
+
+    // Index to semantic memory for contact awareness
+    void onContactChange(
+      contact.userId,
+      contact.id,
+      {
+        name: contact.name,
+        relationship: contact.relationship || 'contact',
+        notes: contact.topics?.map((t) => t.topic).join('; '),
+        importantDates: undefined,
+        communicationPreference: contact.preferredChannel,
+      },
+      'update'
+    );
   } catch (error) {
     log.error({ error: String(error), contactId: contact.id }, 'Failed to persist contact');
   }
@@ -1089,6 +1104,21 @@ async function persistInteraction(interaction: InteractionRecord): Promise<void>
       .collection(INTERACTIONS_COLLECTION)
       .doc(interaction.id)
       .set(cleanForFirestore(interaction));
+
+    // Index to semantic memory for relationship context
+    void onContactInteractionChange(
+      interaction.userId,
+      interaction.id,
+      {
+        contactName: interaction.contactId, // Will be resolved from contact later
+        interactionType: interaction.type as 'call' | 'message' | 'meeting' | 'email' | 'social',
+        summary: interaction.summary || '',
+        date: interaction.date.toISOString(),
+        sentiment: interaction.sentiment as 'positive' | 'neutral' | 'negative' | undefined,
+        followUpNeeded: false,
+      },
+      'create'
+    );
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist interaction');
   }

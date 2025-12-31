@@ -201,9 +201,7 @@ export function analyzeTranscriptCompleteness(transcript: string): SentenceCompl
   }
 
   // Get word count (Rust or JS fallback)
-  const wordCount = RUST_COUNTING_AVAILABLE
-    ? countWordsRust(trimmed)
-    : trimmed.split(/\s+/).length;
+  const wordCount = RUST_COUNTING_AVAILABLE ? countWordsRust(trimmed) : trimmed.split(/\s+/).length;
 
   // Very short (< 3 words) - probably incomplete
   if (wordCount < 3) {

@@ -730,6 +730,47 @@ export class EmptyServiceRegistry implements ServiceRegistry {
   }
 }
 
+/**
+ * Environment-based service registry
+ *
+ * Checks environment variables to determine if services are available.
+ * Use this instead of EmptyServiceRegistry to enable tools that require
+ * external services like Twilio, Plaid, etc.
+ */
+export class EnvironmentServiceRegistry implements ServiceRegistry {
+  private serviceChecks: Record<ExternalService, () => boolean> = {
+    twilio: () => !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    plaid: () => !!(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET),
+    'google-calendar': () => !!process.env.GOOGLE_CALENDAR_CREDENTIALS,
+    'google-contacts': () => !!process.env.GOOGLE_CONTACTS_CREDENTIALS,
+    spotify: () => !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
+    sendgrid: () => !!process.env.SENDGRID_API_KEY,
+    openweather: () => !!process.env.OPENWEATHER_API_KEY,
+    newsapi: () => !!process.env.NEWS_API_KEY,
+    'alpha-vantage': () => !!process.env.ALPHA_VANTAGE_API_KEY,
+    finnhub: () => !!process.env.FINNHUB_API_KEY,
+    firebase: () => !!process.env.GOOGLE_CLOUD_PROJECT,
+    ecobee: () => !!process.env.ECOBEE_API_KEY,
+  };
+
+  has(service: ExternalService): boolean {
+    const check = this.serviceChecks[service];
+    return check ? check() : false;
+  }
+
+  get<T>(service: ExternalService): T {
+    if (!this.has(service)) {
+      throw new Error(`Service not available: ${service}`);
+    }
+    // Services would be instantiated here in a full implementation
+    throw new Error(`Service ${service} not implemented in get()`);
+  }
+
+  getOptional<T>(): T | undefined {
+    return undefined;
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -740,5 +781,6 @@ export default {
   validateToolDefinition,
   validateToolSetSpec,
   EmptyServiceRegistry,
+  EnvironmentServiceRegistry,
 };
 // CI trigger: 1765115360

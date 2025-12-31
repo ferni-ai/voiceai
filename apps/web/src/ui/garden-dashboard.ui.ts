@@ -12,6 +12,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './toast.ui.js';
 import { openReferral } from './referral.ui.js';
+import { t } from '../i18n/index.js';
 import {
   getReferralUrl,
   getGardenStats,
@@ -170,7 +171,7 @@ function renderModalContent(): void {
   modal.innerHTML = `
     <div class="garden-backdrop"></div>
     <div class="garden-content">
-      <button class="garden-close" aria-label="Close">
+      <button class="garden-close" aria-label="${t('accessibility.close')}">
         ${ICONS.close}
       </button>
 
@@ -235,14 +236,14 @@ function renderModalContent(): void {
       <div class="garden-link">
         <span class="garden-link-label">Your link:</span>
         <span class="garden-link-url">${shortUrl}</span>
-        <button aria-label="Copy" class="garden-link-copy" data-action="copy">
+        <button aria-label="${t('accessibility.copy')}" class="garden-link-copy" data-action="copy">
           ${ICONS.copy}
         </button>
       </div>
 
       <!-- Actions -->
       <div class="garden-actions" role="button" tabindex="0">
-        <button aria-label="Share" class="garden-action garden-action--primary" data-action="invite">
+        <button aria-label="${t('accessibility.share')}" class="garden-action garden-action--primary" data-action="invite">
           ${ICONS.share}
           <span>Invite Friends</span>
         </button>
@@ -272,7 +273,7 @@ function bindModalEvents(): void {
       const url = getReferralUrl();
       try {
         await navigator.clipboard.writeText(url);
-        toast.success('Link copied!');
+        toast.success(t('toasts.linkCopied'));
         copyBtn.innerHTML = ICONS.check;
         setTimeout(() => {
           copyBtn.innerHTML = ICONS.copy;

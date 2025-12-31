@@ -354,19 +354,19 @@ class GamePickerUI {
         
         <!-- Category Tabs -->
         <div class="game-picker__tabs">
-          <button aria-label="Music" class="game-picker__tab game-picker__tab--active" data-category="music">
+          <button aria-label="${t('accessibility.music')}" class="game-picker__tab game-picker__tab--active" data-category="music">
             ${ICONS.music}
             <span>Music</span>
           </button>
-          <button aria-label="Fun" class="game-picker__tab" data-category="text">
+          <button aria-label="${t('accessibility.fun')}" class="game-picker__tab" data-category="text">
             ${ICONS.gamepad}
             <span>Fun</span>
           </button>
-          <button aria-label="Reflect" class="game-picker__tab" data-category="reflection">
+          <button aria-label="${t('accessibility.reflect')}" class="game-picker__tab" data-category="reflection">
             ${ICONS.heart}
             <span>Reflect</span>
           </button>
-          <button aria-label="Your Library" class="game-picker__tab" data-category="library">
+          <button aria-label="${t('accessibility.yourLibrary')}" class="game-picker__tab" data-category="library">
             ${ICONS.spotify}
             <span>Your Library</span>
           </button>
@@ -439,7 +439,7 @@ class GamePickerUI {
       : '';
     
     return `
-      <button aria-label="More information" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
+      <button aria-label="${t('accessibility.moreInformation')}" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
           <h3 class="game-card__name">${game.name}${newBadge}${spotifyBadge}</h3>

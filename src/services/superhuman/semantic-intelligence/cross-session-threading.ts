@@ -16,6 +16,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
+import { onCrossSessionThreadChange } from '../../data-layer/hooks/better-than-human-hooks.js';
 import type { SemanticThread, ThreadMoment } from './types.js';
 
 const log = createLogger({ module: 'cross-session-threading' });
@@ -601,6 +602,24 @@ async function saveThread(userId: string, thread: SemanticThread): Promise<void>
       .collection('semantic_threads')
       .doc(thread.id)
       .set(cleanForFirestore(thread));
+
+    // Index to semantic memory for "Better Than Human" recall
+    // "We connect the dots across time"
+    void onCrossSessionThreadChange(
+      userId,
+      thread.id,
+      {
+        topic: thread.theme || thread.moments[0]?.content.slice(0, 50) || 'Unknown topic',
+        sessionIds: [...new Set(thread.moments.map((m) => m.sessionId))],
+        evolution: `Discovered across ${thread.moments.length} moments with ${(thread.coherence * 100).toFixed(0)}% coherence. Insight: ${thread.connectionInsight}`,
+        relatedTopics: thread.moments.slice(0, 3).map((m) => m.emotionalContext || 'general'),
+        emotionalSignificance:
+          thread.coherence >= 0.8 ? 'high' : thread.coherence >= 0.6 ? 'medium' : 'low',
+        lastMentioned: new Date().toISOString(),
+        mentionCount: thread.moments.length,
+      },
+      'update'
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save thread');
   }

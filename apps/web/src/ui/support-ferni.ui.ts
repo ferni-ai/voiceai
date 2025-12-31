@@ -151,23 +151,38 @@ function prefersReducedMotion(): boolean {
 // ============================================================================
 
 export async function openSupportFerni(): Promise<void> {
+  log.info('Opening Support Ferni modal');
   saveFocus();
+  log.info('Focus saved');
+  
   injectStyles();
+  log.info('Styles injected');
+  
   cleanupOrphanedElements();
+  log.info('Orphaned elements cleaned up');
 
   // Load subscription status
+  log.info('Loading subscription status...');
   await loadStatus();
   const status = getStatus();
+  log.info('Subscription status loaded', { tier: status?.tier });
 
+  log.info('Creating overlay...');
   overlay = createOverlay(status);
+  log.info('Overlay created', { hasOverlay: !!overlay });
+  
   document.body.appendChild(overlay);
+  log.info('Overlay appended to body');
 
   // Animate in
   requestAnimationFrame(() => {
+    log.info('requestAnimationFrame callback executing');
     overlay?.classList.add('support-ferni-overlay--open');
+    log.info('Open class added to overlay');
 
     const closeBtn = overlay?.querySelector('.support-ferni-close') as HTMLElement;
     closeBtn?.focus();
+    log.info('Support Ferni modal fully opened');
   });
 }
 
@@ -434,7 +449,7 @@ function renderPlantASeed(): string {
 function renderBillingLink(): string {
   return `
     <section class="support-ferni-section support-ferni-billing">
-      <button aria-label="Edit" class="support-ferni-billing-btn" data-action="billing">
+      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="billing">
         ${ICONS.creditCard}
         <span>${t('support.manageBilling')}</span>
         ${ICONS.externalLink}
@@ -666,6 +681,8 @@ function injectStyles(): void {
     }
 
     .support-ferni-overlay--open .support-ferni-card {
+      opacity: 1; /* Fallback in case animation fails */
+      transform: scale(1) translateY(0); /* Fallback in case animation fails */
       animation: support-ferni-card-enter 500ms ${EASING.SPRING} forwards;
     }
 

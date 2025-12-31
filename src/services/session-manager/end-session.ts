@@ -62,6 +62,9 @@ import { onSessionEndUnified } from '../trust-systems/unified-persistence.js';
 // Persistence metrics
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
 
+// Superhuman outreach intelligence
+import { processAccumulatedSignals } from '../conversation-thread/superhuman-outreach-intelligence.js';
+
 // Session types
 import type { GlobalServices, SessionServices } from '../types.js';
 import type { HumanizingStateUpdate } from '../humanizing-state.js';
@@ -162,6 +165,12 @@ export async function handleEndSession(options: EndSessionOptions): Promise<void
     await flushTrustPersistence(validatedUserId);
   }
 
+  // 🧠 SUPERHUMAN OUTREACH: Process accumulated signals at session end
+  // This triggers intelligent proactive outreach based on signals collected during the conversation
+  if (validatedUserId && services.userProfile) {
+    await processAccumulatedOutreachSignals(validatedUserId, services.userProfile);
+  }
+
   // Record metrics
   const sessionEndDurationMs = Date.now() - sessionEndStartTime;
   persistenceMetrics.recordSessionEnd(sessionId, sessionEndDurationMs);
@@ -186,8 +195,15 @@ interface FinalizeUserSessionOptions {
  * Finalize session for an authenticated user
  */
 async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise<void> {
-  const { sessionId, validatedUserId, personaId, services, global, humanizingStateUpdates } =
-    options;
+  const {
+    sessionId,
+    validatedUserId,
+    personaId,
+    sessionStartTime,
+    services,
+    global,
+    humanizingStateUpdates,
+  } = options;
 
   const log = getLogger();
   const userProfile = services.userProfile!;
@@ -283,6 +299,37 @@ async function finalizeUserSession(options: FinalizeUserSessionOptions): Promise
       },
       'Applied learning to user profile'
     );
+
+    // 🎤 VOICE SKETCH: Update voice fingerprint for cross-device recognition
+    // "Your voice sounds familiar" - enables recognition across devices
+    try {
+      const { getBaseline } = await import('../trust-systems/voice-prosody-learning.js');
+      const { updateUserVoiceSketch } = await import('../voice/voice-sketch-builder.js');
+
+      const baseline = getBaseline(validatedUserId);
+      if (baseline && baseline.sampleCount >= 3) {
+        const sessionDurationMs = Date.now() - sessionStartTime;
+        await updateUserVoiceSketch(
+          validatedUserId,
+          sessionId,
+          {
+            pitchMean: baseline.characteristics.pitchMean,
+            pitchRange: baseline.characteristics.pitchRange,
+            pitchVariability: baseline.characteristics.pitchVariability,
+            energyMean: baseline.characteristics.energyMean,
+            energyRange: baseline.characteristics.energyRange,
+            energyVariability: baseline.characteristics.energyVariability,
+            speakingRate: baseline.characteristics.speakingRate,
+            pauseFrequency: baseline.characteristics.pauseFrequency,
+            pauseDuration: baseline.characteristics.pauseDuration,
+          },
+          sessionDurationMs,
+          baseline.sampleCount
+        );
+      }
+    } catch (voiceError) {
+      log.debug({ error: String(voiceError) }, 'Voice sketch update skipped');
+    }
 
     // 🧠 FINAL PERSISTENCE: Save social graph and clear rate limits
     // "Better than Human" - Never lose learned data
@@ -860,8 +907,7 @@ async function cleanupCoreComponents(sessionId: string): Promise<void> {
 
   // 🚀 PERFORMANCE: Cleanup tool response cache
   try {
-    const { clearSessionToolCache } =
-      await import('../../agents/shared/performance/tool-response-cache.js');
+    const { clearSessionToolCache } = await import('../performance/tool-response-cache.js');
     clearSessionToolCache(sessionId);
   } catch {
     // Module may not be loaded - non-critical
@@ -976,4 +1022,90 @@ async function flushTrustPersistence(userId: string): Promise<void> {
   } catch {
     // Non-critical
   }
+}
+
+// ============================================================================
+// SUPERHUMAN OUTREACH INTELLIGENCE
+// ============================================================================
+
+/**
+ * Process accumulated superhuman signals at session end.
+ *
+ * This analyzes signals collected throughout the conversation and may
+ * trigger intelligent proactive outreach if patterns indicate need:
+ * - Crisis + voice distress → Full team support
+ * - Low energy + Sunday evening → Preemptive habit support
+ * - Values conflict + emotional peak → Peter + Ferni insight
+ *
+ * @param userId - User ID
+ * @param userProfile - User's profile for relationship stage
+ */
+async function processAccumulatedOutreachSignals(
+  userId: string,
+  userProfile: UserProfile
+): Promise<void> {
+  const log = getLogger();
+
+  try {
+    // Determine relationship stage from profile
+    const relationshipStage = determineRelationshipStage(userProfile);
+
+    // Process accumulated signals and potentially trigger outreach
+    const result = await processAccumulatedSignals(userId, {
+      relationshipStage,
+      preferredName: userProfile.name || undefined,
+      // TODO: Track last outreach time in user profile
+    });
+
+    if (result?.success) {
+      log.info(
+        {
+          userId,
+          outreachId: result.outreachId,
+          channel: result.channel,
+          personas: result.personas,
+        },
+        '🧠 Superhuman outreach triggered at session end'
+      );
+    }
+  } catch (error) {
+    // Non-blocking - outreach is not critical path
+    log.debug({ error: String(error), userId }, 'Outreach signal processing skipped');
+  }
+}
+
+/**
+ * Determine relationship stage from user profile metrics.
+ */
+function determineRelationshipStage(
+  profile: UserProfile
+): 'new' | 'building' | 'established' | 'deep' {
+  const conversationCount = profile.totalConversations || 0;
+  const firstContactTime = profile.firstContact instanceof Date
+    ? profile.firstContact.getTime()
+    : typeof profile.firstContact === 'string'
+      ? new Date(profile.firstContact).getTime()
+      : 0;
+  const daysSinceFirst = firstContactTime
+    ? Math.floor((Date.now() - firstContactTime) / (24 * 60 * 60 * 1000))
+    : 0;
+  // Count heavy emotional moments as "vulnerable moments"
+  const vulnerableMoments = profile.keyMoments?.filter((m) => m.emotionalWeight === 'heavy').length || 0;
+
+  // Deep: 60+ conversations, 45+ days, 10+ vulnerable moments
+  if (conversationCount >= 60 && daysSinceFirst >= 45 && vulnerableMoments >= 10) {
+    return 'deep';
+  }
+
+  // Established: 30+ conversations, 21+ days
+  if (conversationCount >= 30 && daysSinceFirst >= 21) {
+    return 'established';
+  }
+
+  // Building: 10+ conversations, 5+ days
+  if (conversationCount >= 10 && daysSinceFirst >= 5) {
+    return 'building';
+  }
+
+  return 'new';
 }

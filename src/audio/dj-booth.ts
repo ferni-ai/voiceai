@@ -54,8 +54,8 @@ const log = getLogger();
 export interface DJBoothConfig {
   /** Persona ID for voice-appropriate DJ phrases */
   personaId: string;
-  /** Callback to make the agent speak */
-  speakCallback: (text: string, options?: { allowInterruptions?: boolean }) => void;
+  /** Callback to make the agent speak - returns Promise that resolves when speech ends */
+  speakCallback: (text: string, options?: { allowInterruptions?: boolean }) => void | Promise<void>;
   /** Callback when agent is about to speak (for pre-ducking) */
   onAgentSpeakStart?: () => void;
   /** Callback when agent finishes speaking */
@@ -153,6 +153,9 @@ export class DJBooth {
   private conversationStartTime: number = Date.now();
   private recentTopics: string[] = [];
   private lastSpontaneousCheck = 0;
+  
+  // 🎵 Track current emotional context for mood-music learning
+  private currentEmotionalContext: string | undefined;
 
   // 🐛 FIX: Store callback references so we can remove them on deactivate
   // This prevents callback accumulation when DJ booth is re-initialized
@@ -218,11 +221,21 @@ export class DJBooth {
 
   /**
    * Stop the DJ booth - call when session ends
+   *
+   * 🔧 FIX: Comprehensive cleanup to prevent memory leaks and stale callbacks
    */
   deactivate(): void {
     this.state.isActive = false;
+
+    // 🔧 FIX: Clear all timers first to stop any pending operations
     this.clearAllTimers();
+    this.clearScheduledMoments();
     this.stopVolumeFade();
+
+    // 🔧 FIX: Reset state flags to prevent stale state on re-activation
+    this.state.agentSpeaking = false;
+    this.state.userSpeaking = false;
+    this.isHandoffActive = false;
 
     // 🐛 FIX: Remove our callbacks from music player to prevent accumulation
     this.cleanupMusicCallbacks();
@@ -499,9 +512,12 @@ export class DJBooth {
 
   /**
    * Track an emotional moment
+   * 🎵 Also stores current emotional context for mood-music learning
    */
   trackEmotion(emotion: string): void {
     this.djEnhancements?.sessionFlow.trackEmotion(emotion);
+    // 🎵 Store for mood-music correlation when track ends
+    this.currentEmotionalContext = emotion;
   }
 
   /**
@@ -549,6 +565,35 @@ export class DJBooth {
    */
   getMusicPreferences(): MusicPreferences | null {
     return this.djEnhancements?.getMusicPreferences() ?? null;
+  }
+
+  /**
+   * 🎵 Record explicit music preference from conversation
+   * Call this when user says things like "I love jazz" or "I don't like country music"
+   * 
+   * @example
+   * // User says "I really love jazz"
+   * djBooth.recordExplicitPreference({ type: 'like', category: 'genre', value: 'Jazz' });
+   * 
+   * // User says "I'm not a fan of Taylor Swift"
+   * djBooth.recordExplicitPreference({ type: 'dislike', category: 'artist', value: 'Taylor Swift' });
+   */
+  recordExplicitPreference(params: {
+    type: 'like' | 'dislike';
+    category: 'genre' | 'artist';
+    value: string;
+  }): void {
+    this.djEnhancements?.recordExplicitPreference(params);
+    log.debug('🎵 Explicit music preference recorded', params);
+  }
+
+  /**
+   * 🎵 Get human-readable summary of learned music preferences
+   * For when users ask "What music do you remember I like?"
+   */
+  getMusicPreferencesSummary(): string {
+    return this.djEnhancements?.getPreferencesSummary() ?? 
+      "I haven't learned your music preferences yet. Play some music and I'll start learning what you like!";
   }
 
   // ==========================================================================
@@ -697,11 +742,44 @@ export class DJBooth {
 
     // Stop any current music for a clean transition
     const player = getMusicPlayer();
-    if (player.isPlaying()) {
+    const wasPlaying = player.isPlaying();
+
+    if (wasPlaying) {
       // Quick fade out, not abrupt stop
       this.fadeToVolume(0, 500);
-      setTimeout(() => player.stop(), 600);
+
+      // 🔧 FIX: Wait for actual stop via one-time event listener instead of fixed timeout
+      const onStopped = (state: MusicState) => {
+        if (state === 'stopped') {
+          player.off('stateChange', onStopped as (s: MusicState, t: unknown, a: boolean) => void);
+          this.finalizeHandoff(toPersonaId);
+        }
+      };
+      player.on('stateChange', onStopped as (s: MusicState, t: unknown, a: boolean) => void);
+
+      // Actually stop after fade
+      const stopTimerId = setTimeout(() => player.stop(), 600);
+      this.scheduledTimers.push(stopTimerId);
+
+      // 🔧 FIX: Safety timeout in case stop event doesn't fire (10s max)
+      const safetyTimerId = setTimeout(() => {
+        player.off('stateChange', onStopped as (s: MusicState, t: unknown, a: boolean) => void);
+        this.finalizeHandoff(toPersonaId);
+      }, 10000);
+      this.scheduledTimers.push(safetyTimerId);
+    } else {
+      // No music playing - finalize immediately
+      this.finalizeHandoff(toPersonaId);
     }
+  }
+
+  /**
+   * 🔧 FIX: Finalize handoff after music has stopped
+   * Extracted from onHandoff for cleaner async flow
+   */
+  private finalizeHandoff(toPersonaId: string): void {
+    // Prevent double-finalize
+    if (!this.isHandoffActive) return;
 
     // Clear scheduled moments since we're switching personas
     this.clearAllTimers();
@@ -710,11 +788,9 @@ export class DJBooth {
     // Update persona for subsequent DJ phrases
     this.config.personaId = toPersonaId;
 
-    // 🐛 FIX: Clear handoff flag after transition settles (1.5s covers fade + stop + buffer)
-    setTimeout(() => {
-      this.isHandoffActive = false;
-      log.debug('🎧 Handoff transition complete, music-ended phrases re-enabled');
-    }, 1500);
+    // Clear handoff flag
+    this.isHandoffActive = false;
+    log.debug('🎧 Handoff transition complete, music-ended phrases re-enabled');
   }
 
   // ==========================================================================
@@ -823,13 +899,17 @@ export class DJBooth {
         break;
 
       case 'stopped':
+        // 🔧 FIX: Stop any in-progress volume fade to prevent stuck intervals
+        this.stopVolumeFade();
+
         // Track ended - record in DJ Enhancements for music history
         // NOTE: Speaking is handled by music-handler.ts to avoid duplication
         if (track && !isAmbient) {
           // wasSkipped = true if we jumped straight from 'playing' (user stopped it)
           // wasSkipped = false if we came from 'fading' (natural ending)
           const wasSkipped = prevState === 'playing';
-          this.djEnhancements?.onTrackEnd(track, wasSkipped);
+          // 🎵 Pass emotional context for mood-music learning
+          this.djEnhancements?.onTrackEnd(track, wasSkipped, this.currentEmotionalContext);
 
           // 🎵 Notify Music Humanization (state tracking only, no speaking)
           this.humanization.onMusicStopped(track.name, track.artist);
@@ -1140,6 +1220,9 @@ export class DJBooth {
   /**
    * Speak a phrase while music is playing.
    * Ducks the music, speaks, then restores.
+   *
+   * 🔧 FIX: Uses async speech callback with Promise support for accurate completion detection.
+   * Falls back to improved duration estimation if callback doesn't return a Promise.
    */
   speakOverMusic(phrase: string): void {
     if (!this.state.isActive) return;
@@ -1154,18 +1237,52 @@ export class DJBooth {
     this.fadeToVolume(VOLUME.AGENT_TALKING, TIMING.DUCK_FOR_AGENT_MS);
 
     // 3. Small delay for the duck to take effect, then speak
-    setTimeout(() => {
-      this.config.speakCallback(phrase, { allowInterruptions: true });
+    const speakTimerId = setTimeout(() => {
+      const result = this.config.speakCallback(phrase, { allowInterruptions: true });
+
+      // 4. Handle speech completion
+      if (result instanceof Promise) {
+        // Callback returns Promise - wait for actual completion
+        result
+          .then(() => {
+            clearTimeout(safetyTimerId);
+            this.onAgentFinishedSpeaking();
+          })
+          .catch((err) => {
+            log.debug({ error: String(err) }, '🎧 Speech callback rejected - restoring music');
+            clearTimeout(safetyTimerId);
+            this.onAgentFinishedSpeaking();
+          });
+      }
+      // If no Promise, fall through to safety timer
     }, 100);
 
-    // 4. Estimate speech duration and restore volume after
-    // Rough estimate: 100ms per word + 500ms buffer
-    const wordCount = phrase.split(/\s+/).length;
-    const estimatedDuration = wordCount * 100 + 500;
+    // Track speak timer for cleanup
+    this.scheduledTimers.push(speakTimerId);
 
-    setTimeout(() => {
-      this.onAgentFinishedSpeaking();
+    // 5. 🔧 FIX: Improved duration estimation with safety margin
+    // - Base: 120ms per word (accounts for natural speech cadence)
+    // - SSML bonus: +50% if phrase looks like it has pauses (commas, periods, ...)
+    // - Minimum: 800ms
+    // - Maximum safety: 15s (prevents stuck state)
+    const wordCount = phrase.split(/\s+/).length;
+    const hasPauses = /[,;:\.\!\?…]/.test(phrase);
+    const baseEstimate = wordCount * 120;
+    const pauseBonus = hasPauses ? baseEstimate * 0.5 : 0;
+    const estimatedDuration = Math.max(800, Math.min(baseEstimate + pauseBonus + 600, 15000));
+
+    // Safety timer - only fires if Promise doesn't resolve
+    const safetyTimerId = setTimeout(() => {
+      if (this.state.agentSpeaking) {
+        log.debug(
+          { phrase: phrase.slice(0, 30), estimatedMs: estimatedDuration },
+          '🎧 Safety timer: restoring music volume'
+        );
+        this.onAgentFinishedSpeaking();
+      }
     }, estimatedDuration);
+
+    this.scheduledTimers.push(safetyTimerId);
   }
 
   /**
@@ -1311,7 +1428,7 @@ export class DJBooth {
       log.debug('🎧 Skipping DJ speech - agent already speaking', { phrase: phrase.slice(0, 30) });
       return false;
     }
-    this.config.speakCallback(phrase, options);
+    void this.config.speakCallback(phrase, options);
     return true;
   }
 

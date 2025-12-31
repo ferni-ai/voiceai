@@ -25,6 +25,7 @@ import { openGiftSuggestions } from './gift-suggestions.ui.js';
 import { openConversationStarters } from './conversation-starters.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockContact, getMockInteractions, getMockGifts } from '../data/mock-contacts.ts';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('RelationshipCard');
 
@@ -1095,7 +1096,7 @@ function renderHeader(): string {
 
   return `
     <div class="rc-header">
-      <button class="rc-close" aria-label="Close">${ICONS.close}</button>
+      <button class="rc-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       
       <div class="rc-person">
         <label class="rc-avatar" for="rc-avatar-input" title="Click to change photo">
@@ -1125,11 +1126,11 @@ function renderHeader(): string {
       </div>
       
       <div class="rc-quick-actions" role="button" tabindex="0">
-        ${person.phone ? `<button aria-label="Call" class="rc-quick-action" data-action="call">${ICONS.phone} Call</button>` : ''}
-        ${person.phone ? `<button aria-label="Text" class="rc-quick-action" data-action="text">${ICONS.message} Text</button>` : ''}
-        ${person.email ? `<button aria-label="Email" class="rc-quick-action" data-action="email">${ICONS.mail} Email</button>` : ''}
-        <button aria-label="Add" class="rc-quick-action" data-action="record">${ICONS.plus} Log Moment</button>
-        <button aria-label="Edit" class="rc-quick-action" data-action="edit">${ICONS.edit} Edit</button>
+        ${person.phone ? `<button aria-label="${t('accessibility.call')}" class="rc-quick-action" data-action="call">${ICONS.phone} Call</button>` : ''}
+        ${person.phone ? `<button aria-label="${t('accessibility.text')}" class="rc-quick-action" data-action="text">${ICONS.message} Text</button>` : ''}
+        ${person.email ? `<button aria-label="${t('accessibility.email')}" class="rc-quick-action" data-action="email">${ICONS.mail} Email</button>` : ''}
+        <button aria-label="${t('accessibility.add')}" class="rc-quick-action" data-action="record">${ICONS.plus} Log Moment</button>
+        <button aria-label="${t('accessibility.edit')}" class="rc-quick-action" data-action="edit">${ICONS.edit} Edit</button>
       </div>
     </div>
   `;
@@ -1229,7 +1230,7 @@ function renderOverviewTab(): string {
           `;
         }).join('')}
         ${upcomingMeetings.length > 3 ? `
-          <button aria-label="View all scheduled meetings" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
+          <button aria-label="${t('accessibility.viewAllScheduledMeetings')}" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
             View all ${upcomingMeetings.length} scheduled meetings
           </button>
         ` : ''}
@@ -1263,7 +1264,7 @@ function renderOverviewTab(): string {
         </div>`
       }
       ${state.timeline.length > 5 ? `
-        <button aria-label="View all moments" class="rc-add-btn" data-action="view-all-timeline">
+        <button aria-label="${t('accessibility.viewAllMoments')}" class="rc-add-btn" data-action="view-all-timeline">
           View all ${state.timeline.length} moments
         </button>
       ` : ''}
@@ -1294,7 +1295,7 @@ function renderTimelineTab(): string {
         <div class="rc-empty-title">No moments recorded</div>
         <p class="rc-empty-text">Every call, text, coffee date, and hangout becomes part of your story together.</p>
       </div>
-      <button aria-label="Add" class="rc-add-btn" data-action="add-interaction">
+      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
         ${ICONS.plus} Log a Moment
       </button>
     `;
@@ -1309,7 +1310,7 @@ function renderTimelineTab(): string {
       ${items.map(item => renderTimelineItem(item)).join('')}
     </div>
   `).join('') + `
-    <button aria-label="Add" class="rc-add-btn" data-action="add-interaction">
+    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
       ${ICONS.plus} Log a Moment
     </button>
   `;
@@ -1358,7 +1359,7 @@ function renderGiftsTab(): string {
         <div class="rc-empty-title">No gifts recorded</div>
         <p class="rc-empty-text">Track what you give and receive. Never repeat a gift or forget a reaction.</p>
       </div>
-      <button aria-label="Add" class="rc-add-btn" data-action="add-gift">
+      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
         ${ICONS.plus} Record a Gift
       </button>
     `;
@@ -1379,7 +1380,7 @@ function renderGiftsTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="Add" class="rc-add-btn" data-action="add-gift">
+    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
       ${ICONS.plus} Record a Gift
     </button>
   `;
@@ -1443,7 +1444,7 @@ function renderEventsTab(): string {
       ` : `
         <p class="rc-empty-inline">No important dates yet</p>
       `}
-      <button aria-label="Edit" class="rc-add-btn" data-action="manage-dates">
+      <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="manage-dates">
         ${ICONS.edit} ${importantDates.length > 0 ? 'Manage Dates' : 'Add Birthday, Anniversary...'}
       </button>
     </div>
@@ -1533,7 +1534,7 @@ function renderNotesTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="Edit" class="rc-add-btn" data-action="edit-notes">
+    <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="edit-notes">
       ${ICONS.edit} ${person.notes ? 'Edit Notes' : 'Add Notes'}
     </button>
   `;
@@ -1770,7 +1771,7 @@ function handleAddAction(action: string | null): void {
       }
       break;
     case 'edit-notes':
-      toast.info('Edit notes coming soon');
+      toast.info(t('toasts.editNotesComingSoon'));
       break;
   }
 }
@@ -1780,16 +1781,16 @@ async function handlePhotoUpload(file: File): Promise<void> {
 
   // Validate file
   if (!file.type.startsWith('image/')) {
-    toast.error('Please select an image file');
+    toast.error(t('toasts.pleaseSelectAnImageFile'));
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) { // 5MB limit
-    toast.error('Image must be less than 5MB');
+    toast.error(t('toasts.imageMustBeLessThan5mb'));
     return;
   }
 
-  toast.info('Uploading photo...');
+  toast.info(t('toasts.uploadingPhoto'));
 
   try {
     // Convert to base64 for simple storage (in production, use Cloud Storage)
@@ -1809,13 +1810,13 @@ async function handlePhotoUpload(file: File): Promise<void> {
     if (response.ok) {
       state.person.photo = base64;
       render();
-      toast.success('Photo updated!');
+      toast.success(t('toasts.photoUpdated'));
     } else {
-      toast.error('Could not save photo');
+      toast.error(t('toasts.couldNotSavePhoto'));
     }
   } catch (error) {
     log.error('Failed to upload photo:', error);
-    toast.error('Could not upload photo');
+    toast.error(t('toasts.couldNotUploadPhoto'));
   }
 }
 
@@ -2082,10 +2083,10 @@ async function loadRelationshipData(contactId: string): Promise<void> {
         state.notices = generateNotices();
         log.debug('Using mock data due to API error');
       } else {
-        toast.error('Could not load relationship data');
+        toast.error(t('toasts.couldNotLoadRelationship'));
       }
     } else {
-      toast.error('Could not load relationship data');
+      toast.error(t('toasts.couldNotLoadRelationship'));
     }
   } finally {
     state.isLoading = false;

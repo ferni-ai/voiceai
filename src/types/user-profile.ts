@@ -630,6 +630,20 @@ export interface UserProfile {
   // Voice Recognition - "Your voice sounds familiar"
   voiceSketch?: VoiceSketch; // Compact voice characteristics for cross-device recognition
 
+  // Onboarding State (synced across devices)
+  onboarding?: {
+    /** Steps completed */
+    completedSteps: Array<'welcome' | 'name' | 'preferences' | 'first_conversation'>;
+    /** User's name captured during onboarding */
+    userName?: string;
+    /** When onboarding started */
+    startedAt?: string;
+    /** When onboarding completed */
+    completedAt?: string;
+    /** Whether user has had their first conversation */
+    hasHadFirstConversation?: boolean;
+  };
+
   // Contact Information (for Alex's communication features)
   contactInfo?: {
     phone?: string; // E.164 format: +15551234567
@@ -638,6 +652,18 @@ export interface UserProfile {
     timezone?: string; // e.g., 'America/New_York'
     quietHoursStart?: number; // Hour (0-23) when do-not-disturb starts
     quietHoursEnd?: number; // Hour (0-23) when do-not-disturb ends
+  };
+
+  // 📍 Location (Better than Human - we remember where you are)
+  location?: {
+    city?: string; // e.g., "San Francisco"
+    regionCode?: string; // e.g., "CA"
+    countryCode?: string; // ISO 3166-1 alpha-2, e.g., "US"
+    latitude?: number; // From browser geolocation (precise)
+    longitude?: number; // From browser geolocation (precise)
+    source: 'browser-gps' | 'manual' | 'ip-geo' | 'timezone' | 'accept-language' | 'default';
+    confidence: 'high' | 'medium' | 'low';
+    lastUpdated: string; // ISO timestamp
   };
 
   // Timestamps

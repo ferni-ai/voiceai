@@ -18,6 +18,8 @@ import { markResponded, updateDeliveryStatus } from '../delivery/delivery-tracke
 import { handleSMSStatus } from '../delivery/sms-delivery.js';
 import { handleCallStatus, handleMachineDetection } from '../sip-bridge.js';
 import { findContactByPhone, markContactResponded } from '../../contacts/optimal-timing.js';
+// Bidirectional engagement - route replies to the right agent
+import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -453,6 +455,37 @@ export async function handleInboundSMSWebhook(
       { error: String(mlError), from: From },
       'Failed to update ML timing for contact response'
     );
+  }
+
+  // =========================================================================
+  // BIDIRECTIONAL ROUTING - Route to appropriate agent
+  // =========================================================================
+  if (userId !== 'unknown') {
+    try {
+      const routeResult = await routeInboundSMS(userId, From, Body);
+
+      log.info(
+        {
+          userId,
+          routedToAgent: routeResult.routeDecision.agentId,
+          confidence: routeResult.routeDecision.confidence,
+          shouldInitiateCall: routeResult.shouldInitiateCall,
+        },
+        '🔀 SMS routed to agent'
+      );
+
+      // If user wants a call, we could trigger one here
+      // For now, just track the routing decision
+      if (routeResult.shouldInitiateCall && routeResult.responseMessage) {
+        return {
+          success: true,
+          twiml: generateTwiML(routeResult.responseMessage),
+        };
+      }
+    } catch (routeError) {
+      log.warn({ error: String(routeError), userId }, 'Failed to route inbound SMS');
+      // Continue with default handling
+    }
   }
 
   // Auto-reply (optional)

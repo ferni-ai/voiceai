@@ -50,6 +50,8 @@ import {
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import { confirmDelete } from './confirm-modal.ui.js';
 import { openAgentEditor } from './custom-agent-editor.ui.js';
+import { getFirebaseUid, getAuthState } from '../services/firebase-auth.service.js';
+import { toast } from './toast.ui.js';
 
 // Import from modular structure
 import {
@@ -164,13 +166,13 @@ function ensureModalExists(): HTMLElement {
         <p class="marketplace-subtitle">Find coaches who understand what you need.</p>
         
         <div class="marketplace-tabs">
-          <button aria-label="Discover" class="marketplace-tab active" data-tab="browse">
+          <button aria-label="${t('accessibility.discover')}" class="marketplace-tab active" data-tab="browse">
             Discover
           </button>
-          <button aria-label="Your Team" class="marketplace-tab" data-tab="installed">
+          <button aria-label="${t('accessibility.yourTeam')}" class="marketplace-tab" data-tab="installed">
             Your Team
           </button>
-          <button aria-label="My Creations" class="marketplace-tab" data-tab="creations">
+          <button aria-label="${t('accessibility.myCreations')}" class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -612,7 +614,7 @@ async function renderCreationsTab(): Promise<void> {
           <h3 class="creations-title">Your Custom Agents</h3>
           <p class="creations-subtitle">Create companions with custom voices and personalities</p>
         </div>
-        <button aria-label="Create Agent" class="creations-create-btn" data-action="create-agent">
+        <button aria-label="${t('accessibility.createAgent')}" class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -632,7 +634,7 @@ async function renderCreationsTab(): Promise<void> {
           </div>
           <h4 class="creations-empty-title">No agents yet</h4>
           <p class="creations-empty-hint">Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.</p>
-          <button aria-label="Create Your First Agent" class="creations-empty-btn" data-action="create-agent">
+          <button aria-label="${t('accessibility.createYourFirstAgent')}" class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -644,7 +646,7 @@ async function renderCreationsTab(): Promise<void> {
         <div class="creations-types-preview">
           <h4 class="creations-types-title">What you can create</h4>
           <div class="creations-types-grid">
-            <div class="creation-type-card">
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="legacy" aria-label="Create a Legacy agent">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 2c.5 3.5 2 5.5 3.5 7 1.5 1.5 3.5 2.5 5.5 3-2 .5-4 1.5-5.5 3-1.5 1.5-3 3.5-3.5 7-.5-3.5-2-5.5-3.5-7-1.5-1.5-3.5-2.5-5.5-3 2-.5 4-1.5 5.5-3 1.5-1.5 3-3.5 3.5-7z"/>
@@ -652,8 +654,9 @@ async function renderCreationsTab(): Promise<void> {
               </span>
               <h5 class="creation-type-name">Legacy</h5>
               <p class="creation-type-desc">Preserve the voice and wisdom of someone you cherish</p>
-            </div>
-            <div class="creation-type-card">
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="Create a Mentor agent">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 22c4-3 8-6 8-11a8 8 0 0 0-16 0c0 5 4 8 8 11z"/>
@@ -662,8 +665,9 @@ async function renderCreationsTab(): Promise<void> {
               </span>
               <h5 class="creation-type-name">Mentor</h5>
               <p class="creation-type-desc">Create a coach based on an inspiring figure</p>
-            </div>
-            <div class="creation-type-card">
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="twin" aria-label="Create a Digital Twin">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -673,8 +677,9 @@ async function renderCreationsTab(): Promise<void> {
               </span>
               <h5 class="creation-type-name">Digital Twin</h5>
               <p class="creation-type-desc">Your personal voice journal that grows with you</p>
-            </div>
-            <div class="creation-type-card">
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
+            <button type="button" class="creation-type-card" data-action="create-type" data-type="fictional" aria-label="Create a Custom agent from scratch">
               <span class="creation-type-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -683,7 +688,8 @@ async function renderCreationsTab(): Promise<void> {
               </span>
               <h5 class="creation-type-name">Custom</h5>
               <p class="creation-type-desc">Build any personality from scratch</p>
-            </div>
+              <span class="creation-type-cta">Start creating <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            </button>
           </div>
         </div>
       ` : `
@@ -700,6 +706,11 @@ async function renderCreationsTab(): Promise<void> {
   // Attach event listeners for create buttons
   grid.querySelectorAll('[data-action="create-agent"]').forEach(btn => {
     btn.addEventListener('click', handleCreateAgentClick);
+  });
+
+  // Attach event listeners for type cards (Legacy, Mentor, etc.)
+  grid.querySelectorAll('[data-action="create-type"]').forEach(btn => {
+    btn.addEventListener('click', handleCreateTypeClick);
   });
 
   // Attach listeners for agent cards
@@ -794,15 +805,15 @@ function getAgentTypeButtons(agent: CustomAgent): string {
   switch (agent.type) {
     case 'twin':
       return `
-        <button aria-label="Profile" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.profile')}" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
           ${icons.profile}
           Profile
         </button>
-        <button aria-label="Journal" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.journal')}" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
           ${icons.journal}
           Journal
         </button>
-        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -810,19 +821,19 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'legacy':
       return `
-        <button aria-label="Stories" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.stories')}" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
           ${icons.stories}
           Stories
         </button>
-        <button aria-label="Voice" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.voice')}" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
           Voice
         </button>
-        <button aria-label="Share" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.share')}" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Share
         </button>
-        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -830,11 +841,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'mentor':
       return `
-        <button aria-label="Teachings" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.teachings')}" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
           ${icons.teachings}
           Teachings
         </button>
-        <button aria-label="Coach Me" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.coachMe')}" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           Coach Me
         </button>
@@ -842,11 +853,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'fictional':
       return `
-        <button aria-label="Character" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.character')}" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
           ${icons.character}
           Character
         </button>
-        <button aria-label="Play" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.play')}" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
           Roleplay
         </button>
@@ -854,11 +865,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'professional':
       return `
-        <button aria-label="Tasks" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.tasks')}" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
           ${icons.tasks}
           Tasks
         </button>
-        <button aria-label="Work Mode" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.workMode')}" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Work Mode
         </button>
@@ -866,7 +877,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     default:
       return `
-        <button aria-label="Talk" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
           ${icons.talk}
           Talk
         </button>
@@ -927,7 +938,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
       </div>
       <footer class="custom-agent-footer">
         ${getAgentTypeButtons(agent)}
-        <button aria-label="Edit" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
+        <button aria-label="${t('accessibility.edit')}" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
           Edit
         </button>
         <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="Delete ${agent.name}">
@@ -950,6 +961,31 @@ function handleCreateAgentClick(e: Event): void {
   // Small delay to let marketplace close animation complete
   trackedTimeout(() => {
     openCustomAgentWizard(false);
+  }, 200);
+  soundUI.play('click');
+}
+
+/**
+ * Handle type card click (open wizard with preselected type)
+ * This allows users to click directly on Legacy/Mentor/Digital Twin/Custom cards
+ */
+function handleCreateTypeClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+  const btn = e.currentTarget as HTMLElement;
+  const agentType = btn.dataset.type as 'legacy' | 'mentor' | 'twin' | 'fictional';
+  
+  if (!agentType) {
+    log.warn('No agent type found on card');
+    return;
+  }
+  
+  log.info(`Creating agent with preselected type: ${agentType}`);
+  closeMarketplace();
+  
+  // Small delay to let marketplace close animation complete
+  trackedTimeout(() => {
+    openCustomAgentWizard({ preselectedType: agentType });
   }, 200);
   soundUI.play('click');
 }
@@ -994,7 +1030,7 @@ async function handleDeleteAgentClick(e: Event): Promise<void> {
   try {
     await deleteCustomAgent(agentId);
     const { toast } = await import('./toast.ui.js');
-    toast.success('Agent deleted');
+    toast.success(t('toasts.agentDeleted'));
     soundUI.play('success');
     // Refresh the tab
     void refreshContent();
@@ -1476,8 +1512,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? '<span class="agent-badge installed">Installed</span>'
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button aria-label="Remove" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
-        : `<button aria-label="Add to Team" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
+        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
+        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
 
       // Rating display
       const ratingHtml = agent.rating
@@ -1865,12 +1901,12 @@ async function handleRosterAction(action: 'add' | 'remove', personaId: string): 
   if (action === 'add') {
     rosterPreferences.addMember(personaId as RosterTeamMemberId);
     soundUI.play('success');
-    toast.success(`${name} added to your team`);
+    toast.success(t('toasts.nameAddedToYourTeam'));
     log.info('Added team member to roster from marketplace:', personaId);
   } else {
     rosterPreferences.removeMember(personaId as RosterTeamMemberId);
     soundUI.play('click');
-    toast.info(`${name} removed from team`);
+    toast.info(t('toasts.nameRemovedFromTeam'));
     log.info('Removed team member from roster from marketplace:', personaId);
   }
 
@@ -2147,6 +2183,39 @@ function renderDetailPanel(
           `
           }
         </section>
+
+        <section class="detail-section review-form-section">
+          <h3 class="detail-section-title">Write a Review</h3>
+          <form class="review-form" data-agent-id="${agent.id}">
+            <div class="review-rating-select">
+              <span class="review-rating-label">Your rating:</span>
+              <div class="star-selector" role="group" aria-label="${t('accessibility.selectRating')}">
+                ${[1, 2, 3, 4, 5]
+                  .map(
+                    (n) => `
+                  <button type="button" class="star-btn" data-rating="${n}" aria-label="${n} star${n > 1 ? 's' : ''}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </button>
+                `
+                  )
+                  .join('')}
+              </div>
+              <input type="hidden" name="rating" value="0" required />
+            </div>
+            <div class="form-group">
+              <input type="text" name="title" class="review-title-input" placeholder="Review title (optional)" maxlength="100" />
+            </div>
+            <div class="form-group">
+              <textarea name="body" class="review-body-input" placeholder="Share your experience..." rows="3" required minlength="10" maxlength="1000"></textarea>
+              <span class="char-count">0/1000</span>
+            </div>
+            <button type="submit" class="review-submit-btn" disabled>
+              Submit Review
+            </button>
+          </form>
+        </section>
       </div>
 
       <footer class="detail-footer">
@@ -2177,6 +2246,9 @@ function renderDetailPanel(
       void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
     }
   });
+
+  // Review form event listeners
+  setupReviewFormListeners(detailPanel, agent.id);
 
   document.body.appendChild(detailPanel);
 
@@ -2246,6 +2318,166 @@ function renderReviewCard(review: AgentReview): string {
       }
     </article>
   `;
+}
+
+// ============================================================================
+// REVIEW FORM HANDLERS
+// ============================================================================
+
+/**
+ * Set up event listeners for the review form
+ */
+function setupReviewFormListeners(panel: HTMLElement, agentId: string): void {
+  const form = panel.querySelector('.review-form') as HTMLFormElement;
+  if (!form) return;
+
+  const starBtns = form.querySelectorAll('.star-btn');
+  const ratingInput = form.querySelector('input[name="rating"]') as HTMLInputElement;
+  const bodyInput = form.querySelector('textarea[name="body"]') as HTMLTextAreaElement;
+  const charCount = form.querySelector('.char-count') as HTMLElement;
+  const submitBtn = form.querySelector('.review-submit-btn') as HTMLButtonElement;
+
+  let selectedRating = 0;
+
+  // Star rating selection
+  starBtns.forEach((btn) => {
+    const starBtn = btn as HTMLButtonElement;
+    const rating = parseInt(starBtn.dataset.rating || '0', 10);
+
+    // Hover effect
+    starBtn.addEventListener('mouseenter', () => {
+      updateStarDisplay(starBtns, rating);
+    });
+
+    starBtn.addEventListener('mouseleave', () => {
+      updateStarDisplay(starBtns, selectedRating);
+    });
+
+    // Click to select
+    addTapListener(starBtn, () => {
+      selectedRating = rating;
+      ratingInput.value = String(rating);
+      updateStarDisplay(starBtns, rating);
+      validateReviewForm(form, submitBtn);
+      soundUI.play('toggle');
+    });
+  });
+
+  // Character counter
+  bodyInput.addEventListener('input', () => {
+    const length = bodyInput.value.length;
+    charCount.textContent = `${length}/1000`;
+    validateReviewForm(form, submitBtn);
+  });
+
+  // Form submission
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitReview(form, agentId, submitBtn);
+  });
+}
+
+/**
+ * Update star display based on rating
+ */
+function updateStarDisplay(starBtns: NodeListOf<Element>, rating: number): void {
+  starBtns.forEach((btn) => {
+    const starBtn = btn as HTMLButtonElement;
+    const btnRating = parseInt(starBtn.dataset.rating || '0', 10);
+    const svg = starBtn.querySelector('svg');
+    if (svg) {
+      if (btnRating <= rating) {
+        svg.setAttribute('fill', 'currentColor');
+        starBtn.classList.add('selected');
+      } else {
+        svg.setAttribute('fill', 'none');
+        starBtn.classList.remove('selected');
+      }
+    }
+  });
+}
+
+/**
+ * Validate the review form and enable/disable submit
+ */
+function validateReviewForm(form: HTMLFormElement, submitBtn: HTMLButtonElement): void {
+  const rating = parseInt((form.querySelector('input[name="rating"]') as HTMLInputElement).value, 10);
+  const body = (form.querySelector('textarea[name="body"]') as HTMLTextAreaElement).value.trim();
+
+  const isValid = rating >= 1 && rating <= 5 && body.length >= 10;
+  submitBtn.disabled = !isValid;
+}
+
+/**
+ * Submit the review to the API
+ */
+async function submitReview(
+  form: HTMLFormElement,
+  agentId: string,
+  submitBtn: HTMLButtonElement
+): Promise<void> {
+  const userId = getFirebaseUid();
+  if (!userId) {
+    toast.error(t('toasts.signInToLeaveAReview'));
+    return;
+  }
+
+  const authState = getAuthState();
+  const formData = new FormData(form);
+  const rating = parseInt(formData.get('rating') as string, 10);
+  const title = (formData.get('title') as string)?.trim() || undefined;
+  const body = (formData.get('body') as string).trim();
+
+  if (rating < 1 || rating > 5 || body.length < 10) {
+    toast.warning(t('toasts.addARatingAndAtLeast10Characters'));
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = t('ui.marketplace.submitting');
+
+  try {
+    const response = await fetch('/api/marketplace/reviews', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-firebase-uid': userId,
+      },
+      body: JSON.stringify({
+        itemId: agentId,
+        itemType: 'agent',
+        userId,
+        userName: authState.displayName || undefined,
+        rating,
+        title,
+        body,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to submit review');
+    }
+
+    toast.success(t('toasts.thanksForYourReview'));
+    soundUI.play('success');
+
+    // Reset form
+    form.reset();
+    const starBtns = form.querySelectorAll('.star-btn');
+    updateStarDisplay(starBtns, 0);
+    const charCount = form.querySelector('.char-count') as HTMLElement;
+    if (charCount) charCount.textContent = '0/1000';
+
+    // Optionally refresh the detail panel to show the new review
+    // For now, just close and let user reopen to see their review
+    log.info({ agentId, rating }, 'Review submitted successfully');
+  } catch (err) {
+    log.error({ error: err, agentId }, 'Failed to submit review');
+    toast.error("Couldn't submit review. Try again?");
+    submitBtn.disabled = false;
+    submitBtn.textContent = t('ui.marketplace.submitReview');
+  }
 }
 
 // ============================================================================

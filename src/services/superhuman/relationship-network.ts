@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'relationship-network' });
 
@@ -279,6 +280,21 @@ export async function savePerson(person: RelationshipPerson): Promise<void> {
       .set(cleanForFirestore(person));
   }
 
+  // Index to semantic memory for cross-domain correlation
+  void onRelationshipNetworkChange(
+    person.userId,
+    person.id,
+    {
+      person: person.name,
+      relationship: person.type,
+      connectionStrength:
+        person.mentionCount > 10 ? 'strong' : person.mentionCount > 5 ? 'moderate' : 'weak',
+      lastContact: person.lastMentioned ? new Date(person.lastMentioned).toISOString() : undefined,
+      notes: person.themes?.slice(0, 3).join('; '),
+    },
+    person.mentionCount === 1 ? 'create' : 'update'
+  );
+
   // Update cache
   const network = networkCache.get(person.userId) || [];
   const idx = network.findIndex((p) => p.id === person.id);
@@ -495,6 +511,54 @@ export async function buildNetworkContext(userId: string): Promise<string> {
 }
 
 // ============================================================================
+// GROUP OUTREACH INTEGRATION
+// ============================================================================
+
+/**
+ * Check for reconnection opportunities and trigger group outreach for high-urgency ones.
+ * Should be called periodically (e.g., daily) to proactively reach out.
+ */
+export async function checkAndTriggerReconnectionOutreach(userId: string): Promise<number> {
+  const opportunities = await findConnectionOpportunities(userId);
+  let triggeredCount = 0;
+
+  // Only trigger for high-urgency reconnect opportunities
+  const highUrgency = opportunities.filter((o) => o.type === 'reconnect' && o.urgency === 'high');
+
+  if (highUrgency.length > 0) {
+    try {
+      const { onReconnectionOpportunity } = await import(
+        '../conversation-thread/group-outreach-triggers.js'
+      );
+
+      // Trigger for the top 2 most urgent opportunities
+      for (const opportunity of highUrgency.slice(0, 2)) {
+        const result = await onReconnectionOpportunity(userId, {
+          personName: opportunity.personName,
+          daysSinceLastMention: 30, // High urgency = 30+ days
+          suggestedAction: opportunity.suggestedAction,
+        });
+
+        if (result) {
+          triggeredCount++;
+          log.info(
+            { userId, personName: opportunity.personName },
+            '🎭 Triggered group outreach for reconnection'
+          );
+        }
+      }
+    } catch (error) {
+      log.debug(
+        { error: String(error), userId },
+        'Failed to trigger reconnection outreach (non-fatal)'
+      );
+    }
+  }
+
+  return triggeredCount;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -504,5 +568,6 @@ export const relationshipNetwork = {
   loadNetwork,
   recordMention,
   findOpportunities: findConnectionOpportunities,
+  checkReconnectionOutreach: checkAndTriggerReconnectionOutreach,
   buildContext: buildNetworkContext,
 };

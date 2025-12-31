@@ -51,7 +51,7 @@ cameo: {
 
 | File | Issue | Fix |
 |------|-------|-----|
-| `CLAUDE.md` line 187 | `design-system/design-system/brand/BETTER-THAN-HUMAN.md` | Change to `design-system/brand/BETTER-THAN-HUMAN.md` |
+| `CLAUDE.md` line 187 | `design-system/design-system/docs/brand/BETTER-THAN-HUMAN.md` | Change to `design-system/docs/brand/BETTER-THAN-HUMAN.md` |
 | `src/intelligence/context-builders/CLAUDE.md` | References `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md` | Create file or remove reference |
 | `src/personas/CLAUDE.md` | References `docs/creating-personas.md` | Change to `docs/guides/creating-personas.md` |
 | `src/tools/CLAUDE.md` | References `docs/TOOL_MIGRATION.md` | Create file or remove reference |

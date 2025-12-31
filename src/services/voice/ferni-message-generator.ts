@@ -10,7 +10,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getContextForOutreach, loadUserContextFromFirestore } from '../outreach/context-aggregator.js';
+import {
+  getContextForOutreach,
+  loadUserContextFromFirestore,
+} from '../outreach/context-aggregator.js';
 
 const log = createLogger({ module: 'ferni-message-generator' });
 
@@ -24,7 +27,17 @@ export interface MessageContext {
   /** User ID for loading rich context */
   userId?: string;
   /** What kind of outreach */
-  purpose: 'thinking_of_you' | 'check_in' | 'birthday' | 'celebration' | 'reminder' | 'follow_up' | 'encouragement' | 'concern' | 'gratitude' | 'appointment';
+  purpose:
+    | 'thinking_of_you'
+    | 'check_in'
+    | 'birthday'
+    | 'celebration'
+    | 'reminder'
+    | 'follow_up'
+    | 'encouragement'
+    | 'concern'
+    | 'gratitude'
+    | 'appointment';
   /** Their relationship with Ferni */
   relationshipDepth?: 'new' | 'building' | 'established' | 'deep';
   /** Days since last contact */
@@ -108,8 +121,8 @@ function buildPrompt(ctx: MessageContext): string {
     const depthDesc = {
       new: "You've talked a few times",
       building: "You're getting to know each other",
-      established: "You know them well",
-      deep: "Close friend, deep trust",
+      established: 'You know them well',
+      deep: 'Close friend, deep trust',
     };
     parts.push(`- Relationship: ${depthDesc[ctx.relationshipDepth]}`);
   }
@@ -127,7 +140,9 @@ function buildPrompt(ctx: MessageContext): string {
   if (life) {
     // Emotional context
     if (life.emotionalState && life.emotionalState !== 'stable') {
-      parts.push(`- Their emotional state: ${life.emotionalState}${life.emotionalTrend ? ` (trending ${life.emotionalTrend})` : ''}`);
+      parts.push(
+        `- Their emotional state: ${life.emotionalState}${life.emotionalTrend ? ` (trending ${life.emotionalTrend})` : ''}`
+      );
     }
 
     // What you've been talking about
@@ -211,7 +226,7 @@ function buildPrompt(ctx: MessageContext): string {
 
 /**
  * Generate a natural Ferni message using LLM
- * 
+ *
  * If userId is provided, automatically loads rich life context from Firestore
  */
 export async function generateFerniMessage(ctx: MessageContext): Promise<GeneratedMessage> {
@@ -221,7 +236,7 @@ export async function generateFerniMessage(ctx: MessageContext): Promise<Generat
       // Load context from Firestore
       await loadUserContextFromFirestore(ctx.userId);
       const outreachContext = getContextForOutreach(ctx.userId);
-      
+
       ctx.lifeContext = {
         emotionalState: outreachContext.emotionalState,
         emotionalTrend: outreachContext.emotionalTrend,
@@ -234,17 +249,18 @@ export async function generateFerniMessage(ctx: MessageContext): Promise<Generat
         insideJokes: outreachContext.insideJokes,
         lastConversationSummary: outreachContext.lastConversationSummary,
       };
-      
+
       // Also get relationship stage
-      ctx.relationshipDepth = outreachContext.relationshipStage as MessageContext['relationshipDepth'];
-      
+      ctx.relationshipDepth =
+        outreachContext.relationshipStage as MessageContext['relationshipDepth'];
+
       log.debug(
-        { 
-          userId: ctx.userId, 
+        {
+          userId: ctx.userId,
           hasTopics: (ctx.lifeContext.recentTopics?.length || 0) > 0,
           hasWins: (ctx.lifeContext.recentWins?.length || 0) > 0,
           hasStruggles: (ctx.lifeContext.currentStruggles?.length || 0) > 0,
-        }, 
+        },
         '📚 Loaded rich life context for personalized message'
       );
     } catch (error) {
@@ -254,7 +270,10 @@ export async function generateFerniMessage(ctx: MessageContext): Promise<Generat
 
   const prompt = buildPrompt(ctx);
 
-  log.debug({ purpose: ctx.purpose, recipient: ctx.recipientName, hasLifeContext: !!ctx.lifeContext }, 'Generating Ferni message');
+  log.debug(
+    { purpose: ctx.purpose, recipient: ctx.recipientName, hasLifeContext: !!ctx.lifeContext },
+    'Generating Ferni message'
+  );
 
   try {
     // Try Gemini first (fast, good for short generation)
@@ -314,7 +333,7 @@ async function generateWithGemini(prompt: string): Promise<string | null> {
       return null;
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       candidates?: Array<{
         content?: {
           parts?: Array<{ text?: string }>;
@@ -364,27 +383,19 @@ function generateFallback(ctx: MessageContext): GeneratedMessage {
       `Hey ${name}, it's Ferni. Just checking in. How are you? Call me back whenever.`,
       `Hey. Ferni here. Wanted to see how you're doing. Talk soon.`,
     ],
-    birthday: [
-      `Hey ${name}! Ferni. Happy birthday. Hope it's a good one. Take care of yourself.`,
-    ],
+    birthday: [`Hey ${name}! Ferni. Happy birthday. Hope it's a good one. Take care of yourself.`],
     celebration: [
       `${name}! It's Ferni. I heard... that's amazing. Genuinely proud of you. Talk soon.`,
     ],
     reminder: [
       `Hey ${name}, Ferni. Quick reminder about ${ctx.details?.reminder || 'that thing'}. That's all. Bye.`,
     ],
-    follow_up: [
-      `Hey ${name}. Ferni. Been thinking about what we talked about. How's that going?`,
-    ],
+    follow_up: [`Hey ${name}. Ferni. Been thinking about what we talked about. How's that going?`],
     encouragement: [
       `Hey ${name}. It's Ferni. Just wanted you to know... you're doing better than you think. Hang in there.`,
     ],
-    concern: [
-      `Hey ${name}. Ferni. Thinking about you. Call me if you want to talk. I'm here.`,
-    ],
-    gratitude: [
-      `Hey ${name}. Ferni. Just wanted to say thanks. For everything. Means a lot.`,
-    ],
+    concern: [`Hey ${name}. Ferni. Thinking about you. Call me if you want to talk. I'm here.`],
+    gratitude: [`Hey ${name}. Ferni. Just wanted to say thanks. For everything. Means a lot.`],
     appointment: [
       `Hey ${name}, Ferni. Your ${ctx.details?.appointment || 'appointment'} is set${ctx.details?.time ? ` for ${ctx.details.time}` : ''}. Let me know if anything changes.`,
     ],

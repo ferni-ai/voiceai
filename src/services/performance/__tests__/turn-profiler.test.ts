@@ -35,11 +35,12 @@ describe('TurnProfiler', () => {
 
   describe('PERFORMANCE_THRESHOLDS', () => {
     it('should have expected threshold values', () => {
-      expect(PERFORMANCE_THRESHOLDS.EXCELLENT_TOTAL_MS).toBe(300);
-      expect(PERFORMANCE_THRESHOLDS.GOOD_TOTAL_MS).toBe(500);
-      expect(PERFORMANCE_THRESHOLDS.ACCEPTABLE_TOTAL_MS).toBe(800);
-      expect(PERFORMANCE_THRESHOLDS.SLOW_TOTAL_MS).toBe(1500);
-      expect(PERFORMANCE_THRESHOLDS.TARGET_TTFA_MS).toBe(400);
+      // Updated thresholds for faster response targets (Dec 2024)
+      expect(PERFORMANCE_THRESHOLDS.EXCELLENT_TOTAL_MS).toBe(250);
+      expect(PERFORMANCE_THRESHOLDS.GOOD_TOTAL_MS).toBe(400);
+      expect(PERFORMANCE_THRESHOLDS.ACCEPTABLE_TOTAL_MS).toBe(600);
+      expect(PERFORMANCE_THRESHOLDS.SLOW_TOTAL_MS).toBe(1200);
+      expect(PERFORMANCE_THRESHOLDS.TARGET_TTFA_MS).toBe(300);
     });
   });
 

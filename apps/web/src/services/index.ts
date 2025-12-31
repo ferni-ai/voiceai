@@ -74,3 +74,10 @@ export * from './soul-stats.service.js';
 // ============================================================================
 
 export * from './app-context-tracking.service.js';
+
+// ============================================================================
+// 🌍 BETTER THAN HUMAN - Location Awareness
+// ============================================================================
+
+export * from './geolocation.service.js';
+export * from './timezone.service.js';

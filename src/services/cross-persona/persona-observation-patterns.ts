@@ -430,9 +430,7 @@ const PERSONA_PROFILES: Record<PersonaId, PersonaObservationProfile> = {
 /**
  * Get the observation profile for a persona.
  */
-export function getPersonaObservationProfile(
-  personaId: PersonaId
-): PersonaObservationProfile {
+export function getPersonaObservationProfile(personaId: PersonaId): PersonaObservationProfile {
   return PERSONA_PROFILES[personaId] || FERNI_PATTERNS;
 }
 
@@ -459,9 +457,7 @@ export function analyzeTextForPersona(
   }> = [];
 
   for (const pattern of profile.observationPatterns) {
-    const matchedKeywords = pattern.keywords.filter((kw) =>
-      lowerText.includes(kw.toLowerCase())
-    );
+    const matchedKeywords = pattern.keywords.filter((kw) => lowerText.includes(kw.toLowerCase()));
 
     if (matchedKeywords.length > 0) {
       // More keyword matches = higher confidence
@@ -472,10 +468,7 @@ export function analyzeTextForPersona(
       matches.push({
         pattern,
         matchedKeywords,
-        adjustedConfidence: Math.min(
-          0.95,
-          pattern.baseConfidence + keywordBoost + emotionBoost
-        ),
+        adjustedConfidence: Math.min(0.95, pattern.baseConfidence + keywordBoost + emotionBoost),
       });
     }
   }
@@ -506,9 +499,7 @@ export function detectHandoffCues(
   }> = [];
 
   for (const cue of profile.handoffCues) {
-    const matchedKeywords = cue.keywords.filter((kw) =>
-      lowerText.includes(kw.toLowerCase())
-    );
+    const matchedKeywords = cue.keywords.filter((kw) => lowerText.includes(kw.toLowerCase()));
 
     if (matchedKeywords.length > 0) {
       cues.push({

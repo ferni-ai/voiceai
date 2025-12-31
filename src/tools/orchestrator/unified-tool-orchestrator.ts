@@ -47,7 +47,12 @@ import {
 } from '../intelligence/index.js';
 import { toolRegistry } from '../registry/index.js';
 import { initializeToolRegistry, loadToolDomainsLazy } from '../registry/loader.js';
-import type { Tool, ToolContext, ToolDomain } from '../registry/types.js';
+import {
+  EnvironmentServiceRegistry,
+  type Tool,
+  type ToolContext,
+  type ToolDomain,
+} from '../registry/types.js';
 // Migrated to new semantic router module
 import { semanticRouter, type SemanticMatch } from '../semantic-router/compat.js';
 
@@ -411,8 +416,9 @@ export class UnifiedToolOrchestrator {
       userId: request.userId,
       agentId: request.agentId,
       agentDisplayName: request.agentDisplayName || request.agentId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      services: undefined as any, // Will be populated by builder
+      // Use EnvironmentServiceRegistry to check actual env vars for service availability
+      // This enables tools that require external services (Twilio, Plaid, etc.)
+      services: new EnvironmentServiceRegistry(),
       // IP-detected location for weather, local content (TikTok-style)
       userLocation: request.userLocation,
     };

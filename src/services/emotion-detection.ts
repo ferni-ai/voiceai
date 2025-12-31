@@ -5,8 +5,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const logger = getLogger().child({ service: 'EmotionDetection' });
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // ============================================================================
 // Types
@@ -480,7 +483,8 @@ export function detectEmotion(text: string): EmotionResult {
   const secondary = detectedEmotions[1];
 
   // Calculate confidence based on keyword count and text length
-  const textWords = text.split(/\s+/).length;
+  // 🦀 Rust-accelerated word counting
+  const textWords = RUST_COUNTING_AVAILABLE ? countWordsRust(text) : text.split(/\s+/).length;
   const keywordDensity = primary.count / Math.max(textWords, 1);
   // Boost confidence for emoji matches (they're very intentional)
   const hasEmoji = primary.keywords.some((k) => k.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(k));

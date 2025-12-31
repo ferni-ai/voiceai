@@ -18,8 +18,11 @@
 import type { SpeechCharacteristics } from '../personas/types.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+// 🦀 Rust-accelerated word counting
+import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
 const log = getLogger();
+const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 
 // Extracted session-manager modules
 import {
@@ -203,9 +206,11 @@ export async function createSessionServices(
 ): Promise<SessionServices> {
   // Handle both calling conventions
   let sessionId: string;
+  let userName: string | undefined;
   if (typeof sessionIdOrOptions === 'object') {
     sessionId = sessionIdOrOptions.sessionId;
     userId = sessionIdOrOptions.userId;
+    userName = sessionIdOrOptions.userName;
     isReturningUser = sessionIdOrOptions.isReturningUser;
     personaSpeech = sessionIdOrOptions.personaSpeech;
     personaEnergy = sessionIdOrOptions.personaEnergy;
@@ -227,14 +232,28 @@ export async function createSessionServices(
 
   // Load or create user profile
   // FIX BUG #session-13: Validate userId format before profile operations
+  // FIX BUG #onboarding-name: Pass userName when creating new profile
   let userProfile: UserProfile | null = null;
   const validatedUserId = validateUserId(userId);
   if (validatedUserId) {
     userProfile = await global.store.getProfile(validatedUserId);
     if (!userProfile) {
       const { createUserProfile } = await import('../types/user-profile.js');
-      userProfile = createUserProfile(validatedUserId);
+      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
+      userProfile = createUserProfile(validatedUserId, userName);
       await global.store.saveProfile(userProfile);
+      getLogger().info(
+        { userId: validatedUserId, name: userName || '(none)' },
+        '🆕 Created new user profile with name from onboarding'
+      );
+    } else if (!userProfile.name && userName) {
+      // Existing profile without a name, but we now have one - update it!
+      userProfile.name = userName;
+      await global.store.saveProfile(userProfile);
+      getLogger().info(
+        { userId: validatedUserId, name: userName },
+        '✨ Updated existing profile with name from onboarding'
+      );
     }
     isReturningUser = userProfile.totalConversations > 0;
 
@@ -853,7 +872,11 @@ export async function createSessionServices(
           if (validatedUserId) {
             const wpmTracker = getSessionWPMTracker(sessionId);
             const avgWPM = wpmTracker.getAverageWPM();
-            const currentWPM = content.split(/\s+/).length / (durationMs / 60000) || avgWPM;
+            // 🦀 Rust-accelerated word counting
+            const contentWordCount = RUST_COUNTING_AVAILABLE
+              ? countWordsRust(content)
+              : content.split(/\s+/).length;
+            const currentWPM = contentWordCount / (durationMs / 60000) || avgWPM;
 
             // Determine pace relative to user's baseline
             const paceRatio = avgWPM > 0 ? currentWPM / avgWPM : 1;

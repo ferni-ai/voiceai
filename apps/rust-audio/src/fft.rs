@@ -446,13 +446,14 @@ mod tests {
 
     #[test]
     fn test_hanning_window() {
-        let signal = vec![1.0f32; 10];
+        // Use odd length so center index falls exactly on peak
+        let signal = vec![1.0f32; 11];
         let windowed = apply_hanning_window(&signal);
 
         // Window should be 0 at edges, 1 at center
-        assert!(windowed[0].abs() < 0.01);
-        assert!(windowed[9].abs() < 0.01);
-        assert!((windowed[5] - 1.0).abs() < 0.01);
+        assert!(windowed[0].abs() < 0.01, "Edge at 0 should be ~0, got {}", windowed[0]);
+        assert!(windowed[10].abs() < 0.01, "Edge at 10 should be ~0, got {}", windowed[10]);
+        assert!((windowed[5] - 1.0).abs() < 0.01, "Center should be ~1, got {}", windowed[5]);
     }
 
     #[test]

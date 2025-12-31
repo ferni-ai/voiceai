@@ -13,8 +13,11 @@
  */
 
 import { EventEmitter } from 'events';
+
 import admin from 'firebase-admin';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+
+import { removeUndefined } from '../../utils/firestore-utils.js';
+import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAgentBus } from '../agent-bus.js';
 
@@ -198,7 +201,8 @@ class AppointmentFollowUpService extends EventEmitter {
     this.isRunning = true;
 
     // Check for appointments needing follow-up every 5 minutes
-    this.checkInterval = setInterval(
+    registerInterval(
+      'appointment-followup-checker',
       () => {
         this.checkPendingAppointments();
       },
@@ -214,10 +218,8 @@ class AppointmentFollowUpService extends EventEmitter {
   stop(): void {
     this.isRunning = false;
 
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
+    clearNamedInterval('appointment-followup-checker');
+    this.checkInterval = null;
 
     // Clear all timers
     for (const timer of this.followUpTimers.values()) {

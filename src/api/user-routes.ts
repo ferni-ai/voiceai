@@ -2,9 +2,11 @@
  * User Routes API Handler
  *
  * Handles user-specific settings including:
+ * - Profile creation and retrieval (CRITICAL for onboarding)
  * - Contact info (phone, email)
  * - Timezone detection and storage
  * - Quiet hours preferences
+ * - Onboarding state (cross-device sync)
  *
  * @module UserRoutes
  */
@@ -19,6 +21,7 @@ import {
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
+import type { UserProfile } from '../types/user-profile.js';
 
 const log = getLogger().child({ module: 'user-routes' });
 
@@ -39,10 +42,51 @@ interface ContactInfoUpdate {
   timezone?: string;
 }
 
+/**
+ * Client-reported location (from browser geolocation or manual entry)
+ */
+interface LocationUpdate {
+  city?: string;
+  regionCode?: string;
+  countryCode?: string;
+  latitude?: number;
+  longitude?: number;
+  source: 'browser-gps' | 'manual' | 'ip-geo' | 'timezone' | 'accept-language' | 'default';
+  confidence: 'high' | 'medium' | 'low';
+}
+
 interface AccentPreferenceUpdate {
   accent: 'american' | 'british' | 'australian' | 'indian';
   /** Whether this was auto-detected (true) or manually set by user (false) */
   autoDetected?: boolean;
+}
+
+/**
+ * Onboarding state - synced across devices via Firestore
+ */
+interface OnboardingState {
+  /** Steps completed */
+  completedSteps: Array<'welcome' | 'name' | 'preferences' | 'first_conversation'>;
+  /** User's name captured during onboarding */
+  userName?: string;
+  /** When onboarding started */
+  startedAt?: string;
+  /** When onboarding completed */
+  completedAt?: string;
+  /** Whether user has had their first conversation */
+  hasHadFirstConversation?: boolean;
+}
+
+/**
+ * Profile initialization request (early profile creation)
+ */
+interface ProfileInitRequest {
+  /** User's name from onboarding or auth */
+  name?: string;
+  /** Device ID for linking */
+  deviceId?: string;
+  /** Initial onboarding state */
+  onboarding?: OnboardingState;
 }
 
 type EnglishAccent = 'american' | 'british' | 'australian' | 'indian';
@@ -98,12 +142,16 @@ function isValidTimeString(time: string): boolean {
  * Handle user-related API routes
  *
  * Supported routes:
+ * - GET /api/user/profile - Get user profile (creates if needed)
+ * - POST /api/user/profile - Initialize/update profile (early creation for onboarding)
+ * - GET /api/user/onboarding - Get onboarding state
+ * - POST /api/user/onboarding - Update onboarding state
  * - POST /api/user/preferences - Update timezone & quiet hours
  * - GET /api/user/preferences - Get current preferences
  * - POST /api/user/contact - Update contact info
  * - GET /api/user/contact - Get contact info
  * - POST /api/user/timezone - Quick timezone update (for auto-detection)
- * - POST /api/user/accent - Update voice accent preference (american, british, australian, indian)
+ * - POST /api/user/accent - Update voice accent preference
  * - GET /api/user/accent - Get voice accent preference
  */
 export async function handleUserRoutes(
@@ -130,6 +178,219 @@ export async function handleUserRoutes(
   }
 
   const route = pathname.replace('/api/user', '');
+
+  // ============================================================================
+  // GET /api/user/profile - Get user profile (creates if needed)
+  // CRITICAL: This is the FIRST endpoint called on app init
+  // Creates profile immediately so we can start tracking identity
+  // ============================================================================
+  if (route === '/profile' && method === 'GET') {
+    const auth = await requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
+
+    const { userId } = auth;
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      // Create profile if it doesn't exist (early creation!)
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+        log.info({ userId }, '🎉 Created new profile on first visit');
+      }
+
+      // Return sanitized profile info
+      sendJson(res, 200, {
+        success: true,
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          preferredName: profile.preferredName,
+          hasVoiceSketch: !!profile.voiceSketch,
+          totalConversations: profile.totalConversations,
+          firstContact: profile.firstContact,
+          lastContact: profile.lastContact,
+          relationshipStage: profile.relationshipStage,
+          onboarding: (profile as UserProfile & { onboarding?: OnboardingState }).onboarding,
+        },
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get/create profile');
+      sendJson(res, 500, { success: false, error: 'Failed to get profile' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/user/profile - Initialize or update profile
+  // Called during onboarding to set name, link device, update onboarding state
+  // ============================================================================
+  if (route === '/profile' && method === 'POST') {
+    const auth = await requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
+
+    const body = await parseBody<ProfileInitRequest>(req);
+    const { userId } = auth;
+
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      // Create profile if it doesn't exist
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+        log.info({ userId }, '🎉 Created new profile via POST');
+      }
+
+      // Update name if provided and profile doesn't have one (or if provided is better)
+      if (body?.name && (!profile.name || profile.name === 'User')) {
+        profile.name = body.name;
+        profile.preferredName = body.name;
+        log.info({ userId, name: body.name }, '✨ Name set from onboarding');
+      }
+
+      // Link device ID if provided
+      if (body?.deviceId) {
+        const linkedIds = new Set(profile.linkedIdentifiers || []);
+        linkedIds.add(`device:${body.deviceId}`);
+        profile.linkedIdentifiers = Array.from(linkedIds);
+        log.debug({ userId, deviceId: body.deviceId }, 'Device ID linked to profile');
+      }
+
+      // Update onboarding state
+      if (body?.onboarding) {
+        (profile as UserProfile & { onboarding?: OnboardingState }).onboarding = {
+          ...(profile as UserProfile & { onboarding?: OnboardingState }).onboarding,
+          ...body.onboarding,
+        };
+      }
+
+      await store.saveProfile(profile);
+
+      sendJson(res, 200, {
+        success: true,
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          preferredName: profile.preferredName,
+          hasVoiceSketch: !!profile.voiceSketch,
+          totalConversations: profile.totalConversations,
+          onboarding: (profile as UserProfile & { onboarding?: OnboardingState }).onboarding,
+        },
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to update profile');
+      sendJson(res, 500, { success: false, error: 'Failed to update profile' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // GET /api/user/onboarding - Get onboarding state
+  // ============================================================================
+  if (route === '/onboarding' && method === 'GET') {
+    const auth = await requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
+
+    const { userId } = auth;
+    try {
+      const store = getDefaultStore();
+      const profile = await store.getProfile(userId);
+
+      const onboarding = (profile as (UserProfile & { onboarding?: OnboardingState }) | null)
+        ?.onboarding || {
+        completedSteps: [],
+        hasHadFirstConversation: (profile?.totalConversations || 0) > 0,
+      };
+
+      sendJson(res, 200, {
+        success: true,
+        onboarding,
+        // Also return useful profile info
+        userName: profile?.name,
+        totalConversations: profile?.totalConversations || 0,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get onboarding state');
+      sendJson(res, 500, { success: false, error: 'Failed to get onboarding state' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/user/onboarding - Update onboarding state
+  // ============================================================================
+  if (route === '/onboarding' && method === 'POST') {
+    const auth = await requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
+
+    const body = await parseBody<{ step: string; userName?: string; completed?: boolean }>(req);
+    const { userId } = auth;
+
+    if (!body?.step) {
+      sendJson(res, 400, { success: false, error: 'step is required' });
+      return true;
+    }
+
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+      }
+
+      // Get or create onboarding state
+      const profileWithOnboarding = profile as UserProfile & { onboarding?: OnboardingState };
+      const onboarding = profileWithOnboarding.onboarding || {
+        completedSteps: [],
+        startedAt: new Date().toISOString(),
+      };
+
+      // Add step to completed if not already there
+      const validSteps = ['welcome', 'name', 'preferences', 'first_conversation'] as const;
+      if (validSteps.includes(body.step as (typeof validSteps)[number])) {
+        const step = body.step as (typeof validSteps)[number];
+        if (!onboarding.completedSteps.includes(step)) {
+          onboarding.completedSteps.push(step);
+        }
+      }
+
+      // Update name if provided
+      if (body.userName && (!profile.name || profile.name === 'User')) {
+        profile.name = body.userName;
+        profile.preferredName = body.userName;
+        onboarding.userName = body.userName;
+        log.info({ userId, name: body.userName }, '✨ Name set from onboarding step');
+      }
+
+      // Mark completed if all steps done
+      if (onboarding.completedSteps.length >= 3 && !onboarding.completedAt) {
+        onboarding.completedAt = new Date().toISOString();
+      }
+
+      // Check first conversation
+      onboarding.hasHadFirstConversation = profile.totalConversations > 0;
+
+      // Save
+      profileWithOnboarding.onboarding = onboarding;
+      await store.saveProfile(profile);
+
+      log.info(
+        { userId, step: body.step, completedSteps: onboarding.completedSteps },
+        '📋 Onboarding step completed'
+      );
+
+      sendJson(res, 200, {
+        success: true,
+        onboarding,
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to update onboarding state');
+      sendJson(res, 500, { success: false, error: 'Failed to update onboarding state' });
+    }
+    return true;
+  }
 
   // ============================================================================
   // GET /api/user/accent - Get voice accent preference (OPTIONAL AUTH)
@@ -228,6 +489,136 @@ export async function handleUserRoutes(
     } catch (error) {
       log.error({ error, userId }, 'Failed to update timezone');
       sendJson(res, 500, { success: false, error: 'Failed to update timezone' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // POST /api/user/location - Update user location (from browser geolocation)
+  // "Better than Human" - We remember where you are without awkward questions
+  // ============================================================================
+  if (route === '/location' && method === 'POST') {
+    const body = await parseBody<LocationUpdate>(req);
+    const userId = authenticatedUserId;
+
+    if (!body) {
+      sendJson(res, 400, { success: false, error: 'Request body is required' });
+      return true;
+    }
+
+    // Validate at least one location field is present
+    if (!body.city && !body.countryCode && !body.latitude) {
+      sendJson(res, 400, {
+        success: false,
+        error: 'At least city, countryCode, or coordinates required',
+      });
+      return true;
+    }
+
+    // Validate country code format (ISO 3166-1 alpha-2)
+    if (body.countryCode && !/^[A-Z]{2}$/.test(body.countryCode)) {
+      sendJson(res, 400, {
+        success: false,
+        error: 'Invalid country code format (use ISO 3166-1 alpha-2)',
+      });
+      return true;
+    }
+
+    // Validate coordinates if provided
+    if (body.latitude !== undefined || body.longitude !== undefined) {
+      if (body.latitude === undefined || body.longitude === undefined) {
+        sendJson(res, 400, {
+          success: false,
+          error: 'Both latitude and longitude required if providing coordinates',
+        });
+        return true;
+      }
+      if (body.latitude < -90 || body.latitude > 90) {
+        sendJson(res, 400, { success: false, error: 'Latitude must be between -90 and 90' });
+        return true;
+      }
+      if (body.longitude < -180 || body.longitude > 180) {
+        sendJson(res, 400, { success: false, error: 'Longitude must be between -180 and 180' });
+        return true;
+      }
+    }
+
+    try {
+      const store = getDefaultStore();
+      let profile = await store.getProfile(userId);
+
+      if (!profile) {
+        profile = await store.getOrCreateProfile(userId);
+      }
+
+      // Store location in profile
+      profile.location = {
+        city: body.city,
+        regionCode: body.regionCode,
+        countryCode: body.countryCode,
+        latitude: body.latitude,
+        longitude: body.longitude,
+        source: body.source || 'manual',
+        confidence: body.confidence || 'medium',
+        lastUpdated: new Date().toISOString(),
+      };
+
+      await store.saveProfile(profile);
+
+      log.info(
+        { userId, city: body.city, country: body.countryCode, source: body.source },
+        '📍 User location updated'
+      );
+
+      sendJson(res, 200, {
+        success: true,
+        location: {
+          city: profile.location.city,
+          regionCode: profile.location.regionCode,
+          countryCode: profile.location.countryCode,
+          source: profile.location.source,
+          confidence: profile.location.confidence,
+        },
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to update location');
+      sendJson(res, 500, { success: false, error: 'Failed to update location' });
+    }
+    return true;
+  }
+
+  // ============================================================================
+  // GET /api/user/location - Get user location
+  // ============================================================================
+  if (route === '/location' && method === 'GET') {
+    const userId = authenticatedUserId;
+
+    try {
+      const store = getDefaultStore();
+      const profile = await store.getProfile(userId);
+
+      if (!profile?.location) {
+        sendJson(res, 200, {
+          success: true,
+          location: null,
+        });
+        return true;
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        location: {
+          city: profile.location.city,
+          regionCode: profile.location.regionCode,
+          countryCode: profile.location.countryCode,
+          source: profile.location.source,
+          confidence: profile.location.confidence,
+          lastUpdated: profile.location.lastUpdated,
+        },
+      });
+    } catch (error) {
+      log.error({ error, userId }, 'Failed to get location');
+      sendJson(res, 500, { success: false, error: 'Failed to get location' });
     }
     return true;
   }

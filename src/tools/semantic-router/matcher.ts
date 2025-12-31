@@ -25,10 +25,7 @@ import type {
 import { getKeywordWord, getKeywordWeight } from './types.js';
 import { runHolisticLayer, type HolisticLayerResult } from './holistic-layer.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
-import {
-  cosineSimilarity,
-  batchCosineSimilarityOptimized,
-} from '../../memory/rust-accelerator.js';
+import { cosineSimilarity, batchCosineSimilarityOptimized } from '../../memory/rust-accelerator.js';
 // Re-export for backwards compatibility with existing consumers
 export { cosineSimilarity };
 
@@ -248,9 +245,7 @@ export function scoreEmbeddings(
 
   // Use batch SIMD for 5+ tools (threshold where SIMD provides benefit)
   const useBatch = toolsWithEmbeddings.length >= 5;
-  const queryArray = Array.isArray(queryEmbedding)
-    ? queryEmbedding
-    : Array.from(queryEmbedding);
+  const queryArray = Array.isArray(queryEmbedding) ? queryEmbedding : Array.from(queryEmbedding);
 
   if (useBatch) {
     // === BATCH PATH: SIMD-accelerated ===
@@ -282,9 +277,7 @@ export function scoreEmbeddings(
       exampleSimilarities = batchCosineSimilarityOptimized(queryArray, exampleEmbeddings);
     } else if (exampleEmbeddings.length > 0) {
       // Small batch - use individual comparisons
-      exampleSimilarities = exampleEmbeddings.map((emb) =>
-        cosineSimilarity(queryArray, emb)
-      );
+      exampleSimilarities = exampleEmbeddings.map((emb) => cosineSimilarity(queryArray, emb));
     }
 
     // 4. Aggregate best example per tool

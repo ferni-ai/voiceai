@@ -418,7 +418,7 @@ export class SelfCorrectionEngine {
         ssml = `${correction.ssml} ${ssml}`;
         break;
 
-      case 'mid_sentence':
+      case 'mid_sentence': {
         // Find a good mid-point to insert
         const midPoint = this.findMidSentencePoint(response);
         if (midPoint > 0) {
@@ -430,8 +430,9 @@ export class SelfCorrectionEngine {
           ssml = `${correction.ssml} ${ssml}`;
         }
         break;
+      }
 
-      case 'between_sentences':
+      case 'between_sentences': {
         // Find sentence boundary
         const sentenceBoundary = this.findSentenceBoundary(response);
         if (sentenceBoundary > 0) {
@@ -442,8 +443,9 @@ export class SelfCorrectionEngine {
           ssml = `${correction.ssml} ${ssml}`;
         }
         break;
+      }
 
-      case 'before_key_point':
+      case 'before_key_point': {
         // Find key point marker
         const keyPoint = this.findKeyPointMarker(response);
         if (keyPoint > 0) {
@@ -454,6 +456,7 @@ export class SelfCorrectionEngine {
           ssml = `${correction.ssml} ${ssml}`;
         }
         break;
+      }
 
       default:
         text = `${correction.content} ${text}`;

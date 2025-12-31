@@ -26,18 +26,44 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
+/**
+ * Status colors for SVG rendering.
+ * @design-tokens-ignore - SVG stroke/fill requires literal color values
+ */
 const STATUS_COLORS: Record<BurnoutGaugeData['status'], string> = {
   thriving: DEFAULT_COLORS.status.thriving,
   balanced: DEFAULT_COLORS.status.balanced,
   stretched: DEFAULT_COLORS.status.stretched,
   depleted: DEFAULT_COLORS.status.depleted,
   critical: DEFAULT_COLORS.status.critical,
+};
+
+/**
+ * CSS variable references for DOM element styling.
+ */
+const STATUS_CSS_VARS: Record<BurnoutGaugeData['status'], string> = {
+  thriving: CSS_COLOR_VARS.statusThriving,
+  balanced: CSS_COLOR_VARS.statusBalanced,
+  stretched: CSS_COLOR_VARS.statusStretched,
+  depleted: CSS_COLOR_VARS.statusDepleted,
+  critical: CSS_COLOR_VARS.statusCritical,
+};
+
+/**
+ * Energy type colors for factor breakdown.
+ * @design-tokens-ignore - SVG requires literal color values
+ */
+const ENERGY_COLORS = {
+  emotional: DEFAULT_COLORS.energy.emotional,
+  mental: DEFAULT_COLORS.energy.mental,
+  physical: DEFAULT_COLORS.energy.physical,
 };
 
 // ============================================================================
@@ -53,20 +79,16 @@ function buildWatch(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Capacity'));
-  header.appendChild(createElement('p', '', 'Energy status'));
+  const title = createElement('h3', 'viz-header__title viz-header__title--compact', t('visualizations.capacityGuardian.titleShort', 'Capacity'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.capacityGuardian.subtitleShort', 'Energy status'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Arc gauge
-  const ring = createElement('div', 'watch-ring');
-  setStyles(ring, {
-    position: 'relative',
-    width: '80px',
-    height: '80px',
-    margin: '8px auto',
-  });
+  // Arc gauge using viz-ring class
+  const ring = createElement('div', 'viz-ring');
 
   const svg = createSvg(36, 36, '0 0 36 36');
   setStyles(svg as unknown as HTMLElement, {
@@ -74,7 +96,7 @@ function buildWatch(
     height: '100%',
   });
 
-  // Background circle
+  // Background circle - @design-tokens-ignore (SVG requires literal)
   const bgPath = createPath(
     createRingPath(18, 18, 15.9155),
     'rgba(44, 37, 32, 0.1)',
@@ -82,7 +104,7 @@ function buildWatch(
   );
   svg.appendChild(bgPath);
 
-  // Progress arc
+  // Progress arc - @design-tokens-ignore (SVG requires literal)
   const statusColor = STATUS_COLORS[data.status];
   const fgPath = createPath(
     createRingPath(18, 18, 15.9155),
@@ -96,23 +118,26 @@ function buildWatch(
   ring.appendChild(svg);
 
   // Center value
-  const value = createElement('span', 'watch-ring-value', `${data.capacity}%`);
-  setStyles(value, {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    fontSize: '0.9rem',
-    fontWeight: '700',
-    color: statusColor,
-  });
+  const value = createElement('span', 'viz-ring__value');
+  setStyles(value, { color: statusColor }); // @design-tokens-ignore (matches SVG)
+  value.textContent = `${data.capacity}%`;
   ring.appendChild(value);
 
   container.appendChild(ring);
 
-  // Status label
-  const metric = createElement('div', 'watch-metric', capitalize(data.status));
+  // Status label with design system class
+  const metric = createElement('div', 'viz-metric viz-metric--compact');
+  const metricValue = createElement('span', 'viz-metric__label');
+  metricValue.textContent = capitalize(data.status);
+  metric.appendChild(metricValue);
   container.appendChild(metric);
+
+  // Screen reader label
+  container.appendChild(
+    createScreenReaderLabel(
+      `Capacity gauge at ${data.capacity}%, status: ${data.status}`
+    )
+  );
 
   return {
     element: container,
@@ -136,111 +161,110 @@ function buildMobile(
 ): VisualizationResult {
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
-  const statusColor = STATUS_COLORS[data.status];
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Capacity Guardian'));
-  header.appendChild(createElement('p', '', 'Monitor your energy reserves'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.capacityGuardian.title', 'Capacity Guardian'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.capacityGuardian.subtitle', 'Your comprehensive energy dashboard'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Gauge card
-  const card1 = createElement('div', 'mobile-card');
+  // Main gauge card with glass styling
+  const card1 = createElement('div', 'viz-card viz-animate-slide');
   if (isAndroid) {
-    setStyles(card1, { borderLeft: `3px solid ${statusColor}` });
+    card1.classList.add('viz-card--accent-primary');
   }
 
-  const cardHeader = createElement('div', 'mobile-card-header');
-  cardHeader.appendChild(createElement('span', 'mobile-card-title', 'Current Status'));
+  // Card header
+  const cardHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
 
-  const badge = createElement('span', 'mobile-card-badge', capitalize(data.status));
-  setStyles(badge, { background: statusColor });
+  const statusTitle = createElement('span');
+  setStyles(statusTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  statusTitle.textContent = t('visualizations.capacityGuardian.currentStatus', 'Current Status');
+  cardHeader.appendChild(statusTitle);
+
+  const badge = createElement('span', `viz-badge viz-badge--status-${data.status}`);
+  badge.textContent = capitalize(data.status);
   cardHeader.appendChild(badge);
   card1.appendChild(cardHeader);
 
-  // Progress bar
-  const barContainer = createElement('div', 'mobile-bar');
-  setStyles(barContainer, {
-    position: 'relative',
-    height: '12px',
-    background: 'linear-gradient(90deg, var(--color-accent) 0%, #f5a623 50%, #e74c3c 100%)',
-    borderRadius: isAndroid ? '0' : '6px',
-    margin: '12px 0',
-  });
+  // Main metric display
+  const metricContainer = createElement('div', 'viz-metric');
+  const metricValue = createElement('span', 'viz-metric__value viz-metric__value--accent');
+  metricValue.textContent = `${data.capacity}`;
+  const metricUnit = createElement('span', 'viz-metric__unit');
+  metricUnit.textContent = '%';
+  metricValue.appendChild(metricUnit);
+  const metricLabel = createElement('span', 'viz-metric__label');
+  metricLabel.textContent = capitalize(data.status);
+  metricContainer.appendChild(metricValue);
+  metricContainer.appendChild(metricLabel);
+  card1.appendChild(metricContainer);
 
-  const indicator = createElement('div');
-  setStyles(indicator, {
-    position: 'absolute',
-    left: `${data.capacity}%`,
-    top: '-2px',
-    width: '4px',
-    height: '16px',
-    background: 'white',
-    borderRadius: '2px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
-    transform: 'translateX(-50%)',
-  });
-  barContainer.appendChild(indicator);
-  card1.appendChild(barContainer);
-
-  const insight = createElement('p', 'mobile-insight', `${data.capacity}% capacity used`);
-  card1.appendChild(insight);
   container.appendChild(card1);
 
-  // Energy factors breakdown
-  const factorCard = createElement('div', 'mobile-card');
+  // Energy breakdown card
+  const factorCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
   if (isAndroid) {
-    setStyles(factorCard, { borderLeft: '3px solid var(--persona-maya)' });
+    factorCard.classList.add('viz-card--accent-emotional');
   }
 
-  const factorHeader = createElement('div', 'mobile-card-header');
-  factorHeader.appendChild(createElement('span', 'mobile-card-title', 'Energy Breakdown'));
+  const factorHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+  const factorTitle = createElement('span');
+  setStyles(factorTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  factorTitle.textContent = t('visualizations.capacityGuardian.energyBreakdown', 'Energy Breakdown');
+  factorHeader.appendChild(factorTitle);
   factorCard.appendChild(factorHeader);
 
-  const factorsGrid = createFlexContainer('column', '8px');
-  setStyles(factorsGrid, { marginTop: '8px' });
+  const factorsGrid = createElement('div', 'viz-flex viz-flex--col');
+  setStyles(factorsGrid, { gap: 'var(--viz-space-pause)', marginTop: 'var(--viz-space-pause)' });
 
   const factors = [
-    { name: 'Emotional', value: data.factors.emotional, color: DEFAULT_COLORS.energy.emotional },
-    { name: 'Mental', value: data.factors.mental, color: DEFAULT_COLORS.energy.mental },
-    { name: 'Physical', value: data.factors.physical, color: DEFAULT_COLORS.energy.physical },
-  ];
+    { key: 'emotional', name: t('visualizations.energy.emotional', 'Emotional'), value: data.factors.emotional },
+    { key: 'mental', name: t('visualizations.energy.mental', 'Mental'), value: data.factors.mental },
+    { key: 'physical', name: t('visualizations.energy.physical', 'Physical'), value: data.factors.physical },
+  ] as const;
 
   factors.forEach((factor) => {
-    const row = createFlexContainer('row', '8px', 'space-between', 'center');
+    const row = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
 
-    const label = createElement('span', '', factor.name);
-    setStyles(label, { fontSize: '0.85rem', color: 'var(--color-text-secondary)' });
+    const label = createElement('span');
+    setStyles(label, {
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+      width: '70px',
+    });
+    label.textContent = factor.name;
     row.appendChild(label);
 
-    const barBg = createElement('div');
-    setStyles(barBg, {
-      flex: '1',
-      height: '6px',
-      background: 'rgba(44, 37, 32, 0.1)',
-      borderRadius: '3px',
-      overflow: 'hidden',
-      margin: '0 8px',
-    });
+    const barBg = createElement('div', 'viz-progress viz-progress--thin');
+    setStyles(barBg, { flex: '1', margin: '0 var(--viz-space-breath)' });
 
-    const barFill = createElement('div');
-    setStyles(barFill, {
-      width: `${factor.value}%`,
-      height: '100%',
-      background: factor.color,
-      borderRadius: '3px',
-    });
+    const barFill = createElement('div', `viz-progress__fill viz-progress__fill--${factor.key}`);
+    setStyles(barFill, { width: `${factor.value}%` });
     barBg.appendChild(barFill);
     row.appendChild(barBg);
 
-    const valueLabel = createElement('span', '', `${factor.value}%`);
+    const valueLabel = createElement('span');
     setStyles(valueLabel, {
-      fontSize: '0.8rem',
+      fontSize: 'var(--viz-text-sm)',
       fontWeight: '600',
-      color: factor.color,
-      minWidth: '36px',
+      color: `var(--viz-energy-${factor.key})`,
+      minWidth: '40px',
       textAlign: 'right',
     });
+    valueLabel.textContent = `${factor.value}%`;
     row.appendChild(valueLabel);
 
     factorsGrid.appendChild(row);
@@ -250,17 +274,23 @@ function buildMobile(
   container.appendChild(factorCard);
 
   // Trend card
-  const trendCard = createElement('div', 'mobile-card');
+  const trendCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-3');
   if (isAndroid) {
-    setStyles(trendCard, { borderLeft: '3px solid var(--color-accent)' });
+    trendCard.classList.add('viz-card--accent-primary');
   }
 
-  const trendHeader = createElement('div', 'mobile-card-header');
-  trendHeader.appendChild(createElement('span', 'mobile-card-title', 'Trend'));
+  const trendHeader = createElement('div', 'viz-label');
+  trendHeader.textContent = t('visualizations.capacityGuardian.trend', 'Trend');
   trendCard.appendChild(trendHeader);
 
-  const trendEmoji = data.trend === 'recovering' ? 'Improving' : data.trend === 'stable' ? 'Steady' : 'Needs attention';
-  const trendInsight = createElement('p', 'mobile-insight', trendEmoji);
+  const trendText = data.trend === 'recovering'
+    ? t('visualizations.trend.recovering', 'Recovering')
+    : data.trend === 'stable'
+    ? t('visualizations.trend.stable', 'Steady')
+    : t('visualizations.trend.declining', 'Needs attention');
+
+  const trendInsight = createElement('p', 'viz-insight');
+  trendInsight.textContent = trendText;
   trendCard.appendChild(trendInsight);
   container.appendChild(trendCard);
 
@@ -293,27 +323,33 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
   const statusColor = STATUS_COLORS[data.status];
+  const statusCssVar = STATUS_CSS_VARS[data.status];
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Capacity Guardian'));
-  header.appendChild(createElement('p', '', 'Your comprehensive energy dashboard'));
+  const title = createElement('h3', 'viz-header__title', t('visualizations.capacityGuardian.title', 'Capacity Guardian'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.capacityGuardian.subtitle', 'Your comprehensive energy dashboard'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Main content grid
-  const contentGrid = createFlexContainer('row', '24px');
-  setStyles(contentGrid, { padding: '16px' });
+  // Main content grid using design system spacing
+  const contentGrid = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(contentGrid, {
+    gap: 'var(--viz-space-rest)',
+    padding: 'var(--viz-space-pause)',
+  });
 
-  // Left: Large gauge
-  const gaugeSection = createElement('div');
-  setStyles(gaugeSection, { flex: '1', textAlign: 'center' });
+  // Left: Large gauge in card
+  const gaugeCard = createElement('div', 'viz-card viz-animate-slide');
+  setStyles(gaugeCard, { flex: '1', textAlign: 'center' });
 
   const svg = createSvg(200, 200, '0 0 200 200');
 
-  // Background arc (semicircle)
+  // Background arc (semicircle) - using CSS variable via fallback
   const bgArc = createPath(
     describeArc(100, 100, 80, -135, 135),
-    'rgba(44, 37, 32, 0.1)',
+    'rgba(44, 37, 32, 0.1)', // @design-tokens-ignore - SVG requires literal
     12
   );
   bgArc.setAttribute('stroke-linecap', 'round');
@@ -323,7 +359,7 @@ function buildTablet(
   const progressAngle = -135 + (data.capacity / 100) * 270;
   const fgArc = createPath(
     describeArc(100, 100, 80, -135, progressAngle),
-    statusColor,
+    statusColor, // @design-tokens-ignore - SVG requires literal
     12
   );
   fgArc.setAttribute('stroke-linecap', 'round');
@@ -331,7 +367,7 @@ function buildTablet(
 
   // Center text
   const valueText = createText(100, 95, `${data.capacity}%`, {
-    fill: statusColor,
+    fill: statusColor, // @design-tokens-ignore - SVG requires literal
     fontSize: '32px',
     fontWeight: '700',
     textAnchor: 'middle',
@@ -339,91 +375,107 @@ function buildTablet(
   svg.appendChild(valueText);
 
   const statusText = createText(100, 120, capitalize(data.status), {
-    fill: 'var(--color-text-secondary)',
+    fill: '#5c544a', // @design-tokens-ignore - SVG requires literal (--color-text-secondary)
     fontSize: '14px',
     textAnchor: 'middle',
   });
   svg.appendChild(statusText);
 
-  gaugeSection.appendChild(svg);
-  contentGrid.appendChild(gaugeSection);
+  gaugeCard.appendChild(svg);
 
-  // Right: Factor breakdown
-  const factorsSection = createElement('div');
-  setStyles(factorsSection, { flex: '1' });
+  // Status badge below gauge
+  const statusBadge = createElement('span', `viz-badge viz-badge--status-${data.status}`);
+  statusBadge.textContent = capitalize(data.status);
+  setStyles(statusBadge, { marginTop: 'var(--viz-space-breath)' });
+  gaugeCard.appendChild(statusBadge);
 
-  const factorsTitle = createElement('h4', '', 'Energy Breakdown');
-  setStyles(factorsTitle, {
-    fontSize: '1rem',
-    fontWeight: '600',
-    marginBottom: '16px',
-    color: 'var(--color-text-primary)',
-  });
-  factorsSection.appendChild(factorsTitle);
+  contentGrid.appendChild(gaugeCard);
+
+  // Right: Factor breakdown card
+  const factorsCard = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
+  setStyles(factorsCard, { flex: '1' });
+
+  const factorsTitle = createElement('h4', 'viz-label');
+  factorsTitle.textContent = t('visualizations.capacityGuardian.energyBreakdown', 'Energy Breakdown');
+  setStyles(factorsTitle, { marginBottom: 'var(--viz-space-pause)' });
+  factorsCard.appendChild(factorsTitle);
 
   const factors = [
-    { name: 'Emotional', value: data.factors.emotional, color: DEFAULT_COLORS.energy.emotional },
-    { name: 'Mental', value: data.factors.mental, color: DEFAULT_COLORS.energy.mental },
-    { name: 'Physical', value: data.factors.physical, color: DEFAULT_COLORS.energy.physical },
-  ];
+    { key: 'emotional', name: t('visualizations.energy.emotional', 'Emotional'), value: data.factors.emotional },
+    { key: 'mental', name: t('visualizations.energy.mental', 'Mental'), value: data.factors.mental },
+    { key: 'physical', name: t('visualizations.energy.physical', 'Physical'), value: data.factors.physical },
+  ] as const;
 
   factors.forEach((factor) => {
     const factorRow = createElement('div');
-    setStyles(factorRow, { marginBottom: '16px' });
+    setStyles(factorRow, { marginBottom: 'var(--viz-space-pause)' });
 
-    const labelRow = createFlexContainer('row', '0', 'space-between');
-    labelRow.appendChild(createElement('span', '', factor.name));
-    const valueSpan = createElement('span', '', `${factor.value}%`);
-    setStyles(valueSpan, { fontWeight: '600', color: factor.color });
+    const labelRow = createElement('div', 'viz-flex viz-flex--row viz-flex--between');
+    const nameLabel = createElement('span');
+    setStyles(nameLabel, {
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+    });
+    nameLabel.textContent = factor.name;
+    labelRow.appendChild(nameLabel);
+
+    const valueSpan = createElement('span');
+    setStyles(valueSpan, {
+      fontWeight: '600',
+      fontSize: 'var(--viz-text-base)',
+      color: `var(--viz-energy-${factor.key})`,
+    });
+    valueSpan.textContent = `${factor.value}%`;
     labelRow.appendChild(valueSpan);
     factorRow.appendChild(labelRow);
 
-    const barBg = createElement('div');
-    setStyles(barBg, {
-      height: '8px',
-      background: 'rgba(44, 37, 32, 0.1)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      marginTop: '6px',
-    });
+    const barBg = createElement('div', 'viz-progress');
+    setStyles(barBg, { marginTop: 'var(--viz-space-2xs)' });
 
-    const barFill = createElement('div');
-    setStyles(barFill, {
-      width: `${factor.value}%`,
-      height: '100%',
-      background: factor.color,
-      borderRadius: '4px',
-      transition: 'width 300ms ease',
-    });
+    const barFill = createElement('div', `viz-progress__fill viz-progress__fill--${factor.key}`);
+    setStyles(barFill, { width: `${factor.value}%` });
     barBg.appendChild(barFill);
     factorRow.appendChild(barBg);
 
-    factorsSection.appendChild(factorRow);
+    factorsCard.appendChild(factorRow);
   });
 
   // Trend indicator
-  const trendBox = createElement('div');
+  const trendBox = createElement('div', 'viz-insight');
   setStyles(trendBox, {
-    marginTop: '24px',
-    padding: '12px',
-    background: 'var(--color-background)',
-    borderRadius: '8px',
+    marginTop: 'var(--viz-space-rest)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--viz-space-breath)',
   });
 
-  const trendLabel = createElement('span', '', 'Trend: ');
-  const trendValue = createElement('span', '', capitalize(data.trend));
+  const trendLabel = createElement('span');
+  setStyles(trendLabel, { color: CSS_COLOR_VARS.textSecondary });
+  trendLabel.textContent = t('visualizations.capacityGuardian.trend', 'Trend') + ': ';
+
+  const trendValue = createElement('span');
+  const trendCssVar = data.trend === 'recovering' ? CSS_COLOR_VARS.statusThriving :
+                      data.trend === 'stable' ? CSS_COLOR_VARS.statusBalanced :
+                      CSS_COLOR_VARS.statusDepleted;
   setStyles(trendValue, {
     fontWeight: '600',
-    color: data.trend === 'recovering' ? DEFAULT_COLORS.status.thriving :
-           data.trend === 'stable' ? DEFAULT_COLORS.status.balanced :
-           DEFAULT_COLORS.status.depleted,
+    color: trendCssVar,
   });
+  trendValue.textContent = capitalize(data.trend);
+
   trendBox.appendChild(trendLabel);
   trendBox.appendChild(trendValue);
-  factorsSection.appendChild(trendBox);
+  factorsCard.appendChild(trendBox);
 
-  contentGrid.appendChild(factorsSection);
+  contentGrid.appendChild(factorsCard);
   container.appendChild(contentGrid);
+
+  // Screen reader summary
+  container.appendChild(
+    createScreenReaderLabel(
+      `Comprehensive capacity gauge at ${data.capacity}% with factor breakdown. Emotional: ${data.factors.emotional}%, Mental: ${data.factors.mental}%, Physical: ${data.factors.physical}%. Trend: ${data.trend}.`
+    )
+  );
 
   return {
     element: container,

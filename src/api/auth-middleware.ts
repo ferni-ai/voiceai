@@ -478,8 +478,11 @@ interface RateLimitTier {
 /**
  * Rate limit tiers for different access levels
  */
+// DEV: Higher limits in development
+const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+
 export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
-  anonymous: { name: 'anonymous', maxRequests: 20, windowMs: 60000 },
+  anonymous: { name: 'anonymous', maxRequests: isDev ? 200 : 20, windowMs: 60000 },
   free: { name: 'free', maxRequests: 60, windowMs: 60000 },
   friend: { name: 'friend', maxRequests: 200, windowMs: 60000 },
   partner: { name: 'partner', maxRequests: 500, windowMs: 60000 },

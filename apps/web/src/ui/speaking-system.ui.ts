@@ -13,7 +13,7 @@
  * communicate. The whole body conveys the voice. Body pulse is PRIMARY,
  * halo is AMBIENT (peripheral awareness), lid is DETAIL (articulation).
  * 
- * @see design-system/brand/SPEAKING-SYSTEM.md
+ * @see design-system/docs/brand/SPEAKING-SYSTEM.md
  * @see design-system/tokens/animation.json → speakingSystem
  */
 

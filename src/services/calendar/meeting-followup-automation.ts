@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import { createEvent, type CreateEventInput } from './calendar-service.js';
 import type { CalendarEvent } from './types.js';
+import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'meeting-followup' });
 
@@ -91,6 +92,19 @@ async function saveCommitment(
     .collection(COLLECTION_COMMITMENTS)
     .doc(id)
     .set(cleanForFirestore(doc));
+
+  // Index to semantic memory for commitment tracking
+  void onCommitmentKeeperChange(
+    userId,
+    id,
+    {
+      commitment: doc.commitment,
+      madeOn: doc.createdAt.toISOString(),
+      status: 'pending',
+      remindersSent: 0,
+    },
+    'create'
+  );
 
   log.debug({ userId, commitmentId: id }, 'Saved meeting commitment');
   return doc;

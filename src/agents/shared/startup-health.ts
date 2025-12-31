@@ -51,11 +51,11 @@ export interface StartupHealth {
     total: number;
     loaded: number;
     missing: string[];
-    critical: {
+    critical: Array<{
       name: string;
       loaded: boolean;
       required: boolean;
-    }[];
+    }>;
   };
 
   /** Timing metrics */

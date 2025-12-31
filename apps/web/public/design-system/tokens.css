@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-29T19:28:21.946Z
+ * Build: 2025-12-30T20:40:49.214Z
  */
 
 /* ========================================
@@ -3116,6 +3116,631 @@
   --persona-glow-hue-shift: 10deg;
   --persona-glow-saturation: 0.85;
 }
+
+/* ========================================
+   WINDOW AVATAR
+   Scale variants, expressions, phonemes
+   ======================================== */
+:root {
+  /* Window Avatar - Default values */
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-speak-min-cutoff: 0.1;
+  --window-avatar-speak-max-cutoff: 0.35;
+  --window-avatar-speak-volume-scale: 0.25;
+
+  /* Window Avatar - Animation Timing */
+  --window-avatar-mouth-idle: 200ms;
+  --window-avatar-mouth-speaking: 60ms;
+  --window-avatar-mouth-transition: 300ms;
+  --window-avatar-mouth-attack: 0.25;
+  --window-avatar-mouth-release: 0.12;
+  --window-avatar-brow-raise: 250ms;
+  --window-avatar-brow-lower: 400ms;
+  --window-avatar-brow-transition: 350ms;
+  --window-avatar-expression-transition: 300ms;
+  --window-avatar-micro-expression: 80ms;
+
+  /* Window Avatar - Shape Parameters */
+  --window-avatar-curve-tension: 0.3;
+  --window-avatar-curve-smooth: 0.5;
+  --window-avatar-curve-sharp: 0.15;
+}
+
+/* Window Avatar - Scale Variants */
+/* Based on window-avatar.json scale definitions */
+
+.window-avatar--tiny,
+.ferni-avatar--tiny {
+  --window-avatar-size: 28px;
+  --window-avatar-lid-visible: 0;
+  --window-avatar-lid-scale: 0;
+}
+.window-avatar--tiny .lid,
+.ferni-avatar--tiny .lid,
+.window-avatar--tiny .lid-top,
+.ferni-avatar--tiny .lid-top,
+.window-avatar--tiny .lid-bottom,
+.ferni-avatar--tiny .lid-bottom {
+  display: none; /* Eyes only at tiny size */
+}
+
+.window-avatar--small,
+.ferni-avatar--small {
+  --window-avatar-size: 52px;
+  --window-avatar-lid-scale: 0.8;
+  --window-avatar-lid-visible: 1;
+}
+.window-avatar--small .lid-shape,
+.ferni-avatar--small .lid-shape {
+  /* Reduced lid expression at small size */
+  transform: scaleY(0.8);
+}
+
+.window-avatar--medium,
+.ferni-avatar--medium,
+.ferni-avatar { /* Default size */
+  --window-avatar-size: 100px;
+  --window-avatar-lid-scale: 1;
+  --window-avatar-lid-visible: 1;
+}
+
+.window-avatar--large,
+.ferni-avatar--large {
+  --window-avatar-size: 200px;
+  --window-avatar-lid-scale: 1.2;
+  --window-avatar-lid-visible: 1;
+}
+.window-avatar--large .lid-shape,
+.ferni-avatar--large .lid-shape {
+  /* Enhanced expression at large size */
+  transform: scaleY(1.2);
+}
+
+/* Window Avatar - Expression Classes */
+/* Apply via data-expression attribute or class */
+
+.ferni-avatar[data-expression="neutral"],
+.window-avatar[data-expression="neutral"],
+.ferni-avatar--neutral {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="surprised"],
+.window-avatar[data-expression="surprised"],
+.ferni-avatar--surprised {
+  --window-avatar-lid-top-cutoff: 0.06;
+  --window-avatar-lid-top-curve: 0.1;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.18;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="sleepy"],
+.window-avatar[data-expression="sleepy"],
+.ferni-avatar--sleepy {
+  --window-avatar-lid-top-cutoff: 0.22;
+  --window-avatar-lid-top-curve: -0.15;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="thinking"],
+.window-avatar[data-expression="thinking"],
+.ferni-avatar--thinking {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.05;
+  --window-avatar-lid-bottom-asymmetry: 0.08;
+}
+
+.ferni-avatar[data-expression="curious"],
+.window-avatar[data-expression="curious"],
+.ferni-avatar--curious {
+  --window-avatar-lid-top-cutoff: 0.1;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-top-asymmetry: 0.15;
+  --window-avatar-lid-bottom-cutoff: 0.13;
+  --window-avatar-lid-bottom-curve: 0;
+  --window-avatar-lid-bottom-asymmetry: 0.12;
+}
+
+.ferni-avatar[data-expression="skeptical"],
+.window-avatar[data-expression="skeptical"],
+.ferni-avatar--skeptical {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0.25;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.08;
+  --window-avatar-lid-bottom-asymmetry: 0.2;
+}
+
+.ferni-avatar[data-expression="worried"],
+.window-avatar[data-expression="worried"],
+.ferni-avatar--worried {
+  --window-avatar-lid-top-cutoff: 0.13;
+  --window-avatar-lid-top-curve: -0.1;
+  --window-avatar-lid-top-asymmetry: 0.1;
+  --window-avatar-lid-bottom-cutoff: 0.09;
+  --window-avatar-lid-bottom-curve: 0.12;
+  --window-avatar-lid-bottom-asymmetry: 0.05;
+}
+
+.ferni-avatar[data-expression="happy"],
+.window-avatar[data-expression="happy"],
+.ferni-avatar--happy {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0.08;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.14;
+  --window-avatar-lid-bottom-curve: -0.2;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="delighted"],
+.window-avatar[data-expression="delighted"],
+.ferni-avatar--delighted {
+  --window-avatar-lid-top-cutoff: 0.16;
+  --window-avatar-lid-top-curve: 0.12;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.16;
+  --window-avatar-lid-bottom-curve: -0.3;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="sad"],
+.window-avatar[data-expression="sad"],
+.ferni-avatar--sad {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: -0.08;
+  --window-avatar-lid-top-asymmetry: 0.05;
+  --window-avatar-lid-bottom-cutoff: 0.1;
+  --window-avatar-lid-bottom-curve: 0.15;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="excited"],
+.window-avatar[data-expression="excited"],
+.ferni-avatar--excited {
+  --window-avatar-lid-top-cutoff: 0.08;
+  --window-avatar-lid-top-curve: 0.1;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.15;
+  --window-avatar-lid-bottom-curve: -0.18;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+.ferni-avatar[data-expression="empathetic"],
+.window-avatar[data-expression="empathetic"],
+.ferni-avatar--empathetic {
+  --window-avatar-lid-top-cutoff: 0.13;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-top-asymmetry: 0.08;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.1;
+  --window-avatar-lid-bottom-asymmetry: 0.05;
+}
+
+.ferni-avatar[data-expression="contemplative"],
+.window-avatar[data-expression="contemplative"],
+.ferni-avatar--contemplative {
+  --window-avatar-lid-top-cutoff: 0.15;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.03;
+  --window-avatar-lid-bottom-asymmetry: 0.1;
+}
+
+.ferni-avatar[data-expression="listening"],
+.window-avatar[data-expression="listening"],
+.ferni-avatar--listening {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0.03;
+  --window-avatar-lid-top-asymmetry: 0;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.05;
+  --window-avatar-lid-bottom-asymmetry: 0;
+}
+
+/* Window Avatar - State Transitions */
+.ferni-avatar[data-state="connecting"],
+.window-avatar[data-state="connecting"] {
+  --window-avatar-lid-top-cutoff: 0.15;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.15;
+  --window-avatar-lid-bottom-curve: 0;
+}
+
+.ferni-avatar[data-state="thinking"],
+.window-avatar[data-state="thinking"] {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0;
+  --window-avatar-lid-bottom-cutoff: 0.11;
+  --window-avatar-lid-bottom-curve: 0.05;
+}
+
+.ferni-avatar[data-state="listening"],
+.window-avatar[data-state="listening"] {
+  --window-avatar-lid-top-cutoff: 0.11;
+  --window-avatar-lid-top-curve: 0.03;
+  --window-avatar-lid-bottom-cutoff: 0.12;
+  --window-avatar-lid-bottom-curve: -0.05;
+}
+
+.ferni-avatar[data-state="speaking"],
+.window-avatar[data-state="speaking"] {
+  --window-avatar-lid-top-cutoff: 0.12;
+  --window-avatar-lid-top-curve: 0;
+}
+
+.ferni-avatar[data-state="farewell"],
+.window-avatar[data-state="farewell"] {
+  --window-avatar-lid-top-cutoff: 0.14;
+  --window-avatar-lid-top-curve: 0.05;
+  --window-avatar-lid-bottom-cutoff: 0.13;
+  --window-avatar-lid-bottom-curve: -0.15;
+}
+
+/* Window Avatar - Phoneme Shapes for Lip Sync */
+:root {
+  --phoneme-rest-open: 0;
+  --phoneme-rest-width: 1;
+  --phoneme-rest-roundness: 0;
+  --phoneme-a-open: 0.9;
+  --phoneme-a-width: 1.2;
+  --phoneme-a-roundness: 0.3;
+  --phoneme-e-open: 0.5;
+  --phoneme-e-width: 1.3;
+  --phoneme-e-roundness: 0.2;
+  --phoneme-i-open: 0.3;
+  --phoneme-i-width: 1.4;
+  --phoneme-i-roundness: 0.1;
+  --phoneme-o-open: 0.7;
+  --phoneme-o-width: 0.8;
+  --phoneme-o-roundness: 0.8;
+  --phoneme-u-open: 0.4;
+  --phoneme-u-width: 0.6;
+  --phoneme-u-roundness: 0.9;
+  --phoneme-m-open: 0;
+  --phoneme-m-width: 1;
+  --phoneme-m-roundness: 0;
+  --phoneme-f-open: 0.15;
+  --phoneme-f-width: 1.1;
+  --phoneme-f-roundness: 0.1;
+  --phoneme-th-open: 0.2;
+  --phoneme-th-width: 1;
+  --phoneme-th-roundness: 0.2;
+  --phoneme-l-open: 0.35;
+  --phoneme-l-width: 1.1;
+  --phoneme-l-roundness: 0.15;
+  --phoneme-w-open: 0.3;
+  --phoneme-w-width: 0.7;
+  --phoneme-w-roundness: 0.7;
+}
+
+/* Window Avatar - Brow Animation Keyframes */
+/* Brow = top lid - creates forehead/eyebrow expressions */
+
+@keyframes browRaise {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.06;
+    transform: translateY(-3px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.08;
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes browLower {
+  0% {
+    --window-avatar-lid-top-cutoff: 0.12;
+    transform: translateY(0);
+  }
+  50% {
+    --window-avatar-lid-top-cutoff: 0.18;
+    transform: translateY(2px);
+  }
+  100% {
+    --window-avatar-lid-top-cutoff: 0.16;
+    transform: translateY(1px);
+  }
+}
+
+@keyframes browFurrow {
+  0% {
+    --window-avatar-lid-top-curve: 0;
+    transform: scaleY(1);
+  }
+  50% {
+    --window-avatar-lid-top-curve: -0.12;
+    transform: scaleY(0.95);
+  }
+  100% {
+    --window-avatar-lid-top-curve: -0.08;
+    transform: scaleY(0.97);
+  }
+}
+
+@keyframes browQuirk {
+  0% {
+    --window-avatar-lid-top-asymmetry: 0;
+  }
+  30% {
+    --window-avatar-lid-top-asymmetry: 0.3;
+  }
+  70% {
+    --window-avatar-lid-top-asymmetry: 0.25;
+  }
+  100% {
+    --window-avatar-lid-top-asymmetry: 0.2;
+  }
+}
+
+/* Window Avatar - Brow Animation Utility Classes */
+
+.ferni-avatar--brow-raise .lid-top,
+.window-avatar--brow-raise .lid-top {
+  animation: browRaise 250ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+.ferni-avatar--brow-lower .lid-top,
+.window-avatar--brow-lower .lid-top {
+  animation: browLower 400ms var(--motion-ease-gentle, cubic-bezier(0.25, 0.1, 0.25, 1)) forwards;
+}
+
+.ferni-avatar--brow-furrow .lid-top,
+.window-avatar--brow-furrow .lid-top {
+  animation: browFurrow 350ms var(--motion-ease-soft, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.ferni-avatar--brow-quirk .lid-top,
+.window-avatar--brow-quirk .lid-top {
+  animation: browQuirk 300ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
+}
+
+/* Micro-expression brow flash - subliminal 40-150ms */
+.ferni-avatar--brow-flash .lid-top,
+.window-avatar--brow-flash .lid-top {
+  animation: browRaise 80ms ease-out;
+}
+
+
+/* Window Avatar - Notification Badge */
+
+@keyframes badgeEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(4px);
+  }
+  60% {
+    transform: scale(1.15) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@keyframes badgeBounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+/* Base notification badge */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  line-height: 1;
+  z-index: 10;
+  transition: transform 200ms var(--motion-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)),
+              opacity 200ms ease-out;
+}
+
+/* Badge positioning */
+.ferni-avatar__badge--top-right,
+.window-avatar__badge--top-right {
+  top: -4px;
+  right: -4px;
+}
+
+.ferni-avatar__badge--top-left,
+.window-avatar__badge--top-left {
+  top: -4px;
+  left: -4px;
+}
+
+.ferni-avatar__badge--bottom-right,
+.window-avatar__badge--bottom-right {
+  bottom: -4px;
+  right: -4px;
+}
+
+.ferni-avatar__badge--bottom-left,
+.window-avatar__badge--bottom-left {
+  bottom: -4px;
+  left: -4px;
+}
+
+/* Badge sizes */
+.ferni-avatar__badge--dot,
+.window-avatar__badge--dot {
+  width: 8px;
+  height: 8px;
+  min-width: unset;
+  padding: 0;
+}
+
+.ferni-avatar__badge--small,
+.window-avatar__badge--small {
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+}
+
+.ferni-avatar__badge,
+.window-avatar__badge {
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+
+/* Badge variants */
+.ferni-avatar__badge,
+.window-avatar__badge {
+  background: var(--color-semantic-error);
+  color: white;
+}
+
+.ferni-avatar__badge--subtle,
+.window-avatar__badge--subtle {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-medium);
+  color: var(--color-text-secondary);
+}
+
+.ferni-avatar__badge--success,
+.window-avatar__badge--success {
+  background: var(--color-semantic-success);
+  color: white;
+}
+
+.ferni-avatar__badge--persona,
+.window-avatar__badge--persona {
+  background: var(--persona-primary);
+  color: white;
+}
+
+/* Badge states */
+.ferni-avatar__badge--hidden,
+.window-avatar__badge--hidden {
+  opacity: 0;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+.ferni-avatar__badge--visible,
+.window-avatar__badge--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Badge animations */
+.ferni-avatar__badge--animate-in,
+.window-avatar__badge--animate-in {
+  animation: badgeEntrance 300ms var(--ease-out-back) forwards;
+}
+
+.ferni-avatar__badge--pulse,
+.window-avatar__badge--pulse {
+  animation: badgePulse 1.5s ease-in-out infinite;
+}
+
+.ferni-avatar__badge--bounce,
+.window-avatar__badge--bounce {
+  animation: badgeBounce 400ms var(--ease-spring);
+}
+
+/* Container needs position relative for absolute badge positioning */
+.ferni-avatar--has-badge,
+.window-avatar--has-badge {
+  position: relative;
+}
+
+/* Scale-specific badge adjustments */
+.ferni-avatar--tiny .ferni-avatar__badge,
+.window-avatar--tiny .window-avatar__badge {
+  /* Smaller badge for tiny avatars */
+  min-width: 12px;
+  height: 12px;
+  font-size: 8px;
+  padding: 0 3px;
+  top: -2px;
+  right: -2px;
+}
+
+.ferni-avatar--tiny .ferni-avatar__badge--dot,
+.window-avatar--tiny .window-avatar__badge--dot {
+  width: 6px;
+  height: 6px;
+}
+
+.ferni-avatar--small .ferni-avatar__badge,
+.window-avatar--small .window-avatar__badge {
+  min-width: 14px;
+  height: 14px;
+  font-size: 9px;
+  padding: 0 3px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge,
+.window-avatar--large .window-avatar__badge {
+  /* Larger badge for large avatars */
+  min-width: 24px;
+  height: 24px;
+  font-size: 13px;
+  padding: 0 8px;
+  top: -6px;
+  right: -6px;
+}
+
+.ferni-avatar--large .ferni-avatar__badge--dot,
+.window-avatar--large .window-avatar__badge--dot {
+  width: 12px;
+  height: 12px;
+}
+
 
 /* ========================================
    ACCESSIBILITY - HIGH CONTRAST MODE

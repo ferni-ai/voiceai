@@ -229,6 +229,27 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       refillRate: 2,
       refillInterval: 1000,
     },
+
+    // Google Calendar API - 1M queries/day but be conservative
+    'google-calendar': {
+      maxTokens: 20,
+      refillRate: 5,
+      refillInterval: 1000, // 5 per second
+    },
+
+    // Cartesia TTS - generous but protect from abuse
+    cartesia: {
+      maxTokens: 50,
+      refillRate: 10,
+      refillInterval: 1000, // 10 per second
+    },
+
+    // Cartesia Voice Clone - expensive operation
+    'cartesia-voice-clone': {
+      maxTokens: 5,
+      refillRate: 1,
+      refillInterval: 5000, // 1 every 5 seconds
+    },
   };
 
   return (

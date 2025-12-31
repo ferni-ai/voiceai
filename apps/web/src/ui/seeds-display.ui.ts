@@ -9,6 +9,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
+import { t } from '../i18n/index.js';
 import {
   claimDailyBonus,
   getCurrentStreak,
@@ -417,15 +418,15 @@ export function renderSeedsSettingsCard(): string {
       }
 
       <div class="seeds-actions" role="group" tabindex="0">
-        <button aria-label="My Garden" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
+        <button aria-label="${t('accessibility.myGarden')}" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
           <span>My Garden</span>
         </button>
-        <button aria-label="Share seeds with friends" class="seeds-action-btn" data-action="gift">
+        <button aria-label="${t('accessibility.shareSeedsWithFriends')}" class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
           <span>Share</span>
         </button>
-        <button aria-label="Bring a friend to Ferni" class="seeds-action-btn" data-action="invite">
+        <button aria-label="${t('accessibility.bringAFriendToFerni')}" class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
           <span>Bring a friend</span>
         </button>
@@ -478,7 +479,7 @@ function handleDailyBonusClick(e: Event): void {
 
   const result = claimDailyBonus();
   if (result.claimed) {
-    toast.success(`+${result.amount} seeds!`);
+    toast.success(t('toasts.resultamountSeeds'));
     updateSeedsDisplay();
 
     // Re-render the card to remove the bonus button

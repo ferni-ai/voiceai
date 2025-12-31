@@ -11,6 +11,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import type { AddMemoryRequest, MemoryType } from '../services/custom-agent.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('MemoryInputModal');
 
@@ -484,7 +485,7 @@ function createModal(initialType?: MemoryType): HTMLElement {
     <div class="memory-input-container" role="dialog" aria-modal="true" aria-labelledby="memory-input-title">
       <header class="memory-input-header">
         <h2 class="memory-input-title" id="memory-input-title">Add Memory</h2>
-        <button class="memory-input-close" data-action="cancel" aria-label="Close">
+        <button class="memory-input-close" data-action="cancel" aria-label="${t('accessibility.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -496,10 +497,10 @@ function createModal(initialType?: MemoryType): HTMLElement {
         ${renderForm()}
       </div>
       <footer class="memory-input-footer">
-        <button aria-label="Cancel" class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
+        <button aria-label="${t('accessibility.cancel')}" class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
           Cancel
         </button>
-        <button aria-label="Add Memory" class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
+        <button aria-label="${t('accessibility.addMemory')}" class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
           Add Memory
         </button>
       </footer>

@@ -42,46 +42,49 @@ type ModuleLoader = () => Promise<unknown>;
  */
 const MODULE_LOADERS: Record<string, ModuleLoader> = {
   // LiveKit plugins (heavy - loads ONNX models, AI SDKs)
-  '@livekit/agents-plugin-google': () => import('@livekit/agents-plugin-google'),
-  '@livekit/agents-plugin-silero': () => import('@livekit/agents-plugin-silero'),
-  '@livekit/noise-cancellation-node': () => import('@livekit/noise-cancellation-node'),
-  '@google/genai': () => import('@google/genai'),
+  '@livekit/agents-plugin-google': async () => import('@livekit/agents-plugin-google'),
+  '@livekit/agents-plugin-silero': async () => import('@livekit/agents-plugin-silero'),
+  '@livekit/noise-cancellation-node': async () => import('@livekit/noise-cancellation-node'),
+  '@google/genai': async () => import('@google/genai'),
 
   // Speech services
-  'speech/voice-manager': () => import('../../speech/voice-manager.js'),
-  'speech/audio-prosody': () => import('../../speech/audio-prosody.js'),
-  'speech/adaptive-ssml': () => import('../../speech/adaptive-ssml.js'),
-  'speech/voice-humanization': () => import('../../speech/voice-humanization.js'),
-  'speech/ambient-awareness': () => import('../../speech/ambient-awareness.js'),
-  'speech/emotional-contagion': () => import('../../speech/emotional-contagion.js'),
-  'speech/multi-signal-laughter': () => import('../../speech/multi-signal-laughter.js'),
+  'speech/voice-manager': async () => import('../../speech/voice-manager.js'),
+  'speech/audio-prosody': async () => import('../../speech/audio-prosody.js'),
+  'speech/adaptive-ssml': async () => import('../../speech/adaptive-ssml.js'),
+  'speech/voice-humanization': async () => import('../../speech/voice-humanization.js'),
+  'speech/ambient-awareness': async () => import('../../speech/ambient-awareness.js'),
+  'speech/emotional-contagion': async () => import('../../speech/emotional-contagion.js'),
+  'speech/multi-signal-laughter': async () => import('../../speech/multi-signal-laughter.js'),
 
   // Services
-  'services/conversation-manager': () => import('../../services/conversation-manager.js'),
-  'services/cognitive-session-hooks': () => import('../../services/cognitive-session-hooks.js'),
-  'services/emotion-analysis/hume': () => import('../../services/emotion-analysis/hume.js'),
-  'services/voice-speaker-change': () => import('../../services/voice/voice-speaker-change.js'),
+  'services/conversation-manager': async () => import('../../services/conversation-manager.js'),
+  'services/cognitive-session-hooks': async () =>
+    import('../../services/cognitive-session-hooks.js'),
+  'services/emotion-analysis/hume': async () => import('../../services/emotion-analysis/hume.js'),
+  'services/voice-speaker-change': async () =>
+    import('../../services/voice/voice-speaker-change.js'),
 
   // Tools
-  'tools/auto-optimizer': () => import('../../tools/optimization/auto-optimizer.js'),
-  'tools/dynamic-loader': () => import('../../tools/dynamic-loader.js'),
-  'tools/feedback-collector': () => import('../../tools/optimization/feedback-collector.js'),
-  'tools/pattern-analyzer': () => import('../../tools/optimization/pattern-analyzer.js'),
+  'tools/auto-optimizer': async () => import('../../tools/optimization/auto-optimizer.js'),
+  'tools/dynamic-loader': async () => import('../../tools/dynamic-loader.js'),
+  'tools/feedback-collector': async () => import('../../tools/optimization/feedback-collector.js'),
+  'tools/pattern-analyzer': async () => import('../../tools/optimization/pattern-analyzer.js'),
 
   // Audio
-  'audio/index': () => import('../../audio/index.js'),
+  'audio/index': async () => import('../../audio/index.js'),
 
   // SSML
-  'ssml/index': () => import('../../ssml/index.js'),
+  'ssml/index': async () => import('../../ssml/index.js'),
 
   // Personas
-  'personas/index': () => import('../../personas/index.js'),
+  'personas/index': async () => import('../../personas/index.js'),
 
   // Intelligence
-  'intelligence/context-builders': () => import('../../intelligence/context-builders/index.js'),
+  'intelligence/context-builders': async () =>
+    import('../../intelligence/context-builders/index.js'),
 
   // Trust systems
-  'services/trust-systems': () => import('../../services/trust-systems/index.js'),
+  'services/trust-systems': async () => import('../../services/trust-systems/index.js'),
 };
 
 // ============================================================================
@@ -136,7 +139,7 @@ class LazyLoaderClass {
     const start = Date.now();
 
     await Promise.all(
-      moduleIds.map((id) =>
+      moduleIds.map(async (id) =>
         this.get(id).catch((err) => {
           log.warn({ moduleId: id, error: String(err) }, 'Failed to preload module');
         })

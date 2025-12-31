@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import type { DecisionPoint, CounterfactualOutcome, CounterfactualPattern } from './types.js';
+import { onLifeLessonChange } from '../../data-layer/hooks/wisdom-hooks.js';
 
 const log = createLogger({ module: 'counterfactual-memory' });
 
@@ -581,6 +582,21 @@ async function saveDecisionPoint(userId: string, decision: DecisionPoint): Promi
       .collection('decision_points')
       .doc(decision.id)
       .set(cleanForFirestore(decision));
+
+    // Index decision point as a life lesson to semantic memory
+    if (decision.outcome) {
+      void onLifeLessonChange(
+        userId,
+        `decision_${decision.id}`,
+        {
+          lesson: `Decision point: ${decision.context?.substring(0, 100) || 'key moment'}`,
+          experience: `Path taken: ${decision.pathTaken || 'unknown'}. Outcome: ${decision.outcome.description || 'pending'}`,
+          applicationArea: decision.domain || 'life',
+          dateOfRealization: new Date(decision.timestamp || Date.now()).toISOString(),
+        },
+        decision.outcome ? 'update' : 'create'
+      );
+    }
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to save decision point');
   }

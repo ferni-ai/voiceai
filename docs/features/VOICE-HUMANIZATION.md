@@ -356,13 +356,347 @@ VOICE_HUMANIZATION_ROLLOUT_PERCENTAGE=100
 
 ---
 
+## Post-TTS Audio Enhancement Pipeline
+
+The Post-TTS system enhances TTS output to make it sound more human. It's implemented in **Rust** for high-performance real-time audio processing, with full TypeScript integration.
+
+### Architecture
+
+```
+TTS Output (Cartesia) → Post-TTS Transform → Enhanced Audio → Speaker
+                              │
+                              ├── Core Processing (always on)
+                              │   ├── Crossfade (butter-smooth chunks)
+                              │   ├── Warmth Filter (analog character)
+                              │   ├── Presence Boost (clarity)
+                              │   ├── Compression (consistent levels)
+                              │   └── Limiter (-1dB ceiling)
+                              │
+                              ├── Basic Humanization
+                              │   ├── Amplitude Jitter (±0.5dB micro-variations)
+                              │   ├── Pitch Drift (subtle wandering)
+                              │   ├── Noise Floor (room ambience)
+                              │   └── Breath Sounds (natural pauses)
+                              │
+                              └── Advanced Humanization (opt-in)
+                                  ├── Vocal Fry (20-80Hz trailing off)
+                                  ├── Lip Smacks (phrase boundaries)
+                                  └── Tempo Variation (±3% micro-timing)
+```
+
+### Rust Implementation
+
+The core processing is implemented in Rust (`apps/rust-audio/`) using NAPI-RS for Node.js bindings:
+
+| Module | File | Purpose |
+|--------|------|---------|
+| **PostTtsProcessor** | `post_tts.rs` | Main stateful processor |
+| **VocalFry** | `post_tts.rs` | 20-80Hz LFO modulation |
+| **LipSmackGenerator** | `post_tts.rs` | Broadband noise bursts |
+| **TempoMicroVariation** | `post_tts.rs` | Tempo drift via interpolation |
+| **SOLA** | `sola.rs` | Synchronous Overlap-Add pitch shifting |
+| **FFT** | `fft.rs` | Frequency analysis for breath detection |
+
+### Configuration
+
+#### PostTTSConfig Interface
+
+```typescript
+interface PostTTSConfig {
+  // Session identification
+  sessionId?: string;
+  personaId?: string;
+
+  // Sample rate
+  sampleRate?: number;  // Default: 24000 (Cartesia)
+
+  // Core processing
+  enableBreath?: boolean;         // Natural breath sounds
+  enableWarmth?: boolean;         // Analog warmth filter
+  enableCompression?: boolean;    // Dynamic compression
+  enablePresence?: boolean;       // Presence boost
+  enableSoftEdges?: boolean;      // Crossfade between chunks
+
+  // Basic humanization
+  enableAmplitudeJitter?: boolean;  // ±0.5dB variations
+  enablePitchDrift?: boolean;       // Subtle pitch wandering
+  enableNoiseFloor?: boolean;       // Room ambience
+
+  // SOLA pitch shifting
+  useSolaPitch?: boolean;           // Artifact-free pitch shift
+
+  // Emotion prosody
+  enableEmotionProsody?: boolean;   // Dynamic pitch/rate
+  emotion?: number;                 // 0-1 emotional intensity
+  enableAdaptivePacing?: boolean;   // Content-aware pacing
+  contentComplexity?: number;       // 0-1 complexity for pacing
+
+  // Advanced humanization
+  enableVocalFry?: boolean;         // Trailing vocal fry
+  vocalFryDepth?: number;           // 0-1 intensity
+  vocalFryDurationMs?: number;      // Duration in ms
+
+  enableLipSmacks?: boolean;        // Mouth sounds
+  lipSmackProbability?: number;     // 0-1 probability
+
+  enableTempoVariation?: boolean;   // Micro-timing variations
+  tempoVariationDepth?: number;     // 0-1 depth (0.03 = ±3%)
+
+  // Processing parameters
+  warmthFrequency?: number;         // Warmth filter cutoff
+  compressionRatio?: number;        // Compression ratio
+  presenceBoostDb?: number;         // Presence gain
+}
+```
+
+### Presets
+
+Pre-configured presets for common use cases:
+
+| Preset | Use Case | Key Features |
+|--------|----------|--------------|
+| `betterThanHuman` | Default production | Basic humanization, no advanced |
+| `minimal` | Low latency / testing | Only soft edges |
+| `warmIntimate` | Intimate conversations (Maya) | Vocal fry enabled |
+| `clearEnergetic` | High-energy content (Peter) | Higher compression/presence |
+| `ultraRealistic` | Maximum realism (Nayan) | ALL advanced features |
+| `bypass` | Debugging | No processing |
+
+#### Preset Details
+
+```typescript
+// betterThanHuman (default)
+{
+  enableAmplitudeJitter: true,
+  enablePitchDrift: true,
+  enableNoiseFloor: true,
+  useSolaPitch: true,
+  enableEmotionProsody: true,
+  enableVocalFry: false,      // Off for cleaner sound
+  enableLipSmacks: false,
+  enableTempoVariation: false,
+}
+
+// warmIntimate (Maya)
+{
+  ...betterThanHuman,
+  enableVocalFry: true,       // Trailing intimacy
+  vocalFryDepth: 0.3,
+  vocalFryDurationMs: 150,
+  warmthFrequency: 180,       // Warmer filter
+}
+
+// ultraRealistic (Nayan)
+{
+  ...betterThanHuman,
+  enableVocalFry: true,
+  vocalFryDepth: 0.4,
+  enableLipSmacks: true,
+  lipSmackProbability: 0.25,
+  enableTempoVariation: true,
+  tempoVariationDepth: 0.03,
+  enableAdaptivePacing: true,
+}
+```
+
+### Per-Persona Configuration
+
+Each persona has a recommended preset based on their character:
+
+| Persona | Preset | Rationale |
+|---------|--------|-----------|
+| Ferni | `betterThanHuman` | Balanced, approachable |
+| Maya | `warmIntimate` | Warm coaching style, trailing vocal fry |
+| Peter | `clearEnergetic` | Clear financial analysis |
+| Alex | `betterThanHuman` | Professional communication |
+| Jordan | `betterThanHuman` | Goal-focused clarity |
+| Nayan | `ultraRealistic` | Deep wisdom, fully human |
+
+#### Configuration Hierarchy
+
+```
+DEFAULT_CONFIG (base defaults)
+     ↓
+Persona Preset (getRecommendedPreset)
+     ↓
+Persona Config (from persona.manifest.json)
+     ↓
+Session Config (runtime overrides)
+```
+
+#### Usage
+
+```typescript
+import {
+  buildPersonaPostTTSConfig,
+  getRecommendedPreset,
+  createPostTTSTransform,
+} from '../agents/shared/performance/post-tts-transform.js';
+
+// Get recommended preset for persona
+const preset = getRecommendedPreset('maya-santos'); // 'warmIntimate'
+
+// Build full config with all overrides
+const config = buildPersonaPostTTSConfig('maya-santos', {
+  // Optional persona-level overrides
+  enableVocalFry: true,
+  vocalFryDepth: 0.35,
+}, {
+  // Optional session-level overrides
+  sessionId: 'abc-123',
+});
+
+// Create the transform stream
+const transform = createPostTTSTransform(config);
+```
+
+#### Manifest Schema
+
+Personas can declare humanization preferences in `persona.manifest.json`:
+
+```json
+{
+  "identity": { "id": "maya-santos", ... },
+  "humanization": {
+    "preset": "warmIntimate",
+    "enableVocalFry": true,
+    "vocalFryDepth": 0.35,
+    "enableLipSmacks": false
+  }
+}
+```
+
+### API Routes
+
+The voice humanization system exposes HTTP endpoints for configuration:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/voice-humanization/status` | GET | System status |
+| `/api/voice-humanization/metrics` | GET | Processing metrics |
+| `/api/voice-humanization/config/:sessionId` | GET | Session config |
+| `/api/voice-humanization/config/:sessionId` | POST | Update config |
+| `/api/voice-humanization/presets` | GET | List all presets |
+| `/api/voice-humanization/presets/:name` | GET | Get preset details |
+| `/api/voice-humanization/config/default` | GET | Default config |
+| `/api/voice-humanization/config/schema` | GET | Config schema |
+
+#### Example Responses
+
+```bash
+# GET /api/voice-humanization/presets
+{
+  "presets": [
+    "betterThanHuman",
+    "minimal",
+    "warmIntimate",
+    "clearEnergetic",
+    "ultraRealistic",
+    "bypass"
+  ]
+}
+
+# GET /api/voice-humanization/presets/warmIntimate
+{
+  "name": "warmIntimate",
+  "description": "Warm, intimate tone with subtle vocal fry for trailing off...",
+  "config": {
+    "enableVocalFry": true,
+    "vocalFryDepth": 0.3,
+    ...
+  }
+}
+```
+
+### Advanced Humanization Features
+
+#### Vocal Fry
+
+Adds subtle vocal fry (20-80Hz modulation) at the end of utterances for natural trailing off.
+
+```
+Normal speech → [utterance ending] → LFO modulation (20-80Hz) → Natural fade
+```
+
+- **Depth**: 0.0-1.0 (0.3-0.4 typical)
+- **Duration**: 100-300ms (150ms typical)
+- **Trigger**: Last frame of utterance
+
+#### Lip Smacks
+
+Injects brief broadband noise bursts at phrase boundaries, simulating natural mouth sounds.
+
+```
+Phrase boundary detected → Random check (probability) → Noise burst injection
+```
+
+- **Probability**: 0.0-1.0 (0.25 typical = 25% of boundaries)
+- **Duration**: 15-30ms
+- **Characteristics**: Broadband, low amplitude
+
+#### Tempo Micro-Variation
+
+Applies subtle tempo drift (±3%) using sample interpolation for natural timing.
+
+```
+Audio frames → Tempo drift calculation → Interpolated output → Subtle timing variation
+```
+
+- **Depth**: 0.0-1.0 (0.03 = ±3%)
+- **Pattern**: Smooth random walk, no sudden changes
+
+### Performance
+
+| Metric | Value |
+|--------|-------|
+| Processing latency | < 2ms per frame |
+| Memory per session | ~50KB |
+| Rust module load time | ~15ms |
+| Fallback (JS) available | Yes (limited features) |
+
+### Testing
+
+```bash
+# Run all PostTTS tests
+pnpm vitest run src/agents/shared/performance/__tests__/post-tts-transform.test.ts
+
+# Test coverage
+# - DEFAULT_CONFIG validation
+# - All preset configurations
+# - Transform stream creation
+# - Metrics tracking
+# - Persona config functions
+# - Feature combinations
+```
+
+### Files
+
+| File | Description |
+|------|-------------|
+| `apps/rust-audio/src/post_tts.rs` | Rust processor implementation |
+| `apps/rust-audio/src/sola.rs` | SOLA pitch shifting |
+| `apps/rust-audio/src/lib.rs` | NAPI-RS bindings |
+| `src/agents/shared/performance/post-tts-transform.ts` | TypeScript integration |
+| `src/api/voice-humanization-routes.ts` | API routes |
+| `src/personas/bundles/persona-manifest.schema.json` | Schema with humanization |
+
+---
+
 ## Future Enhancements
 
+### Input-Side (User Detection)
 1. **LLM-based turn prediction** - Upgrade from heuristics
 2. **Real-time VAD tuning** - Waiting on LiveKit support
 3. **Enhanced voice fingerprinting** - Household recognition
 4. **Spectral analysis (FFT)** - Better ambient detection
 5. **Preemptive generation** - Start LLM before turn complete
+
+### Output-Side (Post-TTS)
+1. **Formant shifting** - More natural pitch changes
+2. **Per-word tempo variation** - Content-aware pacing
+3. **Emotion-responsive vocal fry** - Deeper fry when tired/sad
+4. **Breath timing from punctuation** - Parse-aware breath insertion
+5. **User-specific voice matching** - Mirror user's speech characteristics
 
 ---
 

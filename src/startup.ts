@@ -296,6 +296,17 @@ export async function startup(): Promise<AppConfig> {
           logger.debug('✓ Predictive Intelligence ML system ready (deferred)');
           return 'predictive_intelligence';
         }),
+
+      // Semantic Data Layer TTL Cleanup - run on startup to clear expired data
+      // This ensures stale data is cleaned up after restarts
+      import('./services/data-layer/ttl-cleanup.js').then(async ({ runTTLCleanup }) => {
+        const result = await runTTLCleanup({ dryRun: false });
+        logger.debug(
+          { deletedCount: result.totalDocsDeleted },
+          '✓ TTL cleanup completed (deferred)'
+        );
+        return 'ttl_cleanup';
+      }),
     ]);
 
     const failures = deferredInits.filter((r) => r.status === 'rejected');

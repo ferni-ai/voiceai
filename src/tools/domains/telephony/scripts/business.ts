@@ -7,7 +7,7 @@
  * @module tools/domains/telephony/scripts/business
  */
 
-import type { CallScriptTemplate } from '../call-on-behalf.js';
+import type { CallScriptTemplate } from '../types.js';
 
 export const businessScript: CallScriptTemplate = {
   type: 'business',

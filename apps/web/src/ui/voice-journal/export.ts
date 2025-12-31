@@ -9,6 +9,7 @@
 import { createLogger } from '../../utils/logger.js';
 import { getEntries, getCurrentAgent } from './state.js';
 import { calculateStats } from './stats.js';
+import { t } from '../../i18n/index.js';
 
 const log = createLogger('VoiceJournalExport');
 
@@ -25,7 +26,7 @@ export async function exportJournal(): Promise<void> {
   
   if (!currentAgent || entries.length === 0) {
     const { toast } = await import('../toast.ui.js');
-    toast.warning('No entries to export');
+    toast.warning(t('toasts.noEntriesToExport'));
     return;
   }
 
@@ -78,10 +79,10 @@ export async function exportJournal(): Promise<void> {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success('Journal exported!');
+    toast.success(t('toasts.journalExported'));
   } catch (error) {
     log.error('Failed to export journal:', error);
-    toast.error('Could not export journal');
+    toast.error(t('toasts.couldNotExportJournal'));
   }
 }
 
@@ -98,7 +99,7 @@ export async function shareJournal(): Promise<void> {
   
   if (!currentAgent || entries.length === 0) {
     const { toast } = await import('../toast.ui.js');
-    toast.warning('No entries to share');
+    toast.warning(t('toasts.noEntriesToShare'));
     return;
   }
 
@@ -110,7 +111,7 @@ export async function shareJournal(): Promise<void> {
   })[0];
 
   if (!recentEntry) {
-    toast.warning('No entries to share');
+    toast.warning(t('toasts.noEntriesToShare'));
     return;
   }
 
@@ -125,7 +126,7 @@ export async function shareJournal(): Promise<void> {
         title: 'My Journal Entry',
         text: shareText,
       });
-      toast.success('Shared!');
+      toast.success(t('toasts.shared'));
     } catch (error) {
       // User cancelled or share failed
       if ((error as Error).name !== 'AbortError') {
@@ -146,10 +147,10 @@ function fallbackCopyShare(
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      toast.success('Copied to clipboard!');
+      toast.success(t('toasts.copiedToClipboard'));
     })
     .catch(() => {
-      toast.error('Could not share');
+      toast.error(t('toasts.couldNotShare'));
     });
 }
 

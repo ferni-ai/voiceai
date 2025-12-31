@@ -225,7 +225,7 @@ async function completeTask(
         .count()
         .get();
 
-      const count = completedToday.data().count;
+      const { count } = completedToday.data();
       const celebration =
         count >= 5
           ? "You're on fire today! 🔥"
@@ -383,7 +383,7 @@ async function scheduleReminder(
     const db = getFirestore();
 
     // Parse "when" to a date (simple parsing)
-    let scheduledFor = new Date();
+    const scheduledFor = new Date();
     if (when) {
       const whenLower = when.toLowerCase();
       if (whenLower.includes('tomorrow')) {

@@ -248,7 +248,7 @@ class NotificationsUI {
         <div class="notification__title">${escapeHtml(notification.title)}</div>
         <div class="notification__message">${escapeHtml(notification.message)}</div>
         ${notification.action ? `
-          <button aria-label="Close" class="notification__action" type="button">
+          <button aria-label="${t('accessibility.close')}" class="notification__action" type="button">
             ${escapeHtml(notification.action.label)}
           </button>
         ` : ''}

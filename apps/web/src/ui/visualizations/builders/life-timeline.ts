@@ -15,6 +15,7 @@ import {
   createFlexContainer,
   setStyles,
   createScreenReaderLabel,
+  getCssVar,
 } from '../utils/dom.js';
 import type {
   LifeTimelineData,
@@ -22,18 +23,34 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS } from '../types.js';
+import { CSS_COLOR_VARS } from '../types.js';
+import { t } from '../../../i18n/index.js';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
+/**
+ * Literal color values for SVG and computed elements.
+ * @design-tokens-ignore - Required for dynamic styling
+ */
 const CHAPTER_TYPE_COLORS: Record<TimelineChapter['type'], string> = {
-  growth: DEFAULT_COLORS.accent,
-  challenge: '#e74c3c',
-  transition: '#f5a623',
-  celebration: '#27ae60',
-  reflection: '#8a7a9a',
+  growth: getCssVar('--viz-accent', '#3D5A45'),
+  challenge: getCssVar('--color-semantic-error', '#e74c3c'),
+  transition: getCssVar('--color-semantic-warning', '#f5a623'),
+  celebration: getCssVar('--color-semantic-success', '#27ae60'),
+  reflection: getCssVar('--persona-eli-primary', '#8a7a9a'),
+};
+
+/**
+ * CSS variable references for DOM styling.
+ */
+const CHAPTER_CSS_VARS: Record<TimelineChapter['type'], string> = {
+  growth: 'var(--viz-accent)',
+  challenge: 'var(--viz-chapter-challenge)',
+  transition: 'var(--viz-chapter-transition)',
+  celebration: 'var(--viz-chapter-celebration)',
+  reflection: 'var(--viz-chapter-reflection)',
 };
 
 // ============================================================================
@@ -49,19 +66,19 @@ function buildWatch(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Chapter'));
-  header.appendChild(createElement('p', '', 'Life narrative'));
+  const title = createElement('h3', 'viz-header__title viz-header__title--compact', t('visualizations.lifeTimeline.titleShort', 'Chapter'));
+  const subtitle = createElement('p', 'viz-header__subtitle', t('visualizations.lifeTimeline.subtitleShort', 'Life narrative'));
+  header.appendChild(title);
+  header.appendChild(subtitle);
   container.appendChild(header);
 
-  // Chapter dots row
-  const dots = createElement('div');
+  // Chapter dots row using design system spacing
+  const dots = createElement('div', 'viz-flex viz-flex--row viz-flex--center');
   setStyles(dots, {
-    display: 'flex',
-    gap: '6px',
-    justifyContent: 'center',
-    margin: '12px 0',
+    gap: 'var(--viz-space-2xs)',
+    margin: 'var(--viz-space-pause) 0',
   });
 
   // Find current chapter index
@@ -72,33 +89,30 @@ function buildWatch(
 
   visibleChapters.forEach((chapter) => {
     const isCurrent = chapter.isActive;
-    const dot = createElement('div');
-    setStyles(dot, {
-      width: isCurrent ? '14px' : '8px',
-      height: isCurrent ? '14px' : '8px',
-      borderRadius: '50%',
-      background: isCurrent ? 'var(--color-accent)' : 'var(--color-text-muted)',
-      opacity: isCurrent ? '1' : '0.4',
-    });
+    const dot = createElement('div', `viz-timeline-dot${isCurrent ? ' viz-timeline-dot--active' : ''}`);
     dots.appendChild(dot);
   });
 
   container.appendChild(dots);
 
-  // Current indicator
-  const theme = createElement('div');
-  setStyles(theme, {
-    textAlign: 'center',
-    fontSize: '0.9rem',
-    color: 'var(--color-accent)',
-    fontWeight: '600',
-  });
-  theme.textContent = 'Now';
+  // Current indicator with design system class
+  const theme = createElement('div', 'viz-label viz-label--accent');
+  theme.textContent = t('common.now', 'Now');
   container.appendChild(theme);
 
-  // Chapter title
-  const metric = createElement('div', 'watch-metric', data.currentChapter.title);
+  // Chapter title with design system metric class
+  const metric = createElement('div', 'viz-metric viz-metric--compact');
+  const metricLabel = createElement('span', 'viz-metric__label');
+  metricLabel.textContent = data.currentChapter.title;
+  metric.appendChild(metricLabel);
   container.appendChild(metric);
+
+  // Screen reader label
+  container.appendChild(
+    createScreenReaderLabel(
+      `Life timeline showing current chapter: ${data.currentChapter.title}`
+    )
+  );
 
   return {
     element: container,
@@ -123,85 +137,87 @@ function buildMobile(
   container.replaceChildren();
   const isAndroid = context.platform === 'android';
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Life Timeline'));
-  header.appendChild(createElement('p', '', 'Your story chapters'));
+  const headerTitle = createElement('h3', 'viz-header__title', t('visualizations.lifeTimeline.title', 'Your Growth'));
+  const headerSubtitle = createElement('p', 'viz-header__subtitle', t('visualizations.lifeTimeline.subtitle', 'Your Life Chapters'));
+  header.appendChild(headerTitle);
+  header.appendChild(headerSubtitle);
   container.appendChild(header);
 
-  // Current chapter card
-  const card1 = createElement('div', 'mobile-card');
+  // Current chapter card with glass styling
+  const card1 = createElement('div', 'viz-card viz-animate-slide');
   if (isAndroid) {
-    setStyles(card1, { borderLeft: '3px solid var(--color-accent)' });
+    card1.classList.add('viz-card--accent-primary');
   }
 
-  const cardHeader = createElement('div', 'mobile-card-header');
-  cardHeader.appendChild(createElement('span', 'mobile-card-title', 'Current Chapter'));
+  const cardHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+  const chapterTitle = createElement('span');
+  setStyles(chapterTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  chapterTitle.textContent = t('visualizations.lifeTimeline.currentChapter', 'Current Chapter');
+  cardHeader.appendChild(chapterTitle);
 
   // Year badge from start date
-  const yearBadge = createElement('span', 'mobile-card-badge', getYear(data.currentChapter.startDate));
+  const yearBadge = createElement('span', 'viz-badge');
+  yearBadge.textContent = getYear(data.currentChapter.startDate);
   cardHeader.appendChild(yearBadge);
   card1.appendChild(cardHeader);
 
-  // Theme title
-  const theme = createElement('div');
-  setStyles(theme, {
-    fontSize: '1.2rem',
-    color: 'var(--color-accent)',
-    fontWeight: '600',
-    margin: '8px 0',
-  });
+  // Theme title with design system styling
+  const theme = createElement('div', 'viz-chapter-title');
   theme.textContent = `"${data.currentChapter.title}"`;
   card1.appendChild(theme);
 
   // Chapter summary
   if (data.currentChapter.summary) {
-    const insight = createElement('p', 'mobile-insight', data.currentChapter.summary);
+    const insight = createElement('p', 'viz-insight');
+    insight.textContent = data.currentChapter.summary;
     card1.appendChild(insight);
   }
 
   container.appendChild(card1);
 
   // Journey timeline card
-  const card2 = createElement('div', 'mobile-card');
+  const card2 = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
   if (isAndroid) {
-    setStyles(card2, { borderLeft: '3px solid var(--persona-nayan)' });
+    card2.classList.add('viz-card--accent-secondary');
   }
 
-  const journeyHeader = createElement('div', 'mobile-card-header');
-  journeyHeader.appendChild(createElement('span', 'mobile-card-title', 'Your Journey'));
+  const journeyHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+  const journeyTitle = createElement('span');
+  setStyles(journeyTitle, {
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--viz-text-base)',
+    fontWeight: '600',
+    color: CSS_COLOR_VARS.textPrimary,
+  });
+  journeyTitle.textContent = t('visualizations.lifeTimeline.yourJourney', 'Your Journey');
+  journeyHeader.appendChild(journeyTitle);
   card2.appendChild(journeyHeader);
 
-  // Timeline dots
-  const timeline = createElement('div');
-  setStyles(timeline, {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    margin: '12px 0',
-  });
+  // Timeline dots using design system
+  const timeline = createElement('div', 'viz-flex viz-flex--row viz-flex--between viz-flex--center');
+  setStyles(timeline, { margin: 'var(--viz-space-pause) 0' });
 
   // Show key chapters as dots with years
   const keyChapters = getKeyChapters(data.chapters, 4);
   keyChapters.forEach((chapter) => {
     const isActive = chapter.isActive;
-    const dot = createElement('div');
+    const dot = createElement('div', `viz-timeline-dot${isActive ? ' viz-timeline-dot--active' : ''}`);
     setStyles(dot, {
       width: isActive ? '16px' : '10px',
       height: isActive ? '16px' : '10px',
-      borderRadius: '50%',
-      background: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
-      opacity: isActive ? '1' : '0.5',
     });
     timeline.appendChild(dot);
   });
 
   // Future arrow
-  const arrow = createElement('div');
-  setStyles(arrow, {
-    color: 'var(--color-text-muted)',
-    fontSize: '1rem',
-  });
+  const arrow = createElement('div', 'viz-arrow');
   arrow.textContent = '→';
   timeline.appendChild(arrow);
 
@@ -210,16 +226,25 @@ function buildMobile(
 
   // Narrative summary card (if available)
   if (data.narrativeSummary) {
-    const card3 = createElement('div', 'mobile-card');
+    const card3 = createElement('div', 'viz-card viz-animate-slide viz-stagger-3');
     if (isAndroid) {
-      setStyles(card3, { borderLeft: '3px solid var(--persona-maya)' });
+      card3.classList.add('viz-card--accent-emotional');
     }
 
-    const evolHeader = createElement('div', 'mobile-card-header');
-    evolHeader.appendChild(createElement('span', 'mobile-card-title', 'The Theme'));
+    const evolHeader = createElement('div', 'viz-flex viz-flex--row viz-flex--center viz-flex--between');
+    const evolTitle = createElement('span');
+    setStyles(evolTitle, {
+      fontFamily: 'var(--font-body)',
+      fontSize: 'var(--viz-text-base)',
+      fontWeight: '600',
+      color: CSS_COLOR_VARS.textPrimary,
+    });
+    evolTitle.textContent = t('visualizations.lifeTimeline.theTheme', 'The Theme');
+    evolHeader.appendChild(evolTitle);
     card3.appendChild(evolHeader);
 
-    const evolution = createElement('p', 'mobile-insight', data.narrativeSummary);
+    const evolution = createElement('p', 'viz-insight');
+    evolution.textContent = data.narrativeSummary;
     card3.appendChild(evolution);
     container.appendChild(card3);
   }
@@ -253,135 +278,81 @@ function buildTablet(
 ): VisualizationResult {
   container.replaceChildren();
 
-  // Header
+  // Header with design system classes
   const header = createElement('div', 'viz-header');
-  header.appendChild(createElement('h3', '', 'Your Life Chapters'));
-  header.appendChild(createElement('p', '', 'The story of your journey'));
+  const headerTitle = createElement('h3', 'viz-header__title', t('visualizations.lifeTimeline.title', 'Your Life Chapters'));
+  const headerSubtitle = createElement('p', 'viz-header__subtitle', t('visualizations.lifeTimeline.subtitle', 'The story of your journey'));
+  header.appendChild(headerTitle);
+  header.appendChild(headerSubtitle);
   container.appendChild(header);
 
-  // Timeline visualization
-  const timelineContainer = createElement('div', 'timeline-container');
-  setStyles(timelineContainer, {
+  // Timeline visualization card
+  const timelineCard = createElement('div', 'viz-card viz-animate-slide');
+  setStyles(timelineCard, {
     position: 'relative',
-    padding: '24px 16px',
-    background: 'var(--color-background)',
-    borderRadius: '12px',
-    marginBottom: '16px',
+    padding: 'var(--viz-space-rest) var(--viz-space-pause)',
+    marginBottom: 'var(--viz-space-pause)',
   });
 
   // Timeline line
-  const line = createElement('div', 'timeline-line');
-  setStyles(line, {
-    position: 'absolute',
-    top: '50%',
-    left: '24px',
-    right: '24px',
-    height: '2px',
-    background: 'var(--color-border-subtle)',
-  });
-  timelineContainer.appendChild(line);
+  const line = createElement('div', 'viz-timeline-line');
+  timelineCard.appendChild(line);
 
   // Chapters
-  const chaptersRow = createElement('div', 'timeline-chapters');
+  const chaptersRow = createElement('div', 'viz-flex viz-flex--row viz-flex--between');
   setStyles(chaptersRow, {
-    display: 'flex',
-    justifyContent: 'space-between',
     position: 'relative',
     zIndex: '1',
   });
 
   data.chapters.forEach((chapter) => {
-    const chapterEl = createElement('div');
-    setStyles(chapterEl, {
-      textAlign: 'center',
-      position: 'relative',
-    });
+    const chapterEl = createElement('div', 'viz-timeline-chapter');
 
-    // Dot
-    const dot = createElement('div', 'timeline-dot');
-    const typeColor = CHAPTER_TYPE_COLORS[chapter.type] || DEFAULT_COLORS.accent;
-    setStyles(dot, {
-      width: chapter.isActive ? '18px' : '12px',
-      height: chapter.isActive ? '18px' : '12px',
-      borderRadius: '50%',
-      background: chapter.isActive ? typeColor : 'var(--color-text-muted)',
-      margin: '0 auto',
-      cursor: 'pointer',
-      transition: 'transform 150ms ease',
-    });
-    if (chapter.isActive) {
-      setStyles(dot, { transform: 'scale(1.2)' });
-    }
+    // Dot with type-based color
+    const dot = createElement('div', `viz-timeline-dot viz-timeline-dot--${chapter.type}${chapter.isActive ? ' viz-timeline-dot--active' : ''}`);
     chapterEl.appendChild(dot);
 
     // Title
-    const title = createElement('div');
-    setStyles(title, {
-      fontSize: '0.75rem',
-      marginTop: '8px',
-      color: chapter.isActive ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-      fontWeight: chapter.isActive ? '600' : '400',
-    });
-    title.textContent = chapter.title;
-    chapterEl.appendChild(title);
+    const titleEl = createElement('div', chapter.isActive ? 'viz-timeline-chapter__title viz-timeline-chapter__title--active' : 'viz-timeline-chapter__title');
+    titleEl.textContent = chapter.title;
+    chapterEl.appendChild(titleEl);
 
     // Year
-    const year = createElement('div');
-    setStyles(year, {
-      fontSize: '0.65rem',
-      color: 'var(--color-text-muted)',
-    });
+    const year = createElement('div', 'viz-timeline-chapter__year');
     year.textContent = getYear(chapter.startDate);
     chapterEl.appendChild(year);
 
     chaptersRow.appendChild(chapterEl);
   });
 
-  timelineContainer.appendChild(chaptersRow);
-  container.appendChild(timelineContainer);
+  timelineCard.appendChild(chaptersRow);
+  container.appendChild(timelineCard);
 
   // Details grid
-  const detailsGrid = createFlexContainer('row', '16px');
-  setStyles(detailsGrid, { marginTop: '16px' });
+  const detailsGrid = createElement('div', 'viz-flex viz-flex--row');
+  setStyles(detailsGrid, {
+    gap: 'var(--viz-space-pause)',
+    marginTop: 'var(--viz-space-pause)',
+  });
 
   // Current chapter panel
-  const currentPanel = createElement('div');
-  setStyles(currentPanel, {
-    flex: '1',
-    padding: '16px',
-    background: 'var(--color-bg-elevated)',
-    borderRadius: '12px',
-    border: '1px solid var(--color-border-subtle)',
-  });
+  const currentPanel = createElement('div', 'viz-card viz-animate-slide viz-stagger-2');
+  setStyles(currentPanel, { flex: '1' });
 
-  const currentHeader = createElement('div');
-  setStyles(currentHeader, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  });
-  currentHeader.textContent = 'Current Theme';
+  const currentHeader = createElement('div', 'viz-label viz-label--section');
+  currentHeader.textContent = t('visualizations.currentTheme', 'Current Theme');
   currentPanel.appendChild(currentHeader);
 
-  const themeEl = createElement('p');
-  setStyles(themeEl, {
-    fontSize: '1.2rem',
-    color: 'var(--color-accent)',
-    fontWeight: '600',
-    margin: '8px 0',
-  });
+  const themeEl = createElement('p', 'viz-chapter-title');
   themeEl.textContent = `"${data.currentChapter.title}"`;
   currentPanel.appendChild(themeEl);
 
   if (data.currentChapter.summary) {
     const summary = createElement('p');
     setStyles(summary, {
-      fontSize: '0.85rem',
-      color: 'var(--color-text-secondary)',
-      lineHeight: '1.5',
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+      lineHeight: 'var(--line-height-normal)',
     });
     summary.textContent = data.currentChapter.summary;
     currentPanel.appendChild(summary);
@@ -390,66 +361,37 @@ function buildTablet(
   detailsGrid.appendChild(currentPanel);
 
   // Progress/evolution panel
-  const progressPanel = createElement('div');
-  setStyles(progressPanel, {
-    flex: '1',
-    padding: '16px',
-    background: 'var(--color-bg-elevated)',
-    borderRadius: '12px',
-    border: '1px solid var(--color-border-subtle)',
-  });
+  const progressPanel = createElement('div', 'viz-card viz-animate-slide viz-stagger-3');
+  setStyles(progressPanel, { flex: '1' });
 
-  const progressHeader = createElement('div');
-  setStyles(progressHeader, {
-    fontSize: '0.75rem',
-    fontWeight: '600',
-    color: 'var(--color-text-muted)',
-    marginBottom: '8px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  });
-  progressHeader.textContent = 'Chapter Progress';
+  const progressHeader = createElement('div', 'viz-label viz-label--section');
+  progressHeader.textContent = t('visualizations.chapterProgress', 'Chapter Progress');
   progressPanel.appendChild(progressHeader);
 
-  // Progress bar
-  const progressBar = createElement('div');
-  setStyles(progressBar, {
-    height: '8px',
-    background: 'var(--color-border-subtle)',
-    borderRadius: '4px',
-    overflow: 'hidden',
-    marginTop: '12px',
-  });
+  // Progress bar with design system classes
+  const progressBar = createElement('div', 'viz-progress');
+  setStyles(progressBar, { marginTop: 'var(--viz-space-pause)' });
 
-  const progressFill = createElement('div');
-  setStyles(progressFill, {
-    width: `${data.currentChapter.progress * 100}%`,
-    height: '100%',
-    background: CHAPTER_TYPE_COLORS[data.currentChapter.type] || DEFAULT_COLORS.accent,
-    borderRadius: '4px',
-    transition: 'width 300ms ease',
-  });
+  const progressFill = createElement('div', `viz-progress__fill viz-progress__fill--${data.currentChapter.type}`);
+  setStyles(progressFill, { width: `${data.currentChapter.progress * 100}%` });
   progressBar.appendChild(progressFill);
   progressPanel.appendChild(progressBar);
 
   // Progress percentage
   const progressLabel = createElement('div');
   setStyles(progressLabel, {
-    fontSize: '0.85rem',
-    color: 'var(--color-text-secondary)',
-    marginTop: '8px',
+    fontSize: 'var(--viz-text-base)',
+    color: CSS_COLOR_VARS.textSecondary,
+    marginTop: 'var(--viz-space-breath)',
   });
-  progressLabel.textContent = `${Math.round(data.currentChapter.progress * 100)}% through this chapter`;
+  progressLabel.textContent = `${Math.round(data.currentChapter.progress * 100)}% ${t('visualizations.lifeTimeline.throughChapter', 'through this chapter')}`;
   progressPanel.appendChild(progressLabel);
 
   // Narrative summary if available
   if (data.narrativeSummary) {
-    const narrativeEl = createElement('p');
+    const narrativeEl = createElement('p', 'viz-insight');
     setStyles(narrativeEl, {
-      fontSize: '0.85rem',
-      color: 'var(--color-text-secondary)',
-      lineHeight: '1.5',
-      marginTop: '12px',
+      marginTop: 'var(--viz-space-pause)',
       fontStyle: 'italic',
     });
     narrativeEl.textContent = data.narrativeSummary;
@@ -458,6 +400,13 @@ function buildTablet(
 
   detailsGrid.appendChild(progressPanel);
   container.appendChild(detailsGrid);
+
+  // Screen reader summary
+  container.appendChild(
+    createScreenReaderLabel(
+      `Life timeline with ${data.totalChapters} chapters, currently in "${data.currentChapter.title}"`
+    )
+  );
 
   return {
     element: container,

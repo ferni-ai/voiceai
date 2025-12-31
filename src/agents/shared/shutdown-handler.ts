@@ -471,71 +471,75 @@ export function registerShutdownSignalHandlers(): void {
   let gcAttemptCount = 0;
   const MAX_GC_ATTEMPTS_BEFORE_RESTART = 3;
 
-  registerInterval('shutdown-memory-monitor', () => {
-    const memUsage = process.memoryUsage();
-    const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
-    const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
-    const heapLimitMB = MEMORY_HEAP_LIMIT_MB;
+  registerInterval(
+    'shutdown-memory-monitor',
+    () => {
+      const memUsage = process.memoryUsage();
+      const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+      const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
+      const heapLimitMB = MEMORY_HEAP_LIMIT_MB;
 
-    const heapUsageRatio = heapUsedMB / heapLimitMB;
+      const heapUsageRatio = heapUsedMB / heapLimitMB;
 
-    // Check for preemptive restart threshold
-    const preemptiveCheck = shouldPreemptiveRestart();
-    if (preemptiveCheck.needed) {
-      diag.error('🔄 PREEMPTIVE RESTART - memory threshold exceeded', {
-        heapUsedMB: Math.round(heapUsedMB),
-        heapLimitMB,
-        usagePercent: Math.round(heapUsageRatio * 100),
-        reason: preemptiveCheck.reason,
-      });
+      // Check for preemptive restart threshold
+      const preemptiveCheck = shouldPreemptiveRestart();
+      if (preemptiveCheck.needed) {
+        diag.error('🔄 PREEMPTIVE RESTART - memory threshold exceeded', {
+          heapUsedMB: Math.round(heapUsedMB),
+          heapLimitMB,
+          usagePercent: Math.round(heapUsageRatio * 100),
+          reason: preemptiveCheck.reason,
+        });
 
-      // Write to stderr for immediate visibility
-      process.stderr.write(
-        `\n[PREEMPTIVE RESTART] ${preemptiveCheck.reason}\n` +
-          `Heap: ${Math.round(heapUsedMB)}MB / ${heapLimitMB}MB\n` +
-          `Triggering graceful shutdown to prevent OOM kill\n\n`
-      );
+        // Write to stderr for immediate visibility
+        process.stderr.write(
+          `\n[PREEMPTIVE RESTART] ${preemptiveCheck.reason}\n` +
+            `Heap: ${Math.round(heapUsedMB)}MB / ${heapLimitMB}MB\n` +
+            `Triggering graceful shutdown to prevent OOM kill\n\n`
+        );
 
-      void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
-      return;
-    }
-
-    if (heapUsageRatio > MEMORY_CRITICAL_THRESHOLD) {
-      diag.error('🚨 CRITICAL MEMORY USAGE - attempting recovery', {
-        heapUsedMB: Math.round(heapUsedMB),
-        heapTotalMB: Math.round(heapTotalMB),
-        heapLimitMB,
-        usagePercent: Math.round(heapUsageRatio * 100),
-        rss: Math.round(memUsage.rss / 1024 / 1024),
-        gcAttempts: gcAttemptCount,
-      });
-
-      // Try to trigger garbage collection if available
-      if (global.gc) {
-        diag.warn('Triggering manual garbage collection');
-        global.gc();
-        gcAttemptCount++;
-
-        // If GC isn't helping after several attempts, restart
-        if (gcAttemptCount >= MAX_GC_ATTEMPTS_BEFORE_RESTART) {
-          diag.error('GC not reducing memory pressure - triggering preemptive restart');
-          void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
-          return;
-        }
+        void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
+        return;
       }
-    } else if (heapUsageRatio > MEMORY_WARNING_THRESHOLD) {
-      diag.warn('⚠️ HIGH MEMORY USAGE', {
-        heapUsedMB: Math.round(heapUsedMB),
-        heapLimitMB,
-        usagePercent: Math.round(heapUsageRatio * 100),
-      });
-      // Reset GC counter if memory dropped back to warning level
-      gcAttemptCount = Math.max(0, gcAttemptCount - 1);
-    } else {
-      // Memory is healthy - reset GC counter
-      gcAttemptCount = 0;
-    }
-  }, MEMORY_CHECK_INTERVAL);
+
+      if (heapUsageRatio > MEMORY_CRITICAL_THRESHOLD) {
+        diag.error('🚨 CRITICAL MEMORY USAGE - attempting recovery', {
+          heapUsedMB: Math.round(heapUsedMB),
+          heapTotalMB: Math.round(heapTotalMB),
+          heapLimitMB,
+          usagePercent: Math.round(heapUsageRatio * 100),
+          rss: Math.round(memUsage.rss / 1024 / 1024),
+          gcAttempts: gcAttemptCount,
+        });
+
+        // Try to trigger garbage collection if available
+        if (global.gc) {
+          diag.warn('Triggering manual garbage collection');
+          global.gc();
+          gcAttemptCount++;
+
+          // If GC isn't helping after several attempts, restart
+          if (gcAttemptCount >= MAX_GC_ATTEMPTS_BEFORE_RESTART) {
+            diag.error('GC not reducing memory pressure - triggering preemptive restart');
+            void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
+            return;
+          }
+        }
+      } else if (heapUsageRatio > MEMORY_WARNING_THRESHOLD) {
+        diag.warn('⚠️ HIGH MEMORY USAGE', {
+          heapUsedMB: Math.round(heapUsedMB),
+          heapLimitMB,
+          usagePercent: Math.round(heapUsageRatio * 100),
+        });
+        // Reset GC counter if memory dropped back to warning level
+        gcAttemptCount = Math.max(0, gcAttemptCount - 1);
+      } else {
+        // Memory is healthy - reset GC counter
+        gcAttemptCount = 0;
+      }
+    },
+    MEMORY_CHECK_INTERVAL
+  );
 
   diag.info('Process signal handlers registered', {
     handlers: [
