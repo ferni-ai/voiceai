@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 WORKDIR /app
 
 # Copy package files and configs
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY .npmrc ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
@@ -42,9 +42,30 @@ COPY tsconfig.build.json ./
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
-# Install dependencies with pnpm
+# Copy workspace package files
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Create stub package.json for packages not in build context (rust packages, design-system)
+RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
+    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
+    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+
+# Replace local file: dependencies with npm registry versions for Docker builds
+RUN sed -i 's|"file:../agents-js/agents"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/cartesia"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/deepgram"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/google"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/openai"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/silero"|"^1.0.31"|g' package.json
+
+# Install dependencies with pnpm (no frozen lockfile since we modified package.json)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --prefer-offline --no-frozen-lockfile
 
 # Copy build script (now in apps/cli/) and source
 COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
@@ -109,15 +130,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files and install production dependencies
-COPY package.json pnpm-lock.yaml* ./
+# Copy package files from builder stage (has file: deps replaced with npm versions)
+COPY --from=backend-builder /app/package.json ./
+COPY --from=backend-builder /app/pnpm-lock.yaml* ./
 COPY .npmrc ./
+COPY pnpm-workspace.yaml ./
 
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
+# Copy workspace package stubs from builder
+COPY --from=backend-builder /app/apps/rust-audio/package.json ./apps/rust-audio/
+COPY --from=backend-builder /app/apps/rust-perf/package.json ./apps/rust-perf/
+COPY --from=backend-builder /app/design-system/package.json ./design-system/
+COPY --from=backend-builder /app/apps/cli/package.json ./apps/cli/
+COPY --from=backend-builder /app/apps/web/package.json ./apps/web/
+COPY --from=backend-builder /app/apps/async/package.json ./apps/async/
+COPY --from=backend-builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/shared-types/
+
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev && \
+    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
     # Remove unnecessary files from node_modules to reduce image size (~30% reduction)
     find node_modules -name "*.md" -delete 2>/dev/null || true && \
     find node_modules -name "*.map" -delete 2>/dev/null || true && \
