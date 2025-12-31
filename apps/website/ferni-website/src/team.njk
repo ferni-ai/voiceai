@@ -1,8 +1,63 @@
 ---
-layout: layouts/base.njk
+layout: layouts/story-brand.njk
 title: Meet Your Team - Ferni
 description: Six specialists, one relationship. Each brings what the others can't. Seamless handoffs. Shared context. Always ready.
 ---
+
+{# ========== SKIP TO CONTENT (Accessibility) ========== #}
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+{# ========== NAVIGATION ========== #}
+<nav class="nav" id="nav" aria-label="Main navigation">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo nav__logo--wordmark-only">
+      <span class="nav__logo-text">Ferni</span>
+    </a>
+    
+    <ul class="nav__links">
+      <li><a href="/features/" class="nav__link">Features</a></li>
+      <li><a href="/team/" class="nav__link nav__link--active">Team</a></li>
+      <li><a href="/support/" class="nav__link">Support</a></li>
+      <li><a href="/about/" class="nav__link">About</a></li>
+    </ul>
+    
+    <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    
+    {# Mobile hamburger #}
+    <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+{# ========== MOBILE MENU ========== #}
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu__header">
+    <span class="nav__logo-text">Ferni</span>
+    <button class="mobile-menu__close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <nav class="mobile-menu__nav">
+    <a href="/features/">Features</a>
+    <a href="/team/">Meet the Team</a>
+    <a href="/support/">Support</a>
+    <a href="/about/">About</a>
+  </nav>
+  <div class="mobile-menu__cta">
+    <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+      Get Started Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</div>
+
+<main id="main-content">
 
 <style>
   /* ============================================
@@ -1289,3 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
   revealElements.forEach(el => revealObserver.observe(el));
 });
 </script>
+
+</main>
+
+{% include "partials/footer.njk" %}
