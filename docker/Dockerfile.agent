@@ -72,21 +72,22 @@ FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /app
 
-# Install git
+# Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files first (cache layer)
-COPY package.json package-lock.json* ./
-COPY .npmrc ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY .npmrc .pnpmrc* ./
 
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with npm
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --legacy-peer-deps
+# Install dependencies with pnpm (supports workspace: protocol)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
@@ -100,12 +101,12 @@ COPY apps/cli/src/ ./apps/cli/src/
 # Build TypeScript + Bundle Agent + CLI
 # - Agent bundle: 2441 modules → 1 file (eliminates 30-120s module loading)
 # - CLI bundle: Packaged for in-container ops
-RUN npm run build:fast && \
+RUN pnpm run build:fast && \
     echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
-    npx tsx apps/cli/src/commands/build/bundle-agent.ts && \
+    pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
     echo "=== Building Ferni CLI for container ===" && \
-    npx tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
     ls -lh dist/ferni-bundle/
 
 # ============================================================================
