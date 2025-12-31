@@ -81,13 +81,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY .npmrc .pnpmrc* ./
 
+# Copy workspace packages that are referenced (apps/cli needs to be available)
+COPY apps/cli/package.json ./apps/cli/
+COPY apps/web/package.json ./apps/web/
+COPY apps/async/package.json ./apps/async/
+COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY design-system/package.json ./design-system/
+
+# Create stub package.json for Rust packages (built natively, not via pnpm)
+RUN mkdir -p apps/rust-audio apps/rust-perf && \
+    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json
+
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with pnpm (supports workspace: protocol)
+# Install dependencies with pnpm (workspace mode)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prefer-offline
+    pnpm install --prefer-offline
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
