@@ -278,3 +278,7 @@ KMS/
 # iOS/Android build caches
 **/.build/
 **/build/intermediates/
+
+# Rust build artifacts
+apps/rust-audio/target/
+apps/rust-perf/target/
