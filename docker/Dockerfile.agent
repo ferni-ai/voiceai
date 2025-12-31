@@ -96,12 +96,13 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 
 # Replace local file: dependencies with npm registry versions for Docker builds
 # The local agents-js is not available in Docker context
+# All @livekit/agents packages are at version 1.0.31 (Dec 2024)
 RUN sed -i 's|"file:../agents-js/agents"|"^1.0.31"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/cartesia"|"^0.3.1"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/deepgram"|"^0.7.2"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/google"|"^0.5.0"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/openai"|"^0.7.2"|g' package.json && \
-    sed -i 's|"file:../agents-js/plugins/silero"|"^0.8.1"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/cartesia"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/deepgram"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/google"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/openai"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/silero"|"^1.0.31"|g' package.json && \
     cat package.json | grep -A5 '"@livekit/agents"' | head -10
 
 # Copy build configs
