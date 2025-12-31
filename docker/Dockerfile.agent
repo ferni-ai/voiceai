@@ -94,13 +94,23 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
     echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
     echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
 
+# Replace local file: dependencies with npm registry versions for Docker builds
+# The local agents-js is not available in Docker context
+RUN sed -i 's|"file:../agents-js/agents"|"^1.0.31"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/cartesia"|"^0.3.1"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/deepgram"|"^0.7.2"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/google"|"^0.5.0"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/openai"|"^0.7.2"|g' package.json && \
+    sed -i 's|"file:../agents-js/plugins/silero"|"^0.8.1"|g' package.json && \
+    cat package.json | grep -A5 '"@livekit/agents"' | head -10
+
 # Copy build configs
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
-# Install dependencies with pnpm (workspace mode)
+# Install dependencies with pnpm (no frozen lockfile since we modified package.json)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline
+    pnpm install --prefer-offline --no-frozen-lockfile
 
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
