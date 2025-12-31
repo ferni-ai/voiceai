@@ -1278,9 +1278,8 @@ async function buildAlexCommunicationInsightsContext(
 
     // 🤝 TEAM HUDDLE: Record Alex's observations for cross-persona intelligence
     try {
-      const { alex: alexObserver } = await import(
-        '../../../services/cross-persona/observation-recorder.js'
-      );
+      const { alex: alexObserver } =
+        await import('../../../services/cross-persona/observation-recorder.js');
 
       // Record stress-related concerns from user state
       if (briefing.userState.stressLevel === 'high') {
@@ -1304,24 +1303,19 @@ async function buildAlexCommunicationInsightsContext(
 
       // Record coaching opportunities
       if (briefing.coachingOpportunities.length > 0) {
-        alexObserver.opportunity(
-          userId,
-          briefing.coachingOpportunities[0],
-          0.7,
-          undefined,
-          ['communication', 'coaching']
-        );
+        alexObserver.opportunity(userId, briefing.coachingOpportunities[0], 0.7, undefined, [
+          'communication',
+          'coaching',
+        ]);
       }
 
       // Record proactive triggers
       if (briefing.proactiveTriggers?.length > 0) {
         const topTrigger = briefing.proactiveTriggers[0];
-        alexObserver.pattern(
-          userId,
-          topTrigger.message || 'Communication pattern detected',
-          0.65,
-          ['communication', 'patterns']
-        );
+        alexObserver.pattern(userId, topTrigger.message || 'Communication pattern detected', 0.65, [
+          'communication',
+          'patterns',
+        ]);
       }
     } catch (err) {
       // Non-critical - don't block if observation recording fails

@@ -1181,9 +1181,8 @@ async function buildMayaCoachingInsightsContext(
     // 🤝 TEAM HUDDLE: Record Maya's observations for cross-persona intelligence
     // This enables Ferni and other personas to know what Maya has noticed
     try {
-      const { maya: mayaObserver } = await import(
-        '../../../services/cross-persona/observation-recorder.js'
-      );
+      const { maya: mayaObserver } =
+        await import('../../../services/cross-persona/observation-recorder.js');
 
       // Record concerning patterns
       if (briefing.habitHealth.atRiskCount > 0) {
@@ -1197,12 +1196,11 @@ async function buildMayaCoachingInsightsContext(
 
       // Record mood-related concerns
       if (briefing.moodIntelligence.recentMoodTrend === 'declining') {
-        mayaObserver.concern(
-          userId,
-          'Mood trend has been declining recently',
-          0.7,
-          ['mood', 'energy', 'wellbeing']
-        );
+        mayaObserver.concern(userId, 'Mood trend has been declining recently', 0.7, [
+          'mood',
+          'energy',
+          'wellbeing',
+        ]);
       }
 
       // Record positive patterns

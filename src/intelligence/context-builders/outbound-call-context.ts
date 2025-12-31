@@ -14,8 +14,13 @@
  * @module intelligence/context-builders/outbound-call-context
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createStandardInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createStandardInjection,
+  type ContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 

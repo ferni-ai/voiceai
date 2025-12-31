@@ -126,8 +126,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   [BuilderCategory.SAFETY]: ['crisis', 'wellbeing-context', 'principal-alignment'],
 
   // EMOTIONAL - Core emotion handling
+  // NOTE: emotional.behavioral.ts in behavioral/builders/ provides safer signal-based
+  // emotion handling that cannot leak into LLM responses. Legacy builder disabled.
   [BuilderCategory.EMOTIONAL]: [
-    'emotional',
+    // 'emotional',        // DISABLED: Migrated to behavioral/builders/emotional.behavioral.ts
     'celebration',
     'celebration-growth',
     'somatic-context',
@@ -227,8 +229,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'team-availability',
     'team-dynamics',
     'handoff',
-    // DISABLED: semantic-intent-guidance has broken imports - see FIXME
-    // 'semantic-intent-guidance', // Semantic pattern matching for handoffs, tools, intent
+    'semantic-intent-guidance', // Semantic pattern matching for handoffs, tools, intent
     'role-boundaries',
     'cameo-opportunities',
     'cameo-unlock', // Natural team member introductions
@@ -236,6 +237,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   ],
 
   // CONTEXT - Situational awareness
+  // NOTE: pacing.behavioral.ts in behavioral/builders/ provides safer signal-based
+  // pacing control that cannot be misinterpreted. Legacy builder disabled.
   [BuilderCategory.CONTEXT]: [
     'outbound-call-context', // On-behalf call purpose, script, compliance (runs early for outbound calls)
     'domain-fluency', // CONCEPTUAL capability awareness - what Ferni can help with (human-level)
@@ -246,7 +249,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'topics',
     'discovery',
     'personal',
-    'pacing',
+    // 'pacing',            // DISABLED: Migrated to behavioral/builders/pacing.behavioral.ts
     'meta-conversation',
     'situational-awareness',
     'trust-context',
@@ -448,9 +451,15 @@ async function loadBuildersInternal(): Promise<void> {
   };
 
   if (failed.length > 0) {
-    log.warn({ loaded, failed, skipped: skipped.length, durationMs: duration }, 'Some context builders failed to load');
+    log.warn(
+      { loaded, failed, skipped: skipped.length, durationMs: duration },
+      'Some context builders failed to load'
+    );
   } else if (skipped.length > 0) {
-    log.info({ loaded, skipped: skipped.length, durationMs: duration }, '✅ Context builders loaded (some skipped)');
+    log.info(
+      { loaded, skipped: skipped.length, durationMs: duration },
+      '✅ Context builders loaded (some skipped)'
+    );
   } else {
     log.info({ loaded, durationMs: duration }, '✅ All context builders loaded');
   }

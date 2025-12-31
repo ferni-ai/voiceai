@@ -213,9 +213,8 @@ async function buildNayanWisdomInsightsContext(
 
     // 🤝 TEAM HUDDLE: Record Nayan's observations for cross-persona intelligence
     try {
-      const { nayan: nayanObserver, recordConcern } = await import(
-        '../../../../services/cross-persona/observation-recorder.js'
-      );
+      const { nayan: nayanObserver, recordConcern } =
+        await import('../../../../services/cross-persona/observation-recorder.js');
 
       // Record life synthesis insights
       if (briefing.lifeSynthesis.lifeChapter) {
@@ -261,12 +260,11 @@ async function buildNayanWisdomInsightsContext(
 
       // Record meaning-seeking patterns
       if (briefing.existentialContext?.meaningSeekingIntensity === 'high') {
-        nayanObserver.insight(
-          userId,
-          'High meaning-seeking intensity detected',
-          0.7,
-          ['meaning', 'purpose', 'search']
-        );
+        nayanObserver.insight(userId, 'High meaning-seeking intensity detected', 0.7, [
+          'meaning',
+          'purpose',
+          'search',
+        ]);
       }
     } catch (err) {
       // Non-critical - don't block if observation recording fails

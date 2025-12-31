@@ -111,6 +111,7 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   // SAFETY
   crisis: BuilderCategory.SAFETY,
   'wellbeing-context': BuilderCategory.SAFETY,
+  'principal-alignment': BuilderCategory.SAFETY, // Added Dec 2024
 
   // EMOTIONAL
   emotional: BuilderCategory.EMOTIONAL,
@@ -123,6 +124,8 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'advanced-voice-emotion': BuilderCategory.VOICE,
   'voice-emotion-intelligence': BuilderCategory.VOICE,
   'human-listening': BuilderCategory.VOICE,
+  'voice-mismatch-critical': BuilderCategory.VOICE,
+  'dynamic-speech-guidance': BuilderCategory.VOICE, // Real-time speech adaptation
 
   // MEMORY
   memory: BuilderCategory.MEMORY,
@@ -133,6 +136,9 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'cross-session-reflection': BuilderCategory.MEMORY,
   'cross-session-threading': BuilderCategory.MEMORY,
   'unified-memory-orchestrator': BuilderCategory.MEMORY,
+  'thinking-of-you': BuilderCategory.MEMORY,
+  'commitment-follow-up': BuilderCategory.MEMORY, // Track and surface commitments
+  'proactive-noticing': BuilderCategory.MEMORY, // Surface noticed patterns
 
   // PERSONA
   'persona-identity': BuilderCategory.PERSONA,
@@ -145,6 +151,18 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'spontaneous-vulnerability': BuilderCategory.PERSONA,
   'physical-presence': BuilderCategory.PERSONA,
   'lovable-presence': BuilderCategory.PERSONA,
+  'twin-profile-context': BuilderCategory.PERSONA,
+  'human-personality': BuilderCategory.PERSONA,
+  'ferni-personality': BuilderCategory.PERSONA,
+  'ferni-coordinator-intelligence': BuilderCategory.PERSONA,
+  'better-than-human-direct': BuilderCategory.PERSONA,
+  'conversational-superpowers': BuilderCategory.PERSONA,
+  // Cross-persona insight builders
+  'peter-research-insights': BuilderCategory.PERSONA,
+  'maya-coaching-insights': BuilderCategory.PERSONA, // Also COACHING but persona-specific
+  'jordan-milestone-insights': BuilderCategory.PERSONA,
+  'alex-communication-insights': BuilderCategory.PERSONA,
+  'nayan-wisdom-insights': BuilderCategory.PERSONA,
 
   // COACHING
   'coaching-context': BuilderCategory.COACHING,
@@ -152,6 +170,9 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'scientific-coaching': BuilderCategory.COACHING,
   'therapeutic-frameworks': BuilderCategory.COACHING,
   'behavioral-economics': BuilderCategory.COACHING,
+  'maya-habit-insights': BuilderCategory.COACHING,
+  'prediction-surfacing': BuilderCategory.COACHING,
+  methodology: BuilderCategory.COACHING, // Coaching methodology guidance
 
   // COGNITIVE
   cognitive: BuilderCategory.COGNITIVE,
@@ -160,6 +181,11 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'cognitive-insights': BuilderCategory.COGNITIVE,
   'pattern-surfacing': BuilderCategory.COGNITIVE,
   'superhuman-insights': BuilderCategory.COGNITIVE,
+  awareness: BuilderCategory.COGNITIVE,
+  'deep-understanding': BuilderCategory.COGNITIVE,
+  'life-context-synthesis': BuilderCategory.COGNITIVE,
+  'semantic-intelligence-integration': BuilderCategory.COGNITIVE,
+  'temporal-intelligence': BuilderCategory.COGNITIVE, // Time-based pattern detection
 
   // ENGAGEMENT
   engagement: BuilderCategory.ENGAGEMENT,
@@ -168,6 +194,7 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   storytelling: BuilderCategory.ENGAGEMENT,
   music: BuilderCategory.ENGAGEMENT,
   'music-emotion-offers': BuilderCategory.ENGAGEMENT,
+  'daily-rituals': BuilderCategory.ENGAGEMENT, // Daily engagement rituals
 
   // TEAM
   'team-availability': BuilderCategory.TEAM,
@@ -175,6 +202,8 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   handoff: BuilderCategory.TEAM,
   'role-boundaries': BuilderCategory.TEAM,
   'cameo-opportunities': BuilderCategory.TEAM,
+  'cameo-unlock': BuilderCategory.TEAM,
+  'team-gossip': BuilderCategory.TEAM, // Cross-persona team awareness
 
   // CONTEXT
   intent: BuilderCategory.CONTEXT,
@@ -190,6 +219,12 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   goodbye: BuilderCategory.CONTEXT,
   rag: BuilderCategory.CONTEXT,
   tasks: BuilderCategory.CONTEXT,
+  'domain-fluency': BuilderCategory.CONTEXT,
+  'dynamic-tool-guidance': BuilderCategory.CONTEXT,
+  'outbound-call-context': BuilderCategory.CONTEXT,
+  'semantic-intent-guidance': BuilderCategory.CONTEXT,
+  'tool-capabilities': BuilderCategory.CONTEXT,
+  'tool-timing-context': BuilderCategory.CONTEXT,
 
   // EXTERNAL
   biometrics: BuilderCategory.EXTERNAL,
@@ -198,6 +233,14 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'social-relationships': BuilderCategory.EXTERNAL,
   'world-awareness': BuilderCategory.EXTERNAL,
   'personal-journey': BuilderCategory.EXTERNAL,
+  'calendar-awareness': BuilderCategory.EXTERNAL,
+  'career-awareness': BuilderCategory.EXTERNAL,
+  'contact-awareness': BuilderCategory.EXTERNAL,
+  'device-awareness': BuilderCategory.EXTERNAL,
+  'linkedin-awareness': BuilderCategory.EXTERNAL,
+  'macos-context': BuilderCategory.EXTERNAL,
+  'message-review-awareness': BuilderCategory.EXTERNAL,
+  'outreach-awareness': BuilderCategory.EXTERNAL,
 
   // HUMANIZING
   humanizing: BuilderCategory.HUMANIZING,
@@ -207,14 +250,16 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'response-length': BuilderCategory.HUMANIZING,
   'energy-mirroring': BuilderCategory.HUMANIZING,
   'energy-awareness': BuilderCategory.HUMANIZING,
-  // RELATIONSHIP ARC (complete relationship development system - Dec 2024)
-  // Full stranger→trusted_advisor journey with Firestore persistence
+  'conversation-forward': BuilderCategory.HUMANIZING,
+  'deep-relationship': BuilderCategory.HUMANIZING,
+  'tool-humanization': BuilderCategory.HUMANIZING, // Natural tool usage framing
+  'unified-humanizing': BuilderCategory.HUMANIZING, // Consolidated humanization orchestrator
+  // RELATIONSHIP ARC (complete relationship development system)
   'first-meeting-magic': BuilderCategory.HUMANIZING, // Stage: Stranger (turns 0-3)
   'acquaintance-deepening': BuilderCategory.HUMANIZING, // Stage: Acquaintance (sessions 2-5)
   'friendship-flowering': BuilderCategory.HUMANIZING, // Stage: Friend (sessions 6-15)
   'trusted-advisor': BuilderCategory.HUMANIZING, // Stage: Trusted Advisor (15+ sessions)
-  // REVELATION AWARENESS (Ensures capabilities feel human)
-  'revelation-awareness': BuilderCategory.HUMANIZING, // Anti-surveillance, throttling, permissions
+  'revelation-awareness': BuilderCategory.HUMANIZING, // Anti-surveillance, throttling
 
   // LEARNING
   'community-learning': BuilderCategory.LEARNING,

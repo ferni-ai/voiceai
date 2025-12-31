@@ -1479,9 +1479,8 @@ async function buildJordanMilestoneInsightsContext(
 
     // 🤝 TEAM HUDDLE: Record Jordan's observations for cross-persona intelligence
     try {
-      const { jordan: jordanObserver, recordConcern } = await import(
-        '../../../services/cross-persona/observation-recorder.js'
-      );
+      const { jordan: jordanObserver, recordConcern } =
+        await import('../../../services/cross-persona/observation-recorder.js');
 
       // Record milestone patterns
       if (briefing.goalsOverview.activeGoals > 0) {

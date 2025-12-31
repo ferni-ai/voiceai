@@ -14,8 +14,14 @@
  * @module intelligence/context-builders/revelation-awareness
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createStandardInjection, createHintInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createStandardInjection,
+  createHintInjection,
+  type ContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { RelationshipStage } from './relationship-arc/types.js';

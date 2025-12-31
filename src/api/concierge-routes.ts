@@ -288,23 +288,47 @@ async function handleCallStatusWebhook(
   }
 }
 
-function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): boolean {
+async function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): Promise<boolean> {
   const { from, body: messageBody } = body;
 
   log.info({ from, bodyLength: messageBody?.length }, 'SMS reply webhook received');
 
-  // Find the request by phone number (from)
-  // This would require looking up which request had this phone as a target
-  // For now, log and acknowledge
+  if (!from) {
+    sendJSON(res, { received: true, error: 'Missing sender phone number' });
+    return true;
+  }
 
   try {
-    // TODO: Match phone number to active request target
-    // const tracker = getTaskTracker();
-    // const request = await tracker.findRequestByTargetPhone(from);
+    // Match phone number to active request target
+    const tracker = getTaskTracker();
+    const match = await tracker.findRequestByTargetPhone(from);
 
-    log.info({ from, message: messageBody }, 'SMS reply received from business');
+    if (match) {
+      const { request, target } = match;
+      log.info(
+        { from, requestId: request.id, targetId: target.id, targetName: target.name },
+        'SMS reply matched to concierge request'
+      );
 
-    sendJSON(res, { received: true });
+      // Add result to the request
+      await tracker.addResult(request.id, {
+        requestId: request.id,
+        targetId: target.id,
+        channel: 'sms',
+        attemptNumber: target.attempts + 1,
+        success: true,
+        summary: `SMS reply from ${target.name}`,
+        data: {
+          messageBody: messageBody?.substring(0, 500), // Limit size
+          notes: 'Business replied via SMS',
+        },
+        timestamp: new Date(),
+      });
+    } else {
+      log.info({ from, message: messageBody }, 'SMS reply received - no matching request found');
+    }
+
+    sendJSON(res, { received: true, matched: !!match });
     return true;
   } catch (error) {
     log.error({ error: String(error), from }, 'Failed to process SMS reply');
@@ -313,19 +337,51 @@ function handleSmsReplyWebhook(res: ServerResponse, body: WebhookPayload): boole
   }
 }
 
-function handleEmailReplyWebhook(res: ServerResponse, body: WebhookPayload): boolean {
+async function handleEmailReplyWebhook(
+  res: ServerResponse,
+  body: WebhookPayload
+): Promise<boolean> {
   const { from, body: emailBody } = body;
 
   log.info({ from, bodyLength: emailBody?.length }, 'Email reply webhook received');
 
+  if (!from) {
+    sendJSON(res, { received: true, error: 'Missing sender email address' });
+    return true;
+  }
+
   try {
-    // TODO: Match email address to active request target
-    // const tracker = getTaskTracker();
-    // const request = await tracker.findRequestByTargetEmail(from);
+    // Match email address to active request target
+    const tracker = getTaskTracker();
+    const match = await tracker.findRequestByTargetEmail(from);
 
-    log.info({ from }, 'Email reply received from business');
+    if (match) {
+      const { request, target } = match;
+      log.info(
+        { from, requestId: request.id, targetId: target.id, targetName: target.name },
+        'Email reply matched to concierge request'
+      );
 
-    sendJSON(res, { received: true });
+      // Add result to the request
+      await tracker.addResult(request.id, {
+        requestId: request.id,
+        targetId: target.id,
+        channel: 'email',
+        attemptNumber: target.attempts + 1,
+        success: true,
+        summary: `Email reply from ${target.name}`,
+        data: {
+          emailBody: emailBody?.substring(0, 2000), // Limit size
+          notes: 'Business replied via email',
+        },
+        timestamp: new Date(),
+        emailThreadId: `email_${Date.now()}`,
+      });
+    } else {
+      log.info({ from }, 'Email reply received - no matching request found');
+    }
+
+    sendJSON(res, { received: true, matched: !!match });
     return true;
   } catch (error) {
     log.error({ error: String(error), from }, 'Failed to process email reply');

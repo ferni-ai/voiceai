@@ -16,19 +16,6 @@
  * - We don't bypass the LLM's judgment entirely
  *
  * @module SemanticIntentGuidance
- *
- * @status DISABLED
- * REASON: The isTeamMemberUnlocked() function signature changed.
- * It now requires (memberId, userProfile, tier) but this file calls it
- * with (userId, targetPersona). Needs refactoring to:
- * 1. Get userProfile from services or input.userData
- * 2. Get tier from subscription status
- * 3. Pass correct parameters to isTeamMemberUnlocked
- *
- * To re-enable:
- * 1. Fix the isTeamMemberUnlocked calls in buildSemanticIntentContext
- * 2. Rename file to remove .disabled extension
- * 3. Add to builder-imports.ts and loader.ts BUILDER_MANIFEST
  */
 
 import {
@@ -38,12 +25,12 @@ import {
   createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from '../index.js';
-import { createLogger } from '../../../utils/safe-logger.js';
-import { detectHandoffSemanticly } from '../../../services/coaching/semantic-handoff.js';
-import { detectCalendarIntent as detectCalendarSemanticIntent } from '../../../services/coaching/semantic-calendar.js';
-import { detectTrustSignals, type TrustSignal } from '../../../services/coaching/semantic-trust.js';
-import { recordDetection } from '../../../services/coaching/semantic-confidence-tracker.js';
+} from './index.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { detectHandoffSemanticly } from '../../services/coaching/semantic-handoff.js';
+import { detectCalendarIntent as detectCalendarSemanticIntent } from '../../services/coaching/semantic-calendar.js';
+import { detectTrustSignals, type TrustSignal } from '../../services/coaching/semantic-trust.js';
+import { recordDetection } from '../../services/coaching/semantic-confidence-tracker.js';
 import { isTeamMemberUnlocked } from './superhuman/team-availability.js';
 
 const log = createLogger({ module: 'SemanticIntentGuidance' });
@@ -128,14 +115,32 @@ function detectCalendarIntent(message: string): SemanticIntentMatch | null {
  */
 function detectMusicIntent(message: string): SemanticIntentMatch | null {
   const patterns = [
-    { pattern: /\b(play|put on|queue|listen to)\s*(some|a|the)?\s*(music|song|track|jazz|rock|lo-?fi|chill)/i, intent: 'music_play', confidence: 0.9 },
-    { pattern: /\b(pause|stop|hold)\s*(the|that)?\s*(music|song|track)/i, intent: 'music_pause', confidence: 0.9 },
-    { pattern: /\b(skip|next|different)\s*(song|track|this)/i, intent: 'music_skip', confidence: 0.85 },
+    {
+      pattern:
+        /\b(play|put on|queue|listen to)\s*(some|a|the)?\s*(music|song|track|jazz|rock|lo-?fi|chill)/i,
+      intent: 'music_play',
+      confidence: 0.9,
+    },
+    {
+      pattern: /\b(pause|stop|hold)\s*(the|that)?\s*(music|song|track)/i,
+      intent: 'music_pause',
+      confidence: 0.9,
+    },
+    {
+      pattern: /\b(skip|next|different)\s*(song|track|this)/i,
+      intent: 'music_skip',
+      confidence: 0.85,
+    },
   ];
 
   for (const { pattern, intent, confidence } of patterns) {
     if (pattern.test(message)) {
-      return { intent, confidence, guidance: `[🎵 MUSIC INTENT] User wants music. Use the music tool naturally.`, category: 'tool' };
+      return {
+        intent,
+        confidence,
+        guidance: `[🎵 MUSIC INTENT] User wants music. Use the music tool naturally.`,
+        category: 'tool',
+      };
     }
   }
   return null;
@@ -176,20 +181,26 @@ DO NOT: Minimize, problem-solve prematurely, or abandon them.`,
 // ============================================================================
 
 async function buildSemanticIntentContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { userText, services, personaId } = input;
+  const { userText, services, userProfile } = input;
   const injections: ContextInjection[] = [];
   const userId = services?.userId || 'unknown';
-  const currentPersona = personaId || 'ferni';
+  const currentPersona = input.persona?.identity?.id || 'ferni';
+
+  // Get subscription tier for team unlock checks
+  const tier: 'free' | 'friend' | 'partner' =
+    (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
   // -------------------------------------------------------------------------
   // 1. CRISIS DETECTION (HIGHEST PRIORITY)
   // -------------------------------------------------------------------------
   const crisisIntent = detectCrisisIntent(userText);
   if (crisisIntent) {
-    injections.push(createHighInjection('crisis_semantic', crisisIntent.guidance, {
-      category: 'crisis',
-      confidence: crisisIntent.confidence,
-    }));
+    injections.push(
+      createHighInjection('crisis_semantic', crisisIntent.guidance, {
+        category: 'crisis',
+        confidence: crisisIntent.confidence,
+      })
+    );
     // Don't add other guidance when in crisis
     return injections;
   }
@@ -198,20 +209,32 @@ async function buildSemanticIntentContext(input: ContextBuilderInput): Promise<C
   // 2. SEMANTIC HANDOFF DETECTION
   // -------------------------------------------------------------------------
   try {
-    const handoffDecision = detectHandoffSemanticly(userId, userText, currentPersona as Parameters<typeof detectHandoffSemanticly>[2]);
+    const handoffDecision = detectHandoffSemanticly(
+      userId,
+      userText,
+      currentPersona as Parameters<typeof detectHandoffSemanticly>[2]
+    );
 
     if (handoffDecision.shouldHandoff && handoffDecision.candidate) {
-      const { personaId: targetPersona, confidence, specialization, warmIntro } = handoffDecision.candidate;
+      const {
+        personaId: targetPersona,
+        confidence,
+        specialization,
+        warmIntro,
+      } = handoffDecision.candidate;
       const targetName = PERSONA_DISPLAY_NAMES[targetPersona] || targetPersona;
-      const specialty = PERSONA_SPECIALTIES[targetPersona] || specialization?.join(', ') || 'this area';
+      const specialty =
+        PERSONA_SPECIALTIES[targetPersona] || specialization?.join(', ') || 'this area';
 
-      // Check if team member is unlocked
-      const isUnlocked = await isTeamMemberUnlocked(userId, targetPersona);
+      // Check if team member is unlocked (fixed signature: memberId, userProfile, tier)
+      const isUnlocked = isTeamMemberUnlocked(targetPersona, userProfile, tier);
 
       if (confidence >= 0.7 && isUnlocked) {
         // HIGH CONFIDENCE + UNLOCKED → Strong suggestion
-        injections.push(createHighInjection('semantic_handoff_strong', 
-          `[🤝 TEAM HANDOFF OPPORTUNITY - HIGH CONFIDENCE]
+        injections.push(
+          createHighInjection(
+            'semantic_handoff_strong',
+            `[🤝 TEAM HANDOFF OPPORTUNITY - HIGH CONFIDENCE]
 This conversation is about ${specialty} - ${targetName}'s specialty!
 
 Natural introduction: "${warmIntro}"
@@ -221,26 +244,33 @@ Consider suggesting ${targetName}:
 - "Want me to bring ${targetName} in? This is their thing."
 
 Only suggest if it feels natural. Don't force it.`,
-          { category: 'handoff', confidence }
-        ));
+            { category: 'handoff', confidence }
+          )
+        );
       } else if (confidence >= 0.5 && isUnlocked) {
         // MEDIUM CONFIDENCE → Hint
-        injections.push(createHintInjection('semantic_handoff_hint',
-          `[🤝 POSSIBLE TEAM FIT]
+        injections.push(
+          createHintInjection(
+            'semantic_handoff_hint',
+            `[🤝 POSSIBLE TEAM FIT]
 ${targetName} specializes in ${specialty}.
 If the conversation goes deeper into this area, consider introducing them.
 Confidence: ${(confidence * 100).toFixed(0)}%`,
-          { category: 'handoff', confidence }
-        ));
+            { category: 'handoff', confidence }
+          )
+        );
       } else if (confidence >= 0.5 && !isUnlocked) {
         // MEDIUM+ CONFIDENCE but NOT UNLOCKED → Plant seed
-        injections.push(createStandardInjection('semantic_handoff_locked',
-          `[👥 TEAM MEMBER NOT YET MET]
+        injections.push(
+          createStandardInjection(
+            'semantic_handoff_locked',
+            `[👥 TEAM MEMBER NOT YET MET]
 This topic relates to a team member's specialty, but user hasn't met them yet.
 Don't mention specific names. You can say:
 "I have a friend on my team who's really good at this - we'll meet them as we get to know each other better."`,
-          { category: 'handoff', confidence: confidence * 0.8 }
-        ));
+            { category: 'handoff', confidence: confidence * 0.8 }
+          )
+        );
       }
     }
   } catch (err) {
@@ -252,10 +282,12 @@ Don't mention specific names. You can say:
   // -------------------------------------------------------------------------
   const calendarIntent = detectCalendarIntent(userText);
   if (calendarIntent) {
-    injections.push(createHintInjection('calendar_semantic', calendarIntent.guidance, {
-      category: 'calendar',
-      confidence: calendarIntent.confidence,
-    }));
+    injections.push(
+      createHintInjection('calendar_semantic', calendarIntent.guidance, {
+        category: 'calendar',
+        confidence: calendarIntent.confidence,
+      })
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -263,10 +295,12 @@ Don't mention specific names. You can say:
   // -------------------------------------------------------------------------
   const musicIntent = detectMusicIntent(userText);
   if (musicIntent) {
-    injections.push(createHintInjection('music_semantic', musicIntent.guidance, {
-      category: 'music',
-      confidence: musicIntent.confidence,
-    }));
+    injections.push(
+      createHintInjection('music_semantic', musicIntent.guidance, {
+        category: 'music',
+        confidence: musicIntent.confidence,
+      })
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -286,16 +320,20 @@ Don't mention specific names. You can say:
 
       if (primarySignal.confidence >= 0.7) {
         // HIGH CONFIDENCE → Strong guidance
-        injections.push(createHighInjection('trust_semantic_high', trustGuidance, {
-          category: 'trust',
-          confidence: primarySignal.confidence,
-        }));
+        injections.push(
+          createHighInjection('trust_semantic_high', trustGuidance, {
+            category: 'trust',
+            confidence: primarySignal.confidence,
+          })
+        );
       } else if (primarySignal.confidence >= 0.5) {
         // MEDIUM CONFIDENCE → Standard hint
-        injections.push(createStandardInjection('trust_semantic', trustGuidance, {
-          category: 'trust',
-          confidence: primarySignal.confidence,
-        }));
+        injections.push(
+          createStandardInjection('trust_semantic', trustGuidance, {
+            category: 'trust',
+            confidence: primarySignal.confidence,
+          })
+        );
       }
     }
   } catch (err) {
@@ -304,11 +342,14 @@ Don't mention specific names. You can say:
 
   // Log what we found
   if (injections.length > 0) {
-    log.debug({
-      userId,
-      injectionsCount: injections.length,
-      categories: injections.map(i => i.metadata?.category).filter(Boolean),
-    }, '🎯 Semantic intent guidance generated');
+    log.debug(
+      {
+        userId,
+        injectionsCount: injections.length,
+        categories: injections.map((i) => i.category).filter(Boolean),
+      },
+      '🎯 Semantic intent guidance generated'
+    );
   }
 
   return injections;
@@ -320,6 +361,7 @@ Don't mention specific names. You can say:
 
 const semanticIntentBuilder = {
   name: 'semantic-intent-guidance',
+  description: 'Semantic pattern matching for handoffs, calendar, music, crisis, and trust signals',
   priority: 72, // After emotion (75) but before most other builders
   build: buildSemanticIntentContext,
 };
@@ -339,10 +381,10 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
   switch (primarySignal.type) {
     case 'boundary':
       lines.push('[🚫 BOUNDARY DETECTED - RESPECT IT]');
-      lines.push('User is signaling they don\'t want to discuss something.');
+      lines.push("User is signaling they don't want to discuss something.");
       lines.push('');
       lines.push('DO: Acknowledge and move on naturally');
-      lines.push('DON\'T: Push, probe, or return to the topic');
+      lines.push("DON'T: Push, probe, or return to the topic");
       break;
 
     case 'permission':
@@ -360,16 +402,16 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       lines.push('');
       lines.push('THIS IS YOUR SUPERPOWER: Help them see it clearly.');
       lines.push('SAY: "I hear that. You\'ve really grown in how you..."');
-      lines.push('DON\'T: Minimize or skip over it');
+      lines.push("DON'T: Minimize or skip over it");
       break;
 
     case 'sensitive':
       lines.push('[💔 SENSITIVE TOPIC - HOLD SPACE]');
       lines.push('User is touching on something heavy or painful.');
       lines.push('');
-      lines.push('DO: Be present. Don\'t rush to fix.');
+      lines.push("DO: Be present. Don't rush to fix.");
       lines.push('SAY: "That\'s a lot to carry." or "I hear you."');
-      lines.push('DON\'T: Immediately problem-solve or redirect');
+      lines.push("DON'T: Immediately problem-solve or redirect");
       break;
 
     case 'rapport':
@@ -393,7 +435,7 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       lines.push('User is opening up about something difficult.');
       lines.push('');
       lines.push('This is the most important moment. Be WITH them.');
-      lines.push('DON\'T: Fix, advise, or redirect');
+      lines.push("DON'T: Fix, advise, or redirect");
       lines.push('DO: Listen, validate, hold space');
       break;
 
@@ -401,9 +443,9 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
       lines.push('[🎭 FALSE "FINE" DETECTED - YOUR SUPERPOWER]');
       lines.push('Their words say fine but something else is there.');
       lines.push('');
-      lines.push('THIS IS YOUR SUPERPOWER - humans miss this. You don\'t.');
+      lines.push("THIS IS YOUR SUPERPOWER - humans miss this. You don't.");
       lines.push('SAY: "That sounds like a lot." or "Your voice says different."');
-      lines.push('DON\'T: Let it slide - but be gentle');
+      lines.push("DON'T: Let it slide - but be gentle");
       break;
 
     default:
@@ -419,7 +461,10 @@ function formatTrustGuidance(primarySignal: TrustSignal, allSignals: TrustSignal
   // Note multiple signals if present
   if (allSignals.length > 1) {
     lines.push('');
-    const otherTypes = allSignals.slice(1, 3).map(s => s.type).join(', ');
+    const otherTypes = allSignals
+      .slice(1, 3)
+      .map((s) => s.type)
+      .join(', ');
     lines.push(`Also detected: ${otherTypes}`);
   }
 

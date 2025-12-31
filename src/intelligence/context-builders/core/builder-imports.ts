@@ -18,7 +18,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'principal-alignment': () => import('../principal-alignment.js'),
 
   // EMOTIONAL (in emotional/)
-  emotional: () => import('../emotional/emotional.js'),
+  // emotional: DELETED - migrated to behavioral/builders/emotional.behavioral.ts
   celebration: () => import('../emotional/celebration.js'),
   'celebration-growth': () => import('../emotional/celebration-growth.js'),
   'somatic-context': () => import('../somatic-context.js'),
@@ -110,8 +110,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cameo-opportunities': () => import('../cameo-opportunities.js'),
   'cameo-unlock': () => import('../cameo-unlock.js'), // Natural team member introductions
   'team-gossip': () => import('../superhuman/team-gossip.js'), // Cross-persona references and banter
-  // DISABLED: semantic-intent-guidance has broken imports - see FIXME
-  // 'semantic-intent-guidance': () => import('../semantic-intent-guidance.js'), // Semantic pattern matching for handoffs, tools
+  'semantic-intent-guidance': () => import('../semantic-intent-guidance.js'), // Semantic pattern matching for handoffs, tools
 
   // CONTEXT (in awareness/)
   'outbound-call-context': () => import('../outbound-call-context.js'), // On-behalf call awareness
@@ -122,7 +121,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   topics: () => import('../topics.js'),
   discovery: () => import('../discovery.js'),
   personal: () => import('../personal.js'),
-  pacing: () => import('../pacing.js'),
+  // pacing: DELETED - migrated to behavioral/builders/pacing.behavioral.ts
   'meta-conversation': () => import('../meta-conversation.js'),
   'situational-awareness': () => import('../awareness/situational-awareness.js'),
   'trust-context': () => import('../trust-context.js'),

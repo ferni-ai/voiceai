@@ -1396,9 +1396,8 @@ async function buildPeterResearchInsightsContext(
 
     // 🤝 TEAM HUDDLE: Record Peter's observations for cross-persona intelligence
     try {
-      const { peter: peterObserver, recordConcern } = await import(
-        '../../../services/cross-persona/observation-recorder.js'
-      );
+      const { peter: peterObserver, recordConcern } =
+        await import('../../../services/cross-persona/observation-recorder.js');
 
       // Record spending/financial concerns (financialStressLevel is a string like "high", "moderate")
       const stressLevel = briefing.behavioralMetrics.financialStressLevel.toLowerCase();
@@ -1414,32 +1413,29 @@ async function buildPeterResearchInsightsContext(
 
       // Record pattern discoveries
       if (briefing.crossDomainPatterns.length > 0) {
-        peterObserver.pattern(
-          userId,
-          briefing.crossDomainPatterns[0],
-          0.8,
-          ['patterns', 'research', 'correlation']
-        );
+        peterObserver.pattern(userId, briefing.crossDomainPatterns[0], 0.8, [
+          'patterns',
+          'research',
+          'correlation',
+        ]);
       }
 
       // Record insights about habit correlations
       if (briefing.habitCorrelations.length > 0) {
-        peterObserver.insight(
-          userId,
-          briefing.habitCorrelations[0],
-          0.75,
-          ['habits', 'correlation', 'data']
-        );
+        peterObserver.insight(userId, briefing.habitCorrelations[0], 0.75, [
+          'habits',
+          'correlation',
+          'data',
+        ]);
       }
 
       // Record anomalies (use pattern for Peter since he's analytical)
       if (briefing.anomalies.length > 0) {
-        peterObserver.pattern(
-          userId,
-          `Anomaly detected: ${briefing.anomalies[0]}`,
-          0.7,
-          ['anomaly', 'research', 'attention']
-        );
+        peterObserver.pattern(userId, `Anomaly detected: ${briefing.anomalies[0]}`, 0.7, [
+          'anomaly',
+          'research',
+          'attention',
+        ]);
       }
     } catch (err) {
       // Non-critical - don't block if observation recording fails

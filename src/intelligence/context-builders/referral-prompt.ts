@@ -211,7 +211,7 @@ export async function buildReferralPromptInjection(
   }
 
   // Check timing - not too frequent
-  const lastPrompt = await getLastReferralPromptDate(userId);
+  const lastPrompt = getLastReferralPromptDate(userId);
   if (lastPrompt) {
     const daysSinceLastPrompt = (Date.now() - lastPrompt.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceLastPrompt < CONFIG.minDaysBetweenPrompts) {
@@ -231,7 +231,7 @@ export async function buildReferralPromptInjection(
   log.info({ userId, turnCount, relationshipStage }, '🌱 Injecting referral prompt');
 
   // Record that we're showing this
-  await recordReferralPromptShown(userId);
+  recordReferralPromptShown(userId);
 
   return {
     shouldInject: true,

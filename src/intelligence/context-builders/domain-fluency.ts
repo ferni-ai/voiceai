@@ -18,8 +18,13 @@
  * @module intelligence/context-builders/domain-fluency
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createInjection,
+  type ContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 

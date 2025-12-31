@@ -69,7 +69,7 @@ interface TwinProfile {
 // PROFILE RETRIEVAL
 // ============================================================================
 
-let profileCache: Map<string, { profile: TwinProfile | null; timestamp: number }> = new Map();
+const profileCache = new Map<string, { profile: TwinProfile | null; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 async function getTwinProfile(userId: string): Promise<TwinProfile | null> {

@@ -19,8 +19,7 @@
  * @module voice-agent/transcript-handler
  */
 
-import type { voice } from '@livekit/agents';
-import { log } from '@livekit/agents';
+import { log, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
 import {
@@ -28,7 +27,22 @@ import {
   hasPendingMusicFeedback,
   recordMusicFeedback,
   detectFeedbackFromResponse,
+  extractMusicPreferences,
+  hasMusicContext,
 } from '../../audio/index.js';
+import {
+  extractPreferences,
+  hasPreferenceContent,
+  type ExtractedPreference,
+} from '../../intelligence/preference-extractor.js';
+import {
+  addFavoriteTeam,
+  addToWatchlist,
+  addNewsInterest,
+  addAvoidTopic,
+  saveLocation,
+  setAllergies,
+} from '../../tools/domains/information/preferences/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
 import {
@@ -68,10 +82,7 @@ import {
   type TurnContext,
 } from './human-turn-intelligence.js';
 // 🦀 Rust-accelerated word counting
-import {
-  countWordsRust,
-  isTokenCountingAvailable,
-} from '../../memory/rust-accelerator.js';
+import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 // Check Rust availability at module load
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -519,11 +530,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
             if (result.shouldFire && result.verbalResponse) {
               // Speak the anticipatory response via coordinated speech
-              coordinatedSay(sessionId, result.verbalResponse, { allowInterruptions: true });
+              void coordinatedSay(sessionId, result.verbalResponse, { allowInterruptions: true });
 
               // Send avatar cue to frontend
               if (ctx.sendDataMessage && result.responseTemplate?.nonVerbal) {
-                ctx.sendDataMessage('avatar_cue', {
+                void ctx.sendDataMessage('avatar_cue', {
                   type: 'anticipatory_response',
                   ...result.responseTemplate.nonVerbal,
                   anticipatedOutcome: result.anticipatedOutcome,
@@ -642,7 +653,11 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           // Initialize session language if not already done
           const preferredLang = userData.preferredLanguage as string | undefined;
-          initializeSessionLanguage(sessionId, userData.userId, preferredLang as Parameters<typeof initializeSessionLanguage>[2]);
+          initializeSessionLanguage(
+            sessionId,
+            userData.userId,
+            preferredLang as Parameters<typeof initializeSessionLanguage>[2]
+          );
 
           // Accumulate for detection (returns result after 2+ utterances)
           const detection = accumulateForDetection(sessionId, cleanedTranscript);
@@ -747,7 +762,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           );
 
           // Also learn from the completed utterance
-          const anticipatedOutcome = userData.pendingAnticipatoryResult.anticipatedOutcome;
+          const { anticipatedOutcome } = userData.pendingAnticipatoryResult;
           const profileWithLearning = learnFromUtterance(updatedProfile, {
             fullUtterance: cleanedTranscript,
             actualOutcome: (anticipatedOutcome || 'processing') as
@@ -801,7 +816,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           // Also use voice emotion if available
           // Note: 'calm' is not a valid VoiceEmotionType, using 'neutral' as base
           const voiceTone =
-            userData.voiceEmotion?.primary === 'happy' || userData.voiceEmotion?.valence! > 0.3
+            userData.voiceEmotion?.primary === 'happy' ||
+            (userData.voiceEmotion?.valence ?? 0) > 0.3
               ? 'warmer'
               : userData.voiceEmotion?.primary === 'neutral'
                 ? 'calmer'
@@ -1104,6 +1120,34 @@ async function processFinalTranscript(
   }
 
   // ===============================================
+  // 🧵 THREAD RECORDING: Record user message for cross-channel continuity
+  // This enables seamless conversation flow: SMS → Voice → Push
+  // ===============================================
+  if (userId && event.transcript) {
+    try {
+      const { recordUserMessage } =
+        await import('../../services/conversation-thread/thread-recorder.js');
+      void recordUserMessage({
+        userId,
+        sessionId,
+        personaId: sessionPersona.id as import('../../personas/types.js').PersonaId,
+        threadId: userData.threadId,
+        content: event.transcript,
+        sentiment:
+          userData.lastEmotionAnalysis?.primary === 'happy'
+            ? 'positive'
+            : userData.lastEmotionAnalysis?.primary === 'sad'
+              ? 'negative'
+              : 'neutral',
+        topics: userData.recentTopics,
+      });
+    } catch (threadErr) {
+      // Non-fatal - thread recording is enhancement
+      diag.debug('Thread recording error', { error: String(threadErr) });
+    }
+  }
+
+  // ===============================================
   // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
   // Route high-confidence tool requests BEFORE Gemini processes
   // This bypasses the LLM entirely for deterministic tool calls
@@ -1226,6 +1270,42 @@ async function processFinalTranscript(
   // 🌟 Better Than Human transcript processing
   // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
   processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+
+  // 🎵 Music Preference Extraction
+  // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
+  // Learns music preferences from natural conversation without explicit commands
+  if (hasMusicContext(event.transcript)) {
+    const extractedPrefs = extractMusicPreferences(event.transcript);
+    if (extractedPrefs.length > 0) {
+      const djBooth = getDJBooth();
+      for (const pref of extractedPrefs) {
+        djBooth?.recordExplicitPreference(pref);
+      }
+      diag.state('🎵 Extracted music preferences from conversation', {
+        count: extractedPrefs.length,
+        preferences: extractedPrefs.map(p => `${p.type} ${p.category}: ${p.value}`),
+      });
+    }
+  }
+
+  // 🧠 General Preference Extraction
+  // Detects: sports teams, stocks, news interests, avoid topics, locations, allergies
+  // Learns preferences from natural conversation without explicit commands
+  if (userId && hasPreferenceContent(event.transcript)) {
+    const extractedPrefs = extractPreferences(event.transcript);
+    if (extractedPrefs.length > 0) {
+      // Fire-and-forget: save each preference to the appropriate store
+      for (const pref of extractedPrefs) {
+        fireAndForget(async () => {
+          await saveExtractedPreference(userId, pref);
+        }, 'preference-extraction');
+      }
+      diag.state('🧠 Extracted general preferences from conversation', {
+        count: extractedPrefs.length,
+        preferences: extractedPrefs.map(p => `${p.category}: ${p.value}`),
+      });
+    }
+  }
 
   // Extract memorable moments
   const newMoments = extractMemorableMoments(event.transcript);
@@ -1749,7 +1829,7 @@ function processTeamHuddleDetection(
         data: trigger.data,
       };
 
-      sendDataMessage?.('engagement_trigger', message);
+      void sendDataMessage?.('engagement_trigger', message);
 
       diag.info('Team huddle trigger sent', {
         triggerType: trigger.type,
@@ -1758,6 +1838,78 @@ function processTeamHuddleDetection(
     }
   } catch (err) {
     diag.debug('Team huddle detection error (non-fatal)', { error: String(err) });
+  }
+}
+
+// ============================================================================
+// PREFERENCE EXTRACTION HELPERS
+// ============================================================================
+
+/**
+ * Save an extracted preference to the appropriate storage
+ * 🧠 Enables "Better than Human" - Ferni learns from natural conversation
+ */
+async function saveExtractedPreference(userId: string, pref: ExtractedPreference): Promise<void> {
+  try {
+    switch (pref.category) {
+      case 'sports_team':
+        await addFavoriteTeam(userId, {
+          name: pref.value,
+          league: pref.context || 'Unknown',
+          priority: 'secondary', // Auto-extracted = secondary, explicit = primary
+        });
+        diag.info('🏈 Learned favorite team from conversation', {
+          team: pref.value,
+          league: pref.context,
+        });
+        break;
+
+      case 'stock_watchlist':
+        await addToWatchlist(userId, pref.value);
+        diag.info('📈 Learned stock interest from conversation', { ticker: pref.value });
+        break;
+
+      case 'news_interest':
+        await addNewsInterest(userId, pref.value);
+        diag.info('📰 Learned news interest from conversation', { topic: pref.value });
+        break;
+
+      case 'avoid_topic':
+        await addAvoidTopic(userId, pref.value);
+        diag.info('🚫 Learned topic to avoid from conversation', { topic: pref.value });
+        break;
+
+      case 'home_location':
+        await saveLocation(userId, { name: 'Home', address: pref.value });
+        diag.info('🏠 Learned home location from conversation', { location: pref.value });
+        break;
+
+      case 'work_location':
+        await saveLocation(userId, { name: 'Work', address: pref.value });
+        diag.info('💼 Learned work location from conversation', { location: pref.value });
+        break;
+
+      case 'allergy':
+        await setAllergies(userId, [pref.value], 'add');
+        diag.info('🤧 Learned allergy from conversation', { allergy: pref.value });
+        break;
+
+      case 'health_condition':
+        // Health conditions are sensitive - log but don't auto-store without confirmation
+        diag.info('🏥 Detected health condition mention (not auto-stored)', {
+          condition: pref.value,
+        });
+        break;
+
+      default:
+        diag.debug('Unknown preference category', { category: pref.category, value: pref.value });
+    }
+  } catch (error) {
+    diag.warn('Failed to save extracted preference', {
+      category: pref.category,
+      value: pref.value,
+      error: String(error),
+    });
   }
 }
 

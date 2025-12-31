@@ -34,8 +34,12 @@ import type {
   ContextInjection,
   ContextPriority,
 } from './core/types.js';
-import type { BuilderCategory } from './core/categories.js';
-import { BUILDER_CATEGORIES, getBuilderCategory } from './core/categories.js';
+import {
+  BuilderCategory as BC,
+  BUILDER_CATEGORIES,
+  getBuilderCategory,
+  type BuilderCategory,
+} from './core/categories.js';
 import {
   checkPerformanceIssues,
   getMetricsSummary,
@@ -240,8 +244,6 @@ export {
   validateBuilderPriorities,
 } from './core/categories.js';
 
-// Import for internal use
-import { BuilderCategory as BC } from './core/categories.js';
 export {
   checkPerformanceIssues,
   getAllBuilderMetrics,
@@ -594,7 +596,7 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
 /**
  * Categories that are ALWAYS run regardless of context
  */
-const CORE_CATEGORIES: BC[] = [BC.SAFETY, BC.CONTEXT];
+const CORE_CATEGORIES: BuilderCategory[] = [BUILDER_CATEGORIES.SAFETY, BUILDER_CATEGORIES.CONTEXT];
 
 // Import optimized fast conditional loading
 import { determineActiveCategoriesFast as fastDetermineCategories } from './fast-conditional-loading.js';
@@ -615,8 +617,8 @@ import {
  * @param input - The context builder input
  * @returns Array of categories that should be active
  */
-export function determineActiveCategories(input: ContextBuilderInput): BC[] {
-  const categories = new Set<BC>(CORE_CATEGORIES);
+export function determineActiveCategories(input: ContextBuilderInput): BuilderCategory[] {
+  const categories = new Set<BuilderCategory>(CORE_CATEGORIES);
 
   const { analysis, userData, voiceEmotion } = input;
   const turnCount = userData?.turnCount || 1;
@@ -632,23 +634,23 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     emotionIntensity > 0.5 ||
     analysis?.emotion?.valence === 'negative'
   ) {
-    categories.add(BC.EMOTIONAL);
+    categories.add(BUILDER_CATEGORIES.EMOTIONAL);
   }
 
   // VOICE - When voice emotion data is available
   if (voiceEmotion && voiceEmotion.confidence > 0.3) {
-    categories.add(BC.VOICE);
+    categories.add(BUILDER_CATEGORIES.VOICE);
   }
 
   // MEMORY - First 3 turns (session priming) + every 5th turn + returning users
   if (turnCount <= 3 || turnCount % 5 === 0 || userData?.isReturningUser) {
-    categories.add(BC.MEMORY);
+    categories.add(BUILDER_CATEGORIES.MEMORY);
   }
 
   // PERSONA - Every turn for character consistency, but can be reduced
   // Run on first turn, then periodically, or when low emotional intensity
   if (turnCount === 1 || turnCount % 3 === 0 || emotionIntensity < 0.3) {
-    categories.add(BC.PERSONA);
+    categories.add(BUILDER_CATEGORIES.PERSONA);
   }
 
   // COACHING - When user is seeking advice or in exploring phase
@@ -658,7 +660,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     analysis?.state?.phase === 'advising' ||
     analysis?.state?.phase === 'exploring'
   ) {
-    categories.add(BC.COACHING);
+    categories.add(BUILDER_CATEGORIES.COACHING);
   }
 
   // COGNITIVE - When complex reasoning or distortions detected
@@ -669,7 +671,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['decision', 'problem', 'stuck', 'confused', 'anxiety'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.COGNITIVE);
+    categories.add(BUILDER_CATEGORIES.COGNITIVE);
   }
 
   // ENGAGEMENT - When positive emotion or during lighter conversation
@@ -680,7 +682,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['music', 'game', 'fun', 'story', 'celebration'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.ENGAGEMENT);
+    categories.add(BUILDER_CATEGORIES.ENGAGEMENT);
   }
 
   // TEAM - When handoff signals detected or team mentioned
@@ -689,7 +691,7 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
     input.userText?.toLowerCase().includes('talk to') ||
     input.userText?.toLowerCase().includes('switch to')
   ) {
-    categories.add(BC.TEAM);
+    categories.add(BUILDER_CATEGORIES.TEAM);
   }
 
   // EXTERNAL - Periodically (every 10 turns) or when external topics mentioned
@@ -699,18 +701,18 @@ export function determineActiveCategories(input: ContextBuilderInput): BC[] {
       ['weather', 'calendar', 'health', 'finance', 'biometric'].includes(t.toLowerCase())
     )
   ) {
-    categories.add(BC.EXTERNAL);
+    categories.add(BUILDER_CATEGORIES.EXTERNAL);
   }
 
   // HUMANIZING - Most turns to maintain natural speech
   // Skip only during high distress (focus on support)
   if (distressLevel < DISTRESS.HIGH) {
-    categories.add(BC.HUMANIZING);
+    categories.add(BUILDER_CATEGORIES.HUMANIZING);
   }
 
   // LEARNING - Periodically (every 10 turns)
   if (turnCount % 10 === 0) {
-    categories.add(BC.LEARNING);
+    categories.add(BUILDER_CATEGORIES.LEARNING);
   }
 
   return Array.from(categories);

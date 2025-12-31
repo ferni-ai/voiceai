@@ -20,7 +20,17 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './core/types.js';
 import { BuilderCategory } from './core/categories.js';
-import { getRegisteredBuilders } from './core/registry.js';
+
+/**
+ * Get registered builders from the builder registry
+ * Note: This module is standalone and not currently integrated into turn-processor.
+ * The behavioral/orchestrator.ts provides similar functionality with budget enforcement.
+ */
+function getRegisteredBuilders(): ContextBuilder[] {
+  // Stub - this module is standalone and not currently used
+  // The actual builders are loaded via behavioral/integration.ts
+  return [];
+}
 
 const log = createLogger({ module: 'TieredContextExecution' });
 
@@ -281,7 +291,10 @@ export async function executeTieredBuilders(
 
       if (timedOut) {
         droppedCount++;
-        log.debug({ builder: builder.name, timeoutMs: importantTimeout }, 'Builder dropped (timeout)');
+        log.debug(
+          { builder: builder.name, timeoutMs: importantTimeout },
+          'Builder dropped (timeout)'
+        );
       } else {
         allInjections.push(...injections);
       }
