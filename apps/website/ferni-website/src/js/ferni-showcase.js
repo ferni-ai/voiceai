@@ -35,16 +35,6 @@
     return;
   }
   
-  // Debug: Log what elements we found
-  console.log('🔍 Ferni elements found:', {
-    avatar: !!avatar,
-    eyesGroup: !!eyesGroup,
-    eyeLeft: !!eyeLeft,
-    eyeRight: !!eyeRight,
-    eyeLeftTag: eyeLeft?.tagName,
-    eyeRightTag: eyeRight?.tagName
-  });
-  
   let blinkInterval = null;
   let cycleInterval = null;
   let currentMoodIndex = 0;
@@ -179,19 +169,20 @@
   // Cycle through expressions that showcase Ferni's emotional range via EYES
   // ═══════════════════════════════════════════════════════════════════════════════
   
+  // Luxo-style expression cycle - subtle but expressive
+  // Each expression should be noticeably different but not jarring
   const emotions = [
-    'neutral',      // Calm, ready
-    'listening',    // Wider eyes, attentive
-    'curious',      // Asymmetric eyes, head tilt
-    'thinking',     // Narrowed, gaze shifted
-    'pondering',    // Deeper thought, pronounced gaze
-    'warm',         // Soft squint, caring
-    'attentive',    // Engaged, leaning in
-    'interested',   // Slightly wider, focused
-    'caring',       // Gentle head tilt, soft eyes
-    'empathetic',   // Understanding squint
-    'playful',      // Asymmetric, slight sway
-    'confident'     // Steady, subtle squint
+    'curious',      // Asymmetric eyes, head tilt - "what's this?"
+    'listening',    // Eyes wider, attentive - "I hear you"
+    'warm',         // Squinted happy eyes - "I care"
+    'thinking',     // Narrowed, gaze shifted - "hmm..."
+    'attentive',    // Engaged, wide eyes - "tell me more"
+    'caring',       // Soft eyes, slight tilt - "I understand"
+    'interested',   // Focused eyes - "fascinating"
+    'playful',      // Asymmetric wink-like - "let's have fun"
+    'pondering',    // Deep thought, eyes narrow - "considering..."
+    'happy',        // Squinted smile - "joy"
+    'neutral'       // Reset - calm and ready
   ];
   
   // Glow color families (from expressions.html)
@@ -532,7 +523,7 @@
     setupVisibilityReactions();
     setupIdleGazeShift();
     
-    // Start with a curious expression
+    // Start with curious - the classic Luxo look
     setTimeout(() => {
       setMood('curious');
     }, 500);
