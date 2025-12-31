@@ -24,7 +24,7 @@ ARG NODE_VERSION=20
 # ============================================================================
 # Stage 0: Build Rust native modules (SIMD-accelerated audio processing)
 # ============================================================================
-FROM rust:1.83-slim AS rust-builder
+FROM rust:1.92-slim AS rust-builder
 
 WORKDIR /rust
 

@@ -30,8 +30,8 @@ lazy_static = "1.5"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [build-dependencies]
-# Pinned to 2.1.0 - version 2.3.1 requires rustc 1.88 (doesn't exist)
-napi-build = "=2.1.0"
+# Updated to 2.3.1 with Rust 1.92
+napi-build = "2.3.1"
 
 [[bench]]
 name = "simd_benchmarks"
