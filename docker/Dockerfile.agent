@@ -87,12 +87,12 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/async/package.json ./apps/async/
 COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY packages/shared-types/package.json ./packages/shared-types/
-COPY design-system/package.json ./design-system/
 
-# Create stub package.json for Rust packages (built natively, not via pnpm)
-RUN mkdir -p apps/rust-audio apps/rust-perf && \
+# Create stub package.json for packages not in build context (rust packages, design-system)
+RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
     echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
-    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json
+    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
+    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
 
 # Copy build configs
 COPY tsconfig.json ./
