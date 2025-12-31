@@ -80,7 +80,10 @@ functions/
 # Explicitly exclude each subdir except dist
 
 design-system/.storybook/
-design-system/assets/
+# design-system/assets/ - allow logos and favicons for UI build
+design-system/assets/icons/
+design-system/assets/social/
+design-system/assets/sounds/
 design-system/choreography/
 design-system/node_modules/
 design-system/preview/
