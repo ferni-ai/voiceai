@@ -149,24 +149,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-ca-certificates \
     && corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files for production install
-COPY package.json pnpm-lock.yaml* package-lock.json* ./
+# Copy package files from builder stage (has file: deps replaced with npm versions)
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml* ./
 COPY .npmrc .pnpmrc* ./
 
 # Copy patches directory (required for pnpm patched packages)
 COPY patches/ ./patches/
 
+# Copy workspace package stubs from builder
+COPY --from=builder /app/apps/rust-audio/package.json ./apps/rust-audio/
+COPY --from=builder /app/apps/rust-perf/package.json ./apps/rust-perf/
+COPY --from=builder /app/design-system/package.json ./design-system/
+COPY --from=builder /app/apps/cli/package.json ./apps/cli/
+COPY --from=builder /app/apps/web/package.json ./apps/web/
+COPY --from=builder /app/apps/async/package.json ./apps/async/
+COPY --from=builder /app/apps/intelligence-worker/package.json ./apps/intelligence-worker/
+COPY --from=builder /app/packages/shared-types/package.json ./packages/shared-types/
+COPY pnpm-workspace.yaml ./
+
 # Install production dependencies only (no devDependencies)
-# Use pnpm prune to remove dev deps and clean up
+# Note: no frozen-lockfile because we modified package.json in builder
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.npm \
-    if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile --prefer-offline --prod && \
-      pnpm store prune; \
-    else \
-      npm ci --omit=dev --prefer-offline && \
-      npm cache clean --force; \
-    fi && \
+    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    pnpm store prune && \
     # Remove unnecessary files from node_modules to reduce image size
     find node_modules -name "*.md" -delete 2>/dev/null || true && \
     find node_modules -name "*.map" -delete 2>/dev/null || true && \
