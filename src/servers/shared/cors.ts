@@ -34,6 +34,7 @@ export const DEVELOPMENT_ORIGINS = [
   'http://localhost:5173', // Vite default
   'http://127.0.0.1:3004',
   'http://127.0.0.1:3002',
+  'null', // file:// protocol sends 'null' as origin
 ];
 
 /**
@@ -107,6 +108,7 @@ const DEFAULT_ALLOWED_HEADERS = [
   'X-Requested-With',
   'X-User-Id',
   'X-Request-Id',
+  'X-Admin-Key', // Dev mode auth bypass
 ];
 
 /**

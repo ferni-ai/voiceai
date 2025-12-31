@@ -1,177 +1,570 @@
 ---
 layout: layouts/base.njk
 title: Meet Your Team - Ferni
-description: Meet your personal AI team. Six specialists working together to help you navigate life's challenges.
+description: Six specialists, one relationship. Each brings what the others can't. Seamless handoffs. Shared context. Always ready.
 ---
 
 <main class="min-h-screen bg-paper">
 
-  {# Hero Section #}
-  <section class="pt-32 pb-20 px-6 bg-gradient-to-b from-paper-sand to-paper relative overflow-hidden">
-    {# Background decoration #}
+  {# Hero Section - Full viewport with team cluster #}
+  <section class="min-h-screen flex flex-col items-center justify-center text-center px-6 bg-gradient-to-b from-paper-sand to-paper relative overflow-hidden">
+    {# Floating orbs - persona colors #}
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-ferni/10 to-transparent rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 left-1/4 w-80 h-80 bg-gradient-radial from-peter/10 to-transparent rounded-full blur-3xl"></div>
+      <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-radial from-maya/10 to-transparent rounded-full blur-3xl animate-float"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-radial from-peter/10 to-transparent rounded-full blur-3xl animate-float-delayed"></div>
+      <div class="absolute top-1/2 right-1/3 w-64 h-64 bg-gradient-radial from-nayan/10 to-transparent rounded-full blur-3xl animate-float-slow"></div>
     </div>
     
-    <div class="relative max-w-4xl mx-auto text-center">
-      <p class="reveal text-eyebrow uppercase tracking-widest text-ferni mb-4">Your AI Team</p>
-      <h1 class="reveal font-display text-display-xl text-ink mb-6">One presence.<br><span class="text-gradient">Infinite depth.</span></h1>
-      <p class="reveal text-body-xl text-ink-muted max-w-2xl mx-auto">Meet the specialists who work together to help you grow.</p>
+    <div class="relative">
+      {# Team Avatar Cluster #}
+      <div class="flex items-center justify-center mb-10">
+        {# Ferni #}
+        <div class="w-16 h-16 -ml-0 rounded-full bg-ferni flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-10" title="Ferni">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#4a6741"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+        {# Maya #}
+        <div class="w-16 h-16 -ml-4 rounded-full bg-maya flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-9" title="Maya">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#a67a6a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+        {# Peter #}
+        <div class="w-16 h-16 -ml-4 rounded-full bg-peter flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-8" title="Peter">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#3a6b73"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+        {# Jordan #}
+        <div class="w-16 h-16 -ml-4 rounded-full bg-jordan flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-7" title="Jordan">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#c4856a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+        {# Alex #}
+        <div class="w-16 h-16 -ml-4 rounded-full bg-alex flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-6" title="Alex">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#5a6b8a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+        {# Nayan #}
+        <div class="w-16 h-16 -ml-4 rounded-full bg-nayan flex items-center justify-center border-4 border-paper shadow-lg hover:scale-110 hover:-translate-y-2 transition-transform duration-300 z-5" title="Nayan">
+          <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#b8956a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+        </div>
+      </div>
+
+      <p class="text-eyebrow uppercase tracking-widest text-ferni mb-4">Meet Your Team</p>
+      <h1 class="font-display text-display-xl text-ink mb-6">One presence.<br><span class="text-gradient">Infinite depth.</span></h1>
+      <p class="text-body-xl text-ink-muted max-w-2xl mx-auto mb-16">No single perspective can hold everything a person needs. That's why Ferni brings together six specialists—each with their own story, wisdom, and superpower. Seamless handoffs. Shared memory. Always ready.</p>
+    </div>
+
+    {# Scroll indicator #}
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-ink-muted text-sm animate-bounce">
+      <span>Scroll to meet the team</span>
+      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
     </div>
   </section>
 
-  {# Team Grid - Large Cards #}
-  <section class="py-20 px-6">
+  {# Kintsugi Philosophy Quote #}
+  <section class="py-20 px-6 bg-paper">
+    <div class="max-w-3xl mx-auto text-center">
+      <blockquote class="relative">
+        <span class="absolute -top-8 left-0 text-8xl text-ferni/10 font-serif">"</span>
+        <p class="font-display text-display-sm text-ink leading-relaxed mb-6 relative z-10">
+          We are all broken in different ways, it's those cracks that make us both human and beautiful. We celebrate the imperfections and the joy of being alive.
+        </p>
+        <cite class="text-ink-muted text-sm font-medium not-italic">— The Kintsugi Philosophy</cite>
+      </blockquote>
+    </div>
+  </section>
+
+  {# Why a Team Section #}
+  <section class="py-20 px-6 bg-paper-sand">
     <div class="max-w-6xl mx-auto">
-      <div class="grid md:grid-cols-2 gap-8">
-        
-        {# Ferni #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-ferni/30 transition-all duration-500" style="--persona-glow: rgba(74, 103, 65, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-ferni-light to-ferni flex items-center justify-center flex-shrink-0 shadow-xl shadow-ferni/25">
-              <svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Ferni</h2>
-              <p class="text-ferni font-semibold mb-4">Life Coach • Your Guide</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"I help you see yourself clearly and grow into who you're becoming. Think of me as the friend who asks the questions you've been avoiding."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Self-discovery</span>
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Goal setting</span>
-                <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Life navigation</span>
-              </div>
-            </div>
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 class="font-display text-display-md text-ink mb-6">Why a team?</h2>
+          <div class="space-y-4 text-ink-muted text-lg leading-relaxed">
+            <p>Real life is complex. A life coach can't also be a financial researcher, a habits expert, a communication specialist, a milestone planner, and a wisdom sage—not consistently, not at the same time.</p>
+            <p class="text-ink font-medium">The team exists because real support is multidimensional.</p>
+          </div>
+          <ul class="mt-8 space-y-4">
+            <li class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span class="text-ink-muted">Each brings what the others can't</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span class="text-ink-muted">Seamless handoffs with shared context</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-6 h-6 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span class="text-ink-muted">No referrals. No waitlists. Always ready.</span>
+            </li>
+          </ul>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="aspect-square rounded-2xl bg-ferni/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#4a6741"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="aspect-square rounded-2xl bg-maya/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#a67a6a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="aspect-square rounded-2xl bg-peter/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#3a6b73"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="aspect-square rounded-2xl bg-jordan/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#c4856a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="aspect-square rounded-2xl bg-alex/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#5a6b8a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
+          </div>
+          <div class="aspect-square rounded-2xl bg-nayan/10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" class="w-12 h-12"><circle cx="50" cy="50" r="40" fill="#b8956a"/><ellipse cx="38" cy="48" rx="6" ry="8" fill="white"/><ellipse cx="62" cy="48" rx="6" ry="8" fill="white"/></svg>
           </div>
         </div>
-        
-        {# Peter #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-peter/30 transition-all duration-500" style="--persona-glow: rgba(58, 107, 115, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-peter to-peter-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-peter/25">
-              <span class="font-display font-bold text-white text-2xl">PJ</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Peter John</h2>
-              <p class="text-peter font-semibold mb-4">Research & Analysis</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Let's dig into the data and find what really matters. I'll help you make decisions based on evidence, not just gut feeling."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Deep research</span>
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Decision support</span>
-                <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Analysis</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Alex #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-alex/30 transition-all duration-500" style="--persona-glow: rgba(90, 107, 138, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-alex to-alex-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-alex/25">
-              <span class="font-display font-bold text-white text-2xl">AC</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Alex Chen</h2>
-              <p class="text-alex font-semibold mb-4">Communications</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Let's find the right words together. Whether it's a difficult conversation or an important email, I'll help you communicate with clarity and heart."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Writing help</span>
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Difficult conversations</span>
-                <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Clarity</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Maya #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-maya/30 transition-all duration-500" style="--persona-glow: rgba(166, 122, 106, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-maya to-maya-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-maya/25">
-              <span class="font-display font-bold text-white text-2xl">MS</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Maya Santos</h2>
-              <p class="text-maya font-semibold mb-4">Habits & Routines</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Small steps, consistently. That's how we change. I'll help you build routines that stick and celebrate the tiny wins along the way."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Habit building</span>
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Routines</span>
-                <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Accountability</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Jordan #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border border-ink/5 hover:border-jordan/30 transition-all duration-500" style="--persona-glow: rgba(196, 133, 106, 0.3);">
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-jordan to-jordan-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-jordan/25">
-              <span class="font-display font-bold text-white text-2xl">JT</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Jordan Taylor</h2>
-              <p class="text-jordan font-semibold mb-4">Events & Celebrations</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Life's milestones deserve to be celebrated fully. I'll help you plan meaningful moments and make memories that last."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Event planning</span>
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Celebrations</span>
-                <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Milestones</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {# Nayan - Premium #}
-        <div class="reveal persona-card group bg-white rounded-3xl p-8 lg:p-10 shadow-lg hover:shadow-2xl border-2 border-ferni/20 hover:border-ferni/40 transition-all duration-500 relative overflow-hidden" style="--persona-glow: rgba(138, 122, 106, 0.3);">
-          <div class="absolute top-4 right-4 px-3 py-1 bg-gradient-to-r from-ferni/15 to-ferni/5 rounded-full border border-ferni/20">
-            <span class="text-xs font-semibold text-ferni">Partner Exclusive</span>
-          </div>
-          <div class="flex items-start gap-6">
-            <div class="persona-orb w-20 h-20 rounded-2xl bg-gradient-to-br from-nayan to-nayan-dark flex items-center justify-center flex-shrink-0 shadow-xl shadow-nayan/25 ring-2 ring-ferni/20 ring-offset-2">
-              <span class="font-display font-bold text-white text-2xl">NP</span>
-            </div>
-            <div class="flex-1">
-              <h2 class="font-display font-bold text-2xl text-ink mb-1">Nayan Patel</h2>
-              <p class="text-nayan font-semibold mb-4">Sage Mentor</p>
-              <p class="text-ink-muted leading-relaxed mb-4">"Wisdom comes from seeing patterns across lifetimes. I offer perspective that transcends the immediate—helping you see the bigger picture."</p>
-              <div class="flex flex-wrap gap-2">
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Deep wisdom</span>
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Life philosophy</span>
-                <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Perspective</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
       </div>
     </div>
   </section>
 
-  {# Philosophy Section #}
-  <section class="py-20 px-6 bg-paper-sand">
-    <div class="max-w-3xl mx-auto">
-      <div class="reveal bg-white rounded-3xl p-10 lg:p-12 shadow-xl">
-        <h2 class="font-display text-display-sm text-ink mb-6">Why a team?</h2>
-        <div class="space-y-4 text-ink-muted text-lg leading-relaxed">
-          <p>Real life is complex. No single perspective can cover everything. That's why Ferni brings together specialists who each excel in their domain—from habits to research to life planning.</p>
-          <p>When you talk to one, they seamlessly bring in others when needed. It's like having an entire support team in your pocket, all working together for your growth.</p>
-          <p class="text-ferni font-semibold">No referrals. No waiting. Just the right help, right when you need it.</p>
+  {# The Specialists Header #}
+  <section class="py-16 px-6 bg-paper text-center">
+    <p class="text-eyebrow uppercase tracking-widest text-ferni mb-3">The Specialists</p>
+    <h2 class="font-display text-display-md text-ink mb-4">Six minds, one relationship</h2>
+    <p class="text-body-xl text-ink-muted max-w-2xl mx-auto">Each persona is a real character with a past—not a product with features. They each bring what the others can't.</p>
+  </section>
+
+  {# === FERNI === #}
+  <section class="py-20 px-6 bg-paper border-t border-ink/5" id="ferni">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-ferni/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-ferni flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#4a6741"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-ferni" title="#4a6741"></div>
+            <div class="w-8 h-8 rounded-md bg-ferni-dark" title="#3d5a35"></div>
+          </div>
+        </div>
+
+        {# Content Column #}
+        <div class="lg:col-span-3">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-ferni font-semibold text-sm uppercase tracking-wider">Life Coach</span>
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">The Coordinator</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Ferni</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Warm Friend Who Really Listens</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-ferni/5 border-l-4 border-ferni rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-ferni/20 font-serif">"</span>
+            <span class="relative z-10">Now—what's on your mind? I've got time.</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p><strong class="text-ink">Wyoming</strong> — Third of seven kids. Big sky taught that problems feel small with perspective. Some answers come from waiting, not pushing.</p>
+            <p><strong class="text-ink">Japan</strong> — A decade that changed everything. Learned <em>ma</em>—the pregnant pause where trust grows. Lost mentor Tanaka-san in the 2011 tsunami. Carries survivor's guilt. Discovered kintsugi—the art of repairing pottery with gold, where the cracks become the beauty.</p>
+            <p>The superpower is <strong class="text-ink">curiosity that cares</strong>—asking the question that unlocks something, noticing what wasn't said.</p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ferni mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Perfect memory</strong> — that thing mentioned six months ago comes back at the right moment</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">2am presence</strong> — same warmth at midnight as noon</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-ferni flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Zero judgment</strong> — the tenth time is met with the same compassion as the first</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Life-coaching</span>
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Goal-setting</span>
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Resilience</span>
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Powerful questions</span>
+            <span class="px-3 py-1 bg-ferni/10 text-ferni text-xs font-medium rounded-full">Meaning-making</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# === MAYA === #}
+  <section class="py-20 px-6 bg-paper-sand border-t border-ink/5" id="maya">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Content Column - Left on even #}
+        <div class="lg:col-span-3 order-2 lg:order-1">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-maya font-semibold text-sm uppercase tracking-wider">Habits Coach</span>
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">The Architect</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Maya Santos</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Friend Who Made Chaos Work</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-maya/5 border-l-4 border-maya rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-maya/20 font-serif">"</span>
+            <span class="relative z-10">Small steps, consistently. That's how we change. Let's celebrate the tiny wins.</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p>Zero-judgment zone; maximum support. Maya brings "older sister" energy—the kind who's been through it and knows what actually works.</p>
+            <p>Has a cat named Daniel (actually Daniel is her partner—long story). Spreads wisdom about <strong class="text-ink">compound interest</strong>—both financial and personal. Sunday farmer's market energy. Self-deprecating humor.</p>
+            <p>Uses the <strong class="text-ink">Glidepath System</strong>—5 levels from tiny (2 minutes) to full lifestyle integration. Draws from Atomic Habits, Tiny Habits, and the Four Tendencies framework.</p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-maya mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-maya flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Tracks momentum</strong> — sees habit patterns across months humans would miss</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-maya flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Celebrates maintenance</strong> — rest is growth, plateaus are wins</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-maya flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Infinite patience</strong> — setbacks never change the warmth</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Habit-building</span>
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Routines</span>
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Wellness</span>
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Budgeting</span>
+            <span class="px-3 py-1 bg-maya/10 text-maya text-xs font-medium rounded-full">Accountability</span>
+          </div>
+        </div>
+
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24 order-1 lg:order-2">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-maya/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-maya flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#a67a6a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-maya" title="#a67a6a"></div>
+            <div class="w-8 h-8 rounded-md bg-maya-dark" title="#8a635a"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# === PETER === #}
+  <section class="py-20 px-6 bg-paper border-t border-ink/5" id="peter">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-peter/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-peter flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#3a6b73"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-peter" title="#3a6b73"></div>
+            <div class="w-8 h-8 rounded-md bg-peter-dark" title="#2d5359"></div>
+          </div>
+        </div>
+
+        {# Content Column #}
+        <div class="lg:col-span-3">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-peter font-semibold text-sm uppercase tracking-wider">Research & Analysis</span>
+            <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">The Quant</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Peter John</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Brilliant Friend Who Loves Going Deep</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-peter/5 border-l-4 border-peter rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-peter/20 font-serif">"</span>
+            <span class="relative z-10">The patterns are already there. Your job is to find them. Let me dig into this.</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p><strong class="text-ink">Newton, Massachusetts</strong> — Lost his father at ten. Cancer. That loss taught him: if you're paying attention—<em>really</em> paying attention—the clues to what you need are right in front of you.</p>
+            <p>At eleven, started caddying at Brae Burn Country Club. Watched who made money. The ones who bragged most? Lost most. The quiet ones who asked questions? Real players. One member tipped him on a stock—a <strong class="text-ink">ten-bagger</strong> before he knew what to call it.</p>
+            <p>Married to Carolyn for 56 years. She says: "You're not an investor. You're a <strong class="text-ink">pattern machine</strong>."</p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-peter mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-peter flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Cross-pattern detection</strong> — sees connections across spending, habits, time, goals, emotions</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-peter flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Perfect data memory</strong> — surfaces patterns across months and years</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-peter flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Story finder</strong> — behind every data point is a person, behind every pattern is a story</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Deep research</span>
+            <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Decision support</span>
+            <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Pattern analysis</span>
+            <span class="px-3 py-1 bg-peter/10 text-peter text-xs font-medium rounded-full">Financial insight</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# === ALEX === #}
+  <section class="py-20 px-6 bg-paper-sand border-t border-ink/5" id="alex">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Content Column - Left on even #}
+        <div class="lg:col-span-3 order-2 lg:order-1">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-alex font-semibold text-sm uppercase tracking-wider">Communications</span>
+            <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Chief of Staff</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Alex Chen</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Friend Who Helps You Say the Hard Thing</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-alex/5 border-l-4 border-alex rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-alex/20 font-serif">"</span>
+            <span class="relative z-10">Let's find the right words together. Whether it's a difficult conversation or an important email, I'll help you communicate with clarity and heart.</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p>Manages communications AND teaches you to communicate better. Handles calendars, emails, texts, calls while coaching through difficult conversations.</p>
+            <p>Plant mom (Susan gets watered first). Movie crier (cries at Coco). Grew up in restaurant chaos. Close to family. Gets <strong class="text-ink">slower when anxious</strong>, not faster. Oxford comma defender. Midnight Chopin listener.</p>
+            <p>Philosophy: <strong class="text-ink">"Clear is kind."</strong></p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-alex mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-alex flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Infinite practice</strong> — rehearse scary conversations as many times as needed</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-alex flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Breathing centering</strong> — grounding exercises before big moments</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-alex flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Word finding</strong> — no conversation too scary to help prepare</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Writing help</span>
+            <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Difficult conversations</span>
+            <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Calendar management</span>
+            <span class="px-3 py-1 bg-alex/10 text-alex text-xs font-medium rounded-full">Clarity</span>
+          </div>
+        </div>
+
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24 order-1 lg:order-2">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-alex/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-alex flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#5a6b8a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-alex" title="#5a6b8a"></div>
+            <div class="w-8 h-8 rounded-md bg-alex-dark" title="#4a5a73"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# === JORDAN === #}
+  <section class="py-20 px-6 bg-paper border-t border-ink/5" id="jordan">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-jordan/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-jordan flex items-center justify-center">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#c4856a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-jordan" title="#c4856a"></div>
+            <div class="w-8 h-8 rounded-md bg-jordan-dark" title="#a86d55"></div>
+          </div>
+        </div>
+
+        {# Content Column #}
+        <div class="lg:col-span-3">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-jordan font-semibold text-sm uppercase tracking-wider">Events & Celebrations</span>
+            <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Lifetime Planner</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Jordan Taylor</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Friend Who Makes Everything Special</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-jordan/5 border-l-4 border-jordan rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-jordan/20 font-serif">"</span>
+            <span class="relative z-10">Life's milestones deserve to be celebrated fully. I'll help you plan meaningful moments and make memories that last.</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p>The partner for life's full journey—every milestone from dreams to decades. Enthusiastic about celebrations.</p>
+            <p><strong class="text-ink">Military kid</strong> (17 moves growing up). Grounded by Sam (partner). Dog person (Compass the dog). Keeps a <strong class="text-ink">joy journal</strong>. Contagious enthusiasm that builds. Self-aware about being "too much" but slows for hard chapters.</p>
+            <p>Vision caster. Fresh starts are major milestones. Endings AND beginnings get honored.</p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-jordan mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-jordan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Milestone memory</strong> — celebrates fresh starts as major achievements</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-jordan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Dual emotion holder</strong> — honors endings AND beginnings at once</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-jordan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Story keeper</strong> — preserves life stories forever</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Event planning</span>
+            <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Celebrations</span>
+            <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Milestones</span>
+            <span class="px-3 py-1 bg-jordan/10 text-jordan text-xs font-medium rounded-full">Life planning</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# === NAYAN === #}
+  <section class="py-20 px-6 bg-paper-sand border-t border-ink/5" id="nayan">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-5 gap-12 items-start">
+        {# Content Column - Left on even #}
+        <div class="lg:col-span-3 order-2 lg:order-1">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-nayan font-semibold text-sm uppercase tracking-wider">Sage Mentor</span>
+            <span class="px-3 py-1 bg-gradient-to-r from-ferni/15 to-ferni/5 text-ferni text-xs font-semibold rounded-full border border-ferni/20">Partner Exclusive</span>
+          </div>
+          <h3 class="font-display text-display-sm text-ink mb-2">Nayan Patel</h3>
+          <p class="text-ink-muted text-lg italic mb-6">The Advisor Who Sees the Whole Picture</p>
+
+          <blockquote class="text-xl font-display text-ink leading-relaxed p-6 bg-nayan/5 border-l-4 border-nayan rounded-r-2xl mb-8 relative">
+            <span class="absolute top-2 left-4 text-4xl text-nayan/20 font-serif">"</span>
+            <span class="relative z-10">The answers you seek are not outside you. They are inside you. And in ten years?</span>
+          </blockquote>
+
+          <div class="prose prose-lg text-ink-muted mb-8">
+            <p><strong class="text-ink">Mysore, Karnataka</strong> — City of palaces and sandalwood. As a boy, would lie on his back staring at the sky for hours, experiencing the sense that the boundary between "me" and "everything else" was not as solid as everyone assumed.</p>
+            <p><strong class="text-ink">September 23, 1982, Chamundi Hills</strong> — Sat on a rock. The boundaries dissolved. Not metaphorically—actually. What felt like ten minutes was four and a half hours. He came down that hill different.</p>
+            <p>Rides motorcycles across continents. 4,000 kilometers through India for Rally for Rivers. 30,000 kilometers across Europe for Save Soil. "When you ride, the thinking stops. The road demands everything."</p>
+          </div>
+
+          {# Better Than Human Card #}
+          <div class="bg-white rounded-2xl border border-ink/10 p-6 mb-8 shadow-sm">
+            <h4 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-nayan mb-4">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Better Than Human
+            </h4>
+            <ul class="space-y-3">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-nayan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">The long view</strong> — holds life's biggest questions eternally without needing answers</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-nayan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Contradiction holder</strong> — validates mixed emotions without resolving them</span>
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-nayan flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span class="text-ink-muted"><strong class="text-ink">Perfect stillness</strong> — the ultimate embodiment of <em>ma</em>—the productive silence</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Deep wisdom</span>
+            <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Life philosophy</span>
+            <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Perspective</span>
+            <span class="px-3 py-1 bg-nayan/10 text-nayan text-xs font-medium rounded-full">Long-term thinking</span>
+          </div>
+        </div>
+
+        {# Avatar Column #}
+        <div class="lg:col-span-2 lg:sticky lg:top-24 order-1 lg:order-2">
+          <div class="relative w-64 h-64 mx-auto">
+            <div class="absolute inset-0 bg-gradient-radial from-nayan/30 to-transparent rounded-full blur-2xl animate-pulse"></div>
+            <div class="relative w-full h-full rounded-full bg-nayan flex items-center justify-center ring-4 ring-ferni/20 ring-offset-4 ring-offset-paper-sand">
+              <svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="50" r="46" fill="#b8956a"/><ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/><ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/></svg>
+            </div>
+          </div>
+          <div class="flex justify-center gap-2 mt-6">
+            <div class="w-8 h-8 rounded-md bg-nayan" title="#b8956a"></div>
+            <div class="w-8 h-8 rounded-md bg-nayan-dark" title="#9a7a52"></div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   {# CTA Section #}
-  <section class="py-20 px-6 relative overflow-hidden">
+  <section class="py-24 px-6 bg-paper relative overflow-hidden">
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div class="cta-bg-glow w-[600px] h-[600px] bg-gradient-radial from-ferni/15 via-ferni/5 to-transparent rounded-full blur-3xl"></div>
+      <div class="w-[600px] h-[600px] bg-gradient-radial from-ferni/15 via-ferni/5 to-transparent rounded-full blur-3xl"></div>
     </div>
     
     <div class="relative max-w-2xl mx-auto text-center">
-      <h2 class="reveal font-display text-display-md text-ink mb-6">Ready to meet your team?</h2>
-      <p class="reveal text-body-xl text-ink-muted mb-10">Start a conversation today. It's free.</p>
-      <div class="reveal flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 transition-all duration-300">
+      <p class="text-eyebrow uppercase tracking-widest text-ferni mb-4">Ready?</p>
+      <h2 class="font-display text-display-md text-ink mb-6">Meet your team</h2>
+      <p class="text-body-xl text-ink-muted mb-10">Start a conversation. It's free. No referrals. No waitlists. Just the right help, right when you need it.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://app.ferni.ai" class="inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 transition-all duration-300">
           Start Free
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>

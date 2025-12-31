@@ -105,6 +105,7 @@ import { handleMonitoringRoutes } from '../../api/monitoring-routes.js';
 import { handlePerformanceRoutes } from '../../api/performance-routes.js';
 import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
+import { handlePredictionsRoutes } from '../../api/routes/predictions.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
 import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
@@ -117,6 +118,7 @@ import { handleUserRoutes } from '../../api/user-routes.js';
 import { handleWaitlistRoutes } from '../../api/waitlist-routes.js';
 import { handleHabitRoutes } from '../../api/habit-routes.js';
 import { handleWellbeingRoutes } from '../../api/wellbeing.routes.js';
+import { handleYourStoryRoutes } from '../../api/your-story-routes.js';
 import { handlePredictiveInsightsRequest } from '../../api/predictive-insights-routes.js';
 import { handleIntelligenceRoutes } from '../../api/routes/intelligence-routes.js';
 import { handleScheduledJobsRoutes } from '../../api/scheduled-jobs.routes.js';
@@ -147,6 +149,7 @@ import { handleLinkedInRoutes } from '../../api/linkedin-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
+import { handlePracticeViewRoutes } from '../../api/routes/practice-view.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
 import { handleJournalRoutes } from '../../api/journal-routes.js';
@@ -158,6 +161,7 @@ import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.j
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
+import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import {
   handleTwilioRoutes,
   initializeTwilioStreamBridge,
@@ -701,9 +705,21 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Practice View routes (What's Ahead - rich calendar + insights)
+    if (pathname.startsWith('/api/practice-view')) {
+      const handled = await handlePracticeViewRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Trust systems routes
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Semantic Intelligence routes (Better Than Human V3)
+    if (pathname.startsWith('/api/semantic-intelligence')) {
+      const handled = await handleSemanticIntelligenceRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -802,6 +818,13 @@ const server = http.createServer(async (req, res) => {
       const handled = await handleProactiveRoutes(req, res, pathname);
       if (handled) return;
     }
+
+    // Predictions routes (Better Than Human - predictive coaching)
+    if (pathname.startsWith('/api/predictions')) {
+      const handled = await handlePredictionsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
 
     // Year in review ("Your Year with Ferni") routes
     if (pathname.startsWith('/api/year-in-review')) {
@@ -933,6 +956,12 @@ const server = http.createServer(async (req, res) => {
     // Wellbeing routes
     if (pathname.startsWith('/api/wellbeing')) {
       const handled = await handleWellbeingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Your Story dashboard routes (unified immersive data)
+    if (pathname.startsWith('/api/your-story')) {
+      const handled = await handleYourStoryRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

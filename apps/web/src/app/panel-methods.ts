@@ -33,6 +33,7 @@ import {
   hasAnyVisualizationData,
   type YourStoryData,
 } from '../ui/visualizations/index.js';
+import { fetchYourStory } from '../services/your-story.service.js';
 
 const log = createLogger('PanelMethods');
 
@@ -398,7 +399,7 @@ export async function showPredictionTracker(): Promise<void> {
 export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
   const { dataExportService } = await import('../services/data-export.service.js');
-  const { toast } = await import('../ui/toast.ui.js');
+  const { toast } = await import('../ui/whisper.ui.js');
 
   // Set up callbacks for export and delete
   getDataExportUI().setCallbacks({
@@ -519,6 +520,11 @@ export async function showTeamHuddle(topic?: string): Promise<void> {
  * - Analytics stats (days together, conversations, streak)
  * - Relationship stage and milestones
  *
+ * Data sources (in priority order):
+ * 1. Backend API (/api/your-story/full) - aggregates all services
+ * 2. Direct Firestore fetch - fallback for offline/errors
+ * 3. Demo data - for new users or when all else fails
+ *
  * For new users, shows aspirational demo data with a warm banner.
  */
 export async function showYourStoryDashboard(): Promise<void> {
@@ -528,7 +534,24 @@ export async function showYourStoryDashboard(): Promise<void> {
 
   const userId = localStorage.getItem('ferni_user_id');
 
-  // Try to fetch real data from Firestore
+  // Priority 1: Try the unified API endpoint (aggregates all services)
+  try {
+    if (userId) {
+      log.debug({ userId }, 'Fetching from /api/your-story/full');
+      const storyData = await fetchYourStory();
+
+      // Check if we got real data (not demo fallback)
+      if (storyData.analytics.conversations > 0 || storyData.analytics.daysTogether > 0) {
+        dashboard.show(storyData);
+        log.info({ userId }, 'Your Story shown from API');
+        return;
+      }
+    }
+  } catch (err) {
+    log.debug({ err }, 'API fetch failed, trying Firestore fallback');
+  }
+
+  // Priority 2: Fallback to direct Firestore fetch
   try {
     if (userId) {
       const visualizationData = await fetchVisualizationData(userId);
@@ -537,16 +560,15 @@ export async function showYourStoryDashboard(): Promise<void> {
         // Aggregate with analytics and milestone data
         const storyData = await aggregateStoryData(userId, visualizationData);
         dashboard.show(storyData);
-        log.info({ userId }, 'Your Story shown with real data');
+        log.info({ userId }, 'Your Story shown from Firestore fallback');
         return;
       }
     }
   } catch (err) {
-    log.debug({ err }, 'Visualization fetch failed, checking for demo mode');
+    log.debug({ err }, 'Firestore fetch failed, using demo data');
   }
 
-  // Fall back to demo data - always show for new users
-  // This is intentional: we want to show the aspirational story
+  // Priority 3: Demo data for new users or when all else fails
   const demoData = createDemoStoryData(userId || 'demo-user');
   dashboard.show(demoData, { showDemoBanner: true });
   log.info('Your Story shown with demo data (new user or demo mode)');
