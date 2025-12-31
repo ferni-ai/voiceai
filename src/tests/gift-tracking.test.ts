@@ -26,15 +26,22 @@ import {
   type GiftSuggestion,
 } from '../services/contacts/gift-tracking-service.js';
 
-// Mock dependencies
-vi.mock('../utils/safe-logger.js', () => ({
-  createLogger: () => ({
+// Mock dependencies - must include both getLogger and createLogger
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
+    debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    debug: vi.fn(),
-  }),
-}));
+    child: vi.fn(),
+  };
+  mockLogger.child.mockReturnValue(mockLogger);
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    serializeError: (e: unknown) => String(e),
+  };
+});
 
 vi.mock('../memory/firebase-client.js', () => ({
   getFirestoreClient: () => ({

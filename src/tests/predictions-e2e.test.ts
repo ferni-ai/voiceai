@@ -431,7 +431,8 @@ describe('Predictions E2E Integration', () => {
 
   describe('9. Confidence Decay and Pattern Feedback', () => {
     it('should apply confidence decay to stale patterns', async () => {
-      const { applyConfidenceDecay } = await import('../services/superhuman/predictive-coaching.js');
+      const { applyConfidenceDecay } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       // Create a pattern that's 40 days old
       const stalePattern = {
@@ -464,12 +465,14 @@ describe('Predictions E2E Integration', () => {
 
       // Should not throw when called (even without Firestore)
       await expect(confirmPrediction(TEST_USER_ID, 'non-existent-pattern')).resolves.not.toThrow();
-      await expect(invalidatePrediction(TEST_USER_ID, 'non-existent-pattern')).resolves.not.toThrow();
+      await expect(
+        invalidatePrediction(TEST_USER_ID, 'non-existent-pattern')
+      ).resolves.not.toThrow();
     });
 
     it('should trigger decay on conversation end in worker', async () => {
       const { PredictionsWorker } = await import('../workers/predictions-worker.js');
-      
+
       // Create worker and verify it handles conversation:end events
       const worker = new PredictionsWorker({ name: 'DecayTestWorker' });
       expect(worker).toBeDefined();
@@ -560,9 +563,8 @@ describe('Predictions E2E Integration', () => {
   describe('11. Unified Context Building (All Prediction Sources)', () => {
     it('should collect triggers from both rule-based and ML systems', async () => {
       // Import the prediction surfacing builder
-      const { predictionSurfacingBuilder } = await import(
-        '../intelligence/context-builders/prediction-surfacing.js'
-      );
+      const { predictionSurfacingBuilder } =
+        await import('../intelligence/context-builders/prediction-surfacing.js');
 
       // Build context with mock input
       const injections = await predictionSurfacingBuilder.build({

@@ -98,7 +98,7 @@ src/
 │   ├── jordan-milestone-insights.ts    # Jordan's milestone planning
 │   ├── alex-communication-insights.ts  # Alex's communication coaching
 │   ├── nayan-wisdom-insights.ts        # Nayan's life wisdom synthesis
-│   ├── ferni-coordinator-intelligence.ts # Ferni's handoff suggestions
+│   ├── ferni-coordinator-insights.ts # Ferni's handoff suggestions
 │   ├── superhuman-integration.ts       # Bridges superhuman services
 │   └── shared-types.ts                 # Common interfaces
 │
@@ -293,7 +293,7 @@ interface LifeSynthesis {
 
 ### Ferni Coordinator Intelligence
 
-**File:** `src/intelligence/context-builders/ferni-coordinator-intelligence.ts`
+**File:** `src/intelligence/context-builders/ferni-coordinator-insights.ts`
 
 **Purpose:** Helps Ferni suggest smart handoffs based on team insights.
 

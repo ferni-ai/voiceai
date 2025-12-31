@@ -14,6 +14,39 @@ import { createCallback } from '../signals.js';
 import { registerBehavioralBuilder } from '../orchestrator.js';
 
 // ============================================================================
+// QUESTION TRACKING
+// ============================================================================
+
+/**
+ * Calculate how many turns since the agent last asked a question.
+ * This prevents over-questioning by spacing out questions naturally.
+ */
+function calculateTurnsSinceQuestion(input: ContextBuilderInput): number {
+  const turns = input.services?.historyTracker?.getSimpleTurns();
+  if (!turns || turns.length === 0) {
+    // No history - allow questions
+    return 10;
+  }
+
+  // Walk backwards through history to find the last assistant question
+  let turnCounter = 0;
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const turn = turns[i];
+    if (turn.role === 'assistant' || turn.role === 'model') {
+      // Check if this assistant turn ends with a question
+      const content = turn.content?.trim() || '';
+      if (content.endsWith('?')) {
+        return turnCounter;
+      }
+      turnCounter++;
+    }
+  }
+
+  // No question found in history - allow questions
+  return turns.length;
+}
+
+// ============================================================================
 // CONVERSATIONAL FLOW DETECTION
 // ============================================================================
 
@@ -121,6 +154,9 @@ async function buildHumanizingBehavior(input: ContextBuilderInput): Promise<Beha
   // Detect conversation flow
   const flow = detectConversationFlow(turnCount, emotionalIntensity, sessionDurationMs);
 
+  // Calculate actual turns since agent last asked a question
+  const turnsSinceQuestion = calculateTurnsSinceQuestion(input);
+
   const signals: BehavioralSignals = {
     source: 'humanizing',
     confidence: 0.6,
@@ -129,7 +165,7 @@ async function buildHumanizingBehavior(input: ContextBuilderInput): Promise<Beha
     questionStyle: getQuestionStyle(
       flow,
       analysis?.emotion?.needsSupport || false,
-      2 // TODO: Track actual turns since question
+      turnsSinceQuestion
     ),
   };
 

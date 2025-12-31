@@ -193,7 +193,9 @@ describe('Cognitive Questions', () => {
       //
       // We just need to find at least one emotional question to prove the feature works.
       let foundEmotional = false;
-      const maxIterations = 500;
+      // Increased iterations because seededPick uses Date.now() as seed,
+      // and fast loop iterations can share the same millisecond timestamp
+      const maxIterations = 2000;
 
       for (let i = 0; i < maxIterations && !foundEmotional; i++) {
         const question = generateCognitiveQuestion({

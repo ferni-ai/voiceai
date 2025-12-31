@@ -131,7 +131,7 @@ const INTENT_TO_BUILDERS: Record<string, string[]> = {
     'team-dynamics',
     'handoff',
     'role-boundaries',
-    'ferni-coordinator-intelligence',
+    'ferni-coordinator-insights',
   ],
 
   // Sharing feelings needs emotional and memory builders
@@ -269,7 +269,7 @@ const TOPIC_TO_BUILDERS: Record<string, string[]> = {
 const PERSONA_BUILDERS: Record<string, string[]> = {
   ferni: [
     'ferni-personality',
-    'ferni-coordinator-intelligence',
+    'ferni-coordinator-insights',
     'team-availability',
     'team-dynamics',
     'handoff',

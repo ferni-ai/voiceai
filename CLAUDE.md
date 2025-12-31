@@ -223,6 +223,40 @@ pnpm ops:logs:errors
 
 **Disconnect debugging guide:** `docs/runbooks/DISCONNECT-DEBUGGING.md`
 
+### 🧠 Semantic Data Store Deployment
+
+The semantic data store provides superhuman memory. Deploy and manage with:
+
+```bash
+# Full automated deployment (recommended)
+pnpm ops:semantic-deploy            # Deploy, backfill, cleanup - interactive
+pnpm ops:semantic-deploy:dry-run    # Preview what would happen
+
+# Manual operations
+pnpm ops:semantic-backfill          # Run backfill only
+pnpm ops:semantic-backfill:dry-run  # Preview backfill
+pnpm ops:semantic-health            # Check health endpoint
+
+# Skip code deployment (backfill only)
+pnpm ops:semantic-deploy:skip-deploy
+```
+
+**Options:**
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Preview without changes |
+| `--skip-deploy` | Skip code deployment |
+| `--skip-backfill` | Skip data backfill |
+| `--force` | Skip confirmation prompts |
+| `--batch-size <n>` | Backfill batch size (default: 50) |
+| `--domain <name>` | Only backfill one domain |
+| `--rollback` | Emergency disable instructions |
+
+**Health endpoints:**
+- `GET /api/semantic-store/health` - Health status
+- `GET /api/semantic-store/metrics` - Prometheus metrics
+- `POST /api/semantic-store/cleanup` - Trigger TTL cleanup
+
 ### 🔔 External Health Monitoring (GCP Cloud Scheduler)
 
 Set up GCP Cloud Monitoring uptime checks to alert when services are down:
@@ -405,7 +439,7 @@ GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = f
 
 ### Brand Alignment (Automated)
 
-Brand colors are validated against `design-system/brand/FERNI-BRAND-GUIDELINES.md`:
+Brand colors are validated against `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`:
 
 ```bash
 pnpm brand:check    # Validate tokens match brand guidelines
@@ -453,7 +487,7 @@ ferni: { DEFAULT: '#4a6741' }
 ```
 
 **Before modifying any color**, check the brand guidelines:
-1. Read `design-system/brand/FERNI-BRAND-GUIDELINES.md`
+1. Read `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`
 2. Modify `design-system/tokens/colors.json` (source of truth)
 3. Run `pnpm tokens:sync`
 4. Run `pnpm brand:check`
@@ -576,6 +610,7 @@ toast.success('Operation completed successfully');
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
 - **Tool Loading**: `docs/architecture/TOOL-LOADING-SYSTEM.md` (how tools get to Gemini, config files, debugging)
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
+- **Pre-STT Audio Enhancement**: `docs/architecture/PRE-STT-AUDIO-ENHANCEMENT.md` (Rust DSP, AGC, noise suppression, bandwidth extension)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
 - **Cross-Persona Intelligence**: `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` (team coordination, superhuman services)
@@ -584,7 +619,7 @@ toast.success('Operation completed successfully');
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design System**: `design-system/README.md` (tokens, animations, colors)
 - **Design System Audit**: `docs/audits/DESIGN-SYSTEM-AUDIT.md` (consolidation status)
-- **Emotional Intelligence**: `design-system/brand/BETTER-THAN-HUMAN.md`
+- **Emotional Intelligence**: `design-system/docs/brand/BETTER-THAN-HUMAN.md`
 
 ## 🚀 Ferni EQ - Superhuman Emotional Intelligence
 
@@ -633,7 +668,7 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 | Ignore user breathing patterns | Sync breathing gradually |
 | Wait for explicit "I'm sad" | Detect distress signals early |
 
-**Reference:** `design-system/brand/BETTER-THAN-HUMAN.md` for full documentation.
+**Reference:** `design-system/docs/brand/BETTER-THAN-HUMAN.md` for full documentation.
 
 ### Backend → Frontend Integration
 
@@ -684,7 +719,7 @@ Each persona has a specialized builder that activates on entry/handoff:
 | `jordan-milestone-insights.ts` | Planning velocity, celebration readiness, seasonal patterns |
 | `alex-communication-insights.ts` | Calendar density, response velocity, delegation clarity |
 | `nayan-wisdom-insights.ts` | Life synthesis, values alignment, existential context |
-| `ferni-coordinator-intelligence.ts` | Smart handoff suggestions from team insights |
+| `ferni-coordinator-insights.ts` | Smart handoff suggestions from team insights |
 
 ### 10 Superhuman Services
 
@@ -1173,3 +1208,4 @@ git commit --no-verify -m "EMERGENCY: ..."
 - `src/personas/CLAUDE.md` - How to create personas
 - `src/intelligence/context-builders/CLAUDE.md` - Context builder patterns
 - `apps/web/CLAUDE.md` - Frontend/design system rules
+- `brand/CLAUDE.md` - Brand library rules (LUXO-STYLE EYES: opaque white, NO pupils)

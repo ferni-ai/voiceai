@@ -260,8 +260,15 @@ describe('Memory Persistence', () => {
         await import('../memory/firestore-vector-store.js');
       const { createUserProfile } = await import('../types/user-profile.js');
 
+      // Skip if using in-memory store (rehydration only works with persistent storage)
+      const storeType = detectStoreType();
+      if (storeType === 'memory') {
+        console.log('Skipping rehydration test - requires Firestore');
+        return;
+      }
+
       // Setup: Create store and save a conversation summary with embedding
-      const store = await createStore(detectStoreType());
+      const store = await createStore(storeType);
       const profile = createUserProfile(TEST_USER_ID, 'Rehydration Test User');
       await store.saveProfile(profile);
 

@@ -13,7 +13,7 @@
  *
  * This makes Ferni's handoffs feel intelligent and proactive, not reactive.
  *
- * @module intelligence/context-builders/ferni-coordinator-intelligence
+ * @module intelligence/context-builders/ferni-coordinator-insights
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -582,7 +582,7 @@ async function buildFerniCoordinatorIntelligenceContext(
 // ============================================================================
 
 registerContextBuilder({
-  name: 'ferni-coordinator-intelligence',
+  name: 'ferni-coordinator-insights',
   description: 'Gives Ferni smart handoff suggestions based on cross-team insights',
   priority: 40, // High priority so Ferni sees this early
   category: BuilderCategory.PERSONA,

@@ -23,6 +23,8 @@ vi.mock('../tools/domains/smart-home/smart-home.js', () => ({
   getAllDevices: vi.fn().mockResolvedValue([]),
   controlDevice: vi.fn().mockResolvedValue('Success'),
   activateScene: vi.fn().mockResolvedValue('Scene activated'),
+  setLightsForVibe: vi.fn().mockResolvedValue({ success: false, devices: [] }),
+  playVibeMusic: vi.fn().mockResolvedValue({ success: false }),
 }));
 
 vi.mock('../services/identity/ecobee-api.js', () => ({
@@ -46,7 +48,7 @@ import {
   getPreset,
   VIBE_PRESETS,
 } from '../services/vibe/vibe-service.js';
-import { getAllDevices } from '../tools/domains/smart-home/smart-home.js';
+import { getAllDevices, setLightsForVibe } from '../tools/domains/smart-home/smart-home.js';
 import { isEcobeeConfigured } from '../services/identity/ecobee-auth.js';
 
 describe('Vibe Service', () => {
@@ -199,6 +201,11 @@ describe('Vibe Service', () => {
           platform: 'home_assistant',
         },
       ]);
+      // setLightsForVibe must return success for lights to be applied
+      vi.mocked(setLightsForVibe).mockResolvedValue({
+        success: true,
+        devices: [{ id: 'light.living', name: 'Living Room' }],
+      });
 
       const result = await activateVibe('test-user', 'focus');
 

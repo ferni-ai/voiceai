@@ -13,6 +13,83 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// ============================================================================
+// MOCKS - Must be declared before imports that use them
+// ============================================================================
+
+// Mock embeddings module with deterministic hash-based embeddings
+vi.mock('../memory/embeddings.js', () => ({
+  embed: vi.fn(async (text: string) => {
+    // Return a deterministic mock embedding based on text hash
+    const hash = text.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    return Array.from({ length: 768 }, (_, i) => ((hash + i) % 100) / 100);
+  }),
+  embedBatch: vi.fn(async (texts: string[]) => {
+    return texts.map((text) => {
+      const hash = text.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      return Array.from({ length: 768 }, (_, i) => ((hash + i) % 100) / 100);
+    });
+  }),
+  cosineSimilarity: vi.fn((a: number[], b: number[]) => {
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  }),
+}));
+
+// Mock rust-accelerator with JS fallback implementation
+vi.mock('../memory/rust-accelerator.js', () => ({
+  topKSimilar: vi.fn((query: number[], candidates: number[][], k: number, minSimilarity = 0) => {
+    if (candidates.length === 0) {
+      return { indices: [], similarities: [] };
+    }
+
+    // Simple JS cosine similarity
+    const cosineSim = (a: number[], b: number[]) => {
+      let dot = 0;
+      let normA = 0;
+      let normB = 0;
+      for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        dot += a[i] * b[i];
+        normA += a[i] * a[i];
+        normB += b[i] * b[i];
+      }
+      return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+    };
+
+    const scored = candidates
+      .map((candidate, i) => ({
+        index: i,
+        similarity: cosineSim(query, candidate),
+      }))
+      .filter((s) => s.similarity >= minSimilarity)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, k);
+
+    return {
+      indices: scored.map((s) => s.index),
+      similarities: scored.map((s) => s.similarity),
+    };
+  }),
+  cosineSimilarity: vi.fn((a: number[], b: number[]) => {
+    let dot = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  }),
+}));
+
 // Memory system imports
 import { extractHumanSignals, mergeSignalsIntoMemory } from '../memory/human-signal-extractor.js';
 import { indexUserMemories, type IndexingResult } from '../memory/user-memory-indexer.js';
@@ -40,14 +117,19 @@ function createTestProfile(overrides: Partial<UserProfile> = {}): UserProfile {
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
     updatedAt: new Date(),
     totalConversations: 10,
+    firstContact: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // First conversation 30 days ago
     lastContact: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
     keyMoments: [
       {
         id: 'moment-1',
+        type: 'decision',
         summary: 'Shared about career change decision',
         emotion: 'hopeful',
+        emotionalWeight: 'heavy',
         timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         importance: 0.9,
+        topics: ['career', 'life transition'],
+        followUpNeeded: false,
       },
     ],
     goals: [
@@ -60,6 +142,22 @@ function createTestProfile(overrides: Partial<UserProfile> = {}): UserProfile {
       },
     ],
     primaryConcerns: ['work-life balance', 'financial planning'],
+    // Required fields for indexPreferences
+    preferredTopics: ['career', 'family', 'wellness'],
+    avoidTopics: [],
+    communicationStyle: 'conversational',
+    speakingPace: 'moderate',
+    humorAppreciation: 'medium',
+    // familyMembers is used by indexPeople, not peopleInLife
+    familyMembers: [
+      {
+        name: 'Michael',
+        relationship: 'husband',
+        sentiment: 'positive',
+        mentionCount: 5,
+      },
+    ],
+    // Also keep peopleInLife for other tests
     peopleInLife: [
       {
         name: 'Michael',
@@ -192,8 +290,7 @@ describe('Human Signal Extraction E2E', () => {
 // USER MEMORY INDEXING TESTS
 // ============================================================================
 
-// TODO: Requires vector store/embeddings infrastructure
-describe.skip('User Memory Indexing E2E', () => {
+describe('User Memory Indexing E2E', () => {
   beforeEach(async () => {
     resetVectorStore();
     clearMemoryIndex();
@@ -202,12 +299,13 @@ describe.skip('User Memory Indexing E2E', () => {
   it('should index user profile into vector store', async () => {
     const profile = createTestProfile();
 
+    // Use snake_case category names as expected by the indexer
     const result = await indexUserMemories('test-user-123', profile, {
-      categories: ['keyMoments', 'goals', 'people'],
+      categories: ['key_moment', 'goal', 'person'],
     });
 
     expect(result.indexed).toBeGreaterThan(0);
-    expect(result.errors).toHaveLength(0);
+    expect(result.errors).toBe(0);
   });
 
   it('should handle profiles with minimal data', async () => {
@@ -215,13 +313,17 @@ describe.skip('User Memory Indexing E2E', () => {
       keyMoments: [],
       goals: [],
       peopleInLife: [],
+      familyMembers: [],
       conversationSummaries: [],
+      // Keep required fields that indexPreferences needs
+      preferredTopics: [],
+      avoidTopics: [],
     });
 
     const result = await indexUserMemories('sparse-user', sparseProfile);
 
-    // Should not error, just index less
-    expect(result.errors).toHaveLength(0);
+    // Should not error, just index less (but may still index preferences)
+    expect(result.errors).toBe(0);
   });
 });
 
@@ -436,8 +538,7 @@ describe('Cross-Persona Memory Handoff', () => {
 // FULL E2E FLOW TEST
 // ============================================================================
 
-// TODO: Requires vector store/embeddings infrastructure
-describe.skip('Complete Memory System Flow', () => {
+describe('Complete Memory System Flow', () => {
   beforeEach(async () => {
     resetSessionPrimer();
     resetVectorStore();
@@ -461,7 +562,7 @@ describe.skip('Complete Memory System Flow', () => {
 
     // 3. INDEX: Index user memories at session end
     const indexResult = await indexUserMemories('test-user-123', profile);
-    expect(indexResult.errors).toHaveLength(0);
+    expect(indexResult.errors).toBe(0);
 
     // 4. WARM: Build memory index at next session start
     const memoryCount = await buildMemoryIndex('test-user-123', profile);

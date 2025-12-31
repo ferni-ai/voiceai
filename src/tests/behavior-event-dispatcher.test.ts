@@ -31,7 +31,7 @@ import {
   DETECTION_THRESHOLDS,
   type BehaviorDetectionContext,
 } from '../agents/realtime/behavior-event-dispatcher.js';
-import type { BehaviorEvent, BehaviorSignal } from '../agents/realtime/behavior-types.js';
+import type { BehaviorEvent, BehaviorSignal } from '../types/behavior-types.js';
 
 describe('BehaviorEventDispatcher', () => {
   let mockInjectMessage: ReturnType<typeof vi.fn>;

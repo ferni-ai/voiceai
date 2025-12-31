@@ -3,7 +3,7 @@
  *
  * Tests for the new cross-persona insights system:
  * - alex-communication-insights.ts
- * - ferni-coordinator-intelligence.ts
+ * - ferni-coordinator-insights.ts
  * - cross-persona-insights.ts service
  */
 
@@ -186,7 +186,7 @@ describe('Ferni Coordinator Intelligence Builder', () => {
 
   it('should only activate for Ferni persona', async () => {
     const { buildFerniCoordinatorIntelligenceContext } =
-      await import('../intelligence/context-builders/personas/ferni-coordinator-intelligence.js');
+      await import('../intelligence/context-builders/personas/ferni-coordinator-insights.js');
 
     // Test with non-Ferni persona
     const nonFerniInput = {
@@ -201,7 +201,7 @@ describe('Ferni Coordinator Intelligence Builder', () => {
 
   it('should activate and return injection for Ferni persona', async () => {
     const { buildFerniCoordinatorIntelligenceContext } =
-      await import('../intelligence/context-builders/personas/ferni-coordinator-intelligence.js');
+      await import('../intelligence/context-builders/personas/ferni-coordinator-insights.js');
 
     const ferniInput = {
       services: { userId: 'test-user', personaId: 'ferni' },
@@ -233,7 +233,7 @@ describe('Handoff Suggestion Analysis', () => {
 
   it('should return coordinator intelligence for Ferni with team context', async () => {
     const { buildFerniCoordinatorIntelligenceContext } =
-      await import('../intelligence/context-builders/personas/ferni-coordinator-intelligence.js');
+      await import('../intelligence/context-builders/personas/ferni-coordinator-insights.js');
 
     const userId = `test-handoff-${Date.now()}`;
 
@@ -631,7 +631,7 @@ describe('Cross-Persona Integration', () => {
       'jordan-milestone-insights',
       'nayan-wisdom-insights',
       'alex-communication-insights',
-      'ferni-coordinator-intelligence',
+      'ferni-coordinator-insights',
     ];
 
     for (const required of requiredBuilders) {

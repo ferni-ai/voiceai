@@ -143,7 +143,7 @@ These specialized builders provide deep insights when entering a persona:
 | `jordan-milestone-insights.ts` | Jordan | Milestone planning, life stage intelligence |
 | `alex-communication-insights.ts` | Alex | Communication coaching, calendar density |
 | `nayan-wisdom-insights.ts` | Nayan | Life wisdom synthesis, values alignment |
-| `ferni-coordinator-intelligence.ts` | Ferni | Smart handoff suggestions |
+| `ferni-coordinator-insights.ts` | Ferni | Smart handoff suggestions |
 
 ### Key Files
 
@@ -205,7 +205,7 @@ maya-coaching-insights.ts    - Maya's habit coaching context
 jordan-milestone-insights.ts - Jordan's milestone planning
 alex-communication-insights.ts - Alex's communication coaching
 nayan-wisdom-insights.ts     - Nayan's life wisdom synthesis
-ferni-coordinator-intelligence.ts - Ferni's handoff suggestions
+ferni-coordinator-insights.ts - Ferni's handoff suggestions
 
 # HUMANIZING
 humanizing.ts           - Self-correction, humor, naturalness

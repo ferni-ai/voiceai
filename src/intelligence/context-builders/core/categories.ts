@@ -154,7 +154,7 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'twin-profile-context': BuilderCategory.PERSONA,
   'human-personality': BuilderCategory.PERSONA,
   'ferni-personality': BuilderCategory.PERSONA,
-  'ferni-coordinator-intelligence': BuilderCategory.PERSONA,
+  'ferni-coordinator-insights': BuilderCategory.PERSONA,
   'better-than-human-direct': BuilderCategory.PERSONA,
   'conversational-superpowers': BuilderCategory.PERSONA,
   // Cross-persona insight builders
