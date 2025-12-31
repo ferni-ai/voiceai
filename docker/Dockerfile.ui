@@ -90,10 +90,12 @@ WORKDIR /app
 COPY design-system/dist ./design-system/dist/
 
 # Copy essential brand assets only (logos, favicons) - not full exports (27MB of social media images)
-# The frontend symlink at apps/web/public/design-system/brand only needs logos and favicons
-COPY design-system/brand/logos ./design-system/brand/logos/
-COPY design-system/brand/favicons ./design-system/brand/favicons/
-COPY design-system/brand/*.md ./design-system/brand/
+# Assets are in design-system/assets/ directory
+COPY design-system/assets/logos ./design-system/assets/logos/
+COPY design-system/assets/favicons ./design-system/assets/favicons/
+
+# Copy brand documentation if exists
+COPY design-system/docs/brand ./design-system/docs/brand/
 
 # Copy frontend package files (npm-based)
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
