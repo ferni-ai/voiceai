@@ -89,13 +89,10 @@ WORKDIR /app
 # Copy design-system dist (needed for @design-system imports)
 COPY design-system/dist ./design-system/dist/
 
-# Copy essential brand assets only (logos, favicons) - not full exports (27MB of social media images)
-# Assets are in design-system/assets/ directory
+# Copy essential brand assets (logos, favicons) from design-system/assets/
+# Note: These are included via gcloudignore exceptions
 COPY design-system/assets/logos ./design-system/assets/logos/
 COPY design-system/assets/favicons ./design-system/assets/favicons/
-
-# Copy brand documentation if exists
-COPY design-system/docs/brand ./design-system/docs/brand/
 
 # Copy frontend package files (npm-based)
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
