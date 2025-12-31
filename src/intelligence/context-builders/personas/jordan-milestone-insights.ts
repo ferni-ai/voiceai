@@ -84,8 +84,8 @@ import { getSuperhuman } from '../superhuman/superhuman-integration.js';
 import { getMemoryOrchestrator } from '../../../memory/orchestrator.js';
 // Better Than Human: Milestone Calendar Sync
 import { buildMilestoneCalendarContext } from '../../../services/milestones/milestone-calendar-sync.js';
-// Cross-Persona: Jordan ↔ Alex Coordination
-import { getCoordinationContext } from '../../../services/superhuman/jordan-alex-coordinator.js';
+// Cross-Domain: Milestone ↔ Calendar Coordination
+import { getCoordinationContext } from '../../../services/superhuman/milestone-calendar-coordinator.js';
 
 const log = createLogger({ module: 'context:jordan-milestone-insights' });
 

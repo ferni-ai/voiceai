@@ -61,7 +61,7 @@ import {
   type MilestoneConflict,
   type TimeWindow,
   type SimpleMilestone,
-} from '../../../services/superhuman/jordan-alex-coordinator.js';
+} from '../../../services/superhuman/milestone-calendar-coordinator.js';
 
 const log = createLogger({ module: 'context:alex-communication-insights' });
 

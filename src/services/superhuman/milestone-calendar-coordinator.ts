@@ -1,17 +1,17 @@
 /**
- * Jordan ↔ Alex Coordinator - Better Than Human Service
+ * Milestone-Calendar Coordinator - Better Than Human Service
  *
  * What no human friend can do: Coordinate milestone planning with calendar
  * awareness at the same time, considering capacity and optimal windows.
  *
- * This service bridges Jordan (Life Planning) and Alex (Communication/Calendar)
+ * This service bridges life planning (milestones) with communication (calendar)
  * to provide:
  * - Calendar-aware milestone planning
  * - Optimal time windows for milestone work
  * - Conflict detection between milestones and commitments
  * - Capacity assessment for new milestones
  *
- * @module services/superhuman/jordan-alex-coordinator
+ * @module services/superhuman/milestone-calendar-coordinator
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -27,7 +27,7 @@ import {
   type WeekOverview,
 } from '../calendar/calendar-service.js';
 
-const log = createLogger({ module: 'jordan-alex-coordinator' });
+const log = createLogger({ module: 'milestone-calendar-coordinator' });
 
 // ============================================================================
 // TYPES
@@ -457,7 +457,7 @@ export async function getCapacityForNewMilestone(
 }
 
 /**
- * Generate a coordination summary for Jordan ↔ Alex handoff.
+ * Generate a coordination summary for milestone ↔ calendar handoff.
  */
 export async function getCoordinationContext(
   userId: string,

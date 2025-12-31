@@ -1,6 +1,6 @@
 /**
- * Jordan-Alex Coordinator Tests
- * Run with: npx vitest run src/services/superhuman/__tests__/jordan-alex-coordinator.test.ts
+ * Milestone-Calendar Coordinator Tests
+ * Run with: npx vitest run src/services/superhuman/__tests__/milestone-calendar-coordinator.test.ts
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -43,9 +43,9 @@ import {
   getCapacityForNewMilestone,
   getCoordinationContext,
   type SimpleMilestone,
-} from '../jordan-alex-coordinator.js';
+} from '../milestone-calendar-coordinator.js';
 
-describe('Jordan-Alex Coordinator', () => {
+describe('Milestone-Calendar Coordinator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: light calendar day

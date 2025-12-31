@@ -184,7 +184,7 @@ export {
   type PersonalDate,
 } from './seasonal-awareness.js';
 
-// Jordan ↔ Alex Coordinator (Cross-Persona)
+// Milestone-Calendar Coordinator (Cross-Domain)
 export {
   findOptimalMilestoneWindows,
   suggestTimeBlocks,
@@ -196,7 +196,7 @@ export {
   type CapacityAssessment,
   type MilestoneTimeBlock,
   type SimpleMilestone,
-} from './jordan-alex-coordinator.js';
+} from './milestone-calendar-coordinator.js';
 
 // ============================================================================
 // UNIFIED CONTEXT BUILDER
