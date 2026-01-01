@@ -601,7 +601,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
  * Emails to notify about new signups (comma-separated list)
  */
 const ADMIN_NOTIFICATION_EMAILS: string[] = (
-  process.env.WAITLIST_ADMIN_EMAIL || 'seth.ford@gmail.com,admin@ferni.ai'
+  process.env.WAITLIST_ADMIN_EMAIL || 'noreply@ferni.ai,admin@ferni.ai'
 )
   .split(',')
   .map((e) => e.trim())
@@ -612,7 +612,7 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
  * These are the owners/founders who should NEVER be blocked
  */
 const ADMIN_BYPASS_EMAILS: string[] = [
-  'seth.ford@gmail.com',
+  'noreply@ferni.ai',
   'sethford@gmail.com', // Gmail treats these the same
   'admin@ferni.ai',
 ];
@@ -653,7 +653,7 @@ function verifyApprovalToken(email: string, token: string): boolean {
  */
 async function notifyAdminOfSignup(email: string, source: string, phone?: string): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
 
   if (!sendgridApiKey) {
     log.debug('SendGrid not configured, skipping admin notification');
@@ -1012,7 +1012,7 @@ async function notifyAdminOfWelcomeCall(
   usedCartesiaVoice: boolean
 ): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
 
   if (!sendgridApiKey) return;
 
@@ -1083,7 +1083,7 @@ async function notifyAdminOfWelcomeCallFailure(
   error: string
 ): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
 
   if (!sendgridApiKey) return;
 
@@ -1147,7 +1147,7 @@ async function notifyAdminOfWelcomeCallFailure(
  */
 async function sendWelcomeEmail(email: string): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
 
   if (!sendgridApiKey) {
     log.debug('SendGrid not configured, skipping welcome email');
@@ -1238,7 +1238,7 @@ Just reply if you need anything. I'm here. 🌱`;
 
 /**
  * Extract a likely first name from an email address
- * e.g., "seth.ford@gmail.com" → "Seth"
+ * e.g., "noreply@ferni.ai" → "Seth"
  *       "john_doe@example.com" → "John"
  *       "marketing@company.com" → null (generic)
  */
@@ -1342,7 +1342,7 @@ function getPersonalSignoff(): { name: string; role: string | null } {
  */
 async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai';
 
   if (!sendgridApiKey) {
     log.debug('SendGrid not configured, skipping newsletter welcome email');
