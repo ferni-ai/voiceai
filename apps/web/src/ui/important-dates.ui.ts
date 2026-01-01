@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
@@ -655,14 +655,14 @@ function renderDateList(): string {
   return state.dates.map((date, index) => {
     if (index === state.editingIndex) return ''; // Hide while editing
     
-    const typeInfo = DATE_TYPES.find(t => t.id === date.type) || DATE_TYPES[3];
+    const typeInfo = DATE_TYPES.find(t => t.id === date.type) ?? DATE_TYPES[3]!;
     const displayDate = formatDisplayDate(date.date);
     
     return `
       <div class="id-date-item">
-        <div class="id-date-icon">${typeInfo.icon}</div>
+        <div class="id-date-icon">${typeInfo?.icon ?? '📅'}</div>
         <div class="id-date-info">
-          <div class="id-date-label">${date.label || typeInfo.label}</div>
+          <div class="id-date-label">${date.label || typeInfo?.label || 'Date'}</div>
           <div class="id-date-meta">
             ${displayDate}
             ${date.recurring ? `<span>${ICONS.repeat} Yearly</span>` : ''}
@@ -796,6 +796,7 @@ function saveDate(): void {
 
 function editDate(index: number): void {
   const date = state.dates[index];
+  if (!date) return;
   state.formDate = date.date;
   state.formType = date.type;
   state.formLabel = date.label || '';
@@ -861,15 +862,15 @@ function formatDisplayDate(dateStr: string): string {
   let month: number, day: number;
   
   if (parts.length === 3) {
-    month = parseInt(parts[1], 10) - 1;
-    day = parseInt(parts[2], 10);
+    month = parseInt(parts[1] ?? '1', 10) - 1;
+    day = parseInt(parts[2] ?? '1', 10);
   } else {
-    month = parseInt(parts[0], 10) - 1;
-    day = parseInt(parts[1], 10);
+    month = parseInt(parts[0] ?? '1', 10) - 1;
+    day = parseInt(parts[1] ?? '1', 10);
   }
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${monthNames[month]} ${day}`;
+  return `${monthNames[month] ?? 'Jan'} ${day}`;
 }
 
 // ============================================================================

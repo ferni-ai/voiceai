@@ -4,6 +4,9 @@
  * Tools for persistent memory, recall, and cross-session continuity.
  * These allow any agent to remember users across conversations and build relationships.
  *
+ * ARCHITECTURE: All tools now use UnifiedMemoryService as the SINGLE entry point.
+ * This ensures consistent timing intelligence, learning feedback, and context enrichment.
+ *
  * DOMAIN: memory
  * TOOLS:
  *   - rememberAboutUser: Store important facts about the user
@@ -21,17 +24,19 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition } from '../../registry/types.js';
+
+// Use UNIFIED tools that go through UnifiedMemoryService
 import {
-  rememberAboutUserDef,
-  recallFromMemoryDef,
-  recallPreviousConversationDef,
-  rememberImportantFactDef,
-  getRelationshipSummaryDef,
-  updateMemoryDef,
-  forgetMemoryDef,
-  surfaceRelevantMemoryDef,
-  predictUserNeedDef,
-} from './tools.js';
+  rememberAboutUserUnifiedDef as rememberAboutUserDef,
+  recallFromMemoryUnifiedDef as recallFromMemoryDef,
+  recallPreviousConversationUnifiedDef as recallPreviousConversationDef,
+  rememberImportantFactUnifiedDef as rememberImportantFactDef,
+  surfaceRelevantMemoryUnifiedDef as surfaceRelevantMemoryDef,
+  predictUserNeedUnifiedDef as predictUserNeedDef,
+} from './tools-unified.js';
+
+// Keep legacy tools that aren't unified yet
+import { getRelationshipSummaryDef, updateMemoryDef, forgetMemoryDef } from './tools.js';
 
 // ============================================================================
 // DOMAIN TOOLS

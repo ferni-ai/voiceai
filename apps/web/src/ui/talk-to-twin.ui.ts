@@ -174,7 +174,7 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
     const agent = await getCustomAgent(agentId);
     if (!agent) {
       log.error('Agent not found:', agentId);
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.error(t('toasts.agentNotFound'));
       return;
     }
@@ -212,7 +212,7 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
     }
   } catch (error) {
     log.error('Failed to open Talk to Twin:', error);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error(t('toasts.couldNotStartConversation'));
   }
 }
@@ -513,8 +513,8 @@ function generateFallbackResponse(
   }
 
   if (lowerMessage.includes('feeling') || lowerMessage.includes('feel')) {
-    if (relevantJournals.length > 0) {
-      const recent = relevantJournals[0];
+    const recent = relevantJournals[0];
+    if (recent) {
       return `I've felt that too. In my journal I wrote: "${recent.content.slice(0, 200)}..." We got through it before.`;
     }
     return "I hear you. We've been through tough times before and found our way. What's really bothering you?";

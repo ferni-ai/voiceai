@@ -83,7 +83,13 @@ export interface InsightData {
 // HUMANIZED COPY
 // ============================================================================
 
-const CHAPTER_COPY: Record<string, { icon: string; verb: string; encouragement: string }> = {
+const DEFAULT_CHAPTER_COPY = {
+  icon: '🌱',
+  verb: 'growing through',
+  encouragement: 'Something beautiful is taking shape.',
+};
+
+const CHAPTER_COPY: Record<string, typeof DEFAULT_CHAPTER_COPY> = {
   struggle: {
     icon: '⛰️',
     verb: 'navigating',
@@ -273,7 +279,7 @@ export class InsightsView {
   }
 
   private renderChapter(chapter: NonNullable<InsightData['chapter']>): string {
-    const copy = CHAPTER_COPY[chapter.type] || CHAPTER_COPY.growth;
+    const copy = CHAPTER_COPY[chapter.type] ?? DEFAULT_CHAPTER_COPY;
 
     return `
       <section class="insights-section insights-section--chapter">

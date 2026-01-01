@@ -33,7 +33,7 @@
  */
 
 import { gsap } from '../utils/gsap-setup.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 

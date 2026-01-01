@@ -23,7 +23,6 @@
  * @see design-system/tokens/window-avatar.json
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import type { EmotionalExpression } from './ferni-expressions.ui.js';
 
@@ -329,8 +328,11 @@ function updateMouthPath(): void {
 function generateMouthPath(openAmount: number, emotion: EmotionalExpression): string {
   const { VIEW_WIDTH, VIEW_HEIGHT, BASELINE_Y, CLOSED_CONTROL_Y, OPEN_CONTROL_Y, CURVE_MULTIPLIER, ASYMMETRY_MULTIPLIER } = PATH_CONFIG;
   
+  // Default neutral modifier
+  const defaultModifier: MouthEmotionModifier = { curve: 0, asymmetry: 0, baseOffset: 0 };
+  
   // Get emotion modifier
-  const modifier = MOUTH_EMOTION_MODIFIERS[emotion] ?? MOUTH_EMOTION_MODIFIERS.neutral;
+  const modifier = MOUTH_EMOTION_MODIFIERS[emotion] ?? defaultModifier;
   
   // Apply emotion base offset to opening
   const adjustedOpen = Math.max(0, Math.min(1, openAmount + modifier.baseOffset));

@@ -289,7 +289,9 @@ export const onHealthSummaryChange = createDomainHook<HealthSummaryEntity>({
   contentBuilder: (h) =>
     joinNonEmpty([
       `Health summary for ${formatDate(h.date)}.`,
-      h.sleepHours ? `Sleep: ${h.sleepHours} hours${h.sleepQuality ? ` (${h.sleepQuality})` : ''}.` : '',
+      h.sleepHours
+        ? `Sleep: ${h.sleepHours} hours${h.sleepQuality ? ` (${h.sleepQuality})` : ''}.`
+        : '',
       h.activity ? `Activity: ${h.activity}.` : '',
       h.activityMinutes ? `Active minutes: ${h.activityMinutes}.` : '',
       h.stepsCount ? `Steps: ${h.stepsCount.toLocaleString()}.` : '',

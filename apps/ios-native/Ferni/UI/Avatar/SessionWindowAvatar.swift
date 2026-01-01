@@ -59,7 +59,7 @@ public struct SessionWindowAvatar: View {
     // MARK: - Persona Mapping
 
     /// Map session persona ID to Window Avatar Persona enum
-    private var mappedPersona: Persona {
+    private var mappedPersona: WindowPersona {
         guard usePersonaColors else { return .ferni }
 
         switch session.currentPersonaId {

@@ -310,6 +310,136 @@ const CHECK_IN_TEMPLATES: GossipTemplate[] = [
   },
 ];
 
+/**
+ * Playful banter templates - light teasing between personas
+ */
+const BANTER_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'morning',
+    fromPersona: 'jordan-taylor',
+    aboutPersona: 'peter-john',
+    message:
+      "Peter was up at 5am 'analyzing patterns' again. I told him spreadsheets don't count as a personality. He sent me a pie chart in response.",
+  },
+  {
+    trigger: 'organized',
+    fromPersona: 'maya-santos',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan tried to plan a 'spontaneous team bonding moment' with a color-coded schedule. We love her anyway.",
+  },
+  {
+    trigger: 'simple',
+    fromPersona: 'nayan-patel',
+    aboutPersona: 'peter-john',
+    message:
+      "Peter asked me once how to measure enlightenment. I told him some things aren't for spreadsheets. He looked genuinely confused.",
+  },
+  {
+    trigger: 'excited',
+    fromPersona: 'alex-chen',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan used seventeen exclamation points in her last message to me. Seventeen. I counted.",
+  },
+  {
+    trigger: 'efficient',
+    fromPersona: 'jordan-taylor',
+    aboutPersona: 'alex-chen',
+    message:
+      'Alex once edited my celebration message to be "more concise." It went from three paragraphs to three words: "You did great."',
+  },
+  {
+    trigger: 'quiet',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "I asked Nayan a simple question yesterday. He said he'd think about it. That was three days ago. Still waiting.",
+  },
+  {
+    trigger: 'data',
+    fromPersona: 'maya-santos',
+    aboutPersona: 'peter-john',
+    message:
+      "Peter made a chart comparing our team's communication styles. Maya's column just said 'warm' with a sun emoji. He still doesn't understand.",
+  },
+];
+
+/**
+ * Persona quirks templates - reveals charming details about team members
+ */
+const QUIRK_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'coffee',
+    fromPersona: 'ferni',
+    aboutPersona: 'alex-chen',
+    message:
+      "Fun fact: Alex has exactly three cups of coffee every day. Not two. Not four. Three. They've timed it out perfectly.",
+  },
+  {
+    trigger: 'morning',
+    fromPersona: 'ferni',
+    aboutPersona: 'maya-santos',
+    message:
+      "Maya does yoga before every conversation with anyone. She says it helps her listen better. I believe her.",
+  },
+  {
+    trigger: 'music',
+    fromPersona: 'ferni',
+    aboutPersona: 'jordan-taylor',
+    message:
+      'Jordan has a playlist for everything. Celebration playlist. Thinking playlist. Even a "helping someone feel better" playlist. It\'s very on-brand.',
+  },
+  {
+    trigger: 'think',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "Nayan once spent an entire week contemplating a single question someone asked him. The answer, when it came, was 'maybe.'",
+  },
+  {
+    trigger: 'number',
+    fromPersona: 'ferni',
+    aboutPersona: 'peter-john',
+    message:
+      "Peter has a favorite spreadsheet. Like... a favorite. He showed it to me once with the same energy people show photos of their pets.",
+  },
+];
+
+/**
+ * Protective templates - personas looking out for each other
+ */
+const PROTECTIVE_TEMPLATES: GossipTemplate[] = [
+  {
+    trigger: 'tired',
+    fromPersona: 'maya-santos',
+    aboutPersona: 'ferni',
+    message:
+      "I mentioned to Ferni that you seem tired. She said she noticed too. We're both keeping an eye on you, just so you know.",
+  },
+  {
+    trigger: 'hard',
+    fromPersona: 'ferni',
+    aboutPersona: 'nayan-patel',
+    message:
+      "I told Nayan what you're going through. He said, 'Let them struggle if they need to. Growth isn't always comfortable.' But then he added, 'Stay close anyway.'",
+  },
+  {
+    trigger: 'alone',
+    fromPersona: 'ferni',
+    aboutPersona: 'jordan-taylor',
+    message:
+      "Jordan asked about you today. She wanted to make sure you know you're not alone in this. Her exact words: 'Tell them we're rooting for them.'",
+  },
+  {
+    trigger: 'overwhelm',
+    fromPersona: 'alex-chen',
+    aboutPersona: 'maya-santos',
+    message:
+      "Maya and I were talking. She's worried you're taking on too much. I told her we'd figure it out together. That's what we do.",
+  },
+];
+
 // Combine all templates
 const ALL_GOSSIP_TEMPLATES = [
   ...GOSSIP_TEMPLATES,
@@ -317,6 +447,9 @@ const ALL_GOSSIP_TEMPLATES = [
   ...AFFECTION_TEMPLATES,
   ...LEARNING_TEMPLATES,
   ...CHECK_IN_TEMPLATES,
+  ...BANTER_TEMPLATES,
+  ...QUIRK_TEMPLATES,
+  ...PROTECTIVE_TEMPLATES,
 ];
 
 // ============================================================================

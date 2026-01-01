@@ -549,7 +549,7 @@ class MusicAudioController {
       // Calculate average volume (0-1)
       let sum = 0;
       for (let i = 0; i < this.visualizationDataArray.length; i++) {
-        sum += this.visualizationDataArray[i];
+        sum += this.visualizationDataArray[i] ?? 0;
       }
       const average = sum / this.visualizationDataArray.length / 255;
 

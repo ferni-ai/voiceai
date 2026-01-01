@@ -47,7 +47,7 @@ export async function saveJournalEntry(audioBlob: Blob): Promise<void> {
     return;
   }
 
-  const { toast } = await import('../toast.ui.js');
+  const { toast } = await import('../whisper.ui.js');
 
   try {
     // Show transcribing state

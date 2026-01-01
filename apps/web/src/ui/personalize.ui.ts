@@ -26,7 +26,7 @@ import {
 } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('PersonalizeUI');
 

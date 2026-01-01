@@ -22,7 +22,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('FerniFundUI');
 

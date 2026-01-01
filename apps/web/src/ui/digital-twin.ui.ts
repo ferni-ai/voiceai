@@ -41,6 +41,372 @@ const ICONS = {
   // Core Digital Twin icons
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
+  
+  // Hero illustration for Digital Twin onboarding - "Better than Human" quality
+  // Depicts: Voice waves flowing from a figure, becoming leaves that gather into a tree,
+  // with a mirror reflection showing "past self" conversation
+  heroIllustration: `
+    <svg viewBox="0 0 400 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Premium gradients -->
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fdfcfa"/>
+          <stop offset="50%" stop-color="#f8f5f0"/>
+          <stop offset="100%" stop-color="#f3efe8"/>
+        </linearGradient>
+        
+        <linearGradient id="figureGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#3d3530"/>
+          <stop offset="100%" stop-color="#2c2520"/>
+        </linearGradient>
+        
+        <linearGradient id="trunkGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="#2d4a35"/>
+          <stop offset="40%" stop-color="#3d5a35"/>
+          <stop offset="100%" stop-color="#4a6741"/>
+        </linearGradient>
+        
+        <linearGradient id="leafGradientA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6b9a5a"/>
+          <stop offset="100%" stop-color="#4a6741"/>
+        </linearGradient>
+        
+        <linearGradient id="leafGradientB" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#7aaa6a"/>
+          <stop offset="100%" stop-color="#5a7a4a"/>
+        </linearGradient>
+        
+        <linearGradient id="leafGradientC" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stop-color="#5a8a5a"/>
+          <stop offset="100%" stop-color="#3d5a35"/>
+        </linearGradient>
+        
+        <linearGradient id="voiceWaveGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stop-color="#a67a6a" stop-opacity="0.7"/>
+          <stop offset="50%" stop-color="#8a9a6a" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#4a6741" stop-opacity="0.2"/>
+        </linearGradient>
+        
+        <linearGradient id="mirrorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#d4ccc0" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#a8a090" stop-opacity="0.1"/>
+        </linearGradient>
+        
+        <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#4a6741" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#4a6741" stop-opacity="0"/>
+        </radialGradient>
+        
+        <radialGradient id="warmGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#c4a265" stop-opacity="0.2"/>
+          <stop offset="100%" stop-color="#c4a265" stop-opacity="0"/>
+        </radialGradient>
+        
+        <!-- Refined filters -->
+        <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+          <feOffset dx="0" dy="2"/>
+          <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+          <feColorMatrix values="0 0 0 0 0.17 0 0 0 0 0.14 0 0 0 0 0.12 0 0 0 0.15 0"/>
+          <feBlend in2="SourceGraphic"/>
+        </filter>
+        
+        <filter id="leafGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        
+        <filter id="etherealBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2"/>
+        </filter>
+        
+        <!-- Texture pattern for depth -->
+        <pattern id="noiseTexture" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+          <circle cx="25" cy="25" r="0.5" fill="#2c2520" opacity="0.02"/>
+          <circle cx="75" cy="75" r="0.5" fill="#2c2520" opacity="0.02"/>
+          <circle cx="50" cy="10" r="0.3" fill="#4a6741" opacity="0.015"/>
+          <circle cx="10" cy="60" r="0.4" fill="#4a6741" opacity="0.02"/>
+        </pattern>
+      </defs>
+      
+      <!-- Background with subtle depth -->
+      <rect width="400" height="280" fill="url(#bgGradient)" rx="20"/>
+      <rect width="400" height="280" fill="url(#noiseTexture)" rx="20" opacity="0.5"/>
+      
+      <!-- Ambient glow behind tree -->
+      <ellipse cx="220" cy="160" rx="100" ry="90" fill="url(#glowGradient)">
+        <animate attributeName="opacity" values="0.8;1;0.8" dur="8s" repeatCount="indefinite"/>
+      </ellipse>
+      
+      <!-- Subtle growth rings - representing time -->
+      <g opacity="0.08" stroke="#4a6741" stroke-width="0.75" fill="none">
+        <ellipse cx="220" cy="175" rx="45" ry="35"/>
+        <ellipse cx="220" cy="175" rx="70" ry="55"/>
+        <ellipse cx="220" cy="175" rx="95" ry="75"/>
+        <ellipse cx="220" cy="175" rx="120" ry="95"/>
+      </g>
+      
+      <!-- LEFT: Elegant speaking figure - abstract, refined silhouette -->
+      <g transform="translate(40, 55)" filter="url(#softShadow)">
+        <!-- Full body - elegant continuous form (not stick figure) -->
+        <path d="M40 145 
+                 Q30 130, 32 110 
+                 Q34 95, 38 80 
+                 Q40 70, 40 60
+                 Q40 70, 42 80
+                 Q46 95, 48 110
+                 Q50 130, 40 145" 
+              fill="url(#figureGradient)" opacity="0.85"/>
+        
+        <!-- Shoulder/torso suggestion -->
+        <ellipse cx="40" cy="65" rx="18" ry="12" fill="url(#figureGradient)" opacity="0.75"/>
+        
+        <!-- Head - refined, slightly turned toward audience -->
+        <ellipse cx="40" cy="38" rx="20" ry="24" fill="url(#figureGradient)" opacity="0.92"/>
+        
+        <!-- Subtle highlight on head for dimension -->
+        <ellipse cx="36" cy="32" rx="6" ry="8" fill="#4a4540" opacity="0.15"/>
+        
+        <!-- Warm glow where voice originates -->
+        <ellipse cx="62" cy="42" rx="18" ry="14" fill="url(#warmGlow)">
+          <animate attributeName="rx" values="18;22;18" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.5;0.8;0.5" dur="3s" repeatCount="indefinite"/>
+        </ellipse>
+        
+        <!-- Voice waves - flowing, musical curves -->
+        <g class="voice-waves">
+          <!-- Wave 1 - innermost, most visible -->
+          <path d="M62 35 Q85 28, 115 32 Q140 36, 160 48" 
+                stroke="url(#voiceWaveGradient)" stroke-width="3.5" stroke-linecap="round" fill="none">
+            <animate attributeName="opacity" values="0.95;0.35;0.95" dur="2.5s" repeatCount="indefinite"/>
+            <animate attributeName="d" 
+                     values="M62 35 Q85 28, 115 32 Q140 36, 160 48;M62 35 Q88 25, 120 28 Q145 32, 168 42;M62 35 Q85 28, 115 32 Q140 36, 160 48" 
+                     dur="2.5s" repeatCount="indefinite"/>
+          </path>
+          
+          <!-- Wave 2 - middle -->
+          <path d="M62 48 Q90 44, 125 50 Q155 56, 178 70" 
+                stroke="url(#voiceWaveGradient)" stroke-width="4" stroke-linecap="round" fill="none">
+            <animate attributeName="opacity" values="0.85;0.3;0.85" dur="3s" repeatCount="indefinite" begin="0.3s"/>
+            <animate attributeName="d" 
+                     values="M62 48 Q90 44, 125 50 Q155 56, 178 70;M62 48 Q95 40, 130 45 Q162 50, 185 62;M62 48 Q90 44, 125 50 Q155 56, 178 70" 
+                     dur="3s" repeatCount="indefinite" begin="0.3s"/>
+          </path>
+          
+          <!-- Wave 3 - outer, most expansive -->
+          <path d="M62 60 Q95 60, 135 70 Q170 80, 195 98" 
+                stroke="url(#voiceWaveGradient)" stroke-width="3" stroke-linecap="round" fill="none">
+            <animate attributeName="opacity" values="0.65;0.2;0.65" dur="3.5s" repeatCount="indefinite" begin="0.6s"/>
+            <animate attributeName="d" 
+                     values="M62 60 Q95 60, 135 70 Q170 80, 195 98;M62 60 Q100 56, 142 64 Q178 72, 205 88;M62 60 Q95 60, 135 70 Q170 80, 195 98" 
+                     dur="3.5s" repeatCount="indefinite" begin="0.6s"/>
+          </path>
+        </g>
+      </g>
+      
+      <!-- CENTER: The Wisdom Tree - organic and alive -->
+      <g transform="translate(175, 25)">
+        <!-- Tree shadow for grounding -->
+        <ellipse cx="45" cy="220" rx="35" ry="8" fill="#2c2520" opacity="0.08"/>
+        
+        <!-- Trunk - organic, flowing form -->
+        <path d="M45 215 
+                 Q44 195, 42 175 
+                 Q38 155, 42 135 
+                 Q48 115, 44 95 
+                 Q40 80, 45 65 
+                 Q52 50, 45 35" 
+              stroke="url(#trunkGradient)" stroke-width="12" stroke-linecap="round" fill="none" filter="url(#softShadow)"/>
+        
+        <!-- Main branches -->
+        <path d="M43 110 Q28 95, 12 82" stroke="url(#trunkGradient)" stroke-width="7" stroke-linecap="round" fill="none"/>
+        <path d="M47 100 Q62 85, 82 75" stroke="url(#trunkGradient)" stroke-width="7" stroke-linecap="round" fill="none"/>
+        <path d="M44 80 Q30 65, 18 50" stroke="url(#trunkGradient)" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M46 70 Q60 55, 78 45" stroke="url(#trunkGradient)" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M45 55 Q35 42, 28 28" stroke="url(#trunkGradient)" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M45 50 Q55 38, 68 28" stroke="url(#trunkGradient)" stroke-width="4" stroke-linecap="round" fill="none"/>
+        
+        <!-- Roots - connecting to ground/past -->
+        <g opacity="0.5">
+          <path d="M45 215 Q30 225, 15 232" stroke="url(#trunkGradient)" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <path d="M45 215 Q55 228, 70 235" stroke="url(#trunkGradient)" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M45 215 Q40 230, 38 245" stroke="url(#trunkGradient)" stroke-width="3" stroke-linecap="round" fill="none"/>
+        </g>
+        
+        <!-- Leaves - the canopy (each leaf = a journal entry) -->
+        <g class="leaves" filter="url(#leafGlow)">
+          <!-- Layer 1: Background leaves (deepest) -->
+          <ellipse cx="5" cy="70" rx="16" ry="11" fill="url(#leafGradientC)" opacity="0.6" transform="rotate(-35 5 70)">
+            <animate attributeName="opacity" values="0.5;0.7;0.5" dur="6s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="85" cy="65" rx="14" ry="10" fill="url(#leafGradientC)" opacity="0.6" transform="rotate(30 85 65)">
+            <animate attributeName="opacity" values="0.55;0.75;0.55" dur="5.5s" repeatCount="indefinite"/>
+          </ellipse>
+          
+          <!-- Layer 2: Mid leaves -->
+          <ellipse cx="15" cy="55" rx="18" ry="12" fill="url(#leafGradientA)" opacity="0.75" transform="rotate(-25 15 55)">
+            <animate attributeName="opacity" values="0.7;0.9;0.7" dur="5s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="35" cy="25" rx="20" ry="13" fill="url(#leafGradientB)" opacity="0.8" transform="rotate(10 35 25)">
+            <animate attributeName="opacity" values="0.75;0.95;0.75" dur="4.5s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="60" cy="35" rx="17" ry="11" fill="url(#leafGradientA)" opacity="0.75" transform="rotate(-8 60 35)">
+            <animate attributeName="opacity" values="0.7;0.88;0.7" dur="5.2s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="75" cy="55" rx="19" ry="12" fill="url(#leafGradientB)" opacity="0.78" transform="rotate(20 75 55)">
+            <animate attributeName="opacity" values="0.72;0.92;0.72" dur="4.8s" repeatCount="indefinite"/>
+          </ellipse>
+          
+          <!-- Layer 3: Front leaves (most vibrant) -->
+          <ellipse cx="25" cy="42" rx="16" ry="10" fill="url(#leafGradientB)" opacity="0.85" transform="rotate(-15 25 42)">
+            <animate attributeName="opacity" values="0.8;1;0.8" dur="4s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="50" cy="18" rx="14" ry="9" fill="url(#leafGradientA)" opacity="0.88" transform="rotate(5 50 18)">
+            <animate attributeName="opacity" values="0.82;0.98;0.82" dur="3.8s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="65" cy="48" rx="15" ry="10" fill="url(#leafGradientB)" opacity="0.82" transform="rotate(25 65 48)">
+            <animate attributeName="opacity" values="0.78;0.95;0.78" dur="4.2s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="8" cy="85" rx="14" ry="9" fill="url(#leafGradientA)" opacity="0.7" transform="rotate(-40 8 85)">
+            <animate attributeName="opacity" values="0.65;0.85;0.65" dur="5.5s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="82" cy="80" rx="15" ry="10" fill="url(#leafGradientB)" opacity="0.72" transform="rotate(35 82 80)">
+            <animate attributeName="opacity" values="0.68;0.88;0.68" dur="5.8s" repeatCount="indefinite"/>
+          </ellipse>
+          
+          <!-- Floating leaves - recent entries drifting in -->
+          <g class="floating-leaves">
+            <ellipse cx="105" cy="90" rx="10" ry="6" fill="url(#leafGradientA)" opacity="0.45" transform="rotate(50 105 90)">
+              <animate attributeName="cy" values="90;82;90" dur="7s" repeatCount="indefinite"/>
+              <animate attributeName="cx" values="105;100;105" dur="7s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.45;0.25;0.45" dur="7s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="-12" cy="45" rx="9" ry="5" fill="url(#leafGradientB)" opacity="0.4" transform="rotate(-45 -12 45)">
+              <animate attributeName="cy" values="45;38;45" dur="8s" repeatCount="indefinite"/>
+              <animate attributeName="cx" values="-12;-8;-12" dur="8s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.4;0.2;0.4" dur="8s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="95" cy="35" rx="8" ry="5" fill="url(#leafGradientC)" opacity="0.35" transform="rotate(60 95 35)">
+              <animate attributeName="cy" values="35;28;35" dur="9s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.35;0.15;0.35" dur="9s" repeatCount="indefinite"/>
+            </ellipse>
+          </g>
+        </g>
+      </g>
+      
+      <!-- RIGHT: Mirror/Portal to Past Self -->
+      <g transform="translate(305, 65)">
+        <!-- Ethereal mirror glow -->
+        <ellipse cx="40" cy="70" rx="50" ry="75" fill="url(#mirrorGradient)">
+          <animate attributeName="opacity" values="0.6;0.8;0.6" dur="6s" repeatCount="indefinite"/>
+        </ellipse>
+        
+        <!-- Mirror frame - delicate oval -->
+        <ellipse cx="40" cy="70" rx="45" ry="68" fill="none" stroke="#b5a89a" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.5">
+          <animate attributeName="stroke-dashoffset" values="0;20" dur="8s" repeatCount="indefinite"/>
+        </ellipse>
+        
+        <!-- Past self figure - ethereal, softer -->
+        <g filter="url(#etherealBlur)" opacity="0.5">
+          <!-- Body silhouette -->
+          <path d="M40 85 Q40 105, 33 125 Q30 138, 27 150" 
+                stroke="#8a7a6a" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/>
+          <path d="M40 85 Q40 105, 47 125 Q50 138, 54 150" 
+                stroke="#8a7a6a" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5"/>
+          
+          <!-- Head -->
+          <ellipse cx="40" cy="60" rx="16" ry="20" fill="#9a8a7a" opacity="0.4"/>
+        </g>
+        
+        <!-- Connection wisps - linking present to past -->
+        <g class="connection-wisps" opacity="0.4">
+          <path d="M-30 70 Q-10 65, 5 68 Q15 72, 25 70" 
+                stroke="#a67a6a" stroke-width="1.5" stroke-linecap="round" fill="none" stroke-dasharray="4 3">
+            <animate attributeName="stroke-dashoffset" values="0;14" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.4;0.2;0.4" dur="3s" repeatCount="indefinite"/>
+          </path>
+          <path d="M-25 85 Q-5 82, 10 86 Q22 90, 30 88" 
+                stroke="#a67a6a" stroke-width="1" stroke-linecap="round" fill="none" stroke-dasharray="3 3">
+            <animate attributeName="stroke-dashoffset" values="0;12" dur="4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.35;0.15;0.35" dur="4s" repeatCount="indefinite"/>
+          </path>
+        </g>
+      </g>
+      
+      <!-- Ambient sparkles - wisdom/insights emerging (more prominent) -->
+      <g class="sparkles">
+        <!-- Large sparkle near voice waves -->
+        <g transform="translate(145, 55)">
+          <circle r="3.5" fill="#c4a265" opacity="0">
+            <animate attributeName="opacity" values="0;0.85;0" dur="4s" repeatCount="indefinite"/>
+            <animate attributeName="r" values="2;4;2" dur="4s" repeatCount="indefinite"/>
+          </circle>
+          <!-- Cross sparkle effect -->
+          <line x1="-6" y1="0" x2="6" y2="0" stroke="#c4a265" stroke-width="1" opacity="0">
+            <animate attributeName="opacity" values="0;0.6;0" dur="4s" repeatCount="indefinite"/>
+          </line>
+          <line x1="0" y1="-6" x2="0" y2="6" stroke="#c4a265" stroke-width="1" opacity="0">
+            <animate attributeName="opacity" values="0;0.6;0" dur="4s" repeatCount="indefinite"/>
+          </line>
+        </g>
+        
+        <!-- Sparkle near tree top -->
+        <circle cx="255" cy="45" r="3" fill="#c4a265" opacity="0">
+          <animate attributeName="opacity" values="0;0.75;0" dur="5s" repeatCount="indefinite" begin="1s"/>
+          <animate attributeName="r" values="1.5;3.5;1.5" dur="5s" repeatCount="indefinite" begin="1s"/>
+        </circle>
+        
+        <!-- Sparkle near mirror -->
+        <circle cx="345" cy="90" r="2.5" fill="#c4a265" opacity="0">
+          <animate attributeName="opacity" values="0;0.65;0" dur="4.5s" repeatCount="indefinite" begin="2s"/>
+          <animate attributeName="r" values="1.5;3;1.5" dur="4.5s" repeatCount="indefinite" begin="2s"/>
+        </circle>
+        
+        <!-- Sparkle on timeline -->
+        <circle cx="335" cy="250" r="3" fill="#c4a265" opacity="0">
+          <animate attributeName="opacity" values="0;0.7;0" dur="5.5s" repeatCount="indefinite" begin="0.5s"/>
+          <animate attributeName="r" values="2;4;2" dur="5.5s" repeatCount="indefinite" begin="0.5s"/>
+        </circle>
+        
+        <!-- Small ambient sparkles -->
+        <circle cx="95" cy="130" r="2" fill="#c4a265" opacity="0">
+          <animate attributeName="opacity" values="0;0.5;0" dur="6s" repeatCount="indefinite" begin="3s"/>
+        </circle>
+        <circle cx="175" cy="200" r="1.5" fill="#c4a265" opacity="0">
+          <animate attributeName="opacity" values="0;0.45;0" dur="7s" repeatCount="indefinite" begin="1.5s"/>
+        </circle>
+      </g>
+      
+      <!-- Timeline at bottom - elegant journey visualization -->
+      <g transform="translate(50, 250)">
+        <!-- Soft glow behind timeline -->
+        <ellipse cx="150" cy="0" rx="140" ry="12" fill="url(#glowGradient)" opacity="0.3"/>
+        
+        <!-- Connecting line - organic curve -->
+        <path d="M10 0 Q80 -3, 150 0 Q220 3, 290 0" stroke="#4a6741" stroke-width="2" opacity="0.2" fill="none"/>
+        
+        <!-- Time dots - growing toward present with varied sizes -->
+        <circle cx="15" cy="0" r="4" fill="#4a6741" opacity="0.28"/>
+        <circle cx="50" cy="-1" r="4.5" fill="#4a6741" opacity="0.35"/>
+        <circle cx="85" cy="0" r="5" fill="#4a6741" opacity="0.45"/>
+        <circle cx="120" cy="1" r="5.5" fill="#4a6741" opacity="0.55"/>
+        <circle cx="160" cy="0" r="6" fill="#4a6741" opacity="0.65"/>
+        <circle cx="200" cy="-1" r="6.5" fill="#4a6741" opacity="0.75"/>
+        <circle cx="240" cy="0" r="7.5" fill="#4a6741" opacity="0.88"/>
+        
+        <!-- Present moment - pulsing, prominent -->
+        <circle cx="285" cy="0" r="9" fill="#4a6741">
+          <animate attributeName="r" values="9;11;9" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;0.85;1" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+        <!-- Glow ring around present -->
+        <circle cx="285" cy="0" r="14" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0">
+          <animate attributeName="opacity" values="0;0.4;0" dur="2.5s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="12;18;12" dur="2.5s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+    </svg>
+  `,
   voice:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
   time:
@@ -198,9 +564,54 @@ const STYLES = `
   /* Onboarding state - no twins yet */
   .digital-twin-onboarding {
     text-align: center;
-    padding: var(--space-8, 32px) 0;
+    padding: var(--space-2, 8px) 0 var(--space-6, 24px);
   }
 
+  /* Hero illustration - premium "Better than Human" quality */
+  .digital-twin-hero {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto var(--space-5, 20px);
+    border-radius: var(--radius-2xl, 24px);
+    overflow: hidden;
+    background: linear-gradient(145deg, #fdfcfa 0%, #f3efe8 100%);
+    box-shadow: 
+      0 8px 40px rgba(74, 103, 65, 0.1),
+      0 4px 16px rgba(44, 37, 32, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(74, 103, 65, 0.08);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.4s ease;
+  }
+
+  .digital-twin-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 50px rgba(74, 103, 65, 0.14),
+      0 6px 20px rgba(44, 37, 32, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .digital-twin-hero svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .digital-twin-hero {
+      transition: none;
+    }
+    .digital-twin-hero:hover {
+      transform: none;
+    }
+    .digital-twin-hero svg * {
+      animation: none !important;
+    }
+  }
+
+  /* Legacy icon style kept for fallback */
   .digital-twin-onboarding__icon {
     width: 80px;
     height: 80px;
@@ -711,8 +1122,8 @@ const STYLES = `
 function renderOnboarding(): string {
   return `
     <div class="digital-twin-onboarding">
-      <div class="digital-twin-onboarding__icon">
-        ${ICONS.journal}
+      <div class="digital-twin-hero">
+        ${ICONS.heroIllustration}
       </div>
       <h3 class="digital-twin-onboarding__heading">Your Voice, Your Story</h3>
       <p class="digital-twin-onboarding__description">
@@ -935,10 +1346,12 @@ function calculateStreak(entries: Array<{ createdAt: string }>): number {
   let currentDate = mostRecent;
 
   for (let i = 1; i < entryDates.length; i++) {
+    const entryDate = entryDates[i];
+    if (entryDate === undefined) break;
     const expectedPrev = currentDate - oneDayMs;
-    if (entryDates[i] === expectedPrev) {
+    if (entryDate === expectedPrev) {
       streak++;
-      currentDate = entryDates[i];
+      currentDate = entryDate;
     } else {
       break; // Gap found, streak ends
     }
@@ -1056,7 +1469,7 @@ async function handleClick(e: Event): Promise<void> {
     soundUI.play('success');
     
     // Show confirmation toast
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success("I'll remember what matters");
     return;
   }
@@ -1135,7 +1548,7 @@ export async function openDigitalTwinUI(): Promise<void> {
     twins = [];
     updateContent();
 
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error(t('toasts.couldNotLoadJournals'));
   }
 }

@@ -435,7 +435,7 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
     create: (ctx: ToolContext) =>
       llm.tool({
         description:
-          'Get all the user\'s learned preferences - sports teams, stocks, news interests, locations, allergies. ' +
+          "Get all the user's learned preferences - sports teams, stocks, news interests, locations, allergies. " +
           'Use when user asks "what do you know about me?", "what are my preferences?", "what have you learned about me?"',
         parameters: z.object({}),
         execute: async () => {
@@ -448,7 +448,7 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
 
           // Sports teams
           if (preferences.favoriteTeams && preferences.favoriteTeams.length > 0) {
-            const teams = preferences.favoriteTeams.map(t => 
+            const teams = preferences.favoriteTeams.map((t) =>
               t.league !== 'Unknown' ? `${t.name} (${t.league})` : t.name
             );
             parts.push(`**Sports**: You follow ${teams.join(', ')}`);
@@ -484,18 +484,27 @@ export const preferencesToolDefinitions: ToolDefinition[] = [
 
           // Health conditions
           if (preferences.hasRespiratoryConditions) {
-            parts.push(`**Health**: I know you have respiratory concerns, so I'll mention air quality`);
+            parts.push(
+              `**Health**: I know you have respiratory concerns, so I'll mention air quality`
+            );
           }
 
           if (parts.length === 0) {
-            return "I haven't learned many preferences from our conversations yet! " +
-              "Just mention things naturally - like 'I'm an Eagles fan' or 'I follow Apple stock' - and I'll remember.";
+            return (
+              "I haven't learned many preferences from our conversations yet! " +
+              "Just mention things naturally - like 'I'm an Eagles fan' or 'I follow Apple stock' - and I'll remember."
+            );
           }
 
-          log.info({ userId: ctx.userId, preferencesCount: parts.length }, '📋 User queried preferences');
+          log.info(
+            { userId: ctx.userId, preferencesCount: parts.length },
+            '📋 User queried preferences'
+          );
 
-          return `Here's what I've learned about you:\n\n${parts.join('\n\n')}\n\n` +
-            "These help me personalize our conversations. If anything's wrong, just let me know!";
+          return (
+            `Here's what I've learned about you:\n\n${parts.join('\n\n')}\n\n` +
+            "These help me personalize our conversations. If anything's wrong, just let me know!"
+          );
         },
       }),
   },

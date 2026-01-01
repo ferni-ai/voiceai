@@ -405,14 +405,14 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     const agent = await getCustomAgent(agentId);
     if (!agent) {
       log.error('Agent not found:', agentId);
-      const { toast } = await import('../toast.ui.js');
+      const { toast } = await import('../whisper.ui.js');
       toast.error(t('toasts.agentNotFound'));
       return;
     }
 
     if (agent.type !== 'twin') {
       log.warn('Voice journal is only for Digital Twin agents');
-      const { toast } = await import('../toast.ui.js');
+      const { toast } = await import('../whisper.ui.js');
       toast.warning(t('toasts.voiceJournalTwinOnly'));
       return;
     }
@@ -464,7 +464,7 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     soundUI.play('switch');
   } catch (error) {
     log.error('Failed to open voice journal:', error);
-    const { toast } = await import('../toast.ui.js');
+    const { toast } = await import('../whisper.ui.js');
     toast.error(t('toasts.couldNotOpenJournal'));
   }
 }
@@ -490,7 +490,7 @@ async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
     renderInsights();
     
     // Show toast notification
-    const { toast } = await import('../toast.ui.js');
+    const { toast } = await import('../whisper.ui.js');
     if (event.type === 'entry_added') {
       toast.info(t('toasts.newEntrySynced'));
     } else if (event.type === 'entry_deleted') {

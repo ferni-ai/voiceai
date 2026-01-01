@@ -260,7 +260,16 @@ const STOCK_TICKERS: Record<string, string> = {
 };
 
 // News topics
-const NEWS_TOPICS = ['tech', 'finance', 'science', 'sports', 'business', 'health', 'entertainment', 'world'];
+const NEWS_TOPICS = [
+  'tech',
+  'finance',
+  'science',
+  'sports',
+  'business',
+  'health',
+  'entertainment',
+  'world',
+];
 
 // Avoid topics
 const AVOID_PATTERNS = ['politics', 'political', 'religion', 'religious'];

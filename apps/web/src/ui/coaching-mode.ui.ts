@@ -654,7 +654,7 @@ export async function openCoachingMode(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this mentor");
     return;
   }

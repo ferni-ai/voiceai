@@ -216,13 +216,13 @@ export async function openTwinProfile(agentId: string): Promise<void> {
     const agent = await getCustomAgent(agentId);
     if (!agent) {
       log.error('Agent not found:', agentId);
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.error(t('toasts.agentNotFound'));
       return;
     }
 
     if (agent.type !== 'twin') {
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.warning(t('toasts.profileSetupTwinOnly'));
       return;
     }
@@ -243,7 +243,7 @@ export async function openTwinProfile(agentId: string): Promise<void> {
     soundUI.play('switch');
   } catch (error) {
     log.error('Failed to open twin profile:', error);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error(t('toasts.couldNotOpenProfileSetup'));
   }
 }
@@ -300,10 +300,10 @@ async function loadExistingProfile(agent: CustomAgent): Promise<void> {
       }));
     }
     if (b.greetings && Array.isArray(b.greetings) && b.greetings.length > 0) {
-      profile.greetingStyle = (b.greetings as string[])[0];
+      profile.greetingStyle = (b.greetings as string[])[0] ?? '';
     }
     if (b.farewells && Array.isArray(b.farewells) && b.farewells.length > 0) {
-      profile.farewellStyle = (b.farewells as string[])[0];
+      profile.farewellStyle = (b.farewells as string[])[0] ?? '';
     }
   }
 }
@@ -1201,27 +1201,33 @@ function goToNextSection(): void {
   }
 
   if (currentIndex < SECTIONS.length - 1) {
-    currentSection = SECTIONS[currentIndex + 1];
-    renderSection();
-    updateProgress();
-    soundUI.play('click');
+    const nextSection = SECTIONS[currentIndex + 1];
+    if (nextSection) {
+      currentSection = nextSection;
+      renderSection();
+      updateProgress();
+      soundUI.play('click');
+    }
   }
 }
 
 function goToPreviousSection(): void {
   const currentIndex = SECTIONS.indexOf(currentSection);
   if (currentIndex > 0) {
-    currentSection = SECTIONS[currentIndex - 1];
-    renderSection();
-    updateProgress();
-    soundUI.play('click');
+    const prevSection = SECTIONS[currentIndex - 1];
+    if (prevSection) {
+      currentSection = prevSection;
+      renderSection();
+      updateProgress();
+      soundUI.play('click');
+    }
   }
 }
 
 async function saveProfileToAgent(): Promise<void> {
   if (!currentAgent) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
 
   // Show loading state on button
   const btnNext = profileModal?.querySelector('#btn-next') as HTMLButtonElement;

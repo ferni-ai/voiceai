@@ -20,6 +20,7 @@ import {
 } from './commitment-calendar-integration.js';
 import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
+import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -486,6 +487,18 @@ export async function saveCommitment(
     userCommitments.push(fullCommitment);
     commitmentCache.set(commitment.userId, userCommitments);
 
+    // Better Than Human: Schedule proactive follow-up via outreach system
+    try {
+      await onCommitmentMade(commitment.userId, {
+        id,
+        summary: fullCommitment.summary,
+        deadline: fullCommitment.targetDate ? new Date(fullCommitment.targetDate) : undefined,
+      });
+    } catch (outreachError) {
+      // Outreach is optional - don't fail commitment save
+      log.debug({ error: String(outreachError) }, 'Outreach scheduling failed (non-blocking)');
+    }
+
     log.info(
       { userId: commitment.userId, commitmentId: id, type: fullCommitment.type },
       'Commitment saved'
@@ -578,16 +591,18 @@ export async function updateCommitmentStatus(
  */
 async function triggerCommitmentCelebration(userId: string, commitment: Commitment): Promise<void> {
   try {
-    const { onCommitmentMilestone } = await import(
-      '../conversation-thread/group-outreach-triggers.js'
-    );
+    const { onCommitmentMilestone } =
+      await import('../conversation-thread/group-outreach-triggers.js');
     await onCommitmentMilestone(userId, {
       commitmentText: commitment.summary,
       completionRate: 1, // Completed = 100%
     });
   } catch (error) {
     // Non-blocking - just log the error
-    log.debug({ error: String(error), userId }, 'Failed to trigger commitment celebration (non-fatal)');
+    log.debug(
+      { error: String(error), userId },
+      'Failed to trigger commitment celebration (non-fatal)'
+    );
   }
 }
 

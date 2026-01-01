@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
@@ -93,7 +93,7 @@ let state: RecordGiftState = {
   description: '',
   occasion: 'birthday',
   customOccasion: '',
-  date: new Date().toISOString().split('T')[0],
+  date: new Date().toISOString().split('T')[0] ?? '',
   price: '',
   reaction: '',
   notes: '',
@@ -875,7 +875,7 @@ export function openRecordGift(options: RecordGiftOptions): void {
     description: '',
     occasion: 'birthday',
     customOccasion: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0] ?? '',
     price: '',
     reaction: '',
     notes: '',

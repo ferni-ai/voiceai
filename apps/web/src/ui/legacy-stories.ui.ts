@@ -506,7 +506,7 @@ export async function openLegacyStories(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this agent");
     return;
   }
@@ -611,7 +611,7 @@ function attachListeners(): void {
 }
 
 async function handleAddWisdom(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   // For now, use a simple prompt - later can be upgraded to a proper modal
   const quote = prompt("What did they always say?");
@@ -640,7 +640,7 @@ async function handleAddWisdom(): Promise<void> {
 }
 
 async function handleAddStory(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const content = prompt("Tell us a story about them...");
   if (!content || !currentAgent) return;
@@ -666,7 +666,7 @@ async function handleAddStory(): Promise<void> {
 }
 
 async function handleEditWisdom(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   const wisdom = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; context?: string }>;
@@ -694,7 +694,7 @@ async function handleEditWisdom(index: number): Promise<void> {
 }
 
 async function handleDeleteWisdom(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Delete this saying?')) return;
@@ -715,7 +715,7 @@ async function handleDeleteWisdom(index: number): Promise<void> {
 }
 
 async function handleEditStory(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   const stories = (currentAgent.memories?.stories || []) as unknown as Array<{ content: string; date?: string }>;
@@ -741,7 +741,7 @@ async function handleEditStory(index: number): Promise<void> {
 }
 
 async function handleDeleteStory(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Delete this story?')) return;

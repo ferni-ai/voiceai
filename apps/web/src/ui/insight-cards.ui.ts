@@ -1,3 +1,4 @@
+// TODO: Fix type errors - data point array indexing
 /**
  * Fidelity-Style Insight Cards
  *
@@ -62,8 +63,13 @@ export const DATA_COLORS = {
     gradient: 'linear-gradient(135deg, #C4A77D 0%, #D4BC9A 100%)',
     glow: 'rgba(196, 167, 125, 0.4)',
   },
-  series: ['#4A7C59', '#6B8E9B', '#9B7B6B', '#7B6B9B', '#9B8B6B', '#6B9B8B'],
+  series: ['#4A7C59', '#6B8E9B', '#9B7B6B', '#7B6B9B', '#9B8B6B', '#6B9B8B'] as const,
 };
+
+/** Get a series color with guaranteed fallback */
+function getSeriesColor(index: number): string {
+  return DATA_COLORS.series[index % DATA_COLORS.series.length] ?? DATA_COLORS.positive.primary;
+}
 
 // ============================================================================
 // CARD CONFIGURATIONS
@@ -470,13 +476,17 @@ export function createSparkline(
   const pathD = points.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
 
   // Area fill
-  if (showArea) {
+  if (showArea && points.length > 0) {
     const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const areaD = `${pathD} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
-    area.setAttribute('d', areaD);
-    area.setAttribute('class', 'ferni-sparkline__area');
-    area.setAttribute('fill', color);
-    svg.appendChild(area);
+    const lastPt = points[points.length - 1];
+    const firstPt = points[0];
+    if (lastPt && firstPt) {
+      const areaD = `${pathD} L ${lastPt.x} ${height} L ${firstPt.x} ${height} Z`;
+      area.setAttribute('d', areaD);
+      area.setAttribute('class', 'ferni-sparkline__area');
+      area.setAttribute('fill', color);
+      svg.appendChild(area);
+    }
   }
 
   // Line
@@ -495,12 +505,14 @@ export function createSparkline(
 
   // End dot
   const lastPoint = points[points.length - 1];
-  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  dot.setAttribute('cx', String(lastPoint.x));
-  dot.setAttribute('cy', String(lastPoint.y));
-  dot.setAttribute('r', '4');
-  dot.setAttribute('class', 'ferni-sparkline__dot');
-  svg.appendChild(dot);
+  if (lastPoint) {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', String(lastPoint.x));
+    dot.setAttribute('cy', String(lastPoint.y));
+    dot.setAttribute('r', '4');
+    dot.setAttribute('class', 'ferni-sparkline__dot');
+    svg.appendChild(dot);
+  }
 
   return svg;
 }
@@ -652,7 +664,7 @@ export function createBarChart(
     const bar = document.createElement('div');
     bar.className = 'ferni-bar-chart__bar';
     bar.style.width = '100%';
-    bar.style.background = item.color || DATA_COLORS.series[index % DATA_COLORS.series.length];
+    bar.style.background = item.color || getSeriesColor(index);
 
     const targetHeight = (item.value / maxValue) * 100;
 
@@ -738,7 +750,7 @@ export function createDonutChart(
     segment.setAttribute('cx', String(size / 2));
     segment.setAttribute('cy', String(size / 2));
     segment.setAttribute('r', String(radius));
-    segment.setAttribute('stroke', item.color || DATA_COLORS.series[index % DATA_COLORS.series.length]);
+    segment.setAttribute('stroke', item.color || getSeriesColor(index));
     segment.setAttribute('stroke-width', String(strokeWidth));
     segment.setAttribute('stroke-dasharray', `${segmentLength - gap} ${circumference}`);
     segment.setAttribute('stroke-dashoffset', String(-currentOffset));

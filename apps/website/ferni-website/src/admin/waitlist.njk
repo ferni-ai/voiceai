@@ -265,6 +265,85 @@ title: Waitlist Admin
       color: #2d4535;
     }
 
+    /* Status badges */
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.625rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .status-badge.pending {
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .status-badge.approved {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-badge.rejected {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    /* Phone display */
+    .phone-cell {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+    }
+
+    .phone-cell a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    .phone-cell a:hover {
+      text-decoration: underline;
+    }
+
+    /* Inline approve button */
+    .btn-approve {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .btn-approve:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-approve:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-approve.loading {
+      pointer-events: none;
+    }
+
+    .approve-done {
+      color: var(--color-success);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
     .pagination {
       display: flex;
       justify-content: space-between;
@@ -343,12 +422,16 @@ title: Waitlist Admin
           <div class="stat-label">Total Signups</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" id="last7Days">-</div>
-          <div class="stat-label">Last 7 Days</div>
+          <div class="stat-value" id="pendingCount" style="color: #e65100;">-</div>
+          <div class="stat-label">⏳ Pending Approval</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value" id="landingSignups">-</div>
-          <div class="stat-label">From Landing</div>
+          <div class="stat-value" id="approvedCount" style="color: #2e7d32;">-</div>
+          <div class="stat-label">✅ Approved</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="withPhoneCount" style="color: var(--color-accent);">-</div>
+          <div class="stat-label">📱 With Phone</div>
         </div>
       </div>
 
@@ -368,14 +451,16 @@ title: Waitlist Admin
           <thead>
             <tr>
               <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
               <th>Source</th>
               <th>Signed Up</th>
-              <th>Referrer</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="signupsBody">
             <tr id="loadingRow">
-              <td colspan="4" class="loading">Loading...</td>
+              <td colspan="6" class="loading">Loading...</td>
             </tr>
           </tbody>
         </table>
@@ -464,9 +549,12 @@ title: Waitlist Admin
         })
         .then(function(data) {
           document.getElementById('totalSignups').textContent = data.total.toLocaleString();
-          document.getElementById('last7Days').textContent = data.last7Days.toLocaleString();
-          var landingCount = (data.bySource && data.bySource.landing) || 0;
-          document.getElementById('landingSignups').textContent = landingCount.toLocaleString();
+          var pending = (data.byStatus && data.byStatus.pending) || data.total;
+          var approved = (data.byStatus && data.byStatus.approved) || 0;
+          var withPhone = data.withPhone || 0;
+          document.getElementById('pendingCount').textContent = pending.toLocaleString();
+          document.getElementById('approvedCount').textContent = approved.toLocaleString();
+          document.getElementById('withPhoneCount').textContent = withPhone.toLocaleString();
         })
         .catch(function(err) {
           console.error('Stats error:', err);
@@ -483,7 +571,7 @@ title: Waitlist Admin
         clearTable();
         var tr = document.createElement('tr');
         var td = document.createElement('td');
-        td.setAttribute('colspan', '4');
+        td.setAttribute('colspan', '6');
         td.className = 'loading';
         td.textContent = 'Loading...';
         tr.appendChild(td);
@@ -494,7 +582,7 @@ title: Waitlist Admin
         clearTable();
         var tr = document.createElement('tr');
         var td = document.createElement('td');
-        td.setAttribute('colspan', '4');
+        td.setAttribute('colspan', '6');
         td.className = 'loading';
         td.textContent = message || 'No signups found';
         tr.appendChild(td);
@@ -503,28 +591,115 @@ title: Waitlist Admin
 
       function createRow(entry) {
         var tr = document.createElement('tr');
+        tr.dataset.email = entry.email;
 
+        // Email
         var tdEmail = document.createElement('td');
         tdEmail.className = 'email-cell';
         tdEmail.textContent = entry.email;
         tr.appendChild(tdEmail);
 
+        // Phone
+        var tdPhone = document.createElement('td');
+        tdPhone.className = 'phone-cell';
+        if (entry.phone) {
+          var phoneLink = document.createElement('a');
+          phoneLink.href = 'tel:' + entry.phone;
+          phoneLink.textContent = formatPhone(entry.phone);
+          phoneLink.title = 'Click to call';
+          tdPhone.appendChild(phoneLink);
+        } else {
+          tdPhone.textContent = '-';
+        }
+        tr.appendChild(tdPhone);
+
+        // Status badge
+        var tdStatus = document.createElement('td');
+        var statusBadge = document.createElement('span');
+        var status = entry.status || 'pending';
+        statusBadge.className = 'status-badge ' + status;
+        statusBadge.textContent = status;
+        tdStatus.appendChild(statusBadge);
+        tr.appendChild(tdStatus);
+
+        // Source
         var tdSource = document.createElement('td');
-        var badge = document.createElement('span');
-        badge.className = 'source-badge ' + (entry.source || '');
-        badge.textContent = entry.source || 'unknown';
-        tdSource.appendChild(badge);
+        var sourceBadge = document.createElement('span');
+        sourceBadge.className = 'source-badge ' + (entry.source || '');
+        sourceBadge.textContent = entry.source || 'unknown';
+        tdSource.appendChild(sourceBadge);
         tr.appendChild(tdSource);
 
+        // Date
         var tdDate = document.createElement('td');
         tdDate.textContent = formatDate(entry.timestamp);
         tr.appendChild(tdDate);
 
-        var tdReferrer = document.createElement('td');
-        tdReferrer.textContent = entry.referrer ? shortenUrl(entry.referrer) : '-';
-        tr.appendChild(tdReferrer);
+        // Actions
+        var tdActions = document.createElement('td');
+        if (status === 'pending') {
+          var approveBtn = document.createElement('button');
+          approveBtn.className = 'btn-approve';
+          approveBtn.innerHTML = '✅ Approve';
+          approveBtn.onclick = function() { approveUser(entry.email, approveBtn, tr); };
+          tdActions.appendChild(approveBtn);
+        } else if (status === 'approved') {
+          var doneSpan = document.createElement('span');
+          doneSpan.className = 'approve-done';
+          doneSpan.textContent = '✓ Approved';
+          tdActions.appendChild(doneSpan);
+        }
+        tr.appendChild(tdActions);
 
         return tr;
+      }
+
+      function approveUser(email, btn, row) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+        btn.innerHTML = '⏳ Approving...';
+
+        fetch('/api/waitlist/approve', {
+          method: 'POST',
+          headers: {
+            'Authorization': authToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: email })
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed');
+          return res.json();
+        })
+        .then(function(data) {
+          // Update the row
+          var statusCell = row.querySelector('.status-badge');
+          if (statusCell) {
+            statusCell.className = 'status-badge approved';
+            statusCell.textContent = 'approved';
+          }
+          btn.parentElement.innerHTML = '<span class="approve-done">✓ Approved' + (data.welcomeCallScheduled ? ' (call scheduled)' : '') + '</span>';
+          // Refresh stats
+          fetchStats();
+        })
+        .catch(function(err) {
+          console.error('Approve error:', err);
+          btn.disabled = false;
+          btn.classList.remove('loading');
+          btn.innerHTML = '❌ Failed';
+          setTimeout(function() { btn.innerHTML = '✅ Approve'; }, 2000);
+        });
+      }
+
+      function formatPhone(phone) {
+        if (!phone) return '';
+        var digits = phone.replace(/\D/g, '');
+        if (digits.length === 10) {
+          return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+        } else if (digits.length === 11 && digits[0] === '1') {
+          return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
+        }
+        return phone;
       }
 
       function fetchSignups() {

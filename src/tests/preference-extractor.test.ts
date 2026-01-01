@@ -21,17 +21,32 @@ describe('preference-extractor', () => {
   describe('Sports Team Detection', () => {
     it('detects explicit fan declarations', () => {
       const testCases = [
-        { text: "I'm an Eagles fan", expected: { category: 'sports_team', value: 'eagles', context: 'NFL' } },
-        { text: "We're huge Cowboys fans", expected: { category: 'sports_team', value: 'cowboys', context: 'NFL' } },
-        { text: 'I love the Lakers', expected: { category: 'sports_team', value: 'lakers', context: 'NBA' } },
-        { text: 'Go Eagles!', expected: { category: 'sports_team', value: 'eagles', context: 'NFL' } },
-        { text: 'The Sixers are my team', expected: { category: 'sports_team', value: 'sixers', context: 'NBA' } },
+        {
+          text: "I'm an Eagles fan",
+          expected: { category: 'sports_team', value: 'eagles', context: 'NFL' },
+        },
+        {
+          text: "We're huge Cowboys fans",
+          expected: { category: 'sports_team', value: 'cowboys', context: 'NFL' },
+        },
+        {
+          text: 'I love the Lakers',
+          expected: { category: 'sports_team', value: 'lakers', context: 'NBA' },
+        },
+        {
+          text: 'Go Eagles!',
+          expected: { category: 'sports_team', value: 'eagles', context: 'NFL' },
+        },
+        {
+          text: 'The Sixers are my team',
+          expected: { category: 'sports_team', value: 'sixers', context: 'NBA' },
+        },
       ];
 
       for (const { text, expected } of testCases) {
         const results = extractPreferences(text);
         expect(results.length).toBeGreaterThanOrEqual(1);
-        const sportsTeam = results.find(r => r.category === 'sports_team');
+        const sportsTeam = results.find((r) => r.category === 'sports_team');
         expect(sportsTeam).toBeDefined();
         expect(sportsTeam?.value).toBe(expected.value);
         expect(sportsTeam?.context).toBe(expected.context);
@@ -41,9 +56,9 @@ describe('preference-extractor', () => {
     it('detects teams from different leagues', () => {
       const leagues = [
         { text: "I'm a Phillies fan", league: 'MLB' },
-        { text: "I follow the Flyers", league: 'NHL' },
-        { text: "I root for the Warriors", league: 'NBA' },
-        { text: "I support the Chiefs", league: 'NFL' },
+        { text: 'I follow the Flyers', league: 'NHL' },
+        { text: 'I root for the Warriors', league: 'NBA' },
+        { text: 'I support the Chiefs', league: 'NFL' },
       ];
 
       for (const { text, league } of leagues) {
@@ -64,7 +79,7 @@ describe('preference-extractor', () => {
       for (const text of noExtract) {
         const results = extractPreferences(text);
         // Should be empty or low confidence
-        const highConfidence = results.filter(r => r.confidence >= 0.75);
+        const highConfidence = results.filter((r) => r.confidence >= 0.75);
         expect(highConfidence.length).toBe(0);
       }
     });
@@ -84,7 +99,7 @@ describe('preference-extractor', () => {
 
       for (const { text, expected } of testCases) {
         const results = extractPreferences(text);
-        const stockPref = results.find(r => r.category === 'stock_watchlist');
+        const stockPref = results.find((r) => r.category === 'stock_watchlist');
         expect(stockPref).toBeDefined();
         expect(stockPref?.value).toBe(expected);
       }
@@ -92,13 +107,13 @@ describe('preference-extractor', () => {
 
     it('normalizes company names to tickers', () => {
       const results = extractPreferences("I'm watching Microsoft closely");
-      const stockPref = results.find(r => r.category === 'stock_watchlist');
+      const stockPref = results.find((r) => r.category === 'stock_watchlist');
       expect(stockPref?.value).toBe('MSFT');
     });
 
     it('ignores non-stock mentions', () => {
       const results = extractPreferences('I have a nice car');
-      const stockPref = results.find(r => r.category === 'stock_watchlist');
+      const stockPref = results.find((r) => r.category === 'stock_watchlist');
       expect(stockPref).toBeUndefined();
     });
   });
@@ -116,7 +131,7 @@ describe('preference-extractor', () => {
 
       for (const { text, expected } of testCases) {
         const results = extractPreferences(text);
-        const newsPref = results.find(r => r.category === 'news_interest');
+        const newsPref = results.find((r) => r.category === 'news_interest');
         expect(newsPref).toBeDefined();
         expect(newsPref?.value).toBe(expected);
       }
@@ -131,7 +146,7 @@ describe('preference-extractor', () => {
 
       for (const { text, expected, isNegative } of testCases) {
         const results = extractPreferences(text);
-        const avoidPref = results.find(r => r.category === 'avoid_topic');
+        const avoidPref = results.find((r) => r.category === 'avoid_topic');
         expect(avoidPref).toBeDefined();
         expect(avoidPref?.isNegative).toBe(isNegative);
       }
@@ -151,7 +166,7 @@ describe('preference-extractor', () => {
 
       for (const { text, category } of testCases) {
         const results = extractPreferences(text);
-        const locationPref = results.find(r => r.category === category);
+        const locationPref = results.find((r) => r.category === category);
         expect(locationPref).toBeDefined();
       }
     });
@@ -165,7 +180,7 @@ describe('preference-extractor', () => {
 
       for (const { text, category } of testCases) {
         const results = extractPreferences(text);
-        const locationPref = results.find(r => r.category === category);
+        const locationPref = results.find((r) => r.category === category);
         expect(locationPref).toBeDefined();
       }
     });
@@ -184,7 +199,7 @@ describe('preference-extractor', () => {
 
       for (const { text, expected } of testCases) {
         const results = extractPreferences(text);
-        const allergyPref = results.find(r => r.category === 'allergy');
+        const allergyPref = results.find((r) => r.category === 'allergy');
         expect(allergyPref).toBeDefined();
         expect(allergyPref?.value).toBe(expected);
       }
@@ -192,7 +207,7 @@ describe('preference-extractor', () => {
 
     it('detects health conditions', () => {
       const results = extractPreferences('I have asthma');
-      const healthPref = results.find(r => r.category === 'health_condition');
+      const healthPref = results.find((r) => r.category === 'health_condition');
       expect(healthPref).toBeDefined();
       expect(healthPref?.value).toBe('asthma');
     });
@@ -218,12 +233,7 @@ describe('preference-extractor', () => {
     });
 
     it('returns false for non-preference text', () => {
-      const noContent = [
-        'Hello Ferni',
-        'What time is it?',
-        'Thank you',
-        'Good morning',
-      ];
+      const noContent = ['Hello Ferni', 'What time is it?', 'Thank you', 'Good morning'];
 
       for (const text of noContent) {
         expect(hasPreferenceContent(text)).toBe(false);
@@ -239,8 +249,8 @@ describe('preference-extractor', () => {
       const explicit = extractPreferences("I'm a huge Eagles fan");
       const implicit = extractPreferences('Eagles won last night');
 
-      const explicitTeam = explicit.find(r => r.category === 'sports_team');
-      const implicitTeam = implicit.find(r => r.category === 'sports_team');
+      const explicitTeam = explicit.find((r) => r.category === 'sports_team');
+      const implicitTeam = implicit.find((r) => r.category === 'sports_team');
 
       expect(explicitTeam?.confidence).toBeGreaterThan(0.8);
       // Implicit should be lower or not extracted
@@ -271,10 +281,10 @@ describe('preference-extractor', () => {
       // Should extract sports team, location, and allergy
       expect(results.length).toBeGreaterThanOrEqual(2);
 
-      const categories = results.map(r => r.category);
+      const categories = results.map((r) => r.category);
       expect(categories).toContain('sports_team');
       // Either location or allergy
-      expect(categories.some(c => ['home_location', 'allergy'].includes(c))).toBe(true);
+      expect(categories.some((c) => ['home_location', 'allergy'].includes(c))).toBe(true);
     });
 
     it('is case-insensitive', () => {

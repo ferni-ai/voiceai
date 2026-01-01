@@ -520,7 +520,7 @@ export async function openMentorTeachings(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this mentor");
     return;
   }
@@ -625,7 +625,7 @@ function attachListeners(): void {
 }
 
 async function handleAddPrinciple(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const principle = prompt("What is a core principle this mentor teaches?");
   if (!principle || !currentAgent) return;
@@ -651,7 +651,7 @@ async function handleAddPrinciple(): Promise<void> {
 }
 
 async function handleAddQuote(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const quote = prompt("Enter a memorable quote from this mentor:");
   if (!quote || !currentAgent) return;
@@ -679,7 +679,7 @@ async function handleAddQuote(): Promise<void> {
 }
 
 async function handleEditPrinciple(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   const principles = (currentAgent.personality?.values || []);
@@ -705,7 +705,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
 }
 
 async function handleDeletePrinciple(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Delete this principle?')) return;
@@ -726,7 +726,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
 }
 
 async function handleEditQuote(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
@@ -754,7 +754,7 @@ async function handleEditQuote(index: number): Promise<void> {
 }
 
 async function handleDeleteQuote(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Delete this quote?')) return;

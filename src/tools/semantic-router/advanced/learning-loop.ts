@@ -434,9 +434,7 @@ function arePhrasesSimilar(a: string, b: string): boolean {
 /**
  * Merge multiple similar phrases into one
  */
-function mergePhrases(
-  phrases: UserVocabulary['phrases']
-): UserVocabulary['phrases'][0] {
+function mergePhrases(phrases: UserVocabulary['phrases']): UserVocabulary['phrases'][0] {
   // Use the shortest phrase (usually the most general)
   const sorted = [...phrases].sort((a, b) => a.phrase.length - b.phrase.length);
   const base = sorted[0];

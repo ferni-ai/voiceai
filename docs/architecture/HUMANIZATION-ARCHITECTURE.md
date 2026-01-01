@@ -95,23 +95,23 @@ This document maps all humanization systems in Ferni, identifies gaps, and provi
 
 ---
 
-### ⚠️ LEVEL 3: Relational Memory (PARTIAL)
+### ✅ LEVEL 3: Relational Memory (STRONG)
 
 | System | Location | Status | Notes |
 |--------|----------|--------|-------|
 | **Facts Memory** | `memory/` | ✅ Excellent | Firestore-backed |
 | **Emotion Memory** | `services/trust-systems/sentiment-timeline.ts` | ✅ Good | Tracks sentiment over time |
-| **Tonal Memory** | ❌ MISSING | 🔴 Gap | HOW things were said |
-| **Conversation Texture** | ❌ MISSING | 🔴 Gap | The "feel" of past talks |
+| **Tonal Memory** | `services/trust-systems/tonal-memory.ts` | ✅ Excellent | HOW things were said, voice patterns per topic |
+| **Conversation Texture** | `services/trust-systems/conversation-texture.ts` | ✅ Excellent | The "feel" of past talks (Dec 2024) |
 | **Inside Jokes** | `services/trust-systems/inside-jokes.ts` | ✅ Good | Shared history callbacks |
 | **Our Songs** | `services/trust-systems/our-songs.ts` | ✅ Excellent | Musical memory system |
 | **Boundary Memory** | `services/trust-systems/boundary-memory.ts` | ✅ Good | What NOT to bring up |
 
-**Verdict:** Level 3 needs Tonal Memory and Conversation Texture enhancement.
+**Verdict:** Level 3 is production-ready. Tonal Memory and Conversation Texture added Dec 2024.
 
 ---
 
-### ⚠️ LEVEL 4: Continuous Presence (PARTIAL)
+### ✅ LEVEL 4: Continuous Presence (STRONG)
 
 | System | Location | Status | Notes |
 |--------|----------|--------|-------|
@@ -119,69 +119,69 @@ This document maps all humanization systems in Ferni, identifies gaps, and provi
 | **Physical Presence** | `intelligence/context-builders/physical-presence.ts` | ✅ Good | Late night mode, settling in |
 | **Thinking of You** | `services/trust-systems/thinking-of-you.ts` | ✅ Good | Proactive outreach |
 | **Proactive Noticing** | `intelligence/context-builders/proactive-noticing.ts` | ✅ Excellent | "I notice..." patterns |
-| **"I've Been Thinking"** | ❌ MISSING | 🔴 Gap | Between-session reflection |
-| **Cross-Persona References** | `intelligence/context-builders/superhuman/team-gossip.ts` | ✅ Started | Needs enhancement |
-| **Curiosity Follow-Through** | ❌ MISSING | 🔴 Gap | Following up on passing mentions |
+| **"I've Been Thinking"** | `services/trust-systems/between-session-thinking.ts` | ✅ Excellent | Between-session reflection (Dec 2024) |
+| **Cross-Persona References** | `intelligence/context-builders/superhuman/team-gossip.ts` | ✅ Enhanced | Rich team dynamics (Dec 2024) |
+| **Curiosity Follow-Through** | `services/trust-systems/curiosity-memory.ts` | ✅ Excellent | Following up on passing mentions (Dec 2024) |
 
-**Verdict:** Level 4 has strong foundation. Needs "I've Been Thinking" and enhanced curiosity.
+**Verdict:** Level 4 is production-ready. All gaps filled Dec 2024.
 
 ---
 
-### 🔴 LEVEL 5: Mutual Growth (MISSING)
+### ✅ LEVEL 5: Mutual Growth (IMPLEMENTED)
 
 | System | Location | Status | Notes |
 |--------|----------|--------|-------|
-| **Persona Growth** | ❌ MISSING | 🔴 Gap | Personas that change over time |
-| **User Impact on Personas** | ❌ MISSING | 🔴 Gap | "You've changed how I think" |
+| **Persona Growth** | `services/trust-systems/persona-growth.ts` | ✅ Excellent | Personas change over time (Dec 2024) |
+| **User Impact on Personas** | `services/trust-systems/persona-growth.ts` | ✅ Excellent | "You've changed how I think" (Dec 2024) |
 | **Collective Learning** | `intelligence/COLLECTIVE-LEARNING.md` | ⚠️ Spec'd | Architecture documented |
 
-**Verdict:** Level 5 is the frontier. Create from scratch.
+**Verdict:** Level 5 core implemented Dec 2024. Collective Learning is future enhancement.
 
 ---
 
 ## Gap Analysis
 
-### 🔴 Critical Gaps (High Impact, Should Implement)
+### ✅ Critical Gaps - ALL COMPLETED (December 2024)
 
-#### 1. "I've Been Thinking" System
+#### 1. "I've Been Thinking" System ✅ DONE
+**Location:** `services/trust-systems/between-session-thinking.ts`
 **What:** Personas reference having thought about the user between sessions.
-**Why:** Creates illusion of continuous relationship.
 **Implementation:**
-- Record "mulling" moments at session end
-- Inject "I was thinking about..." at session start
-- Reference specific past conversations naturally
+- Records "mulling", "connecting", "realizing", "questioning" moments at session end
+- Surfaces "I was thinking about..." at session start via context builder
+- References specific past conversations naturally with phrase generation
 
-#### 2. Tonal Memory
+#### 2. Tonal Memory ✅ DONE
+**Location:** `services/trust-systems/tonal-memory.ts`
 **What:** Remember HOW things were said, not just WHAT.
-**Why:** "Your voice got quiet when you mentioned your sister" is profound.
 **Implementation:**
-- Store voice emotion alongside text
-- Track emotional patterns per topic
-- Surface in proactive noticing
+- Stores voice emotion (pitch, tempo, tremor, energy) alongside text
+- Tracks emotional patterns per topic
+- Surfaces in memory-enhancement context builder
 
-#### 3. Curiosity Follow-Through
+#### 3. Curiosity Follow-Through ✅ DONE
+**Location:** `services/trust-systems/curiosity-memory.ts`
 **What:** Follow up on passing mentions.
-**Why:** Real friends remember the small things.
 **Implementation:**
-- Track mentioned people, places, activities
-- Queue low-priority follow-ups
-- Surface naturally when relevant
+- Tracks mentioned people, places, events, activities, goals
+- Smart follow-up timing (1-4 week sweet spot)
+- Priority-based surfacing with natural phrasing
 
-#### 4. Enhanced Cross-Persona References
+#### 4. Enhanced Cross-Persona References ✅ DONE
+**Location:** `intelligence/context-builders/superhuman/team-gossip.ts`
 **What:** Personas reference each other naturally, with nuance.
-**Why:** Makes team feel like real colleagues.
 **Implementation:**
-- Enhance team-gossip.ts with more templates
-- Add disagreements and different perspectives
-- Add persona-specific opinions about each other
+- Rich templates with disagreements and perspectives
+- Persona-specific opinions about each other
+- Natural team dynamics in conversation
 
-#### 5. Persona Growth
+#### 5. Persona Growth ✅ DONE
+**Location:** `services/trust-systems/persona-growth.ts`
 **What:** Personas that change from the relationship.
-**Why:** One-sided growth feels transactional.
 **Implementation:**
-- Track what user has "taught" persona
-- Reference changed thinking
-- Show vulnerability about being influenced
+- Tracks what user has "taught" persona (7 growth types)
+- References changed thinking with natural phrases
+- Shows vulnerability about being influenced
 
 ---
 

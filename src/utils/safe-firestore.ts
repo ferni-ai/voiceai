@@ -28,12 +28,12 @@
  * @module utils/safe-firestore
  */
 
-import type {
+import {
   Firestore,
-  DocumentReference,
-  CollectionReference,
-  SetOptions,
-  DocumentData,
+  type DocumentReference,
+  type CollectionReference,
+  type SetOptions,
+  type DocumentData,
 } from '@google-cloud/firestore';
 import { cleanForFirestore } from './firestore-utils.js';
 import { createLogger } from './safe-logger.js';
@@ -167,22 +167,63 @@ export function createSafeBatch(db: Firestore) {
 }
 
 // ============================================================================
-// HELPER FUNCTION TO GET FIRESTORE WITH SAFE DEFAULTS
+// CENTRALIZED FIRESTORE GETTER
 // ============================================================================
 
+let cachedDb: Firestore | null = null;
+let initialized = false;
+
 /**
- * Get the Firestore instance.
- * Use with safeSet/safeUpdate/safeAdd for write operations.
+ * Get the shared Firestore instance (synchronous).
+ *
+ * MIGRATION: Use this instead of importing from 'firebase-admin/firestore'
+ *
+ * @example
+ * ```typescript
+ * // ❌ OLD - scattered imports
+ * import { getFirestore } from 'firebase-admin/firestore';
+ * const db = getFirestore();
+ *
+ * // ✅ NEW - centralized with error handling
+ * import { getDb } from '../utils/safe-firestore.js';
+ * const db = getDb();
+ * if (!db) { log.warn('Firestore unavailable'); return; }
+ * ```
  */
-export async function getFirestoreInstance(): Promise<Firestore | null> {
+export function getDb(): Firestore | null {
+  if (initialized) {
+    return cachedDb;
+  }
+
   try {
-    // Dynamic import to avoid circular dependencies
-    const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
-    return getFirestoreDb();
-  } catch {
-    log.warn('Could not get Firestore instance');
+    // Use @google-cloud/firestore directly for better typing
+    cachedDb = new Firestore();
+    initialized = true;
+    log.debug('Firestore instance initialized');
+    return cachedDb;
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Firestore not available');
+    initialized = true; // Don't retry
     return null;
   }
+}
+
+/**
+ * Get the Firestore instance (async version for backward compatibility).
+ * Use with safeSet/safeUpdate/safeAdd for write operations.
+ *
+ * @deprecated Use getDb() instead
+ */
+export async function getFirestoreInstance(): Promise<Firestore | null> {
+  return getDb();
+}
+
+/**
+ * Reset the Firestore instance (for testing).
+ */
+export function resetFirestoreInstance(): void {
+  cachedDb = null;
+  initialized = false;
 }
 
 // ============================================================================

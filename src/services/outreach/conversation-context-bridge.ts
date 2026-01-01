@@ -143,8 +143,13 @@ async function loadOutreachFromFirestore(userId: string): Promise<OutreachContex
     // Check if still within the response window
     const timeSinceOutreach = Date.now() - outreach.sentAt.getTime();
     if (timeSinceOutreach > DIRECT_RESPONSE_WINDOW) {
-      // Expired - clean up Firestore
-      doc.ref.delete().catch(() => {});
+      // Expired - clean up Firestore (fire-and-forget with logging)
+      doc.ref.delete().catch((error) => {
+        log.debug(
+          { error: String(error), userId },
+          'Failed to delete expired outreach from Firestore'
+        );
+      });
       return null;
     }
 

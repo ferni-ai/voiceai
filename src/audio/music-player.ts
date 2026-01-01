@@ -2064,6 +2064,15 @@ export class CallMusicPlayer {
       },
       '🎵 [DIAG] dispose() CALLED - music player will be RESET!'
     );
+
+    // 🐛 FIX: Remove event listeners BEFORE calling stop() to prevent
+    // stateChange events from triggering frontend notifications during cleanup.
+    // The connection is already closing, so retrying to send state is wasteful.
+    this.events.removeAllListeners();
+    this.onTrackEndedCallback = null;
+    this.onMusicStateChangeCallback = null;
+    this.onMidSongMomentCallback = null;
+
     this.stop();
     this.state.queue = [];
 
@@ -2090,12 +2099,6 @@ export class CallMusicPlayer {
     } catch {
       // Ignore cleanup errors
     }
-
-    // 🐛 FIX BUG-009: Remove all event listeners to prevent memory leaks
-    this.events.removeAllListeners();
-    this.onTrackEndedCallback = null;
-    this.onMusicStateChangeCallback = null;
-    this.onMidSongMomentCallback = null;
 
     // 🐛 FIX: Reset all initialization state to prevent singleton pollution
     this.state.isInitialized = false;

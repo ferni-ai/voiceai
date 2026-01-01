@@ -70,11 +70,13 @@ export function generateRelationshipNarrative(
   progressPercent: number,
   daysActive: number
 ): NarrativeOutput {
+  const defaultStage = {
+    narrative: 'Every story starts somewhere',
+    deeper: 'The fact that you\'re here matters. Most people never start.',
+  };
+
   const stageNarratives: Record<string, { narrative: string; deeper: string }> = {
-    'first-meeting': {
-      narrative: 'Every story starts somewhere',
-      deeper: 'The fact that you\'re here matters. Most people never start.',
-    },
+    'first-meeting': defaultStage,
     'getting-started': {
       narrative: 'You keep showing up',
       deeper: 'Consistency is the foundation of trust. I notice.',
@@ -93,7 +95,7 @@ export function generateRelationshipNarrative(
     },
   };
 
-  const stageData = stageNarratives[stage] || stageNarratives['first-meeting'];
+  const stageData = stageNarratives[stage] ?? defaultStage;
 
   // Add time-based warmth
   let timeNote = '';

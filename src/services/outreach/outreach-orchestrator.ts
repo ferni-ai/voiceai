@@ -24,6 +24,8 @@ import {
   type UserOutreachContext,
 } from './thinking-of-you.js';
 import { deliverOutreach } from './delivery/index.js';
+// Outreach History Tracking - "Better Than Human" learning from patterns
+import { outreachHistory } from './outreach-history.js';
 
 const log = createLogger({ module: 'OutreachOrchestrator' });
 
@@ -360,8 +362,26 @@ export class OutreachOrchestrator extends EventEmitter {
         outreachId: `call_${userId}_${Date.now()}`,
       });
       this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger,
+        channel: 'voice',
+        personaId,
+        status: 'delivered',
+      });
     } catch (err) {
       log.error({ error: String(err), userId }, 'Failed to deliver proactive call');
+
+      // Record failed attempt
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger,
+        channel: 'voice',
+        personaId,
+        status: 'failed',
+      });
     }
 
     return event;
@@ -438,8 +458,26 @@ export class OutreachOrchestrator extends EventEmitter {
         outreachId: `push_${userId}_${Date.now()}`,
       });
       this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'push',
+        personaId,
+        status: 'delivered',
+      });
     } catch (err) {
       log.error({ error: String(err), userId }, 'Failed to deliver push notification');
+
+      // Record failed attempt
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'push',
+        personaId,
+        status: 'failed',
+      });
     }
 
     return event;
@@ -509,8 +547,26 @@ export class OutreachOrchestrator extends EventEmitter {
         outreachId: `sms_${userId}_${Date.now()}`,
       });
       this.telemetry.successfulDeliveries++;
+
+      // Record to outreach history for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'sms',
+        personaId,
+        status: 'delivered',
+      });
     } catch (err) {
       log.error({ error: String(err), userId }, 'Failed to deliver SMS');
+
+      // Record failed attempt for learning
+      await outreachHistory.recordAttempt(userId, {
+        type: 'thinking_of_you',
+        reason: context.trigger || 'proactive',
+        channel: 'sms',
+        personaId,
+        status: 'failed',
+      });
     }
 
     return event;

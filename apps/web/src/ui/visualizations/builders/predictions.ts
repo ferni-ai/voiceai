@@ -25,7 +25,7 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { CSS_COLOR_VARS } from '../types.js';
 import { t } from '../../../i18n/index.js';
 
 // ============================================================================

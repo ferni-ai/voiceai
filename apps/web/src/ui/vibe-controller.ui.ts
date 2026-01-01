@@ -19,7 +19,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
@@ -292,15 +292,18 @@ function buildUIPresets(): { primary: VibePresetUI[]; activity: VibePresetUI[] }
     },
   };
 
-  const buildPreset = (id: string): VibePresetUI => ({
-    id,
-    name: presetData[id].name,
-    description: presetData[id].description,
-    icon: PRESET_ICONS[id] ?? PRESET_ICONS.focus,
-    music: presetData[id].music,
-    lights: presetData[id].lights,
-    temperature: presetData[id].temperature,
-  });
+  const buildPreset = (id: string): VibePresetUI => {
+    const preset = presetData[id];
+    return {
+      id,
+      name: preset?.name ?? id,
+      description: preset?.description ?? '',
+      icon: PRESET_ICONS[id] ?? PRESET_ICONS.focus ?? '',
+      music: preset?.music ?? { genre: 'ambient' },
+      lights: preset?.lights ?? { brightness: 70, colorTemp: 3000 },
+      temperature: preset?.temperature ?? { target: 72, mode: 'home' as const },
+    };
+  };
 
   return {
     primary: PRIMARY_PRESET_IDS.map(buildPreset),
@@ -2196,10 +2199,10 @@ function handleFocusTrap(e: KeyboardEvent): void {
 
   if (e.shiftKey && document.activeElement === first) {
     e.preventDefault();
-    last.focus();
+    last?.focus();
   } else if (!e.shiftKey && document.activeElement === last) {
     e.preventDefault();
-    first.focus();
+    first?.focus();
   }
 }
 
@@ -2210,7 +2213,7 @@ function activateFocusTrap(): void {
   // Focus the first focusable element
   const focusable = getFocusableElements();
   if (focusable.length > 0) {
-    focusable[0].focus();
+    focusable[0]?.focus();
   }
 }
 

@@ -191,7 +191,12 @@ impl SolaPitchShifter {
             sample_rate,
             pitch_ratio: 1.0,
             target_pitch_ratio: 1.0,
-            pitch_smooth_coef: 0.99, // Balanced: tracks modulation without artifacts
+            // Smoothing coefficient for pitch changes
+            // 0.7 = reaches 90% of target in ~4 frames (~80ms at 20ms/frame)
+            // This allows 5.5 Hz LFO modulation (182ms cycle) to be audible
+            // while still preventing artifacts from abrupt changes
+            // Previous value (0.99) had 1.4s half-life, killing all modulation!
+            pitch_smooth_coef: 0.7,
             input_buffer: Vec::with_capacity(ANALYSIS_FRAME_SIZE * 4),
             output_buffer: Vec::with_capacity(ANALYSIS_FRAME_SIZE * 4),
             overlap_buffer: vec![0.0; ANALYSIS_FRAME_SIZE],
@@ -609,6 +614,16 @@ pub struct SolaPitchDrift {
 
     /// Sample rate
     sample_rate: u32,
+
+    // =========================================================================
+    // PITCH RESET - Return to baseline at phrase boundaries
+    // =========================================================================
+    /// Enable pitch reset at phrase boundaries
+    enable_pitch_reset: bool,
+    /// Samples remaining until phrase boundary (0 = not approaching)
+    samples_to_boundary: usize,
+    /// Reset ramp duration in samples (~100ms)
+    reset_ramp: usize,
 }
 
 impl SolaPitchDrift {
@@ -633,7 +648,44 @@ impl SolaPitchDrift {
             update_interval,
             rng_seed: 33333,
             sample_rate,
+            // Pitch reset defaults
+            enable_pitch_reset: true,
+            samples_to_boundary: 0,
+            reset_ramp: (sample_rate as f32 * 0.1) as usize, // 100ms ramp
         }
+    }
+
+    /// Signal that a phrase boundary is approaching in N samples
+    ///
+    /// Call this when a sentence-end boundary is detected ahead.
+    /// The processor will smoothly return pitch drift to baseline.
+    pub fn set_phrase_boundary(&mut self, samples_until_boundary: usize) {
+        if self.enable_pitch_reset {
+            self.samples_to_boundary = samples_until_boundary;
+        }
+    }
+
+    /// Get the reset ramp duration for lookahead
+    pub fn get_reset_ramp(&self) -> usize {
+        self.reset_ramp
+    }
+
+    /// Calculate the pitch reset factor (0.0 = full drift, 1.0 = baseline)
+    fn get_pitch_reset_factor(&self) -> f32 {
+        if !self.enable_pitch_reset || self.samples_to_boundary == 0 {
+            return 0.0; // No reset active
+        }
+
+        // How far into the ramp are we?
+        let ramp_progress = if self.samples_to_boundary >= self.reset_ramp {
+            0.0 // Not in ramp zone yet
+        } else {
+            1.0 - (self.samples_to_boundary as f32 / self.reset_ramp as f32)
+        };
+
+        // Use smooth ease-out (inverse quadratic) for natural return to baseline
+        // This creates a gentle "landing" at the baseline
+        1.0 - (1.0 - ramp_progress) * (1.0 - ramp_progress)
     }
 
     /// Process samples with slow pitch drift
@@ -655,8 +707,18 @@ impl SolaPitchDrift {
         self.current_drift = self.current_drift * self.smooth_coef
             + self.target_drift * (1.0 - self.smooth_coef);
 
-        // Update pitch shifter
-        self.shifter.set_pitch_cents(self.current_drift);
+        // Apply pitch reset factor when approaching boundary
+        // This smoothly brings drift back to baseline (0) at sentence ends
+        let reset_factor = self.get_pitch_reset_factor();
+        let effective_drift = self.current_drift * (1.0 - reset_factor);
+
+        // Decrement boundary countdown
+        if self.samples_to_boundary > 0 {
+            self.samples_to_boundary = self.samples_to_boundary.saturating_sub(samples.len());
+        }
+
+        // Update pitch shifter with possibly-reset drift
+        self.shifter.set_pitch_cents(effective_drift);
 
         // Process through SOLA
         self.shifter.process_inplace(samples);
@@ -668,6 +730,7 @@ impl SolaPitchDrift {
         self.current_drift = 0.0;
         self.target_drift = 0.0;
         self.update_counter = 0;
+        self.samples_to_boundary = 0;
     }
 
     /// Start new utterance (keep drift state for continuity)

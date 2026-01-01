@@ -494,10 +494,16 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     this.skipGreeting = options.skipGreeting ?? false;
 
     if (toolSource === 'orchestrator') {
+      const toolNamesList = Object.keys(allTools);
+      const hasWeather = toolNamesList.includes('getWeather');
+      const hasMusic = toolNamesList.includes('playMusic');
       log.info(
         {
-          totalTools: Object.keys(allTools).length,
-          toolNames: Object.keys(allTools).slice(0, 20),
+          totalTools: toolNamesList.length,
+          toolNames: toolNamesList.slice(0, 20),
+          hasWeather,
+          hasMusic,
+          weatherTools: toolNamesList.filter((t) => t.toLowerCase().includes('weather')),
           skipGreeting: this.skipGreeting,
         },
         '🎯 Agent initialized with ORCHESTRATOR-selected tools'

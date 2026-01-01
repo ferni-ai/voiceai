@@ -19,9 +19,6 @@ import {
   createFlexContainer,
   setStyles,
   createScreenReaderLabel,
-  getCssVar,
-  DURATION,
-  EASING,
 } from '../utils/dom.js';
 import type {
   EmotionalArcsData,
@@ -635,7 +632,7 @@ function buildTablet(
  * Get color for a phase by name.
  */
 function getPhaseColor(name: string): string {
-  return PHASE_COLORS[name] || PHASE_COLORS['default'];
+  return PHASE_COLORS[name] ?? PHASE_COLORS['default'] ?? '#3d5a35';
 }
 
 /**

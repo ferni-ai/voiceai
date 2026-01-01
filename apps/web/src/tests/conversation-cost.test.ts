@@ -33,7 +33,7 @@ vi.mock('../utils/api.js', () => ({
   getApiHeaders: vi.fn(() => ({})),
 }));
 
-vi.mock('./toast.ui.js', () => ({
+vi.mock('./whisper.ui.js', () => ({
   toast: mockToast,
 }));
 

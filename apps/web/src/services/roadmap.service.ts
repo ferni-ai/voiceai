@@ -964,7 +964,7 @@ class SmartPromptTracker {
    */
   getTopRecommendation(): SmartPromptRecommendation | null {
     const recommendations = this.getRecommendations();
-    return recommendations.length > 0 ? recommendations[0] : null;
+    return recommendations.length > 0 ? recommendations[0] ?? null : null;
   }
 
   /**

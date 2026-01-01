@@ -1,0 +1,189 @@
+{
+  "identifier" : "8A74B28E-0C5D-4C5C-9F8B-7F6B8A5E4D3C",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6739614203",
+    "_developerTeamID" : "XT8W26YE9U",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 756086400,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21513247",
+      "localizations" : [
+
+      ],
+      "name" : "Ferni Subscription",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "6739614204",
+          "introductoryOffer" : {
+            "internalID" : "1A2B3C4D-5E6F-7890-ABCD-EF1234567890",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Access Maya, Peter, Alex, Jordan + unlimited conversations",
+              "displayName" : "Friend",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ferni.subscription.friend.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Friend Monthly",
+          "subscriptionGroupID" : "21513247",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "99.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "6739614205",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Access Maya, Peter, Alex, Jordan + unlimited conversations. Save 17%!",
+              "displayName" : "Friend (Annual)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ferni.subscription.friend.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Friend Yearly",
+          "subscriptionGroupID" : "21513247",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "19.99",
+          "familyShareable" : true,
+          "groupNumber" : 2,
+          "internalID" : "6739614206",
+          "introductoryOffer" : {
+            "internalID" : "2B3C4D5E-6F78-90AB-CDEF-234567890ABC",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Full team including Nayan + priority features + exclusive content",
+              "displayName" : "Partner",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ferni.subscription.partner.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Partner Monthly",
+          "subscriptionGroupID" : "21513247",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "199.99",
+          "familyShareable" : true,
+          "groupNumber" : 2,
+          "internalID" : "6739614207",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Full team including Nayan + priority features + exclusive content. Save 17%!",
+              "displayName" : "Partner (Annual)",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ferni.subscription.partner.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Partner Yearly",
+          "subscriptionGroupID" : "21513247",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

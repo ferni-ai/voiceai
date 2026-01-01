@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { indexLifeChapter } from '../data-layer/integrations/index.js';
+import { onLifeChapterTransition } from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'life-narrative' });
 
@@ -333,6 +334,21 @@ export async function createOrUpdateChapter(
   };
 
   await saveChapter(newChapter);
+
+  // Better Than Human: Trigger proactive outreach for life transitions
+  if (data.type === 'transition' || data.type === 'loss' || data.type === 'triumph') {
+    try {
+      await onLifeChapterTransition(userId, {
+        fromChapter: 'previous',
+        toChapter: newChapter.title,
+        significance:
+          data.type === 'loss' ? 'transformative' : data.type === 'triumph' ? 'major' : 'major',
+      });
+    } catch (outreachError) {
+      log.debug({ error: String(outreachError) }, 'Life chapter outreach failed (non-blocking)');
+    }
+  }
+
   return newChapter;
 }
 

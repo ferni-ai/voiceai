@@ -215,14 +215,19 @@ export async function uploadVisualMemory(
     );
 
     // Index to semantic memory
-    void onVisualMemoryChange(userId, memoryId, {
-      description: aiDescription || description || 'Visual memory',
-      imageType: category === 'documents' ? 'document' : 'photo',
-      context: source,
-      emotions: undefined,
-      people: facesDetected > 0 ? [`${facesDetected} people`] : undefined,
-      timestamp: new Date().toISOString(),
-    }, 'create');
+    void onVisualMemoryChange(
+      userId,
+      memoryId,
+      {
+        description: aiDescription || description || 'Visual memory',
+        imageType: category === 'documents' ? 'document' : 'photo',
+        context: source,
+        emotions: undefined,
+        people: facesDetected > 0 ? [`${facesDetected} people`] : undefined,
+        timestamp: new Date().toISOString(),
+      },
+      'create'
+    );
 
     return {
       success: true,

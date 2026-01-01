@@ -41,6 +41,8 @@ import {
 } from '../../services/cross-persona-insights.js';
 import { createHandoffEvent } from './types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
+// Persona Affinity Tracking - "Better Than Human" smart routing
+import { personaAffinity } from '../../services/superhuman/persona-affinity.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
@@ -606,6 +608,37 @@ export async function executeHandoff(
         { error: String(intelligenceErr) },
         'Could not record handoff for intelligence layer'
       );
+    }
+
+    // 💕 Better Than Human: Record persona affinity for smart future routing
+    try {
+      if (options.userId) {
+        await personaAffinity.recordInteraction(options.userId, {
+          personaId: previousAgent,
+          interactionType: 'handoff',
+          topics: options.topics || [reason.split(' ')[0]],
+          sentiment: 'neutral',
+          duration: 0,
+          outcome: 'handed_off',
+        });
+
+        // Record handoff for learning
+        await personaAffinity.recordHandoff(options.userId, {
+          fromPersona: previousAgent,
+          toPersona: canonicalTargetId,
+          topics: options.topics || [],
+          userApproved: true,
+          successful: true,
+        });
+
+        getLogger().debug(
+          { from: previousAgent, to: canonicalTargetId, userId: options.userId },
+          '💕 Recorded persona affinity for handoff'
+        );
+      }
+    } catch (affinityErr) {
+      // Non-critical, don't fail the handoff
+      getLogger().debug({ error: String(affinityErr) }, 'Could not record persona affinity');
     }
   } else {
     getLogger().warn(

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Ferni Favicon - Wink Expression (32x32)
+     LUXO STYLE: opaque white eyes, NO pupils
+     Left eye winking (curved line), right eye open -->
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3a5731"/>
+    </linearGradient>
+    <linearGradient id="eyeFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f0f0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Circular background -->
+  <circle cx="16" cy="16" r="14" fill="url(#orbGradient)"/>
+
+  <!-- Left eye - winking (curved line) -->
+  <path d="M8.5,15 Q11,13 13.5,15" 
+        fill="none" stroke="url(#eyeFill)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Right eye - open -->
+  <ellipse cx="21" cy="15" rx="2.5" ry="3.2" fill="url(#eyeFill)"/>
+  <circle cx="20" cy="13.5" r="0.6" fill="white" opacity="0.9"/>
+</svg>

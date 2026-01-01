@@ -177,6 +177,79 @@ export {
 } from './wisdom-hooks.js';
 
 // ============================================================================
+// LIFE STAGE TRANSITIONS
+// ============================================================================
+export {
+  onNewParentChange,
+  onEmptyNestChange,
+  onInfidelityChange,
+  onHealthDiagnosisChange,
+  onJobLossChange,
+  onSobrietyChange,
+  onSandwichGenerationChange,
+  onBlendedFamilyChange,
+  onComingOutChange,
+  onFaithTransitionChange,
+  lifeStageHooks,
+} from './life-stage-hooks.js';
+
+// ============================================================================
+// LOCATION & PLACES
+// ============================================================================
+export {
+  onFavoritePlaceChange,
+  onLocationMemoryChange,
+  onGeographicPreferenceChange,
+} from './location-hooks.js';
+
+// ============================================================================
+// PETS & ANIMALS
+// ============================================================================
+export { onPetChange, onPetHealthChange, onPetMilestoneChange } from './pets-hooks.js';
+
+// ============================================================================
+// PROPERTY & VEHICLES
+// ============================================================================
+export {
+  onVehicleChange,
+  onHomeMaintenanceChange,
+  onPropertyAssetChange,
+} from './property-hooks.js';
+
+// ============================================================================
+// INSURANCE & LEGAL
+// ============================================================================
+export { onInsurancePolicyChange, onLegalDocumentChange } from './legal-hooks.js';
+
+// ============================================================================
+// CRISIS & SUPPORT
+// ============================================================================
+export { onCrisisEpisodeChange, onSupportReceivedChange } from './crisis-hooks.js';
+
+// ============================================================================
+// USER CORRECTIONS & LEARNING
+// ============================================================================
+export { onUserCorrectionChange, onImplicitPreferenceChange } from './learning-hooks.js';
+
+// ============================================================================
+// OUTREACH HISTORY
+// ============================================================================
+export {
+  onOutreachAttemptChange,
+  onOutreachResponseChange,
+  onOutreachPreferenceChange,
+} from './outreach-history-hooks.js';
+
+// ============================================================================
+// PERSONA INTERACTION
+// ============================================================================
+export {
+  onPersonaAffinityChange,
+  onHandoffPreferenceChange,
+  onPersonaInteractionHistoryChange,
+} from './persona-hooks.js';
+
+// ============================================================================
 // BETTER THAN HUMAN - What makes us 200%
 // ============================================================================
 export {
@@ -211,7 +284,6 @@ export {
   // Voice recognition - "We know your voice"
   onVoiceRecognitionChange,
   deindexVoiceRecognition,
-
   betterThanHumanHooks,
 } from './better-than-human-hooks.js';
 
@@ -230,6 +302,77 @@ import { careerHooks } from './career-hooks.js';
 import { wisdomHooks } from './wisdom-hooks.js';
 import { miscHooks } from './misc-hooks.js';
 import { betterThanHumanHooks } from './better-than-human-hooks.js';
+import { lifeStageHooks } from './life-stage-hooks.js';
+import {
+  onFavoritePlaceChange,
+  onLocationMemoryChange,
+  onGeographicPreferenceChange,
+} from './location-hooks.js';
+import { onPetChange, onPetHealthChange, onPetMilestoneChange } from './pets-hooks.js';
+import {
+  onVehicleChange,
+  onHomeMaintenanceChange,
+  onPropertyAssetChange,
+} from './property-hooks.js';
+import { onInsurancePolicyChange, onLegalDocumentChange } from './legal-hooks.js';
+import { onCrisisEpisodeChange, onSupportReceivedChange } from './crisis-hooks.js';
+import { onUserCorrectionChange, onImplicitPreferenceChange } from './learning-hooks.js';
+import {
+  onOutreachAttemptChange,
+  onOutreachResponseChange,
+  onOutreachPreferenceChange,
+} from './outreach-history-hooks.js';
+import {
+  onPersonaAffinityChange,
+  onHandoffPreferenceChange,
+  onPersonaInteractionHistoryChange,
+} from './persona-hooks.js';
+
+// Grouped hooks objects for new domains
+export const locationHooks = {
+  onFavoritePlaceChange,
+  onLocationMemoryChange,
+  onGeographicPreferenceChange,
+};
+
+export const petsHooks = {
+  onPetChange,
+  onPetHealthChange,
+  onPetMilestoneChange,
+};
+
+export const propertyHooks = {
+  onVehicleChange,
+  onHomeMaintenanceChange,
+  onPropertyAssetChange,
+};
+
+export const legalHooks = {
+  onInsurancePolicyChange,
+  onLegalDocumentChange,
+};
+
+export const crisisHooks = {
+  onCrisisEpisodeChange,
+  onSupportReceivedChange,
+};
+
+export const learningHooks = {
+  onUserCorrectionChange,
+  onImplicitPreferenceChange,
+};
+
+export const outreachHistoryHooks = {
+  onOutreachAttemptChange,
+  onOutreachResponseChange,
+  onOutreachPreferenceChange,
+};
+
+export const personaHooks = {
+  onPersonaAffinityChange,
+  onHandoffPreferenceChange,
+  onPersonaInteractionHistoryChange,
+};
 
 /**
  * Domain name to hooks object mapping
@@ -248,6 +391,15 @@ export function getDomainHooks(
     | 'wisdom'
     | 'misc'
     | 'better-than-human'
+    | 'life-stage'
+    | 'location'
+    | 'pets'
+    | 'property'
+    | 'legal'
+    | 'crisis'
+    | 'learning'
+    | 'outreach-history'
+    | 'persona'
 ): Record<string, (...args: unknown[]) => Promise<void>> {
   const hooks: Record<string, Record<string, (...args: unknown[]) => Promise<void>>> = {
     trust: trustHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
@@ -264,6 +416,21 @@ export function getDomainHooks(
       string,
       (...args: unknown[]) => Promise<void>
     >,
+    'life-stage': lifeStageHooks as unknown as Record<
+      string,
+      (...args: unknown[]) => Promise<void>
+    >,
+    location: locationHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    pets: petsHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    property: propertyHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    legal: legalHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    crisis: crisisHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    learning: learningHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
+    'outreach-history': outreachHistoryHooks as unknown as Record<
+      string,
+      (...args: unknown[]) => Promise<void>
+    >,
+    persona: personaHooks as unknown as Record<string, (...args: unknown[]) => Promise<void>>,
   };
   return hooks[domain];
 }
@@ -284,5 +451,14 @@ export function getDomainNames(): string[] {
     'wisdom',
     'misc',
     'better-than-human',
+    'life-stage',
+    'location',
+    'pets',
+    'property',
+    'legal',
+    'crisis',
+    'learning',
+    'outreach-history',
+    'persona',
   ];
 }

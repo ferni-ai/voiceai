@@ -683,10 +683,8 @@ class IOSLiveKitSession: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            // Update expression with animation
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                self.currentExpression = result.expression
-            }
+            // Update expression (animation handled at View layer)
+            self.currentExpression = result.expression
 
             sessionLog.debug("Expression updated: \(result.expression.rawValue)")
 
@@ -697,21 +695,21 @@ class IOSLiveKitSession: ObservableObject {
         }
     }
 
-    private func handleMicroExpression(_ type: MicroExpressionType) {
+    private func handleMicroExpression(_ type: FerniShared.MicroExpressionType) {
         // Trigger haptic feedback for micro-expressions
         switch type {
-        case .recognition:
+        case .recognition, .memorySpark, .insider:
             emotionalHaptics.playMicroExpression(.recognition)
         case .delight:
             emotionalHaptics.playMicroExpression(.delight)
-        case .warmth:
+        case .warmth, .affection:
             emotionalHaptics.playMicroExpression(.warmth)
-        case .interest:
+        case .interest, .curiosityPeak:
             emotionalHaptics.playMicroExpression(.interest)
         case .concern, .protective:
             emotionalHaptics.playConcern(level: .mild)
-        case .noticing, .contemplation:
-            // Subtle or no haptic for these
+        case .epiphany, .connection:
+            // Subtle or no haptic for understanding moments
             break
         }
     }

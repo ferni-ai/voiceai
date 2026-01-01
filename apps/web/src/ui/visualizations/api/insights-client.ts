@@ -1,3 +1,4 @@
+// TODO: Fix type errors - API response indexing
 /**
  * Insights API Client
  *
@@ -13,6 +14,7 @@ import type {
   BurnoutGaugeData,
   LifeTimelineData,
   MoodType,
+  MoodEntry,
 } from '../types.js';
 import { fetchVisualizationData, type FirestoreFetcherOptions } from './firestore-fetcher.js';
 
@@ -312,9 +314,9 @@ function transformToLifeTimeline(raw: RawInsightsResponse): LifeTimelineData | u
 /**
  * Generate week of mood entries.
  */
-function generateWeekEntries(dominantMood: MoodType) {
+function generateWeekEntries(dominantMood: MoodType): MoodEntry[] {
   const moods: MoodType[] = ['calm', 'joyful', 'anxious', 'tired', 'focused', 'reflective'];
-  const entries = [];
+  const entries: MoodEntry[] = [];
   const today = new Date();
 
   for (let i = 6; i >= 0; i--) {
@@ -322,8 +324,8 @@ function generateWeekEntries(dominantMood: MoodType) {
     date.setDate(date.getDate() - i);
 
     entries.push({
-      date: date.toISOString().split('T')[0],
-      mood: i === 0 ? dominantMood : moods[Math.floor(Math.random() * moods.length)],
+      date: date.toISOString().split('T')[0] ?? '',
+      mood: i === 0 ? dominantMood : (moods[Math.floor(Math.random() * moods.length)] ?? 'calm'),
       intensity: 0.5 + Math.random() * 0.5,
     });
   }
@@ -350,14 +352,17 @@ function generatePastChapters(count: number) {
     const startDate = new Date(today);
     startDate.setFullYear(startDate.getFullYear() - (count - i));
 
-    chapters.push({
-      id: `chapter-${i}`,
-      title: chapterTemplates[i % chapterTemplates.length].title,
-      type: chapterTemplates[i % chapterTemplates.length].type,
-      startDate: startDate.toISOString(),
-      isActive: false,
-      progress: 1,
-    });
+    const template = chapterTemplates[i % chapterTemplates.length];
+    if (template) {
+      chapters.push({
+        id: `chapter-${i}`,
+        title: template.title,
+        type: template.type,
+        startDate: startDate.toISOString(),
+        isActive: false,
+        progress: 1,
+      });
+    }
   }
 
   return chapters;

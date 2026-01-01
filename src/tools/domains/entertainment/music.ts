@@ -12,7 +12,12 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getDJDropPhrase } from '../../../audio/ambient-music.js';
-import { getMusicPlayer, isMusicAvailable, getDJBooth, type MusicTrack } from '../../../audio/index.js';
+import {
+  getMusicPlayer,
+  isMusicAvailable,
+  getDJBooth,
+  type MusicTrack,
+} from '../../../audio/index.js';
 import { isMusicEnabled } from '../../../config/environment.js';
 import { getMusicDiscoveryOffer, getQueueTeaser } from '../../../services/dj-service.js';
 import { findTrack, searchByMood, searchItunes } from '../../../services/itunes.js';
@@ -1101,7 +1106,7 @@ export function createMusicTools() {
      */
     myMusicPreferences: llm.tool({
       description:
-        'Get the user\'s learned music preferences including favorite genres, artists, and dislikes. ' +
+        "Get the user's learned music preferences including favorite genres, artists, and dislikes. " +
         'Use when user asks about their music taste, what you remember about their preferences, ' +
         'or "what music do I like".',
       parameters: z.object({}),
@@ -1110,7 +1115,7 @@ export function createMusicTools() {
         if (!djBooth) {
           return "I'm still learning your music preferences! Play some music and tell me what you like.";
         }
-        
+
         const summary = djBooth.getMusicPreferencesSummary();
         return summary;
       },

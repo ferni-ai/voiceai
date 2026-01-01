@@ -36,14 +36,14 @@
         </div>
       </div>
 
-      {# Headline #}
+      {# Headline - warm, personal, like a friend inviting you in #}
       <h2 class="waitlist-modal__headline" id="waitlistModalTitle">
-        We're almost ready.
+        Good things take time.
       </h2>
 
-      {# Subheadline #}
+      {# Subheadline - emotional, not transactional #}
       <p class="waitlist-modal__subhead">
-        Join the waitlist to be first when Ferni opens its doors.
+        We're preparing something meaningful. Be first to experience it.
       </p>
 
       {# Email Form #}
@@ -62,13 +62,27 @@
           <span class="waitlist-modal__error" id="modalEmailError" role="alert" aria-live="polite"></span>
         </div>
 
+        {# Phone field - framed as a personal gift, not a request #}
+        <div class="waitlist-modal__field waitlist-modal__field--phone">
+          <input
+            type="tel"
+            id="waitlistModalPhone"
+            name="phone"
+            autocomplete="tel"
+            placeholder="Your phone (optional)"
+            aria-label="Phone number (optional)"
+            aria-describedby="modalPhoneHint"
+          >
+          <span class="waitlist-modal__hint" id="modalPhoneHint">I'd love to personally welcome you when you're in.</span>
+        </div>
+
         {# Honeypot field for bot detection - hidden from users #}
         <div class="waitlist-modal__honeypot" aria-hidden="true" tabindex="-1">
           <input type="text" name="website" autocomplete="off" tabindex="-1">
         </div>
 
         <button type="submit" class="waitlist-modal__submit" id="waitlistModalSubmit">
-          <span class="waitlist-modal__submit-text">Join the waitlist</span>
+          <span class="waitlist-modal__submit-text">Save my spot</span>
           <span class="waitlist-modal__submit-loading" aria-hidden="true">
             <svg class="waitlist-modal__spinner" viewBox="0 0 24 24" width="20" height="20">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>
@@ -80,37 +94,38 @@
         </button>
       </form>
 
-      {# Privacy Note #}
+      {# Privacy Note - warm and reassuring #}
       <p class="waitlist-modal__note">
-        We'll only email you when it's time. No spam, ever.
+        Just one email when we're ready. No noise.
       </p>
     </div>
 
     {# ====== SUCCESS STATE ====== #}
     <div class="waitlist-modal__success" id="waitlistModalSuccess" hidden>
-      {# Success Icon #}
-      <div class="waitlist-modal__success-icon">
-        <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" stroke="var(--color-success, #4a6741)" stroke-opacity="0.3"/>
-          <polyline points="8 12 11 15 16 9" stroke="var(--color-success, #4a6741)"/>
-        </svg>
+      {# Ferni Avatar - shows warmth #}
+      <div class="waitlist-modal__avatar waitlist-modal__avatar--success" aria-hidden="true">
+        <div class="avatar-glow avatar-glow--success"></div>
+        <div class="avatar-orb">
+          <svg class="ferni-eyes-svg avatar-text" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
+          <div class="avatar-pulse"></div>
+        </div>
       </div>
 
-      {# Success Message #}
+      {# Success Message - personal and warm #}
       <h2 class="waitlist-modal__success-headline">
-        You're on the list!
+        I'll be in touch.
       </h2>
       <p class="waitlist-modal__success-message">
-        We'll reach out soon. Until then, take care of yourself.
+        Take care of yourself in the meantime.
       </p>
 
-      {# Explore hint #}
+      {# Explore hint - soft invitation #}
       <p class="waitlist-modal__explore-hint">
-        Feel free to explore what's coming...
+        Feel free to look around...
       </p>
 
       <button class="waitlist-modal__explore-btn" id="waitlistModalExplore" type="button">
-        Continue exploring
+        Keep exploring
       </button>
     </div>
 

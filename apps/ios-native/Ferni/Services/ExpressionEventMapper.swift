@@ -11,6 +11,7 @@
 // Reference: apps/web/src/app/data-message-handlers.ts
 
 import Foundation
+import FerniShared
 
 // MARK: - Expression Update Message
 
@@ -87,18 +88,8 @@ struct AnticipationSignalMessage {
 }
 
 // MARK: - Micro Expression Type
-
-/// Micro-expressions are subliminal 40-150ms emotional flashes
-enum MicroExpressionType: String {
-    case recognition
-    case delight = "delight_flash"
-    case warmth = "warmth_pulse"
-    case interest = "interest_flash"
-    case concern = "concern_flash"
-    case protective
-    case noticing
-    case contemplation
-}
+// Using FerniShared.MicroExpressionType (imported above)
+// Mapping: .noticing → .interest, .contemplation → .connection
 
 // MARK: - Expression Event Mapper
 
@@ -216,7 +207,7 @@ final class ExpressionEventMapper {
         case "mild":
             return ExpressionResult(
                 expression: .engaged,
-                microExpression: .noticing
+                microExpression: .interest
             )
 
         default:
@@ -244,7 +235,7 @@ final class ExpressionEventMapper {
         case "volatile":
             return ExpressionResult(
                 expression: .supportive,
-                microExpression: .noticing
+                microExpression: .interest
             )
 
         default:
@@ -280,13 +271,13 @@ final class ExpressionEventMapper {
         case "angry", "frustrated":
             return ExpressionResult(
                 expression: .attentive,
-                microExpression: .noticing
+                microExpression: .interest
             )
 
         case "contemplative", "thoughtful":
             return ExpressionResult(
                 expression: .contemplating,
-                microExpression: .contemplation
+                microExpression: .connection
             )
 
         default:

@@ -670,7 +670,7 @@ export async function openCharacterSheet(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this character");
     return;
   }
@@ -772,7 +772,7 @@ function attachListeners(): void {
 }
 
 async function handleEditBackstory(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const personality = (currentAgent?.personality || {}) as unknown as Record<string, unknown>;
   const backstory = prompt("Enter the character's backstory:", (personality.worldview as string) || '');
   if (backstory === null || !currentAgent) return;
@@ -795,7 +795,7 @@ async function handleEditBackstory(): Promise<void> {
 }
 
 async function handleAddQuirk(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
 
   const quirk = prompt("Add a quirk or habit:");
   if (!quirk || !currentAgent) return;
@@ -820,7 +820,7 @@ async function handleAddQuirk(): Promise<void> {
 }
 
 async function handleAddCatchphrase(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const catchphrase = prompt("Add a catchphrase:");
   if (!catchphrase || !currentAgent) return;
@@ -844,7 +844,7 @@ async function handleAddCatchphrase(): Promise<void> {
 }
 
 async function handleAddRelationship(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const personName = prompt("Who is this character connected to?");
   if (!personName || !currentAgent) return;
@@ -871,7 +871,7 @@ async function handleAddRelationship(): Promise<void> {
 }
 
 async function handleDeleteQuirk(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   try {
@@ -891,7 +891,7 @@ async function handleDeleteQuirk(index: number): Promise<void> {
 }
 
 async function handleEditCatchphrase(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   const catchphrases = (currentAgent.behaviors?.catchphrases) || [];
@@ -917,7 +917,7 @@ async function handleEditCatchphrase(index: number): Promise<void> {
 }
 
 async function handleDeleteCatchphrase(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Delete this catchphrase?')) return;
@@ -938,7 +938,7 @@ async function handleDeleteCatchphrase(index: number): Promise<void> {
 }
 
 async function handleDeleteRelationship(index: number): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
   if (!confirm('Remove this relationship?')) return;

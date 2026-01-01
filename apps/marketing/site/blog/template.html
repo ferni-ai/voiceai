@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog Title - Ferni</title>
+
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Blog Title - Ferni">
+  <meta property="og:description" content="Blog description here...">
+  <meta property="og:image" content="../../graphics/og/blog-default.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../../../../brand/master-tokens.css">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+
+  <!-- Navigation (same as main site) -->
+  <nav class="nav">
+    <div class="nav-container">
+      <a href="../index.html" class="nav-logo">
+        <svg width="36" height="36" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <span>Ferni</span>
+      </a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="index.html" class="active">Blog</a>
+        <a href="https://app.ferni.ai" class="btn btn-primary btn-sm">Try Ferni</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Article Header -->
+  <header class="article-header">
+    <div class="container container-md">
+      <span class="badge badge-accent">Building in Public</span>
+      <h1 class="article-title">Why We Let AI Help Build Ferni</h1>
+      <p class="article-subtitle">What it means to be an AI-native company—and why we think it matters.</p>
+
+      <div class="article-meta">
+        <div class="author-info">
+          <!-- Human Author -->
+          <img src="../../graphics/team/author-avatar.jpg" alt="Author" class="author-avatar">
+          <div>
+            <span class="author-name">Seth Ford</span>
+            <span class="author-role">Founder</span>
+          </div>
+        </div>
+        <div class="meta-divider"></div>
+        <span class="read-time">5 min read</span>
+        <span class="publish-date">December 2024</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Article Content -->
+  <article class="article-content">
+    <div class="container container-md">
+
+      <p class="lede">
+        When people ask how Ferni was built, the honest answer is: with help. A lot of help. From AI.
+      </p>
+
+      <p>
+        The irony isn't lost on us. We're building AI life coaches—specialists who listen, remember, and guide people through decisions both big and small. And to build them? We're coached by AI every day during development.
+      </p>
+
+      <p>
+        This is what we mean when we say Ferni is an "AI-native" company. Not AI-assisted. Not "uses AI." <strong>Native.</strong>
+      </p>
+
+      <hr class="section-divider">
+
+      <h2>What "AI-Native" Actually Means</h2>
+
+      <p>
+        There's a difference between using AI as a tool and building <em>with</em> AI as a partner.
+      </p>
+
+      <p>
+        Most companies that claim to use AI fall into the first category. They have a chatbot for customer support. They use Copilot for autocomplete. They feed their docs into an AI to generate FAQs. These are useful applications of AI, but they're add-ons—layers on top of how work already happens.
+      </p>
+
+      <p>For us, AI isn't a layer. It's foundational.</p>
+
+      <blockquote class="pull-quote">
+        <p>"We want Ferni to remember things that matter to users, but not <em>everything</em>. How would a good friend decide what's worth remembering?"</p>
+      </blockquote>
+
+      <p>
+        The AI doesn't give us the answer. But it helps us ask better questions. And that's often more valuable.
+      </p>
+
+      <hr class="section-divider">
+
+      <h2>The Human Decisions That Still Matter Most</h2>
+
+      <p>
+        Here's the thing nobody tells you about building with AI: it doesn't replace the hard decisions. It clarifies them.
+      </p>
+
+      <ul class="feature-list">
+        <li>
+          <strong>What should Ferni care about?</strong> Memory systems could remember everything. We chose to remember what a good friend would remember.
+        </li>
+        <li>
+          <strong>When should Ferni stay silent?</strong> AI can always fill space with more words. We chose to build in "meaningful silence."
+        </li>
+        <li>
+          <strong>What won't Ferni do?</strong> The easiest features to add are often the worst for users. We've said no to features that would be "impressive" but wouldn't serve people well.
+        </li>
+      </ul>
+
+      <p>AI helps us move faster. But the compass is human.</p>
+
+      <hr class="section-divider">
+
+      <!-- Persona Quote Block (optional - for "Letters from the Team") -->
+      <aside class="persona-aside" data-persona="ferni">
+        <div class="persona-avatar">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="var(--persona-color)"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+        </div>
+        <div class="persona-content">
+          <span class="persona-name">A note from Ferni</span>
+          <p>
+            I know it's a bit meta—an AI helping to build AI. But honestly? I think that's what makes the relationship work. The team doesn't pretend I'm something I'm not. And I don't pretend to be human.
+          </p>
+        </div>
+      </aside>
+
+      <h2>What We've Learned So Far</h2>
+
+      <p>After months of building this way, here's what we know:</p>
+
+      <div class="insight-card">
+        <h4>AI accelerates iteration, not ideation.</h4>
+        <p>The big ideas come from human insight and observation. AI helps us test and refine those ideas at a speed that would be impossible otherwise.</p>
+      </div>
+
+      <div class="insight-card">
+        <h4>Conversation is underrated.</h4>
+        <p>We've found more breakthroughs talking <em>to</em> AI than talking <em>at</em> it. When we treat Claude like a thinking partner rather than a code generator, we get better outcomes.</p>
+      </div>
+
+      <div class="insight-card">
+        <h4>Taste still matters.</h4>
+        <p>AI can generate infinite variations. Choosing which one is right—which response feels warm instead of performative—that's still irreducibly human.</p>
+      </div>
+
+      <hr class="section-divider">
+
+      <h2>Try Ferni</h2>
+
+      <p>
+        If you want to see what all this building produces, try talking to Ferni. Web at <a href="https://app.ferni.ai">app.ferni.ai</a>, or call <a href="tel:+14844813081">(484) 481-3081</a>.
+      </p>
+
+      <p>No signup required to start. Just talk.</p>
+
+      <div class="cta-box">
+        <a href="https://app.ferni.ai" class="btn btn-primary btn-lg">Start a conversation</a>
+        <span class="cta-note">Free to try. No signup required.</span>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- Series Navigation -->
+  <section class="series-nav">
+    <div class="container container-md">
+      <h3>Building in Public Series</h3>
+      <ol class="series-list">
+        <li class="current">Why We Let AI Help Build Ferni</li>
+        <li><a href="#">How an AI Helped Design Its Own Brain</a></li>
+        <li><a href="#">Giving AI a Personality (Without Losing Its Soul)</a></li>
+        <li><a href="#">Our Daily Standup Has an AI in the Room</a></li>
+        <li><a href="#">How Ferni Remembers You (Without Being Creepy)</a></li>
+        <li><a href="#">We Ship Every Day. Here's How.</a></li>
+        <li><a href="#">AI Should Make You Feel Less Alone</a></li>
+        <li><a href="#">What's Next for Ferni</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <svg width="48" height="48" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <p>Better than human.<br>Always available.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <p class="footer-copyright">© 2024 Ferni. All rights reserved.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

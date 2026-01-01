@@ -82,16 +82,17 @@ function renderMoodTrendChart(entries: CustomAgentMemory[]): string {
 
   const bars = trend.scores.map((score, i) => {
     if (score === 0) {
-      return `<div class="mood-bar mood-bar--empty" data-label="${trend.labels[i]}" style="height: 4px;"></div>`;
+      return `<div class="mood-bar mood-bar--empty" data-label="${trend.labels[i] ?? ''}" style="height: 4px;"></div>`;
     }
     const height = Math.max(10, (score / maxScore) * 100);
-    const mood = trend.moods[i];
+    const mood = trend.moods[i] ?? 'neutral';
+    const label = trend.labels[i] ?? '';
     const color = getMoodColor(mood);
     return `
       <div class="mood-bar" 
-           data-label="${trend.labels[i]}" 
+           data-label="${label}" 
            style="height: ${height}%; background: ${color};"
-           title="${trend.labels[i]}: ${getMoodLabel(mood)} (${score.toFixed(1)}/10)">
+           title="${label}: ${getMoodLabel(mood)} (${score.toFixed(1)}/10)">
       </div>
     `;
   }).join('');
@@ -201,20 +202,22 @@ export function renderInsights(): void {
   // Mood pattern insight
   if (stats.topMoods.length > 0) {
     const topMood = stats.topMoods[0];
-    insights.push({
-      icon: getMoodIcon(topMood.mood),
-      title: `Most common: ${getMoodLabel(topMood.mood)}`,
-      text: `You've felt ${getMoodLabel(topMood.mood).toLowerCase()} ${topMood.count} times. ${
-        getMoodScore(topMood.mood) >= 7
-          ? "That's wonderful to see!"
-          : 'Notice any patterns in when this comes up?'
-      }`,
-    });
+    if (topMood) {
+      insights.push({
+        icon: getMoodIcon(topMood.mood),
+        title: `Most common: ${getMoodLabel(topMood.mood)}`,
+        text: `You've felt ${getMoodLabel(topMood.mood).toLowerCase()} ${topMood.count} times. ${
+          getMoodScore(topMood.mood) >= 7
+            ? "That's wonderful to see!"
+            : 'Notice any patterns in when this comes up?'
+        }`,
+      });
+    }
   }
 
   // Activity insight
-  const recentActivity = stats.entriesByWeek[0] + stats.entriesByWeek[1];
-  const olderActivity = stats.entriesByWeek[2] + stats.entriesByWeek[3];
+  const recentActivity = (stats.entriesByWeek[0] ?? 0) + (stats.entriesByWeek[1] ?? 0);
+  const olderActivity = (stats.entriesByWeek[2] ?? 0) + (stats.entriesByWeek[3] ?? 0);
   if (entries.length >= 5) {
     if (recentActivity > olderActivity) {
       const trendUpIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`;

@@ -276,7 +276,10 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
           })
         );
 
-      log.info({ userId: `${userId.substring(0, 8)}...` }, 'GDPR deletion completed for Apple account');
+      log.info(
+        { userId: `${userId.substring(0, 8)}...` },
+        'GDPR deletion completed for Apple account'
+      );
     } catch (deletionError) {
       log.error(
         { error: String(deletionError), userId: `${userId.substring(0, 8)}...` },

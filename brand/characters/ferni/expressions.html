@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
     <link rel="stylesheet" href="../../master-tokens.css">
+    <link rel="stylesheet" href="../../brand-components.css">
     <style>
         /* Page-specific overrides - base tokens from master-tokens.css */
         :root {
@@ -880,21 +881,36 @@
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
-        <a href="../../index.html" class="nav-back" aria-label="Back to Brand Library">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15 18l-6-6 6-6"/>
-            </svg>
-            Brand Library
-        </a>
-        <div class="nav-links">
-            <a href="../../expressions/gallery.html" class="nav-link">All Expressions</a>
-            <a href="../maya/expressions.html" class="nav-link">Maya</a>
-            <a href="../peter/expressions.html" class="nav-link">Peter</a>
-            <a href="../jordan/expressions.html" class="nav-link">Jordan</a>
-            <a href="../alex/expressions.html" class="nav-link">Alex</a>
-            <a href="../nayan/expressions.html" class="nav-link">Nayan</a>
+    <!-- Shared Navigation -->
+    <div id="nav-placeholder"></div>
+
+    <!-- Persona Switcher (Secondary Nav) -->
+    <nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+        <div class="persona-switcher-inner">
+            <a href="expressions.html" class="persona-chip active" data-persona="ferni">
+                <span class="persona-dot" style="background: var(--color-ferni)"></span>
+                Ferni
+            </a>
+            <a href="../maya/expressions.html" class="persona-chip" data-persona="maya">
+                <span class="persona-dot" style="background: var(--color-maya)"></span>
+                Maya
+            </a>
+            <a href="../peter/expressions.html" class="persona-chip" data-persona="peter">
+                <span class="persona-dot" style="background: var(--color-peter)"></span>
+                Peter
+            </a>
+            <a href="../jordan/expressions.html" class="persona-chip" data-persona="jordan">
+                <span class="persona-dot" style="background: var(--color-jordan)"></span>
+                Jordan
+            </a>
+            <a href="../alex/expressions.html" class="persona-chip" data-persona="alex">
+                <span class="persona-dot" style="background: var(--color-alex)"></span>
+                Alex
+            </a>
+            <a href="../nayan/expressions.html" class="persona-chip" data-persona="nayan">
+                <span class="persona-dot" style="background: var(--color-nayan)"></span>
+                Nayan
+            </a>
         </div>
     </nav>
 
@@ -1436,32 +1452,10 @@
         scheduleBlink();
     </script>
 
-    <footer>
-      <div class="footer-logo">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <defs>
-            <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#5a7751"/>
-              <stop offset="100%" style="stop-color:#3d5a35"/>
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
-          <!-- LUXO STYLE: opaque white eyes, no pupils -->
-          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-        </svg>
-      </div>
-      <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
-      <nav class="footer-links" aria-label="Footer navigation">
-        <a href="../../capabilities/index.html">Capabilities</a>
-        <a href="../../brand-book.html">Brand Book</a>
-        <a href="../../brand-kit.html">Brand Kit</a>
-        <a href="../../icons.html">Icons</a>
-        <a href="../../components.html">Components</a>
-        <a href="../../accessibility.html">Accessibility</a>
-        <a href="../../sound-design.html">Sound</a>
-      </nav>
-      <p class="footer-copyright">Ferni Brand Library v2.0</p>
-    </footer>
+    <!-- Shared Footer -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Shared Navigation Script -->
+    <script src="../../shared/nav.js" defer></script>
 </body>
 </html>

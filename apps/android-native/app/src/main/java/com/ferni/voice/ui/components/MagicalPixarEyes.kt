@@ -301,22 +301,22 @@ fun AnimatedMagicalEyes(
             onBlink = {
                 // Perform blink
                 scope.launch {
-                    animate(0f, 1f, tween(60)) { v, _ -> blinkProgress = v }
+                    animate(0f, 1f, animationSpec = tween(60)) { v, _ -> blinkProgress = v }
                     delay(80)
-                    animate(1f, 0f, tween(100)) { v, _ -> blinkProgress = v }
+                    animate(1f, 0f, animationSpec = tween(100)) { v, _ -> blinkProgress = v }
                 }
             },
             onDoubleBlink = {
                 scope.launch {
                     // First blink
-                    animate(0f, 1f, tween(60)) { v, _ -> blinkProgress = v }
+                    animate(0f, 1f, animationSpec = tween(60)) { v, _ -> blinkProgress = v }
                     delay(80)
-                    animate(1f, 0f, tween(100)) { v, _ -> blinkProgress = v }
+                    animate(1f, 0f, animationSpec = tween(100)) { v, _ -> blinkProgress = v }
                     delay(150)
                     // Second blink
-                    animate(0f, 1f, tween(60)) { v, _ -> blinkProgress = v }
+                    animate(0f, 1f, animationSpec = tween(60)) { v, _ -> blinkProgress = v }
                     delay(80)
-                    animate(1f, 0f, tween(100)) { v, _ -> blinkProgress = v }
+                    animate(1f, 0f, animationSpec = tween(100)) { v, _ -> blinkProgress = v }
                 }
             }
         )

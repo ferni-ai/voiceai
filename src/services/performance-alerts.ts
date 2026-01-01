@@ -296,7 +296,7 @@ class PerformanceAlertingService {
         successThreshold: 2,
       });
 
-      const response = await circuitBreaker.execute(() =>
+      const response = await circuitBreaker.execute(async () =>
         fetch('https://api.sendgrid.com/v3/mail/send', {
           method: 'POST',
           headers: {

@@ -369,7 +369,7 @@ export class IntelligenceInsightsUI {
 
   private showOutreachToast(message: string): void {
     // Import toast dynamically to avoid circular deps
-    void import('./toast.ui').then(({ toast }) => {
+    void import('./whisper.ui').then(({ toast }) => {
       toast.info(message);
     });
   }

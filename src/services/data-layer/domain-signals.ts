@@ -61,7 +61,8 @@ export function recordCalendarSignal(
     domain: 'calendar',
     store: 'calendar',
     metric: signalType,
-    direction: signalType.includes('cancelled') || signalType === 'deleted' ? 'decreased' : 'changed',
+    direction:
+      signalType.includes('cancelled') || signalType === 'deleted' ? 'decreased' : 'changed',
     magnitude: metadata.hasConflict ? 'significant' : 'minor',
     timestamp: new Date(),
     metadata: {
@@ -118,7 +119,10 @@ export function recordFinancialSignal(
     magnitude = (metadata.amount ?? 0) > 100 ? 'moderate' : 'minor';
   } else if (signalType === 'savings_progress' || signalType === 'savings_goal_progress') {
     direction = 'increased';
-    magnitude = (metadata.savingsProgress ?? metadata.percentageChange ?? 0) > 10 ? 'significant' : 'moderate';
+    magnitude =
+      (metadata.savingsProgress ?? metadata.percentageChange ?? 0) > 10
+        ? 'significant'
+        : 'moderate';
   } else if (signalType === 'goal_achieved') {
     magnitude = 'significant';
   }
@@ -153,10 +157,7 @@ export interface HabitSignalData {
 /**
  * Record a habit-related signal
  */
-export function recordHabitSignal(
-  userId: string,
-  data: HabitSignalData
-): void {
+export function recordHabitSignal(userId: string, data: HabitSignalData): void {
   log.debug({ userId, type: data.type }, 'Recording habit signal');
 
   let direction: DomainSignal['direction'] = 'changed';
@@ -191,6 +192,167 @@ export function recordHabitSignal(
 }
 
 // ============================================================================
+// TASK SIGNALS
+// ============================================================================
+
+export interface TaskSignalData {
+  taskId?: string;
+  title?: string;
+  completed?: boolean;
+  category?: string;
+  overdue?: boolean;
+}
+
+/**
+ * Record a task-related signal
+ */
+export function recordTaskSignal(
+  userId: string,
+  signalType: 'created' | 'completed' | 'overdue' | 'updated' | 'deleted',
+  metadata: TaskSignalData = {}
+): void {
+  log.debug({ userId, signalType }, 'Recording task signal');
+
+  let direction: DomainSignal['direction'] = 'changed';
+  let magnitude: DomainSignal['magnitude'] = 'minor';
+
+  if (signalType === 'completed') {
+    direction = 'increased';
+    magnitude = 'moderate';
+  } else if (signalType === 'overdue') {
+    direction = 'decreased';
+    magnitude = 'significant';
+  }
+
+  const signal: DomainSignal = {
+    domain: 'task',
+    store: 'productivity',
+    metric: signalType,
+    direction,
+    magnitude,
+    timestamp: new Date(),
+    metadata: {
+      ...metadata,
+    },
+  };
+
+  recordDomainSignal(userId, signal);
+}
+
+// ============================================================================
+// MILESTONE SIGNALS
+// ============================================================================
+
+export interface MilestoneSignalData {
+  milestoneId?: string;
+  title?: string;
+  category?: string;
+  daysUntil?: number;
+  achieved?: boolean;
+}
+
+/**
+ * Record a milestone-related signal
+ */
+export function recordMilestoneSignal(
+  userId: string,
+  signalType: 'created' | 'achieved' | 'approaching' | 'updated' | 'missed',
+  metadata: MilestoneSignalData = {}
+): void {
+  log.debug({ userId, signalType }, 'Recording milestone signal');
+
+  let direction: DomainSignal['direction'] = 'changed';
+  let magnitude: DomainSignal['magnitude'] = 'moderate';
+
+  if (signalType === 'achieved') {
+    direction = 'increased';
+    magnitude = 'significant';
+  } else if (signalType === 'missed') {
+    direction = 'decreased';
+    magnitude = 'significant';
+  } else if (signalType === 'approaching') {
+    magnitude = 'moderate';
+  }
+
+  const signal: DomainSignal = {
+    domain: 'milestone',
+    store: 'life-data',
+    metric: signalType,
+    direction,
+    magnitude,
+    timestamp: new Date(),
+    metadata: {
+      ...metadata,
+    },
+  };
+
+  recordDomainSignal(userId, signal);
+}
+
+// ============================================================================
+// EMOTION SIGNALS
+// ============================================================================
+
+export interface EmotionSignalMetadata {
+  topic?: string;
+  intensity?: number;
+  timeOfDay?: string;
+  context?: string;
+}
+
+/**
+ * Record an emotion-related signal
+ *
+ * @param userId - User ID
+ * @param emotion - The detected emotion (e.g., 'joy', 'stress', 'anxiety')
+ * @param intensity - Intensity from 0 to 1
+ * @param metadata - Additional context
+ */
+export function recordEmotionSignal(
+  userId: string,
+  emotion: string,
+  intensity: number,
+  metadata: EmotionSignalMetadata = {}
+): void {
+  log.debug({ userId, emotion, intensity }, 'Recording emotion signal');
+
+  let direction: DomainSignal['direction'] = 'changed';
+  let magnitude: DomainSignal['magnitude'] = 'minor';
+
+  // Positive emotions are "increased", negative are "decreased"
+  const positiveEmotions = ['joy', 'excitement', 'gratitude', 'calm', 'hope', 'contentment'];
+  const negativeEmotions = ['stress', 'anxiety', 'sadness', 'frustration', 'anger', 'fear'];
+
+  if (positiveEmotions.includes(emotion.toLowerCase())) {
+    direction = 'increased';
+  } else if (negativeEmotions.includes(emotion.toLowerCase())) {
+    direction = 'decreased';
+  }
+
+  // Intensity determines magnitude
+  if (intensity >= 0.7) {
+    magnitude = 'significant';
+  } else if (intensity >= 0.4) {
+    magnitude = 'moderate';
+  }
+
+  const signal: DomainSignal = {
+    domain: 'emotion',
+    store: 'health',
+    metric: emotion,
+    direction,
+    magnitude,
+    timestamp: new Date(),
+    metadata: {
+      intensity,
+      ...metadata,
+    },
+  };
+
+  recordDomainSignal(userId, signal);
+}
+
+// ============================================================================
 // WELLNESS SIGNALS
 // ============================================================================
 
@@ -203,10 +365,7 @@ export interface WellnessSignalData {
 /**
  * Record a wellness-related signal
  */
-export function recordWellnessSignal(
-  userId: string,
-  data: WellnessSignalData
-): void {
+export function recordWellnessSignal(userId: string, data: WellnessSignalData): void {
   log.debug({ userId, type: data.type }, 'Recording wellness signal');
 
   let direction: DomainSignal['direction'] = 'changed';
@@ -253,10 +412,7 @@ export interface RelationshipSignalData {
 /**
  * Record a relationship-related signal
  */
-export function recordRelationshipSignal(
-  userId: string,
-  data: RelationshipSignalData
-): void {
+export function recordRelationshipSignal(userId: string, data: RelationshipSignalData): void {
   log.debug({ userId, type: data.type }, 'Recording relationship signal');
 
   let direction: DomainSignal['direction'] = 'changed';
@@ -291,6 +447,9 @@ export default {
   recordCalendarSignal,
   recordFinancialSignal,
   recordHabitSignal,
+  recordTaskSignal,
+  recordMilestoneSignal,
+  recordEmotionSignal,
   recordWellnessSignal,
   recordRelationshipSignal,
 };

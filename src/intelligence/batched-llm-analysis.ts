@@ -24,6 +24,34 @@ import { getDefaultModel } from '../services/model-config.js';
 const log = createLogger({ module: 'BatchedLLMAnalysis' });
 
 // ============================================================================
+// GEMINI CLIENT TYPE (minimal interface for what we use)
+// ============================================================================
+
+/** Minimal type for the Gemini client response we need */
+interface GeminiGenerateResponse {
+  text?: string;
+  response: {
+    usageMetadata?: {
+      totalTokenCount?: number;
+    };
+  };
+}
+
+/** Minimal type for the Gemini client we use */
+interface GeminiClientLike {
+  models: {
+    generateContent: (options: {
+      model: string;
+      contents: string;
+      config?: {
+        temperature?: number;
+        maxOutputTokens?: number;
+      };
+    }) => Promise<GeminiGenerateResponse>;
+  };
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -310,8 +338,9 @@ class BatchedLLMAnalyzer {
         throw new Error('Failed to initialize Gemini client');
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await (genai as any).models.generateContent({
+      // Type assertion: getGeminiClient returns unknown, but we know it's a GoogleGenAI client
+      const client = genai as unknown as GeminiClientLike;
+      const response = await client.models.generateContent({
         model: getDefaultModel(),
         contents: `${ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`,
         config: {

@@ -125,7 +125,13 @@ export interface UnifiedIntelligenceResult {
     message: string;
     followUp?: string;
     category: string;
-    source?: 'proactive' | 'pattern_mirror' | 'emotional_trajectory' | 'dream_keeper' | 'future_self' | 'milestone';
+    source?:
+      | 'proactive'
+      | 'pattern_mirror'
+      | 'emotional_trajectory'
+      | 'dream_keeper'
+      | 'future_self'
+      | 'milestone';
   };
 
   // Timing metrics
@@ -307,20 +313,21 @@ export async function getUnifiedIntelligence(
   const milestonesMs = contextAssemblyMs; // Ran in parallel
 
   // Build additional contexts for LLM injection
-  const [behavioralContext, emotionalTrajectoryContext, dreamContext, milestoneContext] = await Promise.all([
-    formatBehavioralContext(userId, {
-      emotion: detectedEmotion,
-      topic: detectedTopics?.[0],
-    }).catch(() => ''),
-    buildEmotionalTrajectoryContext(userId, {
-      emotion: detectedEmotion,
-      topic: detectedTopics?.[0],
-    }).catch(() => ''),
-    buildDreamContext(userId).catch(() => ''),
-    conversationStats
-      ? buildMilestoneContext(userId, conversationStats).catch(() => '')
-      : Promise.resolve(''),
-  ]);
+  const [behavioralContext, emotionalTrajectoryContext, dreamContext, milestoneContext] =
+    await Promise.all([
+      formatBehavioralContext(userId, {
+        emotion: detectedEmotion,
+        topic: detectedTopics?.[0],
+      }).catch(() => ''),
+      buildEmotionalTrajectoryContext(userId, {
+        emotion: detectedEmotion,
+        topic: detectedTopics?.[0],
+      }).catch(() => ''),
+      buildDreamContext(userId).catch(() => ''),
+      conversationStats
+        ? buildMilestoneContext(userId, conversationStats).catch(() => '')
+        : Promise.resolve(''),
+    ]);
 
   // Build Future Self context (sync, doesn't need DB)
   const futureSelfContext = buildFutureSelfContext(futureSelfLetter);
@@ -378,9 +385,10 @@ export async function getUnifiedIntelligence(
         insightToSurface = {
           id: significantArc.id,
           message: arcMessage,
-          followUp: significantArc.phase === 'resolving'
-            ? "It seems like things might be getting better. How does it feel?"
-            : undefined,
+          followUp:
+            significantArc.phase === 'resolving'
+              ? 'It seems like things might be getting better. How does it feel?'
+              : undefined,
           category: 'emotional_trajectory',
           source: 'emotional_trajectory',
         };
@@ -401,9 +409,10 @@ export async function getUnifiedIntelligence(
       insightToSurface = {
         id: topReminder.dreamId,
         message: topReminder.message,
-        followUp: topReminder.tone === 'gentle'
-          ? "No pressure - I just wanted you to know I haven't forgotten."
-          : "Is that still something you're thinking about?",
+        followUp:
+          topReminder.tone === 'gentle'
+            ? "No pressure - I just wanted you to know I haven't forgotten."
+            : "Is that still something you're thinking about?",
         category: 'dream_keeper',
         source: 'dream_keeper',
       };
@@ -437,21 +446,36 @@ export async function getUnifiedIntelligence(
   // Only surface if we have a recent letter with key insights
   // This is a powerful tool - use sparingly and only when truly helpful
   if (!insightToSurface && futureSelfLetter && turnNumber >= 6) {
-    const hasRecentLetter = futureSelfLetter.generatedAt &&
+    const hasRecentLetter =
+      futureSelfLetter.generatedAt &&
       Date.now() - new Date(futureSelfLetter.generatedAt).getTime() < 30 * 24 * 60 * 60 * 1000;
-    
+
     if (hasRecentLetter && futureSelfLetter.keyInsights.length > 0 && moment === 'natural_pause') {
       // Only surface if user seems to need perspective (expanded emotion list)
-      const perspectiveEmotions = ['anxious', 'worried', 'stressed', 'uncertain', 'lost', 'stuck', 'confused', 'overwhelmed', 'hopeless', 'scared'];
-      const needsPerspective = detectedEmotion && perspectiveEmotions.some(
-        e => detectedEmotion.toLowerCase().includes(e)
-      );
-      
+      const perspectiveEmotions = [
+        'anxious',
+        'worried',
+        'stressed',
+        'uncertain',
+        'lost',
+        'stuck',
+        'confused',
+        'overwhelmed',
+        'hopeless',
+        'scared',
+      ];
+      const needsPerspective =
+        detectedEmotion &&
+        perspectiveEmotions.some((e) => detectedEmotion.toLowerCase().includes(e));
+
       if (needsPerspective) {
         // Build a gentle, non-gimmicky message
-        const timeframeHuman = futureSelfLetter.timeframe.replace('_', ' ').replace('months', 'month').replace('years', 'year');
+        const timeframeHuman = futureSelfLetter.timeframe
+          .replace('_', ' ')
+          .replace('months', 'month')
+          .replace('years', 'year');
         const insight = futureSelfLetter.keyInsights[0];
-        
+
         insightToSurface = {
           id: futureSelfLetter.id,
           message: `When you were talking about your future a while back, I wrote something down. Looking ${timeframeHuman} ahead: ${insight} Would you want to hear more of what I imagined for you?`,
@@ -517,7 +541,17 @@ export async function getUnifiedIntelligence(
       hasInsightToSurface: !!insightToSurface,
       insightSource: insightToSurface?.source,
       userKnowledgeCompleteness: userKnowledge.metadata.completeness.overall,
-      timingMs: { contextAssemblyMs, superhumanMs, userKnowledgeMs, patternMirrorMs, emotionalTrajectoryMs, dreamKeeperMs, futureSelfMs, milestonesMs, totalMs },
+      timingMs: {
+        contextAssemblyMs,
+        superhumanMs,
+        userKnowledgeMs,
+        patternMirrorMs,
+        emotionalTrajectoryMs,
+        dreamKeeperMs,
+        futureSelfMs,
+        milestonesMs,
+        totalMs,
+      },
     },
     '✨ Unified intelligence assembled (Full BTH Suite)'
   );
@@ -600,7 +634,7 @@ function buildEmotionalArcMessage(arc: EmotionalArc): string | null {
 function buildPatternMirrorMessage(pattern: SelfSabotagePattern): string {
   const { trigger, behavior, instances } = pattern;
   const instanceCount = instances.length;
-  
+
   // Vary the framing based on how many times we've seen it
   const openers = [
     "I've been thinking about something...",
@@ -608,16 +642,16 @@ function buildPatternMirrorMessage(pattern: SelfSabotagePattern): string {
     "I'm not sure if you've realized this, but...",
     "Something's been on my mind...",
   ];
-  
+
   const opener = openers[Math.floor(Math.random() * openers.length)];
-  
+
   // Make the pattern description conversational
   const triggerPhrase = trigger.toLowerCase().startsWith('close to')
     ? `when you're ${trigger.toLowerCase()}`
     : `when ${trigger.toLowerCase()}`;
-  
+
   const behaviorPhrase = behavior.toLowerCase();
-  
+
   if (instanceCount >= 5) {
     return `${opener} I've noticed that ${triggerPhrase}, there's a tendency to ${behaviorPhrase}. It's happened several times now. Does that ring true for you?`;
   } else {
@@ -631,7 +665,7 @@ function buildPatternMirrorMessage(pattern: SelfSabotagePattern): string {
  */
 function buildMilestoneMessage(milestone: RelationshipMilestone): string {
   const { type, title, description } = milestone;
-  
+
   // Different messages based on milestone type
   switch (type) {
     case 'duration':
@@ -639,17 +673,17 @@ function buildMilestoneMessage(milestone: RelationshipMilestone): string {
         return `You know what? ${title} together. ${description} It means a lot that you keep showing up.`;
       }
       return `${title}. ${description} Thank you for trusting me with your thoughts.`;
-    
+
     case 'conversations':
       return `This is our ${title.toLowerCase().replace('conversations', 'conversation together')}. ${description}`;
-    
+
     case 'trust':
     case 'breakthrough':
       return `I wanted to acknowledge something - ${description.toLowerCase()}`;
-    
+
     case 'growth':
       return `I've been noticing your growth. ${description}`;
-    
+
     default:
       return `${title}. ${description}`;
   }

@@ -51,7 +51,7 @@ import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import { confirmDelete } from './confirm-modal.ui.js';
 import { openAgentEditor } from './custom-agent-editor.ui.js';
 import { getFirebaseUid, getAuthState } from '../services/firebase-auth.service.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 // Import from modular structure
 import {
@@ -1029,14 +1029,14 @@ async function handleDeleteAgentClick(e: Event): Promise<void> {
 
   try {
     await deleteCustomAgent(agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.agentDeleted'));
     soundUI.play('success');
     // Refresh the tab
     void refreshContent();
   } catch (err) {
     log.error('Failed to delete agent:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't delete agent. Try again?");
   }
 }
@@ -1058,7 +1058,7 @@ async function handleOpenJournalClick(e: Event): Promise<void> {
     await openVoiceJournal(agentId);
   } catch (err) {
     log.error('Failed to open journal:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open journal. Try again?");
   }
 }
@@ -1080,7 +1080,7 @@ async function handleOpenProfileClick(e: Event): Promise<void> {
     await openTwinProfile(agentId);
   } catch (err) {
     log.error('Failed to open profile:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open profile. Try again?");
   }
 }
@@ -1102,7 +1102,7 @@ async function handleTalkToTwinClick(e: Event): Promise<void> {
     await openTalkToTwin(agentId);
   } catch (err) {
     log.error('Failed to open Talk to Twin:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't start conversation. Try again?");
   }
 }
@@ -1123,7 +1123,7 @@ async function handleOpenStoriesClick(e: Event): Promise<void> {
     await openLegacyStories(agentId);
   } catch (err) {
     log.error('Failed to open Legacy Stories:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open stories. Try again?");
   }
 }
@@ -1144,7 +1144,7 @@ async function handleRecordVoiceClick(e: Event): Promise<void> {
     await openVoiceCloneRecorder(agentId);
   } catch (err) {
     log.error('Failed to open Voice Recorder:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open voice recorder. Try again?");
   }
 }
@@ -1165,7 +1165,7 @@ async function handleOpenTeachingsClick(e: Event): Promise<void> {
     await openMentorTeachings(agentId);
   } catch (err) {
     log.error('Failed to open Mentor Teachings:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open teachings. Try again?");
   }
 }
@@ -1186,7 +1186,7 @@ async function handleOpenCharacterClick(e: Event): Promise<void> {
     await openCharacterSheet(agentId);
   } catch (err) {
     log.error('Failed to open Character Sheet:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open character. Try again?");
   }
 }
@@ -1207,7 +1207,7 @@ async function handleOpenTasksClick(e: Event): Promise<void> {
     await openProfessionalTasks(agentId);
   } catch (err) {
     log.error('Failed to open Professional Tasks:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open tasks. Try again?");
   }
 }
@@ -1229,7 +1229,7 @@ async function handleTalkToAgentClick(e: Event): Promise<void> {
     await openTalkToTwin(agentId);
   } catch (err) {
     log.error('Failed to open agent conversation:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't start conversation. Try again?");
   }
 }
@@ -1250,7 +1250,7 @@ async function handleShareLegacyClick(e: Event): Promise<void> {
     await openLegacyShare(agentId);
   } catch (err) {
     log.error('Failed to open Legacy Share:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't open sharing. Try again?");
   }
 }
@@ -1271,7 +1271,7 @@ async function handleStartCoachingClick(e: Event): Promise<void> {
     await openCoachingMode(agentId);
   } catch (err) {
     log.error('Failed to open Coaching Mode:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't start coaching. Try again?");
   }
 }
@@ -1292,7 +1292,7 @@ async function handleStartRoleplayClick(e: Event): Promise<void> {
     await openRoleplayMode(agentId);
   } catch (err) {
     log.error('Failed to open Roleplay Mode:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't start roleplay. Try again?");
   }
 }
@@ -1313,7 +1313,7 @@ async function handleStartTaskModeClick(e: Event): Promise<void> {
     await openTaskMode(agentId);
   } catch (err) {
     log.error('Failed to open Task Mode:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't start work mode. Try again?");
   }
 }
@@ -1823,7 +1823,7 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
       `${name} isn't available yet. Keep talking to Ferni to unlock more teammates!`;
 
     // Import toast dynamically to avoid circular dependency
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.info(message);
     soundUI.play('click');
     return;
@@ -1837,7 +1837,7 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
     log.debug('Connected - sending handoff request to:', personaId);
 
     const { handoffService } = await import('../services/handoff.service.js');
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
 
     const success = await handoffService.sendHandoffRequest(personaId as PersonaId, {
       onFailure: (error) => {
@@ -1894,7 +1894,7 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
 async function handleRosterAction(action: 'add' | 'remove', personaId: string): Promise<void> {
   log.debug('Roster action:', { action, personaId });
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const memberConfig = getTeamMember(personaId as TeamMemberId);
   const name = memberConfig?.displayName || personaId;
 
@@ -2359,7 +2359,7 @@ function setupReviewFormListeners(panel: HTMLElement, agentId: string): void {
       ratingInput.value = String(rating);
       updateStarDisplay(starBtns, rating);
       validateReviewForm(form, submitBtn);
-      soundUI.play('toggle');
+      soundUI.play('switch');
     });
   });
 

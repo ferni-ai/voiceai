@@ -30,6 +30,12 @@ import { telephonyExecutor } from './telephony-executor.js';
 import { reflectionGamesExecutor } from './reflection-games-executor.js';
 import { researchExecutor } from './research-executor.js';
 import { handoffExecutor } from './handoff-executor.js';
+import {
+  dynamicDomainExecutor,
+  getDynamicToolIds,
+  isDynamicTool,
+  resetDynamicExecutor,
+} from './dynamic-domain-executor.js';
 
 const log = createLogger({ module: 'ToolExecutors' });
 
@@ -105,6 +111,14 @@ export async function routeToToolModular(
     return executor.execute(fn, args, ctx);
   }
 
+  // Fallback: Try the dynamic domain executor for tools not in specialized executors
+  // This enables voice-calling of ~135+ tools in domains/ that aren't manually wired
+  const dynamicResult = await dynamicDomainExecutor.execute(fn, args, ctx);
+  if (dynamicResult !== null) {
+    log.debug({ fn, domain: 'dynamic-domains' }, '🔧 Routing to dynamic domain executor');
+    return dynamicResult;
+  }
+
   // No executor found - return null to indicate the tool wasn't handled
   return null;
 }
@@ -167,3 +181,9 @@ export { telephonyExecutor } from './telephony-executor.js';
 export { reflectionGamesExecutor } from './reflection-games-executor.js';
 export { researchExecutor } from './research-executor.js';
 export { handoffExecutor } from './handoff-executor.js';
+export {
+  dynamicDomainExecutor,
+  getDynamicToolIds,
+  isDynamicTool,
+  resetDynamicExecutor,
+} from './dynamic-domain-executor.js';

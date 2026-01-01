@@ -57,6 +57,8 @@ import {
   isAhoCorasickAvailable,
   type AhoCorasickMatch,
 } from './native-json-parser.js';
+// Auto-generated list of all domain tool IDs (697 tools across 95 domains)
+import { DOMAIN_TOOL_IDS } from './domain-tool-ids.generated.js';
 
 // TransformStream is available globally in Node.js 18+
 // Using loose type due to incompatibilities between Web Streams and Node.js streams in piping
@@ -1110,6 +1112,12 @@ const TOOL_NAME_PATTERNS = [
   'Get current language',
   'current language',
   'Current language',
+
+  // ============================================================================
+  // AUTO-GENERATED DOMAIN TOOLS (697 tools across 95 domains)
+  // Regenerate with: npx tsx scripts/generate-tool-patterns.ts
+  // ============================================================================
+  ...DOMAIN_TOOL_IDS,
 ];
 
 // ============================================================================
@@ -1501,7 +1509,8 @@ async function executeJsonFunctionCall(
   userId?: string,
   personaId?: string,
   originalTranscript?: string,
-  semanticPrediction?: { toolId: string; confidence: number }
+  semanticPrediction?: { toolId: string; confidence: number },
+  userLocation?: { city?: string; regionCode?: string; countryCode?: string }
 ): Promise<ToolExecutionResult | null> {
   try {
     // 🛡️ HIGH-RISK TOOL PROTECTION: Block execution if user was asking a question
@@ -1601,6 +1610,8 @@ async function executeJsonFunctionCall(
         // For semantic intelligence learning loop
         inputText: originalTranscript,
         semanticPrediction,
+        // IP-detected location for weather, local content
+        userLocation,
       }
     );
     return {
@@ -1910,10 +1921,10 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
     /response guidance/i, // response guidance
     /behavioral guidance/i, // behavioral guidance
     // === Catch-all patterns (last resort) ===
-    /^\[[\w\s-]+\]:/i, // Any "[LABEL]:" at start
-    /^\[[\w\s-]+\]\s/i, // Any "[LABEL] " at start
-    // NOTE: No /i flag here - only match actual ALL_CAPS to avoid matching valid
-    // SSML expressions like [laughter], [sigh], [chuckle], [whisper], etc.
+    // IMPORTANT: These must NOT match valid SSML nonverbals like [laughter], [sigh], [whisper]
+    // Solution: Require first char after [ to be uppercase (A-Z), so [laughter] won't match
+    /^\[[A-Z][\w\s-]*\]:/, // Any "[LABEL]:" at start (requires uppercase start)
+    /^\[[A-Z][\w\s-]*\]\s/, // Any "[LABEL] " at start (requires uppercase start)
     /\[[A-Z][A-Z\s_-]+[A-Z]\]/, // Any [ALL_CAPS_LABEL] anywhere (case-sensitive!)
     /\[[A-Z][A-Z\s_-]+:/, // Any [CAPS_LABEL: anywhere (case-sensitive!)
     // === CRITICAL: Echoed instruction text from meaningful-silence.ts ===
@@ -1938,6 +1949,37 @@ export function detectsFunctionCallLeakage(text: string): LeakageDetection {
         detected: true,
         toolName: 'instruction_leakage',
         pattern: 'instruction_leakage',
+      };
+    }
+  }
+
+  // 0e. CRITICAL: Weather tool leakage detection (Gemini problem pattern)
+  // When Gemini talks ABOUT weather capabilities instead of calling the getWeather tool
+  // Patterns: "I can access weather", "check the weather", "weather based on your IP"
+  const weatherLeakagePatterns = [
+    /i can(?:'t| not)? (?:access|check|get|fetch|retrieve) (?:the )?weather/i,
+    /i (?:don't|do not|cannot|can't) have (?:access to |direct )?(?:real-time )?weather/i,
+    /weather information (?:based on|from) (?:your )?ip/i,
+    /let me (?:check|get|fetch|look up) the weather/i,
+    /i(?:'ll| will) (?:check|get|look up) the weather/i,
+    /i (?:don't|do not|can't|cannot) (?:currently )?have (?:access to )?(?:real-time )?weather/i,
+    /my weather (?:tool|function|capability|access)/i,
+    /weather (?:tool|function|api|service) (?:is|isn't|doesn't)/i,
+    /i(?:'m| am) having (?:trouble|difficulty|issues?) (?:with |accessing )?(?:the )?weather/i,
+    /can't (?:seem to )?(?:get|access|fetch|check) (?:the )?weather/i,
+    /weather (?:data|info|information) (?:isn't|is not) (?:available|working)/i,
+  ];
+
+  for (const pattern of weatherLeakagePatterns) {
+    if (pattern.test(lowerTrimmed)) {
+      log.warn(
+        { text: trimmed.slice(0, 100) },
+        '🌤️ WEATHER TOOL LEAKAGE - Gemini talking about weather instead of calling tool'
+      );
+      return {
+        detected: true,
+        toolName: 'getWeather',
+        pattern: 'weather_leakage',
       };
     }
   }
@@ -2713,9 +2755,28 @@ export function createSanitizerWithMusicFallback(
   // When async tool execution completes after stream closes, enqueue() fails
   let streamClosed = false;
 
+  // E2E TRACE: Log user transcript once at start of stream
+  let hasLoggedUserTranscript = false;
+
   return new TransformStream({
     transform(chunk: string, controller: TransformStreamDefaultController<string>) {
       buffer += chunk;
+
+      // 🔍 E2E TRACE [0/4]: Log user transcript on first chunk
+      if (!hasLoggedUserTranscript) {
+        hasLoggedUserTranscript = true;
+        const userTranscript = getLastUserTranscript();
+        log.info(
+          {
+            trace: 'E2E_USER_INPUT',
+            userTranscript: userTranscript?.slice(0, 200) || '(not available)',
+            sessionId,
+            userId: toolContext?.userId,
+            userLocation: toolContext?.userLocation?.city,
+          },
+          `🔍 E2E TRACE [0/4] USER INPUT: "${userTranscript?.slice(0, 100) || '(not available)'}"`
+        );
+      }
 
       // After catching JSON, suppress several chunks to catch trailing "Ok so..." type text
       // 🔒 RACE CONDITION FIX: Use state machine for primary suppression, fallback to counting
@@ -2793,9 +2854,17 @@ export function createSanitizerWithMusicFallback(
             return;
           }
 
+          // 🔍 E2E TRACE [2/4]: JSON Detected - About to execute tool
           log.info(
-            { fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length },
-            '🎯 Accumulated JSON function call - executing'
+            {
+              trace: 'E2E_JSON_DETECTED',
+              fn: jsonCall.fn,
+              args: jsonCall.args,
+              accumulated: jsonAccumulator.length,
+              hasUserLocation: !!toolContext?.userLocation?.city,
+              userCity: toolContext?.userLocation?.city,
+            },
+            `🔍 E2E TRACE [2/4] JSON DETECTED: ${jsonCall.fn}(${JSON.stringify(jsonCall.args).slice(0, 100)})`
           );
 
           // 🔒 Mark this tool+args as executed
@@ -2847,7 +2916,10 @@ export function createSanitizerWithMusicFallback(
             toolContext?.userId,
             toolContext?.personaId,
             getLastUserTranscript(),
-            getSemanticPrediction()
+            getSemanticPrediction(),
+            toolContext?.userLocation as
+              | { city?: string; regionCode?: string; countryCode?: string }
+              | undefined
           )
             .then(async (execResult) => {
               // ========================================
@@ -2900,6 +2972,18 @@ export function createSanitizerWithMusicFallback(
                   typeof execResult.result === 'string'
                     ? execResult.result
                     : JSON.stringify(execResult.result);
+
+                // 🔍 E2E TRACE [3/4]: Tool execution SUCCESS
+                log.info(
+                  {
+                    trace: 'E2E_TOOL_SUCCESS',
+                    fn: jsonCall.fn,
+                    resultLength: resultText.length,
+                    resultPreview: resultText.slice(0, 200),
+                    speakDirectly: !!execResult.speakDirectly,
+                  },
+                  `🔍 E2E TRACE [3/4] TOOL SUCCESS: ${jsonCall.fn} → "${resultText.slice(0, 100)}..."`
+                );
 
                 // ========================================
                 // SPEAK DIRECTLY: For pseudo-tools like "speak" that generate
@@ -3034,7 +3118,16 @@ export function createSanitizerWithMusicFallback(
               }
             })
             .catch((err) => {
-              log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+              // 🔍 E2E TRACE [3/4]: Tool execution FAILED
+              log.error(
+                {
+                  trace: 'E2E_TOOL_FAILED',
+                  fn: jsonCall.fn,
+                  error: String(err),
+                  stack: (err as Error)?.stack?.slice(0, 300),
+                },
+                `🔍 E2E TRACE [3/4] TOOL FAILED: ${jsonCall.fn} → ${String(err).slice(0, 100)}`
+              );
 
               // Notify state machine that tool failed
               if (stateIntegration && sessionId) {
@@ -3184,7 +3277,10 @@ export function createSanitizerWithMusicFallback(
           toolContext?.userId,
           toolContext?.personaId,
           getLastUserTranscript(),
-          getSemanticPrediction()
+          getSemanticPrediction(),
+          toolContext?.userLocation as
+            | { city?: string; regionCode?: string; countryCode?: string }
+            | undefined
         )
           .then(async (execResult) => {
             if (execResult?.success && execResult.result) {
@@ -3326,6 +3422,58 @@ export function createSanitizerWithMusicFallback(
           });
         }
 
+        // 🌤️ WEATHER LEAKAGE FIX: Execute weather tool when Gemini talks about weather
+        if (detection.pattern === 'weather_leakage') {
+          // 🔍 E2E TRACE: Weather leakage detected - Gemini problem pattern!
+          log.info(
+            {
+              trace: 'E2E_WEATHER_LEAKAGE_DETECTED',
+              buffer: buffer.slice(0, 120),
+              pattern: detection.pattern,
+              userLocation: toolContext?.userLocation?.city,
+              userId: toolContext?.userId,
+            },
+            `🔍 E2E TRACE [LEAKAGE] ⚠️ Weather leakage detected: "${buffer.slice(0, 80)}..." → Force-executing getWeather`
+          );
+
+          // Emit acknowledgment first
+          controller.enqueue('Let me check the weather. ');
+
+          // Execute the weather tool in background
+          void executeJsonFunctionCall(
+            { fn: 'getWeather', args: {} },
+            sessionId,
+            toolContext?.userId,
+            toolContext?.personaId,
+            undefined, // originalTranscript
+            undefined, // semanticPrediction
+            toolContext?.userLocation as
+              | { city?: string; regionCode?: string; countryCode?: string }
+              | undefined
+          )
+            .then((result) => {
+              if (result && !streamClosed) {
+                const resultText =
+                  typeof result === 'string' ? result : result.result ? String(result.result) : '';
+                if (resultText) {
+                  try {
+                    controller.enqueue(`${resultText} `);
+                  } catch {
+                    log.debug('Stream closed before weather result could be enqueued');
+                  }
+                }
+              }
+            })
+            .catch((e) => {
+              log.debug({ error: String(e) }, '🌤️ Weather fallback failed (non-critical)');
+            });
+
+          suppressMode = true;
+          buffer = '';
+          waitForMoreContext = false;
+          return;
+        }
+
         const replacement = getReplacementText(detection);
         if (replacement) {
           controller.enqueue(`${replacement} `);
@@ -3355,6 +3503,47 @@ export function createSanitizerWithMusicFallback(
                 '🎵 Music fallback failed (non-critical)'
               );
             });
+          }
+
+          // 🌤️ WEATHER LEAKAGE FIX: Execute weather tool on recheck too
+          if (recheckDetection.pattern === 'weather_leakage') {
+            log.info('🌤️ WEATHER LEAKAGE (recheck) → Force-executing getWeather tool');
+            controller.enqueue('Let me check the weather. ');
+            void executeJsonFunctionCall(
+              { fn: 'getWeather', args: {} },
+              sessionId,
+              toolContext?.userId,
+              toolContext?.personaId,
+              undefined,
+              undefined,
+              toolContext?.userLocation as
+                | { city?: string; regionCode?: string; countryCode?: string }
+                | undefined
+            )
+              .then((result) => {
+                if (result && !streamClosed) {
+                  const resultText =
+                    typeof result === 'string'
+                      ? result
+                      : result.result
+                        ? String(result.result)
+                        : '';
+                  if (resultText) {
+                    try {
+                      controller.enqueue(`${resultText} `);
+                    } catch {
+                      log.debug('Stream closed before weather result could be enqueued');
+                    }
+                  }
+                }
+              })
+              .catch((e) => {
+                log.debug({ error: String(e) }, '🌤️ Weather fallback failed (non-critical)');
+              });
+            suppressMode = true;
+            buffer = '';
+            waitForMoreContext = false;
+            return;
           }
 
           const replacement = getReplacementText(recheckDetection);
@@ -3424,7 +3613,10 @@ export function createSanitizerWithMusicFallback(
               toolContext?.userId,
               toolContext?.personaId,
               getLastUserTranscript(),
-              getSemanticPrediction()
+              getSemanticPrediction(),
+              toolContext?.userLocation as
+                | { city?: string; regionCode?: string; countryCode?: string }
+                | undefined
             )
               .then(async (result) => {
                 log.info(
@@ -3509,6 +3701,28 @@ export function createSanitizerWithMusicFallback(
       if (buffer && !suppressMode) {
         const finalCheck = detectsFunctionCallLeakage(buffer);
         if (finalCheck.detected) {
+          // 🌤️ WEATHER LEAKAGE FIX: Execute weather tool on flush too
+          if (finalCheck.pattern === 'weather_leakage') {
+            log.info('🌤️ WEATHER LEAKAGE (flush) → Force-executing getWeather tool');
+            controller.enqueue('Let me check the weather. ');
+            // Note: Can't await in flush, so this is fire-and-forget
+            // The result won't make it to this stream, but we log it
+            void executeJsonFunctionCall(
+              { fn: 'getWeather', args: {} },
+              toolContext?.sessionId || sessionId,
+              toolContext?.userId,
+              toolContext?.personaId,
+              undefined,
+              undefined,
+              toolContext?.userLocation
+            ).then((result) => {
+              log.info(
+                { result: String(result).slice(0, 100) },
+                '🌤️ Weather tool executed (flush) - result may not reach stream'
+              );
+            });
+          }
+
           // Check for music fallback
           const musicQuery = extractMusicQuery(buffer);
           if (musicQuery && finalCheck.toolName?.toLowerCase().includes('music')) {

@@ -17,7 +17,7 @@ import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 // Avatar Soul integration - dynamically imported to avoid circular deps
 let avatarSoul: typeof import('./avatar-soul.ui.js') | null = null;
@@ -1807,7 +1807,7 @@ export function injectAdminStyles(): void {
 
     /* TTS Monitoring Section */
     .admin-tts-monitoring {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));
+      background: linear-gradient(135deg, rgba(58, 107, 115, 0.1), rgba(74, 103, 65, 0.05));
       padding: 1.5rem;
       border-radius: 12px;
       border: 1px solid rgba(59, 130, 246, 0.2);

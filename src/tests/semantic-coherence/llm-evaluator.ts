@@ -153,7 +153,9 @@ async function callGeminiApi(
       if (retryCount < maxRetries) {
         // Exponential backoff: 10s, 20s, 40s
         const delaySeconds = 10 * Math.pow(2, retryCount);
-        console.warn(`⏳ Rate limited, waiting ${delaySeconds}s (attempt ${retryCount + 1}/${maxRetries})...`);
+        console.warn(
+          `⏳ Rate limited, waiting ${delaySeconds}s (attempt ${retryCount + 1}/${maxRetries})...`
+        );
         await new Promise((r) => setTimeout(r, delaySeconds * 1000));
         return callGeminiApi(prompt, apiKey, model, retryCount + 1);
       }

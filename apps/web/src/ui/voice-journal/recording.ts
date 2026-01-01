@@ -111,7 +111,7 @@ export async function startRecording(): Promise<void> {
     soundUI.play('click');
   } catch (error) {
     log.error('Failed to start recording:', error);
-    const { toast } = await import('../toast.ui.js');
+    const { toast } = await import('../whisper.ui.js');
     toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
@@ -194,7 +194,7 @@ export function startVisualization(): void {
     const step = Math.floor(bufferLength / barCount);
 
     for (let i = 0; i < barCount; i++) {
-      const value = dataArray[i * step];
+      const value = dataArray[i * step] ?? 0;
       const normalizedValue = value / 255;
       const barHeight = normalizedValue * 40;
 

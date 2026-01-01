@@ -244,7 +244,9 @@ function renderStep(): void {
   const content = wizardModal?.querySelector('#wizard-content');
   if (!content) return;
 
-  const stepId = WIZARD_STEPS[currentStep].id;
+  const currentWizardStep = WIZARD_STEPS[currentStep];
+  if (!currentWizardStep) return;
+  const stepId = currentWizardStep.id;
 
   switch (stepId) {
     case 'type':
@@ -312,7 +314,7 @@ function getTypeIconSvg(iconName: string): string {
       <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
     </svg>`,
   };
-  return icons[iconName] || icons.sparkles;
+  return icons[iconName] ?? icons.sparkles ?? '';
 }
 
 function renderTypeStep(): string {
@@ -918,7 +920,9 @@ function attachStepListeners(): void {
   const content = wizardModal?.querySelector('#wizard-content');
   if (!content) return;
 
-  const stepId = WIZARD_STEPS[currentStep].id;
+  const currentWizardStep = WIZARD_STEPS[currentStep];
+  if (!currentWizardStep) return;
+  const stepId = currentWizardStep.id;
 
   switch (stepId) {
     case 'type':
@@ -1225,7 +1229,7 @@ async function startRecording(): Promise<void> {
     soundUI.play('click');
   } catch (error) {
     log.error('Failed to start recording:', error);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
@@ -1330,7 +1334,9 @@ async function goToNextStep(): Promise<void> {
 }
 
 function validateCurrentStep(): boolean {
-  const stepId = WIZARD_STEPS[currentStep].id;
+  const currentWizardStep = WIZARD_STEPS[currentStep];
+  if (!currentWizardStep) return false;
+  const stepId = currentWizardStep.id;
   
   switch (stepId) {
     case 'type':
@@ -1356,7 +1362,7 @@ function validateCurrentStep(): boolean {
 }
 
 async function showValidationError(message: string): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   toast.warning(message);
   soundUI.play('click');
 }
@@ -1366,7 +1372,7 @@ async function showValidationError(message: string): Promise<void> {
 // ============================================================================
 
 async function createAgent(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   try {
     // Show loading state

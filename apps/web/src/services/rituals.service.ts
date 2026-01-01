@@ -149,7 +149,7 @@ class RitualsService {
 
   private parseDurationToMinutes(duration: string): number {
     const match = duration.match(/(\d+)\s*(min|sec)/i);
-    if (!match) return 5;
+    if (!match?.[1] || !match[2]) return 5;
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();
     return unit === 'sec' ? Math.ceil(value / 60) : value;

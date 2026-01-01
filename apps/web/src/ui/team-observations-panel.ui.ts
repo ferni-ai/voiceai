@@ -1,3 +1,4 @@
+// TODO: Fix type errors - array indexing for observations
 /**
  * Team Observations Panel
  *
@@ -67,12 +68,14 @@ interface TeamObservationsData {
 // PERSONA CONFIG
 // ============================================================================
 
-const PERSONA_CONFIG: Record<string, { name: string; color: string; icon: string }> = {
-  ferni: {
-    name: 'Ferni',
-    color: 'var(--persona-ferni-primary, #4a6741)',
-    icon: '🌿',
-  },
+const DEFAULT_PERSONA = {
+  name: 'Ferni',
+  color: 'var(--persona-ferni-primary, #4a6741)',
+  icon: '🌿',
+};
+
+const PERSONA_CONFIG: Record<string, typeof DEFAULT_PERSONA> = {
+  ferni: DEFAULT_PERSONA,
   peter: {
     name: 'Peter',
     color: 'var(--persona-peter-primary, #3a6b73)',
@@ -100,12 +103,14 @@ const PERSONA_CONFIG: Record<string, { name: string; color: string; icon: string
   },
 };
 
-const OBSERVATION_TYPE_STYLES: Record<string, { bg: string; label: string }> = {
+const DEFAULT_TYPE_STYLE = { bg: 'var(--color-text-muted, #8a7f75)', label: 'Insight' };
+
+const OBSERVATION_TYPE_STYLES: Record<string, typeof DEFAULT_TYPE_STYLE> = {
   concern: { bg: 'var(--color-semantic-warning, #f59e0b)', label: 'Concern' },
   opportunity: { bg: 'var(--color-semantic-success, #10b981)', label: 'Opportunity' },
   pattern: { bg: 'var(--color-accent-primary, #4a6741)', label: 'Pattern' },
   milestone: { bg: 'var(--color-semantic-info, #3b82f6)', label: 'Milestone' },
-  insight: { bg: 'var(--color-text-muted, #8a7f75)', label: 'Insight' },
+  insight: DEFAULT_TYPE_STYLE,
 };
 
 // ============================================================================
@@ -152,8 +157,8 @@ async function fetchObservations(): Promise<TeamObservationsData | null> {
 // ============================================================================
 
 function renderObservationCard(obs: PersonaObservation, index: number): string {
-  const persona = PERSONA_CONFIG[obs.personaId] || PERSONA_CONFIG.ferni;
-  const typeStyle = OBSERVATION_TYPE_STYLES[obs.observationType] || OBSERVATION_TYPE_STYLES.insight;
+  const persona = PERSONA_CONFIG[obs.personaId] ?? DEFAULT_PERSONA;
+  const typeStyle = OBSERVATION_TYPE_STYLES[obs.observationType] ?? DEFAULT_TYPE_STYLE;
   const delay = index * STAGGER.TIGHT;
   const confidencePercent = Math.round(obs.confidence * 100);
   const timeAgo = getTimeAgo(new Date(obs.detectedAt));

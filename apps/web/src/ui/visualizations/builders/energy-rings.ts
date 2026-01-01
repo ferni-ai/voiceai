@@ -13,7 +13,6 @@
 import {
   createElement,
   createSvgElement,
-  createFlexContainer,
   setStyles,
   createScreenReaderLabel,
   describeArc,
@@ -602,7 +601,7 @@ function getEnergyInsight(
   };
 
   const level = value >= 70 ? 'high' : value >= 40 ? 'medium' : 'low';
-  return insights[type][level];
+  return insights[type][level] ?? '';
 }
 
 /**

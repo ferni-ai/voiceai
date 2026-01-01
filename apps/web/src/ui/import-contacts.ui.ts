@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
@@ -583,8 +583,9 @@ function bindEvents(): void {
       e.preventDefault();
       dropZone.classList.remove('drag-over');
       const files = (e as DragEvent).dataTransfer?.files;
-      if (files && files.length > 0) {
-        void handleFileUpload(files[0]);
+      const firstFile = files?.[0];
+      if (firstFile) {
+        void handleFileUpload(firstFile);
       }
     });
   }
@@ -595,8 +596,9 @@ function bindEvents(): void {
   if (browseBtn && fileInput) {
     browseBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
-      if (fileInput.files && fileInput.files.length > 0) {
-        void handleFileUpload(fileInput.files[0]);
+      const firstFile = fileInput.files?.[0];
+      if (firstFile) {
+        void handleFileUpload(firstFile);
       }
     });
   }
@@ -708,7 +710,14 @@ async function parseCSVFile(file: File): Promise<void> {
     return;
   }
 
-  const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+  const headerLine = lines[0];
+  if (!headerLine) {
+    toast.error(t('toasts.csvFileAppearsToBeEmpty'));
+    state.isImporting = false;
+    render();
+    return;
+  }
+  const headers = headerLine.toLowerCase().split(',').map(h => h.trim());
   const nameIndex = headers.findIndex(h => h.includes('name'));
   const emailIndex = headers.findIndex(h => h.includes('email'));
   const phoneIndex = headers.findIndex(h => h.includes('phone'));
@@ -722,7 +731,9 @@ async function parseCSVFile(file: File): Promise<void> {
 
   const contacts: PreviewContact[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const line = lines[i];
+    if (!line) continue;
+    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
     const name = values[nameIndex];
     if (name) {
       contacts.push({

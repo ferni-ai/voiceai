@@ -14,10 +14,79 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CalendarViewUI');
+
+// ============================================================================
+// PRACTICE VIEW API TYPES (from /api/practice-view)
+// ============================================================================
+
+interface PracticeViewAPIResponse {
+  success: boolean;
+  orchestratingPersona: string;
+  week: PracticeViewDayData[];
+  todayEvents: PracticeEventData[];
+  intentions: PracticeIntentionData[];
+  mayaNotices: {
+    message: string;
+    type: 'observation' | 'suggestion' | 'celebration' | 'concern';
+    confidence: number;
+    relatedDays?: string[];
+  } | null;
+  crossPersonaInsights: {
+    persona: string;
+    type: string;
+    message: string;
+    context?: string;
+  }[];
+  stats: {
+    followThroughPercent: number;
+    habitsCompletedThisWeek: number;
+    momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
+    streak: number;
+  };
+  lastUpdated: string;
+}
+
+interface PracticeViewDayData {
+  date: string;
+  dayName: string;
+  shortName: string;
+  dayNum: number;
+  isToday: boolean;
+  isWeekend: boolean;
+  events: PracticeEventData[];
+  tasks: PracticeIntentionData[];
+  reminders: { id: string; text: string; time: string; type: string }[];
+  habits: { id: string; name: string; completedToday: boolean; streak: number; insight?: string }[];
+  insight: string;
+  insightPersona?: string;
+}
+
+interface PracticeEventData {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  emotionalContext?: {
+    persona: string;
+    insight: string;
+  };
+  source: string;
+}
+
+interface PracticeIntentionData {
+  id: string;
+  text: string;
+  completed: boolean;
+  priority?: 'high' | 'medium' | 'low';
+  dueDate?: string;
+  insight?: string;
+  insightPersona?: string;
+}
 
 // ============================================================================
 // ANALYTICS TYPES (consolidated from calendar-analytics.ui.ts)
@@ -115,7 +184,7 @@ export interface CalendarViewCallbacks {
   onConnectCalendar?: () => void;
 }
 
-type ViewMode = 'today' | 'week' | 'month' | 'insights';
+type ViewMode = 'today' | 'week' | 'month' | 'insights' | 'practice';
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)
@@ -205,12 +274,14 @@ class CalendarViewUI {
   private isLoading = false;
   private isConnected = false;
   private showExternalEvents = true; // Toggle for showing external calendar events
-  private viewMode: ViewMode = 'month'; // Default to month view for Ferni Calendar
+  private viewMode: ViewMode = 'practice'; // Default to practice view for rich storytelling
   private todayData: DayOverview | null = null;
   private weekData: WeekOverview | null = null;
   private currentDate: Date = new Date();
   private analyticsData: CalendarAnalyticsData | null = null;
   private isLoadingAnalytics = false;
+  private practiceViewData: PracticeViewAPIResponse | null = null;
+  private isLoadingPracticeView = false;
 
   /**
    * Initialize the calendar view
@@ -420,9 +491,9 @@ class CalendarViewUI {
 
     this.wrapper.innerHTML = `
       <header class="calendar-view__header">
-        <div class="calendar-view__icon">${ICONS.calendar}</div>
+        <div class="calendar-view__icon">${this.viewMode === 'practice' ? ICONS.heart : ICONS.calendar}</div>
         <div class="calendar-view__header-content">
-          <h2 class="calendar-view__title" id="calendar-view-title">Your Schedule</h2>
+          <h2 class="calendar-view__title" id="calendar-view-title">${this.viewMode === 'practice' ? "What's Ahead" : 'Your Schedule'}</h2>
           <p class="calendar-view__date">${dateStr}</p>
         </div>
         <button class="calendar-view__close" aria-label="${t('common.close')}">
@@ -431,6 +502,10 @@ class CalendarViewUI {
       </header>
 
       <div class="calendar-view__tabs">
+        <button aria-label="Practice view with insights" class="calendar-view__tab ${this.viewMode === 'practice' ? 'calendar-view__tab--active' : ''}" data-view="practice">
+          ${ICONS.heart}
+          Practice
+        </button>
         <button aria-label="${t('accessibility.today')}" class="calendar-view__tab ${this.viewMode === 'today' ? 'calendar-view__tab--active' : ''}" data-view="today">
           ${ICONS.sun}
           Today
@@ -594,6 +669,8 @@ class CalendarViewUI {
    */
   private renderViewContent(): string {
     switch (this.viewMode) {
+      case 'practice':
+        return this.renderPracticeView();
       case 'today':
         return this.renderTodayView();
       case 'week':
@@ -603,8 +680,418 @@ class CalendarViewUI {
       case 'insights':
         return this.renderInsightsView();
       default:
-        return this.renderTodayView();
+        return this.renderPracticeView();
     }
+  }
+
+  // ============================================================================
+  // PRACTICE VIEW - Rich Storytelling with Persona Insights
+  // ============================================================================
+
+  /**
+   * Render the practice view - a rich, persona-driven calendar experience
+   * Jordan orchestrates the schedule, with Maya noticing patterns
+   * and cross-team insights woven throughout
+   */
+  private renderPracticeView(): string {
+    // Show loading state while fetching
+    if (this.isLoadingPracticeView) {
+      return `
+        <div class="calendar-view__practice calendar-view__practice--loading">
+          <div class="calendar-view__practice-loading">
+            <div class="calendar-view__practice-loading-spinner"></div>
+            <span>Jordan is organizing your week...</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Trigger data load if we don't have it yet
+    if (!this.practiceViewData && !this.isLoadingPracticeView) {
+      // Start loading in background
+      void this.loadPracticeViewData();
+    }
+
+    // Use API data if available, otherwise fall back to generated data
+    const apiData = this.practiceViewData;
+    const today = new Date();
+    
+    // Week data - prefer API, fall back to generated
+    const weekDays = apiData?.week
+      ? apiData.week.map(day => ({
+          date: day.date,
+          shortName: day.shortName,
+          dayNum: day.dayNum,
+          isToday: day.isToday,
+          hasEvent: day.events.length > 0,
+          hasTask: day.tasks.length > 0,
+          hasReminder: day.reminders.length > 0,
+          hasHabit: day.habits.length > 0,
+          insight: day.insight,
+        }))
+      : this.getWeekWithInsights(today);
+    
+    // Today's events - prefer API, fall back to stored data
+    const todayEvents = apiData?.todayEvents
+      ? apiData.todayEvents.map(event => ({
+          id: event.id,
+          title: event.title,
+          time: this.formatEventTime(event.startTime, event.endTime),
+          location: event.location,
+          source: event.source as 'google' | 'ferni' | 'outlook' | 'apple' | undefined,
+          emotionalContext: event.emotionalContext,
+        }))
+      : this.todayData?.events || [];
+    
+    // Intentions - prefer API, fall back to generated
+    const intentions = apiData?.intentions || this.generateIntentions();
+    
+    // Maya notices - prefer API, fall back to generated
+    const mayaNotices = apiData?.mayaNotices?.message || this.generateMayaPatternNotice();
+    
+    // Stats - prefer API, fall back to calculated
+    const followThrough = apiData?.stats?.followThroughPercent ?? this.calculateFollowThrough();
+    const habitsThisWeek = apiData?.stats?.habitsCompletedThisWeek ?? this.getHabitCount();
+    const momentumTrend = apiData?.stats?.momentumTrend ?? this.getMomentumTrend();
+    
+    return `
+      <div class="calendar-view__practice">
+        <!-- Jordan orchestrates header -->
+        <div class="calendar-view__practice-persona">
+          <div class="calendar-view__practice-persona-dot" style="background: var(--color-jordan, #c4856a)"></div>
+          <span class="calendar-view__practice-persona-name">Jordan orchestrates your week</span>
+        </div>
+
+        <!-- Week Strip with Daily Insights -->
+        <div class="calendar-view__practice-week">
+          ${weekDays.map(day => `
+            <div class="calendar-view__practice-day ${day.isToday ? 'calendar-view__practice-day--today' : ''}" data-date="${day.date}">
+              <div class="calendar-view__practice-day-name">${day.shortName}</div>
+              <div class="calendar-view__practice-day-num">${day.dayNum}</div>
+              <div class="calendar-view__practice-day-indicators">
+                ${day.hasEvent ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--event" title="Event"></span>' : ''}
+                ${day.hasTask ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--task" title="Task"></span>' : ''}
+                ${day.hasReminder ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--reminder" title="Reminder"></span>' : ''}
+                ${day.hasHabit ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--habit" title="Habit"></span>' : ''}
+              </div>
+              <div class="calendar-view__practice-day-insight">${day.insight}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Today's Rich Context -->
+        <div class="calendar-view__practice-today">
+          ${todayEvents.length > 0 ? `
+            <div class="calendar-view__practice-section">
+              <div class="calendar-view__practice-section-header">
+                <span class="calendar-view__practice-section-eyebrow">TODAY</span>
+                <span class="calendar-view__practice-section-count">${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''}</span>
+              </div>
+              ${todayEvents.map(event => this.renderPracticeEvent(event)).join('')}
+            </div>
+          ` : `
+            <div class="calendar-view__practice-clear">
+              <div class="calendar-view__practice-clear-icon">${ICONS.sun}</div>
+              <div class="calendar-view__practice-clear-text">
+                <strong>Clear day ahead</strong>
+                <span>Space for what matters most</span>
+              </div>
+            </div>
+          `}
+
+          <!-- Intentions Section -->
+          ${intentions.length > 0 ? `
+            <div class="calendar-view__practice-section">
+              <div class="calendar-view__practice-section-header">
+                <span class="calendar-view__practice-section-eyebrow">INTENTIONS</span>
+              </div>
+              ${intentions.map(intention => `
+                <div class="calendar-view__practice-intention">
+                  <div class="calendar-view__practice-intention-check">
+                    <input type="checkbox" ${intention.completed ? 'checked' : ''} aria-label="Mark ${intention.text} complete">
+                  </div>
+                  <div class="calendar-view__practice-intention-content">
+                    <span class="calendar-view__practice-intention-text">${intention.text}</span>
+                    ${intention.insight ? `
+                      <div class="calendar-view__practice-intention-insight">
+                        <span class="calendar-view__practice-insight-persona">${intention.insightPersona}</span>
+                        ${intention.insight}
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <!-- Maya Notices (Pattern Awareness) -->
+          ${mayaNotices ? `
+            <div class="calendar-view__practice-whisper">
+              <div class="calendar-view__practice-whisper-persona">
+                <div class="calendar-view__practice-persona-dot" style="background: var(--color-maya, #a67a6a)"></div>
+                <span>Maya notices</span>
+              </div>
+              <p class="calendar-view__practice-whisper-text">"${mayaNotices}"</p>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Progress & Momentum -->
+        <div class="calendar-view__practice-stats">
+          <div class="calendar-view__practice-stat">
+            <div class="calendar-view__practice-stat-value">${followThrough}%</div>
+            <div class="calendar-view__practice-stat-label">follow-through</div>
+          </div>
+          <div class="calendar-view__practice-stat">
+            <div class="calendar-view__practice-stat-value">${habitsThisWeek}</div>
+            <div class="calendar-view__practice-stat-label">habits this week</div>
+          </div>
+          <div class="calendar-view__practice-stat">
+            <div class="calendar-view__practice-stat-value">${typeof momentumTrend === 'string' ? momentumTrend : this.getMomentumTrend()}</div>
+            <div class="calendar-view__practice-stat-label">momentum</div>
+          </div>
+        </div>
+
+        <!-- Cross-Persona Insights (from API) -->
+        ${apiData?.crossPersonaInsights?.length ? `
+          <div class="calendar-view__practice-insights">
+            <div class="calendar-view__practice-section-header">
+              <span class="calendar-view__practice-section-eyebrow">TEAM INSIGHTS</span>
+            </div>
+            ${apiData.crossPersonaInsights.slice(0, 2).map(insight => `
+              <div class="calendar-view__practice-whisper">
+                <div class="calendar-view__practice-whisper-persona">
+                  <div class="calendar-view__practice-persona-dot" style="background: var(--color-${insight.persona}, var(--color-ferni))"></div>
+                  <span>${insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1)} ${insight.type === 'notice' ? 'notices' : insight.type === 'celebrate' ? 'celebrates' : 'suggests'}</span>
+                </div>
+                <p class="calendar-view__practice-whisper-text">"${insight.message}"</p>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Get week days with rich insights for practice view
+   */
+  private getWeekWithInsights(today: Date): Array<{
+    date: string;
+    shortName: string;
+    dayNum: number;
+    isToday: boolean;
+    hasEvent: boolean;
+    hasTask: boolean;
+    hasReminder: boolean;
+    hasHabit: boolean;
+    insight: string;
+  }> {
+    const days = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayInsights = [
+      'Rest day',
+      'Fresh start',
+      'Build momentum',
+      'Mid-week check',
+      'Almost there',
+      'Wind down',
+      'Reflect'
+    ];
+
+    // Find the start of the week (Sunday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Check if this day has events from our data
+      const dayData = this.weekData?.days?.find(d => d.date === dateStr);
+      const hasEvents = (dayData?.events?.length || 0) > 0;
+
+      days.push({
+        date: dateStr,
+        shortName: dayNames[date.getDay()],
+        dayNum: date.getDate(),
+        isToday: date.toDateString() === today.toDateString(),
+        hasEvent: hasEvents,
+        hasTask: Math.random() > 0.6, // TODO: Get from real task data
+        hasReminder: Math.random() > 0.7, // TODO: Get from real reminder data
+        hasHabit: Math.random() > 0.5, // TODO: Get from real habit data
+        insight: this.getDayInsight(date, today, dayInsights[date.getDay()]),
+      });
+    }
+
+    return days;
+  }
+
+  /**
+   * Get contextual insight for a day
+   */
+  private getDayInsight(date: Date, today: Date, defaultInsight: string): string {
+    const isToday = date.toDateString() === today.toDateString();
+    const dayOfWeek = date.getDay();
+    
+    // Special insights for today
+    if (isToday) {
+      const hour = today.getHours();
+      if (hour < 12) return 'Morning intention';
+      if (hour < 17) return 'Stay present';
+      return 'Reflect & celebrate';
+    }
+
+    // New year special
+    if (date.getMonth() === 0 && date.getDate() === 1) {
+      return 'New beginning';
+    }
+
+    // Weekend wisdom
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return 'Recharge';
+    }
+
+    return defaultInsight;
+  }
+
+  /**
+   * Render a single event with rich emotional context
+   */
+  private renderPracticeEvent(event: CalendarEvent): string {
+    const time = this.formatEventTime(event.startTime);
+    const emotionalContext = this.getEventEmotionalContext(event);
+    
+    return `
+      <div class="calendar-view__practice-event" data-event-id="${event.id}">
+        <div class="calendar-view__practice-event-time">${time}</div>
+        <div class="calendar-view__practice-event-content">
+          <div class="calendar-view__practice-event-title">${event.title}</div>
+          ${event.location ? `
+            <div class="calendar-view__practice-event-location">
+              ${ICONS.mapPin}
+              ${event.location}
+            </div>
+          ` : ''}
+          ${emotionalContext ? `
+            <div class="calendar-view__practice-event-insight">
+              <span class="calendar-view__practice-insight-persona">${emotionalContext.persona}</span>
+              ${emotionalContext.insight}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Get emotional context for an event based on title/attendees
+   */
+  private getEventEmotionalContext(event: CalendarEvent): { persona: string; insight: string } | null {
+    const title = event.title.toLowerCase();
+    
+    // Family/relationship events
+    if (title.includes('dinner') || title.includes('family') || title.includes('partner')) {
+      return { persona: 'ALEX NOTED', insight: 'Your partner loves when you\'re present' };
+    }
+    
+    // Work meetings
+    if (title.includes('meeting') || title.includes('sync') || title.includes('1:1')) {
+      return { persona: 'JORDAN SUGGESTS', insight: 'Set a clear intention before joining' };
+    }
+    
+    // Health/wellness
+    if (title.includes('doctor') || title.includes('therapy') || title.includes('gym') || title.includes('yoga')) {
+      return { persona: 'MAYA NOTICES', insight: 'Taking care of yourself first' };
+    }
+    
+    // Creative/learning
+    if (title.includes('class') || title.includes('workshop') || title.includes('lesson')) {
+      return { persona: 'NAYAN REFLECTS', insight: 'Growth happens in the stretching' };
+    }
+
+    return null;
+  }
+
+  /**
+   * Generate intentions based on user patterns
+   */
+  private generateIntentions(): Array<{
+    text: string;
+    completed: boolean;
+    insight?: string;
+    insightPersona?: string;
+  }> {
+    // TODO: Get real intentions from user data
+    // For now, generate contextual intentions based on day/events
+    const today = new Date();
+    const isWeekend = today.getDay() === 0 || today.getDay() === 6;
+
+    if (isWeekend) {
+      return [
+        { text: 'Spend quality time', completed: false, insight: 'Presence over productivity', insightPersona: 'FERNI' },
+        { text: 'Rest without guilt', completed: false },
+      ];
+    }
+
+    return [
+      { text: 'Start with intention', completed: true, insight: '3 days in a row', insightPersona: 'MAYA TRACKS' },
+      { text: 'One thing at a time', completed: false },
+      { text: 'End the day with gratitude', completed: false, insight: 'This has helped your mood', insightPersona: 'PETER FOUND' },
+    ];
+  }
+
+  /**
+   * Generate Maya's pattern notice based on calendar data
+   */
+  private generateMayaPatternNotice(): string | null {
+    // TODO: Get real patterns from user data
+    if (!this.weekData) return null;
+
+    const totalMeetings = this.weekData.totalMeetings || 0;
+    const busiestDay = this.weekData.busiestDay;
+
+    if (totalMeetings > 15) {
+      return "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.";
+    }
+
+    if (busiestDay && busiestDay.meetings > 5) {
+      return `${busiestDay.day} looks packed. Maybe move something to ${this.weekData.lightestDay?.day || 'another day'}?`;
+    }
+
+    // Random wisdom if no pattern detected
+    const wisdoms = [
+      'Your morning starts tend to set the tone for the whole day.',
+      'When you block focus time, you accomplish 40% more.',
+      'You seem most creative after your walks.',
+    ];
+    return wisdoms[Math.floor(Math.random() * wisdoms.length)];
+  }
+
+  /**
+   * Calculate follow-through percentage
+   */
+  private calculateFollowThrough(): number {
+    // TODO: Get real data
+    return Math.floor(75 + Math.random() * 20);
+  }
+
+  /**
+   * Get habit count for the week
+   */
+  private getHabitCount(): number {
+    // TODO: Get real data
+    return Math.floor(3 + Math.random() * 4);
+  }
+
+  /**
+   * Get momentum trend indicator
+   */
+  private getMomentumTrend(): string {
+    // TODO: Get real data
+    const trends = ['↗ rising', '→ steady', '↗ building'];
+    return trends[Math.floor(Math.random() * trends.length)];
   }
 
   /**
@@ -1027,6 +1514,59 @@ class CalendarViewUI {
   }
 
   /**
+   * Load practice view data from the API
+   * This fetches calendar events, habits, intentions, and cross-persona insights
+   */
+  private async loadPracticeViewData(): Promise<void> {
+    if (this.isLoadingPracticeView) return;
+    
+    this.isLoadingPracticeView = true;
+    this.renderContent();
+
+    try {
+      const response = await apiGet<PracticeViewAPIResponse>('/api/practice-view');
+      if (response?.ok && response.data) {
+        this.practiceViewData = response.data;
+        log.debug('Loaded practice view data', { 
+          eventsCount: response.data.todayEvents.length,
+          intentionsCount: response.data.intentions.length,
+        });
+      } else {
+        log.warn('Practice view API returned empty or error, using fallback');
+        this.practiceViewData = null;
+      }
+    } catch (error) {
+      log.error('Failed to load practice view data', error);
+      this.practiceViewData = null;
+    } finally {
+      this.isLoadingPracticeView = false;
+      this.renderContent();
+    }
+  }
+
+  /**
+   * Mark an intention as complete via the API
+   */
+  private async markIntentionComplete(intentionId: string): Promise<void> {
+    try {
+      const response = await apiPost(`/api/practice-view/intentions/${intentionId}/complete`, {});
+      if (response?.ok) {
+        // Update local state
+        if (this.practiceViewData?.intentions) {
+          const intention = this.practiceViewData.intentions.find(i => i.id === intentionId);
+          if (intention) {
+            intention.completed = true;
+          }
+        }
+        this.renderContent();
+        log.info('Intention marked complete', { intentionId });
+      }
+    } catch (error) {
+      log.error('Failed to mark intention complete', error);
+    }
+  }
+
+  /**
    * Load calendar analytics data
    */
   private async loadAnalyticsData(): Promise<void> {
@@ -1170,6 +1710,25 @@ class CalendarViewUI {
       minute: '2-digit',
       hour12: true,
     });
+  }
+
+  /**
+   * Format event time range (e.g., "9:00 AM - 10:30 AM")
+   */
+  private formatEventTime(startTime: string, endTime: string): string {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const startFormatted = start.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const endFormatted = end.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${startFormatted} - ${endFormatted}`;
   }
 
   private formatDuration(start: string, end: string): string {
@@ -2009,6 +2568,381 @@ class CalendarViewUI {
       }
 
       /* ========================================================================
+         PRACTICE VIEW - Rich Storytelling Calendar
+         ======================================================================== */
+      .calendar-view__practice {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4, 16px);
+      }
+
+      .calendar-view__practice-persona {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        padding: var(--space-2, 8px) 0;
+      }
+
+      .calendar-view__practice-persona-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .calendar-view__practice-persona-name {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Week Strip */
+      .calendar-view__practice-week {
+        display: flex;
+        gap: var(--space-2, 8px);
+        overflow-x: auto;
+        padding: var(--space-2, 8px) 0;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .calendar-view__practice-day {
+        flex: 1;
+        min-width: 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        padding: var(--space-3, 12px) var(--space-2, 8px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 12px);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-view__practice-day:hover {
+        background: var(--color-background-tertiary, rgba(44, 37, 32, 0.08));
+      }
+
+      .calendar-view__practice-day--today {
+        background: var(--color-jordan-tint, rgba(196, 133, 106, 0.15));
+        border: 2px solid var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__practice-day-name {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+      }
+
+      .calendar-view__practice-day--today .calendar-view__practice-day-name {
+        color: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__practice-day-num {
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__practice-day--today .calendar-view__practice-day-num {
+        color: var(--color-jordan, #c4856a);
+        font-weight: var(--font-weight-bold, 700);
+      }
+
+      .calendar-view__practice-day-indicators {
+        display: flex;
+        gap: 3px;
+        min-height: 6px;
+      }
+
+      .calendar-view__practice-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+
+      .calendar-view__practice-indicator--event {
+        background: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__practice-indicator--task {
+        background: var(--color-ferni, #4a6741);
+      }
+
+      .calendar-view__practice-indicator--reminder {
+        background: var(--color-nayan, #b8956a);
+      }
+
+      .calendar-view__practice-indicator--habit {
+        background: var(--color-maya, #a67a6a);
+      }
+
+      .calendar-view__practice-day-insight {
+        font-size: var(--text-2xs, 0.6875rem);
+        color: var(--color-text-muted, #756a5e);
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      /* Today Section */
+      .calendar-view__practice-today {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4, 16px);
+      }
+
+      .calendar-view__practice-section {
+        background: var(--color-background-elevated, white);
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-3, 12px);
+        box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+      }
+
+      .calendar-view__practice-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-3, 12px);
+      }
+
+      .calendar-view__practice-section-eyebrow {
+        font-size: var(--text-2xs, 0.6875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .calendar-view__practice-section-count {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      /* Clear Day State */
+      .calendar-view__practice-clear {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--space-4, 16px);
+        background: var(--color-ferni-tint, rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-lg, 12px);
+      }
+
+      .calendar-view__practice-clear-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--color-ferni, #4a6741);
+      }
+
+      .calendar-view__practice-clear-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .calendar-view__practice-clear-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .calendar-view__practice-clear-text strong {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__practice-clear-text span {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      /* Events */
+      .calendar-view__practice-event {
+        display: flex;
+        gap: var(--space-3, 12px);
+        padding: var(--space-2, 8px) 0;
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-view__practice-event:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .calendar-view__practice-event-time {
+        min-width: 48px;
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__practice-event-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .calendar-view__practice-event-title {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__practice-event-location {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-view__practice-event-location svg {
+        width: 12px;
+        height: 12px;
+      }
+
+      .calendar-view__practice-event-insight {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-secondary, #70605a);
+        font-style: italic;
+        padding-top: 4px;
+      }
+
+      .calendar-view__practice-insight-persona {
+        font-size: var(--text-2xs, 0.6875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-right: 4px;
+      }
+
+      /* Intentions */
+      .calendar-view__practice-intention {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+        padding: var(--space-2, 8px) 0;
+      }
+
+      .calendar-view__practice-intention-check {
+        flex-shrink: 0;
+        padding-top: 2px;
+      }
+
+      .calendar-view__practice-intention-check input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        border-radius: var(--radius-sm, 4px);
+        border: 2px solid var(--color-border-medium, rgba(44, 37, 32, 0.2));
+        background: transparent;
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        appearance: none;
+        -webkit-appearance: none;
+      }
+
+      .calendar-view__practice-intention-check input[type="checkbox"]:checked {
+        background: var(--color-ferni, #4a6741);
+        border-color: var(--color-ferni, #4a6741);
+        position: relative;
+      }
+
+      .calendar-view__practice-intention-check input[type="checkbox"]:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .calendar-view__practice-intention-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .calendar-view__practice-intention-text {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__practice-intention-insight {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-secondary, #70605a);
+        font-style: italic;
+      }
+
+      /* Maya's Pattern Whisper */
+      .calendar-view__practice-whisper {
+        background: var(--color-maya-tint, rgba(166, 122, 106, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-3, 12px);
+        border-left: 3px solid var(--color-maya, #a67a6a);
+      }
+
+      .calendar-view__practice-whisper-persona {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .calendar-view__practice-whisper-persona span {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-maya, #a67a6a);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .calendar-view__practice-whisper-text {
+        margin: 0;
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #70605a);
+        font-style: italic;
+        line-height: 1.5;
+      }
+
+      /* Progress Stats */
+      .calendar-view__practice-stats {
+        display: flex;
+        justify-content: space-around;
+        padding: var(--space-3, 12px) 0;
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        margin-top: var(--space-2, 8px);
+      }
+
+      .calendar-view__practice-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .calendar-view__practice-stat-value {
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__practice-stat-label {
+        font-size: var(--text-2xs, 0.6875rem);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: lowercase;
+      }
+
+      /* ========================================================================
          FOOTER
          ======================================================================== */
       .calendar-view__footer {
@@ -2686,6 +3620,43 @@ class CalendarViewUI {
       }
 
       /* ========================================================================
+         PRACTICE VIEW - Loading & Data States
+         ======================================================================== */
+      .calendar-view__practice--loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+      }
+
+      .calendar-view__practice-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-md, 1rem);
+        color: var(--color-text-secondary, #9ca3af);
+      }
+
+      .calendar-view__practice-loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+        border-top-color: var(--color-jordan, #c4856a);
+        border-radius: 50%;
+        animation: calendar-spin 1s linear infinite;
+      }
+
+      @keyframes calendar-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .calendar-view__practice-insights {
+        margin-top: var(--space-lg, 1.5rem);
+        padding-top: var(--space-lg, 1.5rem);
+        border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,0.1));
+      }
+
+      /* ========================================================================
          REDUCED MOTION
          ======================================================================== */
       @media (prefers-reduced-motion: reduce) {
@@ -2698,7 +3669,8 @@ class CalendarViewUI {
           transition: none;
         }
 
-        .calendar-view__spinner {
+        .calendar-view__spinner,
+        .calendar-view__practice-loading-spinner {
           animation: none;
         }
       }

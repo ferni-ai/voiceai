@@ -8,6 +8,9 @@
 {% endblock %}
 
 {% block head %}
+{# Nav styles from main site #}
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/story-brand.css">
 <link rel="stylesheet" href="/css/legal-premium.css">
 <link rel="stylesheet" href="/css/sections/footer.css">
 <script type="application/ld+json">
@@ -26,6 +29,63 @@
 </script>
 {% endblock %}
 
+{% block header %}
+{# ========== NAVIGATION (Same as main site) ========== #}
+<nav class="nav nav--legal" id="nav" aria-label="Main navigation">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo nav__logo--wordmark-only">
+      <span class="nav__logo-text">Ferni</span>
+    </a>
+
+    <ul class="nav__links">
+      <li><a href="/features/" class="nav__link">Features</a></li>
+      <li><a href="/team/" class="nav__link">Team</a></li>
+      <li><a href="/help/" class="nav__link">Help</a></li>
+      <li><a href="/about/" class="nav__link">About</a></li>
+    </ul>
+
+    <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+
+    {# Mobile hamburger #}
+    <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+{# ========== MOBILE MENU ========== #}
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu__header">
+    <span class="nav__logo-text">Ferni</span>
+    <button class="mobile-menu__close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <nav class="mobile-menu__nav">
+    <a href="/features/">Features</a>
+    <a href="/team/">Meet the Team</a>
+    <a href="/help/">Help</a>
+    <a href="/about/">About</a>
+    <a href="/blog/">Blog</a>
+    <a href="/contact/">Contact</a>
+    <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
+  </nav>
+  <div class="mobile-menu__cta">
+    <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+      Get Started Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</div>
+{% endblock %}
+
 {% block content %}
 {# ========== READING PROGRESS BAR ========== #}
 <div class="legal-progress" aria-hidden="true">
@@ -40,13 +100,6 @@
   </div>
   
   <div class="legal-hero__content">
-    <a href="/" class="legal-back">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      <span>Back to Ferni</span>
-    </a>
-    
     <div class="legal-hero__badge">
       {% if pageIcon %}
       <span class="legal-hero__icon">{{ pageIcon | safe }}</span>
@@ -295,6 +348,47 @@ window.addEventListener('scroll', () => {
 updateProgress();
 updateTocActive();
 updateTopBtn();
+
+// Mobile Menu Toggle
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+const mobileMenuClose = mobileMenu?.querySelector('.mobile-menu__close');
+
+if (mobileMenuToggle && mobileMenu) {
+  mobileMenuToggle.addEventListener('click', () => {
+    mobileMenu.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+  });
+
+  mobileMenuClose?.addEventListener('click', () => {
+    mobileMenu.classList.remove('is-open');
+    document.body.style.overflow = '';
+  });
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenu.classList.contains('is-open')) {
+      mobileMenu.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Close when clicking a link
+  mobileMenu.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      mobileMenu.classList.remove('is-open');
+      document.body.style.overflow = '';
+    });
+  });
+}
+
+// Nav scroll behavior - add background on scroll
+const nav = document.getElementById('nav');
+if (nav) {
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('nav--scrolled', window.scrollY > 50);
+  }, { passive: true });
+}
 </script>
 {% endblock %}
 

@@ -44,7 +44,7 @@ vi.mock('../state/app.state.js', () => ({
   appState: mockAppState,
 }));
 
-vi.mock('./toast.ui.js', () => ({
+vi.mock('./whisper.ui.js', () => ({
   toast: mockToast,
 }));
 

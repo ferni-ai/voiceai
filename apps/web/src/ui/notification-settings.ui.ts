@@ -608,7 +608,9 @@ class NotificationSettingsUI {
         } else if (opt.time) {
           targetTime = new Date(now);
           targetTime.setDate(targetTime.getDate() + 1);
-          const [h, m] = opt.time.split(':').map(Number);
+          const timeParts = opt.time.split(':').map(Number);
+          const h = timeParts[0] ?? 8;
+          const m = timeParts[1] ?? 0;
           targetTime.setHours(h, m, 0, 0);
         } else {
           targetTime = now;

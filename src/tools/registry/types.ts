@@ -90,6 +90,21 @@ export type ToolDomain =
   | 'social-skills' // Adult friendship, conversation, social anxiety
   | 'body-relationship' // Body image, diet culture, intuitive eating
   | 'anger' // Anger management, healthy expression, repair
+  | 'shame' // Understanding, processing, and healing from shame
+  | 'envy' // Understanding and transforming envy
+  | 'resentment' // Processing and releasing resentments
+  | 'caregiver' // Supporting caregivers of aging/ill loved ones
+  | 'divorce' // Navigating divorce - legal, emotional, parenting
+  | 'new-parent' // Adjusting to parenthood
+  | 'empty-nest' // When children leave home
+  | 'infidelity' // Betrayal recovery and trust rebuilding
+  | 'health-diagnosis' // Chronic illness, diagnosis adjustment
+  | 'job-loss' // Unemployment emotional support
+  | 'sobriety' // Recovery and addiction support
+  | 'sandwich-generation' // Caring for kids AND aging parents
+  | 'blended-family' // Step-parenting and family merging
+  | 'coming-out' // LGBTQ+ identity journey
+  | 'faith-transition' // Religious/spiritual changes
   | 'dating' // Modern dating, online dating, red flags
   | 'neurodiversity' // ADHD, autism, executive function support
   | 'trauma-support' // Trauma-informed support, trigger management
@@ -179,6 +194,21 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'social-skills',
   'body-relationship',
   'anger',
+  'shame',
+  'envy',
+  'resentment',
+  'caregiver',
+  'divorce',
+  'new-parent',
+  'empty-nest',
+  'infidelity',
+  'health-diagnosis',
+  'job-loss',
+  'sobriety',
+  'sandwich-generation',
+  'blended-family',
+  'coming-out',
+  'faith-transition',
   'dating',
   'neurodiversity',
   'trauma-support',
@@ -286,6 +316,21 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'social-skills': 'lifestyle', // Adult friendship, conversation skills
   'body-relationship': 'lifestyle', // Body image healing, intuitive eating
   anger: 'lifestyle', // Anger management and healthy expression
+  shame: 'lifestyle', // Understanding and healing from shame
+  envy: 'lifestyle', // Understanding and transforming envy
+  resentment: 'lifestyle', // Processing and releasing resentments
+  caregiver: 'lifestyle', // Supporting caregivers
+  divorce: 'lifestyle', // Navigating divorce
+  'new-parent': 'lifestyle', // Parenthood transition
+  'empty-nest': 'lifestyle', // Kids leaving home
+  infidelity: 'lifestyle', // Betrayal recovery
+  'health-diagnosis': 'lifestyle', // Chronic illness
+  'job-loss': 'lifestyle', // Unemployment support
+  sobriety: 'lifestyle', // Recovery support
+  'sandwich-generation': 'lifestyle', // Multi-gen caregiving
+  'blended-family': 'lifestyle', // Step-families
+  'coming-out': 'lifestyle', // LGBTQ+ identity
+  'faith-transition': 'lifestyle', // Spiritual changes
   dating: 'lifestyle', // Modern dating navigation
   neurodiversity: 'lifestyle', // ADHD, autism support
   'trauma-support': 'lifestyle', // Trauma-informed support

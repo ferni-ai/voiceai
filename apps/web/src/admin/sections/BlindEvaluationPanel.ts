@@ -11,10 +11,9 @@
  * @module BlindEvaluationPanel
  */
 
-import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
 import { getAdminHeadersAsync } from '../admin-api.js';
-import { ICON_CHECK, ICON_SEARCH, ICON_WARNING, iconSm } from '../icons.js';
+import { ICON_CHECK, ICON_SEARCH, iconSm } from '../icons.js';
 
 const log = createLogger('BlindEvaluationPanel');
 
@@ -190,6 +189,9 @@ function renderEvaluationForm(): string {
   }
 
   const scenario = currentSession.scenarios[currentSession.currentIndex];
+  if (!scenario) {
+    return `<div class="bep-error">No scenario available</div>`;
+  }
   const progress = currentSession.currentIndex + 1;
   const total = currentSession.scenarios.length;
 
@@ -502,6 +504,10 @@ export function setupEvents(container: HTMLElement): void {
 
     if (target.id === 'bep-submit-btn' && currentSession) {
       const scenario = currentSession.scenarios[currentSession.currentIndex];
+      if (!scenario) {
+        alert('No scenario available');
+        return;
+      }
       const preference = container.querySelector<HTMLInputElement>('input[name="preference"]:checked')?.value as
         | 'A'
         | 'B'

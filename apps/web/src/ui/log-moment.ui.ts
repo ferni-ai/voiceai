@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
@@ -88,7 +88,7 @@ let state: LogMomentState = {
   contactName: '',
   selectedType: 'call',
   direction: 'outbound',
-  date: new Date().toISOString().split('T')[0],
+  date: new Date().toISOString().split('T')[0] ?? '',
   time: new Date().toTimeString().slice(0, 5),
   duration: '',
   summary: '',
@@ -917,7 +917,7 @@ export function openLogMoment(options: LogMomentOptions): void {
     contactName: options.contactName,
     selectedType: options.preselectedType || 'call',
     direction: 'outbound',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0] ?? '',
     time: new Date().toTimeString().slice(0, 5),
     duration: '',
     summary: '',

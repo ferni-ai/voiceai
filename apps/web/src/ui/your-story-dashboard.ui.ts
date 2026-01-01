@@ -548,10 +548,7 @@ class YourStoryUI {
         max-height: 90vh;
         background: var(--color-bg-elevated, #ffffff);
         border-radius: var(--radius-2xl, 1.5rem);
-        box-shadow:
-          0 25px 50px -12px rgba(0, 0, 0, 0.15),
-          0 0 0 1px var(--glass-border-subtle, rgba(0, 0, 0, 0.04)),
-          inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
+        box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.15));
         overflow: hidden;
         transform: translateY(1.25rem) scale(0.96);
         opacity: 0;
@@ -733,11 +730,11 @@ class YourStoryUI {
         
         /* visionOS glass morphism */
         background: var(--glass-thin-background, rgba(255, 255, 255, 0.7));
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: var(--glass-blur, blur(16px));
+        -webkit-backdrop-filter: var(--glass-blur, blur(16px));
         border: 1px solid var(--glass-thin-border, rgba(44, 37, 32, 0.08));
         border-radius: var(--radius-lg, 1rem);
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+        box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
         
         /* Pixar-style hover transition */
         transition: 
@@ -747,7 +744,7 @@ class YourStoryUI {
 
       .your-story__stat:hover {
         transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+        box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
       }
 
       /* Icon bounce on stat hover */
@@ -804,10 +801,7 @@ class YourStoryUI {
         animation: your-story-fade-in 400ms cubic-bezier(0.4, 0, 0.2, 1) 150ms both;
         
         /* Subtle shadow for depth */
-        box-shadow:
-          0 1px 2px rgba(0, 0, 0, 0.02),
-          0 2px 8px rgba(0, 0, 0, 0.03),
-          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.03));
         
         /* Hover effect */
         transition: 
@@ -816,10 +810,7 @@ class YourStoryUI {
       }
 
       .your-story__stage:hover {
-        box-shadow:
-          0 2px 4px rgba(0, 0, 0, 0.03),
-          0 4px 16px rgba(0, 0, 0, 0.05),
-          inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.05));
         transform: translateY(-1px);
       }
 
@@ -900,7 +891,7 @@ class YourStoryUI {
         background: var(--color-accent, #3D5A45);
         border: 2px solid var(--color-bg-elevated, #fffdfb);
         border-radius: 50%;
-        box-shadow: 0 0 6px rgba(61, 90, 69, 0.4);
+        box-shadow: var(--shadow-glow-sm, 0 0 6px rgba(61, 90, 69, 0.4));
       }
 
       /* Subtle shimmer effect on progress bar */
@@ -959,7 +950,7 @@ class YourStoryUI {
       .your-story__milestone:hover {
         background: var(--color-accent-subtle, rgba(61, 90, 69, 0.15));
         transform: scale(1.04);
-        box-shadow: 0 2px 8px rgba(61, 90, 69, 0.15);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(61, 90, 69, 0.15));
       }
 
       /* Icon pulse on milestone hover */
@@ -1039,10 +1030,7 @@ class YourStoryUI {
         );
         
         /* Layered shadows for depth */
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.7),
-          0 1px 2px rgba(44, 37, 32, 0.02),
-          0 4px 16px rgba(44, 37, 32, 0.04);
+        box-shadow: var(--shadow-sm, 0 4px 16px rgba(44, 37, 32, 0.04));
         
         /* Subtle border */
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.04));
@@ -1058,10 +1046,7 @@ class YourStoryUI {
 
       /* Hover lift effect */
       .your-story__section:hover {
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.8),
-          0 2px 4px rgba(44, 37, 32, 0.03),
-          0 8px 24px rgba(44, 37, 32, 0.06);
+        box-shadow: var(--shadow-lg, 0 8px 24px rgba(44, 37, 32, 0.06));
         transform: translateY(-1px);
       }
 
@@ -1173,9 +1158,7 @@ class YourStoryUI {
 
       .your-story__compact-viz:hover {
         transform: translateY(-2px);
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.04),
-          0 8px 24px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.06));
       }
 
       /* Ensure proper content flow within viz containers */
@@ -1779,17 +1762,11 @@ class YourStoryUI {
             rgba(55, 47, 42, 0.5) 100%
           );
           border-color: rgba(255, 255, 255, 0.06);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.04),
-            0 1px 2px rgba(0, 0, 0, 0.1),
-            0 4px 16px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.15));
         }
 
         .your-story__section:hover {
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.06),
-            0 2px 4px rgba(0, 0, 0, 0.12),
-            0 8px 24px rgba(0, 0, 0, 0.2);
+          box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.2));
         }
 
         .your-story__section:nth-child(1) {
@@ -1836,7 +1813,7 @@ class YourStoryUI {
         }
 
         .your-story__compact-viz:hover {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+          box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
         }
 
         /* Dark mode stage card */
@@ -1847,15 +1824,11 @@ class YourStoryUI {
             rgba(55, 47, 42, 0.6) 100%
           );
           border-color: rgba(255, 255, 255, 0.06);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.04),
-            0 2px 8px rgba(0, 0, 0, 0.2);
+          box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.2));
         }
 
         .your-story__stage:hover {
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.06),
-            0 4px 16px rgba(0, 0, 0, 0.25);
+          box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.25));
         }
 
         .your-story__stage-progress {
@@ -1864,7 +1837,7 @@ class YourStoryUI {
 
         .your-story__stage-bar::before {
           border-color: rgba(44, 37, 32, 0.9);
-          box-shadow: 0 0 8px rgba(61, 90, 69, 0.5);
+          box-shadow: var(--shadow-glow, 0 0 8px rgba(61, 90, 69, 0.5));
         }
       }
 
@@ -1910,7 +1883,7 @@ class YourStoryUI {
         border-radius: var(--radius-lg, 1rem);
         padding: 0.8125rem 1rem; /* pause vertical, md horizontal */
         margin-top: 0.8125rem; /* pause */
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06));
         transition:
           transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
           box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -1922,9 +1895,7 @@ class YourStoryUI {
 
       .your-story .mobile-card:hover {
         transform: translateY(-1px);
-        box-shadow:
-          0 4px 16px rgba(0, 0, 0, 0.05),
-          inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+        box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.05));
       }
 
       /* Subtle border glow on mobile card hover */
@@ -2019,7 +1990,7 @@ class YourStoryUI {
 
       /* Priority dots - semantic colors */
       .your-story .mobile-card div[style*="border-radius: 50%"][style*="8px"] {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.1));
       }
 
       /* Override flex containers in visualizations */
@@ -2082,7 +2053,7 @@ class YourStoryUI {
 
       /* Progress/gauge elements */
       .your-story div[style*="border-radius"][style*="100%"] {
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--shadow-sm, 0 2px 6px rgba(0, 0, 0, 0.08));
       }
 
       /* ========================================================================
@@ -2095,7 +2066,7 @@ class YourStoryUI {
       .your-story__compact-viz[data-viz="open-loops"] div[style*="background"][style*="padding: 12px"] {
         background: var(--color-bg-elevated, #FFFDFB) !important;
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08)) !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.06)) !important;
       }
 
       /* Stats panels - elevated solid treatment */
@@ -2103,7 +2074,7 @@ class YourStoryUI {
       .your-story__compact-viz div[style*="padding: 16px"][style*="border-radius: 12px"] {
         background: var(--color-bg-elevated, #FFFDFB) !important;
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08)) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08)) !important;
       }
 
       /* Content grid in tablet builders - tighter padding */
@@ -2119,7 +2090,7 @@ class YourStoryUI {
 
       /* Priority dots - add subtle shadow */
       .your-story__compact-viz div[style*="width: 8px"][style*="border-radius: 50%"] {
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: var(--shadow-xs, 0 1px 3px rgba(0, 0, 0, 0.15)) !important;
       }
 
       /* Age/date text - proper typography */

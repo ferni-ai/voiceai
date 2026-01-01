@@ -105,7 +105,7 @@ import {
 // Dev Panel Modules (extracted for maintainability)
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import { ICONS } from './dev-panel/icons.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('DevPanel');
 
@@ -3415,7 +3415,7 @@ async function requestGameStart(gameType: string): Promise<void> {
  */
 function showToast(message: string, type: 'info' | 'success' | 'error' = 'info'): void {
   // Import dynamically to avoid circular deps
-  import('./toast.ui.js')
+  import('./whisper.ui.js')
     .then(({ toast }) => {
       if (type === 'success') {
         toast.success(message);

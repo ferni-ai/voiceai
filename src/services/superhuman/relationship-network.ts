@@ -527,9 +527,8 @@ export async function checkAndTriggerReconnectionOutreach(userId: string): Promi
 
   if (highUrgency.length > 0) {
     try {
-      const { onReconnectionOpportunity } = await import(
-        '../conversation-thread/group-outreach-triggers.js'
-      );
+      const { onReconnectionOpportunity } =
+        await import('../conversation-thread/group-outreach-triggers.js');
 
       // Trigger for the top 2 most urgent opportunities
       for (const opportunity of highUrgency.slice(0, 2)) {

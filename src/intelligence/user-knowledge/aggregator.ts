@@ -335,7 +335,13 @@ async function aggregateRelationships(userId: string): Promise<RelationshipKnowl
     const contacts = allContacts.slice(0, 100); // Limit to 100
 
     relationships.contacts = contacts.map(
-      (c: { displayName?: string; relationship?: string; phones?: Array<{ number?: string }>; emails?: Array<{ address?: string }>; lastContactedAt?: Date }): ContactInfo => ({
+      (c: {
+        displayName?: string;
+        relationship?: string;
+        phones?: Array<{ number?: string }>;
+        emails?: Array<{ address?: string }>;
+        lastContactedAt?: Date;
+      }): ContactInfo => ({
         name: c.displayName || 'Unknown',
         relationship: c.relationship,
         phone: c.phones?.[0]?.number,
@@ -359,7 +365,10 @@ async function aggregateRelationships(userId: string): Promise<RelationshipKnowl
     ];
 
     relationships.keyPeople = contacts
-      .filter((c: { relationship?: string }) => c.relationship && keyRelationships.includes(c.relationship.toLowerCase()))
+      .filter(
+        (c: { relationship?: string }) =>
+          c.relationship && keyRelationships.includes(c.relationship.toLowerCase())
+      )
       .map((c: { displayName?: string; relationship?: string }) => ({
         name: c.displayName || 'Unknown',
         relationship: c.relationship || 'unknown',
@@ -426,9 +435,7 @@ async function aggregateAspirations(userId: string): Promise<AspirationsKnowledg
     );
 
     // Load commitments from commitment-keeper (Commitment type imported at top of file)
-    const { loadUserCommitments } = await import(
-      '../../services/superhuman/commitment-keeper.js'
-    );
+    const { loadUserCommitments } = await import('../../services/superhuman/commitment-keeper.js');
     const allCommitments = await loadUserCommitments(userId);
     // Filter to pending/active commitments
     const pendingCommitments = allCommitments.filter(
@@ -439,7 +446,12 @@ async function aggregateAspirations(userId: string): Promise<AspirationsKnowledg
       (c: Commitment): CommitmentItem => ({
         description: c.summary || c.statement || '',
         dueDate: c.targetDate ? new Date(c.targetDate) : undefined,
-        status: c.status === 'completed' ? 'completed' : c.targetDate && new Date(c.targetDate) < new Date() ? 'overdue' : 'pending',
+        status:
+          c.status === 'completed'
+            ? 'completed'
+            : c.targetDate && new Date(c.targetDate) < new Date()
+              ? 'overdue'
+              : 'pending',
         createdAt: c.createdAt ? new Date(c.createdAt) : undefined,
       })
     );
@@ -590,9 +602,8 @@ async function aggregateEmotional(userId: string): Promise<EmotionalKnowledge> {
 
   try {
     // Get emotional trajectories (EmotionalArc type imported at top of file)
-    const { getActiveArcs } = await import(
-      '../../services/superhuman/semantic-intelligence/emotional-trajectories.js'
-    );
+    const { getActiveArcs } =
+      await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
     const arcs = await getActiveArcs(userId);
 
     if (arcs.length > 0) {
@@ -703,9 +714,8 @@ async function aggregateBoundaries(userId: string): Promise<BoundaryKnowledge> {
     }
 
     // Get Ferni's commitments (things Ferni promised to avoid or remember)
-    const { getPendingCommitments } = await import(
-      '../../services/superhuman/semantic-intelligence/ferni-commitments.js'
-    );
+    const { getPendingCommitments } =
+      await import('../../services/superhuman/semantic-intelligence/ferni-commitments.js');
     const commitments = await getPendingCommitments(userId);
 
     boundaries.ferniCommitments = commitments.map((c) => ({
@@ -757,9 +767,8 @@ async function aggregateSharedHistory(userId: string): Promise<SharedHistoryKnow
     }));
 
     // Get open loops (OpenLoop type imported at top of file)
-    const { getAllOpenLoops } = await import(
-      '../../services/superhuman/semantic-intelligence/open-loops.js'
-    );
+    const { getAllOpenLoops } =
+      await import('../../services/superhuman/semantic-intelligence/open-loops.js');
     const loops = await getAllOpenLoops(userId);
 
     sharedHistory.openLoops = loops.slice(0, 10).map((l: OpenLoop) => ({

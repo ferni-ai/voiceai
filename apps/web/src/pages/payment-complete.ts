@@ -323,7 +323,7 @@ function createConfetti(): string {
 
 function renderSuccessPage(type: string, params: URLSearchParams): string {
   // tip is guaranteed to exist as fallback
-  const config = (PAGE_CONFIGS[type] ?? PAGE_CONFIGS.tip);
+  const config = (PAGE_CONFIGS[type] ?? PAGE_CONFIGS.tip)!;
   const impact = config.getImpact?.(params);
 
   return `

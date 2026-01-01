@@ -14,13 +14,13 @@ import {
   onDeepUnderstandingSessionEnd as saveDeepUnderstandingProfiles,
 } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
+import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
 import { endConversation as endConversationState } from '../../services/conversation-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';
-import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
 import { recordSessionEnd } from '../../services/voice/voice-humanization-metrics.js';
 // 🎤 Speech module cleanup - single source of truth for 30+ session-scoped services
 import {
@@ -54,12 +54,12 @@ import { logGcPressureSummary } from '../../utils/performance-metrics.js';
 import { clearEmotionalArc } from '../../intelligence/context-builders/emotional/advanced-voice-emotion.js';
 // Session analytics collection - emotional arc, commitments, insights
 import { getEmotionalArcTracker } from '../../conversation/emotional-arc.js';
-import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js';
 import { getInsightsForPersona } from '../../services/cross-persona-insights.js';
 import type {
-  SessionInsight,
   EmotionalMoment,
+  SessionInsight,
 } from '../../services/session-context/session-summary.js';
+import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js';
 
 // NEW: Unified Intelligence System (Levels 2-5) cleanup
 import { cleanupIntelligenceSession } from '../integrations/unified-intelligence-integration.js';
@@ -72,10 +72,15 @@ import { clearSession as clearHumeSession } from '../../services/emotion-analysi
 import { awardSeedsForConversation } from '../../services/seed-economy.js';
 
 // Session closing tracker - prevents operations during shutdown
-import { markSessionClosing, clearSessionClosing } from '../shared/session-closing-tracker.js';
+import { clearSessionClosing, markSessionClosing } from '../shared/session-closing-tracker.js';
 
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
+
+// P0 INTEGRATION: Context Carrier & Memory Session Cleanup
+import { resetProactiveSession } from '../../services/proactive-memory-surfacing.js';
+import { getUnifiedMemoryService } from '../../services/unified-memory-service.js';
+import { getContextCarrier } from '../../tools/context-carrier.js';
 
 // Action history cleanup - for honesty guardrail tracking
 import { clearSessionHistory } from '../shared/action-history.js';
@@ -87,6 +92,9 @@ import { finops } from '../../services/observability/finops.js';
 import { incrementSessionStats } from '../../intelligence/context-builders/relationship-arc/storage.js';
 // Resilience metrics
 import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
+
+// Session Lifecycle Hooks - presence clearing, affinity updates, outreach suppression
+import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
@@ -319,6 +327,35 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   });
 
   // ================================================================
+  // P0 INTEGRATION: Context Carrier & Memory Session Cleanup
+  // ================================================================
+  if (userId) {
+    try {
+      // End context carrier session and get snapshot
+      const contextCarrier = getContextCarrier();
+      const snapshot = contextCarrier.endSession(sessionId);
+      if (snapshot) {
+        diag.session('Context carrier session ended', {
+          sessionId,
+          surfacedMemories: snapshot.surfacedMemoryCount,
+          toolsUsed: snapshot.toolsUsedCount,
+          emotionalTrend: snapshot.emotionalTrend,
+          duration: snapshot.sessionDuration,
+        });
+      }
+
+      // Reset memory session state
+      const unifiedMemory = getUnifiedMemoryService();
+      await unifiedMemory.resetSession(userId);
+
+      // Reset proactive surfacing state
+      resetProactiveSession(userId);
+    } catch (err) {
+      diag.warn('Context carrier/memory cleanup failed (non-fatal)', { error: String(err) });
+    }
+  }
+
+  // ================================================================
   // GROUP 2: PARALLEL DATA PERSISTENCE (independent, can run together)
   // ================================================================
   const persistenceGroup = await Promise.allSettled([
@@ -394,6 +431,121 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
           const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
           await incrementSessionStats(userId, turnCount);
           diag.session('💕 Relationship arc session recorded', { userId, turnCount });
+        })()
+      : Promise.resolve(),
+
+    // 🧠 MEMORY ENHANCEMENT: Persist all memory enhancement systems
+    // Tonal Memory, Between-Session Thinking, Curiosity Memory, Persona Growth
+    userId
+      ? (async () => {
+          try {
+            const { saveSystemData } =
+              await import('../../services/trust-systems/unified-persistence.js');
+            const {
+              getThinkingRecordsForPersistence,
+              getTonalProfileForPersistence,
+              getCuriosityProfileForPersistence,
+              getPersonaGrowthForPersistence,
+              finalizeSessionTexture,
+              getTextureProfileForPersistence,
+            } = await import('../../services/trust-systems/index.js');
+
+            // Finalize conversation texture for this session
+            finalizeSessionTexture(userId);
+
+            // Get all profiles for persistence
+            const thinkingRecords = getThinkingRecordsForPersistence(userId);
+            const tonalProfile = getTonalProfileForPersistence(userId);
+            const textureProfile = getTextureProfileForPersistence(
+              userId,
+              sessionPersona?.id || 'ferni'
+            );
+            const curiosityProfile = getCuriosityProfileForPersistence(userId);
+            const growthProfile = getPersonaGrowthForPersistence(
+              userId,
+              sessionPersona?.id || 'ferni'
+            );
+
+            // Save to unified persistence (fire-and-forget per system)
+            await Promise.all([
+              thinkingRecords.length > 0
+                ? saveSystemData(userId, 'betweenSessionThinking', thinkingRecords)
+                : Promise.resolve(),
+              tonalProfile
+                ? saveSystemData(userId, 'tonalMemory', tonalProfile)
+                : Promise.resolve(),
+              curiosityProfile
+                ? saveSystemData(userId, 'curiosityMemory', curiosityProfile)
+                : Promise.resolve(),
+              growthProfile
+                ? saveSystemData(userId, 'personaGrowth', {
+                    [sessionPersona?.id || 'ferni']: growthProfile,
+                  })
+                : Promise.resolve(),
+              textureProfile
+                ? saveSystemData(userId, 'conversationTexture', {
+                    [sessionPersona?.id || 'ferni']: textureProfile,
+                  })
+                : Promise.resolve(),
+            ]);
+
+            diag.session('🧠 Memory enhancement profiles persisted', {
+              userId,
+              thinkingRecords: thinkingRecords.length,
+              hasTonalProfile: !!tonalProfile,
+              hasCuriosityProfile: !!curiosityProfile,
+              hasGrowthProfile: !!growthProfile,
+              hasTextureProfile: !!textureProfile,
+            });
+          } catch (memErr) {
+            diag.warn('Memory enhancement persistence failed (non-fatal)', {
+              error: String(memErr),
+            });
+          }
+        })()
+      : Promise.resolve(),
+
+    // Session Lifecycle - clear presence, update persona affinity, suppress outreach
+    userId
+      ? (async () => {
+          const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
+          const durationMinutes = finalConvState?.flow.durationMinutes || sessionDurationMs / 60000;
+          const sentiment = finalConvState?.emotional.sentiment;
+          const topic = finalConvState?.topic?.current;
+
+          // Determine sentiment for affinity tracking
+          let sessionSentiment: 'positive' | 'neutral' | 'negative' = 'neutral';
+          if (sentiment === 'mixed') {
+            sessionSentiment = 'neutral';
+          } else if (sentiment === 'negative') {
+            sessionSentiment = 'negative';
+          } else if (sentiment === 'neutral') {
+            sessionSentiment = 'neutral';
+          }
+          // Note: 'positive' sentiment would map to 'positive' if the type supports it
+
+          const topics = topic ? [topic] : [];
+
+          // Determine engagement level
+          let engagement: 'low' | 'medium' | 'high' = 'medium';
+          if (turnCount >= 20 || durationMinutes >= 15) {
+            engagement = 'high';
+          } else if (turnCount <= 5 || durationMinutes <= 3) {
+            engagement = 'low';
+          }
+
+          await sessionLifecycle.onEnd(userId, sessionId, {
+            personaId: sessionPersona?.id || 'ferni',
+            duration: durationMinutes,
+            topics,
+            sentiment: sessionSentiment,
+            userEngagement: engagement,
+          });
+          diag.session('🔄 Session lifecycle ended', {
+            userId,
+            sentiment: sessionSentiment,
+            engagement,
+          });
         })()
       : Promise.resolve(),
 
@@ -892,7 +1044,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
     }
 
     const djSummary = dj.getSessionSummary();
-    
+
     // 🎵 Get full music preferences from DJ Booth (includes learned genres, dislikes, mood correlations)
     let djBoothPrefs: {
       likedArtists?: string[];
@@ -901,7 +1053,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
       moodPreferences?: Record<string, string[]>;
       preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
     } | null = null;
-    
+
     try {
       const { getDJBooth } = await import('../../audio/dj-booth.js');
       const djBooth = getDJBooth();
@@ -915,7 +1067,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
     if ((djSummary.musicArtists.length > 0 || djBoothPrefs) && services.userProfile) {
       // 🎵 ENHANCED: Merge full DJ booth preferences into user profile
       const existingMemory = services.userProfile.musicMemory;
-      
+
       // Merge favorite artists (from both DJ summary and learned preferences)
       const mergedFavoriteArtists = [
         ...new Set([
@@ -924,7 +1076,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
           ...(djBoothPrefs?.likedArtists || []),
         ]),
       ].slice(-15); // Keep last 15 artists
-      
+
       // 🎵 Merge disliked artists (NEW - was not being saved before!)
       const mergedDislikedArtists = [
         ...new Set([
@@ -932,7 +1084,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
           ...(djBoothPrefs?.dislikedArtists || []),
         ]),
       ].slice(-10); // Keep last 10 dislikes
-      
+
       // 🎵 Merge favorite genres (NEW - auto-learned from track metadata!)
       const mergedFavoriteGenres = [
         ...new Set([
@@ -940,7 +1092,7 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
           ...(djBoothPrefs?.favoriteGenres || []),
         ]),
       ].slice(-10); // Keep last 10 genres
-      
+
       // 🎵 Merge mood-music correlations (NEW - learned from emotional context!)
       const mergedMoodPrefs: Record<string, string[]> = {
         ...(existingMemory?.moodMusicPreferences || {}),
@@ -950,12 +1102,10 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
           if (!mergedMoodPrefs[mood]) {
             mergedMoodPrefs[mood] = [];
           }
-          mergedMoodPrefs[mood] = [
-            ...new Set([...mergedMoodPrefs[mood], ...values]),
-          ].slice(-5); // Keep top 5 per mood
+          mergedMoodPrefs[mood] = [...new Set([...mergedMoodPrefs[mood], ...values])].slice(-5); // Keep top 5 per mood
         }
       }
-      
+
       // 🎵 Merge preferred music times
       const mergedMusicTimes = [
         ...new Set([
@@ -973,11 +1123,12 @@ async function cleanupDJIntegration(services: SessionServices): Promise<void> {
         musicMoods: existingMemory?.musicMoods,
         lastPlayedTrack: existingMemory?.lastPlayedTrack,
         updatedAt: new Date(),
-        lastPlayedArtist: djSummary.musicArtists[djSummary.musicArtists.length - 1] 
-          || existingMemory?.lastPlayedArtist,
+        lastPlayedArtist:
+          djSummary.musicArtists[djSummary.musicArtists.length - 1] ||
+          existingMemory?.lastPlayedArtist,
         totalTracksPlayed: (existingMemory?.totalTracksPlayed || 0) + djSummary.musicArtists.length,
       };
-      
+
       diag.session('🎧 DJ session preferences saved (enhanced)', {
         topics: djSummary.topics.length,
         artists: mergedFavoriteArtists.length,

@@ -12,7 +12,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('GroupConversationUI');
@@ -325,7 +325,7 @@ export class GroupConversationUI {
                data-persona="${personaId}"
                style="--persona-color: ${color}">
             <div class="avatar">
-              <span class="initial">${name[0]}</span>
+              <span class="initial">${name?.[0] ?? '?'}</span>
               ${!isUnlocked ? '<span class="lock-icon">🔒</span>' : ''}
             </div>
             <span class="name">${name}</span>

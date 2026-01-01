@@ -13,6 +13,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexValuesAlignment } from '../data-layer/integrations/index.js';
+import {
+  onValuesConflictDetected,
+  onValuesAligned,
+} from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'values-alignment' });
 
@@ -444,6 +448,17 @@ export async function recordConflict(
   }
 
   log.info({ userId, valueId: conflict.valueId }, '⚠️ Value conflict detected');
+
+  // Better Than Human: Trigger proactive outreach for values reflection
+  try {
+    await onValuesConflictDetected(userId, {
+      values: [value?.category || 'unknown'],
+      situation: conflict.conflictingAction,
+      severity: value && value.importance > 0.7 ? 'high' : 'medium',
+    });
+  } catch (outreachError) {
+    log.debug({ error: String(outreachError) }, 'Values conflict outreach failed (non-blocking)');
+  }
 }
 
 // ============================================================================

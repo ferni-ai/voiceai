@@ -146,6 +146,21 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
 
     log.debug('🎯 PRIMING: Added music tool priming turns (including polite pattern)');
 
+    // Weather priming - DIRECT QUESTION (most common pattern)
+    turns.push({
+      role: 'user',
+      content: "[user: what's the weather]",
+      isVisible: false,
+      description: 'Weather direct question (hidden)',
+    });
+
+    turns.push({
+      role: 'assistant',
+      content: '{"fn":"getWeather","args":{}}',
+      isVisible: false,
+      description: 'Weather JSON example (direct question)',
+    });
+
     // Weather priming - POLITE REQUEST (another Gemini problem pattern)
     turns.push({
       role: 'user',
@@ -161,7 +176,22 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
       description: 'Weather JSON example (polite request → still JSON!)',
     });
 
-    log.debug('🎯 PRIMING: Added weather tool priming turn (polite pattern)');
+    // Weather priming - CAPABILITY QUESTION (Gemini often explains instead of doing!)
+    turns.push({
+      role: 'user',
+      content: '[user: can you tell me the weather]',
+      isVisible: false,
+      description: 'Weather capability question - Gemini explains instead of doing (hidden)',
+    });
+
+    turns.push({
+      role: 'assistant',
+      content: '{"fn":"getWeather","args":{}}',
+      isVisible: false,
+      description: 'Weather JSON example (capability question → JUST DO IT!)',
+    });
+
+    log.debug('🎯 PRIMING: Added weather tool priming turns (direct, polite, capability)');
 
     // Handoff priming based on persona
     if (config.personaId === 'ferni') {

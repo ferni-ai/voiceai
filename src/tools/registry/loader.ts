@@ -553,6 +553,81 @@ export async function autoRegisterAllDomains(): Promise<void> {
         import('../domains/anger/index.js').then(async (m) => m.getToolDefinitions()),
     },
     {
+      name: 'shame' as ToolDomain,
+      loader: async () =>
+        import('../domains/shame/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'envy' as ToolDomain,
+      loader: async () =>
+        import('../domains/envy/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'resentment' as ToolDomain,
+      loader: async () =>
+        import('../domains/resentment/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'caregiver' as ToolDomain,
+      loader: async () =>
+        import('../domains/caregiver/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'divorce' as ToolDomain,
+      loader: async () =>
+        import('../domains/divorce/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'new-parent' as ToolDomain,
+      loader: async () =>
+        import('../domains/new-parent/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'empty-nest' as ToolDomain,
+      loader: async () =>
+        import('../domains/empty-nest/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'infidelity' as ToolDomain,
+      loader: async () =>
+        import('../domains/infidelity/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'health-diagnosis' as ToolDomain,
+      loader: async () =>
+        import('../domains/health-diagnosis/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'job-loss' as ToolDomain,
+      loader: async () =>
+        import('../domains/job-loss/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'sobriety' as ToolDomain,
+      loader: async () =>
+        import('../domains/sobriety/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'sandwich-generation' as ToolDomain,
+      loader: async () =>
+        import('../domains/sandwich-generation/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'blended-family' as ToolDomain,
+      loader: async () =>
+        import('../domains/blended-family/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'coming-out' as ToolDomain,
+      loader: async () =>
+        import('../domains/coming-out/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'faith-transition' as ToolDomain,
+      loader: async () =>
+        import('../domains/faith-transition/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+    {
       name: 'dating' as ToolDomain,
       loader: async () =>
         import('../domains/dating/index.js').then(async (m) => m.getToolDefinitions()),

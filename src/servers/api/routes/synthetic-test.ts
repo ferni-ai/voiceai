@@ -500,7 +500,10 @@ async function handleGroupOutreachTest(req: IncomingMessage, res: ServerResponse
       return;
     }
 
-    log.info({ userId: body.userId, type: body.type }, '🧪 [SYNTHETIC] Group outreach test starting');
+    log.info(
+      { userId: body.userId, type: body.type },
+      '🧪 [SYNTHETIC] Group outreach test starting'
+    );
 
     // Import group outreach functions
     const {
@@ -545,7 +548,14 @@ async function handleGroupOutreachTest(req: IncomingMessage, res: ServerResponse
 
       case 'roundtable':
         result = await initiateTeamRoundtableCall(body.userId, {
-          personas: (body.personas as Array<'ferni' | 'peter-john' | 'maya-habits' | 'jordan-milestones' | 'alex-comms' | 'nayan-wisdom'>) || ['ferni', 'maya-habits', 'jordan-milestones'],
+          personas: (body.personas as Array<
+            | 'ferni'
+            | 'peter-john'
+            | 'maya-habits'
+            | 'jordan-milestones'
+            | 'alex-comms'
+            | 'nayan-wisdom'
+          >) || ['ferni', 'maya-habits', 'jordan-milestones'],
           topic: body.topic || 'team check-in',
           reason: 'Synthetic test - team roundtable',
           preferredName: body.preferredName,
@@ -602,8 +612,15 @@ async function handleThreadContextTest(req: IncomingMessage, res: ServerResponse
       return;
     }
 
-    const { getOrCreateThread, buildAgentContext } = await import('../../../services/conversation-thread/thread-manager.js');
-    type ValidPersonaId = 'ferni' | 'peter-john' | 'maya-habits' | 'jordan-milestones' | 'alex-comms' | 'nayan-wisdom';
+    const { getOrCreateThread, buildAgentContext } =
+      await import('../../../services/conversation-thread/thread-manager.js');
+    type ValidPersonaId =
+      | 'ferni'
+      | 'peter-john'
+      | 'maya-habits'
+      | 'jordan-milestones'
+      | 'alex-comms'
+      | 'nayan-wisdom';
 
     // Create or get a test thread
     // Signature: getOrCreateThread(userId, channel, agentId, options?)
@@ -612,9 +629,13 @@ async function handleThreadContextTest(req: IncomingMessage, res: ServerResponse
     });
 
     // Build agent context
-    const context = await buildAgentContext(thread.id, (body.agentId || 'ferni') as ValidPersonaId, {
-      userInitiated: true,
-    });
+    const context = await buildAgentContext(
+      thread.id,
+      (body.agentId || 'ferni') as ValidPersonaId,
+      {
+        userInitiated: true,
+      }
+    );
 
     sendJson(res, 200, {
       success: true,
@@ -629,7 +650,9 @@ async function handleThreadContextTest(req: IncomingMessage, res: ServerResponse
       context: {
         hasContext: !!context.llmContext,
         contextLength: context.llmContext?.length || 0,
-        preview: context.llmContext?.slice(0, 500) + (context.llmContext && context.llmContext.length > 500 ? '...' : ''),
+        preview:
+          context.llmContext?.slice(0, 500) +
+          (context.llmContext && context.llmContext.length > 500 ? '...' : ''),
       },
     });
   } catch (error) {
@@ -665,9 +688,15 @@ async function handleInboundRoutingTest(req: IncomingMessage, res: ServerRespons
       return;
     }
 
-    const { routeInbound } = await import('../../../services/conversation-thread/inbound-router.js');
+    const { routeInbound } =
+      await import('../../../services/conversation-thread/inbound-router.js');
 
-    const routeDecision = await routeInbound(body.userId, body.channel, body.message, body.metadata);
+    const routeDecision = await routeInbound(
+      body.userId,
+      body.channel,
+      body.message,
+      body.metadata
+    );
 
     sendJson(res, 200, {
       success: true,

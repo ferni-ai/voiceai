@@ -605,6 +605,13 @@ export function clearSessionState(): void {
   surfacedThisSession.clear();
 }
 
+/**
+ * Clear tonal profile for a user (for testing)
+ */
+export function clearTonalProfile(userId: string): void {
+  userProfiles.delete(userId);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -620,4 +627,5 @@ export default {
   getTonalProfileForPersistence,
   getAllTopicPatterns,
   clearSessionState,
+  clearTonalProfile,
 };

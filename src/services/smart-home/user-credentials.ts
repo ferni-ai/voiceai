@@ -5,12 +5,13 @@
  * This is the bridge between the UI (which saves credentials) and
  * the smart-home tools (which need to use them).
  *
- * SECURITY NOTE: Credentials are currently stored in plain text.
- * TODO: Implement KMS encryption for production.
+ * SECURITY: Sensitive credentials are encrypted at rest using AES-256-GCM.
+ * Sensitive fields: Hue username (API key), LIFX token, Sonos access/refresh tokens
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { encryptSensitive, decryptSensitive } from '../privacy-crypto.js';
 
 const log = createLogger({ module: 'smart-home-credentials' });
 
@@ -61,6 +62,94 @@ export interface SmartHomeSetupState {
 }
 
 // ============================================================================
+// ENCRYPTION HELPERS
+// ============================================================================
+
+/**
+ * Check if a value is already encrypted (has enc_ prefix)
+ */
+function isEncrypted(value: string | undefined | null): boolean {
+  return typeof value === 'string' && value.startsWith('enc_');
+}
+
+/**
+ * Encrypt Hue credentials (username is an API key)
+ */
+async function encryptHueCredentials(creds: HueCredentials): Promise<HueCredentials> {
+  return {
+    ...creds,
+    username: await encryptSensitive(creds.username),
+  };
+}
+
+/**
+ * Decrypt Hue credentials (handles unencrypted legacy data)
+ */
+async function decryptHueCredentials(creds: HueCredentials): Promise<HueCredentials> {
+  if (!isEncrypted(creds.username)) {
+    // Legacy unencrypted data - return as-is
+    return creds;
+  }
+  return {
+    ...creds,
+    username: await decryptSensitive<string>(creds.username),
+  };
+}
+
+/**
+ * Encrypt LIFX credentials (token is an API key)
+ */
+async function encryptLifxCredentials(creds: LifxCredentials): Promise<LifxCredentials> {
+  return {
+    ...creds,
+    token: await encryptSensitive(creds.token),
+  };
+}
+
+/**
+ * Decrypt LIFX credentials (handles unencrypted legacy data)
+ */
+async function decryptLifxCredentials(creds: LifxCredentials): Promise<LifxCredentials> {
+  if (!isEncrypted(creds.token)) {
+    return creds;
+  }
+  return {
+    ...creds,
+    token: await decryptSensitive<string>(creds.token),
+  };
+}
+
+/**
+ * Encrypt Sonos credentials (access and refresh tokens)
+ */
+async function encryptSonosCredentials(creds: SonosCredentials): Promise<SonosCredentials> {
+  return {
+    ...creds,
+    accessToken: await encryptSensitive(creds.accessToken),
+    refreshToken: await encryptSensitive(creds.refreshToken),
+  };
+}
+
+/**
+ * Decrypt Sonos credentials (handles unencrypted legacy data)
+ */
+async function decryptSonosCredentials(creds: SonosCredentials): Promise<SonosCredentials> {
+  const needsDecrypt = isEncrypted(creds.accessToken) || isEncrypted(creds.refreshToken);
+  if (!needsDecrypt) {
+    return creds;
+  }
+  return {
+    ...creds,
+    accessToken: isEncrypted(creds.accessToken)
+      ? await decryptSensitive<string>(creds.accessToken)
+      : creds.accessToken,
+    refreshToken: isEncrypted(creds.refreshToken)
+      ? await decryptSensitive<string>(creds.refreshToken)
+      : creds.refreshToken,
+  };
+}
+
+// ============================================================================
 // CREDENTIAL LOADING
 // ============================================================================
 
@@ -87,19 +176,21 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
       smartHomeRef.doc('homekit').get(),
     ]);
 
+    // Load and decrypt credentials (handles legacy unencrypted data)
     if (hueDoc.exists) {
-      credentials.hue = hueDoc.data() as HueCredentials;
+      credentials.hue = await decryptHueCredentials(hueDoc.data() as HueCredentials);
     }
 
     if (lifxDoc.exists) {
-      credentials.lifx = lifxDoc.data() as LifxCredentials;
+      credentials.lifx = await decryptLifxCredentials(lifxDoc.data() as LifxCredentials);
     }
 
     if (sonosDoc.exists) {
-      credentials.sonos = sonosDoc.data() as SonosCredentials;
+      credentials.sonos = await decryptSonosCredentials(sonosDoc.data() as SonosCredentials);
     }
 
     if (homeKitDoc.exists) {
+      // HomeKit has no sensitive credentials to decrypt
       credentials.homeKit = homeKitDoc.data() as HomeKitCredentials;
     }
 
@@ -138,7 +229,26 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
       .get();
 
     if (!doc.exists) return null as SmartHomeCredentials[K];
-    return doc.data() as SmartHomeCredentials[K];
+
+    // Decrypt based on credential type (handles legacy unencrypted data)
+    const rawData = doc.data();
+    switch (type) {
+      case 'hue':
+        return (await decryptHueCredentials(rawData as HueCredentials)) as SmartHomeCredentials[K];
+      case 'lifx':
+        return (await decryptLifxCredentials(
+          rawData as LifxCredentials
+        )) as SmartHomeCredentials[K];
+      case 'sonos':
+        return (await decryptSonosCredentials(
+          rawData as SonosCredentials
+        )) as SmartHomeCredentials[K];
+      case 'homeKit':
+        // HomeKit has no sensitive credentials
+        return rawData as SmartHomeCredentials[K];
+      default:
+        return rawData as SmartHomeCredentials[K];
+    }
   } catch (error) {
     log.error({ error: String(error), userId, type }, 'Failed to load credential');
     return null as SmartHomeCredentials[K];
@@ -147,6 +257,7 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
 
 /**
  * Save credentials for a specific integration
+ * Encrypts sensitive fields before storing in Firestore
  */
 export async function saveCredential<K extends keyof SmartHomeCredentials>(
   userId: string,
@@ -157,6 +268,33 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
     const db = getFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
 
+    // Encrypt sensitive fields before saving
+    // Note: Cast through unknown required because TypeScript can't narrow generic K
+    let encryptedCredentials: NonNullable<SmartHomeCredentials[K]>;
+    switch (type) {
+      case 'hue':
+        encryptedCredentials = (await encryptHueCredentials(
+          credentials as HueCredentials
+        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
+        break;
+      case 'lifx':
+        encryptedCredentials = (await encryptLifxCredentials(
+          credentials as LifxCredentials
+        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
+        break;
+      case 'sonos':
+        encryptedCredentials = (await encryptSonosCredentials(
+          credentials as SonosCredentials
+        )) as unknown as NonNullable<SmartHomeCredentials[K]>;
+        break;
+      case 'homeKit':
+        // HomeKit has no sensitive credentials to encrypt
+        encryptedCredentials = credentials;
+        break;
+      default:
+        encryptedCredentials = credentials;
+    }
+
     await db
       .collection('bogle_users')
       .doc(userId)
@@ -164,7 +302,7 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
       .doc(docId)
       .set(
         {
-          ...credentials,
+          ...encryptedCredentials,
           connectedAt: new Date().toISOString(),
         },
         { merge: true }
@@ -173,7 +311,7 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
     // Update setup state
     await updateSetupState(userId, type, true);
 
-    log.info({ userId, type }, 'Saved smart home credential');
+    log.info({ userId, type }, 'Saved smart home credential (encrypted)');
     return true;
   } catch (error) {
     log.error({ error: String(error), userId, type }, 'Failed to save credential');

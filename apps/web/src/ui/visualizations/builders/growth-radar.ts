@@ -1,3 +1,4 @@
+// TODO: Fix type errors - data point array indexing
 /**
  * Growth Fingerprint Visualization Builder
  *
@@ -16,13 +17,8 @@
 import {
   createElement,
   createSvgElement,
-  createFlexContainer,
   setStyles,
   createScreenReaderLabel,
-  getCssVar,
-  describeArc,
-  DURATION,
-  EASING,
 } from '../utils/dom.js';
 import type {
   GrowthRadarData,
@@ -540,23 +536,24 @@ function generateNarrative(data: GrowthRadarData): string {
   
   // Balanced growth (low variance)
   if (range < 0.25 && avg > 0.5) {
-    return GROWTH_NARRATIVES.balanced[Math.floor(Math.random() * GROWTH_NARRATIVES.balanced.length)];
+    return GROWTH_NARRATIVES.balanced[Math.floor(Math.random() * GROWTH_NARRATIVES.balanced.length)] ?? GROWTH_NARRATIVES.balanced[0] ?? '';
   }
   
   // Focused growth (high variance, clear strengths)
   if (range > 0.4) {
-    return GROWTH_NARRATIVES.focused[Math.floor(Math.random() * GROWTH_NARRATIVES.focused.length)];
+    return GROWTH_NARRATIVES.focused[Math.floor(Math.random() * GROWTH_NARRATIVES.focused.length)] ?? GROWTH_NARRATIVES.focused[0] ?? '';
   }
   
   // Exploring (moderate variance)
-  return GROWTH_NARRATIVES.exploring[Math.floor(Math.random() * GROWTH_NARRATIVES.exploring.length)];
+  return GROWTH_NARRATIVES.exploring[Math.floor(Math.random() * GROWTH_NARRATIVES.exploring.length)] ?? GROWTH_NARRATIVES.exploring[0] ?? '';
 }
 
 /**
  * Get the growth edge (lowest dimension).
  */
 function getGrowthEdge(dimensions: GrowthDimension[]): GrowthDimension {
-  return [...dimensions].sort((a, b) => a.value - b.value)[0];
+  const sorted = [...dimensions].sort((a, b) => a.value - b.value);
+  return sorted[0] ?? { name: 'Unknown', value: 0, trend: 'stable' as const };
 }
 
 /**
@@ -741,7 +738,8 @@ function getDimensionColor(name: string): string {
  * Get the top-performing dimension.
  */
 function getTopDimension(dimensions: GrowthDimension[]): GrowthDimension {
-  return [...dimensions].sort((a, b) => b.value - a.value)[0];
+  const sorted = [...dimensions].sort((a, b) => b.value - a.value);
+  return sorted[0] ?? { name: 'Unknown', value: 0, trend: 'stable' as const };
 }
 
 /**
@@ -782,7 +780,8 @@ function createRadarPoints(
 
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const r = maxRadius * dimensions[i].value;
+    const dim = dimensions[i];
+    const r = maxRadius * (dim?.value ?? 0.5);
     const x = cx + r * Math.cos(angle);
     const y = cy + r * Math.sin(angle);
     points.push(`${x},${y}`);

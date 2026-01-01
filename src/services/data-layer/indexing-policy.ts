@@ -319,6 +319,40 @@ const trustMilestonePolicy: EntityIndexingPolicy = {
 };
 
 // ============================================================================
+// MEMORY ENHANCEMENT POLICIES (NEW - December 2024)
+// ============================================================================
+
+const curiosityMentionPolicy: EntityIndexingPolicy = {
+  entityType: 'curiosity_mention',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 100, // Track many mentions for rich follow-up opportunities
+  },
+  contentFields: ['entity', 'entityType', 'originalContext', 'priority'],
+  ttlDays: 90, // Expire after 3 months if not followed up
+};
+
+const betweenSessionThinkingPolicy: EntityIndexingPolicy = {
+  entityType: 'between_session_thinking',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 50,
+  },
+  contentFields: ['topic', 'reflection', 'depth', 'emotionalTone'],
+  ttlDays: 0, // Never expire - these are meaningful reflections
+};
+
+const personaGrowthPolicy: EntityIndexingPolicy = {
+  entityType: 'persona_growth',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 30,
+  },
+  contentFields: ['personaId', 'growthType', 'description', 'userInfluence'],
+  ttlDays: 0, // Never expire - persona growth is permanent
+};
+
+// ============================================================================
 // SUPERHUMAN POLICIES
 // ============================================================================
 
@@ -1125,6 +1159,354 @@ const legacyThoughtPolicy: EntityIndexingPolicy = {
 };
 
 // ============================================================================
+// LIFE STAGE POLICIES
+// ============================================================================
+
+const newParentPolicy: EntityIndexingPolicy = {
+  entityType: 'new_parent',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 5,
+  },
+  contentFields: ['babyAge', 'identityStage', 'sleepDeprivation', 'supportNetwork', 'notes'],
+  ttlDays: 0,
+};
+
+const emptyNestPolicy: EntityIndexingPolicy = {
+  entityType: 'empty_nest',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 5,
+  },
+  contentFields: ['childrenMoved', 'adjustmentPhase', 'newPursuit', 'notes'],
+  ttlDays: 0,
+};
+
+const infidelityRecoveryPolicy: EntityIndexingPolicy = {
+  entityType: 'infidelity_recovery',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 3,
+  },
+  contentFields: ['role', 'phase', 'trustLevel', 'therapyInvolved', 'notes'],
+  ttlDays: 0,
+};
+
+const healthDiagnosisPolicy: EntityIndexingPolicy = {
+  entityType: 'health_diagnosis',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 10,
+  },
+  contentFields: ['condition', 'severity', 'treatmentPlan', 'emotionalStage', 'notes'],
+  ttlDays: 0,
+};
+
+const jobLossPolicy: EntityIndexingPolicy = {
+  entityType: 'job_loss',
+  priority: 'active_only',
+  conditions: {
+    activeOnly: true,
+    maxPerUser: 5,
+  },
+  contentFields: ['reason', 'financialBuffer', 'jobSearchActive', 'identityImpact', 'notes'],
+  ttlDays: 365,
+};
+
+const sobrietyPolicy: EntityIndexingPolicy = {
+  entityType: 'sobriety',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 5,
+  },
+  contentFields: ['substance', 'daysSober', 'supportGroup', 'triggers', 'notes'],
+  ttlDays: 0, // Never expire - recovery is lifelong
+};
+
+const sandwichGenerationPolicy: EntityIndexingPolicy = {
+  entityType: 'sandwich_generation',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 3,
+  },
+  contentFields: ['elderCareNeeds', 'childCareNeeds', 'burnoutLevel', 'supportResources', 'notes'],
+  ttlDays: 0,
+};
+
+const blendedFamilyPolicy: EntityIndexingPolicy = {
+  entityType: 'blended_family',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 3,
+  },
+  contentFields: ['stepRelationships', 'challengeAreas', 'integrationProgress', 'notes'],
+  ttlDays: 0,
+};
+
+const comingOutPolicy: EntityIndexingPolicy = {
+  entityType: 'coming_out',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 3,
+  },
+  contentFields: ['identity', 'audiencesComeOutTo', 'supportReceived', 'challengesFaced', 'notes'],
+  ttlDays: 0,
+};
+
+const faithTransitionPolicy: EntityIndexingPolicy = {
+  entityType: 'faith_transition',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 3,
+  },
+  contentFields: ['fromFaith', 'toFaith', 'stage', 'communityImpact', 'notes'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// LOCATION & PLACES POLICIES
+// ============================================================================
+
+const favoritePlacePolicy: EntityIndexingPolicy = {
+  entityType: 'favorite_place',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 50,
+  },
+  contentFields: ['name', 'type', 'location', 'whyLoved', 'memories'],
+  ttlDays: 0,
+};
+
+const locationMemoryPolicy: EntityIndexingPolicy = {
+  entityType: 'location_memory',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 100,
+  },
+  contentFields: ['place', 'memory', 'emotion', 'significance'],
+  ttlDays: 0,
+};
+
+const geographicPreferencePolicy: EntityIndexingPolicy = {
+  entityType: 'geographic_preference',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 20,
+  },
+  contentFields: ['preferenceType', 'preference', 'reason'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// PETS & ANIMALS POLICIES
+// ============================================================================
+
+const petPolicy: EntityIndexingPolicy = {
+  entityType: 'pet',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 10,
+  },
+  contentFields: ['name', 'species', 'breed', 'personality', 'quirks'],
+  ttlDays: 0, // Pets are forever family
+};
+
+const petHealthPolicy: EntityIndexingPolicy = {
+  entityType: 'pet_health',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 50,
+  },
+  contentFields: ['petName', 'recordType', 'description', 'nextDue'],
+  ttlDays: 365,
+};
+
+const petMilestonePolicy: EntityIndexingPolicy = {
+  entityType: 'pet_milestone',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 30,
+  },
+  contentFields: ['petName', 'milestone', 'type', 'date'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// PROPERTY & VEHICLES POLICIES
+// ============================================================================
+
+const vehiclePolicy: EntityIndexingPolicy = {
+  entityType: 'vehicle',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 5,
+  },
+  contentFields: ['make', 'model', 'year', 'nickname', 'maintenanceSchedule'],
+  ttlDays: 0,
+};
+
+const homeMaintenancePolicy: EntityIndexingPolicy = {
+  entityType: 'home_maintenance',
+  priority: 'active_only',
+  conditions: {
+    activeOnly: true,
+    maxPerUser: 30,
+  },
+  contentFields: ['task', 'category', 'frequency', 'nextDue'],
+  ttlDays: 365,
+};
+
+const propertyAssetPolicy: EntityIndexingPolicy = {
+  entityType: 'property_asset',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 10,
+  },
+  contentFields: ['name', 'type', 'address', 'currentValue'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// INSURANCE & LEGAL POLICIES
+// ============================================================================
+
+const insurancePolicyPolicy: EntityIndexingPolicy = {
+  entityType: 'insurance_policy',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 15,
+  },
+  contentFields: ['type', 'provider', 'coverage', 'expiryDate'],
+  ttlDays: 0,
+};
+
+const legalDocumentPolicy: EntityIndexingPolicy = {
+  entityType: 'legal_document',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 20,
+  },
+  contentFields: ['type', 'description', 'status', 'lastUpdated'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// CRISIS & SUPPORT POLICIES
+// ============================================================================
+
+const crisisEpisodePolicy: EntityIndexingPolicy = {
+  entityType: 'crisis_episode',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 50,
+  },
+  contentFields: ['description', 'type', 'severity', 'resolution', 'whatHelped', 'lessonsLearned'],
+  ttlDays: 0, // Never forget how we supported them
+};
+
+const supportReceivedPolicy: EntityIndexingPolicy = {
+  entityType: 'support_received',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 100,
+  },
+  contentFields: ['from', 'type', 'description', 'impact'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// USER CORRECTIONS & LEARNING POLICIES
+// ============================================================================
+
+const userCorrectionPolicy: EntityIndexingPolicy = {
+  entityType: 'user_correction',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 200, // Important to remember ALL corrections
+  },
+  contentFields: ['whatFerniSaid', 'whatUserCorrected', 'correctInformation', 'category'],
+  ttlDays: 0, // Never forget corrections - this is how we learn
+};
+
+const implicitPreferencePolicy: EntityIndexingPolicy = {
+  entityType: 'implicit_preference',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 100,
+  },
+  contentFields: ['preference', 'category', 'evidence', 'confidence'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// OUTREACH HISTORY POLICIES
+// ============================================================================
+
+const outreachAttemptPolicy: EntityIndexingPolicy = {
+  entityType: 'outreach_attempt',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 500, // Track all outreach for learning
+  },
+  contentFields: ['type', 'channel', 'reason', 'status', 'triggeredBy'],
+  ttlDays: 365, // Keep for a year for pattern learning
+};
+
+const outreachResponsePolicy: EntityIndexingPolicy = {
+  entityType: 'outreach_response',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 500,
+  },
+  contentFields: ['responseType', 'sentiment', 'feedback', 'ledToSession'],
+  ttlDays: 365,
+};
+
+const outreachPreferencePolicy: EntityIndexingPolicy = {
+  entityType: 'outreach_preference',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 5,
+  },
+  contentFields: ['preferredChannels', 'preferredTimes', 'frequency', 'doNotDisturb'],
+  ttlDays: 0,
+};
+
+// ============================================================================
+// PERSONA INTERACTION POLICIES
+// ============================================================================
+
+const personaAffinityPolicy: EntityIndexingPolicy = {
+  entityType: 'persona_affinity',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 10, // One per persona
+  },
+  contentFields: ['personaId', 'personaName', 'affinityScore', 'topTopics', 'emotionalResonance'],
+  ttlDays: 0,
+};
+
+const handoffPreferencePolicy: EntityIndexingPolicy = {
+  entityType: 'handoff_preference',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 30,
+  },
+  contentFields: ['fromPersona', 'toPersona', 'triggerTopics', 'userApproved'],
+  ttlDays: 0,
+};
+
+const personaInteractionHistoryPolicy: EntityIndexingPolicy = {
+  entityType: 'persona_interaction_history',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 200,
+  },
+  contentFields: ['personaId', 'interactionType', 'topics', 'sentiment', 'outcome'],
+  ttlDays: 365,
+};
+
+// ============================================================================
 // EMOTIONAL POLICIES
 // ============================================================================
 
@@ -1441,6 +1823,10 @@ export const DEFAULT_INDEXING_POLICY: IndexingPolicy = {
     tonalMemoryPolicy,
     vulnerabilityMomentPolicy,
     trustMilestonePolicy,
+    // Memory Enhancement (NEW - December 2024)
+    curiosityMentionPolicy,
+    betweenSessionThinkingPolicy,
+    personaGrowthPolicy,
     // Superhuman
     dreamPolicy,
     lifeChapterPolicy,
@@ -1552,8 +1938,48 @@ export const DEFAULT_INDEXING_POLICY: IndexingPolicy = {
     correlationInsightPolicy,
     protectiveMomentPolicy,
     voiceRecognitionPolicy,
+    // Life Stage Transitions
+    newParentPolicy,
+    emptyNestPolicy,
+    infidelityRecoveryPolicy,
+    healthDiagnosisPolicy,
+    jobLossPolicy,
+    sobrietyPolicy,
+    sandwichGenerationPolicy,
+    blendedFamilyPolicy,
+    comingOutPolicy,
+    faithTransitionPolicy,
+    // Location & Places
+    favoritePlacePolicy,
+    locationMemoryPolicy,
+    geographicPreferencePolicy,
+    // Pets & Animals
+    petPolicy,
+    petHealthPolicy,
+    petMilestonePolicy,
+    // Property & Vehicles
+    vehiclePolicy,
+    homeMaintenancePolicy,
+    propertyAssetPolicy,
+    // Insurance & Legal
+    insurancePolicyPolicy,
+    legalDocumentPolicy,
+    // Crisis & Support
+    crisisEpisodePolicy,
+    supportReceivedPolicy,
+    // User Corrections & Learning
+    userCorrectionPolicy,
+    implicitPreferencePolicy,
+    // Outreach History
+    outreachAttemptPolicy,
+    outreachResponsePolicy,
+    outreachPreferencePolicy,
+    // Persona Interaction
+    personaAffinityPolicy,
+    handoffPreferencePolicy,
+    personaInteractionHistoryPolicy,
   ],
-  maxDocsPerUser: 500, // Increased from 200 to support more entity types
+  maxDocsPerUser: 600, // Increased to support more entity types
   debounceMs: 2000,
 };
 
@@ -1727,6 +2153,10 @@ export function getPoliciesByDomain(): Record<string, EntityIndexingPolicy[]> {
       tonalMemoryPolicy,
       vulnerabilityMomentPolicy,
       trustMilestonePolicy,
+      // Memory Enhancement (NEW - December 2024)
+      curiosityMentionPolicy,
+      betweenSessionThinkingPolicy,
+      personaGrowthPolicy,
     ],
     superhuman: [
       dreamPolicy,
@@ -1837,6 +2267,30 @@ export function getPoliciesByDomain(): Record<string, EntityIndexingPolicy[]> {
       creativeProjectPolicy,
       learningResourcePolicy,
       decisionRecordPolicy,
+    ],
+    lifeStage: [
+      newParentPolicy,
+      emptyNestPolicy,
+      infidelityRecoveryPolicy,
+      healthDiagnosisPolicy,
+      jobLossPolicy,
+      sobrietyPolicy,
+      sandwichGenerationPolicy,
+      blendedFamilyPolicy,
+      comingOutPolicy,
+      faithTransitionPolicy,
+    ],
+    location: [favoritePlacePolicy, locationMemoryPolicy, geographicPreferencePolicy],
+    pets: [petPolicy, petHealthPolicy, petMilestonePolicy],
+    property: [vehiclePolicy, homeMaintenancePolicy, propertyAssetPolicy],
+    legal: [insurancePolicyPolicy, legalDocumentPolicy],
+    crisis: [crisisEpisodePolicy, supportReceivedPolicy],
+    learning: [userCorrectionPolicy, implicitPreferencePolicy],
+    outreachHistory: [outreachAttemptPolicy, outreachResponsePolicy, outreachPreferencePolicy],
+    personaInteraction: [
+      personaAffinityPolicy,
+      handoffPreferencePolicy,
+      personaInteractionHistoryPolicy,
     ],
   };
 }

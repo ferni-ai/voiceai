@@ -159,14 +159,19 @@ export async function createReminder(params: {
       );
 
       // Index to semantic memory
-      void onReminderChange(params.userId, reminder.id, {
-        title: reminder.message,
-        description: reminder.context,
-        scheduledFor: reminder.scheduledFor.toISOString(),
-        recurrence: 'none',
-        priority: undefined,
-        status: reminder.status === 'pending' ? 'pending' : 'completed',
-      }, 'create');
+      void onReminderChange(
+        params.userId,
+        reminder.id,
+        {
+          title: reminder.message,
+          description: reminder.context,
+          scheduledFor: reminder.scheduledFor.toISOString(),
+          recurrence: 'none',
+          priority: undefined,
+          status: reminder.status === 'pending' ? 'pending' : 'completed',
+        },
+        'create'
+      );
     }
   } catch (error) {
     // Firestore not available, using in-memory only

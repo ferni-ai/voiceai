@@ -1,3 +1,4 @@
+// TODO: Fix type errors - Capacitor plugin types
 /**
  * Ferni Haptics Utility
  * 
@@ -318,7 +319,7 @@ class HapticsEngine {
       
       /** Play for insight moment */
       insight: () => {
-        if (signature.insight) {
+        if ('insight' in signature && signature.insight) {
           this.play(signature.insight);
         } else {
           this.warmPulse();
@@ -327,7 +328,7 @@ class HapticsEngine {
       
       /** Play for celebration */
       celebration: () => {
-        if (signature.celebration) {
+        if ('celebration' in signature && signature.celebration) {
           this.play(signature.celebration);
         } else {
           this.smallWin();

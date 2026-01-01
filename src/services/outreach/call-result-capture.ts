@@ -77,15 +77,23 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
         .set(cleanForFirestore(result));
 
       // Semantic indexing
-      void onCallResultChange(result.userId, result.callId, {
-        callId: result.callId,
-        contactName: result.request.contactName || result.request.contactQuery,
-        purpose: result.request.purpose,
-        outcome: result.outcome.status === 'completed' ? 'answered' : result.outcome.status as 'voicemail' | 'busy' | 'no_answer' | 'failed',
-        summary: result.outcome.transcriptSummary || result.outcome.outcome,
-        nextSteps: result.outcome.actionItems?.join('; '),
-        capturedAt: result.capturedAt,
-      }, 'create');
+      void onCallResultChange(
+        result.userId,
+        result.callId,
+        {
+          callId: result.callId,
+          contactName: result.request.contactName || result.request.contactQuery,
+          purpose: result.request.purpose,
+          outcome:
+            result.outcome.status === 'completed'
+              ? 'answered'
+              : (result.outcome.status as 'voicemail' | 'busy' | 'no_answer' | 'failed'),
+          summary: result.outcome.transcriptSummary || result.outcome.outcome,
+          nextSteps: result.outcome.actionItems?.join('; '),
+          capturedAt: result.capturedAt,
+        },
+        'create'
+      );
 
       log.debug({ callId: result.callId }, 'Call result stored in Firestore');
     } else {
@@ -350,15 +358,20 @@ async function createFollowUpActions(
             .set(cleanForFirestore(action));
 
           // Semantic indexing
-          void onFollowUpActionChange(userId, action.id, {
-            actionType: action.type,
-            description: action.description,
-            relatedCallId: action.callId,
-            scheduledFor: action.scheduledFor,
-            priority: 'medium',
-            status: 'pending',
-            createdAt: action.createdAt,
-          }, 'create');
+          void onFollowUpActionChange(
+            userId,
+            action.id,
+            {
+              actionType: action.type,
+              description: action.description,
+              relatedCallId: action.callId,
+              scheduledFor: action.scheduledFor,
+              priority: 'medium',
+              status: 'pending',
+              createdAt: action.createdAt,
+            },
+            'create'
+          );
         }
       } else {
         // In-memory fallback

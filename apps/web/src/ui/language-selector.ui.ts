@@ -13,10 +13,25 @@ import {
   onLocaleChange,
   t,
   type SupportedLocale,
+  type LocaleInfo,
 } from '../i18n/index.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout } = createTimeoutTracker();
+
+// Default locale info for fallback (English US)
+const DEFAULT_LOCALE: LocaleInfo = {
+  code: 'en-US',
+  name: 'English (US)',
+  nativeName: 'English',
+  flag: '🇺🇸',
+  direction: 'ltr',
+};
+
+/** Get locale info with guaranteed fallback */
+function getLocaleInfo(code: SupportedLocale): LocaleInfo {
+  return SUPPORTED_LOCALES.find((l) => l.code === code) ?? DEFAULT_LOCALE;
+}
 
 // ============================================================================
 // STATE
@@ -38,7 +53,7 @@ export function createLanguageSelector(): HTMLElement {
   container.setAttribute('data-lang-selector', '');
 
   const currentLocale = getLocale();
-  const currentLocaleInfo = SUPPORTED_LOCALES.find((l) => l.code === currentLocale) || SUPPORTED_LOCALES[0];
+  const currentLocaleInfo = getLocaleInfo(currentLocale);
 
   container.innerHTML = `
     <button
@@ -172,7 +187,7 @@ function toggleDropdown(container: HTMLElement, trigger: HTMLButtonElement, open
  * Update the display when locale changes
  */
 function updateDisplay(container: HTMLElement, locale: SupportedLocale): void {
-  const localeInfo = SUPPORTED_LOCALES.find((l) => l.code === locale) || SUPPORTED_LOCALES[0];
+  const localeInfo = getLocaleInfo(locale);
 
   // Update trigger
   const trigger = container.querySelector('.lang-selector-trigger');
@@ -360,7 +375,7 @@ export function createCompactLanguageSelector(): HTMLElement {
   container.setAttribute('data-lang-selector', '');
 
   const currentLocale = getLocale();
-  const currentLocaleInfo = SUPPORTED_LOCALES.find((l) => l.code === currentLocale) || SUPPORTED_LOCALES[0];
+  const currentLocaleInfo = getLocaleInfo(currentLocale);
 
   container.innerHTML = `
     <button

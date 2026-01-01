@@ -450,6 +450,76 @@ export async function handleJournalRoutes(
       }
     }
 
+    // GET /api/journal/chronicle - Get Chronicle data for The Chronicle UI
+    if (method === 'GET' && pathname.startsWith('/api/journal/chronicle')) {
+      // Extract userId from query string
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const userId = url.searchParams.get('userId');
+
+      if (!userId) {
+        sendJson(res, 400, { error: 'Missing userId parameter' });
+        return true;
+      }
+
+      try {
+        const chronicleData = await getChronicleData(userId);
+        sendJson(res, 200, chronicleData);
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to get chronicle data');
+        sendJson(res, 500, { error: 'Failed to load chronicle data' });
+        return true;
+      }
+    }
+
+    // POST /api/journal/chronicle/entry - Save a text journal entry
+    if (method === 'POST' && pathname === '/api/journal/chronicle/entry') {
+      // SECURITY: Use Firebase auth
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const { userId } = auth;
+
+      const body = await parseBody<{
+        content: string;
+        agentId?: string;
+        promptId?: string;
+        promptText?: string;
+        mood?: string;
+        type?: 'text' | 'voice';
+      }>(req);
+
+      if (!body.content?.trim()) {
+        sendJson(res, 400, { error: 'Content is required' });
+        return true;
+      }
+
+      try {
+        const journalService = getJournalService();
+        const entry = await journalService.createEntry(userId, {
+          source: 'digital_twin' as JournalSource,
+          content: body.content.trim(),
+          agentId: body.agentId,
+          promptId: body.promptId,
+          promptText: body.promptText,
+          mood: body.mood
+            ? {
+                id: body.mood as 'happy' | 'sad' | 'calm' | 'anxious' | 'neutral',
+                score: 5,
+                label: body.mood,
+              }
+            : undefined,
+        });
+
+        log.info({ userId, entryId: entry.id, type: body.type }, 'Chronicle entry saved');
+        sendJson(res, 201, { success: true, entry });
+        return true;
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to save chronicle entry');
+        sendJson(res, 500, { error: 'Failed to save entry' });
+        return true;
+      }
+    }
+
     // POST /api/journal/twin-response - Generate response from Digital Twin
     if (method === 'POST' && pathname === '/api/journal/twin-response') {
       const body = await parseBody<{
@@ -642,6 +712,202 @@ ${themes.length > 0 ? themes.join(', ') : 'Various reflections'}
 - Don't be preachy - you're talking to yourself, not lecturing`;
 
   return prompt;
+}
+
+// ============================================================================
+// CHRONICLE DATA FETCHING
+// ============================================================================
+
+interface ChronicleData {
+  recentEntries: Array<{
+    id: string;
+    content: string;
+    type: 'voice' | 'text';
+    createdAt: string;
+    mood?: string;
+    audioUrl?: string;
+    themes?: string[];
+  }>;
+  insights: Array<{
+    icon: string;
+    title: string;
+    text: string;
+  }>;
+  prompts: Array<{
+    id: string;
+    category: string;
+    difficulty: 'gentle' | 'moderate' | 'deep';
+    text: string;
+    followUp?: string;
+  }>;
+  stats: {
+    totalEntries: number;
+    currentStreak: number;
+    averageMood?: string;
+    moodTrend?: 'improving' | 'declining' | 'stable';
+    entriesThisWeek: number;
+    topThemes: string[];
+  };
+}
+
+async function getChronicleData(userId: string): Promise<ChronicleData> {
+  const journalService = getJournalService();
+
+  // Fetch recent entries and stats in parallel
+  const [entries, stats] = await Promise.all([
+    journalService.getAllEntries(userId, {
+      limit: 20,
+      sortOrder: 'desc',
+    }),
+    journalService.getStats(userId),
+  ]);
+
+  // Transform entries for Chronicle UI
+  const recentEntries = entries.map((entry) => ({
+    id: entry.id,
+    content: entry.content,
+    type: (entry.audioUrl ? 'voice' : 'text') as 'voice' | 'text',
+    createdAt: entry.createdAt.toISOString(),
+    mood: entry.mood?.label,
+    audioUrl: entry.audioUrl,
+    themes: entry.themes,
+  }));
+
+  // Generate insights from entries
+  const insights = generateChronicleInsights(entries, stats);
+
+  // Get personalized prompts
+  const context: PromptContext = {
+    userId,
+    timeOfDay: getTimeOfDay(),
+    recentTopics: extractTopThemes(entries),
+  };
+  const prompts = generatePrompts(context, 5).map((p) => ({
+    id: p.id,
+    category: p.category,
+    difficulty: p.difficulty,
+    text: p.prompt,
+    followUp: p.followUp,
+  }));
+
+  // Extract top themes from entries
+  const themeCounts: Record<string, number> = {};
+  for (const entry of entries) {
+    for (const theme of entry.themes || []) {
+      themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+    }
+  }
+  const topThemes = Object.entries(themeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([theme]) => theme);
+
+  return {
+    recentEntries,
+    insights,
+    prompts,
+    stats: {
+      totalEntries: stats.totalEntries,
+      currentStreak: stats.currentStreak,
+      averageMood: stats.averageMood?.label,
+      moodTrend: stats.moodTrend,
+      entriesThisWeek: stats.entriesThisWeek,
+      topThemes,
+    },
+  };
+}
+
+function generateChronicleInsights(
+  entries: Array<{
+    content: string;
+    mood?: { label: string; score: number };
+    themes?: string[];
+    createdAt: Date;
+  }>,
+  stats: {
+    currentStreak: number;
+    averageMood?: { label: string };
+    moodTrend?: string;
+  }
+): ChronicleData['insights'] {
+  const insights: ChronicleData['insights'] = [];
+
+  // Streak insight
+  if (stats.currentStreak >= 3) {
+    insights.push({
+      icon: 'flame',
+      title: `${stats.currentStreak}-Day Streak`,
+      text:
+        stats.currentStreak >= 7
+          ? "A full week of reflection. You're building something powerful."
+          : "You're showing up for yourself. That consistency matters.",
+    });
+  }
+
+  // Mood trend insight
+  if (stats.moodTrend === 'improving' && entries.length >= 5) {
+    insights.push({
+      icon: 'trending-up',
+      title: 'Rising Energy',
+      text: "Your recent entries show a lighter spirit. Something's shifting.",
+    });
+  } else if (stats.moodTrend === 'declining' && entries.length >= 5) {
+    insights.push({
+      icon: 'heart',
+      title: 'Heavy Days',
+      text: "I notice things have felt heavier lately. I'm here when you need to talk.",
+    });
+  }
+
+  // Theme pattern insight
+  const recentThemes = entries.slice(0, 5).flatMap((e) => e.themes || []);
+  const themeCounts: Record<string, number> = {};
+  for (const theme of recentThemes) {
+    themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+  }
+  const dominantTheme = Object.entries(themeCounts)
+    .filter(([, count]) => count >= 3)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  if (dominantTheme) {
+    insights.push({
+      icon: 'sparkles',
+      title: 'Recurring Theme',
+      text: `${dominantTheme[0]} keeps coming up in your thoughts. What's drawing you there?`,
+    });
+  }
+
+  // Entry count insight
+  if (entries.length >= 10) {
+    insights.push({
+      icon: 'book',
+      title: 'Growing Archive',
+      text: `${entries.length} entries captured. Your future self will thank you for this.`,
+    });
+  }
+
+  return insights.slice(0, 3); // Return top 3 insights
+}
+
+function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+function extractTopThemes(entries: Array<{ themes?: string[] }>): string[] {
+  const themeCounts: Record<string, number> = {};
+  for (const entry of entries.slice(0, 10)) {
+    for (const theme of entry.themes || []) {
+      themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+    }
+  }
+  return Object.entries(themeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([theme]) => theme);
 }
 
 function generateFallbackTwinResponse(

@@ -235,6 +235,12 @@ function getSecrets(): Record<string, string> {
     'twilio-from-number',
     'ferni-alert-email',
     'ferni-alert-phone',
+    // Post-TTS audio enhancement control
+    'post-tts-enhancement-enabled',
+    'post-tts-pitch-drift',
+    'post-tts-amplitude-jitter',
+    'post-tts-noise-floor',
+    'post-tts-micro-pitch',
   ];
 
   const secrets: Record<string, string> = {};

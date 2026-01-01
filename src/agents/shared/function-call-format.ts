@@ -2,17 +2,28 @@
  * Function Call Format - Single Source of Truth
  *
  * ⚠️ CRITICAL: This file defines the EXACT format that Gemini must output
- * for function calls. Changes here MUST be synchronized with:
+ * for function calls.
  *
- * 1. src/personas/bundles/shared/function-calling-base.md (prompt instructions)
- * 2. src/personas/bundles/{persona}/identity/function-calling-specialty.md (persona tools)
- * 3. src/agents/shared/tool-call-sanitizer.ts (detection patterns)
- * 4. src/agents/shared/json-function-executor.ts (execution routing)
+ * TOOL REGISTRATION (Two Sources):
+ * 1. REGISTERED_TOOLS (this file) - Core tools with specialized executors
+ *    - Music, Memory, Handoffs, Productivity, etc.
+ *    - ~78 tools that need custom logic
+ *
+ * 2. DOMAIN_TOOL_IDS (domain-tool-ids.generated.ts) - Auto-discovered domain tools
+ *    - All tools in src/tools/domains/
+ *    - ~697 tools across 95 domains
+ *    - Regenerate with: npx tsx scripts/generate-tool-patterns.ts
+ *
+ * ADDING NEW TOOLS:
+ * - Domain tools: Just create in src/tools/domains/{domain}/ and regenerate
+ * - Core tools: Add to REGISTERED_TOOLS below
  *
  * See docs/architecture/FUNCTION-CALLING-SYSTEM.md for full documentation.
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+// Auto-generated list of all domain tool IDs (697 tools across 95 domains)
+import { DOMAIN_TOOL_IDS } from './domain-tool-ids.generated.js';
 
 const log = createLogger({ module: 'function-call-format' });
 
@@ -61,23 +72,28 @@ export const MARKDOWN_WRAPPED_JSON_PATTERN = /```(?:json)?\s*\n?\s*(\{[\s\S]*?\}
 // ============================================================================
 
 /**
- * All registered tool names that can be called via JSON format.
+ * CORE tools that are NOT in domain folders.
  *
- * IMPORTANT: When adding a new tool, add it here AND to:
- * - tool-call-sanitizer.ts TOOL_NAME_PATTERNS
- * - json-function-executor.ts routeToTool()
- * - function-calling-base.md or function-calling-specialty.md
+ * These are manually registered because they:
+ * - Have specialized executor logic (music, memory, handoffs)
+ * - Are utility/pseudo-tools not tied to a domain
+ * - Are legacy tools maintained for backward compatibility
+ *
+ * NOTE: Domain tools (697+ across 95 domains) are auto-discovered via
+ * DOMAIN_TOOL_IDS from domain-tool-ids.generated.ts. No need to add
+ * domain tools here - just create them in src/tools/domains/{domain}/.
  */
 export const REGISTERED_TOOLS = [
-  // Music (unified API - use musicControl for pause/resume/stop/skip/volume)
+  // ============================================================================
+  // MUSIC (specialized executor with Apple Music/Spotify integration)
+  // ============================================================================
   'playMusic',
-  'musicControl',
-  'musicInfo',
   'searchAppleMusic',
-  // Note: Legacy names (skipMusic, nextSong, pauseMusic, resumeMusic, stopMusic)
-  // are handled by music-executor.ts for backward compatibility but not advertised here
+  // Note: musicControl, musicInfo are in domains but executor has special logic
 
-  // Memory (SUPERHUMAN - semantic embeddings + temporal awareness)
+  // ============================================================================
+  // MEMORY (SUPERHUMAN - specialized executor with semantic embeddings)
+  // ============================================================================
   'rememberAboutUser',
   'recallFromMemory',
   'updateMemory',
@@ -85,7 +101,9 @@ export const REGISTERED_TOOLS = [
   'getRelationshipSummary',
   'reinforceMemory',
 
-  // Handoffs
+  // ============================================================================
+  // HANDOFFS (specialized executor for persona transitions)
+  // ============================================================================
   'handoffToFerni',
   'handoffToMaya',
   'handoffToAlex',
@@ -93,149 +111,120 @@ export const REGISTERED_TOOLS = [
   'handoffToJordan',
   'handoffToNayan',
 
-  // Information
-  'getWeather',
-  'getNews',
-  'getCurrentTime',
-
-  // Smart Home
-  'controlLight',
-  'setThermostat',
-  'activateScene',
-  'controlLock',
-  'getHomeStatus',
-
-  // Productivity - Tasks
+  // ============================================================================
+  // PRODUCTIVITY (specialized executor with cross-tool orchestration)
+  // ============================================================================
+  // Tasks
   'addTask',
   'completeTask',
   'getTasks',
   'deleteTask',
-  // Productivity - Goals
+  // Goals
   'addGoal',
   'updateGoal',
   'getGoals',
-  // Productivity - Timers
+  // Timers
   'setTimer',
   'getTimer',
   'cancelTimer',
-  // Productivity - Reminders
-  'scheduleReminder',
+  // Reminders
   'cancelReminder',
   'getReminders',
-  // Productivity - Notes
+  // Notes
   'addNote',
-  'saveNote', // alias for addNote
+  'saveNote',
   'getNotes',
   'searchNotes',
-  // Productivity - Journal
+  // Journal
   'addJournal',
   'getJournals',
-  'journal', // alias for addJournal
+  'journal',
   // Habits
   'createHabit',
   'logHabitCompletion',
   'getHabits',
+  // Bills & Packages
   'shoppingList',
   'addBill',
   'payBill',
   'getBills',
   'trackPackage',
   'getPackages',
-  'searchFlights',
-  'searchHotels',
-  'planTrip',
-  // scheduleReminder moved up to Productivity - Reminders section
+  // Calendar
   'getCalendarToday',
   'createCalendarEvent',
+  'createAppointment',
+  // Medication
   'manageMedication',
   'medicationSchedule',
 
-  // Voice Memos
+  // ============================================================================
+  // VOICE MEMOS (not in domains)
+  // ============================================================================
   'saveVoiceMemo',
   'listVoiceMemos',
   'recallVoiceMemo',
   'deleteVoiceMemo',
   'searchVoiceMemos',
 
-  // SMS / Text Messages
+  // ============================================================================
+  // SMS / MESSAGES (not in domains)
+  // ============================================================================
   'readSMS',
   'checkNewMessages',
   'searchMessages',
 
-  // Telephony (phone calls)
-  'callOnBehalf', // Call someone on behalf of the user (mom, doctor, restaurant)
-
-  // Wellness
+  // ============================================================================
+  // WELLNESS (getCrisisResources not in domains)
+  // ============================================================================
   'getCrisisResources',
-  'groundingExercise',
   'logMood',
 
-  // Games (Ferni specialty)
-  'startGame',
-  'submitGameAnswer',
-  'getGameHint',
-  'skipGameRound',
-  'endGame',
-  'getGameStatus',
-  'suggestGame',
-  'startTextGame',
-  'makeTextGameMove',
-  'getTextGameBoard',
-  'endTextGame',
-
-  // Engagement Challenges
+  // ============================================================================
+  // ENGAGEMENT CHALLENGES (not in domains)
+  // ============================================================================
   'inboxZeroChallenge',
   'sundayPrepGame',
   'compoundInterestGame',
 
-  // Wisdom
+  // ============================================================================
+  // WISDOM (not in domains)
+  // ============================================================================
   'paradoxOfTheDay',
   'questionBeneath',
   'lifePortfolioReview',
 
-  // Calendar
-  'createAppointment',
-  'manageAppointment',
-
-  // Communication
+  // ============================================================================
+  // COMMUNICATION (sendMessage, draftMessage not in domains)
+  // ============================================================================
   'sendMessage',
   'draftMessage',
-  'analyzeMessage',
 
-  // Market
+  // ============================================================================
+  // MARKET (not in domains)
+  // ============================================================================
   'getMarketSummary',
 
-  // Behavior
-  'shiftMode',
-  'processing',
-  'holdSpace',
-
-  // Utility
+  // ============================================================================
+  // UTILITY (not in domains)
+  // ============================================================================
   'calculateTip',
   'wrapUpConversation',
+  'getCurrentTime',
+  'getHomeStatus',
 
-  // Scheduling (scheduled messages, calls, emails)
-  'scheduleMessage',
+  // ============================================================================
+  // SCHEDULING (specialized executor - scheduleText, sendTextNow, etc.)
+  // ============================================================================
   'scheduleText',
-  'scheduleCall',
-  'scheduleEmail',
-  'sendMessageNow',
   'sendTextNow',
-  'listScheduled',
   'getScheduled',
-  'cancelScheduled',
   'saveContact',
-  'saveContactInfo',
   'addContact',
 
-  // Concierge (AI-powered outreach)
-  'requestHotelQuotes',
-  'makeRestaurantReservation',
-  'scheduleHealthcareAppointment',
-  'getServiceQuotes',
-  'checkConciergeStatus',
-
-  // Language/Settings
+  // ============================================================================
+  // LANGUAGE/SETTINGS (not in domains)
+  // ============================================================================
   'setSpokenLanguage',
   'listSupportedLanguages',
   'getCurrentLanguage',
@@ -249,9 +238,19 @@ export type RegisteredToolName = (typeof REGISTERED_TOOLS)[number];
 
 /**
  * Check if a tool name is registered.
+ * Checks both manually-registered tools AND auto-generated domain tools.
  */
-export function isRegisteredTool(fn: string): fn is RegisteredToolName {
-  return REGISTERED_TOOLS.some((tool) => tool.toLowerCase() === fn.toLowerCase());
+export function isRegisteredTool(fn: string): boolean {
+  const fnLower = fn.toLowerCase();
+  // Check manually registered tools
+  if (REGISTERED_TOOLS.some((tool) => tool.toLowerCase() === fnLower)) {
+    return true;
+  }
+  // Check auto-generated domain tools (697 tools across 95 domains)
+  if (DOMAIN_TOOL_IDS.some((tool) => tool.toLowerCase() === fnLower)) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -275,7 +274,7 @@ export function validateFunctionCall(call: unknown): string | null {
   }
 
   if (!isRegisteredTool(obj.fn)) {
-    return `Unknown tool: "${obj.fn}". Add it to REGISTERED_TOOLS if this is a new tool.`;
+    return `Unknown tool: "${obj.fn}". Add to REGISTERED_TOOLS or create in src/tools/domains/.`;
   }
 
   return null; // Valid

@@ -368,7 +368,10 @@ async function getBillingAccount(): Promise<string | null> {
     cache.billingAccount = { data: billingAccount || null, timestamp: Date.now() };
     return billingAccount || null;
   } catch (error) {
-    log.debug({ error: String(error) }, 'Could not get billing account (gcloud may not be available)');
+    log.debug(
+      { error: String(error) },
+      'Could not get billing account (gcloud may not be available)'
+    );
     cache.billingAccount = { data: null, timestamp: Date.now() };
     return null;
   }
@@ -426,12 +429,13 @@ async function queryGCPBudget(billingAccount: string): Promise<{
     }
 
     // Find the first budget matching our project or main monthly budget
-    const budget = budgets.find(
-      (b: { displayName?: string; budgetFilter?: { projects?: string[] } }) =>
-        b.displayName?.toLowerCase().includes('ferni') ||
-        b.displayName?.toLowerCase().includes('monthly') ||
-        b.budgetFilter?.projects?.some((p: string) => p.includes(GCP_PROJECT))
-    ) || budgets[0];
+    const budget =
+      budgets.find(
+        (b: { displayName?: string; budgetFilter?: { projects?: string[] } }) =>
+          b.displayName?.toLowerCase().includes('ferni') ||
+          b.displayName?.toLowerCase().includes('monthly') ||
+          b.budgetFilter?.projects?.some((p: string) => p.includes(GCP_PROJECT))
+      ) || budgets[0];
 
     // Extract budget amount
     const budgetAmount = budget.amount?.specifiedAmount?.units

@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Design System: Single source of truth -->
     <link rel="stylesheet" href="../master-tokens.css">
+    <link rel="stylesheet" href="../brand-components.css">
     <style>
         /* Page-specific overrides */
         :root {
@@ -522,17 +523,8 @@
     </style>
 </head>
 <body>
-    <nav class="nav" role="navigation" aria-label="Main navigation">
-        <a href="../index.html" class="nav-back" aria-label="Back to Brand Library">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-            Brand Library
-        </a>
-        <div class="nav-links">
-            <a href="./README.md" class="nav-link">Motion Guide</a>
-            <a href="./MOTION-STORYTELLING.md" class="nav-link">Storytelling</a>
-            <a href="../marketing/introducing-ferni.html" class="nav-link">Marketing</a>
-        </div>
-    </nav>
+    <!-- Shared Navigation -->
+    <div id="nav-placeholder"></div>
 
     <section class="hero">
         <h1>The <strong>12 Pixar Principles</strong><br>Adapted for Emotional AI</h1>
@@ -931,10 +923,8 @@
         <cite>Ferni Motion Language Guide</cite>
     </section>
 
-    <footer>
-        <div class="footer-logo">Ferni</div>
-        <p class="footer-tagline">Making AI human through motion.</p>
-    </footer>
+    <!-- Shared Footer -->
+    <div id="footer-placeholder"></div>
 
     <script>
         function setDemo(demoNumber, state) {
@@ -958,5 +948,8 @@
             }, 80); // 80ms - micro-expression timing
         }
     </script>
+
+    <!-- Shared Navigation Script -->
+    <script src="../shared/nav.js" defer></script>
 </body>
 </html>

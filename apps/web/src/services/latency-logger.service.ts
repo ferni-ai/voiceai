@@ -158,10 +158,10 @@ export function getStats(): LatencyStats {
   return {
     totalTurns: turnHistory.length,
     avgResponseLatencyMs: Math.round(sum / latencies.length),
-    minResponseLatencyMs: sorted[0],
-    maxResponseLatencyMs: sorted[sorted.length - 1],
-    p50ResponseLatencyMs: sorted[Math.floor(sorted.length * 0.5)],
-    p95ResponseLatencyMs: sorted[Math.floor(sorted.length * 0.95)] || sorted[sorted.length - 1],
+    minResponseLatencyMs: sorted[0] ?? 0,
+    maxResponseLatencyMs: sorted[sorted.length - 1] ?? 0,
+    p50ResponseLatencyMs: sorted[Math.floor(sorted.length * 0.5)] ?? 0,
+    p95ResponseLatencyMs: sorted[Math.floor(sorted.length * 0.95)] ?? sorted[sorted.length - 1] ?? 0,
     slowTurns: latencies.filter((l) => l > SLOW_THRESHOLD_MS).length,
     criticalTurns: latencies.filter((l) => l > CRITICAL_THRESHOLD_MS).length,
   };

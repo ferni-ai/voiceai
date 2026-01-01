@@ -103,6 +103,8 @@ import { handleHouseholdRoutes } from '../../api/household-routes.js';
 import { handleContactsRoutes } from '../../api/contacts-routes.js';
 import { handleGiftRoutes } from '../../api/gift-routes.js';
 import { handleJournalRoutes } from '../../api/journal-routes.js';
+import { handlePracticeRoutes } from '../../api/practice-routes.js';
+import { handleSanctuaryRoutes } from '../../api/sanctuary-routes.js';
 import { handleStoryJourneyRoutes } from '../../api/story-journey-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
@@ -141,6 +143,7 @@ import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 import { handleUtilitiesRoutes } from './routes/utilities.js';
+import { handleYourStoryRoutes } from '../../api/your-story-routes.js';
 
 // =============================================================================
 // Route Registry
@@ -458,6 +461,18 @@ export const routes: RouteDefinition[] = [
     description: 'Voice journal prompts',
   },
   {
+    prefix: '/api/practice',
+    handler: handlePracticeRoutes,
+    category: 'api',
+    description: 'Self-directed practice chat',
+  },
+  {
+    prefix: '/api/sanctuary',
+    handler: handleSanctuaryRoutes,
+    category: 'api',
+    description: 'The Sanctuary - immersive guided practice experience',
+  },
+  {
     prefix: '/api/insights',
     handler: handlePredictiveInsightsRequest,
     category: 'api',
@@ -708,6 +723,12 @@ export const routes: RouteDefinition[] = [
     handler: handleWellbeingRoutes,
     category: 'api',
     description: 'Wellbeing tracking',
+  },
+  {
+    prefix: '/api/your-story',
+    handler: handleYourStoryRoutes,
+    category: 'api',
+    description: 'Your Story dashboard (unified immersive data)',
   },
   {
     prefix: '/api/widget',

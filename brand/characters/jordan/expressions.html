@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
   <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../brand-components.css">
   <style>
     /* Jordan-specific overrides - base tokens from master-tokens.css */
     :root {
@@ -22,6 +23,8 @@
       --glow-golden: rgba(196, 162, 101, 0.5);
       --glow-sage: rgba(90, 122, 81, 0.5);
       --glow-coral: rgba(212, 136, 139, 0.5);
+      --glow-party: rgba(168, 85, 247, 0.5);
+      --glow-countdown: rgba(78, 205, 196, 0.5);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,7 +70,7 @@
     }
     .timing-badge svg { width: 16px; height: 16px; }
 
-    .container { max-width: 1200px; margin: 0 auto; padding: 40px; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 40px; }
 
     .avatar-stage {
       display: flex;
@@ -95,7 +98,7 @@
 
     .main-avatar { width: 200px; height: 200px; position: relative; }
 
-    /* Jordan's animations (1.0x with bounce) */
+    /* Jordan's animations (1.0x baseline - energetic) */
     @keyframes breathing {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.02); }
@@ -114,6 +117,11 @@
       100% { opacity: 0; transform: scale(0.5) rotate(360deg) translateY(-40px); }
     }
 
+    @keyframes blink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
     .avatar-body {
       animation: breathing 4s ease-in-out infinite;
       transform-origin: center center;
@@ -121,6 +129,7 @@
 
     .eyes-group {
       animation: gazeDrift 8s ease-in-out infinite;
+      transform-origin: center center;
     }
 
     /* Confetti - Jordan's Signature */
@@ -144,7 +153,21 @@
     .current-expression { font-size: 28px; font-weight: 600; color: var(--text-primary); }
     .expression-trigger { font-size: 14px; color: var(--text-muted); max-width: 250px; }
 
-    .micro-demo { display: flex; gap: 10px; margin-top: 16px; }
+    /* Expression Info Panel */
+    .expression-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(229, 165, 92, 0.08);
+      border-radius: 12px;
+    }
+    .info-item { text-align: center; }
+    .info-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .info-value { font-size: 14px; font-weight: 600; color: var(--persona-end); margin-top: 2px; }
+
+    .micro-demo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
     .micro-btn {
       padding: 8px 14px;
       border: 1px solid rgba(229, 165, 92, 0.3);
@@ -161,11 +184,104 @@
 
     .section-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
 
+    /* Animation Layers Panel */
+    .layers-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .layers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .layer-card {
+      background: rgba(229, 165, 92, 0.06);
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 3px solid var(--persona-start);
+    }
+    .layer-name { font-size: 14px; font-weight: 600; color: var(--persona-end); margin-bottom: 8px; }
+    .layer-timing { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+    .layer-desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Micro-expressions Panel */
+    .micro-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .micro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+    .micro-card {
+      background: rgba(229, 165, 92, 0.06);
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+      border: 2px solid transparent;
+    }
+    .micro-card:hover { border-color: var(--persona-start); transform: translateY(-2px); }
+    .micro-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .micro-duration { font-size: 20px; font-weight: 700; color: var(--persona-end); margin: 4px 0; }
+    .micro-glow { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Waveform Panel */
+    .waveform-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(44, 37, 32, 0.08);
+    }
+    .waveform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; }
+    .waveform-card {
+      background: rgba(229, 165, 92, 0.06);
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .waveform-name { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+    .waveform-bars { display: flex; justify-content: center; gap: 3px; height: 40px; align-items: flex-end; }
+    .waveform-bar {
+      width: 4px;
+      background: linear-gradient(to top, var(--persona-start), var(--persona-end));
+      border-radius: 2px;
+      animation: waveform 0.8s ease-in-out infinite;
+    }
+    @keyframes waveform {
+      0%, 100% { height: 20%; }
+      50% { height: 100%; }
+    }
+    .waveform-bar:nth-child(1) { animation-delay: 0s; }
+    .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+    .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+    .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+    .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+    .waveform-bar:nth-child(6) { animation-delay: 0.5s; }
+    .waveform-bar:nth-child(7) { animation-delay: 0.6s; }
+
+    /* Expression Families */
+    .family-section { margin-bottom: 32px; }
+    .family-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .family-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--persona-start);
+    }
+    .family-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .family-count { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
     .expression-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 12px;
-      margin-bottom: 40px;
     }
 
     .expression-btn {
@@ -179,6 +295,7 @@
       color: var(--text-primary);
       cursor: pointer;
       transition: all 0.3s var(--ease-spring);
+      text-align: left;
     }
     .expression-btn:hover { border-color: var(--persona-start); transform: translateY(-2px); }
     .expression-btn.active {
@@ -186,6 +303,8 @@
       border-color: transparent;
       color: var(--color-natural-ink, #2C2520);
     }
+    .expression-btn.signature { border-color: var(--persona-end); }
+    .expression-btn.signature::after { content: ' *'; }
 
     .profile-section {
       background: linear-gradient(135deg, rgba(229, 165, 92, 0.08) 0%, transparent 100%);
@@ -214,22 +333,41 @@
       .avatar-stage { flex-direction: column; padding: 40px 20px; }
       .stage-controls { align-items: center; text-align: center; }
       .container { padding: 20px; }
+      .expression-info { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
-    <a href="../../index.html" class="nav-back" aria-label="Back to Brand Library">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-      Brand Library
-    </a>
-    <div class="nav-links">
-      <a href="../ferni/expressions.html" class="nav-link">Ferni</a>
-      <a href="../maya/expressions.html" class="nav-link">Maya</a>
-      <a href="../peter/expressions.html" class="nav-link">Peter</a>
-      <a href="../alex/expressions.html" class="nav-link">Alex</a>
-      <a href="../nayan/expressions.html" class="nav-link">Nayan</a>
-      <a href="../../expressions/gallery.html" class="nav-link">All Expressions</a>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Persona Switcher (Secondary Nav) -->
+  <nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+    <div class="persona-switcher-inner">
+      <a href="../ferni/expressions.html" class="persona-chip" data-persona="ferni">
+        <span class="persona-dot" style="background: var(--color-ferni)"></span>
+        Ferni
+      </a>
+      <a href="../maya/expressions.html" class="persona-chip" data-persona="maya">
+        <span class="persona-dot" style="background: var(--color-maya)"></span>
+        Maya
+      </a>
+      <a href="../peter/expressions.html" class="persona-chip" data-persona="peter">
+        <span class="persona-dot" style="background: var(--color-peter)"></span>
+        Peter
+      </a>
+      <a href="expressions.html" class="persona-chip active" data-persona="jordan">
+        <span class="persona-dot" style="background: var(--color-jordan)"></span>
+        Jordan
+      </a>
+      <a href="../alex/expressions.html" class="persona-chip" data-persona="alex">
+        <span class="persona-dot" style="background: var(--color-alex)"></span>
+        Alex
+      </a>
+      <a href="../nayan/expressions.html" class="persona-chip" data-persona="nayan">
+        <span class="persona-dot" style="background: var(--color-nayan)"></span>
+        Nayan
+      </a>
     </div>
   </nav>
 
@@ -261,18 +399,18 @@
               <stop offset="0%" stop-color="#e5a55c"/>
               <stop offset="100%" stop-color="#d4944c"/>
             </linearGradient>
-            <clipPath id="eyeClipLeft"><ellipse cx="70" cy="90" rx="20" ry="18"/></clipPath>
-            <clipPath id="eyeClipRight"><ellipse cx="130" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipLeft"><ellipse id="eyeClipLeftShape" cx="70" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipRight"><ellipse id="eyeClipRightShape" cx="130" cy="90" rx="20" ry="18"/></clipPath>
           </defs>
           <g class="avatar-body"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
           <!-- LUXO STYLE: opaque white eyes, no pupils - expression comes from eye shape -->
-          <g class="eyes-group">
+          <g class="eyes-group" id="eyesGroup">
             <g clip-path="url(#eyeClipLeft)">
-              <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
+              <ellipse id="eyeLeft" cx="70" cy="90" rx="20" ry="18" fill="white"/>
             </g>
             <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
             <g clip-path="url(#eyeClipRight)">
-              <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
+              <ellipse id="eyeRight" cx="130" cy="90" rx="20" ry="18" fill="white"/>
             </g>
             <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
           </g>
@@ -282,10 +420,113 @@
       <div class="stage-controls">
         <div class="current-expression" id="currentExpression">Neutral</div>
         <div class="expression-trigger" id="expressionTrigger">Ready to plan and celebrate life's moments.</div>
+        <div class="expression-info" id="expressionInfo">
+          <div class="info-item">
+            <div class="info-label">Lid Path</div>
+            <div class="info-value" id="infoLid">M 50,72 Q 70,72 90,72</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Glow</div>
+            <div class="info-value" id="infoGlow">Warm</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Eye Scale</div>
+            <div class="info-value" id="infoScale">1.0x, 1.0x</div>
+          </div>
+        </div>
         <div class="micro-demo">
           <button class="micro-btn" data-micro="confetti">Confetti Burst</button>
-          <button class="micro-btn" data-micro="excitement">Excitement 100ms</button>
-          <button class="micro-btn" data-micro="milestone">Milestone 120ms</button>
+          <button class="micro-btn" data-micro="excitement">Excitement 80ms</button>
+          <button class="micro-btn" data-micro="pride">Pride 100ms</button>
+          <button class="micro-btn" data-micro="milestone">Milestone 90ms</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animation Layers Panel -->
+    <div class="layers-panel">
+      <h3 class="section-title">Animation Layers (1.0x Timing)</h3>
+      <div class="layers-grid">
+        <div class="layer-card">
+          <div class="layer-name">Breathing</div>
+          <div class="layer-timing">4.0s</div>
+          <div class="layer-desc">Steady inhale/exhale cycle. Energetic baseline.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Blinking</div>
+          <div class="layer-timing">3.0-7.0s</div>
+          <div class="layer-desc">Random blink intervals. Natural rhythm.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Gaze Drift</div>
+          <div class="layer-timing">8.0s</div>
+          <div class="layer-desc">Subtle eye movement. Present awareness.</div>
+        </div>
+        <div class="layer-card">
+          <div class="layer-name">Anticipation</div>
+          <div class="layer-timing">0.40s</div>
+          <div class="layer-desc">Squash/stretch before celebrations.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Micro-expressions Panel -->
+    <div class="micro-panel">
+      <h3 class="section-title">Micro-expressions (40-120ms subliminal flashes)</h3>
+      <div class="micro-grid" id="microGrid"></div>
+    </div>
+
+    <!-- Waveform Panel -->
+    <div class="waveform-panel">
+      <h3 class="section-title">Waveform Shapes</h3>
+      <div class="waveform-grid">
+        <div class="waveform-card">
+          <div class="waveform-name">Celebrating</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-delay: 0s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.05s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.1s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.15s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.2s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.25s;"></div>
+            <div class="waveform-bar" style="animation-delay: 0.3s;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Planning</div>
+          <div class="waveform-bars" style="animation: none;">
+            <div class="waveform-bar" style="height: 50%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 60%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 55%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 65%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 60%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 55%; animation: none;"></div>
+            <div class="waveform-bar" style="height: 50%; animation: none;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Countdown</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-duration: 0.4s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.05s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.1s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.15s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.2s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.25s;"></div>
+            <div class="waveform-bar" style="animation-duration: 0.4s; animation-delay: 0.3s;"></div>
+          </div>
+        </div>
+        <div class="waveform-card">
+          <div class="waveform-name">Nostalgic</div>
+          <div class="waveform-bars">
+            <div class="waveform-bar" style="animation-duration: 1.6s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 0.2s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 0.4s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 0.6s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 0.8s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 1.0s;"></div>
+            <div class="waveform-bar" style="animation-duration: 1.6s; animation-delay: 1.2s;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -297,11 +538,13 @@
         <div class="profile-item"><div class="profile-value">Bounce</div><div class="profile-label">Easing Curve</div></div>
         <div class="profile-item"><div class="profile-value">Warm</div><div class="profile-label">Primary Glow</div></div>
         <div class="profile-item"><div class="profile-value">Confetti</div><div class="profile-label">Signature Effect</div></div>
+        <div class="profile-item"><div class="profile-value">24</div><div class="profile-label">Expressions</div></div>
+        <div class="profile-item"><div class="profile-value">6</div><div class="profile-label">Micro-expressions</div></div>
       </div>
     </div>
 
-    <h3 class="section-title">Jordan's Expressions</h3>
-    <div class="expression-grid" id="expressionGrid"></div>
+    <h3 class="section-title">Jordan's Expression Families</h3>
+    <div id="expressionFamilies"></div>
 
     <h3 class="section-title">Character Traits</h3>
     <div class="traits-grid">
@@ -321,83 +564,207 @@
   </div>
 
   <script>
-    const EXPRESSIONS = [
-      { name: 'Neutral', trigger: 'Ready to plan', lid: 'M 50,72 Q 70,72 90,72', glow: 'warm' },
-      { name: 'Celebrating', trigger: 'Milestone achieved!', lid: 'M 50,82 Q 70,88 90,82', glow: 'golden', signature: true },
-      { name: 'Excited', trigger: 'Big event coming', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm' },
-      { name: 'Planning', trigger: 'Organizing timeline', lid: 'M 50,74 Q 70,72 90,74', glow: 'warm' },
-      { name: 'Anticipating', trigger: 'Countdown mode', lid: 'M 50,70 Q 70,66 90,70', glow: 'golden' },
-      { name: 'Supportive', trigger: 'User needs boost', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage' },
-      { name: 'Proud', trigger: 'User growth recognized', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden' },
-      { name: 'Focused', trigger: 'Important date tracking', lid: 'M 50,74 Q 70,72 90,74', glow: 'warm' },
-      { name: 'Encouraging', trigger: 'User working toward goal', lid: 'M 50,76 Q 70,80 90,76', glow: 'sage' },
-      { name: 'Nostalgic', trigger: 'Remembering past wins', lid: 'M 50,76 Q 70,78 90,76', glow: 'coral' },
-      { name: 'Playful', trigger: 'Light milestone moment', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm' },
-      { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden' }
-    ];
+    // Jordan's Expression Families - 24 total expressions organized by domain
+    const EXPRESSION_FAMILIES = {
+      celebration: [
+        { name: 'Celebrating', trigger: 'Milestone achieved!', lid: 'M 50,82 Q 70,88 90,82', glow: 'golden', eyeScale: [1.1, 1.15], signature: true },
+        { name: 'Party Mode', trigger: 'Big celebration time', lid: 'M 50,84 Q 70,92 90,84', glow: 'party', eyeScale: [1.15, 1.2], signature: true },
+        { name: 'Proud', trigger: 'User growth recognized', lid: 'M 50,80 Q 70,84 90,80', glow: 'golden', eyeScale: [1.05, 1.1] },
+        { name: 'Delighted', trigger: 'Unexpected good news', lid: 'M 50,78 Q 70,84 90,78', glow: 'warm', eyeScale: [1.08, 1.12] },
+        { name: 'Triumphant', trigger: 'Major goal achieved', lid: 'M 50,82 Q 70,90 90,82', glow: 'golden', eyeScale: [1.1, 1.18], signature: true }
+      ],
+      planning: [
+        { name: 'Planning', trigger: 'Organizing timeline', lid: 'M 50,74 Q 70,72 90,74', glow: 'warm', eyeScale: [1.0, 0.95] },
+        { name: 'Focused', trigger: 'Important date tracking', lid: 'M 50,72 Q 70,70 90,72', glow: 'warm', eyeScale: [0.95, 0.9] },
+        { name: 'Countdown', trigger: 'Event approaching', lid: 'M 50,70 Q 70,66 90,70', glow: 'countdown', eyeScale: [1.05, 1.0] },
+        { name: 'Scheduling', trigger: 'Calendar organizing', lid: 'M 50,73 Q 70,71 90,73', glow: 'warm', eyeScale: [0.98, 0.95] },
+        { name: 'Tracking', trigger: 'Progress monitoring', lid: 'M 50,74 Q 70,73 90,74', glow: 'sage', eyeScale: [1.0, 0.98] }
+      ],
+      encouragement: [
+        { name: 'Supportive', trigger: 'User needs boost', lid: 'M 50,76 Q 70,78 90,76', glow: 'sage', eyeScale: [1.0, 1.05] },
+        { name: 'Encouraging', trigger: 'User working toward goal', lid: 'M 50,78 Q 70,82 90,78', glow: 'sage', eyeScale: [1.02, 1.08] },
+        { name: 'Cheering', trigger: 'Almost there!', lid: 'M 50,80 Q 70,86 90,80', glow: 'warm', eyeScale: [1.08, 1.12] },
+        { name: 'Believing', trigger: 'You can do this', lid: 'M 50,77 Q 70,80 90,77', glow: 'sage', eyeScale: [1.0, 1.06] },
+        { name: 'Motivating', trigger: 'Rallying support', lid: 'M 50,79 Q 70,84 90,79', glow: 'warm', eyeScale: [1.05, 1.1] }
+      ],
+      nostalgia: [
+        { name: 'Nostalgic', trigger: 'Remembering past wins', lid: 'M 50,76 Q 70,78 90,76', glow: 'coral', eyeScale: [0.98, 1.02] },
+        { name: 'Reminiscing', trigger: 'Looking back fondly', lid: 'M 50,75 Q 70,76 90,75', glow: 'coral', eyeScale: [0.95, 1.0] },
+        { name: 'Sentimental', trigger: 'Anniversary moment', lid: 'M 50,77 Q 70,79 90,77', glow: 'coral', eyeScale: [0.98, 1.04] },
+        { name: 'Grateful', trigger: 'Appreciating journey', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', eyeScale: [1.0, 1.05] },
+        { name: 'Reflective', trigger: 'Year in review', lid: 'M 50,74 Q 70,75 90,74', glow: 'coral', eyeScale: [0.96, 0.98] }
+      ],
+      playful: [
+        { name: 'Excited', trigger: 'Big event coming', lid: 'M 50,78 Q 70,82 90,78', glow: 'warm', eyeScale: [1.05, 1.1] },
+        { name: 'Playful', trigger: 'Light milestone moment', lid: 'M 50,79 Q 70,84 90,79', glow: 'party', eyeScale: [1.02, 1.08] },
+        { name: 'Mischievous', trigger: 'Surprise planning', lid: 'M 50,74 Q 70,70 90,74', glow: 'party', eyeScale: [0.95, 0.9] },
+        { name: 'Anticipating', trigger: 'Can barely wait', lid: 'M 50,76 Q 70,80 90,76', glow: 'countdown', eyeScale: [1.08, 1.12] }
+      ]
+    };
+
+    // Jordan's Micro-expressions - 6 subliminal flashes (1.0x timing)
+    const MICRO_EXPRESSIONS = {
+      excitement: { lid: 'M 50,80 Q 70,86 90,80', glow: 'warm', duration: 80 },
+      pride: { lid: 'M 50,78 Q 70,82 90,78', glow: 'golden', duration: 100 },
+      milestone: { lid: 'M 50,82 Q 70,88 90,82', glow: 'golden', duration: 90 },
+      anticipation: { lid: 'M 50,76 Q 70,80 90,76', glow: 'countdown', duration: 70 },
+      party: { lid: 'M 50,84 Q 70,92 90,84', glow: 'party', duration: 60 },
+      recognition: { lid: 'M 50,77 Q 70,79 90,77', glow: 'warm', duration: 85 }
+    };
 
     const GLOW_COLORS = {
       warm: 'rgba(229, 165, 92, 0.5)',
       golden: 'rgba(196, 162, 101, 0.5)',
       sage: 'rgba(90, 122, 81, 0.5)',
-      coral: 'rgba(212, 136, 139, 0.5)'
+      coral: 'rgba(212, 136, 139, 0.5)',
+      party: 'rgba(168, 85, 247, 0.5)',
+      countdown: 'rgba(78, 205, 196, 0.5)'
+    };
+
+    const FAMILY_LABELS = {
+      celebration: 'Celebration',
+      planning: 'Planning',
+      encouragement: 'Encouragement',
+      nostalgia: 'Nostalgia',
+      playful: 'Playful'
     };
 
     const avatarGlow = document.getElementById('avatarGlow');
     const lidLeft = document.getElementById('lidLeft');
     const lidRight = document.getElementById('lidRight');
+    const eyeLeft = document.getElementById('eyeLeft');
+    const eyeRight = document.getElementById('eyeRight');
+    const eyeClipLeftShape = document.getElementById('eyeClipLeftShape');
+    const eyeClipRightShape = document.getElementById('eyeClipRightShape');
+    const eyesGroup = document.getElementById('eyesGroup');
     const currentExpressionEl = document.getElementById('currentExpression');
     const expressionTriggerEl = document.getElementById('expressionTrigger');
-    const expressionGrid = document.getElementById('expressionGrid');
-    const confettis = [1, 2, 3, 4, 5, 6].map(i => document.getElementById('confetti' + i));
+    const infoLid = document.getElementById('infoLid');
+    const infoGlow = document.getElementById('infoGlow');
+    const infoScale = document.getElementById('infoScale');
+    const confettis = [1, 2, 3, 4, 5, 6].map(function(i) { return document.getElementById('confetti' + i); });
 
-    function buildExpressionGrid() {
-      EXPRESSIONS.forEach((expr, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'expression-btn' + (i === 0 ? ' active' : '');
-        btn.textContent = expr.name;
-        btn.addEventListener('click', () => setExpression(expr, btn));
-        expressionGrid.appendChild(btn);
+    const BASE_EYE_RX = 20;
+    const BASE_EYE_RY = 18;
+
+    function buildExpressionFamilies() {
+      var container = document.getElementById('expressionFamilies');
+      Object.entries(EXPRESSION_FAMILIES).forEach(function(entry) {
+        var family = entry[0];
+        var expressions = entry[1];
+
+        var section = document.createElement('div');
+        section.className = 'family-section';
+
+        var header = document.createElement('div');
+        header.className = 'family-header';
+
+        var dot = document.createElement('div');
+        dot.className = 'family-dot';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'family-name';
+        nameEl.textContent = FAMILY_LABELS[family];
+
+        var countEl = document.createElement('div');
+        countEl.className = 'family-count';
+        countEl.textContent = expressions.length + ' expressions';
+
+        header.appendChild(dot);
+        header.appendChild(nameEl);
+        header.appendChild(countEl);
+        section.appendChild(header);
+
+        var grid = document.createElement('div');
+        grid.className = 'expression-grid';
+        grid.id = 'family-' + family;
+
+        expressions.forEach(function(expr) {
+          var btn = document.createElement('button');
+          btn.className = 'expression-btn' + (expr.signature ? ' signature' : '');
+          btn.textContent = expr.name;
+          btn.addEventListener('click', function() { setExpression(expr, btn); });
+          grid.appendChild(btn);
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
+      });
+    }
+
+    function buildMicroGrid() {
+      var grid = document.getElementById('microGrid');
+      Object.entries(MICRO_EXPRESSIONS).forEach(function(entry) {
+        var name = entry[0];
+        var micro = entry[1];
+
+        var card = document.createElement('div');
+        card.className = 'micro-card';
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'micro-name';
+        nameEl.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+
+        var durationEl = document.createElement('div');
+        durationEl.className = 'micro-duration';
+        durationEl.textContent = micro.duration + 'ms';
+
+        var glowEl = document.createElement('div');
+        glowEl.className = 'micro-glow';
+        glowEl.textContent = micro.glow + ' glow';
+
+        card.appendChild(nameEl);
+        card.appendChild(durationEl);
+        card.appendChild(glowEl);
+
+        card.addEventListener('click', function() { playMicroExpression(micro.lid, micro.glow, micro.duration); });
+        grid.appendChild(card);
       });
     }
 
     function setExpression(expr, btn) {
-      document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.expression-btn').forEach(function(b) { b.classList.remove('active'); });
       if (btn) btn.classList.add('active');
+
       lidLeft.setAttribute('d', expr.lid);
       lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
       avatarGlow.style.background = GLOW_COLORS[expr.glow];
+
+      // Apply eye scaling
+      var scale = expr.eyeScale || [1.0, 1.0];
+      var newRx = BASE_EYE_RX * scale[0];
+      var newRy = BASE_EYE_RY * scale[1];
+      [eyeLeft, eyeClipLeftShape].forEach(function(el) { el.setAttribute('rx', newRx); el.setAttribute('ry', newRy); });
+      [eyeRight, eyeClipRightShape].forEach(function(el) { el.setAttribute('rx', newRx); el.setAttribute('ry', newRy); });
+
       currentExpressionEl.textContent = expr.name;
       expressionTriggerEl.textContent = expr.trigger;
+      infoLid.textContent = expr.lid;
+      infoGlow.textContent = expr.glow.charAt(0).toUpperCase() + expr.glow.slice(1);
+      infoScale.textContent = scale[0] + 'x, ' + scale[1] + 'x';
+
       if (expr.signature) playConfettiBurst();
     }
 
     function playConfettiBurst() {
-      confettis.forEach((c, i) => {
+      confettis.forEach(function(c) {
         c.classList.remove('active');
         void c.offsetWidth;
         c.classList.add('active');
       });
-      setTimeout(() => confettis.forEach(c => c.classList.remove('active')), 1000);
+      setTimeout(function() { confettis.forEach(function(c) { c.classList.remove('active'); }); }, 1000);
     }
 
-    document.querySelectorAll('.micro-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.dataset.micro;
-        if (type === 'confetti') playConfettiBurst();
-        else if (type === 'excitement') playMicroExpression('M 50,78 Q 70,82 90,78', 'warm', 100);
-        else if (type === 'milestone') { playMicroExpression('M 50,82 Q 70,88 90,82', 'golden', 120); playConfettiBurst(); }
-      });
-    });
-
     function playMicroExpression(lid, glow, duration) {
-      const currentLid = lidLeft.getAttribute('d');
-      const currentGlow = avatarGlow.style.background;
+      var currentLid = lidLeft.getAttribute('d');
+      var currentGlow = avatarGlow.style.background;
+
       lidLeft.setAttribute('d', lid);
       lidRight.setAttribute('d', lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
       avatarGlow.style.background = GLOW_COLORS[glow];
       avatarGlow.style.opacity = '0.9';
-      setTimeout(() => {
+
+      setTimeout(function() {
         lidLeft.setAttribute('d', currentLid);
         lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
         avatarGlow.style.background = currentGlow;
@@ -405,35 +772,54 @@
       }, duration);
     }
 
-    buildExpressionGrid();
+    // Random blinking (1.0x timing: 3-7s intervals)
+    function scheduleBlink() {
+      var minInterval = 3000;  // 3s (1.0x)
+      var maxInterval = 7000;  // 7s (1.0x)
+      var nextBlink = minInterval + Math.random() * (maxInterval - minInterval);
+
+      setTimeout(function() {
+        blink();
+        scheduleBlink();
+      }, nextBlink);
+    }
+
+    function blink() {
+      eyesGroup.style.transition = 'transform 0.08s ease-in';
+      eyesGroup.style.transform = 'scaleY(0.1)';
+      setTimeout(function() {
+        eyesGroup.style.transition = 'transform 0.08s ease-out';
+        eyesGroup.style.transform = 'scaleY(1)';
+      }, 80);
+    }
+
+    // Micro button handlers
+    document.querySelectorAll('.micro-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var type = btn.dataset.micro;
+        if (type === 'confetti') {
+          playConfettiBurst();
+        } else if (MICRO_EXPRESSIONS[type]) {
+          var micro = MICRO_EXPRESSIONS[type];
+          playMicroExpression(micro.lid, micro.glow, micro.duration);
+          if (type === 'milestone' || type === 'party') playConfettiBurst();
+        }
+      });
+    });
+
+    // Initialize
+    buildExpressionFamilies();
+    buildMicroGrid();
+    scheduleBlink();
+
+    // Set initial expression
+    setExpression(EXPRESSION_FAMILIES.celebration[0], document.querySelector('.expression-btn'));
   </script>
 
-  <footer>
-    <div class="footer-logo">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
-        <!-- LUXO STYLE: opaque white eyes, no pupils -->
-        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-      </svg>
-    </div>
-    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
-    <nav class="footer-links" aria-label="Footer navigation">
-      <a href="../../capabilities/index.html">Capabilities</a>
-      <a href="../../brand-book.html">Brand Book</a>
-      <a href="../../brand-kit.html">Brand Kit</a>
-      <a href="../../icons.html">Icons</a>
-      <a href="../../components.html">Components</a>
-      <a href="../../accessibility.html">Accessibility</a>
-      <a href="../../sound-design.html">Sound</a>
-    </nav>
-    <p class="footer-copyright">Ferni Brand Library v2.0</p>
-  </footer>
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../shared/nav.js" defer></script>
 </body>
 </html>

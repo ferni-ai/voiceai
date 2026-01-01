@@ -262,6 +262,99 @@ export const onTrustMilestoneChange = createDomainHook<TrustMilestoneEntity>({
 });
 
 // ============================================================================
+// NEW MEMORY ENHANCEMENT HOOKS (December 2024)
+// ============================================================================
+
+interface CuriosityMentionEntity {
+  entity: string;
+  entityType: 'person' | 'place' | 'event' | 'activity' | 'goal';
+  originalContext: string;
+  priority: 'low' | 'medium' | 'high';
+  followUpEligible: boolean;
+  mentionedAt: string;
+}
+
+/**
+ * Track passing mentions for follow-up (Curiosity Memory)
+ * "You mentioned Sam a few weeks ago. How are they?"
+ */
+export const onCuriosityMentionChange = createDomainHook<CuriosityMentionEntity>({
+  storeType: 'trust',
+  entityType: 'curiosity_mention',
+  contentBuilder: (c) =>
+    joinNonEmpty([
+      `Curiosity mention: ${c.entity} (${c.entityType}).`,
+      `Original context: ${c.originalContext}.`,
+      `Priority: ${c.priority}.`,
+      c.followUpEligible ? 'Eligible for follow-up.' : 'Already followed up.',
+    ]),
+  metadataExtractor: (c) => ({
+    entityType: c.entityType,
+    priority: c.priority,
+    followUpEligible: c.followUpEligible,
+    date: c.mentionedAt,
+  }),
+});
+
+interface BetweenSessionThinkingEntity {
+  topic: string;
+  reflection: string;
+  sessionNumber: number;
+  depth: 'surface' | 'moderate' | 'deep';
+  emotionalTone?: string;
+  createdAt: string;
+}
+
+/**
+ * Track between-session thinking moments (Continuous Presence)
+ * "I've been thinking about what you said..."
+ */
+export const onBetweenSessionThinkingChange = createDomainHook<BetweenSessionThinkingEntity>({
+  storeType: 'trust',
+  entityType: 'between_session_thinking',
+  contentBuilder: (b) =>
+    joinNonEmpty([
+      `Between-session reflection: ${b.topic}.`,
+      `Ferni's thought: ${b.reflection}.`,
+      `Depth: ${b.depth}.`,
+      formatField('Emotional tone', b.emotionalTone),
+    ]),
+  metadataExtractor: (b) => ({
+    depth: b.depth,
+    sessionNumber: b.sessionNumber,
+    date: b.createdAt,
+  }),
+});
+
+interface PersonaGrowthEntity {
+  personaId: string;
+  growthType: 'perspective' | 'empathy' | 'knowledge' | 'curiosity' | 'values';
+  description: string;
+  userInfluence: string;
+  date: string;
+}
+
+/**
+ * Track how personas grow and change over time (Mutual Growth)
+ * "You've changed how I think about this"
+ */
+export const onPersonaGrowthChange = createDomainHook<PersonaGrowthEntity>({
+  storeType: 'trust',
+  entityType: 'persona_growth',
+  contentBuilder: (p) =>
+    joinNonEmpty([
+      `Persona growth (${p.personaId}): ${p.description}.`,
+      `Growth type: ${p.growthType}.`,
+      `User's influence: ${p.userInfluence}.`,
+    ]),
+  metadataExtractor: (p) => ({
+    personaId: p.personaId,
+    growthType: p.growthType,
+    date: p.date,
+  }),
+});
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -276,6 +369,10 @@ export const trustHooks = {
   onTonalMemoryChange,
   onVulnerabilityMomentChange,
   onTrustMilestoneChange,
+  // New memory enhancement hooks
+  onCuriosityMentionChange,
+  onBetweenSessionThinkingChange,
+  onPersonaGrowthChange,
 };
 
 export default trustHooks;

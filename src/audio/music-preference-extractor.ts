@@ -38,35 +38,147 @@ export interface ExtractedMusicPreference {
 
 const MUSIC_GENRES = new Set([
   // Main genres
-  'pop', 'rock', 'jazz', 'classical', 'hip hop', 'hip-hop', 'rap', 'r&b', 'rnb',
-  'country', 'folk', 'electronic', 'edm', 'house', 'techno', 'dubstep', 'trance',
-  'metal', 'punk', 'indie', 'alternative', 'blues', 'soul', 'funk', 'disco',
-  'reggae', 'ska', 'latin', 'salsa', 'bachata', 'cumbia', 'k-pop', 'kpop',
-  'j-pop', 'jpop', 'anime', 'lofi', 'lo-fi', 'chill', 'ambient', 'new age',
+  'pop',
+  'rock',
+  'jazz',
+  'classical',
+  'hip hop',
+  'hip-hop',
+  'rap',
+  'r&b',
+  'rnb',
+  'country',
+  'folk',
+  'electronic',
+  'edm',
+  'house',
+  'techno',
+  'dubstep',
+  'trance',
+  'metal',
+  'punk',
+  'indie',
+  'alternative',
+  'blues',
+  'soul',
+  'funk',
+  'disco',
+  'reggae',
+  'ska',
+  'latin',
+  'salsa',
+  'bachata',
+  'cumbia',
+  'k-pop',
+  'kpop',
+  'j-pop',
+  'jpop',
+  'anime',
+  'lofi',
+  'lo-fi',
+  'chill',
+  'ambient',
+  'new age',
   // Sub-genres
-  'death metal', 'black metal', 'thrash metal', 'progressive rock', 'prog rock',
-  'classic rock', 'soft rock', 'hard rock', 'grunge', 'shoegaze', 'post-punk',
-  'synth-pop', 'synthwave', 'retrowave', 'vaporwave', 'future bass', 'drum and bass',
-  'dnb', 'trap', 'drill', 'grime', 'garage', 'uk garage', 'afrobeats', 'afropop',
-  'bossa nova', 'smooth jazz', 'acid jazz', 'bebop', 'big band', 'swing',
-  'broadway', 'show tunes', 'musical theater', 'opera', 'orchestral', 'chamber',
-  'worship', 'gospel', 'christian', 'praise', 'hymns',
+  'death metal',
+  'black metal',
+  'thrash metal',
+  'progressive rock',
+  'prog rock',
+  'classic rock',
+  'soft rock',
+  'hard rock',
+  'grunge',
+  'shoegaze',
+  'post-punk',
+  'synth-pop',
+  'synthwave',
+  'retrowave',
+  'vaporwave',
+  'future bass',
+  'drum and bass',
+  'dnb',
+  'trap',
+  'drill',
+  'grime',
+  'garage',
+  'uk garage',
+  'afrobeats',
+  'afropop',
+  'bossa nova',
+  'smooth jazz',
+  'acid jazz',
+  'bebop',
+  'big band',
+  'swing',
+  'broadway',
+  'show tunes',
+  'musical theater',
+  'opera',
+  'orchestral',
+  'chamber',
+  'worship',
+  'gospel',
+  'christian',
+  'praise',
+  'hymns',
   // Moods/styles (often used as genres)
-  'chill', 'relaxing', 'upbeat', 'energetic', 'sad', 'happy', 'romantic',
-  'workout', 'focus', 'study', 'sleep', 'meditation', 'party', 'driving',
+  'chill',
+  'relaxing',
+  'upbeat',
+  'energetic',
+  'sad',
+  'happy',
+  'romantic',
+  'workout',
+  'focus',
+  'study',
+  'sleep',
+  'meditation',
+  'party',
+  'driving',
 ]);
 
 // Common words that indicate preference expressions
 const LIKE_INDICATORS = [
-  'love', 'like', 'enjoy', 'dig', 'into', 'favorite', 'favourite', 'best',
-  'obsessed with', 'fan of', 'really into', 'always listen to', 'can\'t get enough of',
-  'my jam', 'my thing', 'vibe with', 'prefer', 'appreciate', 'adore'
+  'love',
+  'like',
+  'enjoy',
+  'dig',
+  'into',
+  'favorite',
+  'favourite',
+  'best',
+  'obsessed with',
+  'fan of',
+  'really into',
+  'always listen to',
+  "can't get enough of",
+  'my jam',
+  'my thing',
+  'vibe with',
+  'prefer',
+  'appreciate',
+  'adore',
 ];
 
 const DISLIKE_INDICATORS = [
-  'hate', 'dislike', 'can\'t stand', 'not a fan', 'not into', 'don\'t like',
-  'not my thing', 'never liked', 'avoid', 'skip', 'can\'t listen to',
-  'tired of', 'sick of', 'annoyed by', 'bored by', 'not for me'
+  'hate',
+  'dislike',
+  "can't stand",
+  'not a fan',
+  'not into',
+  "don't like",
+  'not my thing',
+  'never liked',
+  'avoid',
+  'skip',
+  "can't listen to",
+  'tired of',
+  'sick of',
+  'annoyed by',
+  'bored by',
+  'not for me',
 ];
 
 // ============================================================================
@@ -100,7 +212,10 @@ export function extractMusicPreferences(text: string): ExtractedMusicPreference[
     for (const indicator of LIKE_INDICATORS) {
       const likePatterns = [
         new RegExp(`\\b${escapeRegex(indicator)}\\b.*\\b${escapeRegex(genre)}\\b`, 'i'),
-        new RegExp(`\\b${escapeRegex(genre)}\\b.*\\b(is|are)\\s+(my|the)\\s+(favorite|best|jam)`, 'i'),
+        new RegExp(
+          `\\b${escapeRegex(genre)}\\b.*\\b(is|are)\\s+(my|the)\\s+(favorite|best|jam)`,
+          'i'
+        ),
       ];
 
       for (const pattern of likePatterns) {
@@ -168,12 +283,15 @@ export function extractMusicPreferences(text: string): ExtractedMusicPreference[
   }
 
   // De-duplicate results (same value + type + category)
-  const unique = results.filter((item, index, self) =>
-    index === self.findIndex((t) => (
-      t.type === item.type &&
-      t.category === item.category &&
-      t.value.toLowerCase() === item.value.toLowerCase()
-    ))
+  const unique = results.filter(
+    (item, index, self) =>
+      index ===
+      self.findIndex(
+        (t) =>
+          t.type === item.type &&
+          t.category === item.category &&
+          t.value.toLowerCase() === item.value.toLowerCase()
+      )
   );
 
   if (unique.length > 0) {

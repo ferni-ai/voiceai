@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from '../ui/toast.ui.js';
+import { toast } from '../ui/whisper.ui.js';
 import { getAdminHeadersAsync } from './admin-api.js';
 
 const log = createLogger('AdminEvents');

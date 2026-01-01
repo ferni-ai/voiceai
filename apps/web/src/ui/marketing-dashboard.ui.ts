@@ -334,7 +334,7 @@ export class MarketingDashboard {
           <div class="post-item">
             <span class="post-platform">${post.platform === 'twitter' ? '𝕏' : 'in'}</span>
             <div class="post-content">
-              <span class="post-preview">${this.truncate(Array.isArray(post.content) ? post.content[0] : post.content, 60)}</span>
+              <span class="post-preview">${this.truncate(Array.isArray(post.content) ? (post.content[0] ?? '') : post.content, 60)}</span>
               <span class="post-time">${this.formatDate(post.scheduledAt)}</span>
             </div>
             <span class="post-status ${post.status}">${post.status}</span>

@@ -170,14 +170,22 @@ export async function saveThread(thread: ConversationThread): Promise<boolean> {
     log.debug({ threadId: thread.id, userId: thread.userId }, 'Thread saved to Firestore');
 
     // Index to semantic memory
-    void onConversationThreadChange(thread.userId, thread.id, {
-      topic: thread.topicTags.length > 0 ? thread.topicTags.join(', ') : 'conversation',
-      participantAgents: [thread.currentOwnerId, ...thread.ownershipHistory.map(h => h.toAgentId)],
-      messageCount: thread.messageCount,
-      startedAt: thread.startedAt.toISOString(),
-      emotionalContext: thread.emotionalContext?.current,
-      status: thread.status as 'active' | 'paused' | 'closed',
-    }, 'update');
+    void onConversationThreadChange(
+      thread.userId,
+      thread.id,
+      {
+        topic: thread.topicTags.length > 0 ? thread.topicTags.join(', ') : 'conversation',
+        participantAgents: [
+          thread.currentOwnerId,
+          ...thread.ownershipHistory.map((h) => h.toAgentId),
+        ],
+        messageCount: thread.messageCount,
+        startedAt: thread.startedAt.toISOString(),
+        emotionalContext: thread.emotionalContext?.current,
+        status: thread.status as 'active' | 'paused' | 'closed',
+      },
+      'update'
+    );
 
     return true;
   } catch (error) {

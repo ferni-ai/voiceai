@@ -435,15 +435,20 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
       );
 
     // Semantic indexing
-    void onScheduledOutreachChange(outreach.userId, outreach.id, {
-      type: outreach.type as 'check_in' | 'reminder' | 'celebration' | 'thinking_of_you',
-      reason: outreach.message,
-      scheduledFor: outreach.scheduledFor.toISOString(),
-      channel: 'voice',
-      priority: outreach.priority as 'low' | 'normal' | 'high',
-      status: outreach.status as 'pending' | 'sent' | 'cancelled',
-      createdAt: outreach.createdAt.toISOString(),
-    }, 'create');
+    void onScheduledOutreachChange(
+      outreach.userId,
+      outreach.id,
+      {
+        type: outreach.type as 'check_in' | 'reminder' | 'celebration' | 'thinking_of_you',
+        reason: outreach.message,
+        scheduledFor: outreach.scheduledFor.toISOString(),
+        channel: 'voice',
+        priority: outreach.priority as 'low' | 'normal' | 'high',
+        status: outreach.status as 'pending' | 'sent' | 'cancelled',
+        createdAt: outreach.createdAt.toISOString(),
+      },
+      'create'
+    );
   } catch (error) {
     log.debug({ error: String(error) }, 'Failed to persist outreach');
   }

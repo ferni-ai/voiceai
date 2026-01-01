@@ -21,6 +21,7 @@ import type {
 
 /**
  * Track user's dreams and aspirations
+ * Only indexes active dreams (skips deferred, achieved, abandoned)
  */
 export const onDreamChange = createDomainHook<DreamEntity>({
   storeType: 'superhuman',
@@ -37,7 +38,8 @@ export const onDreamChange = createDomainHook<DreamEntity>({
     timeframe: d.timeframe,
     status: d.status,
   }),
-  shouldSkip: (d) => d.status === 'deferred',
+  // Only index active dreams - achieved/deferred/abandoned are no longer relevant
+  shouldSkip: (d) => d.status !== 'active',
 });
 
 // ============================================================================
@@ -230,6 +232,7 @@ interface CommitmentKeeperEntity {
 
 /**
  * Track commitment keeping
+ * Only indexes pending/overdue commitments (skips completed/forgiven)
  */
 export const onCommitmentKeeperChange = createDomainHook<CommitmentKeeperEntity>({
   storeType: 'superhuman',
@@ -244,7 +247,8 @@ export const onCommitmentKeeperChange = createDomainHook<CommitmentKeeperEntity>
     status: c.status,
     remindersSent: c.remindersSent,
   }),
-  shouldSkip: (c) => c.status === 'forgiven',
+  // Only index active commitments - completed/forgiven are no longer relevant for reminders
+  shouldSkip: (c) => c.status === 'completed' || c.status === 'forgiven',
 });
 
 interface RelationshipNetworkEntity {

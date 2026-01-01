@@ -79,13 +79,13 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 }
 
 // Helper to get userId from headers or query
-function getUserId(req: IncomingMessage, pathname: string): string | null {
+function getUserId(req: IncomingMessage, _pathname: string): string | null {
   // Check header first
   const headerUserId = req.headers['x-user-id'] as string | undefined;
   if (headerUserId) return headerUserId;
 
-  // Check query param
-  const url = new URL(pathname, 'http://localhost');
+  // Check query param (use req.url which includes query string)
+  const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
   const queryUserId = url.searchParams.get('userId');
   if (queryUserId) return queryUserId;
 

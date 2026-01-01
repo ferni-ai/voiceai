@@ -34,7 +34,7 @@ vi.mock('../services/voice-auth.service.js', () => ({
   getVoiceAuthService: vi.fn(() => mockVoiceAuthService),
 }));
 
-vi.mock('./toast.ui.js', () => ({
+vi.mock('./whisper.ui.js', () => ({
   toast: mockToast,
 }));
 

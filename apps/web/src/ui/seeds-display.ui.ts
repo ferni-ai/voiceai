@@ -18,7 +18,7 @@ import {
 } from '../services/seeds-economy.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { openGardenDashboard } from './garden-dashboard.ui.js';
 import { openGiftSeeds } from './gift-seeds.ui.js';
 import { openReferral } from './referral.ui.js';
@@ -384,7 +384,7 @@ export function renderSeedsSettingsCard(): string {
 
       <div class="seeds-settings-row">
         <div class="seeds-settings-value">
-          <span style="color: var(--persona-text)">${ICONS.seed}</span>
+          <span style="color: var(--persona-primary, #4a6741)">${ICONS.seed}</span>
           <span class="seeds-settings-value-text" data-seeds-amount>${balance.toLocaleString()}</span>
         </div>
         <span class="seeds-settings-info">seeds to share</span>

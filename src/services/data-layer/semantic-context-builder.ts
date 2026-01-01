@@ -395,7 +395,9 @@ export class SemanticContextBuilder {
       // Tasks (high priority only)
       if (productivity?.tasks?.length) {
         const importantTasks = productivity.tasks
-          .filter((t) => t.status !== 'completed' && (t.priority === 'high' || t.priority === 'urgent'))
+          .filter(
+            (t) => t.status !== 'completed' && (t.priority === 'high' || t.priority === 'urgent')
+          )
           .slice(0, 3);
         if (importantTasks.length > 0) {
           summary.tasks = importantTasks.map((t) => {
@@ -410,7 +412,11 @@ export class SemanticContextBuilder {
         const activeBills = productivity.bills.filter((b) => b.isActive).slice(0, 3);
         if (activeBills.length > 0) {
           summary.bills = activeBills.map((b) => {
-            const dueInfo = b.nextDueDate ? ` (due: ${b.nextDueDate})` : b.dueDay ? ` (due: day ${b.dueDay})` : '';
+            const dueInfo = b.nextDueDate
+              ? ` (due: ${b.nextDueDate})`
+              : b.dueDay
+                ? ` (due: day ${b.dueDay})`
+                : '';
             return `${b.name}: $${b.amount}${dueInfo}`;
           });
         }

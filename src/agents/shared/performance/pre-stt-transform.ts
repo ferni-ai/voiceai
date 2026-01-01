@@ -262,7 +262,10 @@ class SimpleJSAgc {
 
     // Calculate target gain
     if (this.envelope > 0.001) {
-      const targetGain = Math.min(this.maxGain, Math.max(this.minGain, this.targetLevel / this.envelope));
+      const targetGain = Math.min(
+        this.maxGain,
+        Math.max(this.minGain, this.targetLevel / this.envelope)
+      );
       // Smooth gain changes
       this.currentGain = this.currentGain + 0.01 * (targetGain - this.currentGain);
     }
@@ -406,10 +409,7 @@ export class PreSTTProcessor {
       this.jsAgc = new SimpleJSAgc();
     }
     if (this.config.enableHighpass) {
-      this.jsHighpass = new SimpleJSHighpass(
-        this.config.highpassCutoffHz,
-        this.config.sampleRate
-      );
+      this.jsHighpass = new SimpleJSHighpass(this.config.highpassCutoffHz, this.config.sampleRate);
     }
 
     log.info(
@@ -463,8 +463,7 @@ export class PreSTTProcessor {
       // Apply AGC
       if (this.jsAgc) {
         const gain = this.jsAgc.process(result);
-        metrics.avgAgcGain =
-          (metrics.avgAgcGain * (this.frameCount - 1) + gain) / this.frameCount;
+        metrics.avgAgcGain = (metrics.avgAgcGain * (this.frameCount - 1) + gain) / this.frameCount;
       }
     }
 

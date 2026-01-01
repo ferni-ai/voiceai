@@ -42,11 +42,7 @@ vi.mock('../../../memory/index.js', () => ({
 }));
 
 // Import after mocks
-import {
-  registerTaskHandler,
-  getTaskHandler,
-  TaskQueueService,
-} from '../task-queue.js';
+import { registerTaskHandler, getTaskHandler, TaskQueueService } from '../task-queue.js';
 import { WorkflowEngine } from '../workflow-engine.js';
 import { DelegationService } from '../delegation-service.js';
 import type { BackgroundData, BackgroundTask, Workflow } from '../background-types.js';
@@ -222,9 +218,9 @@ describe('TaskQueueService', () => {
 
       const allTasks = await taskQueue.getUserTasks('test-user');
       expect(allTasks.length).toBe(3);
-      
+
       // Filter by type manually
-      const emailTasks = allTasks.filter(t => t.type === 'email');
+      const emailTasks = allTasks.filter((t) => t.type === 'email');
       expect(emailTasks.length).toBe(2);
     });
   });
@@ -233,7 +229,7 @@ describe('TaskQueueService', () => {
     it('should register a task handler', () => {
       const handler = vi.fn();
       registerTaskHandler('test_type', handler);
-      
+
       const retrieved = getTaskHandler('test_type');
       expect(retrieved).toBe(handler);
     });

@@ -12,8 +12,8 @@
  * @module intelligence/context-builders/loader
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
 import { isFeatureEnabled } from '../../../config/feature-flags.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { BUILDER_IMPORTS } from './builder-imports.js';
 import { BuilderCategory } from './categories.js';
 
@@ -147,7 +147,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // MEMORY - Cross-session persistence
   // NOTE: unified-memory-orchestrator consolidates memory, advanced-memory, proactive-memory,
   // and human-memory into a single coordinated system. Legacy builders disabled to avoid redundancy.
+  // NEW: better-than-human-memory provides proactive surfacing with timing, learning, and graph-based recall.
   [BuilderCategory.MEMORY]: [
+    'superhuman-session-priming', // NEW: Surfaces ALL superhuman memory at session start (Better Than Human)
+    'better-than-human-memory', // P0: Proactive surfacing with timing intelligence and learning
     'unified-memory-orchestrator', // PRIMARY: Coordinates all memory subsystems
     // 'memory',               // DISABLED: Consolidated into orchestrator
     // 'advanced-memory',      // DISABLED: Consolidated into orchestrator
@@ -158,6 +161,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'cross-session-reflection', // KEPT: Reflection prompts are unique
     'cross-session-threading', // KEPT: Threading context is unique
     'thinking-of-you', // NEW: Proactive callbacks and "I was thinking about you" moments
+    'memory-enhancement', // NEW: Tonal memory, curiosity follow-through, between-session thinking, persona growth
   ],
 
   // PERSONA - Character and identity
@@ -300,6 +304,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     // 'energy-mirroring',     // DISABLED: Consolidated into unified-humanizing
     // 'energy-awareness',     // DISABLED: Consolidated into unified-humanizing
     'tool-humanization', // Natural tool usage framing (NOT consolidated)
+    'conversational-imperfections', // Mid-sentence corrections, word-finding, thought pivots (Dec 2024)
     // BETTER THAN HUMAN (Dec 2024) - These are NEW features, not part of unified-humanizing
     'proactive-noticing', // "I notice..." pattern surfacing
     'commitment-follow-up', // Accountability tracking
@@ -415,7 +420,7 @@ async function loadBuildersByCategory(): Promise<{
     if (!modules || modules.length === 0) continue;
 
     // Load all modules in this category in parallel
-    const results = await Promise.allSettled(modules.map((m) => loadBuilderModule(m)));
+    const results = await Promise.allSettled(modules.map(async (m) => loadBuilderModule(m)));
 
     results.forEach((result, index) => {
       if (result.status === 'fulfilled' && result.value) {

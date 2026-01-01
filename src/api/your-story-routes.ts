@@ -193,14 +193,11 @@ export interface YourStoryData {
 
 async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
   try {
-    const { getRhythmStats } = await import(
-      '../services/personal-journey/rhythm-awareness.js'
-    );
+    const { getRhythmStats } = await import('../services/personal-journey/rhythm-awareness.js');
 
     const stats = getRhythmStats(userId);
     const hour = new Date().getHours();
-    const greeting =
-      hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
     return {
       greeting,
@@ -225,9 +222,8 @@ async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
 
 async function fetchRelationshipProgress(userId: string): Promise<RelationshipProgress> {
   try {
-    const { loadRelationshipArcData, getCurrentStage } = await import(
-      '../intelligence/context-builders/relationship-arc/storage.js'
-    );
+    const { loadRelationshipArcData, getCurrentStage } =
+      await import('../intelligence/context-builders/relationship-arc/storage.js');
 
     const stage = await getCurrentStage(userId);
     const arcData = await loadRelationshipArcData(userId);
@@ -297,9 +293,8 @@ async function fetchRelationshipProgress(userId: string): Promise<RelationshipPr
 
 async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
   try {
-    const { assessBurnoutRisk, loadEnergyHistory } = await import(
-      '../services/superhuman/capacity-guardian.js'
-    );
+    const { assessBurnoutRisk, loadEnergyHistory } =
+      await import('../services/superhuman/capacity-guardian.js');
 
     const [assessment, history] = await Promise.all([
       assessBurnoutRisk(userId),
@@ -352,17 +347,15 @@ async function fetchEnergyLevels(userId: string): Promise<EnergyLevels> {
       mental: { score: 68, label: 'Some mental fatigue building' },
       physical: { score: 72, label: 'Body feeling energized' },
       trend: 'stable',
-      recommendation:
-        'A short break or mindful pause could help restore mental clarity.',
+      recommendation: 'A short break or mindful pause could help restore mental clarity.',
     };
   }
 }
 
 async function fetchMoodCalendar(userId: string): Promise<MoodCalendarData> {
   try {
-    const { loadMoodEntries, detectMoodPatterns } = await import(
-      '../services/superhuman/mood-calendar.js'
-    );
+    const { loadMoodEntries, detectMoodPatterns } =
+      await import('../services/superhuman/mood-calendar.js');
 
     const now = new Date();
     const entries = await loadMoodEntries(userId, 30);
@@ -389,9 +382,7 @@ async function fetchMoodCalendar(userId: string): Promise<MoodCalendarData> {
     }
 
     // Calculate summary
-    const calmDays = entries.filter(
-      (e) => e.mood === 'calm' || e.mood === 'content'
-    ).length;
+    const calmDays = entries.filter((e) => e.mood === 'calm' || e.mood === 'content').length;
     const patterns = detectMoodPatterns(entries);
     const dominantMood = patterns[0]?.pattern || 'Calm';
 
@@ -418,9 +409,7 @@ async function fetchMoodCalendar(userId: string): Promise<MoodCalendarData> {
 
 async function fetchGrowthData(userId: string): Promise<GrowthData> {
   try {
-    const { getGrowthVisibilityEngine } = await import(
-      '../services/growth-visibility-engine.js'
-    );
+    const { getGrowthVisibilityEngine } = await import('../services/growth-visibility-engine.js');
 
     const engine = getGrowthVisibilityEngine(userId);
     engine.detectGrowth();
@@ -475,9 +464,7 @@ async function fetchGrowthData(userId: string): Promise<GrowthData> {
 
 async function fetchLifeChapters(userId: string): Promise<LifeChapter[]> {
   try {
-    const { getChapterMoments } = await import(
-      '../services/personal-journey/chapter-detector.js'
-    );
+    const { getChapterMoments } = await import('../services/personal-journey/chapter-detector.js');
 
     const moments = getChapterMoments(userId);
     const now = new Date().getFullYear();
@@ -542,9 +529,8 @@ async function fetchRecoveryPath(userId: string): Promise<RecoveryPath> {
 
 async function fetchYourWorld(userId: string): Promise<YourWorld> {
   try {
-    const { loadNetwork, findConnectionOpportunities } = await import(
-      '../services/superhuman/relationship-network.js'
-    );
+    const { loadNetwork, findConnectionOpportunities } =
+      await import('../services/superhuman/relationship-network.js');
 
     const network = await loadNetwork(userId);
     // findConnectionOpportunities is async, need to await
@@ -574,8 +560,7 @@ async function fetchYourWorld(userId: string): Promise<YourWorld> {
 
     return {
       totalConnections: network.length,
-      activeConnections: network.filter((p) => p.mentionGapDays && p.mentionGapDays < 30)
-        .length,
+      activeConnections: network.filter((p) => p.mentionGapDays && p.mentionGapDays < 30).length,
       needsAttention,
       categories,
       reconnectWith,
@@ -598,9 +583,8 @@ async function fetchYourWorld(userId: string): Promise<YourWorld> {
 
 async function fetchOpenLoops(userId: string): Promise<OpenLoopsData> {
   try {
-    const { getLoopsReadyForFollowUp, getAllOpenLoops } = await import(
-      '../services/superhuman/semantic-intelligence/open-loops.js'
-    );
+    const { getLoopsReadyForFollowUp, getAllOpenLoops } =
+      await import('../services/superhuman/semantic-intelligence/open-loops.js');
 
     // Get all open loops and those ready for follow-up
     const [allLoops, ready] = await Promise.all([
@@ -634,9 +618,7 @@ async function fetchOpenLoops(userId: string): Promise<OpenLoopsData> {
       total: ready.length,
       closedThisWeek: 5, // Would need to track this
       byPriority,
-      oldestLoop: oldest
-        ? { content: oldest.content, age: formatAge(oldest.created) }
-        : undefined,
+      oldestLoop: oldest ? { content: oldest.content, age: formatAge(oldest.created) } : undefined,
       items,
     };
   } catch (error) {
@@ -652,9 +634,7 @@ async function fetchOpenLoops(userId: string): Promise<OpenLoopsData> {
 
 async function fetchPrediction(userId: string): Promise<PredictionData> {
   try {
-    const { runPredictiveAnalysis } = await import(
-      '../services/predictive-insights/index.js'
-    );
+    const { runPredictiveAnalysis } = await import('../services/predictive-insights/index.js');
 
     const insights = await runPredictiveAnalysis(userId);
     const primary = insights[0];
@@ -751,7 +731,7 @@ export async function handleYourStoryRoutes(
     return true;
   }
 
-  const userId = auth.userId;
+  const { userId } = auth;
 
   // ========================================================================
   // GET /api/your-story/full - Complete dashboard data

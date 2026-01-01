@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
@@ -711,7 +711,7 @@ async function generateStarters(): Promise<void> {
     
     // Auto-select first if available
     if (state.starters.length > 0) {
-      state.selectedStarter = state.starters[0];
+      state.selectedStarter = state.starters[0] ?? null;
     }
     
     render();
@@ -736,7 +736,7 @@ async function generateStarters(): Promise<void> {
       state.isLoading = false;
       
       if (state.starters.length > 0) {
-        state.selectedStarter = state.starters[0];
+        state.selectedStarter = state.starters[0] ?? null;
       }
       
       render();

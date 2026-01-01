@@ -256,7 +256,7 @@ export class CognitiveLoadDetector {
     // Calculate baseline WPM (guard against division by zero)
     const totalWords = baseline.reduce((sum, o) => sum + o.wordCount, 0);
     const totalDuration = baseline.reduce((sum, o) => sum + o.durationMs, 0);
-    
+
     // Only calculate WPM if we have meaningful duration and words
     if (totalDuration > 0 && totalWords > 0) {
       this.baselineWPM = (totalWords / totalDuration) * 60000;

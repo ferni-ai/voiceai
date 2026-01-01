@@ -22,8 +22,8 @@
 
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
-import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
@@ -90,6 +90,12 @@ export interface UnifiedTrustProfile {
     media?: unknown;
     insights?: unknown;
     crossPersonaInsights?: unknown;
+    // New memory enhancement systems
+    tonalMemory?: unknown;
+    betweenSessionThinking?: unknown;
+    personaGrowth?: unknown;
+    curiosityMemory?: unknown;
+    conversationTexture?: unknown;
   };
 
   /** Metadata */

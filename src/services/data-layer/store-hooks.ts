@@ -131,10 +131,7 @@ async function enforceMaxPerUser(
     }
   } catch (error) {
     // Log but don't fail - this is a best-effort cleanup
-    log.debug(
-      { userId, entityType, error: String(error) },
-      'maxPerUser enforcement skipped'
-    );
+    log.debug({ userId, entityType, error: String(error) }, 'maxPerUser enforcement skipped');
   }
 }
 

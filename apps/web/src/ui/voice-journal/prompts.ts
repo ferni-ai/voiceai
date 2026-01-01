@@ -13,6 +13,15 @@ import { t } from '../../i18n/index.js';
 
 const log = createLogger('VoiceJournalPrompts');
 
+// Default prompt fallback
+const DEFAULT_PROMPT: JournalPrompt = {
+  id: 'default-reflection',
+  category: 'reflection',
+  prompt: "What's on your mind today?",
+  difficulty: 'gentle',
+  estimatedMinutes: 3,
+};
+
 // ============================================================================
 // PROMPT CACHE FOR OFFLINE USE
 // ============================================================================
@@ -83,7 +92,7 @@ function getPromptFromCache(excludeId?: string): JournalPrompt | null {
   
   // Get a random prompt from cache
   const index = Math.floor(Math.random() * available.length);
-  return available[index];
+  return available[index] ?? null;
 }
 
 /**
@@ -250,7 +259,8 @@ export async function fetchPrompt(selectedMood?: string): Promise<JournalPrompt>
 
   // Final fallback to local prompts
   const timeBasedPrompts = getTimeBasedPrompts();
-  return timeBasedPrompts[Math.floor(Math.random() * timeBasedPrompts.length)];
+  const fallbackIndex = Math.floor(Math.random() * timeBasedPrompts.length);
+  return timeBasedPrompts[fallbackIndex] ?? timeBasedPrompts[0] ?? DEFAULT_PROMPT;
 }
 
 export function shufflePrompt(): void {
@@ -267,7 +277,8 @@ export function shufflePrompt(): void {
   // Fall back to local prompts
   const prompts = getTimeBasedPrompts();
   const filtered = prompts.filter((p) => p.id !== currentPrompt?.id);
-  const newPrompt = filtered[Math.floor(Math.random() * filtered.length)];
+  const newPromptIndex = Math.floor(Math.random() * filtered.length);
+  const newPrompt = filtered[newPromptIndex] ?? prompts[0] ?? DEFAULT_PROMPT;
   setCurrentPrompt(newPrompt);
   renderPromptSection();
 }

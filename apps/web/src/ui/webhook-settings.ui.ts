@@ -13,7 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
@@ -92,40 +92,44 @@ function createSvgIcon(pathD: string, viewBox = '0 0 24 24'): SVGSVGElement {
   for (const d of paths) {
     if (d.startsWith('L:')) {
       // Line element: L:x1,y1,x2,y2
-      const [, coords] = d.split(':');
+      const coords = d.split(':')[1];
+      if (!coords) continue;
       const [x1, y1, x2, y2] = coords.split(',');
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', x1);
-      line.setAttribute('y1', y1);
-      line.setAttribute('x2', x2);
-      line.setAttribute('y2', y2);
+      line.setAttribute('x1', x1 ?? '0');
+      line.setAttribute('y1', y1 ?? '0');
+      line.setAttribute('x2', x2 ?? '0');
+      line.setAttribute('y2', y2 ?? '0');
       svg.appendChild(line);
     } else if (d.startsWith('P:')) {
       // Polyline: P:points
-      const [, points] = d.split(':');
+      const points = d.split(':')[1];
+      if (!points) continue;
       const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
       polyline.setAttribute('points', points);
       svg.appendChild(polyline);
     } else if (d.startsWith('R:')) {
       // Rect: R:x,y,w,h,rx,ry
-      const [, coords] = d.split(':');
+      const coords = d.split(':')[1];
+      if (!coords) continue;
       const [x, y, w, h, rx, ry] = coords.split(',');
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', x);
-      rect.setAttribute('y', y);
-      rect.setAttribute('width', w);
-      rect.setAttribute('height', h);
+      rect.setAttribute('x', x ?? '0');
+      rect.setAttribute('y', y ?? '0');
+      rect.setAttribute('width', w ?? '0');
+      rect.setAttribute('height', h ?? '0');
       if (rx) rect.setAttribute('rx', rx);
       if (ry) rect.setAttribute('ry', ry);
       svg.appendChild(rect);
     } else if (d.startsWith('C:')) {
       // Circle: C:cx,cy,r
-      const [, coords] = d.split(':');
+      const coords = d.split(':')[1];
+      if (!coords) continue;
       const [cx, cy, r] = coords.split(',');
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', cx);
-      circle.setAttribute('cy', cy);
-      circle.setAttribute('r', r);
+      circle.setAttribute('cx', cx ?? '0');
+      circle.setAttribute('cy', cy ?? '0');
+      circle.setAttribute('r', r ?? '0');
       svg.appendChild(circle);
     } else {
       // Path element

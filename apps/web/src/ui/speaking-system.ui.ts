@@ -18,7 +18,6 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('SpeakingSystem');
 

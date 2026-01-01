@@ -161,6 +161,7 @@ import { handleBatchOperationsRoutes } from '../../api/batch-operations-routes.j
 import { handleWebhookManagementRoutes } from '../../api/webhook-management-routes.js';
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
+import { handleMemoryRoutes } from '../../api/memory-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import {
   handleTwilioRoutes,
@@ -723,6 +724,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Memory routes (Superhuman Memory - feedback, metrics, health)
+    if (pathname.startsWith('/api/memory')) {
+      const handled = await handleMemoryRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Relationship routes (progress & team-unlocks before health routes)
     if (
       pathname === '/api/relationship/progress' ||
@@ -824,7 +831,6 @@ const server = http.createServer(async (req, res) => {
       const handled = await handlePredictionsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
-
 
     // Year in review ("Your Year with Ferni") routes
     if (pathname.startsWith('/api/year-in-review')) {

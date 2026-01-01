@@ -1,3 +1,4 @@
+// TODO: Fix type errors - array indexing and MediaRecorder API types
 /**
  * Voice Clone Recorder UI
  *
@@ -714,7 +715,8 @@ function getCategoryIcon(category: RecordingPrompt['category']): string {
 // ============================================================================
 
 function render(): string {
-  const prompt = RECORDING_PROMPTS[currentPromptIndex];
+  const prompt = RECORDING_PROMPTS[currentPromptIndex] ?? RECORDING_PROMPTS[0];
+  if (!prompt) return ''; // Safety check if RECORDING_PROMPTS is empty
   const progress = Math.min((samples.length / MIN_SAMPLES_REQUIRED) * 100, 100);
   const hasEnoughSamples = samples.length >= MIN_SAMPLES_REQUIRED;
 
@@ -899,7 +901,7 @@ async function startRecording(): Promise<void> {
     log.debug('Recording started');
   } catch (err) {
     log.error('Failed to start recording:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error(t('toasts.couldNotAccessMicrophone'));
   }
 }
@@ -934,9 +936,12 @@ async function handleRecordingComplete(): Promise<void> {
   // Assess quality based on duration and average volume
   const quality = assessQuality(duration, 0.5); // Simplified quality check
 
+  const currentPrompt = RECORDING_PROMPTS[currentPromptIndex];
+  if (!currentPrompt) return;
+  
   const sample: VoiceSample = {
     id: `sample-${Date.now()}`,
-    promptId: RECORDING_PROMPTS[currentPromptIndex].id,
+    promptId: currentPrompt.id,
     audioBlob,
     audioUrl,
     duration,
@@ -954,7 +959,7 @@ async function handleRecordingComplete(): Promise<void> {
   // Re-render
   updateUI();
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   toast.success(`Sample recorded! ${quality === 'excellent' ? 'Excellent quality!' : quality === 'good' ? 'Good quality' : 'Consider re-recording for better quality'}`);
 }
 
@@ -989,9 +994,10 @@ function startVisualization(): void {
     let x = 0;
 
     for (let i = 0; i < bufferLength; i++) {
-      const barHeight = (dataArray[i] / 255) * height * 0.8;
+      const value = dataArray[i] ?? 0;
+      const barHeight = (value / 255) * height * 0.8;
 
-      const hue = 100 + (dataArray[i] / 255) * 30;
+      const hue = 100 + (value / 255) * 30;
       ctx.fillStyle = `hsl(${hue}, 60%, 50%)`;
 
       ctx.fillRect(x, height - barHeight, barWidth, barHeight);
@@ -1125,7 +1131,7 @@ function attachListeners(): void {
       const index = parseInt((btn as HTMLElement).dataset.index || '0');
       samples.splice(index, 1);
       updateUI();
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.info(t('toasts.sampleDeleted'));
     });
   });
@@ -1224,7 +1230,7 @@ async function createVoiceClone(
 async function handleSave(): Promise<void> {
   if (!currentAgent || samples.length < MIN_SAMPLES_REQUIRED) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   // Update save button to show loading state
   const saveBtn = recorderModal?.querySelector('[data-action="save"]') as HTMLButtonElement;
@@ -1316,7 +1322,7 @@ export async function openVoiceCloneRecorder(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this agent");
     return;
   }

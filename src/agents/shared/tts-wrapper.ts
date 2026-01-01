@@ -55,6 +55,12 @@ export interface TtsSessionContext {
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
   emotion?: string;
+  /** User's IP-detected location for weather, local content */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
 }
 
 /**
@@ -143,6 +149,7 @@ export async function wrappedTtsNode(
   const wasInterrupted = sessionContext?.wasInterrupted;
   const interruptType = sessionContext?.interruptType;
   const emotion = sessionContext?.emotion;
+  const userLocation = sessionContext?.userLocation;
 
   // 1. Filter JSON function calls (Gemini workaround)
   // SKIP when semantic routing is the primary tool calling method.
@@ -160,12 +167,67 @@ export async function wrappedTtsNode(
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
 
-    // Merge tools with session context so sanitizer has access to userId/personaId
+    // 🔍 E2E TRACE: Log raw LLM output BEFORE sanitization
+    // This is CRITICAL for diagnosing tool call issues (Gemini problem pattern)
+    let rawLLMBuffer = '';
+    const rawLLMLogger = new NodeTransformStream<string, string>({
+      transform(chunk, controller) {
+        rawLLMBuffer += chunk;
+        controller.enqueue(chunk);
+      },
+      flush() {
+        // Log the complete raw LLM output for this turn
+        if (rawLLMBuffer.length > 0) {
+          const containsJson = rawLLMBuffer.includes('{"fn"') || rawLLMBuffer.includes('"fn":');
+          const containsWeather = rawLLMBuffer.toLowerCase().includes('weather');
+          const containsMusic =
+            rawLLMBuffer.toLowerCase().includes('music') ||
+            rawLLMBuffer.toLowerCase().includes('play');
+
+          // Detect common Gemini problem patterns - when LLM talks ABOUT an action instead of DOING it
+          const geminiProblemPatterns = [
+            /let me check/i,
+            /i('ll| will) (check|look|get|find)/i,
+            /checking (the|your|on)/i,
+            /i('m| am) having trouble/i,
+            /i seem to be having.*(trouble|difficulty|issue)/i, // "I seem to be having a bit of trouble"
+            /having (a bit of |some )?(trouble|difficulty|issue)/i, // generic trouble
+            /i can('t|not) (access|get|check)/i,
+            /unfortunately/i,
+            /i('m| am) not able to/i,
+            /i don't (seem to )?have access/i,
+          ];
+          const hasGeminiProblem = geminiProblemPatterns.some((p) => p.test(rawLLMBuffer));
+
+          // E2E TRACE LOG - Always visible in production logs
+          log.info(
+            {
+              trace: 'E2E_LLM_OUTPUT',
+              rawOutput: rawLLMBuffer.slice(0, 500),
+              fullLength: rawLLMBuffer.length,
+              containsJson,
+              containsWeather,
+              containsMusic,
+              hasGeminiProblem,
+              verdict: containsJson
+                ? '✅ JSON_DETECTED'
+                : hasGeminiProblem
+                  ? '🚨 GEMINI_PROBLEM_PATTERN'
+                  : '💬 PLAIN_TEXT',
+            },
+            `🔍 E2E TRACE [1/4] LLM OUTPUT: ${containsJson ? 'JSON' : hasGeminiProblem ? '⚠️ GEMINI PROBLEM' : 'text'} (${rawLLMBuffer.length} chars)`
+          );
+        }
+      },
+    });
+
+    // Merge tools with session context so sanitizer has access to userId/personaId/userLocation
     // This is needed for location-based tools (weather) and observability tracking
     const toolContext = {
       ...tools,
       userId,
       personaId,
+      userLocation,
     };
 
     const sanitizerWithFallback = createSanitizerWithMusicFallback(
@@ -173,7 +235,9 @@ export async function wrappedTtsNode(
       options.session,
       sessionId
     );
-    filteredText = text.pipeThrough(sanitizerWithFallback);
+
+    // Pipe: Raw LLM → Logger → Sanitizer
+    filteredText = text.pipeThrough(rawLLMLogger).pipeThrough(sanitizerWithFallback);
   }
 
   // 2. Apply interrupt-aware transform for softer recovery
@@ -202,11 +266,13 @@ export async function wrappedTtsNode(
     log.debug('🎭 Interrupt recovery applied to streaming response');
   }
 
-  // 3. Create cost tracking stream for FinOps
+  // 3. Create cost tracking stream for FinOps + E2E Trace [4/4]
   let totalCharacters = 0;
+  let ttsOutputBuffer = '';
   const costTrackingStream = new NodeTransformStream<string, string>({
     transform(chunk, controller) {
       totalCharacters += chunk.length;
+      ttsOutputBuffer += chunk;
       controller.enqueue(chunk);
     },
     flush() {
@@ -227,9 +293,16 @@ export async function wrappedTtsNode(
           sessionId,
         });
 
-        log.debug(
-          { characters: totalCharacters, estimatedTokens: estimatedOutputTokens },
-          'FinOps: TTS/LLM costs recorded'
+        // 🔍 E2E TRACE [4/4]: What actually goes to TTS (spoken to user)
+        log.info(
+          {
+            trace: 'E2E_TTS_OUTPUT',
+            ttsText: ttsOutputBuffer.slice(0, 300),
+            fullLength: totalCharacters,
+            estimatedTokens: estimatedOutputTokens,
+            isEmpty: ttsOutputBuffer.trim().length === 0,
+          },
+          `🔍 E2E TRACE [4/4] → TTS: "${ttsOutputBuffer.slice(0, 100)}${ttsOutputBuffer.length > 100 ? '...' : ''}"`
         );
       }
     },
@@ -333,6 +406,9 @@ export function extractTtsSessionContext(
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
+    userLocation: userData?.userLocation as
+      | { city?: string; regionCode?: string; countryCode?: string }
+      | undefined,
   };
 }
 

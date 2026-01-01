@@ -1,10 +1,20 @@
 /**
  * Coaching & Support Domain Tools
  *
- * Comprehensive coaching tools that were identified as missing from the domain bridge.
- * These tools support motivation, boundaries, discipline, burnout recovery, and more.
+ * EXTENDS: self-compassion domain
  *
- * DOMAIN: coaching-support
+ * Comprehensive coaching tools that complement the core self-compassion domain.
+ * While self-compassion has foundational tools (inner critic, self-acceptance,
+ * Kristin Neff methods), this module adds practical life coaching tools:
+ * - Motivation, discipline, procrastination
+ * - Boundaries, communication, conflict resolution
+ * - Burnout recovery, energy restoration
+ * - Parenting, elder care, family support
+ * - Dating, relationships, breakup support
+ * - Habits, sleep, anger management
+ *
+ * NOTE: All tools register under 'self-compassion' domain to consolidate
+ * related coaching functionality in one domain namespace.
  */
 
 import { createDomainExport } from '../../registry/loader.js';

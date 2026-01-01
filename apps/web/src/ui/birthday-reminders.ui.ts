@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
@@ -703,8 +703,9 @@ async function saveSettings(): Promise<void> {
 
 function formatTime(time: string): string {
   const [hours] = time.split(':');
-  const h = parseInt(hours);
-  if (h === 0) return '12:00 AM';
+  if (!hours) return '12:00 PM';
+  const h = parseInt(hours, 10);
+  if (isNaN(h) || h === 0) return '12:00 AM';
   if (h < 12) return `${h}:00 AM`;
   if (h === 12) return '12:00 PM';
   return `${h - 12}:00 PM`;

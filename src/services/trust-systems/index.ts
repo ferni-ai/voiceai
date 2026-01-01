@@ -20,43 +20,43 @@
 // ============================================================================
 
 export {
-  detectUnsaidSignals,
-  getAvoidedTopics,
-  getUnsaidProfile,
-  exportUnsaidProfile,
-  importUnsaidProfile,
-  recordDidShare,
-  recordDeflectionPattern,
-  getDeflectionStats,
   buildDeflectionContext,
+  detectUnsaidSignals,
+  exportUnsaidProfile,
+  getAvoidedTopics,
+  getDeflectionStats,
+  getUnsaidProfile,
+  importUnsaidProfile,
+  recordDeflectionPattern,
+  recordDidShare,
   shouldAvoidTopic,
   type UnsaidSignal,
   type UserUnsaidProfile,
 } from './reading-between-lines.js';
 
 export {
+  buildProtectiveMemoryContext,
   checkBoundary,
+  detectBoundarySoftening,
   detectNewBoundary,
   exportBoundaries,
   getActiveBoundaries,
+  getBoundarySoftening,
+  getPrematureAdviceRecords,
   getProbingDepth,
   importBoundaries,
   isTopicOffLimits,
   recordBoundaryRespect,
-  recordUserReopened,
-  updateProbingTolerance,
   // Protective Memory enhancements
   recordPrematureAdvice,
+  recordUserReopened,
   shouldAvoidAdviceAbout,
-  getPrematureAdviceRecords,
-  detectBoundarySoftening,
-  getBoundarySoftening,
-  buildProtectiveMemoryContext,
+  updateProbingTolerance,
   type Boundary,
   type BoundaryCheckResult,
   type BoundaryProfile,
-  type PrematureAdviceRecord,
   type BoundarySoftening,
+  type PrematureAdviceRecord,
 } from './boundary-memory.js';
 
 export {
@@ -148,14 +148,19 @@ export {
 // ============================================================================
 
 import {
+  buildDeflectionContext,
   detectUnsaidSignals,
   getAvoidedTopics,
   recordDeflectionPattern,
-  buildDeflectionContext,
   type UnsaidSignal,
 } from './reading-between-lines.js';
 
-import { checkBoundary, detectNewBoundary, type BoundaryCheckResult } from './boundary-memory.js';
+import {
+  buildProtectiveMemoryContext,
+  checkBoundary,
+  detectNewBoundary,
+  type BoundaryCheckResult,
+} from './boundary-memory.js';
 
 import {
   generateGrowthReflection,
@@ -189,9 +194,7 @@ import {
   type FirstTimeVulnerabilityResult,
 } from './first-time-vulnerability.js';
 
-import { recordLinguisticPatterns, buildLinguisticContext } from './linguistic-mirroring.js';
-
-import { buildProtectiveMemoryContext } from './boundary-memory.js';
+import { buildLinguisticContext, recordLinguisticPatterns } from './linguistic-mirroring.js';
 
 /**
  * Unified trust context for a conversation turn
@@ -890,6 +893,7 @@ export {
 // ============================================================================
 
 export {
+  clearUserThinking,
   detectThinkingWorthy,
   getAllUnsurfacedThinking,
   getThinkingMomentToSurface,
@@ -909,6 +913,7 @@ export {
 
 export {
   clearSessionState as clearTonalSessionState,
+  clearTonalProfile,
   detectRecurringPatterns as detectTonalPatterns,
   getAllTopicPatterns,
   getBestInsight as getBestTonalInsight,
@@ -929,6 +934,8 @@ export {
 // ============================================================================
 
 export {
+  clearAllUserGrowth,
+  clearPersonaGrowth,
   detectGrowthOpportunity,
   getAllGrowthProfiles,
   getGrowthMomentToShare,
@@ -948,54 +955,103 @@ export {
 
 // First-Time Vulnerability Detection
 export {
-  firstTimeVulnerability,
-  detectFirstTimeVulnerability,
-  recordVulnerabilityShare,
-  getVulnerabilityProfile,
-  hasSharedAboutTopic,
-  getHighestVulnerabilityLevel,
   buildFirstTimeVulnerabilityContext,
   buildVulnerabilityAwarenessContext,
-  saveVulnerabilityProfile,
+  detectFirstTimeVulnerability,
+  firstTimeVulnerability,
+  getHighestVulnerabilityLevel,
+  getVulnerabilityProfile,
+  hasSharedAboutTopic,
   loadVulnerabilityProfile,
+  recordVulnerabilityShare,
+  saveVulnerabilityProfile,
   type FirstTimeVulnerabilityResult,
+  type TopicVulnerability,
   type VulnerabilityLevel,
   type VulnerabilityProfile,
   type VulnerabilityThreshold,
-  type TopicVulnerability,
 } from './first-time-vulnerability.js';
 
 // Linguistic Mirroring - Learn and use their vocabulary
 export {
-  linguisticMirroring,
-  recordLinguisticPatterns,
   adaptResponseStyle,
-  getTheirWordFor,
-  isWordAvoided,
   buildLinguisticContext,
   getLinguisticProfile,
-  saveLinguisticProfile,
+  getTheirWordFor,
+  isWordAvoided,
+  linguisticMirroring,
   loadLinguisticProfile,
+  recordLinguisticPatterns,
+  saveLinguisticProfile,
+  type AvoidedWord,
+  type FormalityLevel,
   type LinguisticProfile,
   type SignaturePhrase,
-  type AvoidedWord,
   type SpeechPatterns,
-  type FormalityLevel,
 } from './linguistic-mirroring.js';
 
 // Ambient Context Detection - Understand environment from audio
 export {
   ambientContext,
   analyzeAmbientAudio,
+  buildAmbientContext,
   getAmbientResponse,
   recordAmbientSignal,
-  buildAmbientContext,
   type AmbientContext,
   type AmbientResponse,
   type AmbientSignal,
   type AmbientSignalType,
   type Environment,
 } from './ambient-context.js';
+
+// ============================================================================
+// CURIOSITY MEMORY - Follow Through on Passing Mentions
+// ============================================================================
+
+export {
+  clearSessionState as clearCuriositySessionState,
+  clearUserMentions,
+  detectPassingMentions,
+  getAllUnfollowedMentions,
+  getCuriosityProfileForPersistence,
+  getFollowUpOpportunity,
+  getMentionsByType,
+  loadCuriosityProfile,
+  markFollowedUp,
+  recordPassingMention,
+  type CuriosityProfile,
+  type FollowUpOpportunity,
+  type MentionType,
+  type PassingMention,
+} from './curiosity-memory.js';
+
+// ============================================================================
+// CONVERSATION TEXTURE - The "feel" of past conversations
+// ============================================================================
+
+export {
+  clearUserTexture,
+  compareToUsual,
+  detectDepth,
+  detectTone,
+  finalizeSessionTexture,
+  getRecentTextureSummary,
+  getTextureProfileForPersistence,
+  getUsualTextureSummary,
+  loadTextureProfile,
+  recordDepthSignal,
+  recordMemorableMoment,
+  recordToneSignal,
+  recordTopics,
+  startSessionTexture,
+  type ConversationRhythm,
+  type ConversationTextureProfile,
+  type ConversationTextureSnapshot,
+  type ConversationTone,
+  type DepthLevel,
+  type EnergyPattern,
+  type TextureComparison,
+} from './conversation-texture.js';
 
 // ============================================================================
 // DEFAULT EXPORT

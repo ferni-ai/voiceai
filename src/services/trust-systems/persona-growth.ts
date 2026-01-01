@@ -576,7 +576,7 @@ function getPersonaDefaultThinking(personaId: string, topic?: string): string {
 
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 function extractTopicFromText(text: string): string {
@@ -631,6 +631,24 @@ export function getAllGrowthProfiles(userId: string): PersonaGrowthProfile[] {
   return result;
 }
 
+/**
+ * Clear all growth records for a persona (for testing)
+ */
+export function clearPersonaGrowth(userId: string, personaId: string): void {
+  profiles.delete(`${userId}:${personaId}`);
+}
+
+/**
+ * Clear all growth records for a user across all personas (for testing)
+ */
+export function clearAllUserGrowth(userId: string): void {
+  for (const key of profiles.keys()) {
+    if (key.startsWith(`${userId}:`)) {
+      profiles.delete(key);
+    }
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -643,4 +661,6 @@ export default {
   loadPersonaGrowthProfile,
   getPersonaGrowthForPersistence,
   getAllGrowthProfiles,
+  clearPersonaGrowth,
+  clearAllUserGrowth,
 };

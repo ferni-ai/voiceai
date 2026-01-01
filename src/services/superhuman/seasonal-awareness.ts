@@ -12,6 +12,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onSeasonalPatternChange } from '../data-layer/hooks/superhuman-hooks.js';
+import {
+  onImportantDateApproaching,
+  onSeasonalPatternDetected,
+} from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'seasonal-awareness' });
 
@@ -348,6 +352,23 @@ export async function recordSeasonalObservation(
   observationCache.set(userId, observations);
 
   log.info({ userId, type: newObs.type, month: newObs.month }, '🗓️ Seasonal observation recorded');
+
+  // Better Than Human: Trigger proactive outreach for recurring patterns
+  if (newObs.observationCount >= 2) {
+    try {
+      await onSeasonalPatternDetected(userId, {
+        season: newObs.season,
+        pattern: `${newObs.type}: ${newObs.observation}`,
+        historicalOccurrences: newObs.observationCount,
+      });
+    } catch (outreachError) {
+      log.debug(
+        { error: String(outreachError) },
+        'Seasonal pattern outreach failed (non-blocking)'
+      );
+    }
+  }
+
   return newObs;
 }
 

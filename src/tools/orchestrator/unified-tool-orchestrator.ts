@@ -45,6 +45,8 @@ import {
   initializeUnifiedIntelligence,
   type IntelligenceEnhancement,
 } from '../intelligence/index.js';
+// Memory-aware routing for personalized tool selection
+import { getMemoryAwareRouter, type EnhancedToolScore } from '../memory-aware-router.js';
 import { toolRegistry } from '../registry/index.js';
 import { initializeToolRegistry, loadToolDomainsLazy } from '../registry/loader.js';
 import {
@@ -562,8 +564,48 @@ export class UnifiedToolOrchestrator {
       }
     }
 
-    // Limit to max tools
-    const finalTools = this.limitTools(allTools, this.config.maxTools);
+    // 7. MEMORY-AWARE ROUTING (Better Than Human personalization)
+    // Uses user's tool history to boost tools they've had success with
+    let memoryBoosts: EnhancedToolScore[] = [];
+    try {
+      const memoryRouter = getMemoryAwareRouter();
+      const toolIds = Object.keys(allTools);
+
+      // Get recent tool IDs from context carrier (via context)
+      const recentToolIds = request.context?.sessionId
+        ? this.getRecentToolsFromSession(request.context.sessionId)
+        : [];
+
+      memoryBoosts = await memoryRouter.enhanceScores(
+        {
+          userId: request.userId,
+          sessionId: request.context?.sessionId || '',
+          query: request.transcript,
+          topic: request.context?.currentTopic,
+          emotion: request.context?.emotion,
+          personaId: request.agentId,
+          recentToolIds,
+        },
+        // Start with base score of 1.0 for all tools
+        toolIds.map((id) => ({ toolId: id, score: 1.0 }))
+      );
+
+      log.debug(
+        {
+          toolsWithBoosts: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length,
+          topBoosts: memoryBoosts
+            .filter((b) => b.memoryBoost > 1.0)
+            .slice(0, 3)
+            .map((b) => ({ id: b.toolId, boost: b.memoryBoost.toFixed(2) })),
+        },
+        '🧠 Memory-aware routing applied'
+      );
+    } catch (routerError) {
+      log.debug({ error: String(routerError) }, 'Memory-aware routing unavailable');
+    }
+
+    // Limit to max tools (using memory boosts for prioritization)
+    const finalTools = this.limitTools(allTools, this.config.maxTools, memoryBoosts);
 
     // ======== NEW: Debug logging from config ========
     if (this.config.logToolSchemas) {
@@ -924,26 +966,43 @@ export class UnifiedToolOrchestrator {
   }
 
   /**
-   * Limit tools to maxTools, prioritizing essential and high-similarity matches
+   * Limit tools to maxTools, prioritizing essential domains and memory-aware boosts
    */
-  private limitTools(tools: Record<string, Tool>, maxTools: number): Record<string, Tool> {
+  private limitTools(
+    tools: Record<string, Tool>,
+    maxTools: number,
+    memoryBoosts: EnhancedToolScore[] = []
+  ): Record<string, Tool> {
     const entries = Object.entries(tools);
 
     if (entries.length <= maxTools) {
       return tools;
     }
 
-    // Sort: essential domains first, then by name (stable sort)
+    // Build boost lookup map
+    const boostMap = new Map(memoryBoosts.map((b) => [b.toolId, b.finalScore]));
+
+    // Sort: essential domains first, then by memory boost score, then by name
     const sorted = entries.sort(([idA], [idB]) => {
       const toolA = toolRegistry.get(idA);
       const toolB = toolRegistry.get(idB);
 
+      // Priority 1: Essential domains always come first
       const aEssential = toolA && this.config.alwaysDomains.includes(toolA.domain);
       const bEssential = toolB && this.config.alwaysDomains.includes(toolB.domain);
 
       if (aEssential && !bEssential) return -1;
       if (bEssential && !aEssential) return 1;
-      return 0;
+
+      // Priority 2: Memory-aware boost scores (higher = better)
+      const aBoost = boostMap.get(idA) ?? 1.0;
+      const bBoost = boostMap.get(idB) ?? 1.0;
+
+      if (aBoost !== bBoost) {
+        return bBoost - aBoost; // Higher boost first
+      }
+
+      return 0; // Stable sort preserves original order
     });
 
     const limited = sorted.slice(0, maxTools);
@@ -953,9 +1012,30 @@ export class UnifiedToolOrchestrator {
       result[id] = tool;
     }
 
-    log.debug({ original: entries.length, limited: limited.length }, '🔪 Tools limited to max');
+    log.debug(
+      {
+        original: entries.length,
+        limited: limited.length,
+        withBoosts: memoryBoosts.filter((b) => b.memoryBoost !== 1.0).length,
+      },
+      '🔪 Tools limited to max (memory-aware)'
+    );
 
     return result;
+  }
+
+  /**
+   * Get recent tools used in the session from context carrier
+   */
+  private getRecentToolsFromSession(sessionId: string): string[] {
+    try {
+      const { getContextCarrier } = require('../context-carrier.js');
+      const carrier = getContextCarrier();
+      const sessionContext = carrier.getSessionContext(sessionId);
+      return sessionContext?.toolsUsed?.slice(-10) || [];
+    } catch {
+      return [];
+    }
   }
 
   /**

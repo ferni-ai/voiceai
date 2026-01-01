@@ -81,3 +81,4 @@ lint/tmp/
 
 # Secrets
 secrets.properties
+keystore.properties

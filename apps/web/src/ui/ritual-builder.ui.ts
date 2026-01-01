@@ -1,3 +1,4 @@
+// TODO: Fix type errors - step array indexing
 /**
  * Custom Ritual Builder UI
  *
@@ -38,8 +39,11 @@ function formatTime(hour: number, minute: number): string {
 function parseDurationToMinutes(duration: string): number {
   const match = duration.match(/(\d+)\s*(min|sec)/i);
   if (!match) return 5; // default
-  const value = parseInt(match[1], 10);
-  const unit = match[2].toLowerCase();
+  const valueStr = match[1];
+  const unitStr = match[2];
+  if (!valueStr || !unitStr) return 5;
+  const value = parseInt(valueStr, 10);
+  const unit = unitStr.toLowerCase();
   return unit === 'sec' ? Math.ceil(value / 60) : value;
 }
 
@@ -676,7 +680,9 @@ class RitualBuilderUI {
     const timeInput = this.wrapper.querySelector('#specific-time') as HTMLInputElement;
     timeInput?.addEventListener('change', () => {
       if (timeInput.value) {
-        const [hours, minutes] = timeInput.value.split(':').map(Number);
+        const timeParts = timeInput.value.split(':').map(Number);
+        const hours = timeParts[0] ?? 0;
+        const minutes = timeParts[1] ?? 0;
         if (!isNaN(hours) && !isNaN(minutes)) {
           this.ritual.specificTime = { hour: hours, minute: minutes };
         }

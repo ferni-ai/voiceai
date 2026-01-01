@@ -19,7 +19,7 @@ packages:
 settings:
   base:
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "4"
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: "XT8W26YE9U"
     CODE_SIGN_STYLE: Automatic
@@ -61,6 +61,8 @@ targets:
     info:
       path: FerniVoice/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Ferni
         UILaunchStoryboardName: LaunchScreen
         UIBackgroundModes:
@@ -77,6 +79,9 @@ targets:
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).FerniCarPlaySceneDelegate
         # Core permissions
         NSMicrophoneUsageDescription: Ferni needs microphone access for voice conversations with your AI team.
+        # Required by LiveKit SDK (even if not used directly)
+        NSCameraUsageDescription: Ferni may use the camera for future video features.
+        NSMotionUsageDescription: Ferni may use motion data to enhance your experience.
         # HealthKit - wellness insights
         NSHealthShareUsageDescription: Ferni uses health data to provide personalized wellness insights and notice when you might need extra support.
         NSHealthUpdateUsageDescription: Ferni may save wellness notes to your Health app.
@@ -101,6 +106,21 @@ targets:
           - com.ferni.vent
           - com.ferni.gratitude
         UIUserInterfaceStyle: Dark
+        # Required for iPad multitasking support
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Required for background task scheduling
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.ferni.refresh
+          - com.ferni.sync
     entitlements:
       path: FerniVoice/FerniVoice.entitlements
     settings:
@@ -135,6 +155,8 @@ targets:
     info:
       path: FerniWidgets/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Ferni Widgets
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -147,7 +169,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "4"
         MARKETING_VERSION: "1.0.0"
 
   # MARK: - watchOS Targets
@@ -167,6 +189,8 @@ targets:
     info:
       path: FerniWatch/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Ferni
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.sethdford.ferni
@@ -179,7 +203,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "4"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -196,6 +220,8 @@ targets:
     info:
       path: FerniWatchWidgets/Info.plist
       properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Ferni Watch Widgets
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -208,7 +234,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "4"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -223,6 +249,17 @@ targets:
         type: group
     info:
       path: FerniShareExtension/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Share with Ferni
+        NSExtension:
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
     entitlements:
       path: FerniShareExtension/FerniShareExtension.entitlements
     settings:
@@ -232,7 +269,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
         GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "4"
         MARKETING_VERSION: "1.0.0"
 
 schemes:
@@ -244,10 +281,12 @@ schemes:
         FerniWidgets: all
     run:
       config: Debug
+      storeKitConfiguration: Ferni.storekit
     test:
       config: Debug
       targets:
         - FerniVoiceTests
+      storeKitConfiguration: Ferni.storekit
     profile:
       config: Release
     analyze:

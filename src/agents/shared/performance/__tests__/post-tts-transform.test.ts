@@ -80,23 +80,29 @@ describe('PostTTSTransform', () => {
       expect(preset.enableTempoVariation).toBe(false);
     });
 
-    it('warmIntimate should enable vocal fry for intimate trailing off', () => {
+    it('warmIntimate should have vocal fry disabled (sounds robotic)', () => {
       const preset = PostTTSPresets.warmIntimate;
-      expect(preset.enableVocalFry).toBe(true);
+      // Vocal fry disabled due to audio quality issues - sounds robotic
+      expect(preset.enableVocalFry).toBe(false);
+      // Config values preserved for when feature is fixed
       expect(preset.vocalFryDepth).toBe(0.3);
       expect(preset.vocalFryDurationMs).toBe(150);
       expect(preset.enableLipSmacks).toBe(false);
     });
 
-    it('ultraRealistic should enable ALL advanced humanization', () => {
+    it('ultraRealistic should have advanced humanization disabled (deprecated)', () => {
       const preset = PostTTSPresets.ultraRealistic;
-      expect(preset.enableVocalFry).toBe(true);
-      expect(preset.vocalFryDepth).toBe(0.4);
-      expect(preset.enableLipSmacks).toBe(true);
-      expect(preset.lipSmackProbability).toBe(0.25);
-      expect(preset.enableTempoVariation).toBe(true);
-      expect(preset.tempoVariationDepth).toBe(0.03);
-      expect(preset.enableAdaptivePacing).toBe(true);
+      // DEPRECATED: Advanced features disabled due to audio quality issues
+      // - Vocal fry: sounds robotic
+      // - Lip smacks: sounds like glitches
+      // - Tempo variation: causes artifacts
+      expect(preset.enableVocalFry).toBe(false);
+      expect(preset.vocalFryDepth).toBe(0.4); // Config preserved
+      expect(preset.enableLipSmacks).toBe(false);
+      expect(preset.lipSmackProbability).toBe(0.25); // Config preserved
+      expect(preset.enableTempoVariation).toBe(false);
+      expect(preset.tempoVariationDepth).toBe(0.03); // Config preserved
+      expect(preset.enableAdaptivePacing).toBe(false); // Not properly implemented
     });
 
     it('bypass should disable all processing', () => {
@@ -319,8 +325,8 @@ describe('Persona Humanization Config', () => {
   describe('buildPersonaPostTTSConfig', () => {
     it('should use recommended preset when no config provided', () => {
       const config = buildPersonaPostTTSConfig('maya-santos');
-      // Maya's warmIntimate preset has vocal fry enabled
-      expect(config.enableVocalFry).toBe(true);
+      // Maya's warmIntimate preset has vocal fry disabled (sounds robotic)
+      expect(config.enableVocalFry).toBe(false);
       expect(config.personaId).toBe('maya-santos');
     });
 
@@ -329,10 +335,10 @@ describe('Persona Humanization Config', () => {
         preset: 'ultraRealistic',
       };
       const config = buildPersonaPostTTSConfig('ferni', personaConfig);
-      // ultraRealistic has all advanced features enabled
-      expect(config.enableVocalFry).toBe(true);
-      expect(config.enableLipSmacks).toBe(true);
-      expect(config.enableTempoVariation).toBe(true);
+      // ultraRealistic has advanced features DISABLED (deprecated due to quality issues)
+      expect(config.enableVocalFry).toBe(false);
+      expect(config.enableLipSmacks).toBe(false);
+      expect(config.enableTempoVariation).toBe(false);
     });
 
     it('should allow individual overrides in persona config', () => {
@@ -372,6 +378,69 @@ describe('Persona Humanization Config', () => {
       const config = buildPersonaPostTTSConfig('ferni', {}, {});
       expect(config).toBeDefined();
       expect(config.personaId).toBe('ferni');
+    });
+  });
+
+  // =========================================================================
+  // NEW HUMANIZATION FEATURES (December 2024)
+  // =========================================================================
+
+  describe('New Humanization Features', () => {
+    describe('OnsetSoftening', () => {
+      it('should have enableOnsetSoftening in DEFAULT_CONFIG', () => {
+        expect('enableOnsetSoftening' in DEFAULT_CONFIG).toBe(true);
+      });
+
+      it('should support onset softening in presets', () => {
+        expect(PostTTSPresets.bypass.enableOnsetSoftening).toBe(false);
+        expect(PostTTSPresets.betterThanHuman.enableOnsetSoftening).toBe(false);
+        expect(PostTTSPresets.warmIntimate.enableOnsetSoftening).toBe(false);
+      });
+
+      it('should allow enabling onset softening via persona config', () => {
+        const personaConfig: PersonaHumanizationConfig = {
+          enableOnsetSoftening: true,
+        };
+        const config = buildPersonaPostTTSConfig('ferni', personaConfig);
+        expect(config.enableOnsetSoftening).toBe(true);
+      });
+    });
+
+    describe('TempoVariation', () => {
+      it('should have enableTempoVariation in DEFAULT_CONFIG', () => {
+        expect('enableTempoVariation' in DEFAULT_CONFIG).toBe(true);
+      });
+
+      it('should have tempoVariationDepth configuration', () => {
+        expect('tempoVariationDepth' in DEFAULT_CONFIG).toBe(true);
+        expect(typeof DEFAULT_CONFIG.tempoVariationDepth).toBe('number');
+      });
+    });
+
+    describe('VocalFry', () => {
+      it('should have vocalFry configuration options', () => {
+        expect('enableVocalFry' in DEFAULT_CONFIG).toBe(true);
+        expect('vocalFryDepth' in DEFAULT_CONFIG).toBe(true);
+        expect('vocalFryDurationMs' in DEFAULT_CONFIG).toBe(true);
+      });
+
+      it('should preserve vocalFry config values even when disabled', () => {
+        // Values are preserved for when feature is fixed
+        expect(PostTTSPresets.warmIntimate.vocalFryDepth).toBe(0.3);
+        expect(PostTTSPresets.warmIntimate.vocalFryDurationMs).toBe(150);
+        expect(PostTTSPresets.ultraRealistic.vocalFryDepth).toBe(0.4);
+      });
+    });
+
+    describe('LipSmacks', () => {
+      it('should have lipSmacks configuration options', () => {
+        expect('enableLipSmacks' in DEFAULT_CONFIG).toBe(true);
+        expect('lipSmackProbability' in DEFAULT_CONFIG).toBe(true);
+      });
+
+      it('should preserve lipSmack probability config', () => {
+        expect(PostTTSPresets.ultraRealistic.lipSmackProbability).toBe(0.25);
+      });
     });
   });
 });

@@ -380,10 +380,10 @@ export function getTopTrigger(): SynthesisTrigger | null {
   };
 
   return [...currentTriggers].sort((a, b) => {
-    const pDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+    const pDiff = (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
     if (pDiff !== 0) return pDiff;
     return b.confidence - a.confidence;
-  })[0];
+  })[0] ?? null;
 }
 
 /**

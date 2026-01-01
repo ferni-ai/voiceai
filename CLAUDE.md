@@ -7,6 +7,7 @@ See `CORE-PRINCIPLES.md` for our complete philosophy. Every architecture decisio
 ---
 
 ## Quick Reference
+
 ```bash
 # Quality checks
 pnpm quality         # Typecheck + lint + format + test (run before commits)
@@ -47,17 +48,18 @@ pnpm add -w <package> # Add to workspace root
 
 Pre-commit hooks validate both backend and frontend code. CI enforces all quality gates.
 
-| Check | Threshold | Script |
-|-------|-----------|--------|
-| TypeScript errors | 0 | `pnpm typecheck` |
-| ESLint errors | 0 | `pnpm lint` |
-| `as any` assertions | ≤30 | `pnpm quality:check` |
-| `console.*` usage | ≤100 | `pnpm quality:check` |
-| File size | ≤500 lines | `pnpm quality:check` |
-| Layer violations | 0 | `pnpm quality:arch` |
-| Design tokens (frontend) | 0 | `cd apps/web && pnpm lint:tokens` |
+| Check                    | Threshold  | Script                            |
+| ------------------------ | ---------- | --------------------------------- |
+| TypeScript errors        | 0          | `pnpm typecheck`                  |
+| ESLint errors            | 0          | `pnpm lint`                       |
+| `as any` assertions      | ≤30        | `pnpm quality:check`              |
+| `console.*` usage        | ≤100       | `pnpm quality:check`              |
+| File size                | ≤500 lines | `pnpm quality:check`              |
+| Layer violations         | 0          | `pnpm quality:arch`               |
+| Design tokens (frontend) | 0          | `cd apps/web && pnpm lint:tokens` |
 
 ## 🚀 Development Servers (MUST RUN ALL 3)
+
 ```bash
 # Terminal 1: Token Server (port 3001) - LiveKit tokens, Spotify OAuth, subscriptions
 node token-server.js
@@ -75,10 +77,10 @@ cd apps/web && pnpm dev
 
 **CRITICAL:** We have TWO separate LiveKit projects to prevent local dev workers from stealing production jobs!
 
-| Environment | LiveKit Project | URL | Agent Name |
-|-------------|----------------|-----|------------|
-| **Development** | `ferni-dev` (p_1gcwootg9al) | `wss://dev-8sm1ba0z.livekit.cloud` | `voice-agent-dev` |
-| **Production** | Main project (test-rvg91u1z) | `wss://test-rvg91u1z.livekit.cloud` | `voice-agent` |
+| Environment     | LiveKit Project              | URL                                 | Agent Name        |
+| --------------- | ---------------------------- | ----------------------------------- | ----------------- |
+| **Development** | `ferni-dev` (p_1gcwootg9al)  | `wss://dev-8sm1ba0z.livekit.cloud`  | `voice-agent-dev` |
+| **Production**  | Main project (test-rvg91u1z) | `wss://test-rvg91u1z.livekit.cloud` | `voice-agent`     |
 
 ### Local Development Setup
 
@@ -104,6 +106,7 @@ Get dev credentials from: https://cloud.livekit.io/projects/p_1gcwootg9al/settin
 ### Why Two Projects?
 
 LiveKit dispatches jobs to ALL registered workers. If local dev and GCE production both connect to the same project, they compete for incoming calls, causing:
+
 - Random job failures ("runner initialization timed out")
 - Calls going to wrong environment
 - Debugging nightmares
@@ -130,6 +133,7 @@ tail -f .deploy-logs/*.log
 ```
 
 ### Zero-Downtime Deployment Flow
+
 1. Build container image
 2. Deploy new revision with `--no-traffic` (green)
 3. **Liveness check** - server is responding (`/health`)
@@ -142,32 +146,34 @@ tail -f .deploy-logs/*.log
 
 Traffic is **never shifted** until LiveKit workers signal they're ready:
 
-| Check | Endpoint | What it verifies |
-|-------|----------|------------------|
-| Liveness | `/health` | Server process is running |
+| Check     | Endpoint        | What it verifies                     |
+| --------- | --------------- | ------------------------------------ |
+| Liveness  | `/health`       | Server process is running            |
 | Readiness | `/health/ready` | Workers initialized, accepting calls |
 
 **Auto-scaling configuration:**
+
 - `min-instances: 1` - Always one warm instance ready
 - `max-instances: 50` - Scale up for traffic spikes
 - `concurrency: 10` - Max 10 concurrent calls per instance
 
 ### ⛔ NEVER DO
-| Wrong | Right |
-|-------|-------|
-| `gcloud run deploy voiceai-agent` | `ferni deploy gce` |
-| `ssh vm && docker run` | `ferni deploy gce` |
-| `pnpm deploy:*` scripts directly | `ferni deploy <target>` |
-| Direct `gcloud` deploy commands | Always use `ferni deploy` |
+
+| Wrong                             | Right                     |
+| --------------------------------- | ------------------------- |
+| `gcloud run deploy voiceai-agent` | `ferni deploy gce`        |
+| `ssh vm && docker run`            | `ferni deploy gce`        |
+| `pnpm deploy:*` scripts directly  | `ferni deploy <target>`   |
+| Direct `gcloud` deploy commands   | Always use `ferni deploy` |
 
 **Why?** Direct deploys skip readiness checks and can cause connection failures. Ferni CLI is intelligent and handles health checks, blue-green strategy, and cleanup automatically.
 
-| Deploy Command | What it deploys | Blue-Green? |
-|----------------|-----------------|-------------|
-| `ferni deploy gce` | Voice agent to GCE | ✅ Yes |
-| `ferni deploy ui` | UI backend to Cloud Run | ✅ Yes |
-| `ferni deploy frontend` | Firebase Hosting | ✅ Yes (preview channel) |
-| `ferni deploy landing` | Landing page | ✅ Yes (preview channel) |
+| Deploy Command          | What it deploys         | Blue-Green?              |
+| ----------------------- | ----------------------- | ------------------------ |
+| `ferni deploy gce`      | Voice agent to GCE      | ✅ Yes                   |
+| `ferni deploy ui`       | UI backend to Cloud Run | ✅ Yes                   |
+| `ferni deploy frontend` | Firebase Hosting        | ✅ Yes (preview channel) |
+| `ferni deploy landing`  | Landing page            | ✅ Yes (preview channel) |
 
 **Key files:** `apps/cli/src/commands/deploy/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
@@ -195,6 +201,7 @@ pnpm ops:diagnose
 ### 📊 Monitoring & Diagnostics
 
 The voice agent container runs automated monitoring:
+
 - **Ops Orchestrator**: Service health, cost, latency, error rates (every 30-60s)
 - **Call Quality Monitor**: Connection success, disconnect patterns (every 60s)
 - **Container Watchdog**: Disk, memory, auto-cleanup
@@ -208,7 +215,7 @@ pnpm ops:diagnose
 # Check voice agent health
 curl http://34.134.186.63:8080/health/ready
 
-# Check call quality metrics  
+# Check call quality metrics
 curl http://34.134.186.63:8080/api/observability | jq '.callQuality'
 
 # Check crash analytics
@@ -253,6 +260,7 @@ pnpm ops:semantic-deploy:skip-deploy
 | `--rollback` | Emergency disable instructions |
 
 **Health endpoints:**
+
 - `GET /api/semantic-store/health` - Health status
 - `GET /api/semantic-store/metrics` - Prometheus metrics
 - `POST /api/semantic-store/cleanup` - Trigger TTL cleanup
@@ -274,6 +282,7 @@ This creates uptime checks that ping from OUTSIDE the container (catches contain
 ## 🖥️ GCE Voice Agent Deployment (PRIMARY)
 
 **Why GCE instead of Cloud Run?**
+
 - WebRTC requires **UDP** for real-time voice (Cloud Run only supports TCP)
 - LiveKit workers need persistent connections
 - Better audio quality with direct UDP transport
@@ -290,6 +299,7 @@ ferni deploy gce --dry-run
 ```
 
 ### Blue-Green Strategy
+
 1. **Build & Push** - Docker image to Container Registry
 2. **Deploy to Inactive Slot** - Start new container on alternate port (green)
 3. **Health Check** - Verify `/health` endpoint responds
@@ -298,22 +308,22 @@ ferni deploy gce --dry-run
 
 ### GCE Configuration
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| Instance | `voiceai-agent` | GCE VM name |
-| IP | `34.134.186.63` | Static external IP |
-| Zone | `us-central1-a` | - |
-| Blue Port | `8080` | Primary slot |
-| Green Port | `8081` | Secondary slot |
+| Setting    | Value           | Notes              |
+| ---------- | --------------- | ------------------ |
+| Instance   | `voiceai-agent` | GCE VM name        |
+| IP         | `34.134.186.63` | Static external IP |
+| Zone       | `us-central1-a` | -                  |
+| Blue Port  | `8080`          | Primary slot       |
+| Green Port | `8081`          | Secondary slot     |
 
 ### GCE vs Cloud Run Decision Matrix
 
-| Requirement | GCE | Cloud Run |
-|-------------|-----|-----------|
-| WebRTC/UDP voice | ✅ Required | ❌ TCP only |
-| Auto-scaling | Manual | ✅ Automatic |
-| Cost at low traffic | Higher | ✅ Pay-per-use |
-| Persistent connections | ✅ Yes | ❌ Timeout limits |
+| Requirement            | GCE         | Cloud Run         |
+| ---------------------- | ----------- | ----------------- |
+| WebRTC/UDP voice       | ✅ Required | ❌ TCP only       |
+| Auto-scaling           | Manual      | ✅ Automatic      |
+| Cost at low traffic    | Higher      | ✅ Pay-per-use    |
+| Persistent connections | ✅ Yes      | ❌ Timeout limits |
 
 **Voice Agent → Always use GCE** (`ferni deploy gce`)
 **UI/API backends → Use Cloud Run** (`ferni deploy ui`)
@@ -344,6 +354,7 @@ ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
 ```
 
 **What gets cleaned on each deploy:**
+
 - Stopped containers
 - Dangling (untagged) images
 - Old deployment images (keeps last 3 for rollback)
@@ -357,32 +368,36 @@ ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
 We use **esbuild** for fast TypeScript compilation and **pnpm** for fast dependency installs.
 
 ### Build Time Comparison
-| Build Method | Time | Files | Speedup |
-|--------------|------|-------|---------|
-| `tsc` (old) | 9.5s | 1,400 | baseline |
+
+| Build Method    | Time     | Files | Speedup         |
+| --------------- | -------- | ----- | --------------- |
+| `tsc` (old)     | 9.5s     | 1,400 | baseline        |
 | `esbuild` (new) | **0.9s** | 1,400 | **~12x faster** |
-| `npm ci` (old) | ~45s | - | baseline |
-| `pnpm install` | ~11s | - | **~4x faster** |
+| `npm ci` (old)  | ~45s     | -     | baseline        |
+| `pnpm install`  | ~11s     | -     | **~4x faster**  |
 
 ### Docker Build Times
-| Service | Before | After | Savings |
-|---------|--------|-------|---------|
-| Voice Agent | 15-20 min | **2-4 min** | ~80% |
-| UI Server | 8-12 min | 3-5 min | ~60% |
+
+| Service     | Before    | After       | Savings |
+| ----------- | --------- | ----------- | ------- |
+| Voice Agent | 15-20 min | **2-4 min** | ~80%    |
+| UI Server   | 8-12 min  | 3-5 min     | ~60%    |
 
 ### How It Works
+
 1. **Kaniko** in Cloud Build provides aggressive layer caching (1 week TTL)
 2. **pnpm** uses content-addressable storage for faster installs
 3. **esbuild** transpiles TypeScript without type checking (use `build:fast`)
 4. Type declarations (`.d.ts`) are optional - skip them in Docker builds
 
 ### When to Use Each
-| Command | Use Case |
-|---------|----------|
-| `pnpm build:fast` | Development, Docker builds (fastest) |
-| `pnpm build:fast:types` | When you need .d.ts files |
-| `pnpm build` | Full tsc build (for debugging type errors) |
-| `pnpm typecheck` | Type checking without emitting files |
+
+| Command                 | Use Case                                   |
+| ----------------------- | ------------------------------------------ |
+| `pnpm build:fast`       | Development, Docker builds (fastest)       |
+| `pnpm build:fast:types` | When you need .d.ts files                  |
+| `pnpm build`            | Full tsc build (for debugging type errors) |
+| `pnpm typecheck`        | Type checking without emitting files       |
 
 **Docs:** See `docs/BUILD-OPTIMIZATIONS.md` for full details.
 
@@ -391,6 +406,7 @@ We use **esbuild** for fast TypeScript compilation and **pnpm** for fast depende
 All design tokens live in `design-system/tokens/*.json`. **Never edit generated files directly.**
 
 ### Quick Commands
+
 ```bash
 # Via pnpm scripts
 pnpm tokens:sync       # Build & sync all tokens (run after editing JSON)
@@ -407,32 +423,37 @@ ferni tokens brand                       # Check brand color alignment
 
 ### What Gets Generated
 
-| Source | Generated | Used By |
-|--------|-----------|---------|
-| `tokens/colors.json` | `dist/tokens.css` | Frontend app |
+| Source                  | Generated                          | Used By             |
+| ----------------------- | ---------------------------------- | ------------------- |
+| `tokens/colors.json`    | `dist/tokens.css`                  | Frontend app        |
 | `tokens/animation.json` | `animation-constants.generated.ts` | Frontend animations |
-| `tokens/colors.json` | `tailwind.config.generated.js` | Promo website |
-| `tokens/*.json` | `promo/css/design-tokens.css` | Landing page |
+| `tokens/colors.json`    | `tailwind.config.generated.js`     | Promo website       |
+| `tokens/*.json`         | `promo/css/design-tokens.css`      | Landing page        |
 
 ### Adding a New Persona Color
+
 1. Edit `design-system/tokens/colors.json` → add to `personas` object
 2. Edit `design-system/tokens/personas.json` → add full persona profile
 3. Run `pnpm tokens:sync`
 4. Commit all generated files
 
 ### Adding a New Animation
+
 1. Edit `design-system/tokens/animation.json`
 2. Run `pnpm build:animation-constants`
 3. Import from `animation-constants.generated.ts`
 
 ### Pre-commit Hook
+
 Token drift is checked automatically. If you see drift warnings:
+
 ```bash
 pnpm tokens:sync
 git add -A
 ```
 
 ### CI/CD
+
 GitHub Actions runs `tokens:check` on every PR touching design tokens. Drift = failed build.
 
 **Key files:** `design-system/tokens/`, `design-system/*.js`, `.github/workflows/token-check.yml`
@@ -448,11 +469,11 @@ pnpm tokens:check   # Validate generated files match source
 
 ### Critical Brand Colors (Never Change Without Design Review)
 
-| Name | Hex | Usage |
-|------|-----|-------|
+| Name             | Hex       | Usage                           |
+| ---------------- | --------- | ------------------------------- |
 | **Accent (CTA)** | `#3D5A45` | Buttons, links, primary actions |
-| **Ferni** | `#4a6741` | Ferni persona avatar |
-| **Natural Ink** | `#2C2520` | Primary text |
+| **Ferni**        | `#4a6741` | Ferni persona avatar            |
+| **Natural Ink**  | `#2C2520` | Primary text                    |
 
 ### Color Rules for AI Agents
 
@@ -465,10 +486,11 @@ background: var(--color-accent);
 
 /* WRONG - will fail brand:check */
 color: #4a6741;
-background: #3D5A45;
+background: #3d5a45;
 ```
 
 **ESLint enforces design tokens** in `apps/web/src/ui/**/*.ts`:
+
 - 🎨 Hardcoded hex colors → Use `var(--color-*)` or `var(--persona-*)`
 - 🎨 Hardcoded rgba() → Use `var(--backdrop-*)` or `var(--persona-tint)`
 - 📝 Hardcoded font-family → Use `var(--font-body)` or `var(--font-display)`
@@ -480,13 +502,18 @@ background: #3D5A45;
 
 ```javascript
 // CORRECT - single source of truth
-ferni: { DEFAULT: 'var(--color-ferni)' }
+ferni: {
+  DEFAULT: 'var(--color-ferni)';
+}
 
 // WRONG - causes drift
-ferni: { DEFAULT: '#4a6741' }
+ferni: {
+  DEFAULT: '#4a6741';
+}
 ```
 
 **Before modifying any color**, check the brand guidelines:
+
 1. Read `design-system/docs/brand/FERNI-BRAND-GUIDELINES.md`
 2. Modify `design-system/tokens/colors.json` (source of truth)
 3. Run `pnpm tokens:sync`
@@ -496,14 +523,15 @@ ferni: { DEFAULT: '#4a6741' }
 
 Extend personas with custom commands, hooks, MCP servers, and embeddable widgets. **All extensions are opt-in and per-persona.**
 
-| Feature | Location | Purpose |
-|---------|----------|---------|
-| **Commands** | `src/personas/bundles/{persona}/commands/*.md` | Slash commands in UI |
-| **Shell Hooks** | `src/personas/bundles/{persona}/hooks/*.sh` | Pre/post execution scripts |
-| **MCP Servers** | `src/personas/bundles/{persona}/mcp/servers.json` | Model Context Protocol |
-| **Widget SDK** | `src/api/widget-routes.ts` | Embed on external websites |
+| Feature         | Location                                          | Purpose                    |
+| --------------- | ------------------------------------------------- | -------------------------- |
+| **Commands**    | `src/personas/bundles/{persona}/commands/*.md`    | Slash commands in UI       |
+| **Shell Hooks** | `src/personas/bundles/{persona}/hooks/*.sh`       | Pre/post execution scripts |
+| **MCP Servers** | `src/personas/bundles/{persona}/mcp/servers.json` | Model Context Protocol     |
+| **Widget SDK**  | `src/api/widget-routes.ts`                        | Embed on external websites |
 
 ### Adding Commands to a Persona
+
 ```bash
 # Create commands folder
 mkdir -p src/personas/bundles/ferni/commands
@@ -520,15 +548,19 @@ EOF
 ```
 
 ### Embedding Widget on External Sites
+
 ```html
-<script src="https://your-domain.com/api/widget/embed.js"
-        data-widget-id="widget_abc123"
-        async></script>
+<script
+  src="https://your-domain.com/api/widget/embed.js"
+  data-widget-id="widget_abc123"
+  async
+></script>
 ```
 
 **Full documentation:** `docs/architecture/AGENT-EXTENSIBILITY.md`
 
 ## Dev Mode (Testing Subscription & Team Unlocks)
+
 ```bash
 # Enable dev mode
 http://localhost:3004/?dev    # URL parameter
@@ -547,23 +579,23 @@ Toasts are Ferni's brief voice in UI feedback. **Never** use enterprise software
 
 ### Toast Rules
 
-| Rule | Wrong | Right |
-|------|-------|-------|
-| **Keep short** | "Payment failed. Please try again." | "Payment didn't go through. Try again?" |
-| **Use contractions** | "Failed to save changes" | "Couldn't save that" |
-| **Avoid "Please"** | "Please enter a valid email" | "Enter a valid email" |
-| **Drop "successfully"** | "Voice enrollment complete successfully!" | "Got it! I'll know your voice now." |
-| **Human tone** | "Error: Connection timeout" | "Lost connection. Retry?" |
-| **Consistent errors** | "Failed to X" | "Couldn't X" |
+| Rule                    | Wrong                                     | Right                                   |
+| ----------------------- | ----------------------------------------- | --------------------------------------- |
+| **Keep short**          | "Payment failed. Please try again."       | "Payment didn't go through. Try again?" |
+| **Use contractions**    | "Failed to save changes"                  | "Couldn't save that"                    |
+| **Avoid "Please"**      | "Please enter a valid email"              | "Enter a valid email"                   |
+| **Drop "successfully"** | "Voice enrollment complete successfully!" | "Got it! I'll know your voice now."     |
+| **Human tone**          | "Error: Connection timeout"               | "Lost connection. Retry?"               |
+| **Consistent errors**   | "Failed to X"                             | "Couldn't X"                            |
 
 ### Toast Types
 
-| Type | Duration | Use For | Example |
-|------|----------|---------|---------|
-| `toast.success()` | 2.5s | Confirmations | "Saved!" |
-| `toast.info()` | 2.5s | Status updates | "Just a moment..." |
-| `toast.warning()` | 2.5s | Soft alerts | "Add a name first" |
-| `toast.error()` | 4s | Failures | "Couldn't connect. Try again?" |
+| Type              | Duration | Use For        | Example                        |
+| ----------------- | -------- | -------------- | ------------------------------ |
+| `toast.success()` | 2.5s     | Confirmations  | "Saved!"                       |
+| `toast.info()`    | 2.5s     | Status updates | "Just a moment..."             |
+| `toast.warning()` | 2.5s     | Soft alerts    | "Add a name first"             |
+| `toast.error()`   | 4s       | Failures       | "Couldn't connect. Try again?" |
 
 ### Pattern Templates
 
@@ -578,7 +610,7 @@ toast.info('Checking...');
 
 // ✅ Warning - guide action
 toast.warning('Add a name first');
-toast.warning("Your voice profile needs a refresh");
+toast.warning('Your voice profile needs a refresh');
 
 // ✅ Error - acknowledge + offer retry
 toast.error("Couldn't save that. Try again?");
@@ -607,6 +639,7 @@ toast.success('Operation completed successfully');
 - **Admin-facing**: Can be slightly more technical, but still concise
 
 ## Read First
+
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
 - **Tool Loading**: `docs/architecture/TOOL-LOADING-SYSTEM.md` (how tools get to Gemini, config files, debugging)
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
@@ -627,13 +660,13 @@ Ferni's avatar implements **superhuman emotional intelligence** - this is core t
 
 ### Five Capabilities (All Required for Avatar Code)
 
-| Capability | What | Why |
-|------------|------|-----|
-| **Micro-Expressions** | 40-150ms subliminal emotional flashes | Builds trust unconsciously |
-| **Active Listening** | Micro-nods during user speech | Shows moment-to-moment presence |
-| **Breath Sync** | Sync breathing with user rhythm | Neural mirroring builds connection |
-| **Concern Detection** | Detect distress from voice/content | Show care before user asks |
-| **Anticipation** | Show emotion before user finishes | "They understand me" feeling |
+| Capability            | What                                  | Why                                |
+| --------------------- | ------------------------------------- | ---------------------------------- |
+| **Micro-Expressions** | 40-150ms subliminal emotional flashes | Builds trust unconsciously         |
+| **Active Listening**  | Micro-nods during user speech         | Shows moment-to-moment presence    |
+| **Breath Sync**       | Sync breathing with user rhythm       | Neural mirroring builds connection |
+| **Concern Detection** | Detect distress from voice/content    | Show care before user asks         |
+| **Anticipation**      | Show emotion before user finishes     | "They understand me" feeling       |
 
 ### Implementation Rules
 
@@ -660,13 +693,13 @@ ferni.anticipateEmotion({ transcript: partial, tone });
 
 ### Avatar Expression Rules
 
-| Wrong | Right |
-|-------|-------|
-| Static avatar during user speech | Active listening micro-nods |
-| React only after message complete | Anticipate from partial input |
-| Expression duration > 150ms for micro | Subliminal: 40-150ms |
-| Ignore user breathing patterns | Sync breathing gradually |
-| Wait for explicit "I'm sad" | Detect distress signals early |
+| Wrong                                 | Right                         |
+| ------------------------------------- | ----------------------------- |
+| Static avatar during user speech      | Active listening micro-nods   |
+| React only after message complete     | Anticipate from partial input |
+| Expression duration > 150ms for micro | Subliminal: 40-150ms          |
+| Ignore user breathing patterns        | Sync breathing gradually      |
+| Wait for explicit "I'm sad"           | Detect distress signals early |
 
 **Reference:** `design-system/docs/brand/BETTER-THAN-HUMAN.md` for full documentation.
 
@@ -691,6 +724,7 @@ emotion-event-dispatcher.ts
 ```
 
 **Key files:**
+
 - Backend: `src/agents/realtime/emotion-event-dispatcher.ts`
 - Frontend: `apps/web/src/ui/better-than-human.ui.ts`
 
@@ -700,51 +734,51 @@ The team collaborates like real experts - sharing insights, coordinating handoff
 
 ### Quick Reference
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| **Persona Builders** | `src/intelligence/context-builders/*-insights.ts` | Deep briefings for each persona |
-| **Superhuman Services** | `src/services/superhuman/` | 10 "Better than Human" capabilities |
-| **Insights Service** | `src/services/cross-persona-insights.ts` | Central insight management |
-| **WebSocket Server** | `src/services/insights-websocket.ts` | Real-time streaming |
-| **Debug Panel** | `apps/web/src/ui/insights-debug-panel.ui.ts` | Debug tools |
+| Component               | Location                                          | Purpose                             |
+| ----------------------- | ------------------------------------------------- | ----------------------------------- |
+| **Persona Builders**    | `src/intelligence/context-builders/*-insights.ts` | Deep briefings for each persona     |
+| **Superhuman Services** | `src/services/superhuman/`                        | 10 "Better than Human" capabilities |
+| **Insights Service**    | `src/services/cross-persona-insights.ts`          | Central insight management          |
+| **WebSocket Server**    | `src/services/insights-websocket.ts`              | Real-time streaming                 |
+| **Debug Panel**         | `apps/web/src/ui/insights-debug-panel.ui.ts`      | Debug tools                         |
 
 ### Persona Context Builders
 
 Each persona has a specialized builder that activates on entry/handoff:
 
-| Builder | What It Provides |
-|---------|-----------------|
-| `peter-research-insights.ts` | Cross-team data, financial patterns, proactive triggers |
-| `maya-coaching-insights.ts` | Habit health, Four Tendencies, mood correlations |
-| `jordan-milestone-insights.ts` | Planning velocity, celebration readiness, seasonal patterns |
-| `alex-communication-insights.ts` | Calendar density, response velocity, delegation clarity |
-| `nayan-wisdom-insights.ts` | Life synthesis, values alignment, existential context |
-| `ferni-coordinator-insights.ts` | Smart handoff suggestions from team insights |
+| Builder                          | What It Provides                                            |
+| -------------------------------- | ----------------------------------------------------------- |
+| `peter-research-insights.ts`     | Cross-team data, financial patterns, proactive triggers     |
+| `maya-coaching-insights.ts`      | Habit health, Four Tendencies, mood correlations            |
+| `jordan-milestone-insights.ts`   | Planning velocity, celebration readiness, seasonal patterns |
+| `alex-communication-insights.ts` | Calendar density, response velocity, delegation clarity     |
+| `nayan-wisdom-insights.ts`       | Life synthesis, values alignment, existential context       |
+| `ferni-coordinator-insights.ts`  | Smart handoff suggestions from team insights                |
 
 ### 10 Superhuman Services
 
-| Service | Human Limitation It Overcomes |
-|---------|------------------------------|
-| Commitment Keeper | Friends forget promises |
-| Predictive Coaching | Can't see patterns objectively |
-| Life Narrative | Hard to maintain perspective |
-| Values Alignment | Friends avoid confrontation |
-| Emotional First Aid | Takes time to respond |
-| Relationship Network | Can't track everyone |
-| Capacity Guardian | Often too late for burnout |
-| Dream Keeper | Dreams get buried |
-| Relationship Milestones | Forgets anniversaries |
-| Seasonal Awareness | Doesn't track cycles |
+| Service                 | Human Limitation It Overcomes  |
+| ----------------------- | ------------------------------ |
+| Commitment Keeper       | Friends forget promises        |
+| Predictive Coaching     | Can't see patterns objectively |
+| Life Narrative          | Hard to maintain perspective   |
+| Values Alignment        | Friends avoid confrontation    |
+| Emotional First Aid     | Takes time to respond          |
+| Relationship Network    | Can't track everyone           |
+| Capacity Guardian       | Often too late for burnout     |
+| Dream Keeper            | Dreams get buried              |
+| Relationship Milestones | Forgets anniversaries          |
+| Seasonal Awareness      | Doesn't track cycles           |
 
 ### Caching (Performance Critical)
 
 Tiered caching with different TTLs:
 
-| Tier | TTL | Capabilities |
-|------|-----|--------------|
-| STABLE | 5 min | seasonal, narrative, values |
-| NORMAL | 2 min | network, dreams, milestones |
-| FRESH | 30 sec | commitments, predictions, capacity |
+| Tier   | TTL    | Capabilities                       |
+| ------ | ------ | ---------------------------------- |
+| STABLE | 5 min  | seasonal, narrative, values        |
+| NORMAL | 2 min  | network, dreams, milestones        |
+| FRESH  | 30 sec | commitments, predictions, capacity |
 
 ```typescript
 // Pre-warm cache on session start
@@ -791,7 +825,7 @@ Persona Bundle (src/personas/bundles/{persona}/)
 ├── content/
 │   └── behaviors/
 │       ├── superhuman-insights.json   # 200% pattern surfacing
-│       ├── trust-phrases.json         # Persona-voiced trust outputs  
+│       ├── trust-phrases.json         # Persona-voiced trust outputs
 │       ├── i-notice-power.json        # "I notice" statements
 │       ├── late-night-presence.json   # 2am wisdom
 │       ├── emotional-intelligence.json # Emotion detection patterns
@@ -803,14 +837,14 @@ Persona Bundle (src/personas/bundles/{persona}/)
 
 ### Context Builders (src/intelligence/context-builders/)
 
-| Builder | JSON Source | What It Injects |
-|---------|-------------|-----------------|
-| `superhuman-insights.ts` | `superhuman-insights.json`, `i-notice-power.json` | Pattern surfacing, "The Mirror", anticipatory cues |
-| `trust-context.ts` | `trust-phrases.json` | Reading between lines, boundary awareness, growth reflection |
-| `physical-presence.ts` | `late-night-presence.json` | Late night wisdom, grounding exercises |
-| `persona-vulnerability.ts` | `self-doubt.json`, `secret-fears.json`, `mortality-awareness.json` | Vulnerability moments |
-| `emotional.ts` | `emotional-intelligence.json` | Persona-specific emotional responses |
-| `tool-humanization.ts` | Persona cognitive profiles | Natural tool usage framing (no "querying database") |
+| Builder                    | JSON Source                                                        | What It Injects                                              |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `superhuman-insights.ts`   | `superhuman-insights.json`, `i-notice-power.json`                  | Pattern surfacing, "The Mirror", anticipatory cues           |
+| `trust-context.ts`         | `trust-phrases.json`                                               | Reading between lines, boundary awareness, growth reflection |
+| `physical-presence.ts`     | `late-night-presence.json`                                         | Late night wisdom, grounding exercises                       |
+| `persona-vulnerability.ts` | `self-doubt.json`, `secret-fears.json`, `mortality-awareness.json` | Vulnerability moments                                        |
+| `emotional.ts`             | `emotional-intelligence.json`                                      | Persona-specific emotional responses                         |
+| `tool-humanization.ts`     | Persona cognitive profiles                                         | Natural tool usage framing (no "querying database")          |
 
 ### Content Loading (src/services/persona-content-loader.ts)
 
@@ -819,7 +853,7 @@ Persona Bundle (src/personas/bundles/{persona}/)
 import { loadTrustPhrases, loadSuperhumanInsights } from '../services/persona-content-loader.js';
 
 // Load persona-specific content (NOT hardcoded to Ferni!)
-const trustPhrases = await loadTrustPhrases(persona.id);  // ✅ Persona-aware
+const trustPhrases = await loadTrustPhrases(persona.id); // ✅ Persona-aware
 const insights = await loadSuperhumanInsights(persona.id); // ✅ Persona-aware
 
 // ❌ NEVER hardcode persona IDs
@@ -847,18 +881,18 @@ const trustPhrases = await loadTrustPhrases('ferni'); // ❌ Wrong!
 # Run all persona E2E tests
 npm test -- --run persona-e2e
 
-# Run context injection integration tests  
+# Run context injection integration tests
 npm test -- --run context-injection-integration
 ```
 
 ### Key Implementation Rules
 
-| Wrong | Right |
-|-------|-------|
-| Hardcode `'ferni'` in context builders | Use `persona.id` dynamically |
-| Load content once globally | Load per-persona with caching |
-| Generic trust phrases | Persona-voiced phrases from JSON |
-| Check `if (persona.id !== 'ferni')` return early | Support ALL personas |
+| Wrong                                            | Right                            |
+| ------------------------------------------------ | -------------------------------- |
+| Hardcode `'ferni'` in context builders           | Use `persona.id` dynamically     |
+| Load content once globally                       | Load per-persona with caching    |
+| Generic trust phrases                            | Persona-voiced phrases from JSON |
+| Check `if (persona.id !== 'ferni')` return early | Support ALL personas             |
 
 **Reference:** `docs/PERSONA-EXCELLENCE-PLAN.md` for the full implementation plan.
 
@@ -876,13 +910,13 @@ USE_OPENAI_REALTIME=false  # Gemini Live
 
 ### Comparison
 
-| Feature | OpenAI Realtime | Gemini Live |
-|---------|-----------------|-------------|
-| **Function Calling** | ✅ Native (protocol-level) | ⚠️ JSON workaround (unreliable) |
-| **TTS Integration** | Cartesia (text mode) | Cartesia (text mode) |
-| **Turn Detection** | `server_vad` | `realtime_llm` |
-| **Pricing** | ~$0.06/min input, ~$0.24/min output | ~$0.035/min |
-| **Reliability** | ✅ Consistent tool execution | ⚠️ Sometimes chats instead of calling tools |
+| Feature              | OpenAI Realtime                     | Gemini Live                                 |
+| -------------------- | ----------------------------------- | ------------------------------------------- |
+| **Function Calling** | ✅ Native (protocol-level)          | ⚠️ JSON workaround (unreliable)             |
+| **TTS Integration**  | Cartesia (text mode)                | Cartesia (text mode)                        |
+| **Turn Detection**   | `server_vad`                        | `realtime_llm`                              |
+| **Pricing**          | ~$0.06/min input, ~$0.24/min output | ~$0.035/min                                 |
+| **Reliability**      | ✅ Consistent tool execution        | ⚠️ Sometimes chats instead of calling tools |
 
 ### Architecture
 
@@ -894,11 +928,11 @@ User Speech → OpenAI/Gemini (text) → Cartesia TTS (persona voice) → Audio
 
 ### Key Files
 
-| File | Purpose |
-|------|---------|
-| `src/agents/multi-agent/agent-setup.ts` | LLM selection logic (multi-agent mode) |
-| `src/agents/voice-agent-entry.ts` | LLM selection logic (single-agent mode) |
-| `.env` → `USE_OPENAI_REALTIME` | Feature flag |
+| File                                    | Purpose                                 |
+| --------------------------------------- | --------------------------------------- |
+| `src/agents/multi-agent/agent-setup.ts` | LLM selection logic (multi-agent mode)  |
+| `src/agents/voice-agent-entry.ts`       | LLM selection logic (single-agent mode) |
+| `.env` → `USE_OPENAI_REALTIME`          | Feature flag                            |
 
 ### Log Signatures
 
@@ -925,18 +959,18 @@ Ferni uses a **custom JSON-based function calling workaround** because Gemini Li
 ### The JSON Format (Single Source of Truth)
 
 ```json
-{"fn":"toolName","args":{"key":"value"}}
+{ "fn": "toolName", "args": { "key": "value" } }
 ```
 
 ### Key Files (ALL must stay in sync)
 
-| File | Purpose |
-|------|---------|
-| `src/personas/bundles/shared/function-calling-base.md` | Prompt instructions for JSON format |
-| `src/personas/bundles/{persona}/identity/function-calling-specialty.md` | Per-persona specialty tools |
-| `src/agents/shared/tool-call-sanitizer.ts` | Intercepts JSON from TTS stream |
-| `src/agents/shared/json-function-executor.ts` | Routes JSON to actual tool implementations |
-| `src/agents/shared/function-call-format.ts` | TypeScript types and registered tools |
+| File                                                                    | Purpose                                    |
+| ----------------------------------------------------------------------- | ------------------------------------------ |
+| `src/personas/bundles/shared/function-calling-base.md`                  | Prompt instructions for JSON format        |
+| `src/personas/bundles/{persona}/identity/function-calling-specialty.md` | Per-persona specialty tools                |
+| `src/agents/shared/tool-call-sanitizer.ts`                              | Intercepts JSON from TTS stream            |
+| `src/agents/shared/json-function-executor.ts`                           | Routes JSON to actual tool implementations |
+| `src/agents/shared/function-call-format.ts`                             | TypeScript types and registered tools      |
 
 ### When Adding a New Tool (ALL STEPS REQUIRED)
 
@@ -948,13 +982,13 @@ Ferni uses a **custom JSON-based function calling workaround** because Gemini Li
 
 ### ⛔ NEVER DO (Will Break Voice Agent)
 
-| Wrong | Why It Breaks |
-|-------|---------------|
-| Change JSON format without updating ALL files | Sanitizer won't detect calls |
-| Add tool only to prompt (skip sanitizer) | LLM outputs "toolName query xyz" as speech |
-| Add tool only to executor (skip prompt) | LLM won't know to output JSON for it |
-| "Clean up" or "refactor" these files | System is tuned through trial and error |
-| Change `fn`/`args` key names | Regex patterns won't match |
+| Wrong                                         | Why It Breaks                              |
+| --------------------------------------------- | ------------------------------------------ |
+| Change JSON format without updating ALL files | Sanitizer won't detect calls               |
+| Add tool only to prompt (skip sanitizer)      | LLM outputs "toolName query xyz" as speech |
+| Add tool only to executor (skip prompt)       | LLM won't know to output JSON for it       |
+| "Clean up" or "refactor" these files          | System is tuned through trial and error    |
+| Change `fn`/`args` key names                  | Regex patterns won't match                 |
 
 ### Debugging Tool Calls
 
@@ -977,23 +1011,84 @@ pnpm dev
 "Transfer me to Maya"             # → should handoff
 ```
 
+### Tool Selection Architecture (How 697 Tools Become Voice-Callable)
+
+Ferni has **~697 tools across 95 domains**. The system uses semantic selection to pick the right tools per conversation turn.
+
+#### Config: `data/model-config.json`
+
+```json
+{
+  "toolDefaults": {
+    "enabledDomains": [],     // Empty = ALL domains available (semantic selection decides)
+    "maxTools": 60,           // Max tools sent to LLM per turn
+    "includedTools": [...]    // Always-include tools (music, weather, etc.)
+  }
+}
+```
+
+| Setting                               | Value         | Effect                                                             |
+| ------------------------------------- | ------------- | ------------------------------------------------------------------ |
+| `enabledDomains: []`                  | Empty array   | **All 95 domains available** - semantic router picks relevant ones |
+| `enabledDomains: ["grief", "career"]` | Specific list | Only those domains available                                       |
+| `maxTools: 60`                        | Number        | Cap on tools sent to LLM (prevents context bloat)                  |
+| `includedTools`                       | Array         | Always included regardless of semantic match                       |
+
+#### How Tool Selection Works
+
+```
+User: "Help me process grief"
+         ↓
+1. unified-tool-orchestrator.ts receives request
+         ↓
+2. detectToolIntent() → { domains: ["grief"], confidence: 0.9 }
+         ↓
+3. getToolsForDomains(["grief"]) lazy-loads grief domain
+         ↓
+4. Semantic router scores tools by relevance
+         ↓
+5. Top 60 tools sent to LLM as native functions
+         ↓
+6. LLM calls processGrief() → tool executes
+```
+
+#### Key Files
+
+| File                                                  | Purpose                                 |
+| ----------------------------------------------------- | --------------------------------------- |
+| `data/model-config.json`                              | Admin config (enabledDomains, maxTools) |
+| `src/tools/orchestrator/unified-tool-orchestrator.ts` | Per-turn tool selection                 |
+| `src/tools/dynamic-tool-router.ts`                    | Intent → domain mapping                 |
+| `src/tools/semantic-router/`                          | Semantic matching engine                |
+| `src/tools/domains/*/index.ts`                        | Domain tool definitions                 |
+
+#### Adding a New Tool
+
+1. Create tool in `src/tools/domains/{domain}/index.ts`
+2. Export via `getToolDefinitions()` or `definitions` array
+3. **Done!** Orchestrator auto-discovers and semantic router matches it
+
+No manual wiring needed - the semantic router handles discovery.
+
 ## Critical Rules
 
 ### Never Do
-| Wrong | Right |
-|-------|-------|
-| `console.log()` | `createLogger()` from `utils/logger.js` |
-| `any` type | `unknown` + type narrowing |
-| Files > 500 lines | Split into modules |
-| `as any` casts | Proper typing or `as unknown as T` with comment |
-| `.catch(() => {})` | `.catch((e) => log.error({ error: e }, 'context'))` |
-| Persona-specific tool names | Domain names: `habit-coaching.ts` not `maya-habits.ts` |
-| Hardcoded colors `#4a6741` | CSS variables: `var(--color-ferni)` |
-| Hardcoded durations `300` | Constants: `DURATION.SLOW`, `EASING.SPRING` |
-| Edit `*.generated.ts` files | Edit source JSON in `design-system/tokens/` |
-| Edit `design-tokens.css` directly | Run `pnpm tokens:sync` after editing JSON |
+
+| Wrong                             | Right                                                  |
+| --------------------------------- | ------------------------------------------------------ |
+| `console.log()`                   | `createLogger()` from `utils/logger.js`                |
+| `any` type                        | `unknown` + type narrowing                             |
+| Files > 500 lines                 | Split into modules                                     |
+| `as any` casts                    | Proper typing or `as unknown as T` with comment        |
+| `.catch(() => {})`                | `.catch((e) => log.error({ error: e }, 'context'))`    |
+| Persona-specific tool names       | Domain names: `habit-coaching.ts` not `maya-habits.ts` |
+| Hardcoded colors `#4a6741`        | CSS variables: `var(--color-ferni)`                    |
+| Hardcoded durations `300`         | Constants: `DURATION.SLOW`, `EASING.SPRING`            |
+| Edit `*.generated.ts` files       | Edit source JSON in `design-system/tokens/`            |
+| Edit `design-tokens.css` directly | Run `pnpm tokens:sync` after editing JSON              |
 
 ### Always Do
+
 - Await all promises OR handle with proper `.catch()` logging
 - Use `Result<T, E>` for expected failures, `throw` for bugs
 - Register tools/builders via registry pattern (not direct exports)
@@ -1003,20 +1098,22 @@ pnpm dev
 - Run `pnpm tokens:sync` after editing `design-system/tokens/*.json`
 
 ## File Naming
-| Type | Pattern | Example |
-|------|---------|---------|
-| Modules | `kebab-case.ts` | `user-profile.ts` |
-| Classes | `PascalCase.ts` | `SessionManager.ts` |
-| Tests | `*.test.ts` | `memory.test.ts` |
-| Types | `*.types.ts` or inline | `user.types.ts` |
+
+| Type    | Pattern                | Example             |
+| ------- | ---------------------- | ------------------- |
+| Modules | `kebab-case.ts`        | `user-profile.ts`   |
+| Classes | `PascalCase.ts`        | `SessionManager.ts` |
+| Tests   | `*.test.ts`            | `memory.test.ts`    |
+| Types   | `*.types.ts` or inline | `user.types.ts`     |
 
 ## Variable Naming
-| Type | Pattern | Example |
-|------|---------|---------|
-| Functions/variables | `camelCase` | `handleSilence`, `isReturningUser` |
-| Classes/Types | `PascalCase` | `SessionServices`, `UserProfile` |
-| Constants | `SCREAMING_SNAKE` | `MAX_RETRY_ATTEMPTS` |
-| Booleans | `is`/`has`/`can` prefix | `isActive`, `hasPermission` |
+
+| Type                | Pattern                 | Example                            |
+| ------------------- | ----------------------- | ---------------------------------- |
+| Functions/variables | `camelCase`             | `handleSilence`, `isReturningUser` |
+| Classes/Types       | `PascalCase`            | `SessionServices`, `UserProfile`   |
+| Constants           | `SCREAMING_SNAKE`       | `MAX_RETRY_ATTEMPTS`               |
+| Booleans            | `is`/`has`/`can` prefix | `isActive`, `hasPermission`        |
 
 ## Architecture Layers
 
@@ -1046,12 +1143,14 @@ Level 10-30 (Infrastructure):
 ```
 
 ## Before Creating New Files
+
 1. **Search first**: Does this functionality exist? (`grep -r "functionName"`)
 2. **Extend existing**: Can it go in an existing module?
 3. **Follow patterns**: Look at sibling files in the directory
 4. **Max 500 lines**: Plan to split if larger
 
 ## Error Handling Pattern
+
 ```typescript
 // Expected failures: Result type
 function parseConfig(input: string): Result<Config, ParseError> {
@@ -1067,6 +1166,7 @@ function assertNonNull<T>(value: T | null): T {
 ```
 
 ## Logging Pattern
+
 ```typescript
 import { createLogger } from '../utils/logger.js';
 
@@ -1094,6 +1194,7 @@ src/tools/habit-coaching.ts (monolith)  →  src/tools/habit-coaching/
 ```
 
 **Key patterns:**
+
 - **Types first**: Extract interfaces to `types.ts`, import everywhere else
 - **Index re-exports**: `index.ts` re-exports everything for backward-compatible imports
 - **Data separate from logic**: Constants/templates in dedicated files, tools in main file
@@ -1103,24 +1204,26 @@ src/tools/habit-coaching.ts (monolith)  →  src/tools/habit-coaching/
 
 Habit coaching uses evidence-based methodologies:
 
-| Concept | Implementation | Source |
-|---------|---------------|--------|
-| Glidepath Levels | 5-level progression from tiny (2 min) to full lifestyle | Tiny Habits |
-| Habit Loops | cue → routine → reward structure | The Power of Habit |
-| Habit Stacking | "After [CURRENT], I will [NEW]" | Atomic Habits |
-| Keystone Habits | High-ripple habits that cascade changes | The Power of Habit |
-| Four Tendencies | Upholder/Questioner/Obliger/Rebel strategies | Gretchen Rubin |
+| Concept          | Implementation                                          | Source             |
+| ---------------- | ------------------------------------------------------- | ------------------ |
+| Glidepath Levels | 5-level progression from tiny (2 min) to full lifestyle | Tiny Habits        |
+| Habit Loops      | cue → routine → reward structure                        | The Power of Habit |
+| Habit Stacking   | "After [CURRENT], I will [NEW]"                         | Atomic Habits      |
+| Keystone Habits  | High-ripple habits that cascade changes                 | The Power of Habit |
+| Four Tendencies  | Upholder/Questioner/Obliger/Rebel strategies            | Gretchen Rubin     |
 
 Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `stacksWellWith`, `keystonePotential`
 
 ## 🛡️ Agent Guardrails (PREVENT MISTAKES)
 
 **Before making changes, ALWAYS:**
+
 1. Run `pnpm typecheck` - catches type errors immediately
 2. Run `pnpm lint` - catches code style issues
 3. Run `pnpm tokens:check` - catches design system drift
 
 **Before suggesting deployment:**
+
 1. Run `pnpm quality` - full quality check
 2. Test the feature in browser if it's UI
 3. Verify no regressions in related functionality
@@ -1137,6 +1240,7 @@ Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `st
 | Direct `gcloud run deploy` | **NEVER** - use `ferni deploy` (see below) |
 
 **If pre-commit fails:**
+
 ```bash
 pnpm lint:fix      # Auto-fix lint issues
 pnpm format        # Auto-fix formatting
@@ -1163,7 +1267,7 @@ docker push gcr.io/...
 ```bash
 # ✅ CORRECT - Ferni CLI handles blue-green, health checks, cleanup
 ferni deploy gce           # Voice agent to GCE
-ferni deploy ui            # UI backend to Cloud Run  
+ferni deploy ui            # UI backend to Cloud Run
 ferni deploy frontend      # Frontend to Firebase
 ferni deploy landing       # Landing page
 ferni deploy all           # Everything
@@ -1175,13 +1279,13 @@ pnpm deploy:ui             # UI backend
 
 ### Why Ferni CLI?
 
-| Direct gcloud | Ferni CLI |
-|---------------|-----------|
-| ❌ No health checks | ✅ Waits for `/health/ready` |
-| ❌ No rollback | ✅ Auto-rollback on failure |
-| ❌ Zombie revisions | ✅ Auto-cleanup old revisions |
-| ❌ Choppy audio | ✅ Zero-downtime blue-green |
-| ❌ Manual everything | ✅ One command |
+| Direct gcloud        | Ferni CLI                     |
+| -------------------- | ----------------------------- |
+| ❌ No health checks  | ✅ Waits for `/health/ready`  |
+| ❌ No rollback       | ✅ Auto-rollback on failure   |
+| ❌ Zombie revisions  | ✅ Auto-cleanup old revisions |
+| ❌ Choppy audio      | ✅ Zero-downtime blue-green   |
+| ❌ Manual everything | ✅ One command                |
 
 ### Deployment Safety Enforcement
 
@@ -1203,6 +1307,7 @@ git commit --no-verify -m "EMERGENCY: ..."
 ```
 
 ## Subdirectory CLAUDE.md Files
+
 - `src/tools/CLAUDE.md` - How to create tools
 - `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module structure
 - `src/personas/CLAUDE.md` - How to create personas

@@ -617,7 +617,7 @@ async function blockFocusTime(): Promise<void> {
       log.info({ eventId: data.eventId }, 'Focus time blocked');
       
       // Show toast
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.success(t('toasts.focusTimeBlocked'));
       
       // Refresh data
@@ -625,7 +625,7 @@ async function blockFocusTime(): Promise<void> {
     }
   } catch (error) {
     log.error('Failed to block focus time:', error);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't block focus time");
   }
 }

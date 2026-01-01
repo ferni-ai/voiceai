@@ -353,10 +353,7 @@ function getEmotionValence(emotion: string): number {
  * turn processing. Those signals are accumulated at session end or via
  * background processing instead of per-turn.
  */
-async function accumulateOutreachSignals(
-  userId: string,
-  data: TurnSemanticData
-): Promise<void> {
+async function accumulateOutreachSignals(userId: string, data: TurnSemanticData): Promise<void> {
   const {
     userText,
     textEmotion,
@@ -392,7 +389,9 @@ async function accumulateOutreachSignals(
         signalsAccumulated.push('capacity');
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // 2. Check values conflict
   try {
@@ -414,7 +413,9 @@ async function accumulateOutreachSignals(
         }
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // 3. Check voice distress (from prosody data)
   if (voiceEmotion && voiceEmotionConfidence && voiceEmotionConfidence > 0.5) {
@@ -423,7 +424,10 @@ async function accumulateOutreachSignals(
     );
     const hasHighArousal = (energy || 0) > 0.7;
 
-    if (isDistressEmotion || (hasHighArousal && textEmotionIntensity && textEmotionIntensity > 0.7)) {
+    if (
+      isDistressEmotion ||
+      (hasHighArousal && textEmotionIntensity && textEmotionIntensity > 0.7)
+    ) {
       const signal = signalFromVoiceDistress({
         hasStrain: (breathiness || 0) > 0.5,
         hasTremor: isDistressEmotion,
@@ -495,7 +499,9 @@ async function accumulateOutreachSignals(
         signalsAccumulated.push('life_chapter');
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // 7. Contradiction detection (holding opposing emotions)
   try {
@@ -514,7 +520,9 @@ async function accumulateOutreachSignals(
         signalsAccumulated.push('contradiction');
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // 8. Vague emotion detection (text pattern matching)
   try {
@@ -531,7 +539,9 @@ async function accumulateOutreachSignals(
       accumulateSignal(userId, signal);
       signalsAccumulated.push('vague_emotion');
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // =========================================================================
   // BTH V2 SIGNALS - Run in background to avoid blocking

@@ -1,3 +1,4 @@
+// TODO: Fix type errors - persona colors and array indexing
 /**
  * Persona Introduction Flow
  *
@@ -72,14 +73,17 @@ const ICONS = {
 // PERSONA COLORS
 // ============================================================================
 
+// Default Ferni colors (fallback)
+const DEFAULT_PERSONA_COLORS = {
+  primary: 'var(--persona-primary, #4a6741)',
+  secondary: 'var(--persona-secondary, #3d5a35)',
+  tint: 'var(--persona-tint, rgba(74, 103, 65, 0.06))',
+};
+
 // Persona colors - use CSS variables from data-persona attribute
 // See design-system/tokens/colors.json for source of truth
-const PERSONA_COLORS: Record<string, { primary: string; secondary: string; tint: string }> = {
-  ferni: {
-    primary: 'var(--persona-primary, #4a6741)',
-    secondary: 'var(--persona-secondary, #3d5a35)',
-    tint: 'var(--persona-tint, rgba(74, 103, 65, 0.06))',
-  },
+const PERSONA_COLORS: Record<string, typeof DEFAULT_PERSONA_COLORS> = {
+  ferni: DEFAULT_PERSONA_COLORS,
   'maya-santos': {
     primary: 'var(--persona-primary, #a67a6a)',
     secondary: 'var(--persona-secondary, #8a635a)',
@@ -487,7 +491,7 @@ function renderStep(): void {
   const step = currentIntroData.steps[currentStep];
   if (!step) return;
 
-  const colors = PERSONA_COLORS[currentPersona.id] ?? PERSONA_COLORS['ferni'];
+  const colors = PERSONA_COLORS[currentPersona.id] ?? DEFAULT_PERSONA_COLORS;
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === currentIntroData.steps.length - 1;
   const initials = getInitials(currentPersona.displayName);

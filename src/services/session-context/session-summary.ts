@@ -472,9 +472,10 @@ async function persistSummaryToFirestore(summary: VoiceSessionSummary): Promise<
         sessionId: summary.sessionId,
         summary: summary.naturalSummary,
         keyTopics: summary.mainTopics,
-        emotionalArc: summary.emotionalArc.length > 0
-          ? `Started ${summary.emotionalArc[0]?.emotion || 'neutral'}, ended ${summary.endingEmotionalState}`
-          : summary.endingEmotionalState,
+        emotionalArc:
+          summary.emotionalArc.length > 0
+            ? `Started ${summary.emotionalArc[0]?.emotion || 'neutral'}, ended ${summary.endingEmotionalState}`
+            : summary.endingEmotionalState,
         actionItems: summary.unfinishedTopics,
         promises: summary.commitmentsMade,
         questionsRaised: summary.suggestedFollowUp ? [summary.suggestedFollowUp] : [],

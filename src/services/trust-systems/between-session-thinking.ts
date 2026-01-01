@@ -546,7 +546,7 @@ export function detectThinkingWorthy(context: {
 
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength - 3) + '...';
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 function extractTopicFromText(text: string): string {
@@ -574,7 +574,7 @@ function extractMeaningfulQuote(text: string): string | undefined {
 
   // Otherwise return truncated text
   if (text.length < 100) return text;
-  return text.slice(0, 97) + '...';
+  return `${text.slice(0, 97)}...`;
 }
 
 // ============================================================================
@@ -602,6 +602,21 @@ export function getAllUnsurfacedThinking(userId: string): ThinkingRecord[] {
   return records.filter((r) => !r.surfacedAt);
 }
 
+/**
+ * Clear all thinking records for a user (for testing)
+ */
+export function clearUserThinking(userId: string): void {
+  thinkingRecords.delete(userId);
+  surfacedThisSession.clear();
+}
+
+/**
+ * Alias for markThinkingSurfaced (for consistency)
+ */
+export function markMomentSurfaced(userId: string, recordId: string): void {
+  markThinkingSurfaced(recordId);
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -610,9 +625,11 @@ export default {
   recordThinkingMoment,
   getThinkingMomentToSurface,
   markThinkingSurfaced,
+  markMomentSurfaced,
   incrementSessionCount,
   detectThinkingWorthy,
   loadThinkingRecords,
   getThinkingRecordsForPersistence,
   getAllUnsurfacedThinking,
+  clearUserThinking,
 };

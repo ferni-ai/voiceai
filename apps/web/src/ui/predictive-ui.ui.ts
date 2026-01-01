@@ -467,13 +467,13 @@ export function createLoadingOrchestrator(
         skeleton.style.display = 'block';
         progressBar.style.display = 'block';
         message.style.display = 'block';
-        message.textContent = customMessages[0];
+        message.textContent = customMessages[0] ?? 'Loading...';
 
         // Rotate messages
         if (!messageInterval) {
           messageInterval = setInterval(() => {
             messageIndex = (messageIndex + 1) % customMessages.length;
-            message.textContent = customMessages[messageIndex];
+            message.textContent = customMessages[messageIndex] ?? 'Loading...';
           }, 3000);
         }
         break;

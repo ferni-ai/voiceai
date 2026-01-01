@@ -439,8 +439,8 @@ const STYLES = `
 }
 
 .outreach-item-status.responded {
-  background: var(--persona-glow, rgba(139, 92, 246, 0.1));
-  color: var(--persona-primary, #7c3aed);
+  background: var(--persona-glow, rgba(74, 103, 65, 0.1));
+  color: var(--persona-primary, #4a6741);
 }
 
 .outreach-item-status.failed {

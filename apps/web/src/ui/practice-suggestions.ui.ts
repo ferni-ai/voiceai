@@ -429,6 +429,7 @@ class PracticeSuggestionsUI {
 
         if (index >= 0 && index < this.suggestions.length) {
           const suggestion = this.suggestions[index];
+          if (!suggestion) return;
 
           if (action === 'accept') {
             this.callbacks.onSuggestionAccepted?.(suggestion);

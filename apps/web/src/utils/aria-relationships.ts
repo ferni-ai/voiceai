@@ -1,3 +1,4 @@
+// TODO: Fix type errors - DOM element array indexing
 /**
  * ARIA Relationship Utilities - Improved Accessibility
  *
@@ -331,12 +332,16 @@ export function createRovingTabindex(
     }
 
     // Update tabindex
-    elements[currentIndex].setAttribute('tabindex', '-1');
-    elements[index].setAttribute('tabindex', '0');
-    elements[index].focus();
+    const currentEl = elements[currentIndex];
+    const nextEl = elements[index];
+    if (currentEl) currentEl.setAttribute('tabindex', '-1');
+    if (nextEl) {
+      nextEl.setAttribute('tabindex', '0');
+      nextEl.focus();
+    }
     currentIndex = index;
 
-    onFocusChange?.(index, elements[index]);
+    if (nextEl) onFocusChange?.(index, nextEl);
   };
 
   // Keyboard handler

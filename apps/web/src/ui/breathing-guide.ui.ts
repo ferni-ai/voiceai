@@ -526,8 +526,11 @@ export class BreathingGuide {
     const patterns: BreathingPattern[] = ['box', 'relaxing', 'energizing', 'sleep', 'focus'];
     const currentIndex = patterns.indexOf(this.pattern);
     const nextIndex = (currentIndex + 1) % patterns.length;
-    this.setPattern(patterns[nextIndex]);
-    this.updateInfoDisplay();
+    const nextPattern = patterns[nextIndex];
+    if (nextPattern) {
+      this.setPattern(nextPattern);
+      this.updateInfoDisplay();
+    }
   }
 
   destroy(): void {
@@ -575,11 +578,14 @@ export class BreathingGuide {
 
     // Skip phases with 0 duration
     let nextIndex = (currentIndex + 1) % phases.length;
-    while (this.getPhaseDuration(phases[nextIndex]) === 0 && nextIndex !== currentIndex) {
+    let candidatePhase = phases[nextIndex];
+    while (candidatePhase && this.getPhaseDuration(candidatePhase) === 0 && nextIndex !== currentIndex) {
       nextIndex = (nextIndex + 1) % phases.length;
+      candidatePhase = phases[nextIndex];
     }
 
     const nextPhase = phases[nextIndex];
+    if (!nextPhase) return;
 
     // Check for cycle completion
     if (nextPhase === 'inhale' && this.currentPhase !== 'inhale') {

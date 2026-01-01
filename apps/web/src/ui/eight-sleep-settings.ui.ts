@@ -13,7 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete, apiPut } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -334,7 +334,7 @@ function getStyles(): string {
       width: 100%;
       height: 8px;
       border-radius: var(--radius-full, 9999px);
-      background: linear-gradient(to right, #3b82f6, #8b5cf6, #ef4444);
+      background: linear-gradient(to right, #3a6b73, #4a6741, #c4856a);
       -webkit-appearance: none;
       appearance: none;
     }

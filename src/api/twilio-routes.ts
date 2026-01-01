@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { validateTwilioSignature } from '../services/outreach/webhooks/twilio-webhooks.js';
 import {
   getTwilioStreamBridge,
   generateStreamTwiml,
@@ -109,6 +110,12 @@ async function handleTwimlRequest(
   callId: string
 ): Promise<void> {
   const body = await parseBody(req);
+
+  // Validate Twilio signature
+  if (!validateTwilioRequest(req, res, body)) {
+    return;
+  }
+
   log.info({ callId, answeredBy: body.AnsweredBy }, '📞 TwiML request');
 
   // Check if we have pending call info
@@ -147,6 +154,12 @@ async function handleTwimlRequest(
  */
 async function handleAMDCallback(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await parseBody(req)) as unknown as AMDWebhookPayload;
+
+  // Validate Twilio signature
+  if (!validateTwilioRequest(req, res, body as unknown as Record<string, string>)) {
+    return;
+  }
+
   const detection = parseAMDWebhook(body);
 
   log.info(
@@ -206,6 +219,11 @@ async function handleAMDCallback(req: IncomingMessage, res: ServerResponse): Pro
  */
 async function handleStatusCallback(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = await parseBody(req);
+
+  // Validate Twilio signature
+  if (!validateTwilioRequest(req, res, body)) {
+    return;
+  }
 
   const { CallSid, CallStatus, CallDuration, To, From, Direction } = body;
 
@@ -514,6 +532,46 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, string>> 
     });
     req.on('error', () => resolve({}));
   });
+}
+
+/**
+ * Validate Twilio webhook signature
+ * Returns true if valid, false if invalid (and sends 403 response)
+ */
+function validateTwilioRequest(
+  req: IncomingMessage,
+  res: ServerResponse,
+  body: Record<string, string>
+): boolean {
+  // Skip validation in test environment with explicit flag
+  const skipValidation =
+    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  if (skipValidation) {
+    return true;
+  }
+
+  const signature = req.headers['x-twilio-signature'] as string | undefined;
+  if (!signature) {
+    log.warn({ url: req.url }, 'Missing Twilio signature header');
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Missing signature' }));
+    return false;
+  }
+
+  // Reconstruct the full URL that Twilio signed
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host || '';
+  const fullUrl = `${protocol}://${host}${req.url}`;
+
+  const isValid = validateTwilioSignature(signature, fullUrl, body);
+  if (!isValid) {
+    log.warn({ url: req.url }, 'Invalid Twilio signature');
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Invalid signature' }));
+    return false;
+  }
+
+  return true;
 }
 
 // ============================================================================

@@ -27,7 +27,11 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   const lowerQuestion = question.toLowerCase();
 
   // Music preferences
-  if (lowerQuestion.includes('music') || lowerQuestion.includes('song') || lowerQuestion.includes('listen')) {
+  if (
+    lowerQuestion.includes('music') ||
+    lowerQuestion.includes('song') ||
+    lowerQuestion.includes('listen')
+  ) {
     const likes = knowledge.lifestyle.entertainment.musicLikes;
     const dislikes = knowledge.lifestyle.entertainment.musicDislikes;
 
@@ -37,7 +41,9 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
         answer += `They like ${likes.join(', ')}`;
       }
       if (dislikes.length > 0) {
-        answer += answer ? `. They don't like ${dislikes.join(', ')}` : `They don't like ${dislikes.join(', ')}`;
+        answer += answer
+          ? `. They don't like ${dislikes.join(', ')}`
+          : `They don't like ${dislikes.join(', ')}`;
       }
       return {
         found: true,
@@ -50,7 +56,12 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Food preferences
-  if (lowerQuestion.includes('food') || lowerQuestion.includes('eat') || lowerQuestion.includes('cuisine') || lowerQuestion.includes('restaurant')) {
+  if (
+    lowerQuestion.includes('food') ||
+    lowerQuestion.includes('eat') ||
+    lowerQuestion.includes('cuisine') ||
+    lowerQuestion.includes('restaurant')
+  ) {
     const likes = knowledge.lifestyle.food.cuisineLikes;
     const dislikes = knowledge.lifestyle.food.cuisineDislikes;
     const restrictions = knowledge.lifestyle.food.dietaryRestrictions;
@@ -89,15 +100,17 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Dreams/goals
-  if (lowerQuestion.includes('dream') || lowerQuestion.includes('goal') || lowerQuestion.includes('want to') || lowerQuestion.includes('aspir')) {
-    const dreams = knowledge.aspirations.dreams.filter(d => d.status === 'active');
+  if (
+    lowerQuestion.includes('dream') ||
+    lowerQuestion.includes('goal') ||
+    lowerQuestion.includes('want to') ||
+    lowerQuestion.includes('aspir')
+  ) {
+    const dreams = knowledge.aspirations.dreams.filter((d) => d.status === 'active');
     const goals = knowledge.aspirations.goals;
 
     if (dreams.length > 0 || goals.length > 0) {
-      const items = [
-        ...dreams.map(d => d.description),
-        ...goals.map(g => g.description),
-      ];
+      const items = [...dreams.map((d) => d.description), ...goals.map((g) => g.description)];
       return {
         found: true,
         answer: `Their dreams/goals: ${items.slice(0, 5).join('; ')}`,
@@ -109,15 +122,32 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Family/relationships
-  if (lowerQuestion.includes('family') || lowerQuestion.includes('spouse') || lowerQuestion.includes('partner') || lowerQuestion.includes('kid') || lowerQuestion.includes('parent')) {
-    const family = knowledge.relationships.keyPeople.filter(p =>
-      ['mother', 'father', 'wife', 'husband', 'spouse', 'partner', 'son', 'daughter', 'sister', 'brother'].includes(p.relationship.toLowerCase())
+  if (
+    lowerQuestion.includes('family') ||
+    lowerQuestion.includes('spouse') ||
+    lowerQuestion.includes('partner') ||
+    lowerQuestion.includes('kid') ||
+    lowerQuestion.includes('parent')
+  ) {
+    const family = knowledge.relationships.keyPeople.filter((p) =>
+      [
+        'mother',
+        'father',
+        'wife',
+        'husband',
+        'spouse',
+        'partner',
+        'son',
+        'daughter',
+        'sister',
+        'brother',
+      ].includes(p.relationship.toLowerCase())
     );
 
     if (family.length > 0) {
       return {
         found: true,
-        answer: `Family members: ${family.map(p => `${p.name} (${p.relationship})`).join(', ')}`,
+        answer: `Family members: ${family.map((p) => `${p.name} (${p.relationship})`).join(', ')}`,
         confidence: 0.9,
         source: 'contacts',
       };
@@ -126,7 +156,12 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Work
-  if (lowerQuestion.includes('work') || lowerQuestion.includes('job') || lowerQuestion.includes('occupation') || lowerQuestion.includes('career')) {
+  if (
+    lowerQuestion.includes('work') ||
+    lowerQuestion.includes('job') ||
+    lowerQuestion.includes('occupation') ||
+    lowerQuestion.includes('career')
+  ) {
     if (knowledge.work.role || knowledge.work.company) {
       const parts: string[] = [];
       if (knowledge.work.role) parts.push(`Role: ${knowledge.work.role}`);
@@ -144,14 +179,20 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Avoid topics
-  if (lowerQuestion.includes('avoid') || lowerQuestion.includes('sensitive') || lowerQuestion.includes("don't mention") || lowerQuestion.includes('boundary')) {
+  if (
+    lowerQuestion.includes('avoid') ||
+    lowerQuestion.includes('sensitive') ||
+    lowerQuestion.includes("don't mention") ||
+    lowerQuestion.includes('boundary')
+  ) {
     const avoid = knowledge.boundaries.avoidTopics;
     const sensitive = knowledge.boundaries.sensitivities;
 
     if (avoid.length > 0 || sensitive.length > 0) {
       const parts: string[] = [];
       if (avoid.length > 0) parts.push(`Avoid topics: ${avoid.join(', ')}`);
-      if (sensitive.length > 0) parts.push(`Sensitive areas: ${sensitive.map(s => s.topic).join(', ')}`);
+      if (sensitive.length > 0)
+        parts.push(`Sensitive areas: ${sensitive.map((s) => s.topic).join(', ')}`);
 
       return {
         found: true,
@@ -164,7 +205,13 @@ export async function askAboutUser(userId: string, question: string): Promise<Qu
   }
 
   // Sports teams
-  if (lowerQuestion.includes('team') || lowerQuestion.includes('sport') || lowerQuestion.includes('football') || lowerQuestion.includes('basketball') || lowerQuestion.includes('baseball')) {
+  if (
+    lowerQuestion.includes('team') ||
+    lowerQuestion.includes('sport') ||
+    lowerQuestion.includes('football') ||
+    lowerQuestion.includes('basketball') ||
+    lowerQuestion.includes('baseball')
+  ) {
     const teams = knowledge.lifestyle.entertainment.sportsTeams;
     if (teams.length > 0) {
       return {
@@ -226,7 +273,12 @@ export async function doWeKnow(userId: string, what: string): Promise<QueryResul
 
     case 'birthday':
       return knowledge.identity.birthday
-        ? { found: true, answer: knowledge.identity.birthday, confidence: 1.0, source: 'user_profile' }
+        ? {
+            found: true,
+            answer: knowledge.identity.birthday,
+            confidence: 1.0,
+            source: 'user_profile',
+          }
         : { found: false, confidence: 0, source: 'user_profile' };
 
     case 'occupation':
@@ -244,15 +296,25 @@ export async function doWeKnow(userId: string, what: string): Promise<QueryResul
         : { found: false, confidence: 0, source: 'boundaries' };
 
     case 'dreams':
-      const dreams = knowledge.aspirations.dreams.filter(d => d.status === 'active');
+      const dreams = knowledge.aspirations.dreams.filter((d) => d.status === 'active');
       return dreams.length > 0
-        ? { found: true, answer: dreams.map(d => d.description).join('; '), confidence: 0.85, source: 'dream_keeper' }
+        ? {
+            found: true,
+            answer: dreams.map((d) => d.description).join('; '),
+            confidence: 0.85,
+            source: 'dream_keeper',
+          }
         : { found: false, confidence: 0, source: 'dream_keeper' };
 
     case 'commitments':
-      const pending = knowledge.aspirations.commitments.filter(c => c.status !== 'completed');
+      const pending = knowledge.aspirations.commitments.filter((c) => c.status !== 'completed');
       return pending.length > 0
-        ? { found: true, answer: pending.map(c => c.description).join('; '), confidence: 0.85, source: 'commitment_keeper' }
+        ? {
+            found: true,
+            answer: pending.map((c) => c.description).join('; '),
+            confidence: 0.85,
+            source: 'commitment_keeper',
+          }
         : { found: false, confidence: 0, source: 'commitment_keeper' };
 
     default:
@@ -289,20 +351,22 @@ export async function getAvoidTopics(userId: string): Promise<string[]> {
   const knowledge = await getUserKnowledge(userId);
   return [
     ...knowledge.boundaries.avoidTopics,
-    ...knowledge.boundaries.sensitivities.map(s => s.topic),
+    ...knowledge.boundaries.sensitivities.map((s) => s.topic),
   ];
 }
 
 /**
  * Get user dreams
  */
-export async function getUserDreams(userId: string): Promise<Array<{
-  description: string;
-  type: string;
-  status: string;
-}>> {
+export async function getUserDreams(userId: string): Promise<
+  Array<{
+    description: string;
+    type: string;
+    status: string;
+  }>
+> {
   const knowledge = await getUserKnowledge(userId);
-  return knowledge.aspirations.dreams.map(d => ({
+  return knowledge.aspirations.dreams.map((d) => ({
     description: d.description,
     type: d.type,
     status: d.status || 'active',
@@ -312,13 +376,15 @@ export async function getUserDreams(userId: string): Promise<Array<{
 /**
  * Get user's key people (family, partner, close friends)
  */
-export async function getKeyPeople(userId: string): Promise<Array<{
-  name: string;
-  relationship: string;
-  importance: string;
-}>> {
+export async function getKeyPeople(userId: string): Promise<
+  Array<{
+    name: string;
+    relationship: string;
+    importance: string;
+  }>
+> {
   const knowledge = await getUserKnowledge(userId);
-  return knowledge.relationships.keyPeople.map(p => ({
+  return knowledge.relationships.keyPeople.map((p) => ({
     name: p.name,
     relationship: p.relationship,
     importance: p.importance,
@@ -328,12 +394,14 @@ export async function getKeyPeople(userId: string): Promise<Array<{
 /**
  * Get Ferni's commitments to the user
  */
-export async function getFerniCommitments(userId: string): Promise<Array<{
-  description: string;
-  status: string;
-}>> {
+export async function getFerniCommitments(userId: string): Promise<
+  Array<{
+    description: string;
+    status: string;
+  }>
+> {
   const knowledge = await getUserKnowledge(userId);
-  return knowledge.boundaries.ferniCommitments.map(c => ({
+  return knowledge.boundaries.ferniCommitments.map((c) => ({
     description: c.description,
     status: c.status,
   }));
@@ -368,15 +436,17 @@ export async function getKnowledgeCompleteness(userId: string): Promise<{
 /**
  * Get open loops to follow up on
  */
-export async function getOpenLoops(userId: string): Promise<Array<{
-  topic: string;
-  context: string;
-  mentionedAt: Date;
-}>> {
+export async function getOpenLoops(userId: string): Promise<
+  Array<{
+    topic: string;
+    context: string;
+    mentionedAt: Date;
+  }>
+> {
   const knowledge = await getUserKnowledge(userId);
   return knowledge.sharedHistory.openLoops
-    .filter(l => !l.resolved)
-    .map(l => ({
+    .filter((l) => !l.resolved)
+    .map((l) => ({
       topic: l.topic,
       context: l.context,
       mentionedAt: l.mentionedAt,
@@ -386,12 +456,14 @@ export async function getOpenLoops(userId: string): Promise<Array<{
 /**
  * Get inside jokes for callbacks
  */
-export async function getInsideJokes(userId: string): Promise<Array<{
-  reference: string;
-  context: string;
-}>> {
+export async function getInsideJokes(userId: string): Promise<
+  Array<{
+    reference: string;
+    context: string;
+  }>
+> {
   const knowledge = await getUserKnowledge(userId);
-  return knowledge.sharedHistory.insideJokes.map(j => ({
+  return knowledge.sharedHistory.insideJokes.map((j) => ({
     reference: j.reference,
     context: j.context,
   }));

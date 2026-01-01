@@ -333,18 +333,32 @@ async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
     const profile = await store.getProfile(userId);
     const state = getTeamUnlockState(profile);
 
+    // Use full member IDs (maya-santos, peter-john, etc.) to match TeamMemberId type
     const PERSONA_COLORS: Record<string, string> = {
       ferni: '#4a6741',
-      maya: '#a67a6a',
-      peter: '#3a6b73',
-      alex: '#5a6b8a',
-      jordan: '#c4856a',
-      nayan: '#b8956a',
+      'maya-santos': '#a67a6a',
+      'peter-john': '#3a6b73',
+      'alex-chen': '#5a6b8a',
+      'jordan-taylor': '#c4856a',
+      'nayan-patel': '#b8956a',
+    };
+
+    // Map short display names for personaName (e.g., "Maya" not "Maya-santos")
+    const DISPLAY_NAMES: Record<string, string> = {
+      ferni: 'Ferni',
+      'maya-santos': 'Maya',
+      'peter-john': 'Peter',
+      'alex-chen': 'Alex',
+      'jordan-taylor': 'Jordan',
+      'nayan-patel': 'Nayan',
     };
 
     return state.unlockedMembers.map((memberId) => ({
       personaId: memberId,
-      personaName: memberId.charAt(0).toUpperCase() + memberId.slice(1),
+      personaName:
+        DISPLAY_NAMES[memberId] ||
+        memberId.split('-')[0]?.charAt(0).toUpperCase() + memberId.split('-')[0]?.slice(1) ||
+        memberId,
       unlockedAt: new Date().toISOString(), // Approximate
       primaryColor: PERSONA_COLORS[memberId] || '#4a6741',
     }));

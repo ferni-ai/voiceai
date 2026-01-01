@@ -119,6 +119,3 @@ Eventually, we might add:
 But we're not rushing. Each persona needs to earn its place.
 
 ---
-
-*Curious about how the personas communicate during handoffs? Read [The Art of the Handoff](/building/handoff-system/).*
-

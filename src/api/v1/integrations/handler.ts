@@ -22,6 +22,51 @@ const OAuthStateSchema = z.object({
   userId: z.string().min(1),
 });
 
+// ============================================================================
+// REQUEST BODY VALIDATION SCHEMAS
+// ============================================================================
+
+const ExchangeTokenSchema = z.object({
+  publicToken: z.string().min(1, 'publicToken is required'),
+  institution: z
+    .object({
+      institution_id: z.string().optional(),
+      name: z.string().optional(),
+    })
+    .optional(),
+});
+
+const CreateSavingsGoalSchema = z.object({
+  name: z.string().min(1, 'name is required'),
+  targetAmount: z.number().positive('targetAmount must be positive'),
+  targetDate: z.string().min(1, 'targetDate is required'),
+  currentAmount: z.number().min(0).optional(),
+});
+
+const UpdateGoalProgressSchema = z.object({
+  currentAmount: z.number().min(0, 'currentAmount is required'),
+});
+
+const UpdateLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  accuracy: z.number().min(0).optional(),
+});
+
+const SaveLocationSchema = z.object({
+  name: z.string().min(1, 'name is required'),
+  type: z.enum(['home', 'work', 'gym', 'social', 'travel', 'unknown']),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
+const AddImportantDateSchema = z.object({
+  personName: z.string().min(1, 'personName is required'),
+  date: z.string().regex(/^\d{2}-\d{2}$/, 'date must be in MM-DD format'),
+  type: z.enum(['birthday', 'anniversary', 'memorial', 'other']),
+  label: z.string().optional(),
+});
+
 // Biometrics
 import {
   getAuthorizationUrl,
@@ -270,12 +315,8 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/sync' && method === 'POST') {
-      const body = await parseBody<Record<string, unknown>>(req);
-      const userId = body.userId as string;
-      if (!userId) {
-        sendJson(res, 400, { error: 'userId is required' });
-        return true;
-      }
+      // SECURITY: Use authenticated userId, ignore body.userId to prevent IDOR
+      const userId = getTargetUserId(auth!, parsedUrl);
 
       if (!(await hasBiometricsConnectedAsync(userId))) {
         sendJson(res, 400, { error: 'No biometrics connected' });
@@ -364,15 +405,14 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const body = await parseBody<Record<string, unknown>>(req);
-      const { publicToken, institution } = body as {
-        publicToken: string;
-        institution?: { institution_id?: string; name?: string };
-      };
-
-      if (!publicToken) {
-        sendJson(res, 400, { error: 'publicToken is required' });
+      const validation = ExchangeTokenSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { publicToken, institution } = validation.data;
 
       const banking = await getBankingServices();
       const accessToken = await banking.exchangePublicToken(publicToken);
@@ -595,17 +635,14 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/banking/goals' && method === 'POST') {
       const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { name, targetAmount, targetDate, currentAmount } = body as {
-        name: string;
-        targetAmount: number;
-        targetDate: string;
-        currentAmount?: number;
-      };
-
-      if (!name || !targetAmount || !targetDate) {
-        sendJson(res, 400, { error: 'name, targetAmount, and targetDate are required' });
+      const validation = CreateSavingsGoalSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { name, targetAmount, targetDate, currentAmount } = validation.data;
 
       const banking = await getBankingServices();
       const goal = banking.createSavingsGoal(
@@ -626,12 +663,14 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
       const goalId = goalMatch[1];
       const body = await parseBody<Record<string, unknown>>(req);
-      const { currentAmount } = body as { currentAmount: number };
-
-      if (currentAmount === undefined) {
-        sendJson(res, 400, { error: 'currentAmount is required' });
+      const validation = UpdateGoalProgressSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { currentAmount } = validation.data;
 
       const banking = await getBankingServices();
       const progress = banking.updateGoalProgress(userId, goalId, currentAmount);
@@ -769,16 +808,14 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/calendar/location' && method === 'POST') {
       const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { latitude, longitude, accuracy } = body as {
-        latitude: number;
-        longitude: number;
-        accuracy?: number;
-      };
-
-      if (latitude === undefined || longitude === undefined) {
-        sendJson(res, 400, { error: 'latitude and longitude are required' });
+      const validation = UpdateLocationSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { latitude, longitude, accuracy } = validation.data;
 
       const cal = await getCalendarServices();
       cal.updateLocation(userId, latitude, longitude, accuracy || 0);
@@ -791,17 +828,14 @@ export async function handleIntegrationsRoutes(
     if (subPath === '/calendar/location/save' && method === 'POST') {
       const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { name, type, latitude, longitude } = body as {
-        name: string;
-        type: 'home' | 'work' | 'gym' | 'social' | 'travel' | 'unknown';
-        latitude: number;
-        longitude: number;
-      };
-
-      if (!name || !type || latitude === undefined || longitude === undefined) {
-        sendJson(res, 400, { error: 'name, type, latitude, and longitude are required' });
+      const validation = SaveLocationSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
+      const { name, type, latitude, longitude } = validation.data;
 
       const cal = await getCalendarServices();
       cal.saveLocation(userId, name, type, latitude, longitude);
@@ -886,22 +920,14 @@ export async function handleIntegrationsRoutes(
     if (dateMatch && method === 'POST') {
       const userId = getTargetUserId(auth!, parsedUrl);
       const body = await parseBody<Record<string, unknown>>(req);
-      const { personName, date, type, label } = body as {
-        personName: string;
-        date: string;
-        type: 'birthday' | 'anniversary' | 'memorial' | 'other';
-        label?: string;
-      };
-
-      if (!personName || !date || !type) {
-        sendJson(res, 400, { error: 'personName, date (MM-DD), and type are required' });
+      const validation = AddImportantDateSchema.safeParse(body);
+      if (!validation.success) {
+        sendJson(res, 400, {
+          error: validation.error.issues[0]?.message || 'Invalid request body',
+        });
         return true;
       }
-
-      if (!/^\d{2}-\d{2}$/.test(date)) {
-        sendJson(res, 400, { error: 'Date must be in MM-DD format' });
-        return true;
-      }
+      const { personName, date, type, label } = validation.data;
 
       const social = await getSocialGraphServices();
       const success = social.addImportantDate(userId, personName, date, type, label);

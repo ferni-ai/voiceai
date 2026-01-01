@@ -13,7 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
@@ -220,7 +220,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      background: linear-gradient(135deg, #3a6b73, #4a6741);
       border-radius: var(--radius-lg, 0.75rem);
       color: white;
     }
@@ -286,9 +286,9 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #7c3aed20, #a855f720);
+      background: linear-gradient(135deg, #3a6b7320, #4a674120);
       border-radius: var(--radius-full);
-      color: #7c3aed;
+      color: #3a6b73;
     }
 
     .oura-settings__connect-icon svg {
@@ -315,7 +315,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-3, 12px) var(--space-6, 24px);
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      background: linear-gradient(135deg, #3a6b73, #4a6741);
       border: none;
       border-radius: var(--radius-lg);
       font-family: var(--font-body);
@@ -408,7 +408,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #7c3aed;
+      color: #3a6b73;
     }
 
     .oura-settings__section-icon svg {
@@ -496,7 +496,7 @@ function injectStyles(): void {
       width: 40px;
       height: 40px;
       border: 3px solid var(--color-border-subtle);
-      border-top-color: #7c3aed;
+      border-top-color: #3a6b73;
       border-radius: var(--radius-full);
       animation: oura-spin 1s linear infinite;
       margin-bottom: var(--space-4, 16px);

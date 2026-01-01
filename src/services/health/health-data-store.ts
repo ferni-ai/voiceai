@@ -99,14 +99,19 @@ export async function storeHealthSummary(summary: HealthSummary): Promise<void> 
     log.debug({ userId: summary.userId, date: summary.date }, 'Health summary stored');
 
     // Index to semantic memory
-    void onHealthSummaryChange(summary.userId, summary.date, {
-      date: summary.date,
-      sleepHours: summary.sleepHours,
-      sleepQuality: summary.sleepQuality,
-      activity: summary.activityTrend,
-      stepsCount: summary.stepsToday,
-      heartRateAvg: summary.restingHeartRate,
-    }, 'update');
+    void onHealthSummaryChange(
+      summary.userId,
+      summary.date,
+      {
+        date: summary.date,
+        sleepHours: summary.sleepHours,
+        sleepQuality: summary.sleepQuality,
+        activity: summary.activityTrend,
+        stepsCount: summary.stepsToday,
+        heartRateAvg: summary.restingHeartRate,
+      },
+      'update'
+    );
   } catch (error) {
     log.error({ error: String(error), userId: summary.userId }, 'Failed to store health summary');
   }

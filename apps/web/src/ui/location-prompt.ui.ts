@@ -225,8 +225,8 @@ function addStyles(): void {
       position: absolute;
       inset: 0;
       background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: var(--glass-blur-subtle, blur(8px));
+      -webkit-backdrop-filter: var(--glass-blur-subtle, blur(8px));
     }
 
     .ferni-location-prompt-card {

@@ -13,6 +13,7 @@ import {
   makeConversationalCall,
   isConversationalCallsConfigured,
   type OutboundCallContext,
+  type CallResult,
 } from '../services/outreach/conversational-calls.js';
 
 const log = getLogger().child({ module: 'outbound-call-handler' });
@@ -93,17 +94,17 @@ export async function handleOutboundCallRoutes(
     // GET /api/outbound-call/active - Get all active calls
     if (pathname === '/api/outbound-call/active' && method === 'GET') {
       const service = getConversationalCallService();
-      const calls = service.getActiveCalls();
+      const calls: CallResult[] = service.getActiveCalls ? await service.getActiveCalls() : [];
 
       sendJsonResponse(res, 200, {
         count: calls.length,
         calls: calls.map((call) => ({
           id: call.id,
           status: call.status,
-          userId: call.context.user.id,
-          userName: call.context.user.name,
-          persona: call.context.persona,
-          purpose: call.context.trigger.reason,
+          userId: call.context?.user?.id,
+          userName: call.context?.user?.name,
+          persona: call.context?.persona,
+          purpose: call.context?.trigger?.reason,
           startedAt: call.initiatedAt,
         })),
       });

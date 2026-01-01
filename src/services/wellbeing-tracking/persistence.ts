@@ -111,13 +111,19 @@ export async function persistSnapshot(
     log.debug({ userId, snapshotId: snapshot.id }, 'Wellbeing snapshot persisted');
 
     // Index to semantic memory
-    void onWellnessCheckinChange(userId, snapshot.id, {
-      mood: (snapshot.dimensions.mood ?? 0) * 10, // Convert -1 to 1 to 0-10 scale
-      energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale
-      stressLevel: snapshot.dimensions.worry !== undefined ? snapshot.dimensions.worry * 10 : undefined,
-      notes: snapshot.notes,
-      timestamp: snapshot.timestamp.toISOString(),
-    }, 'update');
+    void onWellnessCheckinChange(
+      userId,
+      snapshot.id,
+      {
+        mood: (snapshot.dimensions.mood ?? 0) * 10, // Convert -1 to 1 to 0-10 scale
+        energy: (snapshot.dimensions.energy ?? 0) * 10, // Convert 0-1 to 0-10 scale
+        stressLevel:
+          snapshot.dimensions.worry !== undefined ? snapshot.dimensions.worry * 10 : undefined,
+        notes: snapshot.notes,
+        timestamp: snapshot.timestamp.toISOString(),
+      },
+      'update'
+    );
 
     return true;
   } catch (error) {

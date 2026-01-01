@@ -1,3 +1,4 @@
+// TODO: Fix type errors - array indexing
 /**
  * Demo Data for "Your Story" Dashboard
  *
@@ -144,12 +145,13 @@ function createDemoMoodCalendar(now: Date): MoodCalendarData {
     const positiveWeight = 0.5 + (27 - i) / 54; // 0.5 → 1.0 over 4 weeks
     const isPositive = Math.random() < positiveWeight;
 
+    const negativeMoods: MoodType[] = ['tired', 'anxious', 'uncertain'];
     const mood = isPositive
-      ? moods[Math.floor(Math.random() * moods.length)]
-      : (['tired', 'anxious', 'uncertain'] as MoodType[])[Math.floor(Math.random() * 3)];
+      ? (moods[Math.floor(Math.random() * moods.length)] ?? 'calm')
+      : (negativeMoods[Math.floor(Math.random() * 3)] ?? 'tired');
 
     entries.push({
-      date: date.toISOString().split('T')[0],
+      date: date.toISOString().split('T')[0] ?? '',
       mood,
       intensity: 0.5 + Math.random() * 0.4,
       note: i === 0 ? 'Feeling grounded today' : undefined,
@@ -222,7 +224,7 @@ function createDemoLifeTimeline(now: Date): LifeTimelineData {
 
   return {
     chapters,
-    currentChapter: chapters[2],
+    currentChapter: chapters[2] ?? chapters[0]!,
     totalChapters: 3,
     narrativeSummary: "From surviving to thriving - you're writing a new chapter",
   };
@@ -262,7 +264,7 @@ function createDemoEmotionalArcs(): EmotionalArcsData {
   ];
 
   return {
-    currentPhase: phases[4], // "The Rise"
+    currentPhase: phases[4] ?? phases[0]!, // "The Rise"
     phases,
     arcType: 'recovery',
   };
@@ -301,7 +303,7 @@ function createDemoPredictions(): PredictionsData {
 
   return {
     predictions,
-    primaryPrediction: predictions[0],
+    primaryPrediction: predictions[0]!,
     accuracy: 0.84,
   };
 }

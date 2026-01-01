@@ -116,7 +116,8 @@ export function generateDomainNamingProbes(
     {
       name: 'maya-coaching-insights',
       path: 'personas/maya-coaching-insights.ts', // In personas/ subdirectory
-      expectedBehavior: "Provides Maya's habit coaching, Four Tendencies, and behavior change context",
+      expectedBehavior:
+        "Provides Maya's habit coaching, Four Tendencies, and behavior change context",
     },
   ];
 
@@ -267,10 +268,7 @@ export function generateNamingConsistencyProbes(): SemanticProbe[] {
         target: 'services/',
         actualBehavior:
           'Intentional differentiation: services/superhuman/ uses evocative names (-keeper, -guardian) that convey their "Better than Human" mission. Commitment-keeper evokes a promise guardian, capacity-guardian evokes a protective watchful presence. Infrastructure services use plain names (session-manager, firestore-store). The naming is semantic: superhuman names evoke their human-exceeding capability, infrastructure names describe function.',
-        philosophyPrinciples: [
-          CORE_PRINCIPLES.SEMANTIC_CLARITY,
-          CORE_PRINCIPLES.BETTER_THAN_HUMAN,
-        ],
+        philosophyPrinciples: [CORE_PRINCIPLES.SEMANTIC_CLARITY, CORE_PRINCIPLES.BETTER_THAN_HUMAN],
       },
       expectedAlignment:
         'Intentional: -keeper/-guardian for superhuman, plain names for infrastructure',

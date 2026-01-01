@@ -166,14 +166,19 @@ export async function addToReadingList(
     log.info({ userId, bookId: book.bookId, title: book.title }, 'Book added to reading list');
 
     // Index to semantic memory
-    void onReadingListChange(userId, docRef.id, {
-      title: book.title,
-      authors: book.authors,
-      status: 'want_to_read',
-      notes,
-      listName,
-      priority,
-    }, 'create');
+    void onReadingListChange(
+      userId,
+      docRef.id,
+      {
+        title: book.title,
+        authors: book.authors,
+        status: 'want_to_read',
+        notes,
+        listName,
+        priority,
+      },
+      'create'
+    );
 
     return {
       success: true,
@@ -239,16 +244,21 @@ export async function updateReadingStatus(
     const updatedData = updated.data() as ReadingListEntry;
 
     // Index update to semantic memory
-    void onReadingListChange(userId, entryId, {
-      title: updatedData.title,
-      authors: updatedData.authors,
-      status: updatedData.status,
-      currentPage: updatedData.currentPage,
-      rating: updatedData.rating,
-      notes: updatedData.notes,
-      listName: updatedData.listName,
-      priority: updatedData.priority,
-    }, 'update');
+    void onReadingListChange(
+      userId,
+      entryId,
+      {
+        title: updatedData.title,
+        authors: updatedData.authors,
+        status: updatedData.status,
+        currentPage: updatedData.currentPage,
+        rating: updatedData.rating,
+        notes: updatedData.notes,
+        listName: updatedData.listName,
+        priority: updatedData.priority,
+      },
+      'update'
+    );
 
     return {
       success: true,

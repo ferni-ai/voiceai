@@ -1,14 +1,12 @@
 /**
  * Firebase Authentication Service
  *
- * Provides seamless authentication with a relationship-first approach:
- * - Anonymous accounts created silently on first visit (zero friction)
- * - Users can optionally link social accounts when they're ready
- * - All data preserved when upgrading from anonymous to linked account
+ * Provides authentication with Google and Apple sign-in.
+ * Users must sign in to use the app - no anonymous accounts.
  *
- * Philosophy: Authentication should feel like meeting a friend, not
- * logging into a bank. We start the relationship immediately and let
- * users formalize it when they're ready.
+ * Philosophy: Real relationships require identity. By asking users
+ * to sign in, we can provide continuity across devices and sessions,
+ * and ensure their memories and progress are always preserved.
  *
  * @module FirebaseAuthService
  */
@@ -21,7 +19,7 @@ import {
   OAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  signInAnonymously,
+  signInWithCredential,
   signInWithPopup,
   type Unsubscribe,
   type User,
@@ -180,19 +178,9 @@ export async function initAuth(): Promise<AuthState> {
       });
     });
 
-    // If no user, sign in anonymously
+    // No automatic sign-in - users must explicitly sign in with Google/Apple
     if (!currentUser) {
-      log.info('No existing session, creating anonymous account');
-      try {
-        const credential = await signInAnonymously(auth);
-        currentUser = credential.user;
-        log.info('Anonymous account created', {
-          uid: currentUser.uid.substring(0, 8) + '...',
-        });
-      } catch (error) {
-        log.error('Failed to create anonymous account:', error);
-        // Continue without auth - graceful degradation
-      }
+      log.info('No existing session - user must sign in');
     }
 
     isInitialized = true;
@@ -266,12 +254,110 @@ export function isAccountLinked(): boolean {
 }
 
 // ============================================================================
-// ACCOUNT LINKING (Upgrade from Anonymous)
+// SIGN IN (Primary authentication)
 // ============================================================================
 
 /**
- * Link email/password to current anonymous account.
- * Preserves all user data.
+ * Sign in with Google using popup.
+ * Opens Google sign-in popup and creates/signs into Firebase account.
+ *
+ * @returns UserCredential on success
+ * @throws Error if sign-in fails or is cancelled
+ */
+export async function signInWithGoogle(): Promise<UserCredential> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error('Firebase Auth not configured');
+  }
+
+  log.info('Signing in with Google');
+  const provider = new GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+
+  const result = await signInWithPopup(auth, provider);
+  log.info('Google sign-in successful', {
+    uid: result.user.uid.substring(0, 8) + '...',
+    email: result.user.email,
+  });
+  return result;
+}
+
+/**
+ * Sign in with Apple using popup.
+ * Opens Apple sign-in popup and creates/signs into Firebase account.
+ *
+ * @returns UserCredential on success
+ * @throws Error if sign-in fails or is cancelled
+ */
+export async function signInWithApple(): Promise<UserCredential> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error('Firebase Auth not configured');
+  }
+
+  log.info('Signing in with Apple');
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
+
+  const result = await signInWithPopup(auth, provider);
+  log.info('Apple sign-in successful', {
+    uid: result.user.uid.substring(0, 8) + '...',
+    email: result.user.email,
+  });
+  return result;
+}
+
+/**
+ * Sign in with Google using ID token from Google One-Tap.
+ *
+ * This method is specifically for One-Tap which returns a JWT credential
+ * instead of using the OAuth popup flow. The token is verified server-side
+ * by Firebase, so we trust it here.
+ *
+ * @param idToken - JWT credential from Google Identity Services
+ * @returns UserCredential on success
+ * @throws Error if sign-in fails
+ */
+export async function signInWithGoogleCredential(idToken: string): Promise<UserCredential> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error('Firebase Auth not configured');
+  }
+
+  log.info('Signing in with Google via One-Tap credential');
+
+  // Create credential from the One-Tap JWT ID token
+  const credential = GoogleAuthProvider.credential(idToken);
+
+  try {
+    const result = await signInWithCredential(auth, credential);
+    log.info('Google One-Tap sign-in successful', {
+      uid: result.user.uid.substring(0, 8) + '...',
+      email: result.user.email,
+    });
+    return result;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error) {
+      const firebaseError = error as { code: string; message: string };
+
+      if (firebaseError.code === 'auth/invalid-credential') {
+        log.error('Invalid credential from One-Tap');
+        throw new Error('Something went wrong with Google sign-in. Try again?');
+      }
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
+// ACCOUNT LINKING (Add additional providers to existing account)
+// ============================================================================
+
+/**
+ * Link email/password to current account.
+ * Allows users to add email/password as an additional sign-in method.
  *
  * @param email - User's email address
  * @param password - User's chosen password
@@ -284,10 +370,6 @@ export async function linkWithEmail(email: string, password: string): Promise<Us
     throw new Error('Not authenticated');
   }
 
-  if (!currentUser.isAnonymous) {
-    throw new Error('Account already linked');
-  }
-
   log.info('Linking email account');
   const credential = EmailAuthProvider.credential(email, password);
   const result = await linkWithCredential(currentUser, credential);
@@ -297,9 +379,10 @@ export async function linkWithEmail(email: string, password: string): Promise<Us
 }
 
 /**
- * Link Google account to current anonymous account.
- * Opens popup for Google sign-in, then links to existing account.
- * Preserves all user data.
+ * Link Google account to current account.
+ * Allows users to add Google as an additional sign-in method.
+ *
+ * @deprecated Use signInWithGoogle() for primary auth. This is for adding Google to existing account.
  */
 export async function linkWithGoogle(): Promise<UserCredential> {
   const auth = getFirebaseAuth();
@@ -307,36 +390,26 @@ export async function linkWithGoogle(): Promise<UserCredential> {
     throw new Error('Not authenticated');
   }
 
-  if (!currentUser.isAnonymous) {
-    throw new Error('Account already linked');
-  }
-
   log.info('Linking Google account');
   const provider = new GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
 
-  // For anonymous users, we need to sign in with popup first, then link
-  // This is because linkWithPopup doesn't work well with anonymous accounts
   const result = await signInWithPopup(auth, provider);
-
   log.info('Google account linked successfully');
   return result;
 }
 
 /**
- * Link Apple account to current anonymous account.
- * Opens popup for Apple sign-in, then links to existing account.
- * Preserves all user data.
+ * Link Apple account to current account.
+ * Allows users to add Apple as an additional sign-in method.
+ *
+ * @deprecated Use signInWithApple() for primary auth. This is for adding Apple to existing account.
  */
 export async function linkWithApple(): Promise<UserCredential> {
   const auth = getFirebaseAuth();
   if (!auth || !currentUser) {
     throw new Error('Not authenticated');
-  }
-
-  if (!currentUser.isAnonymous) {
-    throw new Error('Account already linked');
   }
 
   log.info('Linking Apple account');
@@ -345,68 +418,16 @@ export async function linkWithApple(): Promise<UserCredential> {
   provider.addScope('name');
 
   const result = await signInWithPopup(auth, provider);
-
   log.info('Apple account linked successfully');
   return result;
 }
 
 /**
- * Link Google account using ID token from Google One-Tap.
- *
- * This method is specifically for One-Tap which returns a JWT credential
- * instead of using the OAuth popup flow. The token is verified server-side
- * by Firebase, so we trust it here.
- *
- * @param idToken - JWT credential from Google Identity Services
- * @returns UserCredential on success
- * @throws Error if linking fails
+ * @deprecated Use signInWithGoogleCredential() for primary auth.
  */
 export async function linkWithGoogleCredential(idToken: string): Promise<UserCredential> {
-  const auth = getFirebaseAuth();
-  if (!auth || !currentUser) {
-    throw new Error('Not authenticated');
-  }
-
-  if (!currentUser.isAnonymous) {
-    throw new Error('Account already linked');
-  }
-
-  log.info('Linking Google account via One-Tap credential');
-
-  // Create credential from the One-Tap JWT ID token
-  // GoogleAuthProvider.credential(idToken, accessToken?) creates an OAuthCredential
-  // For One-Tap/GIS, idToken is a JWT that Firebase validates server-side
-  const credential = GoogleAuthProvider.credential(idToken);
-
-  try {
-    const result = await linkWithCredential(currentUser, credential);
-    log.info('Google account linked successfully via One-Tap');
-    return result;
-  } catch (error: unknown) {
-    // Handle specific Firebase errors with friendly messages
-    if (error && typeof error === 'object' && 'code' in error) {
-      const firebaseError = error as { code: string; message: string };
-
-      if (firebaseError.code === 'auth/credential-already-in-use') {
-        log.warn('Google account already linked to another user');
-        throw new Error(
-          'This Google account is already linked to another Ferni account. Try a different account?'
-        );
-      }
-
-      if (firebaseError.code === 'auth/invalid-credential') {
-        log.error('Invalid credential from One-Tap');
-        throw new Error('Something went wrong with Google sign-in. Try again?');
-      }
-
-      if (firebaseError.code === 'auth/provider-already-linked') {
-        log.info('Google already linked to this account');
-        throw new Error('You already have Google linked to this account!');
-      }
-    }
-
-    throw error;
-  }
+  // Redirect to the new sign-in function for backward compatibility
+  return signInWithGoogleCredential(idToken);
 }
 
 // ============================================================================
@@ -491,6 +512,11 @@ export const firebaseAuth = {
   getUid: getFirebaseUid,
   isAuthenticated,
   isAccountLinked,
+  // Primary sign-in methods
+  signInWithGoogle,
+  signInWithApple,
+  signInWithGoogleCredential,
+  // Legacy linking methods (for adding providers to existing account)
   linkWithEmail,
   linkWithGoogle,
   linkWithGoogleCredential,

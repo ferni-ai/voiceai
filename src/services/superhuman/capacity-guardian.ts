@@ -19,6 +19,7 @@ import {
   type CalendarBurnoutFactor,
 } from '../calendar/calendar-load-service.js';
 import { onCapacityStateChange } from '../data-layer/hooks/superhuman-hooks.js';
+import { onBurnoutRiskElevated } from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'capacity-guardian' });
 
@@ -480,6 +481,20 @@ export async function assessBurnoutRisk(userId: string): Promise<BurnoutAssessme
   } else if (risk === 'moderate') {
     recommendations.push('Watch your boundaries this week.');
     recommendations.push('Schedule some white space.');
+  }
+
+  // Better Than Human: Trigger proactive outreach for elevated burnout risk
+  if (risk === 'elevated' || risk === 'high' || risk === 'critical') {
+    try {
+      await onBurnoutRiskElevated(userId, {
+        risk,
+        riskScore,
+        factors: factors.map((f) => f.factor),
+      });
+    } catch (outreachError) {
+      // Outreach is optional - don't fail assessment
+      log.debug({ error: String(outreachError) }, 'Burnout outreach failed (non-blocking)');
+    }
   }
 
   return {

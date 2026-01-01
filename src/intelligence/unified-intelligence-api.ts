@@ -186,7 +186,8 @@ export async function getIntelligenceForTurn(
 
   // Build immediate context
   const immediate: ImmediateContext = {
-    timeOfDay: hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'late_night',
+    timeOfDay:
+      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'late_night',
     dayOfWeek: dayNames[now.getDay()],
     isWeekend: now.getDay() === 0 || now.getDay() === 6,
   };

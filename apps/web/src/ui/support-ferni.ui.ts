@@ -24,7 +24,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { openFoundersJourney } from './founders-journey.ui.js';
 import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('SupportFerniUI');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -94,18 +94,21 @@ interface TierInfo {
   features: string[];
 }
 
+// Default tier for fallback
+const DEFAULT_TIER: TierInfo = {
+  id: 'free',
+  name: 'Community',
+  tagline: 'Ferni is free. Really free.',
+  price: 'Free forever',
+  features: [
+    'Unlimited conversations with Ferni',
+    '7-minute heart-to-hearts',
+    'Full memory — I remember everything',
+  ],
+};
+
 const TIERS: TierInfo[] = [
-  {
-    id: 'free',
-    name: 'Community',
-    tagline: 'Ferni is free. Really free.',
-    price: 'Free forever',
-    features: [
-      'Unlimited conversations with Ferni',
-      '7-minute heart-to-hearts',
-      'Full memory — I remember everything',
-    ],
-  },
+  DEFAULT_TIER,
   {
     id: 'friend',
     name: 'Founding Member',
@@ -215,7 +218,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   container.setAttribute('aria-labelledby', 'support-ferni-title');
 
   const currentTier = status?.tier || 'free';
-  const tierInfo = TIERS.find((t) => t.id === currentTier) || TIERS[0];
+  const tierInfo = TIERS.find((t) => t.id === currentTier) ?? DEFAULT_TIER;
 
   container.innerHTML = `
     <div class="support-ferni-backdrop" aria-hidden="true"></div>

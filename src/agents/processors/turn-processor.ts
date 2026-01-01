@@ -1516,11 +1516,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // 🧠 SUPERHUMAN OUTREACH: Accumulate crisis signal for intelligent outreach
     if (userData.userId) {
       try {
-        const { accumulateSignal, signalFromCrisis } = await import(
-          '../../services/conversation-thread/superhuman-outreach-intelligence.js'
-        );
+        const { accumulateSignal, signalFromCrisis } =
+          await import('../../services/conversation-thread/superhuman-outreach-intelligence.js');
         const severityLevel =
-          crisisResult.severity > 0.7 ? 'severe' : crisisResult.severity > 0.5 ? 'high' : 'moderate';
+          crisisResult.severity > 0.7
+            ? 'severe'
+            : crisisResult.severity > 0.5
+              ? 'high'
+              : 'moderate';
         accumulateSignal(
           userData.userId,
           signalFromCrisis({

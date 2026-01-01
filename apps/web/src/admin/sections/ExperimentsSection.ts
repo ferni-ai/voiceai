@@ -8,7 +8,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
-import { toast } from '../../ui/toast.ui.js';
+import { toast } from '../../ui/whisper.ui.js';
 import {
   ICON_CHART,
   ICON_PAUSE,

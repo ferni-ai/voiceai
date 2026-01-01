@@ -25,6 +25,7 @@
   const closeBtn = document.getElementById('waitlistModalClose');
   const form = document.getElementById('waitlistModalForm');
   const emailInput = document.getElementById('waitlistModalEmail');
+  const phoneInput = document.getElementById('waitlistModalPhone');
   const errorEl = document.getElementById('modalEmailError');
   const submitBtn = document.getElementById('waitlistModalSubmit');
   const contentEl = document.getElementById('waitlistModalContent');
@@ -274,6 +275,7 @@
     clearError();
 
     const email = emailInput?.value.trim().toLowerCase() || '';
+    const phone = phoneInput?.value.trim() || '';
     const honeypot = form?.querySelector('input[name="website"]');
 
     // Check honeypot (bot detection)
@@ -283,15 +285,15 @@
       return;
     }
 
-    // Validate email
+    // Validate email - warm, conversational
     if (!email) {
-      showError("Let's start with your email");
+      showError("I'll need your email to save your spot");
       emailInput?.focus();
       return;
     }
 
     if (!isValidEmail(email)) {
-      showError("Let's try a valid email");
+      showError("Hmm, that doesn't look quite right");
       emailInput?.focus();
       return;
     }
@@ -300,15 +302,21 @@
     setLoading(true);
 
     try {
+      // Build payload (only include phone if provided)
+      const payload = {
+        email,
+        source: 'landing',
+      };
+      if (phone) {
+        payload.phone = phone;
+      }
+
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email,
-          source: 'landing',
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -316,20 +324,20 @@
       if (response.ok) {
         showSuccess();
       } else {
-        // Handle specific errors
+        // Handle specific errors - warm, human messages
         if (response.status === 409 || data.error === 'already_registered') {
           // Already on the list - show friendly message then success
-          showError("You're already on the list!");
+          showError("You're already in! Let me show you...");
           setTimeout(showSuccess, 1200);
         } else if (response.status === 429) {
-          showError('Too many requests. Try again later.');
+          showError('Give me a moment... try again shortly');
         } else {
-          showError("Couldn't save. Try again?");
+          showError("Something went wrong. Try once more?");
         }
       }
     } catch (err) {
       console.error('[Waitlist Modal] Submission error:', err);
-      showError("Couldn't connect. Check your internet?");
+      showError("Lost connection. Are you online?");
     } finally {
       setLoading(false);
     }

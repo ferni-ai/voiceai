@@ -77,6 +77,25 @@ jobs:
       minBackoffDuration: 30s
       maxBackoffDuration: 60s
 
+  # Superhuman Memory Maintenance - runs nightly at 3am PT
+  # LLM link detection, pattern formation, protection cleanup
+  - name: memory-nightly-maintenance
+    description: Nightly Superhuman Memory maintenance (LLM links, patterns, protection)
+    schedule: "0 3 * * *"  # 3am every day
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/memory/maintenance
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      body: |
+        {"dryRun": false}
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 60s
+      maxBackoffDuration: 300s
+
 # ============================================================================
 # MANUAL DEPLOYMENT COMMANDS
 # ============================================================================
@@ -118,6 +137,16 @@ jobs:
 #   --headers="Content-Type=application/json,X-CloudScheduler=true" \
 #   --time-zone="America/Los_Angeles" \
 #   --description="Memory system health monitoring"
+#
+# gcloud scheduler jobs create http memory-nightly-maintenance \
+#   --location=us-central1 \
+#   --schedule="0 3 * * *" \
+#   --uri="https://app.ferni.ai/api/memory/maintenance" \
+#   --http-method=POST \
+#   --headers="Content-Type=application/json,X-CloudScheduler=true" \
+#   --message-body='{"dryRun": false}' \
+#   --time-zone="America/Los_Angeles" \
+#   --description="Nightly Superhuman Memory maintenance (LLM links, patterns, protection)"
 #
 # ============================================================================
 # TESTING COMMANDS

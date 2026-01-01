@@ -497,13 +497,13 @@ function handleKeyDown(e: KeyboardEvent): void {
 
     if (e.shiftKey) {
       // Shift+Tab: if on first element, wrap to last
-      if (document.activeElement === firstElement) {
+      if (document.activeElement === firstElement && lastElement) {
         e.preventDefault();
         lastElement.focus();
       }
     } else {
       // Tab: if on last element, wrap to first
-      if (document.activeElement === lastElement) {
+      if (document.activeElement === lastElement && firstElement) {
         e.preventDefault();
         firstElement.focus();
       }
@@ -688,16 +688,20 @@ export function toggle(): void {
 // ============================================================================
 
 function handleTouchStart(e: TouchEvent): void {
+  const touch = e.touches[0];
+  if (!touch) return;
   state.isDragging = true;
-  state.startY = e.touches[0].clientY;
+  state.startY = touch.clientY;
   state.currentY = state.startY;
   sheetElement?.classList.add('dragging');
 }
 
 function handleTouchMove(e: TouchEvent): void {
   if (!state.isDragging) return;
+  const touch = e.touches[0];
+  if (!touch) return;
 
-  state.currentY = e.touches[0].clientY;
+  state.currentY = touch.clientY;
   const deltaY = state.currentY - state.startY;
 
   // Only allow dragging down

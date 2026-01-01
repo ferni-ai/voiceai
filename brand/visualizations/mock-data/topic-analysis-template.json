@@ -1,0 +1,197 @@
+{
+  "$schema": "Topic Analysis Mock Data Template",
+  "description": "Template for conversation river, values radar, and topic-based visualizations",
+
+  "topicDistribution": {
+    "allTime": {
+      "work": { "percentage": 28, "trend": "decreasing", "color": "#3A6B73" },
+      "relationships": { "percentage": 24, "trend": "stable", "color": "#A67A6A" },
+      "health": { "percentage": 22, "trend": "increasing", "color": "#4A6741" },
+      "growth": { "percentage": 15, "trend": "increasing", "color": "#B8956A" },
+      "finances": { "percentage": 8, "trend": "stable", "color": "#C4856A" },
+      "other": { "percentage": 3, "trend": "stable", "color": "#5a6b8a" }
+    },
+    "monthly": [
+      { "month": "2024-07", "work": 42, "relationships": 20, "health": 18, "growth": 12, "finances": 5, "other": 3 },
+      { "month": "2024-08", "work": 38, "relationships": 22, "health": 20, "growth": 13, "finances": 5, "other": 2 },
+      { "month": "2024-09", "work": 35, "relationships": 23, "health": 22, "growth": 13, "finances": 5, "other": 2 },
+      { "month": "2024-10", "work": 30, "relationships": 24, "health": 24, "growth": 14, "finances": 6, "other": 2 },
+      { "month": "2024-11", "work": 26, "relationships": 25, "health": 26, "growth": 15, "finances": 6, "other": 2 },
+      { "month": "2024-12", "work": 22, "relationships": 26, "health": 28, "growth": 16, "finances": 6, "other": 2 }
+    ],
+    "insight": "Work dominated early conversations (42% → 22%). As trust built, health and relationships emerged as true priorities."
+  },
+
+  "conversationRiver": {
+    "streams": [
+      {
+        "topic": "Work",
+        "color": "#3A6B73",
+        "flowData": [
+          { "week": 1, "width": 42, "sentiment": 4.2 },
+          { "week": 2, "width": 45, "sentiment": 3.8 },
+          { "week": 3, "width": 48, "sentiment": 3.5 },
+          { "week": 4, "width": 38, "sentiment": 4.5 },
+          { "week": 5, "width": 32, "sentiment": 5.2 },
+          { "week": 6, "width": 28, "sentiment": 5.8 },
+          { "week": 7, "width": 24, "sentiment": 6.2 },
+          { "week": 8, "width": 22, "sentiment": 6.5 }
+        ]
+      },
+      {
+        "topic": "Relationships",
+        "color": "#A67A6A",
+        "flowData": [
+          { "week": 1, "width": 20, "sentiment": 6.5 },
+          { "week": 2, "width": 22, "sentiment": 6.8 },
+          { "week": 3, "width": 21, "sentiment": 6.2 },
+          { "week": 4, "width": 24, "sentiment": 7.0 },
+          { "week": 5, "width": 25, "sentiment": 7.2 },
+          { "week": 6, "width": 26, "sentiment": 7.5 },
+          { "week": 7, "width": 26, "sentiment": 7.8 },
+          { "week": 8, "width": 26, "sentiment": 8.0 }
+        ]
+      },
+      {
+        "topic": "Health",
+        "color": "#4A6741",
+        "flowData": [
+          { "week": 1, "width": 18, "sentiment": 4.5 },
+          { "week": 2, "width": 15, "sentiment": 4.2 },
+          { "week": 3, "width": 14, "sentiment": 4.0 },
+          { "week": 4, "width": 18, "sentiment": 5.0 },
+          { "week": 5, "width": 22, "sentiment": 5.8 },
+          { "week": 6, "width": 25, "sentiment": 6.5 },
+          { "week": 7, "width": 27, "sentiment": 7.0 },
+          { "week": 8, "width": 28, "sentiment": 7.5 }
+        ]
+      },
+      {
+        "topic": "Growth",
+        "color": "#B8956A",
+        "flowData": [
+          { "week": 1, "width": 12, "sentiment": 5.5 },
+          { "week": 2, "width": 13, "sentiment": 5.8 },
+          { "week": 3, "width": 14, "sentiment": 6.0 },
+          { "week": 4, "width": 14, "sentiment": 6.2 },
+          { "week": 5, "width": 15, "sentiment": 6.5 },
+          { "week": 6, "width": 15, "sentiment": 6.8 },
+          { "week": 7, "width": 16, "sentiment": 7.0 },
+          { "week": 8, "width": 16, "sentiment": 7.2 }
+        ]
+      }
+    ]
+  },
+
+  "valuesAlignment": {
+    "stated": {
+      "health": 90,
+      "family": 95,
+      "growth": 85,
+      "creativity": 80,
+      "rest": 75,
+      "career": 60
+    },
+    "observed": {
+      "health": 55,
+      "family": 85,
+      "growth": 78,
+      "creativity": 35,
+      "rest": 40,
+      "career": 72
+    },
+    "gaps": [
+      { "value": "health", "gap": 35, "insight": "Only 2 of 12 weeks showed attention" },
+      { "value": "rest", "gap": 35, "insight": "Consistently deprioritized for productivity" },
+      { "value": "creativity", "gap": 45, "insight": "Mentioned wanting to but never starting" }
+    ],
+    "alignments": [
+      { "value": "family", "alignment": 90, "insight": "Actions match words" },
+      { "value": "growth", "alignment": 92, "insight": "Consistent daily learning" }
+    ]
+  },
+
+  "theMirror": {
+    "patterns": [
+      {
+        "whatYouSay": "I'm fine, just busy",
+        "whatFerniNotices": "You've mentioned 'busy' 47 times this month",
+        "frequency": 47,
+        "sentiment": 3.2,
+        "insight": "'Fine' often masks overwhelm. Pattern: 3 days before you mention burnout."
+      },
+      {
+        "whatYouSay": "Work is going okay",
+        "whatFerniNotices": "Work frustration up 180% in 3 weeks",
+        "frequency": 23,
+        "sentiment": 4.1,
+        "insight": "The specific frustrations are with James (colleague) and unclear expectations."
+      },
+      {
+        "whatYouSay": "I should exercise more",
+        "whatFerniNotices": "Exercise commitment made 12x, kept 2x",
+        "frequency": 12,
+        "sentiment": 4.8,
+        "insight": "Afternoon commitments fail 90%. Morning ones succeed 75%."
+      },
+      {
+        "whatYouSay": "I'll call mom later",
+        "whatFerniNotices": "23 days since you mentioned calling mom",
+        "frequency": 8,
+        "sentiment": 5.5,
+        "insight": "You typically delay 2+ hours on family calls. Average actual call rate: 40%."
+      }
+    ]
+  },
+
+  "theUnsaid": [
+    {
+      "quote": "I've been thinking about taking a ceramics class",
+      "date": "2024-10-15",
+      "daysAgo": 76,
+      "topic": "creativity",
+      "prompt": "What happened to that creative urge?",
+      "relatedMentions": ["feeling restless", "need an outlet", "used to be more creative"]
+    },
+    {
+      "quote": "Maybe I should talk to someone about the anxiety",
+      "date": "2024-09-03",
+      "daysAgo": 118,
+      "topic": "mental-health",
+      "prompt": "That thought deserved more space.",
+      "relatedMentions": ["racing thoughts", "trouble sleeping", "worried about worrying"]
+    },
+    {
+      "quote": "I miss how close we used to be",
+      "date": "2024-11-28",
+      "daysAgo": 32,
+      "topic": "relationships",
+      "prompt": "Some distances can still be closed.",
+      "relatedMentions": ["old friend", "wondering how they are", "should reach out"]
+    },
+    {
+      "quote": "Someday I'd like to write a book",
+      "date": "2024-08-12",
+      "daysAgo": 140,
+      "topic": "dreams",
+      "prompt": "Someday is not a day of the week.",
+      "relatedMentions": ["story ideas", "always wanted to", "never have time"]
+    }
+  ],
+
+  "emotionalSeasons": {
+    "current": {
+      "season": "Autumn",
+      "description": "A time of harvest",
+      "characteristics": ["Reflection", "Consolidating gains", "Preparing for rest"]
+    },
+    "yearDistribution": {
+      "spring": { "percentage": 28, "months": ["March", "April", "early May"], "theme": "New beginnings, energy" },
+      "summer": { "percentage": 32, "months": ["Late May", "June", "July"], "theme": "Peak activity, joy" },
+      "autumn": { "percentage": 22, "months": ["August", "September", "October"], "theme": "Harvest, reflection" },
+      "winter": { "percentage": 18, "months": ["November", "December", "January", "February"], "theme": "Rest, introspection" }
+    },
+    "pattern": "You tend to push through winter instead of honoring the rest need. This often leads to a harder spring.",
+    "recommendation": "Lean into the rest. The spring that follows will be stronger."
+  }
+}

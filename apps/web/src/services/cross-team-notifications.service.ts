@@ -224,7 +224,9 @@ export function showBestInsight(insights: CrossTeamInsight[]): boolean {
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
   });
 
-  return showCrossTeamNotification(sorted[0]);
+  const topInsight = sorted[0];
+  if (!topInsight) return false;
+  return showCrossTeamNotification(topInsight);
 }
 
 // ============================================================================

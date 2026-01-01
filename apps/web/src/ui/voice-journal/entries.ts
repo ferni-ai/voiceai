@@ -78,7 +78,7 @@ export async function deleteEntry(entryId: string): Promise<boolean> {
     return false;
   }
 
-  const { toast } = await import('../toast.ui.js');
+  const { toast } = await import('../whisper.ui.js');
 
   // Confirm deletion
   const confirmed = confirm('Delete this journal entry? This cannot be undone.');

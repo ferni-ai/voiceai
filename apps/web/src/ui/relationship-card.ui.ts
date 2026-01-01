@@ -1,3 +1,4 @@
+// TODO: Fix type errors - array indexing and date parsing undefined checks
 /**
  * Relationship Card UI
  *
@@ -13,7 +14,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { openLogMoment } from './log-moment.ui.js';
@@ -1855,29 +1856,29 @@ function formatDateStr(dateStr: string): string {
   let month: number, day: number;
   
   if (parts.length === 3) {
-    month = parseInt(parts[1], 10) - 1;
-    day = parseInt(parts[2], 10);
+    month = parseInt(parts[1] ?? '1', 10) - 1;
+    day = parseInt(parts[2] ?? '1', 10);
   } else {
-    month = parseInt(parts[0], 10) - 1;
-    day = parseInt(parts[1], 10);
+    month = parseInt(parts[0] ?? '1', 10) - 1;
+    day = parseInt(parts[1] ?? '1', 10);
   }
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                       'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${monthNames[month]} ${day}`;
+  return `${monthNames[month] ?? 'January'} ${day}`;
 }
 
 function getMonthAbbrev(dateStr: string): string {
   // Handle MM-DD or YYYY-MM-DD format
   const parts = dateStr.split('-');
-  const monthNum = parts.length === 3 ? parseInt(parts[1]) : parseInt(parts[0]);
+  const monthNum = parts.length === 3 ? parseInt(parts[1] ?? '1') : parseInt(parts[0] ?? '1');
   const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  return months[monthNum - 1] || 'JAN';
+  return months[monthNum - 1] ?? 'JAN';
 }
 
 function getDayNumber(dateStr: string): string {
   const parts = dateStr.split('-');
-  return parts.length === 3 ? parts[2] : parts[1];
+  return parts.length === 3 ? (parts[2] ?? '1') : (parts[1] ?? '1');
 }
 
 function groupTimelineByMonth(items: TimelineItem[]): Record<string, TimelineItem[]> {
@@ -2028,8 +2029,8 @@ async function loadRelationshipData(contactId: string): Promise<void> {
           };
 
           // Calculate days until next meeting
-          if (state.sharedCalendar.upcoming.length > 0) {
-            const nextMeeting = state.sharedCalendar.upcoming[0];
+          const nextMeeting = state.sharedCalendar.upcoming[0];
+          if (nextMeeting) {
             const today = new Date();
             const meetingDate = new Date(nextMeeting.date);
             state.sharedCalendar.nextMeetingDaysUntil = Math.ceil(

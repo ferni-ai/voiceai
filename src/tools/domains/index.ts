@@ -224,6 +224,51 @@ export { getToolDefinitions as getSocialSkillsToolDefinitions } from './social-s
 // Anger Management domain - healthy anger expression and management
 export { getToolDefinitions as getAngerToolDefinitions } from './anger/index.js';
 
+// Shame domain - understanding, processing, and healing from shame
+export { getToolDefinitions as getShameToolDefinitions } from './shame/index.js';
+
+// Envy domain - understanding and transforming envy
+export { getToolDefinitions as getEnvyToolDefinitions } from './envy/index.js';
+
+// Resentment domain - understanding, processing, and releasing resentment
+export { getToolDefinitions as getResentmentToolDefinitions } from './resentment/index.js';
+
+// Caregiver domain - supporting those caring for aging/ill loved ones
+export { getToolDefinitions as getCaregiverToolDefinitions } from './caregiver/index.js';
+
+// Divorce domain - navigating divorce process and recovery
+export { getToolDefinitions as getDivorceToolDefinitions } from './divorce/index.js';
+
+// New Parent domain - adjusting to parenthood
+export { getToolDefinitions as getNewParentToolDefinitions } from './new-parent/index.js';
+
+// Empty Nest domain - when children leave home
+export { getToolDefinitions as getEmptyNestToolDefinitions } from './empty-nest/index.js';
+
+// Infidelity domain - betrayal recovery and trust rebuilding
+export { getToolDefinitions as getInfidelityToolDefinitions } from './infidelity/index.js';
+
+// Health Diagnosis domain - chronic illness adjustment
+export { getToolDefinitions as getHealthDiagnosisToolDefinitions } from './health-diagnosis/index.js';
+
+// Job Loss domain - unemployment emotional support
+export { getToolDefinitions as getJobLossToolDefinitions } from './job-loss/index.js';
+
+// Sobriety domain - recovery and addiction support
+export { getToolDefinitions as getSobrietyToolDefinitions } from './sobriety/index.js';
+
+// Sandwich Generation domain - caring for kids AND aging parents
+export { getToolDefinitions as getSandwichGenerationToolDefinitions } from './sandwich-generation/index.js';
+
+// Blended Family domain - step-parenting and family merging
+export { getToolDefinitions as getBlendedFamilyToolDefinitions } from './blended-family/index.js';
+
+// Coming Out domain - LGBTQ+ identity journey
+export { getToolDefinitions as getComingOutToolDefinitions } from './coming-out/index.js';
+
+// Faith Transition domain - religious/spiritual changes
+export { getToolDefinitions as getFaithTransitionToolDefinitions } from './faith-transition/index.js';
+
 // Procrastination domain - understanding and overcoming procrastination
 export { getToolDefinitions as getProcrastinationToolDefinitions } from './procrastination/index.js';
 
@@ -427,6 +472,21 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./boundaries/index.js').then(async (m) => m.getToolDefinitions()),
     import('./social-skills/index.js').then(async (m) => m.getToolDefinitions()),
     import('./anger/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./shame/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./envy/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./resentment/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./caregiver/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./divorce/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./new-parent/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./empty-nest/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./infidelity/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./health-diagnosis/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./job-loss/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./sobriety/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./sandwich-generation/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./blended-family/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./coming-out/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./faith-transition/index.js').then(async (m) => m.getToolDefinitions()),
     import('./procrastination/index.js').then(async (m) => m.getToolDefinitions()),
     import('./burnout-recovery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./perfectionism/index.js').then(async (m) => m.getToolDefinitions()),
@@ -786,6 +846,24 @@ export const DOMAIN_METADATA = {
     name: 'Anger Management',
     description: 'Healthy anger expression, triggers, and regulation strategies',
     icon: '🌋',
+    status: 'active',
+  },
+  shame: {
+    name: 'Shame',
+    description: 'Understanding, processing, and healing from shame',
+    icon: '🌑',
+    status: 'active',
+  },
+  envy: {
+    name: 'Envy',
+    description: 'Understanding and transforming envy into motivation',
+    icon: '💚',
+    status: 'active',
+  },
+  resentment: {
+    name: 'Resentment',
+    description: 'Processing and releasing held grudges and resentments',
+    icon: '⚖️',
     status: 'active',
   },
   procrastination: {

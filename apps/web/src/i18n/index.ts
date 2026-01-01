@@ -274,8 +274,8 @@ export function getLocale(): SupportedLocale {
  */
 export function getLocaleInfo(locale: SupportedLocale = currentLocale): LocaleInfo {
   const found = SUPPORTED_LOCALES.find((l) => l.code === locale);
-  // Fallback to en-US which is always first
-  return found ?? (SUPPORTED_LOCALES[0]);
+  // Fallback to en-US which is always first (guaranteed to exist)
+  return found ?? SUPPORTED_LOCALES[0]!;
 }
 
 /**

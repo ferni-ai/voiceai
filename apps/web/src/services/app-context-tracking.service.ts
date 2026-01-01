@@ -240,13 +240,15 @@ async function sendBatchedEvents(events: QueuedEvent[]): Promise<void> {
     if (screenViews.length > 0) {
       const lastView = screenViews[screenViews.length - 1];
       const firstView = screenViews[0];
-      const durationSeconds = Math.round((lastView.timestamp - firstView.timestamp) / 1000);
-      
-      await apiPost('/api/context/screen-view', {
-        userId,
-        screenName: lastView.payload.screenName as string,
-        durationSeconds: Math.max(1, durationSeconds), // At least 1 second
-      });
+      if (lastView && firstView) {
+        const durationSeconds = Math.round((lastView.timestamp - firstView.timestamp) / 1000);
+        
+        await apiPost('/api/context/screen-view', {
+          userId,
+          screenName: lastView.payload.screenName as string,
+          durationSeconds: Math.max(1, durationSeconds), // At least 1 second
+        });
+      }
     }
 
     // Send interactions as browsing context

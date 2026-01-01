@@ -1,3 +1,4 @@
+// TODO: Fix type errors - entry array indexing
 /**
  * Journal Stats
  *
@@ -53,6 +54,7 @@ export function calculateStats(journalEntries: CustomAgentMemory[]): JournalStat
 
   for (let i = 0; i < dates.length; i++) {
     const date = dates[i];
+    if (!date) continue;
     if (i === 0) {
       const diffFromToday = Math.floor(
         (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
@@ -62,6 +64,7 @@ export function calculateStats(journalEntries: CustomAgentMemory[]): JournalStat
       }
     } else {
       const prevDate = dates[i - 1];
+      if (!prevDate) continue;
       const diff = Math.floor(
         (prevDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -106,8 +109,9 @@ export function calculateStats(journalEntries: CustomAgentMemory[]): JournalStat
   sorted.forEach((entry) => {
     const age = now - new Date(entry.createdAt).getTime();
     const weekIndex = Math.floor(age / (7 * 24 * 60 * 60 * 1000));
-    if (weekIndex < 4) {
-      entriesByWeek[weekIndex]++;
+    if (weekIndex >= 0 && weekIndex < 4) {
+      const current = entriesByWeek[weekIndex] ?? 0;
+      entriesByWeek[weekIndex] = current + 1;
     }
   });
 

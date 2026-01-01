@@ -19,9 +19,9 @@
  * @module your-year-with-ferni
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('YourYearWithFerni');
 
@@ -184,12 +184,11 @@ export class YourYearWithFerni {
       // More conversations on weekdays
       const baseCount = dayOfWeek === 0 || dayOfWeek === 6 ? 0 : Math.floor(Math.random() * 3);
       if (baseCount > 0 || Math.random() > 0.7) {
+        const emotions = ['neutral', 'happy', 'reflective', 'stressed'] as const;
         conversationCounts.push({
-          date: current.toISOString().split('T')[0],
+          date: current.toISOString().split('T')[0] ?? '',
           count: baseCount || Math.floor(Math.random() * 2) + 1,
-          dominantEmotion: ['neutral', 'happy', 'reflective', 'stressed'][
-            Math.floor(Math.random() * 4)
-          ],
+          dominantEmotion: emotions[Math.floor(Math.random() * 4)] ?? 'neutral',
         });
       }
       current.setDate(current.getDate() + 1);
@@ -200,18 +199,72 @@ export class YourYearWithFerni {
       startDate,
       conversationCounts,
       emotionalJourney: [
-        { date: new Date('2024-03-15'), emotion: 'breakthrough', context: 'Career clarity', intensity: 0.9 },
-        { date: new Date('2024-06-20'), emotion: 'celebration', context: 'Promotion', intensity: 0.85 },
-        { date: new Date('2024-09-10'), emotion: 'growth', context: 'New perspective', intensity: 0.7 },
+        {
+          date: new Date('2024-03-15'),
+          emotion: 'breakthrough',
+          context: 'Career clarity',
+          intensity: 0.9,
+        },
+        {
+          date: new Date('2024-06-20'),
+          emotion: 'celebration',
+          context: 'Promotion',
+          intensity: 0.85,
+        },
+        {
+          date: new Date('2024-09-10'),
+          emotion: 'growth',
+          context: 'New perspective',
+          intensity: 0.7,
+        },
       ],
       teamUnlocks: [
-        { personaId: 'ferni', personaName: 'Ferni', unlockedAt: startDate, primaryColor: '#4a6741' },
-        { personaId: 'maya', personaName: 'Maya', unlockedAt: new Date('2024-02-15'), primaryColor: '#a67a6a' },
-        { personaId: 'peter', personaName: 'Peter', unlockedAt: new Date('2024-04-01'), primaryColor: '#3a6b73' },
+        {
+          personaId: 'ferni',
+          personaName: 'Ferni',
+          unlockedAt: startDate,
+          primaryColor: '#4A6741',
+        },
+        {
+          personaId: 'maya',
+          personaName: 'Maya',
+          unlockedAt: new Date('2024-02-15'),
+          primaryColor: '#A67A6A',
+        },
+        {
+          personaId: 'peter',
+          personaName: 'Peter',
+          unlockedAt: new Date('2024-04-01'),
+          primaryColor: '#3A6B73',
+        },
+        {
+          personaId: 'alex',
+          personaName: 'Alex',
+          unlockedAt: new Date('2024-06-10'),
+          primaryColor: '#5A6B8A',
+        },
+        {
+          personaId: 'jordan',
+          personaName: 'Jordan',
+          unlockedAt: new Date('2024-08-20'),
+          primaryColor: '#C4856A',
+        },
       ],
       dreams: [
-        { dream: 'Learn piano', type: 'skill', mentionedAt: new Date('2024-01-20'), status: 'active', mentionCount: 5 },
-        { dream: 'Visit Japan', type: 'travel', mentionedAt: new Date('2024-03-10'), status: 'active', mentionCount: 3 },
+        {
+          dream: 'Learn piano',
+          type: 'skill',
+          mentionedAt: new Date('2024-01-20'),
+          status: 'active',
+          mentionCount: 5,
+        },
+        {
+          dream: 'Visit Japan',
+          type: 'travel',
+          mentionedAt: new Date('2024-03-10'),
+          status: 'active',
+          mentionCount: 3,
+        },
       ],
       commitments: [
         { type: 'intention', count: 45, followedUp: 38 },
@@ -240,7 +293,7 @@ export class YourYearWithFerni {
         currentStreak: 7,
         averageConversationsPerWeek: 4.2,
         mostActiveMonth: 'March',
-        teamMembersUnlocked: 3,
+        teamMembersUnlocked: 5,
         dreamsTracked: 2,
         commitmentsKept: 56,
       },
@@ -267,6 +320,29 @@ export class YourYearWithFerni {
         </button>
 
         <header class="your-year-header">
+          <!-- Ferni Luxo-style avatar -->
+          <div class="your-year-avatar" aria-hidden="true">
+            <svg viewBox="0 0 64 64" width="64" height="64">
+              <defs>
+                <linearGradient id="header-ferni-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#5a8060"/>
+                  <stop offset="100%" stop-color="#3d5a35"/>
+                </linearGradient>
+                <clipPath id="header-ferni-clip">
+                  <circle cx="32" cy="32" r="29"/>
+                </clipPath>
+              </defs>
+              <!-- Presence ring -->
+              <circle cx="32" cy="32" r="31" fill="none" stroke="rgba(74, 103, 65, 0.2)" stroke-width="1.5"/>
+              <!-- Main orb -->
+              <g clip-path="url(#header-ferni-clip)">
+                <circle cx="32" cy="32" r="29" fill="url(#header-ferni-grad)"/>
+                <!-- LUXO STYLE: opaque white eyes, NO pupils -->
+                <ellipse cx="23" cy="31" rx="4.5" ry="6.5" fill="white"/>
+                <ellipse cx="41" cy="31" rx="4.5" ry="6.5" fill="white"/>
+              </g>
+            </svg>
+          </div>
           <span class="your-year-eyebrow">YOUR JOURNEY</span>
           <h2 id="your-year-title" class="your-year-title">Your Year with Ferni</h2>
           <p class="your-year-subtitle">${this.data.stats.totalConversations} conversations. ${this.data.stats.totalMinutes} minutes. Countless moments of growth.</p>
@@ -321,7 +397,9 @@ export class YourYearWithFerni {
 
     // Add event listeners
     this.container.querySelector('.your-year-close')?.addEventListener('click', () => this.close());
-    this.container.querySelector('.your-year-backdrop')?.addEventListener('click', () => this.close());
+    this.container
+      .querySelector('.your-year-backdrop')
+      ?.addEventListener('click', () => this.close());
 
     document.body.appendChild(this.container);
   }
@@ -373,10 +451,9 @@ export class YourYearWithFerni {
     if (!this.data) return '';
 
     return this.data.emotionalJourney
-      .map(
-        (moment) => {
-          const date = moment.date instanceof Date ? moment.date : new Date(moment.date);
-          return `
+      .map((moment) => {
+        const date = moment.date instanceof Date ? moment.date : new Date(moment.date);
+        return `
       <div class="timeline-item" role="listitem">
         <div class="timeline-dot" aria-hidden="true"></div>
         <div class="timeline-content">
@@ -386,27 +463,92 @@ export class YourYearWithFerni {
         </div>
       </div>
     `;
-        }
-      )
+      })
       .join('');
   }
 
   private renderTeam(): string {
     if (!this.data) return '';
 
+    // Persona gradients from design-system/tokens/colors.json
+    // Each persona has distinct primary → secondary gradient
+    // Support both short names (ferni, maya) AND full member IDs (maya-santos, peter-john)
+    const personaGradients: Record<string, { light: string; dark: string; ring: string }> = {
+      // Short names (for placeholder data)
+      ferni: { light: '#4a6741', dark: '#3d5a35', ring: 'rgba(74, 103, 65, 0.28)' }, // Deep sage green
+      maya: { light: '#a67a6a', dark: '#8a635a', ring: 'rgba(166, 122, 106, 0.28)' }, // Dusty terracotta
+      peter: { light: '#3a6b73', dark: '#2d5359', ring: 'rgba(58, 107, 115, 0.28)' }, // Ocean teal
+      jordan: { light: '#c4856a', dark: '#a86d55', ring: 'rgba(196, 133, 106, 0.28)' }, // Warm sunset coral
+      alex: { light: '#5a6b8a', dark: '#4a5a73', ring: 'rgba(90, 107, 138, 0.28)' }, // Soft indigo
+      nayan: { light: '#b8956a', dark: '#9a7a52', ring: 'rgba(184, 149, 106, 0.28)' }, // Golden amber
+      // Full member IDs (for real API data from team-unlocks service)
+      'maya-santos': { light: '#a67a6a', dark: '#8a635a', ring: 'rgba(166, 122, 106, 0.28)' },
+      'peter-john': { light: '#3a6b73', dark: '#2d5359', ring: 'rgba(58, 107, 115, 0.28)' },
+      'jordan-taylor': { light: '#c4856a', dark: '#a86d55', ring: 'rgba(196, 133, 106, 0.28)' },
+      'alex-chen': { light: '#5a6b8a', dark: '#4a5a73', ring: 'rgba(90, 107, 138, 0.28)' },
+      'nayan-patel': { light: '#b8956a', dark: '#9a7a52', ring: 'rgba(184, 149, 106, 0.28)' },
+    };
+
+    // Short display names per brand (not "Maya-santos", just "Maya")
+    // Support both short names AND full member IDs
+    const displayNames: Record<string, string> = {
+      ferni: 'Ferni',
+      maya: 'Maya',
+      peter: 'Peter',
+      jordan: 'Jordan',
+      alex: 'Alex',
+      nayan: 'Nayan',
+      'maya-santos': 'Maya',
+      'peter-john': 'Peter',
+      'jordan-taylor': 'Jordan',
+      'alex-chen': 'Alex',
+      'nayan-patel': 'Nayan',
+    };
+
     return this.data.teamUnlocks
-      .map(
-        (member) => {
-          const unlockDate = member.unlockedAt instanceof Date ? member.unlockedAt : new Date(member.unlockedAt);
-          return `
+      .map((member) => {
+        const unlockDate =
+          member.unlockedAt instanceof Date ? member.unlockedAt : new Date(member.unlockedAt);
+        const personaId = member.personaId.toLowerCase();
+        const gradient = personaGradients[personaId] ?? {
+          light: member.primaryColor,
+          dark: member.primaryColor,
+          ring: `${member.primaryColor}40`,
+        };
+        const displayName =
+          displayNames[personaId] ?? member.personaName.split('-')[0] ?? member.personaName;
+        const initial = displayName.charAt(0).toUpperCase();
+
+        // Luxo-style SVG avatar with gradient and white eyes (NO pupils per brand CLAUDE.md)
+        return `
       <div class="team-member" role="listitem">
-        <div class="team-avatar" style="background: ${member.primaryColor}" aria-hidden="true">${member.personaName.charAt(0)}</div>
-        <div class="team-name">${member.personaName}</div>
+        <div class="team-avatar" style="color: ${gradient.ring}" aria-hidden="true">
+          <svg viewBox="0 0 56 56" width="56" height="56" class="team-avatar-orb">
+            <defs>
+              <linearGradient id="grad-${personaId}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="${gradient.light}"/>
+                <stop offset="100%" stop-color="${gradient.dark}"/>
+              </linearGradient>
+              <clipPath id="clip-${personaId}">
+                <circle cx="28" cy="28" r="26"/>
+              </clipPath>
+            </defs>
+            <!-- Presence ring -->
+            <circle cx="28" cy="28" r="27" fill="none" stroke="${gradient.ring}" stroke-width="1.5"/>
+            <!-- Main orb -->
+            <g clip-path="url(#clip-${personaId})">
+              <circle cx="28" cy="28" r="26" fill="url(#grad-${personaId})"/>
+              <!-- LUXO STYLE: opaque white eyes, NO pupils per brand/CLAUDE.md -->
+              <ellipse cx="21" cy="27" rx="4" ry="5.5" fill="white"/>
+              <ellipse cx="35" cy="27" rx="4" ry="5.5" fill="white"/>
+            </g>
+          </svg>
+        </div>
+        <div class="team-name">${displayName}</div>
         <div class="team-unlocked">Unlocked ${unlockDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
       </div>
     `;
-        }
-      )
+      })
       .join('');
   }
 
@@ -446,20 +588,28 @@ export class YourYearWithFerni {
     const style = document.createElement('style');
     style.id = 'your-year-styles';
     style.textContent = `
+      /* ============================================
+         YOUR YEAR WITH FERNI - Brand Compliant Styles
+         Per brand-book.html and master-tokens.css
+         ============================================ */
+
       .your-year-overlay {
         position: fixed;
         inset: 0;
-        z-index: var(--z-system, 9999);
+        z-index: var(--z-modal, 50);
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
       }
 
+      /* Backdrop: Warm overlay per brand guidelines */
       .your-year-backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(44, 37, 32, 0.4);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
       }
 
       .your-year-modal {
@@ -467,15 +617,16 @@ export class YourYearWithFerni {
         width: 90%;
         max-width: 800px;
         max-height: 85vh;
-        background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle);
+        background: var(--color-bg-elevated, #FFFFFF);
+        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
         border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-lg);
+        box-shadow: var(--shadow-2xl, 0 25px 50px rgba(29, 27, 24, 0.12));
         overflow: hidden;
         transform: scale(0.9);
         opacity: 0;
       }
 
+      /* Close button - Top right */
       .your-year-close {
         position: absolute;
         top: var(--space-4, 16px);
@@ -483,63 +634,89 @@ export class YourYearWithFerni {
         width: 44px;
         height: 44px;
         border: none;
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--color-bg-tertiary, #EFEBE4);
         border-radius: var(--radius-full, 9999px);
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background var(--duration-fast, 150ms) ease;
-        z-index: var(--z-raised, 1);
+        transition: background var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0, 0, 0.2, 1));
+        z-index: 1;
       }
 
-      .your-year-close:hover,
+      .your-year-close:hover {
+        background: var(--color-bg-secondary, #F5F2ED);
+      }
+
       .your-year-close:focus-visible {
-        background: rgba(255, 255, 255, 0.3);
         outline: none;
-      }
-
-      .your-year-close:focus-visible {
-        box-shadow: 0 0 0 2px white;
+        box-shadow: var(--focus-ring, 0 0 0 3px rgba(61, 90, 69, 0.16));
       }
 
       .your-year-close svg {
-        color: var(--color-text-secondary, #5a5046);
+        color: var(--color-text-secondary, #4A4641);
+        width: 20px;
+        height: 20px;
       }
 
+      /* Header: Cream background with Ferni avatar, per other modal patterns */
       .your-year-header {
-        padding: var(--space-8, 32px) var(--space-8, 32px) var(--space-4, 16px);
+        padding: var(--space-8, 32px) var(--space-8, 32px) var(--space-6, 24px);
         text-align: center;
-        background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-secondary, #3d5a35) 100%);
-        color: white;
+        background: var(--color-bg-elevated, #FFFFFF);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        position: relative;
       }
 
+      /* Ferni avatar at top of header */
+      .your-year-avatar {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto var(--space-4, 16px);
+      }
+
+      /* Eyebrow: Brand typography spec - accent color on cream */
       .your-year-eyebrow {
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.1em;
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-semibold, 600);
+        letter-spacing: var(--tracking-widest, 0.1em);
         text-transform: uppercase;
-        opacity: 0.8;
+        color: var(--color-ferni, #4A6741);
+        margin-bottom: var(--space-2, 8px);
+        display: block;
       }
 
+      /* Title: Plus Jakarta Sans, dark text */
       .your-year-title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: 28px;
-        font-weight: 700;
-        margin: var(--space-2, 8px) 0;
+        font-size: clamp(var(--text-xl, 1.5rem), 4vw, var(--text-2xl, 2rem));
+        font-weight: var(--font-bold, 700);
+        letter-spacing: var(--tracking-tight, -0.015em);
+        line-height: var(--leading-tight, 1.15);
+        color: var(--color-text-primary, #1D1B18);
+        margin: 0 0 var(--space-3, 12px);
       }
 
+      /* Subtitle: Inter, secondary text */
       .your-year-subtitle {
-        font-size: 14px;
-        opacity: 0.9;
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-normal, 400);
+        color: var(--color-text-secondary, #4A4641);
+        line-height: var(--leading-normal, 1.5);
+        max-width: 400px;
+        margin: 0 auto;
       }
 
       .your-year-content {
         padding: var(--space-6, 24px);
         overflow-y: auto;
-        max-height: calc(85vh - 150px);
+        max-height: calc(85vh - 160px);
+        background: var(--color-bg-primary, #FAF8F5);
       }
 
+      /* Stats Grid */
       .your-year-stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -553,51 +730,62 @@ export class YourYearWithFerni {
         }
       }
 
+      /* Stat Cards: Brand-compliant card style */
       .your-year-stat-card {
         text-align: center;
-        padding: var(--space-4, 16px);
-        background: var(--color-background, #FAF6F0);
+        padding: var(--space-5, 20px) var(--space-4, 16px);
+        background: var(--color-bg-elevated, #FFFFFF);
+        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
         border-radius: var(--radius-lg, 12px);
+        box-shadow: var(--shadow-sm, 0 1px 3px rgba(29, 27, 24, 0.06));
       }
 
       .your-year-stat-value {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--color-ferni, #4a6741);
+        font-size: var(--text-xl, 1.5rem);
+        font-weight: var(--font-bold, 700);
+        color: var(--color-ferni, #4A6741);
+        line-height: var(--leading-tight, 1.15);
       }
 
       .your-year-stat-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-semibold, 600);
+        color: var(--color-text-primary, #1D1B18);
         margin-top: var(--space-1, 4px);
       }
 
       .your-year-stat-subtext {
+        font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8a7e74);
+        color: var(--color-text-muted, #8A847C);
+        margin-top: var(--space-1, 4px);
       }
 
+      /* Sections */
       .your-year-section {
         margin-bottom: var(--space-6, 24px);
       }
 
+      /* Section Titles: Brand typography spec */
       .your-year-section-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text-secondary, #5a5046);
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-semibold, 600);
+        color: var(--color-text-tertiary, #6B665F);
         margin-bottom: var(--space-3, 12px);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--tracking-wider, 0.05em);
       }
 
       /* Heat Map */
       .your-year-heatmap {
         display: flex;
         gap: 3px;
-        padding: var(--space-3, 12px);
-        background: var(--color-background, #FAF6F0);
+        padding: var(--space-4, 16px);
+        background: var(--color-bg-elevated, #FFFFFF);
+        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
         border-radius: var(--radius-lg, 12px);
         overflow-x: auto;
       }
@@ -611,14 +799,15 @@ export class YourYearWithFerni {
       .heatmap-day {
         width: 12px;
         height: 12px;
-        border-radius: 2px;
-        background: var(--color-background-elevated, #FFFDFB);
+        border-radius: var(--radius-sm, 4px);
+        background: var(--color-bg-tertiary, #EFEBE4);
+        transition: background var(--duration-fast, 150ms) var(--ease-out);
       }
 
-      .heatmap-day[data-intensity="1"] { background: rgba(74, 103, 65, 0.2); }
-      .heatmap-day[data-intensity="2"] { background: rgba(74, 103, 65, 0.4); }
-      .heatmap-day[data-intensity="3"] { background: rgba(74, 103, 65, 0.6); }
-      .heatmap-day[data-intensity="4"] { background: var(--color-ferni, #4a6741); }
+      .heatmap-day[data-intensity="1"] { background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.15)); }
+      .heatmap-day[data-intensity="2"] { background: rgba(74, 103, 65, 0.35); }
+      .heatmap-day[data-intensity="3"] { background: rgba(74, 103, 65, 0.55); }
+      .heatmap-day[data-intensity="4"] { background: var(--color-ferni, #4A6741); }
 
       /* Timeline */
       .your-year-timeline {
@@ -633,12 +822,17 @@ export class YourYearWithFerni {
         top: 8px;
         bottom: 8px;
         width: 2px;
-        background: var(--color-border, #e8e2da);
+        background: var(--color-border-default, rgba(29, 27, 24, 0.12));
+        border-radius: 1px;
       }
 
       .timeline-item {
         position: relative;
         margin-bottom: var(--space-4, 16px);
+      }
+
+      .timeline-item:last-child {
+        margin-bottom: 0;
       }
 
       .timeline-dot {
@@ -647,58 +841,91 @@ export class YourYearWithFerni {
         top: 4px;
         width: 10px;
         height: 10px;
-        border-radius: 50%;
+        border-radius: var(--radius-full, 9999px);
+        background: var(--color-ferni, #4A6741);
+        box-shadow: 0 0 0 3px var(--color-ferni-subtle, rgba(74, 103, 65, 0.2));
       }
 
       .timeline-date {
+        font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8a7e74);
+        color: var(--color-text-muted, #8A847C);
+        margin-bottom: var(--space-1, 4px);
       }
 
       .timeline-emotion {
-        font-weight: 600;
-        color: var(--color-text-primary, #2C2520);
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-weight: var(--font-semibold, 600);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #1D1B18);
         text-transform: capitalize;
       }
 
       .timeline-context {
-        font-size: 13px;
-        color: var(--color-text-secondary, #5a5046);
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #4A4641);
+        margin-top: var(--space-1, 4px);
       }
 
-      /* Team */
+      /* Team: Luxo-style avatars with gradients and presence rings */
       .your-year-team {
         display: flex;
-        gap: var(--space-4, 16px);
+        gap: var(--space-6, 24px);
         flex-wrap: wrap;
+        justify-content: flex-start;
       }
 
       .team-member {
         text-align: center;
+        min-width: 80px;
       }
 
+      /* Luxo-style avatar with gradient and presence ring */
       .team-avatar {
+        position: relative;
         width: 56px;
         height: 56px;
-        border-radius: 50%;
+        margin: 0 auto var(--space-2, 8px);
+      }
+
+      .team-avatar-orb {
+        width: 100%;
+        height: 100%;
+        border-radius: var(--radius-full, 9999px);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 auto var(--space-2, 8px);
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-lg, 1.25rem);
+        font-weight: var(--font-semibold, 600);
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Presence ring per brand spec */
+      .team-avatar::before {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: var(--radius-full, 9999px);
+        border: 1.5px solid currentColor;
+        opacity: 0.3;
       }
 
       .team-name {
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--color-text-primary, #2C2520);
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-weight: var(--font-semibold, 600);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #1D1B18);
+        margin-bottom: var(--space-1, 4px);
       }
 
       .team-unlocked {
+        font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
-        color: var(--color-text-muted, #8a7e74);
+        color: var(--color-text-muted, #8A847C);
       }
 
       /* Dreams */
@@ -712,42 +939,61 @@ export class YourYearWithFerni {
         display: flex;
         align-items: flex-start;
         gap: var(--space-3, 12px);
-        padding: var(--space-3, 12px);
-        background: var(--color-background, #FAF6F0);
-        border-radius: var(--radius-md, 8px);
+        padding: var(--space-4, 16px);
+        background: var(--color-bg-elevated, #FFFFFF);
+        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        border-radius: var(--radius-lg, 12px);
+        transition: border-color var(--duration-fast, 150ms) var(--ease-out);
+      }
+
+      .dream-item:hover {
+        border-color: var(--color-border-default, rgba(29, 27, 24, 0.12));
       }
 
       .dream-item.achieved {
-        background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
+        background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.08));
+        border-color: var(--color-ferni-border, rgba(74, 103, 65, 0.2));
       }
 
       .dream-icon {
-        width: 20px;
-        height: 20px;
-        color: var(--color-ferni, #4a6741);
+        width: 24px;
+        height: 24px;
+        color: var(--color-ferni, #4A6741);
         flex-shrink: 0;
       }
 
       .dream-icon svg {
         display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .dream-content {
+        flex: 1;
+        min-width: 0;
       }
 
       .dream-text {
-        font-weight: 500;
-        color: var(--color-text-primary, #2C2520);
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-weight: var(--font-medium, 500);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #1D1B18);
       }
 
       .dream-meta {
-        font-size: 12px;
-        color: var(--color-text-muted, #8a7e74);
+        font-family: var(--font-body, 'Inter', sans-serif);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #8A847C);
+        margin-top: var(--space-1, 4px);
       }
 
       /* Reduced Motion */
       @media (prefers-reduced-motion: reduce) {
         .your-year-overlay,
-        .your-year-modal {
+        .your-year-modal,
+        .heatmap-day,
+        .dream-item {
           transition: none;
-          animation: none;
         }
 
         .your-year-modal {
@@ -839,4 +1085,3 @@ export function openYourYearWithFerni(userId: string): Promise<void> {
 export function closeYourYearWithFerni(): Promise<void> {
   return getYourYearWithFerni().close();
 }
-

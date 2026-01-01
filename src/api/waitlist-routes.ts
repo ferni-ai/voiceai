@@ -419,6 +419,16 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
 
   const idToken = authHeader.slice(7);
 
+  // Debug: Log token info (NOT the full token for security)
+  log.info(
+    {
+      tokenLength: idToken.length,
+      tokenStart: `${idToken.slice(0, 20)}...`,
+      hasThreeParts: idToken.split('.').length === 3,
+    },
+    'Checking waitlist access'
+  );
+
   try {
     ensureFirebaseInitialized();
     const auth = admin.auth();
@@ -434,6 +444,21 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
         approved: false,
         status: 'no_email',
         message: 'Please sign in with an account that has an email address.',
+      });
+      return true;
+    }
+
+    // =========================================================================
+    // ADMIN BYPASS - Founders/admins should NEVER be blocked
+    // =========================================================================
+    if (ADMIN_BYPASS_EMAILS.includes(email)) {
+      log.info({ email: hashEmail(email) }, '👑 Admin bypass - auto-approved');
+      sendJson(res, 200, {
+        approved: true,
+        status: 'approved',
+        tier: 'partner',
+        email,
+        message: 'Welcome back, boss! 👑',
       });
       return true;
     }
@@ -457,7 +482,8 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Also check bogle_users collection (alternative profile storage)
-    const bogleQuery = await db.collection('bogle_users')
+    const bogleQuery = await db
+      .collection('bogle_users')
       .where('email', '==', email)
       .limit(1)
       .get();
@@ -484,22 +510,25 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       const waitlistData = waitlistDoc.data();
       if (waitlistData?.status === 'approved') {
         // Approved but no profile yet - create one now
-        await db.collection('user_profiles').doc(profileDocId).set(
-          cleanForFirestore({
-            email,
-            firebaseUid: decodedToken.uid,
-            subscription: {
-              tier: 'partner',
-              status: 'active',
-              subscribedAt: new Date(),
-              currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10),
-              grantedVia: 'waitlist-approval-auto',
-            },
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }),
-          { merge: true }
-        );
+        await db
+          .collection('user_profiles')
+          .doc(profileDocId)
+          .set(
+            cleanForFirestore({
+              email,
+              firebaseUid: decodedToken.uid,
+              subscription: {
+                tier: 'partner',
+                status: 'active',
+                subscribedAt: new Date(),
+                currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10),
+                grantedVia: 'waitlist-approval-auto',
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }),
+            { merge: true }
+          );
 
         log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
         sendJson(res, 200, {
@@ -523,15 +552,18 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Not on waitlist - add them automatically
-    await db.collection('waitlist').doc(waitlistDocId).set(
-      cleanForFirestore({
-        email,
-        status: 'pending',
-        source: 'app_signin',
-        timestamp: new Date(),
-        createdAt: new Date(),
-      })
-    );
+    await db
+      .collection('waitlist')
+      .doc(waitlistDocId)
+      .set(
+        cleanForFirestore({
+          email,
+          status: 'pending',
+          source: 'app_signin',
+          timestamp: new Date(),
+          createdAt: new Date(),
+        })
+      );
 
     log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
     sendJson(res, 200, {
@@ -541,7 +573,6 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       message: "You've been added to the waitlist! We'll notify you when it's your turn.",
     });
     return true;
-
   } catch (error) {
     log.error('Failed to check access', { error });
     sendJson(res, 500, { error: 'Failed to verify access' });
@@ -562,6 +593,16 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .split(',')
   .map((e) => e.trim())
   .filter(Boolean);
+
+/**
+ * Admin emails that bypass waitlist entirely (auto-approved)
+ * These are the owners/founders who should NEVER be blocked
+ */
+const ADMIN_BYPASS_EMAILS: string[] = [
+  'seth.ford@gmail.com',
+  'sethford@gmail.com', // Gmail treats these the same
+  'admin@ferni.ai',
+];
 
 /**
  * Secret for generating approval tokens
@@ -586,7 +627,11 @@ function verifyApprovalToken(email: string, token: string): boolean {
 
   // Check yesterday's token
   const yesterdayData = `${email}:${APPROVAL_SECRET}:${Math.floor(Date.now() / (1000 * 60 * 60 * 24)) - 1}`;
-  const yesterdayToken = crypto.createHash('sha256').update(yesterdayData).digest('hex').substring(0, 32);
+  const yesterdayToken = crypto
+    .createHash('sha256')
+    .update(yesterdayData)
+    .digest('hex')
+    .substring(0, 32);
   return token === yesterdayToken;
 }
 
@@ -698,7 +743,10 @@ View waitlist: https://ferni.ai/admin/waitlist/`;
     });
 
     if (response.status === 202) {
-      log.info({ adminEmail: ADMIN_NOTIFICATION_EMAILS }, 'Admin notification sent for waitlist signup');
+      log.info(
+        { adminEmail: ADMIN_NOTIFICATION_EMAILS },
+        'Admin notification sent for waitlist signup'
+      );
     } else {
       log.warn({ status: response.status }, 'Failed to send admin notification');
     }
@@ -739,7 +787,10 @@ async function handleApproval(
     const result = await approveUserAndGrantAccess(email, 'email-link');
 
     if (result.success) {
-      log.info({ email: hashEmail(email), phone: result.phone ? '***' : null }, 'User approved via email link');
+      log.info(
+        { email: hashEmail(email), phone: result.phone ? '***' : null },
+        'User approved via email link'
+      );
 
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(
@@ -747,7 +798,7 @@ async function handleApproval(
           true,
           `${email} has been approved!`,
           result.phone
-            ? "Ferni will personally call to welcome them shortly. 🌿"
+            ? 'Ferni will personally call to welcome them shortly. 🌿'
             : "They'll receive a welcome email. 🌿"
         )
       );
@@ -768,10 +819,7 @@ async function handleApproval(
 /**
  * Handle manual approval via admin API
  */
-async function handleManualApproval(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleManualApproval(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody<{ email?: string }>(req);
 
   if (!body || !isValidEmail(body.email)) {
@@ -887,7 +935,7 @@ async function approveUserAndGrantAccess(
  * Trigger a welcome call from Ferni using Cartesia voice + Twilio
  */
 async function triggerWelcomeCall(email: string, phone: string): Promise<void> {
-  log.info({ email: hashEmail(email), phone: phone.slice(0, 4) + '***' }, 'Welcome call initiated');
+  log.info({ email: hashEmail(email), phone: `${phone.slice(0, 4)}***` }, 'Welcome call initiated');
 
   // Import the voice call service dynamically to avoid circular deps
   const { callWithPersonaVoice } = await import('../services/voice/voice-call.js');
@@ -923,7 +971,12 @@ Take care of yourself, okay? I'll see you soon.
       );
 
       // Notify admin that call was made
-      await notifyAdminOfWelcomeCall(email, phone, result.callSid || 'unknown', result.usedCartesiaVoice || false);
+      await notifyAdminOfWelcomeCall(
+        email,
+        phone,
+        result.callSid || 'unknown',
+        result.usedCartesiaVoice || false
+      );
     } else {
       log.warn({ email: hashEmail(email), error: result.message }, 'Welcome call failed');
 
@@ -1011,7 +1064,11 @@ async function notifyAdminOfWelcomeCall(
 /**
  * Notify admin that a welcome call failed
  */
-async function notifyAdminOfWelcomeCallFailure(email: string, phone: string, error: string): Promise<void> {
+async function notifyAdminOfWelcomeCallFailure(
+  email: string,
+  phone: string,
+  error: string
+): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
 
@@ -1169,7 +1226,11 @@ Just reply if you need anything. I'm here. 🌱`;
 /**
  * Generate a nice HTML page showing approval result
  */
-function generateApprovalResultPage(success: boolean, message: string, subMessage?: string): string {
+function generateApprovalResultPage(
+  success: boolean,
+  message: string,
+  subMessage?: string
+): string {
   const icon = success
     ? `<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#4a6741" stroke-width="2">
         <circle cx="12" cy="12" r="10"/>

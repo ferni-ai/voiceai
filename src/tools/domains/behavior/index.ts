@@ -32,8 +32,7 @@ import {
   createPacingChangeSignal,
   createHoldSpaceSignal,
   createProcessingSignal,
-  emitBehaviorSignal,
-} from '../../../agents/realtime/behavior-event-dispatcher.js';
+} from '../../../services/behavior/index.js';
 import {
   composeProcessingExpression,
   formatProcessingAsSSML,

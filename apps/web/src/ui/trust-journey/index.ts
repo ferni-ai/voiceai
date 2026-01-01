@@ -24,7 +24,7 @@
 import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import { trapFocus } from '../../utils/accessibility.js';
-import { toast } from '../toast.ui.js';
+import { toast } from '../whisper.ui.js';
 import { ICONS } from './icons.js';
 import { injectStyles, removeStyles } from './styles.js';
 import {

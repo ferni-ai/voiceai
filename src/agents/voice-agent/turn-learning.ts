@@ -32,6 +32,9 @@ import {
 import { getMusicPlayer } from '../../audio/music-player.js';
 import { detectSignificantMoment, recordOurSong } from '../../services/trust-systems/our-songs.js';
 
+// User Corrections - learn from mistakes ("Better Than Human" feature)
+import { userCorrections } from '../../services/superhuman/user-corrections.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -220,6 +223,17 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
   // Better Than Human learning (new) - fire and forget to not block turn processing
   // PERFORMANCE: Rate-limited writes to avoid Firestore costs and latency
   if (ctx.userId) {
+    // 🔧 User Correction Detection - learn from mistakes (every turn)
+    void detectAndRecordCorrections(ctx).catch((err) => {
+      logger.debug({ error: String(err) }, 'User correction detection (non-critical)');
+    });
+
+    // 💡 Implicit Preference Detection - every 2 turns to avoid spam
+    if (ctx.turnCount % 2 === 0) {
+      void detectImplicitPreferences(ctx).catch((err) => {
+        logger.debug({ error: String(err) }, 'Implicit preference detection (non-critical)');
+      });
+    }
     // Learn temporal patterns every 5 turns (saves 80% of writes)
     // Patterns are aggregated, so we don't need every single turn
     if (ctx.turnCount % 5 === 0) {
@@ -337,6 +351,111 @@ function detectCapabilityEngagement(userText: string): {
     engaged: reasons.length > 0,
     reasons,
   };
+}
+
+// ============================================================================
+// USER CORRECTION DETECTION
+// ============================================================================
+
+/**
+ * Detect and record user corrections.
+ *
+ * Correction signals:
+ * - "No, I meant..." → Direct correction
+ * - "Actually, it's..." → Clarification
+ * - "That's not right" → Rejection
+ * - "I said X, not Y" → Explicit correction
+ *
+ * This helps us "never make the same mistake twice" - a "Better Than Human" feature.
+ */
+async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
+  const logger = log();
+
+  if (!ctx.userId) return;
+
+  const lower = ctx.userText.toLowerCase();
+
+  // Correction patterns
+  const correctionPatterns = [
+    /\b(no,?\s+i\s+(meant|said|was\s+talking\s+about))\b/i,
+    /\b(actually,?\s+(it's|its|that's|i|my))\b/i,
+    /\b(that'?s\s+not\s+(right|correct|what\s+i))\b/i,
+    /\b(i\s+said\s+\w+,?\s+not\s+\w+)/i,
+    /\b(you\s+(misheard|misunderstood|got\s+it\s+wrong))\b/i,
+    /\b(no,?\s+not\s+\w+,?\s+\w+)/i,
+    /\b(i\s+didn'?t\s+(say|mean))\b/i,
+    /\b(let\s+me\s+clarify)\b/i,
+    /\b(what\s+i\s+(meant|mean)\s+was)\b/i,
+    /\b(to\s+be\s+clear)\b/i,
+  ];
+
+  // Check if any correction pattern matches
+  const isCorrection = correctionPatterns.some((pattern) => pattern.test(lower));
+
+  if (!isCorrection) return;
+
+  logger.debug({ userText: ctx.userText.slice(0, 100) }, '🔧 User correction detected');
+
+  // Extract what they're correcting (heuristic: use the message content)
+  // The "original" is inferred from context - we'll store the correction itself
+  // and let the LLM context builder surface it
+  await userCorrections.autoRecord(
+    ctx.userId,
+    ctx.userText,
+    `[Context: turn ${ctx.turnCount}]`,
+    ctx.personaId
+  );
+
+  logger.info('✅ User correction recorded for learning');
+}
+
+/**
+ * Detect implicit preferences from user behavior.
+ *
+ * Implicit preference signals:
+ * - "I prefer..." → Direct preference
+ * - "I usually..." → Behavioral pattern
+ * - "I always..." → Strong preference
+ * - Response patterns (short responses to verbose, long responses to terse)
+ */
+async function detectImplicitPreferences(ctx: LearningContext): Promise<void> {
+  const logger = log();
+
+  if (!ctx.userId) return;
+
+  const lower = ctx.userText.toLowerCase();
+
+  // Preference patterns
+  const preferencePatterns = [
+    { pattern: /\b(i\s+prefer\s+(.{3,50}))/i, type: 'explicit_preference' },
+    { pattern: /\b(i\s+usually\s+(.{3,50}))/i, type: 'behavioral_pattern' },
+    { pattern: /\b(i\s+always\s+(.{3,50}))/i, type: 'strong_preference' },
+    { pattern: /\b(i\s+never\s+(.{3,50}))/i, type: 'strong_aversion' },
+    { pattern: /\b(i\s+like\s+it\s+when\s+(.{3,30}))/i, type: 'interaction_preference' },
+    { pattern: /\b(don'?t\s+(.{3,30})\s+please)/i, type: 'explicit_aversion' },
+  ];
+
+  for (const { pattern, type } of preferencePatterns) {
+    const match = lower.match(pattern);
+    if (match) {
+      const preference = match[1].slice(0, 100);
+
+      logger.debug({ preference, type }, '💡 Implicit preference detected');
+
+      await userCorrections.recordImplicitPreference(ctx.userId, {
+        preference,
+        category:
+          type === 'explicit_preference' || type === 'explicit_aversion'
+            ? 'communication'
+            : 'other',
+        evidence: [ctx.userText.slice(0, 200)],
+        confidence: 0.7, // Medium confidence from single conversation detection
+      });
+
+      logger.info('✅ Implicit preference recorded');
+      break; // Only record first match to avoid spam
+    }
+  }
 }
 
 // ============================================================================

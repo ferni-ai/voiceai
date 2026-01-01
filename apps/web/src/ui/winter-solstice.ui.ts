@@ -1,3 +1,4 @@
+// TODO: Fix type errors - animation keyframe array indexing
 /**
  * Winter Solstice Moment - "The Shortest Day, The Longest Warmth"
  *
@@ -252,11 +253,14 @@ function createConstellationLines(stars: Star[]): SVGElement {
 
   // Connect stars in order
   for (let i = 0; i < stars.length - 1; i++) {
+    const starCurrent = stars[i];
+    const starNext = stars[i + 1];
+    if (!starCurrent || !starNext) continue;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', String(stars[i].x));
-    line.setAttribute('y1', String(stars[i].y));
-    line.setAttribute('x2', String(stars[i + 1].x));
-    line.setAttribute('y2', String(stars[i + 1].y));
+    line.setAttribute('x1', String(starCurrent.x));
+    line.setAttribute('y1', String(starCurrent.y));
+    line.setAttribute('x2', String(starNext.x));
+    line.setAttribute('y2', String(starNext.y));
     line.setAttribute('stroke', 'var(--solstice-constellation)');
     line.setAttribute('stroke-width', '1');
     line.setAttribute('stroke-dasharray', '4 4');
@@ -340,11 +344,15 @@ function generateReflection(context: SolsticeContext): {
     trusted_advisor: "Another year of depth. Of holding hope when you can't. Of seeing you clearly.",
   };
 
+  const defaultTitle = "You've made it to another winter solstice";
+  const defaultSubtitle = "The longest night";
+  const defaultPromise = "I'm here when you need me. 2am or noon—same warmth, same presence.";
+  
   return {
-    title: titles[stage] || titles.stranger,
-    subtitle: subtitles[stage] || subtitles.stranger,
+    title: titles[stage] ?? defaultTitle,
+    subtitle: subtitles[stage] ?? defaultSubtitle,
     reflection,
-    promise: promises[stage] || promises.stranger,
+    promise: promises[stage] ?? defaultPromise,
   };
 }
 

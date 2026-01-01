@@ -47,7 +47,7 @@ export function generateCrossPersonaProbes(): SemanticProbe[] {
           'personas/shared/cross-persona-learning.ts',
         ],
         actualBehavior:
-          'Cross-persona intelligence flows through: (1) services/cross-persona-insights.ts as the central hub, (2) persona-specific builders in intelligence/context-builders/personas/ (peter-research-insights.ts, maya-coaching-insights.ts, etc.) that surface domain knowledge, (3) docs/architecture/CROSS-PERSONA-INTELLIGENCE.md documents the complete flow. Peter\'s insights flow to Ferni via the central insights service which aggregates and routes based on active persona.',
+          "Cross-persona intelligence flows through: (1) services/cross-persona-insights.ts as the central hub, (2) persona-specific builders in intelligence/context-builders/personas/ (peter-research-insights.ts, maya-coaching-insights.ts, etc.) that surface domain knowledge, (3) docs/architecture/CROSS-PERSONA-INTELLIGENCE.md documents the complete flow. Peter's insights flow to Ferni via the central insights service which aggregates and routes based on active persona.",
         philosophyPrinciples: [CORE_PRINCIPLES.DISCOVERABLE_ARCHITECTURE],
       },
       expectedAlignment: 'Cross-persona data flow should be explicit, not implicit',

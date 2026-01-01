@@ -69,7 +69,7 @@ export { initKeyboardUI, keyboardUI, setConnected as setKeyboardConnected } from
 export { initThinkingUI, thinkingUI } from './thinking.ui.js';
 export { initTranscriptUI, transcriptUI } from './transcript.ui.js';
 
-// World-class Toast System
+// World-class Toast System (legacy - prefer whisper)
 export {
   dismissAllToasts,
   dismissToast,
@@ -80,8 +80,26 @@ export {
   toastInfo,
   toastSuccess,
   toastWarning,
-} from './toast.ui.js';
-export type { ToastConfig, ToastType } from './toast.ui.js';
+} from './whisper.ui.js';
+export type { ToastConfig, ToastType } from './whisper.ui.js';
+
+// 🤫 Whisper System - Gentle notifications near avatar
+// Whispers feel like Ferni speaking, not popups interrupting.
+// New code should prefer whisper over toast.
+export {
+  whisper,
+  whisperInfo,
+  whisperSuccess,
+  whisperWarning,
+  whisperError,
+  whisperCelebration,
+  showWhisper,
+  dismissWhisper,
+  disposeWhisper,
+  // Toast-compatible API for gradual migration
+  toast as whisperToast,
+} from './whisper.ui.js';
+export type { WhisperConfig, WhisperType } from './whisper.ui.js';
 
 // Premium Experience
 export { agentParticlesUI, initAgentParticles } from './agent-particles.ui.js';

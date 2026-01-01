@@ -132,6 +132,15 @@ export interface ToolExecutionContext {
     toolId: string;
     confidence: number;
   };
+  /**
+   * User's IP-detected location (TikTok-style personalization).
+   * Used for weather defaults, local content hints.
+   */
+  userLocation?: {
+    city?: string;
+    regionCode?: string;
+    countryCode?: string;
+  };
 }
 
 // ============================================================================
@@ -1085,36 +1094,104 @@ async function routeToTool(
     let location = (args.location as string) || 'current';
     const type = (args.type as string) || 'current';
 
-    // Handle "current" location - try to get user's location from profile
+    // 🔍 E2E TRACE: Weather tool execution - log all location sources
+    log.info(
+      {
+        trace: 'E2E_WEATHER_ENTRY',
+        argsLocation: args.location,
+        initialLocation: location,
+        hasUserLocation: !!ctx?.userLocation,
+        userLocationCity: ctx?.userLocation?.city,
+        userLocationRegion: ctx?.userLocation?.regionCode,
+        userId: ctx?.userId,
+      },
+      `🔍 E2E TRACE [WEATHER] Entry: location="${location}", userLocation.city="${ctx?.userLocation?.city || 'NONE'}"`
+    );
+
+    // Handle "current" location - try to get user's location from multiple sources
     if (location === 'current' || location === '' || !location) {
-      // Try to get user's saved location from memory
-      if (ctx?.userId) {
+      // Priority 1: Try IP-detected location (TikTok-style personalization)
+      if (ctx?.userLocation?.city) {
+        location = ctx.userLocation.regionCode
+          ? `${ctx.userLocation.city}, ${ctx.userLocation.regionCode}`
+          : ctx.userLocation.city;
+        log.info(
+          { trace: 'E2E_WEATHER_LOCATION', source: 'IP_DETECTED', location, userId: ctx.userId },
+          `🔍 E2E TRACE [WEATHER] Using IP-detected: "${location}"`
+        );
+      }
+
+      // Priority 2: Try to get user's saved location from memory
+      if ((location === 'current' || !location) && ctx?.userId) {
         try {
           const { getUserLocationPreference } =
             await import('../../tools/domains/information/location-preference.js');
           const savedLocation = getUserLocationPreference(ctx.userId);
           if (savedLocation) {
             location = savedLocation;
-            log.info({ userId: ctx.userId, savedLocation }, '🌤️ Using saved location preference');
+            log.info(
+              {
+                trace: 'E2E_WEATHER_LOCATION',
+                source: 'SAVED_PREFERENCE',
+                location,
+                userId: ctx.userId,
+              },
+              `🔍 E2E TRACE [WEATHER] Using saved preference: "${location}"`
+            );
           }
         } catch {
           // Location preference module may not exist yet, continue with default
         }
       }
 
-      // If still "current", we need to ask the user
+      // Priority 3: If still "current", we need to ask the user
       if (location === 'current' || !location) {
-        log.warn({ location, userId: ctx?.userId }, '🌤️ No location available, asking user');
+        log.warn(
+          { trace: 'E2E_WEATHER_NO_LOCATION', location, userId: ctx?.userId },
+          '🔍 E2E TRACE [WEATHER] ⚠️ NO LOCATION AVAILABLE - asking user'
+        );
         return "I'd love to check the weather for you! What city are you in?";
       }
     }
 
-    log.info({ location, type }, '🌤️ Getting weather');
+    log.info(
+      { trace: 'E2E_WEATHER_FETCH', location, type },
+      `🔍 E2E TRACE [WEATHER] Fetching weather for: "${location}"`
+    );
 
-    if (type === 'forecast') {
-      return getWeatherForecast(location, 5);
+    try {
+      let result: string;
+      if (type === 'forecast') {
+        result = await getWeatherForecast(location, 5);
+      } else {
+        result = await getCurrentWeather(location);
+      }
+
+      log.info(
+        {
+          trace: 'E2E_WEATHER_SUCCESS',
+          location,
+          type,
+          resultLength: result.length,
+          resultPreview: result.slice(0, 150),
+        },
+        `🔍 E2E TRACE [WEATHER] ✅ Success: "${result.slice(0, 80)}..."`
+      );
+      return result;
+    } catch (weatherErr) {
+      log.error(
+        {
+          trace: 'E2E_WEATHER_FAILED',
+          location,
+          type,
+          error: String(weatherErr),
+          stack: (weatherErr as Error)?.stack?.slice(0, 300),
+        },
+        `🔍 E2E TRACE [WEATHER] ❌ Failed: ${String(weatherErr).slice(0, 100)}`
+      );
+      // Return a fallback message instead of throwing
+      return `I'm having trouble getting weather data for ${location} right now. Could you try asking again in a moment?`;
     }
-    return getCurrentWeather(location);
   }
 
   if (fnLower === 'getcurrenttime') {

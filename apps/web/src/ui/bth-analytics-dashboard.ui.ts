@@ -13,7 +13,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
@@ -469,7 +469,7 @@ function injectStyles(): void {
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.5));
       border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
     }
 

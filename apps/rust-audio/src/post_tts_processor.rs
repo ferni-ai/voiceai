@@ -335,36 +335,75 @@ impl BreathGenerator {
         }
     }
 
-    /// Generate a breath-like sound (spectral-shaped noise with envelope)
+    /// Generate a breath-like sound with formant resonances
+    ///
+    /// IMPROVED IMPLEMENTATION: Uses formant-based synthesis to simulate
+    /// oral cavity resonances. Real breath sounds pass through the vocal tract,
+    /// which has resonant frequencies (formants) from the mouth shape:
+    /// - F1 (~600Hz): Primary oral cavity resonance
+    /// - F2 (~1400Hz): Front-back cavity position
+    /// - F3 (~2400Hz): Lip and tongue tip influence
+    ///
+    /// The breath sound is white/pink noise filtered through these formants,
+    /// creating a more natural "ssss" → "hhhh" transition.
     fn generate_breath(sample_rate: u32, duration_ms: f32) -> Vec<f32> {
         let num_samples = ((sample_rate as f32 * duration_ms) / 1000.0) as usize;
         let mut breath = vec![0.0f32; num_samples];
         let mut seed: u32 = 54321;
 
-        for i in 0..num_samples {
-            // LCG pseudo-random noise
-            seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
-            let noise = ((seed >> 16) as f32 / 32768.0) - 1.0;
+        // Create formant filters for breath resonances
+        // Breath formants are slightly different from vowels - more spread out
+        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, 600.0, 2.0);  // Low-mid resonance
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1400.0, 3.0); // Mid resonance
+        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, 2400.0, 4.0); // High resonance
 
-            // Envelope: quick attack (~10%), slow decay (exponential)
+        // Pink noise filter state (for more natural spectral slope)
+        let mut pink_state = [0.0f32; 3];
+
+        for i in 0..num_samples {
+            // Generate white noise
+            seed = seed.wrapping_mul(1103515245).wrapping_add(12345);
+            let white = ((seed >> 16) as f32 / 32768.0) - 1.0;
+
+            // Convert to pink noise (1/f spectrum) using Voss-McCartney approximation
+            // This gives a more natural "airflow" character
+            pink_state[0] = 0.99886 * pink_state[0] + white * 0.0555179;
+            pink_state[1] = 0.99332 * pink_state[1] + white * 0.0750759;
+            pink_state[2] = 0.96900 * pink_state[2] + white * 0.1538520;
+            let pink = (pink_state[0] + pink_state[1] + pink_state[2] + white * 0.5362) * 0.2;
+
+            // Envelope: quick attack (~10%), slow exponential decay
+            // This simulates the air pressure buildup and release
             let t = i as f32 / num_samples as f32;
             let envelope = if t < 0.1 {
-                t / 0.1
+                // Quick attack (inhale burst)
+                (t / 0.1).powf(0.7)
             } else {
-                (1.0 - ((t - 0.1) / 0.9)).powf(0.5)
+                // Slow exponential decay (trailing off)
+                (-(t - 0.1) * 4.0).exp()
             };
 
-            // Frequency rolloff (breaths are mostly low-mid frequencies)
-            let freq_factor = (1.0 - t * 0.3).max(0.3);
+            // Pass through formant filters
+            // Weight the formants to create natural breath character
+            // F1 (low) dominates in breath sounds (the "hhh" quality)
+            // F2/F3 add subtle brightness
+            let f1_out = f1.process(pink) * 0.5;
+            let f2_out = f2.process(pink) * 0.25;
+            let f3_out = f3.process(pink) * 0.15;
 
-            breath[i] = noise * envelope * 0.06 * freq_factor; // 0.06 = subtle volume
+            // Combine formants with some of the original pink noise for "air" texture
+            let formant_sum = f1_out + f2_out + f3_out;
+            let air_texture = pink * 0.1;
+
+            // Final breath sound with envelope
+            breath[i] = (formant_sum + air_texture) * envelope * 0.08; // 0.08 = subtle volume
         }
 
-        // Simple smoothing pass
+        // Light smoothing pass to remove any harsh transients
         let mut smoothed = vec![0.0f32; num_samples];
         for i in 0..num_samples {
-            let start = i.saturating_sub(3);
-            let end = (i + 3).min(num_samples);
+            let start = i.saturating_sub(2);
+            let end = (i + 2).min(num_samples);
             let sum: f32 = breath[start..end].iter().sum();
             smoothed[i] = sum / (end - start) as f32;
         }
@@ -450,6 +489,101 @@ impl BreathGenerator {
             self.is_playing = true;
             self.playback_pos = samples.len() - start_pos;
         }
+    }
+}
+
+// ============================================================================
+// HUMANIZATION: GLOTTAL ONSET SOFTENING
+// ============================================================================
+
+/// Softens hard glottal attacks on vowel-initial sounds
+///
+/// TTS often produces unnaturally hard onsets when starting words with vowels.
+/// Real speech has a gradual "glottal onset" where the vocal folds close smoothly.
+///
+/// This component:
+/// 1. Tracks running energy level
+/// 2. Detects sudden jumps in energy (onset)
+/// 3. Applies a micro-fade (3-5ms) to soften the transition
+///
+/// The effect is subtle but removes the "clicking" quality of hard glottal stops.
+#[derive(Clone)]
+pub struct OnsetSoftener {
+    sample_rate: u32,
+    /// Smoothed energy envelope (slow follower)
+    energy_envelope: f32,
+    /// Energy envelope smoothing coefficient (slow - ~50ms)
+    energy_smooth_coef: f32,
+    /// Threshold ratio for onset detection (e.g., 4.0 = 4x energy jump)
+    onset_threshold: f32,
+    /// Samples remaining in current fade-in (0 = not active)
+    fade_samples_remaining: usize,
+    /// Total fade duration in samples (~5ms)
+    fade_duration: usize,
+    /// Enable/disable
+    enabled: bool,
+}
+
+impl OnsetSoftener {
+    pub fn new(sample_rate: u32) -> Self {
+        // Energy envelope follows over ~50ms
+        let energy_smooth_coef = (-1.0 / (sample_rate as f32 * 0.05)).exp();
+        // 5ms fade duration
+        let fade_duration = (sample_rate as f32 * 0.005) as usize;
+
+        Self {
+            sample_rate,
+            energy_envelope: 0.0,
+            energy_smooth_coef,
+            onset_threshold: 6.0, // 6x energy jump triggers softening
+            fade_samples_remaining: 0,
+            fade_duration,
+            enabled: true,
+        }
+    }
+
+    /// Process audio, detecting and softening onsets
+    pub fn process(&mut self, samples: &mut [f32]) {
+        if !self.enabled || samples.is_empty() {
+            return;
+        }
+
+        for sample in samples.iter_mut() {
+            let energy = sample.abs();
+
+            // Detect onset: energy jumped significantly above envelope
+            if energy > self.energy_envelope * self.onset_threshold && self.energy_envelope > 0.001 {
+                // Start fade-in from low point
+                if self.fade_samples_remaining == 0 {
+                    self.fade_samples_remaining = self.fade_duration;
+                }
+            }
+
+            // Apply fade if active
+            if self.fade_samples_remaining > 0 {
+                let progress = 1.0 - (self.fade_samples_remaining as f32 / self.fade_duration as f32);
+                // Use sqrt for faster initial rise (sounds more natural than linear)
+                let fade = progress.sqrt();
+                *sample *= fade;
+                self.fade_samples_remaining -= 1;
+            }
+
+            // Update energy envelope (slow follower)
+            self.energy_envelope = self.energy_envelope * self.energy_smooth_coef
+                + energy * (1.0 - self.energy_smooth_coef);
+        }
+    }
+
+    /// Reset state
+    pub fn reset(&mut self) {
+        self.energy_envelope = 0.0;
+        self.fade_samples_remaining = 0;
+    }
+
+    /// Start new utterance (reset envelope to catch first-word onsets)
+    pub fn start_utterance(&mut self) {
+        self.energy_envelope = 0.0;
+        self.fade_samples_remaining = 0;
     }
 }
 
@@ -837,6 +971,16 @@ impl PitchDrift {
 /// - End of utterances
 /// - Lower pitch registers
 /// - Certain speaking styles (especially common in American English)
+/// Realistic vocal fry using irregular glottal pulse simulation
+///
+/// Real vocal fry (creaky voice) is caused by:
+/// 1. Very low fundamental frequency (25-80 Hz)
+/// 2. Irregular inter-pulse intervals (not perfectly periodic)
+/// 3. Double/triple pulses (diploponic quality)
+/// 4. Brief moments of near-silence between pulses
+///
+/// This implementation uses discrete irregular pulses instead of
+/// continuous LFO modulation, which sounds much more natural.
 #[derive(Clone)]
 pub struct VocalFry {
     sample_rate: u32,
@@ -844,39 +988,91 @@ pub struct VocalFry {
     current_intensity: f32,
     /// Target intensity
     target_intensity: f32,
-    /// LFO phase for amplitude modulation
-    lfo_phase: f32,
-    /// LFO frequency (Hz) - typically 20-80 Hz for vocal fry
-    lfo_freq: f32,
     /// Depth of the fry effect (0-1)
     depth: f32,
     /// Smoothing coefficient for intensity changes
     smooth_coef: f32,
-    /// PRNG for frequency jitter
+    /// PRNG for all randomness
     rng_seed: u32,
     /// Whether fry is currently active
     is_active: bool,
     /// Samples remaining in fry region
     fry_samples_remaining: usize,
+
+    // Pulse timing state
+    /// Samples until next pulse
+    samples_to_next_pulse: usize,
+    /// Current pulse envelope (0-1)
+    pulse_envelope: f32,
+    /// Samples into current pulse
+    pulse_position: usize,
+    /// Duration of current pulse in samples
+    pulse_duration: usize,
+    /// Base inter-pulse interval in samples (~25-50ms)
+    base_interval: usize,
+    /// Whether next pulse is a "double pulse" (diploponia)
+    is_double_pulse: bool,
+    /// Position in double pulse sequence
+    double_pulse_phase: u8,
 }
 
 impl VocalFry {
     pub fn new(sample_rate: u32, depth: f32) -> Self {
-        // Smooth intensity over ~30ms
-        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.03)).exp();
+        // Smooth intensity over ~50ms for gradual fade in/out
+        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.05)).exp();
+        // Base interval ~30ms (33 Hz fundamental)
+        let base_interval = (sample_rate as f32 * 0.030) as usize;
 
         Self {
             sample_rate,
             current_intensity: 0.0,
             target_intensity: 0.0,
-            lfo_phase: 0.0,
-            lfo_freq: 35.0, // Start at 35 Hz (middle of fry range)
             depth: depth.clamp(0.0, 1.0),
             smooth_coef,
             rng_seed: 55555,
             is_active: false,
             fry_samples_remaining: 0,
+            samples_to_next_pulse: 0,
+            pulse_envelope: 0.0,
+            pulse_position: 0,
+            pulse_duration: (sample_rate as f32 * 0.008) as usize, // 8ms pulse
+            base_interval,
+            is_double_pulse: false,
+            double_pulse_phase: 0,
         }
+    }
+
+    /// Get next random value (0-1)
+    fn next_random(&mut self) -> f32 {
+        self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
+        ((self.rng_seed >> 16) as f32 / 65536.0)
+    }
+
+    /// Schedule next glottal pulse with irregular timing
+    fn schedule_next_pulse(&mut self) {
+        // Handle double pulses (diploponia) - occurs ~20% of the time
+        if self.is_double_pulse && self.double_pulse_phase == 0 {
+            // Second pulse of double comes very quickly (3-8ms)
+            self.samples_to_next_pulse = (self.sample_rate as f32 * (0.003 + self.next_random() * 0.005)) as usize;
+            self.double_pulse_phase = 1;
+            return;
+        }
+
+        // Decide if next will be a double pulse
+        self.is_double_pulse = self.next_random() < 0.20;
+        self.double_pulse_phase = 0;
+
+        // Irregular timing: base interval ± 40% jitter
+        let jitter = (self.next_random() - 0.5) * 0.8; // -0.4 to +0.4
+        let interval = self.base_interval as f32 * (1.0 + jitter);
+
+        // Occasionally skip a pulse entirely (10% chance) for more irregular feel
+        let skip_multiplier = if self.next_random() < 0.10 { 2.0 } else { 1.0 };
+
+        self.samples_to_next_pulse = (interval * skip_multiplier) as usize;
+
+        // Vary pulse duration slightly (6-12ms)
+        self.pulse_duration = (self.sample_rate as f32 * (0.006 + self.next_random() * 0.006)) as usize;
     }
 
     /// Trigger vocal fry for the end of a phrase
@@ -886,22 +1082,24 @@ impl VocalFry {
         self.target_intensity = 1.0;
         self.fry_samples_remaining = ((duration_ms * self.sample_rate as f32) / 1000.0) as usize;
 
-        // Randomize fry frequency for natural variation (25-55 Hz)
-        self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
-        let random = ((self.rng_seed >> 16) as f32 / 65536.0);
-        self.lfo_freq = 25.0 + random * 30.0;
+        // Randomize base interval for this fry instance (25-45ms = 22-40 Hz)
+        let random = self.next_random();
+        self.base_interval = (self.sample_rate as f32 * (0.025 + random * 0.020)) as usize;
+
+        // Start with immediate first pulse
+        self.samples_to_next_pulse = 0;
+        self.pulse_position = 0;
+        self.pulse_envelope = 0.0;
     }
 
-    /// Process samples with vocal fry effect
+    /// Process samples with realistic vocal fry effect
     pub fn process(&mut self, samples: &mut [f32]) {
         if !self.is_active && self.current_intensity < 0.001 {
-            return; // Skip processing when inactive
+            return;
         }
 
-        let phase_inc = 2.0 * std::f32::consts::PI * self.lfo_freq / self.sample_rate as f32;
-
         for sample in samples.iter_mut() {
-            // Update fry state
+            // Update fry duration countdown
             if self.fry_samples_remaining > 0 {
                 self.fry_samples_remaining -= 1;
             } else if self.is_active {
@@ -909,41 +1107,63 @@ impl VocalFry {
                 self.target_intensity = 0.0;
             }
 
-            // Smooth intensity
+            // Smooth intensity transitions
             self.current_intensity = self.current_intensity * self.smooth_coef
                 + self.target_intensity * (1.0 - self.smooth_coef);
 
-            if self.current_intensity > 0.001 {
-                // Calculate LFO for amplitude modulation
-                // Vocal fry is asymmetric - more like a pulse wave than sine
-                let lfo_raw = self.lfo_phase.sin();
-                // Shape into more pulse-like waveform (sharper valleys)
-                let lfo_shaped = if lfo_raw > 0.0 { lfo_raw.sqrt() } else { -(-lfo_raw).sqrt() * 0.7 };
-
-                // Add frequency jitter every cycle for realism
-                if self.lfo_phase >= 2.0 * std::f32::consts::PI {
-                    self.lfo_phase -= 2.0 * std::f32::consts::PI;
-                    self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
-                    let jitter = ((self.rng_seed >> 16) as f32 / 65536.0) - 0.5;
-                    self.lfo_freq = (self.lfo_freq + jitter * 8.0).clamp(20.0, 80.0);
-                }
-
-                // Apply vocal fry modulation
-                // Mix between original and modulated based on intensity
-                let mod_amount = self.depth * self.current_intensity * (0.3 + lfo_shaped * 0.7);
-                *sample *= 1.0 - mod_amount.clamp(0.0, 0.6);
-
-                self.lfo_phase += phase_inc;
+            if self.current_intensity < 0.001 {
+                continue;
             }
+
+            // Update pulse timing
+            if self.samples_to_next_pulse > 0 {
+                self.samples_to_next_pulse -= 1;
+            } else if self.pulse_position == 0 {
+                // Start new pulse
+                self.pulse_position = 1;
+                self.schedule_next_pulse();
+            }
+
+            // Calculate pulse envelope
+            // Shape: fast attack (2ms), slower decay
+            if self.pulse_position > 0 && self.pulse_position <= self.pulse_duration {
+                let t = self.pulse_position as f32 / self.pulse_duration as f32;
+                let attack_portion = 0.15; // 15% of pulse is attack
+
+                self.pulse_envelope = if t < attack_portion {
+                    // Fast attack
+                    t / attack_portion
+                } else {
+                    // Exponential decay
+                    let decay_t = (t - attack_portion) / (1.0 - attack_portion);
+                    (1.0 - decay_t).powf(1.5)
+                };
+
+                self.pulse_position += 1;
+            } else if self.pulse_position > self.pulse_duration {
+                // Pulse complete
+                self.pulse_envelope = 0.0;
+                self.pulse_position = 0;
+            }
+
+            // Apply vocal fry modulation
+            // During pulses: brief attenuation (glottal closure)
+            // Between pulses: near-normal level
+            let attenuation = self.pulse_envelope * self.depth * self.current_intensity * 0.7;
+            *sample *= 1.0 - attenuation.clamp(0.0, 0.7);
         }
     }
 
     pub fn reset(&mut self) {
         self.current_intensity = 0.0;
         self.target_intensity = 0.0;
-        self.lfo_phase = 0.0;
         self.is_active = false;
         self.fry_samples_remaining = 0;
+        self.samples_to_next_pulse = 0;
+        self.pulse_envelope = 0.0;
+        self.pulse_position = 0;
+        self.is_double_pulse = false;
+        self.double_pulse_phase = 0;
     }
 
     /// Reseed for varied patterns
@@ -956,20 +1176,89 @@ impl VocalFry {
 // HUMANIZATION: LIP SMACKS / MOUTH SOUNDS
 // ============================================================================
 
+/// Biquad filter for formant resonances
+/// Used to simulate oral cavity resonances in mouth sounds
+#[derive(Clone)]
+struct FormantFilter {
+    // Biquad coefficients
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    // Filter state
+    x1: f32,
+    x2: f32,
+    y1: f32,
+    y2: f32,
+}
+
+impl FormantFilter {
+    /// Create a bandpass filter for a formant frequency
+    /// Q controls the resonance width (higher = narrower/more resonant)
+    fn new_bandpass(sample_rate: f32, center_freq: f32, q: f32) -> Self {
+        let omega = 2.0 * std::f32::consts::PI * center_freq / sample_rate;
+        let sin_omega = omega.sin();
+        let cos_omega = omega.cos();
+        let alpha = sin_omega / (2.0 * q);
+
+        let b0 = alpha;
+        let b1 = 0.0;
+        let b2 = -alpha;
+        let a0 = 1.0 + alpha;
+        let a1 = -2.0 * cos_omega;
+        let a2 = 1.0 - alpha;
+
+        // Normalize by a0
+        Self {
+            b0: b0 / a0,
+            b1: b1 / a0,
+            b2: b2 / a0,
+            a1: a1 / a0,
+            a2: a2 / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+        }
+    }
+
+    /// Process a single sample through the filter
+    fn process(&mut self, input: f32) -> f32 {
+        let output = self.b0 * input + self.b1 * self.x1 + self.b2 * self.x2
+            - self.a1 * self.y1 - self.a2 * self.y2;
+
+        self.x2 = self.x1;
+        self.x1 = input;
+        self.y2 = self.y1;
+        self.y1 = output;
+
+        output
+    }
+
+    fn reset(&mut self) {
+        self.x1 = 0.0;
+        self.x2 = 0.0;
+        self.y1 = 0.0;
+        self.y2 = 0.0;
+    }
+}
+
 /// Generates and injects lip smack / mouth sounds between phrases
 ///
-/// Lip smacks are short (10-50ms) broadband noise bursts with formant-like
-/// resonances that occur when the mouth opens or closes. They're a natural
-/// part of human speech that TTS systems typically omit.
+/// IMPROVED IMPLEMENTATION: Uses formant-based synthesis to simulate
+/// oral cavity resonances. Real mouth sounds have specific resonant
+/// frequencies (~500Hz, ~1500Hz, ~2500Hz) from the shape of the mouth.
 ///
 /// Types of mouth sounds:
-/// - Lip smack: Quick "pop" when lips separate
-/// - Tongue click: Sharper sound when tongue releases from palate
-/// - Saliva sound: Wet crackling (less common)
+/// - Lip pop: Fast transient "pop" when lips separate, dominated by F1 (~500Hz)
+/// - Soft smack: Gentler mouth open with broader resonances
+/// - Wet smack: Multiple micro-bursts with saliva crackling
+/// - Tongue click: Sharp click with higher formants (~1500-3000Hz)
 #[derive(Clone)]
 pub struct LipSmackGenerator {
     sample_rate: u32,
-    /// Pre-generated lip smack waveforms
+    /// Pre-generated lip smack waveforms with formant structure
     smack_buffers: Vec<Vec<f32>>,
     /// Current playback position (-1 = not playing)
     playback_pos: i32,
@@ -983,7 +1272,7 @@ pub struct LipSmackGenerator {
 
 impl LipSmackGenerator {
     pub fn new(sample_rate: u32) -> Self {
-        // Generate several different smack waveforms for variety
+        // Generate formant-based smack waveforms
         let smack_buffers = Self::generate_smack_library(sample_rate);
 
         Self {
@@ -991,138 +1280,289 @@ impl LipSmackGenerator {
             smack_buffers,
             playback_pos: -1,
             current_smack_idx: 0,
-            smack_volume: 0.08, // Subtle
+            smack_volume: 0.08,
             rng_seed: 33333,
         }
     }
 
-    /// Generate a library of lip smack sounds
+    /// Generate a library of formant-based lip smack sounds
     fn generate_smack_library(sample_rate: u32) -> Vec<Vec<f32>> {
         let mut library = Vec::new();
 
-        // Smack type 1: Quick lip pop (20ms)
-        library.push(Self::generate_lip_pop(sample_rate, 0.020));
+        // Type 1: Quick lip pop - sharp transient with F1 resonance (18ms)
+        library.push(Self::generate_lip_pop_formant(sample_rate, 0.018));
 
-        // Smack type 2: Soft mouth open (35ms)
-        library.push(Self::generate_soft_smack(sample_rate, 0.035));
+        // Type 2: Soft mouth open - broader, gentler resonances (30ms)
+        library.push(Self::generate_soft_smack_formant(sample_rate, 0.030));
 
-        // Smack type 3: Wet smack (25ms)
-        library.push(Self::generate_wet_smack(sample_rate, 0.025));
+        // Type 3: Wet smack - multiple micro-bursts (25ms)
+        library.push(Self::generate_wet_smack_formant(sample_rate, 0.025));
+
+        // Type 4: Tongue click - sharper, higher formants (15ms)
+        library.push(Self::generate_tongue_click_formant(sample_rate, 0.015));
 
         library
     }
 
-    /// Generate a quick lip pop sound
-    fn generate_lip_pop(sample_rate: u32, duration_s: f32) -> Vec<f32> {
+    /// Generate a lip pop with proper formant resonances
+    /// Physics: Air burst as lips separate excites F1 (~500Hz) most strongly
+    fn generate_lip_pop_formant(sample_rate: u32, duration_s: f32) -> Vec<f32> {
         let num_samples = (sample_rate as f32 * duration_s) as usize;
         let mut buffer = vec![0.0; num_samples];
         let mut rng = 12345u32;
 
+        // Create formant filters for oral cavity resonances
+        // F1 ~500Hz (mouth opening), F2 ~1500Hz (tongue position), F3 ~2500Hz (lip rounding)
+        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, 520.0, 8.0);
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1450.0, 10.0);
+        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, 2400.0, 12.0);
+
+        // Generate excitation signal: impulse + decaying noise burst
+        let mut excitation = vec![0.0f32; num_samples];
         for i in 0..num_samples {
             let t = i as f32 / num_samples as f32;
 
-            // Envelope: fast attack, quick decay
-            let envelope = if t < 0.1 {
-                t / 0.1
-            } else {
-                (1.0 - t).powf(2.0)
-            };
+            // Initial impulse (the "pop" transient)
+            let impulse = if i < 3 { 1.0 - (i as f32 / 3.0) } else { 0.0 };
 
-            // Broadband noise filtered to lip-smack frequencies
+            // Decaying noise burst (air release)
             rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
             let noise = ((rng >> 16) as f32 / 32768.0) - 1.0;
+            let noise_env = (-t * 25.0).exp(); // Fast decay
 
-            // Emphasize mid frequencies (formant-like around 800-2000 Hz)
-            buffer[i] = noise * envelope;
+            excitation[i] = impulse * 0.8 + noise * noise_env * 0.4;
         }
 
-        // Apply simple lowpass to soften
-        let mut prev = 0.0f32;
-        let alpha = 0.3;
-        for sample in buffer.iter_mut() {
-            *sample = prev * (1.0 - alpha) + *sample * alpha;
-            prev = *sample;
+        // Apply formant filters in parallel and sum
+        // F1 dominates for lip pops, F2 and F3 are quieter overtones
+        for i in 0..num_samples {
+            let input = excitation[i];
+            let f1_out = f1.process(input) * 1.0;   // Dominant
+            let f2_out = f2.process(input) * 0.4;   // Moderate
+            let f3_out = f3.process(input) * 0.15;  // Subtle
+
+            buffer[i] = f1_out + f2_out + f3_out;
         }
+
+        // Final amplitude envelope to ensure clean start/end
+        for i in 0..num_samples {
+            let t = i as f32 / num_samples as f32;
+            // Very fast attack, natural decay
+            let env = if t < 0.05 {
+                t / 0.05
+            } else {
+                (-((t - 0.05) * 8.0)).exp()
+            };
+            buffer[i] *= env;
+        }
+
+        // Normalize
+        Self::normalize_buffer(&mut buffer, 0.9);
 
         buffer
     }
 
-    /// Generate a softer mouth-open sound
-    fn generate_soft_smack(sample_rate: u32, duration_s: f32) -> Vec<f32> {
+    /// Generate a soft mouth opening sound with broader resonances
+    fn generate_soft_smack_formant(sample_rate: u32, duration_s: f32) -> Vec<f32> {
         let num_samples = (sample_rate as f32 * duration_s) as usize;
         let mut buffer = vec![0.0; num_samples];
         let mut rng = 67890u32;
 
+        // Lower, broader formants for softer sound
+        // Slightly detuned for a more "wet" quality
+        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, 450.0, 5.0); // Lower Q = broader
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1300.0, 6.0);
+        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, 2200.0, 8.0);
+
+        // Gentler excitation: smooth attack, slower decay
+        let mut excitation = vec![0.0f32; num_samples];
         for i in 0..num_samples {
             let t = i as f32 / num_samples as f32;
 
-            // Gentler envelope
-            let envelope = (std::f32::consts::PI * t).sin().powf(1.5);
+            // Smooth onset instead of impulse
+            let attack = if t < 0.1 { (t / 0.1).powf(0.5) } else { 1.0 };
+            let decay = (-(t * 3.0).powf(1.5)).exp();
 
             rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
             let noise = ((rng >> 16) as f32 / 32768.0) - 1.0;
 
-            // Lower frequency content
-            buffer[i] = noise * envelope * 0.7;
+            excitation[i] = noise * attack * decay;
         }
 
-        // More aggressive lowpass
-        let mut prev = 0.0f32;
-        let alpha = 0.15;
-        for sample in buffer.iter_mut() {
-            *sample = prev * (1.0 - alpha) + *sample * alpha;
-            prev = *sample;
+        // Apply formant filters
+        for i in 0..num_samples {
+            let input = excitation[i];
+            let f1_out = f1.process(input) * 0.8;
+            let f2_out = f2.process(input) * 0.5;
+            let f3_out = f3.process(input) * 0.2;
+
+            buffer[i] = f1_out + f2_out + f3_out;
         }
+
+        // Smooth envelope
+        for i in 0..num_samples {
+            let t = i as f32 / num_samples as f32;
+            let env = (std::f32::consts::PI * t).sin().powf(0.8);
+            buffer[i] *= env;
+        }
+
+        Self::normalize_buffer(&mut buffer, 0.7);
 
         buffer
     }
 
-    /// Generate a wet/saliva smack sound
-    fn generate_wet_smack(sample_rate: u32, duration_s: f32) -> Vec<f32> {
+    /// Generate a wet smack with multiple micro-bursts (saliva crackling)
+    fn generate_wet_smack_formant(sample_rate: u32, duration_s: f32) -> Vec<f32> {
         let num_samples = (sample_rate as f32 * duration_s) as usize;
         let mut buffer = vec![0.0; num_samples];
         let mut rng = 24680u32;
 
+        // Multiple formant filter banks for complexity
+        let mut f1a = FormantFilter::new_bandpass(sample_rate as f32, 480.0, 7.0);
+        let mut f1b = FormantFilter::new_bandpass(sample_rate as f32, 600.0, 9.0); // Second resonance
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1400.0, 8.0);
+
+        // Multiple micro-burst excitation (saliva bubbles/crackling)
+        let num_bursts = 4;
+        let mut excitation = vec![0.0f32; num_samples];
+
+        for burst_idx in 0..num_bursts {
+            // Slightly randomized burst timing
+            rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+            let jitter = ((rng >> 16) as f32 / 65536.0) * 0.1 - 0.05;
+            let burst_center = (burst_idx as f32 + 0.5 + jitter) / num_bursts as f32;
+            let burst_width = 0.15 / num_bursts as f32;
+
+            for i in 0..num_samples {
+                let t = i as f32 / num_samples as f32;
+                let dist = (t - burst_center).abs();
+
+                if dist < burst_width {
+                    let burst_env = (1.0 - dist / burst_width).powf(2.0);
+
+                    rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+                    let noise = ((rng >> 16) as f32 / 32768.0) - 1.0;
+
+                    // Add small impulse at burst center
+                    let impulse = if dist < 0.01 { 0.5 } else { 0.0 };
+
+                    excitation[i] += (noise * 0.6 + impulse) * burst_env;
+                }
+            }
+        }
+
+        // Apply formant filters
+        for i in 0..num_samples {
+            let input = excitation[i];
+            let f1a_out = f1a.process(input) * 0.7;
+            let f1b_out = f1b.process(input) * 0.5;
+            let f2_out = f2.process(input) * 0.3;
+
+            buffer[i] = f1a_out + f1b_out + f2_out;
+        }
+
+        // Overall envelope
         for i in 0..num_samples {
             let t = i as f32 / num_samples as f32;
-
-            // Multiple peaks for wet crackling
-            let envelope = ((std::f32::consts::PI * t * 3.0).sin().abs() * (1.0 - t)).powf(0.8);
-
-            rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
-            let noise = ((rng >> 16) as f32 / 32768.0) - 1.0;
-
-            buffer[i] = noise * envelope * 0.5;
+            let env = (1.0 - t).powf(0.5) * (t * 20.0).min(1.0);
+            buffer[i] *= env;
         }
 
-        // Light filtering
-        let mut prev = 0.0f32;
-        let alpha = 0.25;
-        for sample in buffer.iter_mut() {
-            *sample = prev * (1.0 - alpha) + *sample * alpha;
-            prev = *sample;
-        }
+        Self::normalize_buffer(&mut buffer, 0.6);
 
         buffer
     }
 
+    /// Generate a tongue click with higher, sharper formants
+    fn generate_tongue_click_formant(sample_rate: u32, duration_s: f32) -> Vec<f32> {
+        let num_samples = (sample_rate as f32 * duration_s) as usize;
+        let mut buffer = vec![0.0; num_samples];
+        let mut rng = 13579u32;
+
+        // Higher formants for tongue position against palate
+        // Clicks have more energy in F2 and F3
+        let mut f1 = FormantFilter::new_bandpass(sample_rate as f32, 700.0, 12.0);  // Higher Q = sharper
+        let mut f2 = FormantFilter::new_bandpass(sample_rate as f32, 1800.0, 15.0); // Dominant for clicks
+        let mut f3 = FormantFilter::new_bandpass(sample_rate as f32, 3200.0, 18.0); // Sharp overtone
+
+        // Very sharp impulse excitation
+        let mut excitation = vec![0.0f32; num_samples];
+        for i in 0..num_samples {
+            let t = i as f32 / num_samples as f32;
+
+            // Sharp impulse
+            let impulse = if i < 2 { 1.0 } else { 0.0 };
+
+            // Very brief noise tail
+            rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
+            let noise = ((rng >> 16) as f32 / 32768.0) - 1.0;
+            let noise_env = (-t * 50.0).exp();
+
+            excitation[i] = impulse * 1.0 + noise * noise_env * 0.2;
+        }
+
+        // Apply formant filters - F2 and F3 are more prominent for clicks
+        for i in 0..num_samples {
+            let input = excitation[i];
+            let f1_out = f1.process(input) * 0.3;   // Less dominant
+            let f2_out = f2.process(input) * 1.0;   // Dominant
+            let f3_out = f3.process(input) * 0.6;   // Strong overtone
+
+            buffer[i] = f1_out + f2_out + f3_out;
+        }
+
+        // Very fast envelope
+        for i in 0..num_samples {
+            let t = i as f32 / num_samples as f32;
+            let env = (-t * 15.0).exp();
+            buffer[i] *= env;
+        }
+
+        Self::normalize_buffer(&mut buffer, 0.85);
+
+        buffer
+    }
+
+    /// Normalize buffer to target peak amplitude
+    fn normalize_buffer(buffer: &mut [f32], target_peak: f32) {
+        let max = buffer.iter().map(|x| x.abs()).fold(0.0f32, f32::max);
+        if max > 0.001 {
+            let scale = target_peak / max;
+            for sample in buffer.iter_mut() {
+                *sample *= scale;
+            }
+        }
+    }
+
     /// Trigger a lip smack to be played
     pub fn trigger_smack(&mut self) {
-        // Pick a random smack type
+        // Pick a random smack type with weighted probability
+        // Lip pop and soft smack are more common than wet or click
         self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
-        self.current_smack_idx = ((self.rng_seed >> 16) as usize) % self.smack_buffers.len();
+        let rand_val = (self.rng_seed >> 16) % 100;
+
+        self.current_smack_idx = if rand_val < 40 {
+            0 // Lip pop (40%)
+        } else if rand_val < 75 {
+            1 // Soft smack (35%)
+        } else if rand_val < 90 {
+            2 // Wet smack (15%)
+        } else {
+            3 // Tongue click (10%)
+        };
+
         self.playback_pos = 0;
 
-        // Randomize volume slightly
+        // Randomize volume
         self.rng_seed = self.rng_seed.wrapping_mul(1103515245).wrapping_add(12345);
-        let vol_variation = ((self.rng_seed >> 16) as f32 / 65536.0) * 0.04;
-        self.smack_volume = 0.06 + vol_variation;
+        let vol_variation = ((self.rng_seed >> 16) as f32 / 65536.0) * 0.03;
+        self.smack_volume = 0.05 + vol_variation; // Subtle but audible
     }
 
     /// Process samples - mix in lip smack if playing
     pub fn process(&mut self, samples: &mut [f32]) {
         if self.playback_pos < 0 {
-            return; // Nothing playing
+            return;
         }
 
         let smack = &self.smack_buffers[self.current_smack_idx];
@@ -1132,7 +1572,7 @@ impl LipSmackGenerator {
                 *sample += smack[self.playback_pos as usize] * self.smack_volume;
                 self.playback_pos += 1;
             } else {
-                self.playback_pos = -1; // Done playing
+                self.playback_pos = -1;
                 break;
             }
         }
@@ -1151,40 +1591,77 @@ impl LipSmackGenerator {
 // HUMANIZATION: TEMPO MICRO-VARIATIONS
 // ============================================================================
 
-/// Adds subtle speed variations within phrases
+/// SOLA-based tempo micro-variation for natural speech rhythm
+///
+/// IMPROVED IMPLEMENTATION: Uses Synchronous Overlap-Add (SOLA) for
+/// artifact-free time stretching with proper cross-frame continuity.
 ///
 /// Humans naturally speed up in the middle of phrases and slow down at
 /// boundaries. This creates a rhythmic "breathing" quality to speech.
-/// Unlike emotion-based tempo changes, these are micro-variations that
-/// happen within a single utterance.
 ///
-/// This uses a simple sample-rate modulation approach that preserves
-/// pitch while slightly varying playback speed.
+/// Key improvements over naive resampling:
+/// - Cross-correlation splice point finding (no clicks)
+/// - Proper Hann windowing for smooth transitions
+/// - Continuous state across frame boundaries
+/// - Pitch-preserving time stretch
 #[derive(Clone)]
 pub struct TempoMicroVariation {
     sample_rate: u32,
-    /// Current tempo factor (1.0 = normal)
+    /// Current tempo factor (1.0 = normal, >1.0 = faster)
     current_tempo: f32,
     /// Target tempo
     target_tempo: f32,
     /// Base tempo variation depth (0-1, typically 0.02-0.05)
     depth: f32,
-    /// LFO phase for tempo modulation
+    /// LFO phase for tempo modulation (continuous across frames)
     lfo_phase: f32,
     /// LFO frequency (very slow, 0.3-0.8 Hz)
     lfo_freq: f32,
-    /// Smoothing coefficient
+    /// Smoothing coefficient for tempo changes
     smooth_coef: f32,
-    /// Fractional sample position for resampling
-    read_pos: f64,
-    /// Previous samples for interpolation
-    prev_samples: [f32; 4],
+    /// Input accumulation buffer (for SOLA processing)
+    input_buffer: Vec<f32>,
+    /// Output buffer (processed samples)
+    output_buffer: Vec<f32>,
+    /// Overlap buffer for SOLA synthesis
+    overlap_buffer: Vec<f32>,
+    /// Previous frame tail for cross-correlation
+    prev_tail: Vec<f32>,
+    /// Pre-computed Hann window
+    window: Vec<f32>,
+    /// Has been initialized with audio
+    is_initialized: bool,
+    /// Total samples processed (for phase continuity)
+    total_samples: u64,
+    // =========================================================================
+    // FINAL LENGTHENING - Pre-boundary slowdown (phonetic phenomenon)
+    // =========================================================================
+    /// Enable final lengthening at phrase boundaries
+    enable_final_lengthening: bool,
+    /// Samples remaining until phrase boundary (0 = not approaching)
+    samples_to_boundary: usize,
+    /// Final lengthening ramp duration in samples (~150ms)
+    final_lengthening_ramp: usize,
+    /// Maximum final lengthening factor (1.25 = 25% slower)
+    final_lengthening_amount: f32,
 }
+
+// SOLA constants for tempo variation
+const TEMPO_FRAME_SIZE: usize = 512;     // Smaller than pitch (faster response)
+const TEMPO_HOP_SIZE: usize = 128;       // 75% overlap
+const TEMPO_SEARCH_RANGE: usize = 32;    // Correlation search ±samples
 
 impl TempoMicroVariation {
     pub fn new(sample_rate: u32, depth: f32) -> Self {
-        // Smooth tempo over ~100ms to avoid artifacts
-        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.1)).exp();
+        // Smooth tempo over ~50ms for responsive but artifact-free changes
+        let smooth_coef = (-1.0 / (sample_rate as f32 * 0.05)).exp();
+
+        // Pre-compute Hann window
+        let window: Vec<f32> = (0..TEMPO_FRAME_SIZE)
+            .map(|i| {
+                0.5 * (1.0 - (2.0 * std::f32::consts::PI * i as f32 / (TEMPO_FRAME_SIZE - 1) as f32).cos())
+            })
+            .collect();
 
         Self {
             sample_rate,
@@ -1194,82 +1671,262 @@ impl TempoMicroVariation {
             lfo_phase: 0.0,
             lfo_freq: 0.5, // 0.5 Hz - one cycle per 2 seconds
             smooth_coef,
-            read_pos: 0.0,
-            prev_samples: [0.0; 4],
+            input_buffer: Vec::with_capacity(TEMPO_FRAME_SIZE * 4),
+            output_buffer: Vec::with_capacity(TEMPO_FRAME_SIZE * 4),
+            overlap_buffer: vec![0.0; TEMPO_FRAME_SIZE],
+            prev_tail: Vec::with_capacity(TEMPO_HOP_SIZE),
+            window,
+            is_initialized: false,
+            total_samples: 0,
+            // Final lengthening defaults
+            enable_final_lengthening: true,
+            samples_to_boundary: 0,
+            final_lengthening_ramp: (sample_rate as f32 * 0.15) as usize, // 150ms ramp
+            final_lengthening_amount: 1.30, // 30% slower at boundary
         }
     }
 
-    /// Process samples with tempo micro-variation
-    /// Returns processed samples (may be different length than input)
+    /// Signal that a phrase boundary is approaching in N samples
+    ///
+    /// Call this when punctuation or silence is detected ahead.
+    /// The processor will gradually slow down as it approaches the boundary.
+    pub fn set_phrase_boundary(&mut self, samples_until_boundary: usize) {
+        if self.enable_final_lengthening {
+            self.samples_to_boundary = samples_until_boundary;
+        }
+    }
+
+    /// Get the ramp duration in samples for final lengthening lookahead
+    pub fn get_final_lengthening_ramp(&self) -> usize {
+        self.final_lengthening_ramp
+    }
+
+    /// Calculate the final lengthening factor based on proximity to boundary
+    fn get_final_lengthening_factor(&self) -> f32 {
+        if !self.enable_final_lengthening || self.samples_to_boundary == 0 {
+            return 1.0;
+        }
+
+        // How far into the ramp are we? (0.0 = just started, 1.0 = at boundary)
+        let ramp_progress = if self.samples_to_boundary >= self.final_lengthening_ramp {
+            0.0 // Not in ramp zone yet
+        } else {
+            1.0 - (self.samples_to_boundary as f32 / self.final_lengthening_ramp as f32)
+        };
+
+        // Use smooth ease-in curve (quadratic) for natural deceleration
+        // Humans don't suddenly slow down - they ease into it
+        let eased = ramp_progress * ramp_progress;
+
+        // Interpolate between 1.0 and final_lengthening_amount
+        1.0 + (self.final_lengthening_amount - 1.0) * eased
+    }
+
+    /// Process samples with SOLA-based tempo micro-variation
     pub fn process(&mut self, samples: &mut [f32]) {
-        if self.depth < 0.001 {
-            return; // Skip if depth is negligible
+        if self.depth < 0.001 || samples.is_empty() {
+            return;
         }
 
-        // Update tempo based on LFO
-        let phase_inc = 2.0 * std::f32::consts::PI * self.lfo_freq / self.sample_rate as f32;
+        // Update LFO phase based on samples processed (not frame-by-frame!)
+        let phase_inc_per_sample = 2.0 * std::f32::consts::PI * self.lfo_freq / self.sample_rate as f32;
+        self.lfo_phase += phase_inc_per_sample * samples.len() as f32;
+        while self.lfo_phase >= 2.0 * std::f32::consts::PI {
+            self.lfo_phase -= 2.0 * std::f32::consts::PI;
+        }
 
-        // Create a copy for resampling
-        let original = samples.to_vec();
+        // Calculate target tempo from LFO
+        let lfo_value = self.lfo_phase.sin();
+        let lfo_tempo = 1.0 + lfo_value * self.depth;
 
-        for (i, sample) in samples.iter_mut().enumerate() {
-            // Update LFO
-            self.lfo_phase += phase_inc;
-            if self.lfo_phase >= 2.0 * std::f32::consts::PI {
-                self.lfo_phase -= 2.0 * std::f32::consts::PI;
-            }
+        // Apply final lengthening factor (slows down near phrase boundaries)
+        // Final lengthening DIVIDES the tempo to slow down
+        // e.g., factor of 1.3 means target tempo becomes 1.0/1.3 = 0.77 (23% slower)
+        let final_factor = self.get_final_lengthening_factor();
+        self.target_tempo = lfo_tempo / final_factor;
 
-            // Calculate target tempo: speed up in middle of phrase, slow at boundaries
-            // LFO creates a gentle wave of tempo variation
-            let lfo_value = self.lfo_phase.sin();
-            self.target_tempo = 1.0 + lfo_value * self.depth;
+        // Decrement boundary countdown
+        if self.samples_to_boundary > 0 {
+            self.samples_to_boundary = self.samples_to_boundary.saturating_sub(samples.len());
+        }
 
-            // Smooth toward target
-            self.current_tempo = self.current_tempo * self.smooth_coef
-                + self.target_tempo * (1.0 - self.smooth_coef);
+        // Smooth toward target
+        self.current_tempo = self.current_tempo * self.smooth_coef
+            + self.target_tempo * (1.0 - self.smooth_coef);
 
-            // Resample based on tempo
-            let read_idx = self.read_pos as usize;
-            let frac = self.read_pos - read_idx as f64;
+        // For very small tempo changes, skip SOLA overhead
+        if (self.current_tempo - 1.0).abs() < 0.005 {
+            self.total_samples += samples.len() as u64;
+            return;
+        }
 
-            if read_idx + 1 < original.len() {
-                // Linear interpolation
-                *sample = original[read_idx] * (1.0 - frac as f32)
-                    + original[read_idx + 1] * frac as f32;
-            } else if read_idx < original.len() {
-                *sample = original[read_idx];
-            } else {
-                // Beyond input, hold last value
-                *sample = *original.last().unwrap_or(&0.0);
-            }
+        // Accumulate input
+        self.input_buffer.extend_from_slice(samples);
 
-            // Advance read position based on current tempo
-            self.read_pos += self.current_tempo as f64;
+        // Process complete SOLA frames
+        while self.input_buffer.len() >= TEMPO_FRAME_SIZE {
+            self.process_sola_frame();
+        }
 
-            // Keep read_pos from drifting too far
-            if self.read_pos > (i + 2) as f64 {
-                self.read_pos = (i + 1) as f64;
-            } else if self.read_pos < i as f64 {
-                self.read_pos = i as f64;
+        // Copy output back to input buffer, handling length differences
+        let output_len = self.output_buffer.len().min(samples.len());
+        samples[..output_len].copy_from_slice(&self.output_buffer[..output_len]);
+
+        // Drain used output
+        self.output_buffer.drain(..output_len);
+
+        // If output was shorter (speeding up), hold last sample
+        if output_len < samples.len() {
+            let hold_val = if output_len > 0 { samples[output_len - 1] } else { 0.0 };
+            samples[output_len..].fill(hold_val);
+        }
+
+        self.total_samples += samples.len() as u64;
+    }
+
+    /// Process a single SOLA frame for time stretching
+    fn process_sola_frame(&mut self) {
+        if self.input_buffer.len() < TEMPO_FRAME_SIZE {
+            return;
+        }
+
+        // Extract and window analysis frame
+        let mut frame: Vec<f32> = self.input_buffer[..TEMPO_FRAME_SIZE].to_vec();
+
+        // Calculate synthesis hop size based on tempo
+        // tempo > 1.0 (faster) = smaller synthesis hop
+        // tempo < 1.0 (slower) = larger synthesis hop
+        let synthesis_hop = (TEMPO_HOP_SIZE as f32 / self.current_tempo) as usize;
+        let synthesis_hop = synthesis_hop.max(32).min(TEMPO_HOP_SIZE * 2);
+
+        // Find optimal splice point using cross-correlation
+        if self.is_initialized && !self.prev_tail.is_empty() {
+            let offset = self.find_optimal_splice(&frame);
+            self.apply_splice_offset(&mut frame, offset);
+        }
+
+        // Apply Hann window
+        for (i, sample) in frame.iter_mut().enumerate() {
+            if i < self.window.len() {
+                *sample *= self.window[i];
             }
         }
 
-        // Reset read position for next frame (with small offset to maintain continuity)
-        self.read_pos = 0.0;
+        // Overlap-add synthesis
+        self.synthesize_frame(&frame, synthesis_hop);
+
+        // Store tail for next frame's cross-correlation
+        self.prev_tail.clear();
+        let tail_start = frame.len().saturating_sub(TEMPO_HOP_SIZE);
+        self.prev_tail.extend_from_slice(&frame[tail_start..]);
+
+        // Advance input buffer by analysis hop (not synthesis hop!)
+        self.input_buffer.drain(..TEMPO_HOP_SIZE);
+
+        self.is_initialized = true;
+    }
+
+    /// Find optimal splice offset using cross-correlation
+    fn find_optimal_splice(&self, frame: &[f32]) -> isize {
+        if self.prev_tail.is_empty() || frame.is_empty() {
+            return 0;
+        }
+
+        let compare_len = self.prev_tail.len().min(frame.len()).min(TEMPO_HOP_SIZE);
+        if compare_len < 4 {
+            return 0;
+        }
+
+        let mut best_offset: isize = 0;
+        let mut best_correlation: f32 = f32::NEG_INFINITY;
+
+        for offset in -(TEMPO_SEARCH_RANGE as isize)..=(TEMPO_SEARCH_RANGE as isize) {
+            let mut correlation: f32 = 0.0;
+            let mut count = 0;
+
+            for i in 0..compare_len {
+                let next_idx = (i as isize + offset) as usize;
+                if i < self.prev_tail.len() && next_idx < frame.len() {
+                    correlation += self.prev_tail[i] * frame[next_idx];
+                    count += 1;
+                }
+            }
+
+            if count > 0 {
+                correlation /= count as f32;
+                if correlation > best_correlation {
+                    best_correlation = correlation;
+                    best_offset = offset;
+                }
+            }
+        }
+
+        best_offset
+    }
+
+    /// Apply splice offset to frame for optimal continuity
+    fn apply_splice_offset(&self, frame: &mut [f32], offset: isize) {
+        if offset == 0 || frame.is_empty() {
+            return;
+        }
+
+        let frame_len = frame.len();
+        let abs_offset = offset.unsigned_abs();
+
+        if offset > 0 && abs_offset < frame_len {
+            // Shift left
+            let shift_amt = abs_offset.min(frame_len);
+            frame.rotate_left(shift_amt);
+            let start = frame_len.saturating_sub(abs_offset);
+            frame[start..].fill(0.0);
+        } else if offset < 0 && abs_offset < frame_len {
+            // Shift right
+            let shift_amt = abs_offset.min(frame_len);
+            frame.rotate_right(shift_amt);
+            let end = abs_offset.min(frame_len);
+            frame[..end].fill(0.0);
+        }
+    }
+
+    /// Overlap-add a processed frame to output
+    fn synthesize_frame(&mut self, frame: &[f32], synthesis_hop: usize) {
+        // Ensure overlap buffer is large enough
+        if self.overlap_buffer.len() < frame.len() {
+            self.overlap_buffer.resize(frame.len(), 0.0);
+        }
+
+        // Add frame to overlap buffer
+        for (i, &sample) in frame.iter().enumerate() {
+            if i < self.overlap_buffer.len() {
+                self.overlap_buffer[i] += sample;
+            }
+        }
+
+        // Output the synthesis hop worth of samples
+        let output_samples = synthesis_hop.min(self.overlap_buffer.len());
+        self.output_buffer.extend_from_slice(&self.overlap_buffer[..output_samples]);
+
+        // Shift overlap buffer
+        self.overlap_buffer.drain(..output_samples);
+        self.overlap_buffer.resize(TEMPO_FRAME_SIZE, 0.0);
     }
 
     pub fn reset(&mut self) {
         self.current_tempo = 1.0;
         self.target_tempo = 1.0;
         self.lfo_phase = 0.0;
-        self.read_pos = 0.0;
-        self.prev_samples = [0.0; 4];
+        self.input_buffer.clear();
+        self.output_buffer.clear();
+        self.overlap_buffer.fill(0.0);
+        self.prev_tail.clear();
+        self.is_initialized = false;
+        self.total_samples = 0;
     }
 
     pub fn start_utterance(&mut self) {
         // Start with slight slowdown (natural phrase start)
         self.target_tempo = 1.0 - self.depth * 0.5;
-        self.read_pos = 0.0;
+        // Don't reset buffers - maintain continuity
     }
 }
 
@@ -1742,6 +2399,12 @@ pub struct ProcessorConfig {
     /// Tempo variation depth (0-1, typically 0.02-0.05)
     /// Maximum speed deviation from normal (0.03 = ±3% variation)
     pub tempo_variation_depth: f32,
+
+    /// Enable glottal onset softening for vowel-initial sounds
+    /// Applies micro-fades (3-5ms) to sudden energy jumps to prevent
+    /// harsh attacks that sound robotic. Human speech has natural
+    /// glottal coordination that softens these transitions.
+    pub enable_onset_softening: bool,
 }
 
 impl Default for ProcessorConfig {
@@ -1866,6 +2529,10 @@ impl Default for ProcessorConfig {
             // Enable for more natural-sounding speech rhythm
             enable_tempo_variation: false,
             tempo_variation_depth: 0.03, // ±3% speed variation
+
+            // Onset softening: DISABLED by default (enable for softer attacks)
+            // Reduces harsh glottal onsets on vowel-initial sounds
+            enable_onset_softening: false,
         }
     }
 }
@@ -2105,6 +2772,9 @@ pub struct PostTTSProcessor {
 
     /// Tempo micro-variation (subtle speed changes)
     tempo_variation: TempoMicroVariation,
+
+    /// Onset softener (micro-fades on hard attacks)
+    onset_softener: OnsetSoftener,
 }
 
 impl PostTTSProcessor {
@@ -2199,6 +2869,7 @@ impl PostTTSProcessor {
             vocal_fry: VocalFry::new(config.sample_rate, config.vocal_fry_depth),
             lip_smack_generator: LipSmackGenerator::new(config.sample_rate),
             tempo_variation: TempoMicroVariation::new(config.sample_rate, config.tempo_variation_depth),
+            onset_softener: OnsetSoftener::new(config.sample_rate),
         }
     }
 
@@ -2235,6 +2906,7 @@ impl PostTTSProcessor {
         self.vocal_fry.reset();
         self.lip_smack_generator.reset();
         self.tempo_variation.reset();
+        self.onset_softener.reset();
 
         // Adaptive breath timing
         self.total_samples_processed = 0;
@@ -2286,6 +2958,9 @@ impl PostTTSProcessor {
 
         // Start tempo variation for new utterance
         self.tempo_variation.start_utterance();
+
+        // Start onset softener for new utterance
+        self.onset_softener.start_utterance();
 
         // Humanization: maybe trigger breath at utterance start
         if self.config.enable_breath {
@@ -2519,6 +3194,88 @@ impl PostTTSProcessor {
         }
     }
 
+    /// Check for upcoming phrase boundary and signal tempo variation for final lengthening
+    ///
+    /// Final lengthening is a phonetic phenomenon where speakers naturally slow down
+    /// before pauses. This creates a more natural speech rhythm.
+    ///
+    /// We look ahead by the ramp duration (~150ms / ~3600 samples at 24kHz) and
+    /// signal the tempo variation component when a boundary is approaching.
+    fn check_and_signal_final_lengthening(&mut self, frame_start: usize, frame_len: usize) {
+        if self.config.phrase_boundaries.is_empty() {
+            return;
+        }
+
+        // Look ahead for upcoming boundaries
+        let lookahead_samples = self.tempo_variation.get_final_lengthening_ramp();
+        let lookahead_end = frame_start + frame_len + lookahead_samples;
+
+        // Find the nearest upcoming boundary
+        for boundary in &self.config.phrase_boundaries {
+            // Only consider boundaries ahead of the current frame
+            if boundary.sample_index <= frame_start {
+                continue;
+            }
+
+            // Is this boundary within our lookahead window?
+            if boundary.sample_index <= lookahead_end {
+                // Calculate samples until boundary from frame start
+                let samples_until = boundary.sample_index.saturating_sub(frame_start);
+
+                // Only signal certain boundary types for final lengthening
+                // (not emphasis markers - those don't precede pauses)
+                match boundary.boundary_type {
+                    BoundaryType::SentenceEnd | BoundaryType::ClauseBreak | BoundaryType::EmotionalRelease => {
+                        self.tempo_variation.set_phrase_boundary(samples_until);
+                        return; // Only signal nearest boundary
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    /// Check for upcoming sentence boundary and signal pitch drift for pitch reset
+    ///
+    /// Pitch reset is a phonetic phenomenon where pitch "declination" (gradual lowering)
+    /// resets to a higher baseline at sentence boundaries. This creates natural intonation
+    /// contours that distinguish sentence boundaries from within-sentence pauses.
+    ///
+    /// Unlike final lengthening, pitch reset only triggers on SentenceEnd boundaries.
+    fn check_and_signal_pitch_reset(&mut self, frame_start: usize, frame_len: usize) {
+        if self.config.phrase_boundaries.is_empty() {
+            return;
+        }
+
+        // Look ahead for upcoming sentence boundaries
+        let lookahead_samples = self.sola_pitch_drift.get_reset_ramp();
+        let lookahead_end = frame_start + frame_len + lookahead_samples;
+
+        // Find the nearest upcoming sentence boundary
+        for boundary in &self.config.phrase_boundaries {
+            // Only consider boundaries ahead of the current frame
+            if boundary.sample_index <= frame_start {
+                continue;
+            }
+
+            // Is this boundary within our lookahead window?
+            if boundary.sample_index <= lookahead_end {
+                // Calculate samples until boundary from frame start
+                let samples_until = boundary.sample_index.saturating_sub(frame_start);
+
+                // Only signal sentence-end boundaries for pitch reset
+                // (clause breaks don't typically reset the pitch register)
+                match boundary.boundary_type {
+                    BoundaryType::SentenceEnd => {
+                        self.sola_pitch_drift.set_phrase_boundary(samples_until);
+                        return; // Only signal nearest boundary
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
     /// Process a frame of audio samples in-place
     ///
     /// Call this for each audio frame. The processor maintains state between calls
@@ -2580,6 +3337,12 @@ impl PostTTSProcessor {
         let frame_end = frame_start + samples.len();
         self.check_and_inject_boundary_breath(samples, frame_start, frame_end);
 
+        // 1b3. Onset softening - apply micro-fades to sudden energy jumps
+        // Reduces harsh glottal attacks on vowel-initial sounds for more natural speech
+        if self.config.enable_onset_softening {
+            self.onset_softener.process(samples);
+        }
+
         // 1c. Pitch humanization - add natural pitch variations
         if self.config.use_sola_pitch {
             // SOLA-based pitch shifting (artifact-free)
@@ -2590,6 +3353,9 @@ impl PostTTSProcessor {
             }
             // Pitch drift: slow wandering over phrases
             if self.config.enable_pitch_drift {
+                // Check for upcoming sentence boundaries and trigger pitch reset
+                // Pitch reset: return drift to baseline at sentence ends (natural declination reset)
+                self.check_and_signal_pitch_reset(frame_start, samples.len());
                 self.sola_pitch_drift.process(samples);
             }
         } else {
@@ -2607,6 +3373,9 @@ impl PostTTSProcessor {
         // 1d. Tempo micro-variation - subtle speed changes within phrases
         // Creates natural rhythm variations that make speech feel more human
         if self.config.enable_tempo_variation {
+            // Check for upcoming phrase boundary and trigger final lengthening
+            // Final lengthening: gradual slowdown before pauses (phonetic phenomenon)
+            self.check_and_signal_final_lengthening(frame_start, samples.len());
             self.tempo_variation.process(samples);
         }
 

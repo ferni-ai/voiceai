@@ -532,7 +532,13 @@ export async function handleOutreachRoutes(
 
       try {
         const callService = getConversationalCallService();
-        await callService.handleStatusCallback(callId, CallStatus, body as Record<string, unknown>);
+        if (callService.handleStatusCallback) {
+          await callService.handleStatusCallback(
+            callId,
+            CallStatus,
+            body as { callSid?: string; duration?: number; answeredBy?: string }
+          );
+        }
 
         // Validate machine detection result
         const validMachineResults = [
@@ -550,7 +556,9 @@ export async function handleOutreachRoutes(
           const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
             ? (AnsweredBy as MachineResult)
             : 'unknown';
-          const twiml = await callService.handleMachineDetection(callId, machineResult);
+          const twiml = callService.handleMachineDetection
+            ? await callService.handleMachineDetection(callId, machineResult)
+            : undefined;
           if (twiml) {
             res.setHeader('Content-Type', 'text/xml');
             res.writeHead(200);
@@ -596,7 +604,9 @@ export async function handleOutreachRoutes(
           ? (AnsweredBy as MachineResult)
           : 'unknown';
 
-        const twiml = await callService.handleMachineDetection(callId, machineResult);
+        const twiml = callService.handleMachineDetection
+          ? await callService.handleMachineDetection(callId, machineResult)
+          : undefined;
 
         if (twiml) {
           res.setHeader('Content-Type', 'text/xml');
@@ -1022,6 +1032,184 @@ Whenever you're ready.`,
           error: 'Daily outreach job failed',
         });
       }
+      return true;
+    }
+
+    // ========================================================================
+    // INTELLIGENT ONBOARDING ARC ENDPOINTS (LLM-Driven Personalization)
+    // ========================================================================
+
+    // GET /api/outreach/onboarding/progress - Get onboarding progress
+    if (route === '/onboarding/progress' && method === 'GET') {
+      const { getOnboardingProgress } =
+        await import('../services/outreach/intelligent-onboarding-arc.js');
+
+      const progress = await getOnboardingProgress(authenticatedUserId);
+      if (!progress) {
+        sendJsonResponse(res, 200, { enrolled: false });
+        return true;
+      }
+
+      sendJsonResponse(res, 200, { enrolled: true, ...progress });
+      return true;
+    }
+
+    // POST /api/outreach/onboarding/check-ins - Generate and optionally deliver personalized check-ins
+    if (route === '/onboarding/check-ins' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { channel = 'in_app', deliver: shouldDeliver = false } = body as {
+        channel?: 'sms' | 'email' | 'voice_call' | 'push' | 'in_app';
+        deliver?: boolean;
+      };
+
+      const { getPendingCheckIns, recordCheckInSent } =
+        await import('../services/outreach/intelligent-onboarding-arc.js');
+      const { deliver } = await import('../services/outreach/unified-delivery.js');
+
+      const checkIns = await getPendingCheckIns(authenticatedUserId, channel);
+
+      if (shouldDeliver && checkIns.length > 0) {
+        const checkIn = checkIns[0];
+        const result = await deliver({
+          userId: authenticatedUserId,
+          channel: checkIn.channel,
+          content: {
+            text: checkIn.content.text,
+            ssml: checkIn.content.ssml,
+            subject: checkIn.content.subject,
+            htmlBody: checkIn.content.htmlBody,
+            personaId: checkIn.personaId,
+            reason: checkIn.reason,
+            confidence: 0.9,
+          },
+          outreachType: checkIn.type,
+          triggerId: checkIn.id,
+        });
+
+        if (result.success) {
+          await recordCheckInSent(authenticatedUserId, checkIn.type, checkIn.channel);
+        }
+
+        sendJsonResponse(res, 200, {
+          success: true,
+          checkIns: [checkIn],
+          delivered: result.success,
+          deliveryResult: result,
+        });
+        return true;
+      }
+
+      sendJsonResponse(res, 200, { success: true, checkIns, delivered: false });
+      return true;
+    }
+
+    // GET /api/outreach/pending-messages - Get pending in-app messages (LLM-generated)
+    if (route === '/pending-messages' && method === 'GET') {
+      const { getPendingMessages } = await import('../services/outreach/unified-delivery.js');
+      const messages = await getPendingMessages(authenticatedUserId);
+      sendJsonResponse(res, 200, { success: true, messages, count: messages.length });
+      return true;
+    }
+
+    // POST /api/outreach/messages/:messageId/read - Mark message as read
+    if (route.match(/^\/messages\/[^/]+\/read$/) && method === 'POST') {
+      const messageId = route.split('/')[2];
+      const { markMessageRead } = await import('../services/outreach/unified-delivery.js');
+      await markMessageRead(authenticatedUserId, messageId);
+      sendJsonResponse(res, 200, { success: true });
+      return true;
+    }
+
+    // GET /api/outreach/channels/status - Get delivery channel status
+    if (route === '/channels/status' && method === 'GET') {
+      const { getChannelStatus } = await import('../services/outreach/unified-delivery.js');
+      const status = await getChannelStatus();
+      sendJsonResponse(res, 200, { success: true, channels: status });
+      return true;
+    }
+
+    // POST /api/outreach/test-llm-content - Generate test content (dev only)
+    if (route === '/test-llm-content' && method === 'POST') {
+      if (process.env.NODE_ENV !== 'development' && !auth.isAdmin) {
+        sendJsonResponse(res, 403, { success: false, error: 'Dev/admin only' });
+        return true;
+      }
+
+      const body = await parseRequestBody(req);
+      const { outreachType = 'thinking_of_you', channel = 'in_app' } = body as {
+        outreachType?: string;
+        channel?: string;
+      };
+
+      const { generatePersonalizedContent } =
+        await import('../services/outreach/llm-content-generator.js');
+      const { getOnboardingState } =
+        await import('../services/outreach/intelligent-onboarding-arc.js');
+
+      // Get user context
+      const state = await getOnboardingState(authenticatedUserId);
+      const userContext = {
+        userId: authenticatedUserId,
+        name: state?.name,
+        daysSinceSignup: state?.daysSinceSignup || 0,
+        conversationCount: state?.conversationCount || 0,
+        engagementLevel: state?.engagementLevel || ('medium' as const),
+        primaryConcerns: state?.primaryConcerns || [],
+        recentTopics: state?.recentTopics || [],
+        boundaries: state?.boundaries || [],
+      };
+
+      const content = await generatePersonalizedContent(
+        userContext,
+        outreachType as any,
+        channel as any
+      );
+
+      sendJsonResponse(res, 200, { success: true, content });
+      return true;
+    }
+
+    // POST /api/outreach/scheduler/daily - Cloud Scheduler trigger for daily outreach
+    if (route === '/scheduler/daily' && method === 'POST') {
+      // This endpoint is called by Cloud Scheduler, not users
+      // Verify the request is from Cloud Scheduler via header or OIDC token
+      const authHeader = req.headers['authorization'] || req.headers['x-cloudscheduler-jobname'];
+
+      const { handleSchedulerTrigger } =
+        await import('../services/outreach/automated-scheduler.js');
+
+      try {
+        const result = await handleSchedulerTrigger(authHeader as string);
+        sendJsonResponse(res, 200, { success: true, ...result });
+      } catch (error) {
+        log.error({ error: String(error) }, 'Scheduler trigger failed');
+        sendJsonResponse(res, 403, { success: false, error: 'Unauthorized or failed' });
+      }
+      return true;
+    }
+
+    // POST /api/outreach/scheduler/test - Test scheduler (admin only)
+    if (route === '/scheduler/test' && method === 'POST') {
+      // Allow manual testing in dev mode
+      if (process.env.NODE_ENV !== 'development' && !req.headers['x-admin-key']) {
+        sendJsonResponse(res, 403, { success: false, error: 'Admin access required' });
+        return true;
+      }
+
+      const { runDailyOutreach } = await import('../services/outreach/automated-scheduler.js');
+      const body = await parseRequestBody(req);
+      const { dryRun = true, batchSize = 10 } = body as { dryRun?: boolean; batchSize?: number };
+
+      const result = await runDailyOutreach({ dryRun, batchSize, respectQuietHours: true });
+      sendJsonResponse(res, 200, { success: true, ...result });
+      return true;
+    }
+
+    // GET /api/outreach/engagement/stats - Get engagement stats for current user
+    if (route === '/engagement/stats' && method === 'GET') {
+      const { getEngagementStats } = await import('../services/outreach/engagement-tracking.js');
+      const stats = await getEngagementStats(authenticatedUserId);
+      sendJsonResponse(res, 200, { success: true, stats });
       return true;
     }
 

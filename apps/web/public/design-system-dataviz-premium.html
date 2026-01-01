@@ -20,20 +20,20 @@
 
       /* Premium Palette */
       --premium-gold: #FFD700;
-      --premium-purple: #8B5CF6;
+      --premium-purple: #4a6741;
       --premium-cyan: #06B6D4;
       --premium-pink: #EC4899;
 
       /* Confidence Bands */
-      --band-95: rgba(139, 92, 246, 0.15);
-      --band-90: rgba(139, 92, 246, 0.25);
-      --band-75: rgba(139, 92, 246, 0.35);
-      --band-50: rgba(139, 92, 246, 0.5);
+      --band-95: rgba(74, 103, 65, 0.15);
+      --band-90: rgba(74, 103, 65, 0.25);
+      --band-75: rgba(74, 103, 65, 0.35);
+      --band-50: rgba(74, 103, 65, 0.5);
 
       /* Glass Effects */
       --glass-bg: rgba(255, 255, 255, 0.05);
       --glass-border: rgba(255, 255, 255, 0.1);
-      --glass-glow: rgba(139, 92, 246, 0.3);
+      --glass-glow: rgba(74, 103, 65, 0.3);
 
       /* Base */
       --bg-primary: #0a0a0f;
@@ -1007,19 +1007,19 @@
           <defs>
             <!-- Confidence band gradients -->
             <linearGradient id="band95Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="rgba(139, 92, 246, 0.1)"/>
-              <stop offset="100%" stop-color="rgba(139, 92, 246, 0.05)"/>
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.1)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.05)"/>
             </linearGradient>
             <linearGradient id="band75Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="rgba(139, 92, 246, 0.2)"/>
-              <stop offset="100%" stop-color="rgba(139, 92, 246, 0.1)"/>
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.2)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.1)"/>
             </linearGradient>
             <linearGradient id="band50Gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="rgba(139, 92, 246, 0.35)"/>
-              <stop offset="100%" stop-color="rgba(139, 92, 246, 0.2)"/>
+              <stop offset="0%" stop-color="rgba(74, 103, 65, 0.35)"/>
+              <stop offset="100%" stop-color="rgba(74, 103, 65, 0.2)"/>
             </linearGradient>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#8B5CF6"/>
+              <stop offset="0%" stop-color="#4a6741"/>
               <stop offset="100%" stop-color="#EC4899"/>
             </linearGradient>
           </defs>
@@ -1077,7 +1077,7 @@
                 d="M340,200 Q450,175 550,150 Q650,120 760,95"/>
 
           <!-- Current value dot -->
-          <circle cx="340" cy="200" r="6" fill="#8B5CF6" filter="drop-shadow(0 0 8px #8B5CF6)"/>
+          <circle cx="340" cy="200" r="6" fill="#4a6741" filter="drop-shadow(0 0 8px #4a6741)"/>
 
           <!-- Projected value dot -->
           <circle cx="760" cy="95" r="5" fill="#EC4899" filter="drop-shadow(0 0 8px #EC4899)" opacity="0.8"/>
@@ -1086,23 +1086,23 @@
 
       <div class="projection-legend">
         <div class="projection-legend-item">
-          <div class="legend-line" style="background: linear-gradient(90deg, #8B5CF6, #EC4899);"></div>
+          <div class="legend-line" style="background: linear-gradient(90deg, #4a6741, #EC4899);"></div>
           <span>Historical Performance</span>
         </div>
         <div class="projection-legend-item">
-          <div class="legend-line" style="background: linear-gradient(90deg, #8B5CF6, #EC4899); opacity: 0.6;"></div>
+          <div class="legend-line" style="background: linear-gradient(90deg, #4a6741, #EC4899); opacity: 0.6;"></div>
           <span>Projected Median</span>
         </div>
         <div class="projection-legend-item">
-          <div class="legend-band" style="background: rgba(139, 92, 246, 0.35);"></div>
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.35);"></div>
           <span>50% Confidence</span>
         </div>
         <div class="projection-legend-item">
-          <div class="legend-band" style="background: rgba(139, 92, 246, 0.2);"></div>
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.2);"></div>
           <span>75% Confidence</span>
         </div>
         <div class="projection-legend-item">
-          <div class="legend-band" style="background: rgba(139, 92, 246, 0.1);"></div>
+          <div class="legend-band" style="background: rgba(74, 103, 65, 0.1);"></div>
           <span>95% Confidence</span>
         </div>
       </div>
@@ -1252,7 +1252,7 @@
                 <stop offset="100%" stop-color="#FFA500"/>
               </linearGradient>
               <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#8B5CF6"/>
+                <stop offset="0%" stop-color="#4a6741"/>
                 <stop offset="100%" stop-color="#EC4899"/>
               </linearGradient>
               <linearGradient id="cyanGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1271,7 +1271,7 @@
                     stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 92;"/>
 
             <!-- Growth Ring -->
-            <circle cx="50" cy="50" r="35" stroke="rgba(139, 92, 246, 0.15)" stroke-width="6" fill="none"/>
+            <circle cx="50" cy="50" r="35" stroke="rgba(74, 103, 65, 0.15)" stroke-width="6" fill="none"/>
             <circle cx="50" cy="50" r="35" stroke="url(#purpleGradient)" stroke-width="6" fill="none"
                     stroke-linecap="round" pathLength="100" class="ring-progress" style="--progress: 78;"/>
 
@@ -1304,13 +1304,13 @@
             </div>
           </div>
           <div class="metric-detail-row">
-            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #8B5CF6, #EC4899);"></div>
+            <div class="metric-detail-indicator" style="background: linear-gradient(180deg, #4a6741, #EC4899);"></div>
             <div class="metric-detail-info">
               <div class="metric-detail-name">User Growth</div>
               <div class="metric-detail-value">78%</div>
             </div>
             <div class="metric-detail-bar">
-              <div class="metric-detail-fill" style="width: 78%; background: linear-gradient(90deg, #8B5CF6, #EC4899);"></div>
+              <div class="metric-detail-fill" style="width: 78%; background: linear-gradient(90deg, #4a6741, #EC4899);"></div>
             </div>
           </div>
           <div class="metric-detail-row">
@@ -1611,7 +1611,7 @@
       createWeeklyRings();
 
       // Create sparklines with sample data
-      createSparkline('sparkline1', [180, 195, 210, 205, 225, 240, 255, 248, 262, 275, 284], '#8B5CF6');
+      createSparkline('sparkline1', [180, 195, 210, 205, 225, 240, 255, 248, 262, 275, 284], '#4a6741');
       createSparkline('sparkline2', [18500, 19200, 20100, 21000, 21800, 22400, 23100, 23500, 24000, 24500, 24847], '#06B6D4');
       createSparkline('sparkline3', [1.8, 1.9, 2.0, 2.1, 2.0, 2.2, 2.3, 2.2, 2.3, 2.4, 2.4], '#EF4444');
       createSparkline('sparkline4', [58, 60, 62, 64, 65, 66, 68, 69, 70, 71, 72], '#10B981');

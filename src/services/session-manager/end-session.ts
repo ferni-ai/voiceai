@@ -1081,16 +1081,18 @@ function determineRelationshipStage(
   profile: UserProfile
 ): 'new' | 'building' | 'established' | 'deep' {
   const conversationCount = profile.totalConversations || 0;
-  const firstContactTime = profile.firstContact instanceof Date
-    ? profile.firstContact.getTime()
-    : typeof profile.firstContact === 'string'
-      ? new Date(profile.firstContact).getTime()
-      : 0;
+  const firstContactTime =
+    profile.firstContact instanceof Date
+      ? profile.firstContact.getTime()
+      : typeof profile.firstContact === 'string'
+        ? new Date(profile.firstContact).getTime()
+        : 0;
   const daysSinceFirst = firstContactTime
     ? Math.floor((Date.now() - firstContactTime) / (24 * 60 * 60 * 1000))
     : 0;
   // Count heavy emotional moments as "vulnerable moments"
-  const vulnerableMoments = profile.keyMoments?.filter((m) => m.emotionalWeight === 'heavy').length || 0;
+  const vulnerableMoments =
+    profile.keyMoments?.filter((m) => m.emotionalWeight === 'heavy').length || 0;
 
   // Deep: 60+ conversations, 45+ days, 10+ vulnerable moments
   if (conversationCount >= 60 && daysSinceFirst >= 45 && vulnerableMoments >= 10) {

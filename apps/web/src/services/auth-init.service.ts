@@ -5,10 +5,13 @@
  * This should be called early in app startup, before any API calls.
  *
  * Flow:
- * 1. Initialize Firebase Auth (creates anonymous account if needed)
+ * 1. Initialize Firebase Auth (check for existing session)
  * 2. Subscribe to auth state changes
  * 3. Update app state with auth info
  * 4. Trigger migration if device user is upgrading to Firebase
+ *
+ * Note: Users must sign in with Google or Apple before using the app.
+ * No anonymous accounts are created.
  *
  * @module AuthInitService
  */

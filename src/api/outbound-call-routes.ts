@@ -14,6 +14,7 @@ import {
   makeConversationalCall,
   isConversationalCallsConfigured,
   type OutboundCallContext,
+  type CallResult,
 } from '../services/outreach/conversational-calls.js';
 
 const log = getLogger().child({ module: 'outbound-call-routes' });
@@ -81,11 +82,13 @@ async function handleStatusCallback(req: Request, res: Response): Promise<void> 
 
   try {
     const service = getConversationalCallService();
-    await service.handleStatusCallback(callId, CallStatus, {
-      callSid: CallSid,
-      duration: Duration || CallDuration,
-      answeredBy: AnsweredBy,
-    });
+    if (service.handleStatusCallback) {
+      await service.handleStatusCallback(callId, CallStatus, {
+        callSid: CallSid,
+        duration: Duration || CallDuration,
+        answeredBy: AnsweredBy,
+      });
+    }
 
     // Twilio expects empty 200 response
     res.status(200).send('');
@@ -106,7 +109,9 @@ async function handleMachineDetection(req: Request, res: Response): Promise<void
 
   try {
     const service = getConversationalCallService();
-    const twiml = await service.handleMachineDetection(callId, AnsweredBy);
+    const twiml = service.handleMachineDetection
+      ? await service.handleMachineDetection(callId, AnsweredBy)
+      : undefined;
 
     if (twiml) {
       // Return TwiML for voicemail message
@@ -168,16 +173,16 @@ async function initiateCall(req: Request, res: Response): Promise<void> {
 async function getActiveCalls(_req: Request, res: Response): Promise<void> {
   try {
     const service = getConversationalCallService();
-    const calls = service.getActiveCalls();
+    const calls: CallResult[] = service.getActiveCalls ? await service.getActiveCalls() : [];
 
     res.json({
       count: calls.length,
       calls: calls.map((call) => ({
         id: call.id,
         status: call.status,
-        userId: call.context.user.id,
-        userName: call.context.user.name,
-        persona: call.context.persona,
+        userId: call.context?.user?.id,
+        userName: call.context?.user?.name,
+        persona: call.context?.persona,
         initiatedAt: call.initiatedAt,
         answeredAt: call.answeredAt,
       })),
@@ -196,7 +201,7 @@ async function getCall(req: Request, res: Response): Promise<void> {
 
   try {
     const service = getConversationalCallService();
-    const call = service.getActiveCall(callId);
+    const call = service.getActiveCall ? await service.getActiveCall(callId) : null;
 
     if (!call) {
       res.status(404).json({ error: 'Call not found' });
@@ -207,11 +212,11 @@ async function getCall(req: Request, res: Response): Promise<void> {
       id: call.id,
       status: call.status,
       user: {
-        id: call.context.user.id,
-        name: call.context.user.name,
+        id: call.context?.user?.id,
+        name: call.context?.user?.name,
       },
-      persona: call.context.persona,
-      trigger: call.context.trigger,
+      persona: call.context?.persona,
+      trigger: call.context?.trigger,
       timing: {
         initiated: call.initiatedAt,
         answered: call.answeredAt,
@@ -239,7 +244,9 @@ async function endCall(req: Request, res: Response): Promise<void> {
 
   try {
     const service = getConversationalCallService();
-    await service.endCall(callId, reason);
+    if (service.endCall) {
+      await service.endCall(callId, reason);
+    }
 
     res.json({
       success: true,
@@ -268,13 +275,15 @@ async function updateSummary(req: Request, res: Response): Promise<void> {
 
   try {
     const service = getConversationalCallService();
-    service.updateCallSummary(callId, {
-      conversationSummary,
-      followUpActions,
-      userMood,
-      keyTopics,
-      receptivity, // 'warm' | 'curious' | 'hesitant' | 'not_interested'
-    });
+    if (service.updateCallSummary) {
+      await service.updateCallSummary(callId, {
+        conversationSummary,
+        followUpActions,
+        userMood,
+        keyTopics,
+        receptivity, // 'warm' | 'curious' | 'hesitant' | 'not_interested'
+      });
+    }
 
     res.json({
       success: true,

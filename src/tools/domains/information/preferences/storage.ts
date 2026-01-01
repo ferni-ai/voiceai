@@ -369,21 +369,21 @@ export async function setAllergies(
 ): Promise<PreferenceOperationResult> {
   if (mode === 'add') {
     const prefs = await getUserPreferences(userId);
-    const normalized = allergies.map(a => a.toLowerCase().trim());
-    const existingNormalized = prefs.allergies.map(a => a.toLowerCase());
-    
+    const normalized = allergies.map((a) => a.toLowerCase().trim());
+    const existingNormalized = prefs.allergies.map((a) => a.toLowerCase());
+
     // Only add new allergies (deduped)
-    const newAllergies = normalized.filter(a => !existingNormalized.includes(a));
-    
+    const newAllergies = normalized.filter((a) => !existingNormalized.includes(a));
+
     if (newAllergies.length === 0) {
       return { success: true, message: 'Already knew about these allergies.' };
     }
-    
+
     return updateUserPreferences(userId, {
       allergies: [...prefs.allergies, ...newAllergies],
     });
   }
-  
+
   return updateUserPreferences(userId, { allergies });
 }
 

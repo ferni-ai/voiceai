@@ -12,7 +12,6 @@
 
 import {
   createElement,
-  createFlexContainer,
   setStyles,
   createScreenReaderLabel,
   getCssVar,
@@ -478,16 +477,19 @@ function getKeyChapters(chapters: TimelineChapter[], maxCount: number): Timeline
   const currentIndex = chapters.findIndex(ch => ch.isActive);
 
   // Add first
-  if (chapters.length > 0) result.push(chapters[0]);
+  const first = chapters[0];
+  if (first) result.push(first);
 
   // Add some middle chapters
-  if (currentIndex > 0 && currentIndex < chapters.length - 1) {
-    result.push(chapters[currentIndex]);
+  const currentChapter = chapters[currentIndex];
+  if (currentIndex > 0 && currentIndex < chapters.length - 1 && currentChapter) {
+    result.push(currentChapter);
   }
 
   // Add last
-  if (chapters.length > 1) {
-    result.push(chapters[chapters.length - 1]);
+  const last = chapters[chapters.length - 1];
+  if (chapters.length > 1 && last) {
+    result.push(last);
   }
 
   return result.slice(0, maxCount);

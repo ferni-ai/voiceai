@@ -15,7 +15,7 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { createLogger } from '../../utils/logger.js';
-import { toast } from '../toast.ui.js';
+import { toast } from '../whisper.ui.js';
 import { t } from '../../i18n/index.js';
 
 const log = createLogger('BTHAnalyticsDashboard');

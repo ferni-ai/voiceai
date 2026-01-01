@@ -387,7 +387,7 @@ class ProceduralSoundsService {
     // Normalize persona ID (remove suffixes like "-santos", "-taylor")
     const normalizedId = personaId.split('-')[0]?.toLowerCase() ?? personaId.toLowerCase();
 
-    return PERSONA_PROFILES[normalizedId] ?? DEFAULT_PROFILE;
+    return (PERSONA_PROFILES[normalizedId] ?? DEFAULT_PROFILE) as PersonaSonicProfile;
   }
 
   /**

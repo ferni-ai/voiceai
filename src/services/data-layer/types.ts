@@ -32,6 +32,7 @@ export type StoreType =
   | 'emotional'
   | 'wisdom'
   | 'session-context'
+  | 'life-stage'
   | 'outreach'
   | 'tool_output';
 
@@ -73,7 +74,7 @@ export type EntityType =
   | 'trip'
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TRUST SYSTEMS (10 types) - Core relationship building
+  // TRUST SYSTEMS (13 types) - Core relationship building
   // ═══════════════════════════════════════════════════════════════════════════
   | 'commitment' // Promises made to/by user
   | 'boundary' // Topics NOT to bring up
@@ -85,6 +86,9 @@ export type EntityType =
   | 'tonal_memory' // Voice/communication patterns
   | 'vulnerability_moment' // When user opened up
   | 'trust_milestone' // Relationship trust milestones
+  | 'curiosity_mention' // Passing mentions to follow up on (NEW - Dec 2024)
+  | 'between_session_thinking' // Continuous presence reflections (NEW - Dec 2024)
+  | 'persona_growth' // How personas grow from user interaction (NEW - Dec 2024)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPERHUMAN SERVICES (12 types) - "Better than Human" capabilities
@@ -240,7 +244,74 @@ export type EntityType =
   // ═══════════════════════════════════════════════════════════════════════════
   | 'call_result' // On-behalf call outcomes
   | 'follow_up_action' // Actions to take after calls
-  | 'scheduled_outreach'; // Scheduled proactive outreach
+  | 'scheduled_outreach' // Scheduled proactive outreach
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LIFE STAGE TRANSITIONS (10 types) - Major life changes
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'new_parent' // New parent journey
+  | 'empty_nest' // Empty nest transition
+  | 'infidelity_recovery' // Infidelity processing
+  | 'health_diagnosis' // Health condition journey
+  | 'job_loss' // Unemployment navigation
+  | 'sobriety' // Recovery/sobriety journey
+  | 'sandwich_generation' // Dual caregiving
+  | 'blended_family' // Blended family integration
+  | 'coming_out' // LGBTQ+ journey
+  | 'faith_transition' // Faith/spiritual transition
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOCATION & PLACES (3 types) - Geographic context
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'favorite_place' // Places user loves
+  | 'location_memory' // Memories tied to locations
+  | 'geographic_preference' // Travel/living preferences
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PETS & ANIMALS (3 types) - Pet family members
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'pet' // Pet information
+  | 'pet_health' // Pet health records
+  | 'pet_milestone' // Pet milestones (birthdays, adoption days)
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROPERTY & VEHICLES (3 types) - Major assets
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'vehicle' // Vehicle information
+  | 'home_maintenance' // Home upkeep tracking
+  | 'property_asset' // Real estate and property
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INSURANCE & LEGAL (2 types) - Life admin
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'insurance_policy' // Insurance policies
+  | 'legal_document' // Wills, contracts, legal matters
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CRISIS & SUPPORT (2 types) - Past support moments
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'crisis_episode' // Past crisis and resolution
+  | 'support_received' // Help user received from others
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // USER CORRECTIONS & LEARNING (2 types) - When we learn from mistakes
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'user_correction' // When user corrects Ferni
+  | 'implicit_preference' // Preferences inferred from behavior
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OUTREACH HISTORY (3 types) - Tracking proactive communication
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'outreach_attempt' // All outreach attempts
+  | 'outreach_response' // User responses to outreach
+  | 'outreach_preference' // User outreach preferences
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PERSONA INTERACTION (3 types) - Multi-agent preferences
+  // ═══════════════════════════════════════════════════════════════════════════
+  | 'persona_affinity' // Which persona user prefers
+  | 'handoff_preference' // Handoff routing preferences
+  | 'persona_interaction_history'; // History with each persona
 
 // ============================================================================
 // STORE CHANGE EVENT
@@ -908,4 +979,351 @@ export interface ScheduledOutreachEntity {
   priority: 'low' | 'normal' | 'high';
   status: 'pending' | 'sent' | 'cancelled';
   createdAt: string;
+}
+
+// ============================================================================
+// LOCATION & PLACES ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Favorite place - Places user loves
+ */
+export interface FavoritePlaceEntity {
+  name: string;
+  type:
+    | 'restaurant'
+    | 'cafe'
+    | 'park'
+    | 'store'
+    | 'venue'
+    | 'neighborhood'
+    | 'city'
+    | 'country'
+    | 'other';
+  location?: string;
+  whyLoved: string;
+  lastVisited?: string;
+  sharedWith?: string[];
+  memories?: string[];
+}
+
+/**
+ * Location memory - Memories tied to locations
+ */
+export interface LocationMemoryEntity {
+  place: string;
+  memory: string;
+  date?: string;
+  emotion: string;
+  peopleInvolved?: string[];
+  significance: 'casual' | 'meaningful' | 'life_changing';
+}
+
+/**
+ * Geographic preference - Travel/living preferences
+ */
+export interface GeographicPreferenceEntity {
+  preferenceType: 'climate' | 'city_size' | 'culture' | 'lifestyle' | 'proximity';
+  preference: string;
+  reason?: string;
+  examples?: string[];
+}
+
+// ============================================================================
+// PETS & ANIMALS ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Pet - Pet information
+ */
+export interface PetEntity {
+  name: string;
+  species: 'dog' | 'cat' | 'bird' | 'fish' | 'reptile' | 'small_mammal' | 'other';
+  breed?: string;
+  age?: number;
+  birthday?: string;
+  adoptionDate?: string;
+  personality?: string[];
+  quirks?: string[];
+  favorites?: { food?: string; toy?: string; activity?: string };
+}
+
+/**
+ * Pet health - Pet health records
+ */
+export interface PetHealthEntity {
+  petName: string;
+  recordType: 'vet_visit' | 'vaccination' | 'medication' | 'condition' | 'checkup';
+  description: string;
+  date: string;
+  nextDue?: string;
+  vetName?: string;
+  notes?: string;
+}
+
+/**
+ * Pet milestone - Pet milestones
+ */
+export interface PetMilestoneEntity {
+  petName: string;
+  milestone: string;
+  type: 'birthday' | 'adoption_anniversary' | 'training' | 'health' | 'other';
+  date: string;
+  celebration?: string;
+}
+
+// ============================================================================
+// PROPERTY & VEHICLES ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Vehicle - Vehicle information
+ */
+export interface VehicleEntity {
+  make: string;
+  model: string;
+  year: number;
+  nickname?: string;
+  purchaseDate?: string;
+  mileage?: number;
+  maintenanceSchedule?: {
+    service: string;
+    intervalMiles?: number;
+    intervalMonths?: number;
+    lastDone?: string;
+  }[];
+  insuranceExpiry?: string;
+  registrationExpiry?: string;
+}
+
+/**
+ * Home maintenance - Home upkeep tracking
+ */
+export interface HomeMaintenanceEntity {
+  task: string;
+  category:
+    | 'hvac'
+    | 'plumbing'
+    | 'electrical'
+    | 'exterior'
+    | 'interior'
+    | 'appliance'
+    | 'seasonal'
+    | 'other';
+  frequency?: 'monthly' | 'quarterly' | 'biannual' | 'annual' | 'as_needed';
+  lastDone?: string;
+  nextDue?: string;
+  cost?: number;
+  vendor?: string;
+  notes?: string;
+}
+
+/**
+ * Property asset - Real estate and property
+ */
+export interface PropertyAssetEntity {
+  name: string;
+  type: 'primary_residence' | 'rental' | 'vacation' | 'investment' | 'land';
+  address?: string;
+  purchaseDate?: string;
+  purchasePrice?: number;
+  currentValue?: number;
+  mortgageBalance?: number;
+  notes?: string;
+}
+
+// ============================================================================
+// INSURANCE & LEGAL ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Insurance policy - Insurance policies
+ */
+export interface InsurancePolicyEntity {
+  type: 'health' | 'auto' | 'home' | 'life' | 'disability' | 'umbrella' | 'pet' | 'other';
+  provider: string;
+  policyNumber?: string;
+  premium?: number;
+  premiumFrequency?: 'monthly' | 'quarterly' | 'annual';
+  coverage?: string;
+  expiryDate?: string;
+  notes?: string;
+}
+
+/**
+ * Legal document - Wills, contracts, legal matters
+ */
+export interface LegalDocumentEntity {
+  type:
+    | 'will'
+    | 'trust'
+    | 'power_of_attorney'
+    | 'healthcare_directive'
+    | 'contract'
+    | 'deed'
+    | 'other';
+  description: string;
+  status: 'draft' | 'active' | 'needs_update' | 'expired';
+  createdDate?: string;
+  lastUpdated?: string;
+  attorney?: string;
+  location?: string;
+  notes?: string;
+}
+
+// ============================================================================
+// CRISIS & SUPPORT ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Crisis episode - Past crisis and resolution
+ */
+export interface CrisisEpisodeEntity {
+  description: string;
+  type: 'emotional' | 'health' | 'financial' | 'relationship' | 'work' | 'family' | 'other';
+  severity: 'minor' | 'moderate' | 'major' | 'severe';
+  date: string;
+  duration?: string;
+  resolution?: string;
+  whatHelped: string[];
+  supportReceived?: string[];
+  lessonsLearned?: string[];
+}
+
+/**
+ * Support received - Help user received from others
+ */
+export interface SupportReceivedEntity {
+  from: string;
+  type: 'emotional' | 'practical' | 'financial' | 'advice' | 'presence';
+  description: string;
+  date?: string;
+  impact: string;
+  acknowledged?: boolean;
+}
+
+// ============================================================================
+// USER CORRECTIONS & LEARNING ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * User correction - When user corrects Ferni
+ */
+export interface UserCorrectionEntity {
+  whatFerniSaid: string;
+  whatUserCorrected: string;
+  correctInformation: string;
+  category: 'fact' | 'preference' | 'relationship' | 'event' | 'opinion' | 'other';
+  personaId?: string;
+  timestamp: string;
+  appliedToMemory: boolean;
+}
+
+/**
+ * Implicit preference - Preferences inferred from behavior
+ */
+export interface ImplicitPreferenceEntity {
+  preference: string;
+  category: 'communication' | 'timing' | 'topics' | 'persona' | 'format' | 'other';
+  evidence: string[];
+  confidence: number; // 0-1
+  firstObserved: string;
+  lastConfirmed: string;
+  contradicted?: boolean;
+}
+
+// ============================================================================
+// OUTREACH HISTORY ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Outreach attempt - All outreach attempts
+ */
+export interface OutreachAttemptEntity {
+  type:
+    | 'check_in'
+    | 'reminder'
+    | 'celebration'
+    | 'thinking_of_you'
+    | 'follow_up'
+    | 'crisis_support';
+  channel: 'voice' | 'sms' | 'push' | 'email';
+  reason: string;
+  message?: string;
+  personaId: string;
+  status: 'pending' | 'sent' | 'delivered' | 'failed';
+  scheduledAt?: string;
+  sentAt: string;
+  deliveredAt?: string;
+  triggeredBy?: string; // What triggered this outreach
+}
+
+/**
+ * Outreach response - User responses to outreach
+ */
+export interface OutreachResponseEntity {
+  outreachId: string;
+  responseType: 'engaged' | 'acknowledged' | 'dismissed' | 'ignored' | 'negative_feedback';
+  responseTime?: number; // Seconds to respond
+  sentiment?: 'positive' | 'neutral' | 'negative';
+  feedback?: string;
+  ledToSession?: boolean;
+  timestamp: string;
+}
+
+/**
+ * Outreach preference - User outreach preferences
+ */
+export interface OutreachPreferenceEntity {
+  preferredChannels: ('voice' | 'sms' | 'push' | 'email')[];
+  preferredTimes?: { start: string; end: string }[];
+  preferredDays?: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[];
+  frequency: 'rarely' | 'occasionally' | 'regularly' | 'frequently';
+  doNotDisturb?: { start: string; end: string }[];
+  topicPreferences?: { topic: string; wantOutreach: boolean }[];
+}
+
+// ============================================================================
+// PERSONA INTERACTION ENTITY INTERFACES
+// ============================================================================
+
+/**
+ * Persona affinity - Which persona user prefers
+ */
+export interface PersonaAffinityEntity {
+  personaId: string;
+  personaName: string;
+  affinityScore: number; // 0-1
+  totalSessions: number;
+  averageSessionLength: number; // minutes
+  topTopics: string[];
+  emotionalResonance: 'low' | 'medium' | 'high';
+  lastInteraction: string;
+  notes?: string;
+}
+
+/**
+ * Handoff preference - Handoff routing preferences
+ */
+export interface HandoffPreferenceEntity {
+  fromPersona: string;
+  toPersona: string;
+  triggerTopics: string[];
+  userApproved: boolean;
+  successfulHandoffs: number;
+  failedHandoffs: number;
+  averageSatisfaction?: number; // 1-5
+}
+
+/**
+ * Persona interaction history - History with each persona
+ */
+export interface PersonaInteractionHistoryEntity {
+  personaId: string;
+  interactionType: 'session' | 'handoff' | 'brief_mention' | 'rejected';
+  date: string;
+  duration?: number;
+  topics: string[];
+  sentiment: 'positive' | 'neutral' | 'negative';
+  outcome?: string;
 }

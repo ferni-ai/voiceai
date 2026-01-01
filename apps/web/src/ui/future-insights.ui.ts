@@ -322,7 +322,7 @@ function createModal(): void {
       </div>
 
       <div class="future-insights-horizon-detail" id="horizon-detail">
-        ${renderHorizonDetail(horizons[activeHorizon])}
+        ${horizons[activeHorizon] ? renderHorizonDetail(horizons[activeHorizon]!) : ''}
       </div>
 
       <div class="future-insights-nav">
@@ -330,10 +330,10 @@ function createModal(): void {
           ${ICONS.chevronLeft}
         </button>
         <div class="future-insights-nav__dots">
-          ${horizons.map((_, i) => `
+          ${horizons.map((h, i) => `
             <button 
               class="future-insights-nav__dot ${i === activeHorizon ? 'active' : ''}" 
-              aria-label="Go to ${horizons[i].label}"
+              aria-label="Go to ${h.label}"
               data-index="${i}"
             ></button>
           `).join('')}
@@ -486,7 +486,10 @@ function navigateToHorizon(index: number): void {
     detailContainer.classList.add('transitioning');
     
     setTimeout(() => {
-      detailContainer.innerHTML = renderHorizonDetail(horizons[index]);
+      const horizon = horizons[index];
+      if (horizon) {
+        detailContainer.innerHTML = renderHorizonDetail(horizon);
+      }
       detailContainer.classList.remove('transitioning');
     }, DURATION.FAST);
   }

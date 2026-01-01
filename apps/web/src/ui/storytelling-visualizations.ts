@@ -252,8 +252,9 @@ export function createConversationRiverElement(topics: ConversationTopic[]): HTM
   // Legend
   const legend = document.createElement('div');
   legend.className = 'conversation-river__legend';
-  legend.textContent = sortedTopics.length > 0
-    ? `${sortedTopics[0].name} flows strongest in your conversations`
+  const topTopic = sortedTopics[0];
+  legend.textContent = topTopic
+    ? `${topTopic.name} flows strongest in your conversations`
     : 'Start talking to see your conversation currents';
   container.appendChild(legend);
 

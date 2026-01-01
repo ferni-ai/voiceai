@@ -12,7 +12,7 @@
 
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
-import { toast } from '../ui/toast.ui.js';
+import { toast } from '../ui/whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('FoundersService');

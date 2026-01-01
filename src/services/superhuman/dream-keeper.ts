@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { indexDream } from '../data-layer/integrations/index.js';
+import { onDreamBecameDormant, onDreamProgress } from '../outreach/superhuman-outreach-bridge.js';
 
 const log = createLogger({ module: 'dream-keeper' });
 
@@ -346,6 +347,21 @@ export async function findDormantDreams(userId: string): Promise<DreamReminder[]
       dream.status = 'dormant';
       dream.dormantSince = now;
       await saveDream(dream);
+
+      // Better Than Human: Trigger proactive outreach for dormant dreams
+      try {
+        await onDreamBecameDormant(userId, {
+          id: dream.id,
+          title: dream.title,
+          dormantDays: daysSinceLastMention,
+        });
+      } catch (outreachError) {
+        // Outreach is optional - don't fail dream processing
+        log.debug(
+          { error: String(outreachError) },
+          'Dream dormancy outreach failed (non-blocking)'
+        );
+      }
     }
 
     // Generate reminder if dormant for a while and hasn't been reminded recently

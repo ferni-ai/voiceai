@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.ferni.refresh</string>
+		<string>com.ferni.sync</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -17,11 +22,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Ferni plays music that matches your mood to help you feel better.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ferni may use the camera for future video features.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Ferni uses your contacts to remember the people in your life and help you stay connected.</string>
 	<key>NSHealthShareUsageDescription</key>
@@ -34,6 +41,8 @@
 	<string>Ferni uses your location to provide context-aware support, like knowing when you're at home vs work.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Ferni needs microphone access for voice conversations with your AI team.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Ferni may use motion data to enhance your experience.</string>
 	<key>NSSiriUsageDescription</key>
 	<string>Add Ferni shortcuts to Siri for quick access to emotional support.</string>
 	<key>NSUserActivityTypes</key>
@@ -73,6 +82,20 @@
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 </dict>

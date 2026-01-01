@@ -984,10 +984,13 @@ function getMockData(): RelationshipInsightsData {
       { label: 'Good', value: 40, color: 'var(--nayan-primary)' },
       { label: 'Needs work', value: 25, color: 'var(--color-semantic-error)' },
     ],
-    recentActivity: Array.from({ length: 28 }, (_, i) => ({
-      date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      count: Math.floor(Math.random() * 8),
-    })),
+    recentActivity: Array.from({ length: 28 }, (_, i) => {
+      const dateStr = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] ?? '';
+      return {
+        date: dateStr,
+        count: Math.floor(Math.random() * 8),
+      };
+    }),
   };
 }
 

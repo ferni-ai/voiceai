@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Daily Standup Has an AI in the Room - Ferni Blog</title>
+  <meta name="description" content="What it's actually like to build software with AI as a pair programming partner.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../../brand/master-tokens.css">
+  <link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-container">
+      <a href="../index.html" class="nav-logo">
+        <svg width="36" height="36" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <span>Ferni</span>
+      </a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="index.html" class="active">Blog</a>
+        <a href="https://app.ferni.ai" class="btn btn-primary btn-sm">Try Ferni</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="article-header">
+    <div class="container container-md">
+      <span class="badge badge-accent">Building in Public</span>
+      <h1 class="article-title">Our Daily Standup Has an AI in the Room</h1>
+      <p class="article-subtitle">What it's actually like to build software with AI as a pair programming partner.</p>
+      <div class="article-meta">
+        <span class="read-time">7 min read</span>
+        <span class="meta-divider"></span>
+        <span class="publish-date">Part 4 of 8</span>
+      </div>
+    </div>
+  </header>
+
+  <article class="article-content">
+    <div class="container container-md">
+      <p class="lede">Every morning, before I write a line of code, I have a conversation. Not with my co-founder. With Claude.</p>
+
+      <p>I describe what I'm trying to build. I talk through the edge cases I'm worried about. I ask questions I'd be embarrassed to ask a human colleague because they seem too basic or too obvious. And then we build together.</p>
+
+      <p>This is our daily standup. Here's what it actually looks like.</p>
+
+      <hr class="section-divider">
+
+      <h2>A Real Day in the Life</h2>
+
+      <p>8:47 AM. Coffee. I open my editor and see yesterday's work: a half-finished feature for improving how Maya handles habit tracking.</p>
+
+      <p>The code works, sort of. But something feels off. The responses are too rigid. Maya sounds like she's reading from a script instead of having a conversation.</p>
+
+      <p>Old me would have stared at the code for an hour, tweaking parameters, guessing at what might help. New me starts a conversation:</p>
+
+      <p><em>"I'm working on Maya's habit tracking responses. The logic works but the output feels scripted. Here's an example conversation that doesn't feel right..."</em></p>
+
+      <p>I paste the conversation. Claude reads it. Then:</p>
+
+      <p><em>"I notice Maya is asking the same follow-up questions regardless of what the user says. She asks about 'obstacles' even when the user just expressed excitement. Could we branch the logic based on emotional tone?"</em></p>
+
+      <p>I hadn't seen that. I was looking at the code structure. Claude was looking at the user experience.</p>
+
+      <p><strong>9:15 AM.</strong> We're deep in refactoring. Claude suggests an approach I wouldn't have thought of—tracking the emotional arc of the conversation, not just the content. Maya's follow-ups should respond to how someone feels, not just what they say.</p>
+
+      <p><strong>9:48 AM.</strong> I've implemented the basic structure. Something's still wrong. I paste the code. Claude spots it in 10 seconds: "In line 47, you're checking for emotional tone after the response is already generated. Should that check happen before?"</p>
+
+      <p>Would have taken me 20 minutes to find.</p>
+
+      <p><strong>10:15 AM.</strong> It's working. Maya feels alive now. The conversations branch naturally. I push the code.</p>
+
+      <hr class="section-divider">
+
+      <h2>What We Ask AI to Do</h2>
+
+      <p>After months of this workflow, we've developed a sense for what AI is good at and what it isn't.</p>
+
+      <h3>Good at:</h3>
+
+      <p><strong>Catching edge cases.</strong> I'll describe a feature, and Claude will ask "What happens if the user says X?" Half the time, X is something I hadn't considered. This has prevented more bugs than any testing framework.</p>
+
+      <p><strong>Explaining options.</strong> "I could structure this data three different ways. Here are the tradeoffs of each." I still make the decision, but I make it with more information.</p>
+
+      <p><strong>Rubber ducking at scale.</strong> Sometimes I just need to explain what I'm doing to someone. The act of articulating it reveals the flaws. Claude is endlessly patient with this.</p>
+
+      <p><strong>Catching inconsistencies.</strong> "In file A, you're assuming X. In file B, you're assuming Y. Are both true?" Codebase-level consistency checking in seconds.</p>
+
+      <h3>Not good at (yet):</h3>
+
+      <p><strong>Intuiting user needs.</strong> AI can tell me what's technically correct. It can't tell me what users actually want. That still requires watching people use the product.</p>
+
+      <p><strong>Knowing when to stop.</strong> AI will keep optimizing forever if you let it. Someone has to say "enough." That's still us.</p>
+
+      <p><strong>Maintaining a vision.</strong> AI is great at local optimization. It doesn't hold the big picture of what Ferni should feel like. That's the human job.</p>
+
+      <hr class="section-divider">
+
+      <h2>Mistakes AI Caught That We Would Have Missed</h2>
+
+      <div class="insight-card">
+        <h4>The infinite loop that wasn't obvious.</h4>
+        <p>A feedback mechanism where follow-ups could trigger more follow-ups indefinitely. Claude read the code and said, "This could recurse indefinitely under conditions X, Y, Z." Added a depth limit. Bug never shipped.</p>
+      </div>
+
+      <div class="insight-card">
+        <h4>The privacy leak we didn't see.</h4>
+        <p>We were logging too much for debugging purposes. Claude flagged it: "This log includes user conversation content. Should that be hashed or excluded for production?"</p>
+      </div>
+
+      <div class="insight-card">
+        <h4>The timezone bug that would have been embarrassing.</h4>
+        <p>Jordan helps with scheduling. We were calculating "tomorrow" without considering the user's timezone. Claude caught it in code review. Fixed.</p>
+      </div>
+
+      <hr class="section-divider">
+
+      <h2>Mistakes We Caught That AI Suggested</h2>
+
+      <p>This part is important too. AI is not infallible. We've learned to verify.</p>
+
+      <p><strong>The over-engineered solution.</strong> Claude once suggested a complex caching system. It was technically elegant. It was also massive overkill for our current scale.</p>
+
+      <p><strong>The tone-deaf response.</strong> One AI-generated suggestion was technically empathetic but felt clinical. A human would never say it that way.</p>
+
+      <p><strong>The confident hallucination.</strong> Claude once explained a library feature with complete confidence. The feature didn't exist.</p>
+
+      <blockquote class="pull-quote">
+        <p>AI is a powerful collaborator, not an infallible oracle. Verify. Question. Trust but check.</p>
+      </blockquote>
+
+      <hr class="section-divider">
+
+      <h2>The Balance: Speed vs. Craft</h2>
+
+      <p>We could ship faster if we let AI do more. We don't. Here's why.</p>
+
+      <p>Speed without intention is noise. The goal isn't to build software fast. It's to build software that genuinely helps people. That requires craft. Craft requires humans making deliberate choices about what matters.</p>
+
+      <p>AI accelerates our ability to execute craft. It doesn't replace the craft itself.</p>
+
+      <p>Every day, we make judgment calls that AI can't make:</p>
+
+      <ul class="feature-list">
+        <li>This feature would be impressive but wouldn't serve users. Don't build it.</li>
+        <li>This response is technically correct but feels cold. Rewrite it.</li>
+        <li>This code works but isn't beautiful. Refactor it.</li>
+        <li>This path is faster but locks us into a corner. Go slower.</li>
+      </ul>
+
+      <p>AI helps us move quickly through the things that don't require judgment. That gives us more time for the things that do.</p>
+
+      <div class="cta-box">
+        <a href="https://app.ferni.ai" class="btn btn-primary btn-lg">See what we build</a>
+        <span class="cta-note">The code we write with AI, serves you.</span>
+      </div>
+    </div>
+  </article>
+
+  <section class="series-nav">
+    <div class="container container-md">
+      <h3>Building in Public Series</h3>
+      <ol class="series-list">
+        <li><a href="01-why-we-let-ai-help-build-ferni.html">Why We Let AI Help Build Ferni</a></li>
+        <li><a href="02-how-ai-helped-design-its-own-brain.html">How an AI Helped Design Its Own Brain</a></li>
+        <li><a href="03-giving-ai-a-personality.html">Giving AI a Personality</a></li>
+        <li class="current">Our Daily Standup Has an AI in the Room</li>
+        <li><a href="05-how-ferni-remembers-you.html">How Ferni Remembers You</a></li>
+        <li><a href="06-we-ship-every-day.html">We Ship Every Day</a></li>
+        <li><a href="07-ai-should-make-you-feel-less-alone.html">AI Should Make You Feel Less Alone</a></li>
+        <li><a href="08-whats-next-for-ferni.html">What's Next for Ferni</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <svg width="48" height="48" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <p>Better than human.<br>Always available.</p>
+      </div>
+      <p class="footer-copyright">© 2024 Ferni. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

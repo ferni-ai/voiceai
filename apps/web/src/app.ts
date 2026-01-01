@@ -30,7 +30,9 @@ import {
 // Services
 import { delightService } from './services/delight.service.js';
 import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
-import { getAuthToken } from './services/firebase-auth.service.js';
+import { getAuthState, getAuthToken } from './services/firebase-auth.service.js';
+import { initializeAuth } from './services/auth-init.service.js';
+import { showSignInGate } from './ui/sign-in-gate.ui.js';
 import { initGoogleOneTap, cancelOneTap } from './services/google-one-tap.service.js';
 import {
   audioService,
@@ -42,7 +44,7 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
-import { getLocation, updateFromBackend } from './services/geolocation.service.js';
+import { getLocation, updateFromBackend as _updateFromBackend } from './services/geolocation.service.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
 
@@ -60,29 +62,31 @@ import {
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Relationship Management (Your People) - unified contact & gift management
-import { initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
+import { initYourPeopleUI as _initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
 // openAddPerson available via Your People panel
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
+// Proactive Messages - In-app messages from intelligent outreach
+import { initProactiveMessages, refreshProactiveMessages } from './ui/proactive-messages.ui.js';
 
 // Premium UI Features
-import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
-import { easterEggsUI, initEasterEggsUI } from './ui/easter-eggs.ui.js';
+import { celebrationsUI, initCelebrationsUI as _initCelebrationsUI } from './ui/celebrations.ui.js';
+import { easterEggsUI, initEasterEggsUI as _initEasterEggsUI } from './ui/easter-eggs.ui.js';
 import { gesturesUI, initGesturesUI } from './ui/gestures.ui.js';
-import { initPresenceUI, presenceUI } from './ui/presence.ui.js';
-import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
+import { initPresenceUI as _initPresenceUI, presenceUI } from './ui/presence.ui.js';
+import { initRippleUI as _initRippleUI, rippleUI } from './ui/ripple.ui.js';
 import { initSoundUI, soundUI } from './ui/sound.ui.js';
 // Ambient Sounds - Background ambience for personalization
-import { dispose as disposeAmbientSounds, initAmbientSounds } from './services/ambient-sounds.service.js';
+import { dispose as disposeAmbientSounds, initAmbientSounds as _initAmbientSounds } from './services/ambient-sounds.service.js';
 // Brand Service - Client-side brand validation
-import { initBrandService } from './services/brand-service.js';
-import { initStatsUI, statsUI } from './ui/stats.ui.js';
+import { initBrandService as _initBrandService } from './services/brand-service.js';
+import { initStatsUI as _initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Premium button & interactive effects
-import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
+import { initMicroInteractions as _initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
 // 📱 Mobile Delights - Magical mobile interactions (tilt, tap-to-look, haptics, etc.)
-import { disposeMobileDelights, initMobileDelights } from './ui/mobile-delights.ui.js';
+import { disposeMobileDelights, initMobileDelights as _initMobileDelights } from './ui/mobile-delights.ui.js';
 // 📱 Mobile Bottom Sheet - Zen Mode settings access
-import { disposeMobileBottomSheet, initMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
+import { disposeMobileBottomSheet, initMobileBottomSheet as _initMobileBottomSheet } from './ui/mobile-bottom-sheet.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
@@ -99,9 +103,10 @@ import { openAdminQueue as openMarketplaceAdmin } from './ui/marketplace-admin.u
 import { marketplaceUI, openMarketplace } from './ui/marketplace.ui.js';
 import { showIntegrationsSettings, getIntegrationsSettingsUI } from './ui/integrations-settings.ui.js';
 import { openDigitalTwinUI } from './ui/digital-twin.ui.js';
+import { openChronicle } from './ui/chronicle.ui.js';
 import { openCreativeYouDashboard } from './ui/creative-you-dashboard.ui.js';
 // 📔 Journal Capture - Auto-capture meaningful moments from conversations
-import { initJournalCapture } from './services/journal-capture.service.js';
+import { initJournalCapture as _initJournalCapture } from './services/journal-capture.service.js';
 // Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // CLI Authentication (for ferni auth login)
@@ -110,53 +115,53 @@ import { initCLIAuth } from './ui/cli-auth.ui.js';
 import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
-import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
-import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
-import { getInsightsView, initializeInsightsView } from './ui/insights-view.ui.js';
+import { getEngagementUI, initializeEngagementUI as _initializeEngagementUI } from './ui/engagement.ui.js';
+import { getPredictionsUI, initializePredictionsUI as _initializePredictionsUI } from './ui/predictions.ui.js';
+import { getInsightsView, initializeInsightsView as _initializeInsightsView } from './ui/insights-view.ui.js';
 // Notifications & Celebrations
 import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
 // Weather Effects - Seasonal ambient atmosphere (available via dev panel)
-import { dispose as disposeWeatherEffects, initWeatherEffects } from './ui/weather-effects.ui.js';
+import { dispose as disposeWeatherEffects, initWeatherEffects as _initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Character expressions
-import { dispose as disposeFerniMoments, initFerniMoments } from './ui/ferni-moments.ui.js';
+import { dispose as disposeFerniMoments, initFerniMoments as _initFerniMoments } from './ui/ferni-moments.ui.js';
 // Avatar Sidekicks - Expressive side icons (like "hands" holding props)
-import { avatarSidekicks, dispose as disposeSidekicks } from './ui/avatar-sidekicks.ui.js';
+import { avatarSidekicks as _avatarSidekicks, dispose as disposeSidekicks } from './ui/avatar-sidekicks.ui.js';
 // Ferni Milestones - Warm relationship celebrations
-import { initFerniMilestones } from './ui/ferni-milestones.ui.js';
+import { initFerniMilestones as _initFerniMilestones } from './ui/ferni-milestones.ui.js';
 // Connection Heart - Unified status + relationship indicator near avatar
-import { disposeConnectionHeart, initConnectionHeart } from './ui/connection-heart.ui.js';
+import { disposeConnectionHeart, initConnectionHeart as _initConnectionHeart } from './ui/connection-heart.ui.js';
 // Ferni Expressions - Character-level avatar expressions
-import { ferniExpressions, initFerniExpressions } from './ui/ferni-expressions.ui.js';
+import { ferniExpressions, initFerniExpressions as _initFerniExpressions } from './ui/ferni-expressions.ui.js';
 // Emotion ↔ Expression Bridge - Auto-maps emotions to expressions
-import { enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
+import { enableEmotionExpressionBridge as _enableEmotionExpressionBridge } from './emotion/emotion-expression-bridge.js';
 // Logo Expressions - Animated logo that reacts to emotions
 import {
   disposeLogoExpressions,
-  hookIntoAvatarFeedback as hookLogoFeedback,
-  initLogoExpressions,
+  hookIntoAvatarFeedback as _hookLogoFeedback,
+  initLogoExpressions as _initLogoExpressions,
 } from './ui/logo-expressions.ui.js';
 // Celebration Service - Triggers milestone celebrations
-import { initCelebrationService } from './services/celebration.service.js';
+import { initCelebrationService as _initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
-import { disposeFerniEQ, initFerniEQ } from './ui/better-than-human.ui.js';
+import { disposeFerniEQ, initFerniEQ as _initFerniEQ } from './ui/better-than-human.ui.js';
 // Humanization Bridge - Connects backend humanization signals to frontend EQ
-import { initHumanizationBridge, disposeHumanizationBridge } from './services/humanization-bridge.service.js';
+import { initHumanizationBridge as _initHumanizationBridge, disposeHumanizationBridge } from './services/humanization-bridge.service.js';
 // Proactive Outreach UI - "Thinking of You" notifications
-import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
+import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI as _initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
 // Team Insights UI - Cross-persona intelligence panel
-import { disposeTeamInsightsUI, initTeamInsightsUI, teamInsightsUI } from './ui/team-insights.ui.js';
+import { disposeTeamInsightsUI, initTeamInsightsUI as _initTeamInsightsUI, teamInsightsUI } from './ui/team-insights.ui.js';
 // Cross-Team Notifications - Real-time alerts from team insights
 import {
   disposeCrossTeamNotifications,
-  initCrossTeamNotifications,
+  initCrossTeamNotifications as _initCrossTeamNotifications,
 } from './services/cross-team-notifications.service.js';
 // Avatar Soul - Pixar-quality "Better Than Human" visual animation system
-import { avatarSoul, disposeAvatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
+import { avatarSoul as _avatarSoul, disposeAvatarSoul, initAvatarSoul as _initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
-import { avatarLamp, disposeAvatarLamp, initAvatarLamp } from './ui/avatar-lamp.ui.js';
+import { avatarLamp as _avatarLamp, disposeAvatarLamp, initAvatarLamp as _initAvatarLamp } from './ui/avatar-lamp.ui.js';
 // Ambient Life - Makes Ferni feel alive when idle
-import { disposeAmbientLife, initAmbientLife } from './ui/ambient-life.ui.js';
+import { disposeAmbientLife, initAmbientLife as _initAmbientLife } from './ui/ambient-life.ui.js';
 // Speech Event Dispatcher - Critical foundation for Ferni EQ
 import {
   dispatchAgentSpeechEnd,
@@ -165,12 +170,12 @@ import {
   dispatchUserSpeechEnd,
   dispatchUserSpeechStart,
   disposeSpeechEventDispatcher,
-  initSpeechEventDispatcher,
+  initSpeechEventDispatcher as _initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
-import { disposeMoodContext, initMoodContext } from './services/mood-context.service.js';
+import { disposeMoodContext, initMoodContext as _initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
 import {
   disableDemoData,
@@ -186,6 +191,7 @@ import accentSettingsUI from './ui/accent-settings.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { getCommandsPanelUI, setCommandsPersonaId } from './ui/commands.ui.js';
+import { getSanctuaryUI } from './ui/sanctuary.ui.js';
 import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
@@ -278,7 +284,7 @@ import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications
-import { toast } from './ui/toast.ui.js';
+import { toast } from './ui/whisper.ui.js';
 // Subscription UI - human-centered monetization
 import {
   initSubscriptionUI,
@@ -312,7 +318,7 @@ import { initModalCoordinator, modalCoordinator } from './services/modal-coordin
 // 🎬 Character-quality Animation Orchestrator
 import {
   animatePersonaTransition,
-  initAnimationOrchestrator,
+  initAnimationOrchestrator as _initAnimationOrchestrator,
   playCharacterReaction,
 } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
@@ -330,11 +336,11 @@ import { hideSplashScreen, initPlatform, isNative, platform } from './utils/plat
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
 // 🌟 Soul System - The living presence that makes people fall in love
-import { initSoul } from './ui/soul.ui.js';
+import { initSoul as _initSoul } from './ui/soul.ui.js';
 // 🎬 Narrative Director - Cinematic story beats for connection moments
 import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
 // 🎭 Ritual Engine - Multi-sensory brand moments
-import { getRitualEngine, wireRitualEngineToApp } from './services/ritual-engine.service.js';
+import { getRitualEngine as _getRitualEngine, wireRitualEngineToApp as _wireRitualEngineToApp } from './services/ritual-engine.service.js';
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
@@ -500,6 +506,18 @@ class VoiceAIApp {
 
       // Initialize i18n (internationalization) - must await before UI init
       await initI18n();
+
+      // Check authentication - require sign-in before proceeding
+      // This matches iOS behavior where users must sign in with Apple/Google
+      // IMPORTANT: Must await auth initialization to restore any existing session
+      const authState = await initializeAuth();
+      if (!authState.isAuthenticated) {
+        log.info('User not authenticated, showing sign-in gate');
+        await showSignInGate();
+        log.info('User signed in, continuing app initialization');
+      } else {
+        log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
+      }
 
       // Initialize services (non-blocking)
       this.initializeServices();
@@ -897,6 +915,9 @@ class VoiceAIApp {
 
     // Clear mood state (persona back to neutral)
     moodService.clearMood();
+
+    // Refresh proactive messages (conversation may have triggered new outreach)
+    refreshProactiveMessages();
   }
 
   /**
@@ -1657,6 +1678,10 @@ class VoiceAIApp {
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
     // 🎙️ Group Conversations - Team Roundtables and Conference Calls with external people
     this.safeInit('GroupConversationUI', () => initGroupConversationUI());
+    // Proactive Messages - In-app messages from intelligent outreach
+    this.deferredInit('ProactiveMessagesUI', 500, async () => {
+      initProactiveMessages();
+    });
     // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 
     // 🌱 Progressive Relationship Features - All quick wins in one init
@@ -1712,24 +1737,27 @@ class VoiceAIApp {
     // 📍 Location Prompt - "Better than Human" location awareness
     // Listen for contextual location requests (e.g., when weather is mentioned)
     this.safeInit('LocationPrompt', () => {
-      this.addTrackedListener(window, 'ferni:request-location', (async (e: CustomEvent) => {
-        const { context } = e.detail || {};
+      this.addTrackedListener(window, 'ferni:request-location', ((e: Event) => {
+        const customEvent = e as CustomEvent;
+        const { context } = customEvent.detail || {};
         log.debug({ context }, '📍 Location request received');
 
-        try {
-          const { requestLocationWithWarmPrompt } = await import('./ui/location-prompt.ui.js');
-          const result = await requestLocationWithWarmPrompt(context || 'personalization');
-          
-          if (result.success && result.location?.city) {
-            log.info({ city: result.location.city }, '📍 Location obtained');
-            // Optionally notify the app that location is now available
-            window.dispatchEvent(new CustomEvent('ferni:location-updated', {
-              detail: { location: result.location }
-            }));
+        (async () => {
+          try {
+            const { requestLocationWithWarmPrompt } = await import('./ui/location-prompt.ui.js');
+            const result = await requestLocationWithWarmPrompt(context || 'personalization');
+            
+            if (result.success && result.location?.city) {
+              log.info({ city: result.location.city }, '📍 Location obtained');
+              // Optionally notify the app that location is now available
+              window.dispatchEvent(new CustomEvent('ferni:location-updated', {
+                detail: { location: result.location }
+              }));
+            }
+          } catch (err) {
+            log.debug('📍 Location prompt dismissed or failed:', err);
           }
-        } catch (err) {
-          log.debug('📍 Location prompt dismissed or failed:', err);
-        }
+        })();
       }) as EventListener);
     });
 
@@ -1764,7 +1792,7 @@ class VoiceAIApp {
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
         onRitualBuilderClick: () => getRitualBuilderUI().show(),
-        onCommandsClick: () => void getCommandsPanelUI().show(),
+        onCommandsClick: () => void getSanctuaryUI().open(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
@@ -1850,7 +1878,7 @@ class VoiceAIApp {
           void openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
-        onJournalClick: () => void openDigitalTwinUI(),
+        onJournalClick: () => void openChronicle(),
         onConnectionsClick: () => void showIntegrationsSettings(),
         onContactsClick: () => void openYourPeople(),
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
@@ -2051,6 +2079,49 @@ class VoiceAIApp {
       // Daily check-in - open the relationship-focused InsightsView
       void getInsightsView().show();
     });
+    this.addTrackedListener(window, 'ferni:open-sanctuary', () => {
+      // The Sanctuary - immersive guided practices experience
+      void getSanctuaryUI().open();
+    });
+    this.addTrackedListener(window, 'ferni:start-practice', async (e: Event) => {
+      // Practice started from Sanctuary
+      const customEvent = e as CustomEvent<{
+        practiceId: string;
+        prompt: string;
+        practice: { id: string; name: string };
+      }>;
+      const { practice, prompt } = customEvent.detail;
+      log.info('Practice started from Sanctuary', { id: practice.id, name: practice.name });
+
+      // Check if connected to agent
+      const { connectionService } = await import('./services/connection.service.js');
+      const roomState = connectionService.getRoomState();
+      const room = connectionService.getRoom();
+
+      if (!roomState.isConnected || !room?.localParticipant) {
+        messageUI.show('Connect to Ferni first to start a practice', 'info', 3000);
+        return;
+      }
+
+      // Send practice start request via data channel
+      const message = JSON.stringify({
+        type: 'practice_start_request',
+        commandId: practice.id,
+        commandName: practice.name,
+        prompt,
+        timestamp: Date.now(),
+      });
+
+      try {
+        await room.localParticipant.publishData(new TextEncoder().encode(message), {
+          reliable: true,
+        });
+        messageUI.show(`Starting "${practice.name}"...`, 'success', 2500);
+      } catch (err) {
+        log.error('Failed to start practice from Sanctuary', err);
+        messageUI.show("Couldn't start practice. Try asking Ferni directly!", 'error', 4000);
+      }
+    });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
       void marketplaceUI.open();
     });
@@ -2243,6 +2314,7 @@ class VoiceAIApp {
     thinkingUI.setPersona(personaId); // Persona-specific thinking messages
     avatarFeedback.setPersona(personaId); // Persona-specific idle behaviors
     setCommandsPersonaId(personaId); // Update guided practices for new persona
+    getSanctuaryUI().setPersonaId(personaId); // Update sanctuary for new persona
 
     // Play sound
     soundUI.play('switch');
@@ -2983,6 +3055,7 @@ class VoiceAIApp {
       gesturesUI.setCurrentPersona(newPersona.id);
       statsUI.setPersona(newPersona.name);
       setCommandsPersonaId(newPersona.id); // Update guided practices for new persona
+      getSanctuaryUI().setPersonaId(newPersona.id); // Update sanctuary for new persona
       // Particles disabled for cleaner look
       // void agentParticlesUI.setPersona(newPersona.id);
 

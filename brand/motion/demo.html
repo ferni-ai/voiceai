@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
   <link rel="stylesheet" href="../master-tokens.css">
+  <link rel="stylesheet" href="../brand-components.css">
   <style>
     /* Page-specific overrides and additions */
     :root {
@@ -1098,18 +1099,8 @@
   </style>
 </head>
 <body>
-  <!-- Brand Navigation -->
-  <nav class="nav" role="navigation" aria-label="Main navigation">
-    <a href="../index.html" class="nav-back" aria-label="Back to Brand Library">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      Brand Library
-    </a>
-    <div class="nav-links">
-      <a href="../capabilities/gallery.html">Capabilities</a>
-      <a href="../marketing/introducing-ferni.html">Intro</a>
-      <a href="../characters/ferni/expressions.html">Expressions</a>
-    </div>
-  </nav>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
 
   <!-- Header -->
   <header class="header">
@@ -2050,32 +2041,10 @@
     setWaveform('idle');
   </script>
 
-  <footer>
-    <div class="footer-logo">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
-        <!-- LUXO STYLE: opaque white eyes, no pupils -->
-        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-      </svg>
-    </div>
-    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
-    <nav class="footer-links" aria-label="Footer navigation">
-      <a href="../capabilities/index.html">Capabilities</a>
-      <a href="../brand-book.html">Brand Book</a>
-      <a href="../brand-kit.html">Brand Kit</a>
-      <a href="../icons.html">Icons</a>
-      <a href="../components.html">Components</a>
-      <a href="../accessibility.html">Accessibility</a>
-      <a href="../sound-design.html">Sound</a>
-    </nav>
-    <p class="footer-copyright">Ferni Brand Library v2.0</p>
-  </footer>
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../shared/nav.js" defer></script>
 </body>
 </html>

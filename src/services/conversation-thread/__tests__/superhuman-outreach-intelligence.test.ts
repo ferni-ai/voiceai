@@ -223,9 +223,7 @@ describe('Superhuman Outreach Intelligence', () => {
 
   describe('Rule Matching', () => {
     it('matches crisis rule and triggers full team support', async () => {
-      const signals: SuperhumanSignal[] = [
-        signalFromCrisis({ type: 'crisis', severity: 'high' }),
-      ];
+      const signals: SuperhumanSignal[] = [signalFromCrisis({ type: 'crisis', severity: 'high' })];
 
       const result = await processSuperhumanSignals(testUserId, signals, {
         relationshipStage: 'established',

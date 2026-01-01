@@ -744,8 +744,10 @@ async function handleFounderStats(res: ServerResponse): Promise<void> {
     const stats: FounderStatsData = {
       totalFounders: data.totalFounders ?? MOCK_FOUNDER_STATS.totalFounders,
       thisMonthFounders: data.thisMonthFounders ?? MOCK_FOUNDER_STATS.thisMonthFounders,
-      conversationsSupported: data.conversationsSupported ?? MOCK_FOUNDER_STATS.conversationsSupported,
-      conversationsThisMonth: data.conversationsThisMonth ?? MOCK_FOUNDER_STATS.conversationsThisMonth,
+      conversationsSupported:
+        data.conversationsSupported ?? MOCK_FOUNDER_STATS.conversationsSupported,
+      conversationsThisMonth:
+        data.conversationsThisMonth ?? MOCK_FOUNDER_STATS.conversationsThisMonth,
       featuresUnlocked: data.featuresUnlocked ?? MOCK_FOUNDER_STATS.featuresUnlocked,
       monthlyRecurring: data.monthlyRecurring ?? MOCK_FOUNDER_STATS.monthlyRecurring,
     };
@@ -770,11 +772,7 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
     }
 
     // Query founders collection, ordered by tier (forest > tree > sprout > seed) then joinedAt
-    const foundersSnap = await db
-      .collection('founders')
-      .orderBy('joinedAt', 'asc')
-      .limit(50)
-      .get();
+    const foundersSnap = await db.collection('founders').orderBy('joinedAt', 'asc').limit(50).get();
 
     if (foundersSnap.empty) {
       log.debug('No founders in collection, using mock data');
@@ -787,7 +785,7 @@ async function handleFoundersWall(res: ServerResponse): Promise<void> {
       return {
         id: doc.id,
         displayName: data.displayName || null,
-        initials: data.initials || (data.displayName?.[0] || 'F'),
+        initials: data.initials || data.displayName?.[0] || 'F',
         joinedAt: data.joinedAt?.toDate?.().toISOString?.() || data.joinedAt || '',
         tier: data.tier || 'seed',
         isEarlyBird: data.isEarlyBird || false,

@@ -104,7 +104,9 @@ export {
   safeUpdate,
   safeAdd,
   createSafeBatch,
+  getDb,
   getFirestoreInstance,
+  resetFirestoreInstance,
   COLLECTIONS,
 } from './safe-firestore.js';
 

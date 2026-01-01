@@ -166,12 +166,15 @@ class EngagementService {
         (s) => s.ritualId === event.ritualId
       );
       if (streakIndex >= 0) {
-        this.cachedData.ritualStreaks[streakIndex].currentStreak = event.streak;
-        if (event.isNewRecord) {
-          this.cachedData.ritualStreaks[streakIndex].longestStreak = event.streak;
+        const streak = this.cachedData.ritualStreaks[streakIndex];
+        if (streak) {
+          streak.currentStreak = event.streak;
+          if (event.isNewRecord) {
+            streak.longestStreak = event.streak;
+          }
+          streak.lastCompletedAt = event.timestamp;
+          streak.dueToday = false;
         }
-        this.cachedData.ritualStreaks[streakIndex].lastCompletedAt = event.timestamp;
-        this.cachedData.ritualStreaks[streakIndex].dueToday = false;
       }
 
       // Update stats

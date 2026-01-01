@@ -1,7 +1,7 @@
 {
   "name": "Ferni",
-  "tagline": "Your personal AI life coach",
-  "description": "Six brilliant minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.",
+  "tagline": "The coach that actually listens",
+  "description": "Six brilliant minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Better than human.",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
   "phone": "1 (484) 481-3081",
@@ -227,21 +227,20 @@
     "main": [
       { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
-      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" }
+      { "title": "Help", "url": "/help/", "i18nKey": "nav.help" },
+      { "title": "About", "url": "/about/", "i18nKey": "nav.about" }
     ],
     "mobile": [
       { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
-      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" },
-      { "title": "Support", "url": "/support/", "i18nKey": "nav.support" }
+      { "title": "Help", "url": "/help/", "i18nKey": "nav.help" },
+      { "title": "About", "url": "/about/", "i18nKey": "nav.about" }
     ],
     "footer": {
       "product": [
         { "title": "Meet the Team", "url": "/team/" },
         { "title": "Features", "url": "/features/" },
-        { "title": "Support", "url": "/support/" }
+        { "title": "Help & Support", "url": "/help/" }
       ],
       "company": [
         { "title": "About", "url": "/about/" },
@@ -256,6 +255,7 @@
       "legal": [
         { "title": "Privacy Policy", "url": "/privacy/" },
         { "title": "Terms of Service", "url": "/terms/" },
+        { "title": "SMS Consent", "url": "/sms-consent/" },
         { "title": "Cookie Policy", "url": "/cookies/" },
         { "title": "Accessibility", "url": "/accessibility/" }
       ]
@@ -294,7 +294,7 @@
   "copy": {
     "footer": {
       "tagline": "Someone who actually understands.",
-      "copyright": "© 2024 Ferni AI. All rights reserved."
+      "copyright": "© 2025 Ferni AI. All rights reserved."
     },
     "comparison": {
       "therapist": "Your therapist has other patients. We're always here.",

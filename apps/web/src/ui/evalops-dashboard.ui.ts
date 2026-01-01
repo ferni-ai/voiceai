@@ -19,7 +19,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 // Note: appState imported for future use with evalops state sync
 import type { AppState as _AppState } from '../state/app.state.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('EvalOpsDashboard');
 

@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Design System: Single source of truth -->
   <link rel="stylesheet" href="../../master-tokens.css">
+  <link rel="stylesheet" href="../../brand-components.css">
   <style>
     /* Nayan-specific overrides - base tokens from master-tokens.css */
     :root {
@@ -22,6 +23,8 @@
       --glow-golden: rgba(196, 162, 101, 0.5);
       --glow-sage: rgba(90, 122, 81, 0.5);
       --glow-warm: rgba(229, 165, 92, 0.5);
+      --glow-insight: rgba(156, 121, 75, 0.6);
+      --glow-stillness: rgba(210, 175, 115, 0.4);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -108,6 +111,11 @@
       75% { transform: translate(0.3px, 0px); }
     }
 
+    @keyframes anticipation {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.008); }
+    }
+
     @keyframes stillnessGlow {
       0%, 100% { opacity: 0.6; transform: scale(1); }
       50% { opacity: 0.75; transform: scale(1.02); }
@@ -118,8 +126,16 @@
       transform-origin: center center;
     }
 
+    .avatar-body.paused { animation-play-state: paused; }
+
     .eyes-group {
       animation: gazeDrift 10.4s ease-in-out infinite; /* 8s * 1.3 */
+    }
+
+    .eyes-group.paused { animation-play-state: paused; }
+
+    .eyes-group.anticipating {
+      animation: anticipation 0.52s var(--ease-gentle); /* 0.4s * 1.3 */
     }
 
     /* Stillness Effect - Nayan's Signature */
@@ -142,11 +158,90 @@
       animation: stillnessGlow 3.9s var(--ease-organic) infinite; /* 3s * 1.3 */
     }
 
+    /* Animation Layers Panel */
+    .layers-panel {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(176, 143, 95, 0.15);
+    }
+
+    .layers-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .layers-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .layers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: rgba(176, 143, 95, 0.06);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-gentle);
+    }
+
+    .layer-toggle:hover { background: rgba(176, 143, 95, 0.12); }
+
+    .layer-toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--persona-end);
+      cursor: pointer;
+    }
+
+    .layer-info { flex: 1; }
+    .layer-name { font-weight: 600; font-size: 13px; color: var(--text-primary); }
+    .layer-timing { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Expression Info Panel */
+    .expression-info {
+      display: none;
+      background: rgba(176, 143, 95, 0.08);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      border-left: 3px solid var(--persona-start);
+    }
+
+    .expression-info.visible { display: block; }
+
+    .expression-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+    }
+
+    .info-item label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); display: block; }
+    .info-item span { font-size: 14px; font-weight: 600; color: var(--text-primary); font-family: 'SF Mono', 'Monaco', monospace; }
+
     .stage-controls { display: flex; flex-direction: column; gap: 16px; }
     .current-expression { font-size: 28px; font-weight: 600; color: var(--text-primary); }
     .expression-trigger { font-size: 14px; color: var(--text-muted); max-width: 250px; }
 
-    .micro-demo { display: flex; gap: 10px; margin-top: 16px; }
+    /* Micro-expression buttons */
+    .micro-demo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
     .micro-btn {
       padding: 8px 14px;
       border: 1px solid rgba(176, 143, 95, 0.3);
@@ -161,17 +256,122 @@
     }
     .micro-btn:hover { border-color: var(--persona-start); color: var(--persona-end); }
 
+    /* Waveform Visualization */
+    .waveform-section {
+      background: var(--bg-elevated);
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 40px;
+      border: 1px solid rgba(176, 143, 95, 0.15);
+    }
+
+    .waveform-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .waveform-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .waveform-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .waveform-card {
+      background: rgba(176, 143, 95, 0.06);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s var(--ease-gentle);
+      border: 2px solid transparent;
+    }
+
+    .waveform-card:hover { border-color: rgba(176, 143, 95, 0.3); }
+    .waveform-card.active { border-color: var(--persona-start); background: rgba(176, 143, 95, 0.12); }
+
+    .waveform-bars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 40px;
+      margin-bottom: 12px;
+    }
+
+    .waveform-bar {
+      width: 4px;
+      background: linear-gradient(180deg, var(--persona-start), var(--persona-end));
+      border-radius: 2px;
+      transition: height 0.2s var(--ease-gentle);
+    }
+
+    .waveform-card .waveform-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    @keyframes waveformPulse {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.3); }
+    }
+
+    .waveform-card.active .waveform-bar {
+      animation: waveformPulse 1.3s ease-in-out infinite; /* Slower for Nayan */
+    }
+
+    .waveform-card.active .waveform-bar:nth-child(2) { animation-delay: 0.15s; }
+    .waveform-card.active .waveform-bar:nth-child(3) { animation-delay: 0.3s; }
+    .waveform-card.active .waveform-bar:nth-child(4) { animation-delay: 0.45s; }
+    .waveform-card.active .waveform-bar:nth-child(5) { animation-delay: 0.6s; }
+
     .section-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; }
 
-    .expression-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 12px;
+    /* Expression Families */
+    .expression-families {
       margin-bottom: 40px;
     }
 
+    .family-section {
+      margin-bottom: 24px;
+    }
+
+    .family-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .family-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--persona-start);
+    }
+
+    .family-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .family-expressions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     .expression-btn {
-      padding: 14px 18px;
+      padding: 12px 18px;
       border: 2px solid rgba(176, 143, 95, 0.2);
       border-radius: 12px;
       background: var(--bg-elevated);
@@ -186,8 +386,10 @@
     .expression-btn.active {
       background: linear-gradient(135deg, var(--persona-start), var(--persona-end));
       border-color: transparent;
-      color: var(--color-natural-ink, #2C2520);
+      color: white;
     }
+    .expression-btn.signature { border-style: dashed; }
+    .expression-btn.signature.active { border-style: solid; }
 
     .profile-section {
       background: linear-gradient(135deg, rgba(176, 143, 95, 0.08) 0%, transparent 100%);
@@ -216,22 +418,41 @@
       .avatar-stage { flex-direction: column; padding: 40px 20px; }
       .stage-controls { align-items: center; text-align: center; }
       .container { padding: 20px; }
+      .layers-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <nav class="nav" role="navigation" aria-label="Expression gallery navigation">
-    <a href="../../index.html" class="nav-back" aria-label="Back to Brand Library">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
-      Brand Library
-    </a>
-    <div class="nav-links">
-      <a href="../ferni/expressions.html" class="nav-link">Ferni</a>
-      <a href="../maya/expressions.html" class="nav-link">Maya</a>
-      <a href="../peter/expressions.html" class="nav-link">Peter</a>
-      <a href="../jordan/expressions.html" class="nav-link">Jordan</a>
-      <a href="../alex/expressions.html" class="nav-link">Alex</a>
-      <a href="../../expressions/gallery.html" class="nav-link">All Expressions</a>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
+
+  <!-- Persona Switcher (Secondary Nav) -->
+  <nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+    <div class="persona-switcher-inner">
+      <a href="../ferni/expressions.html" class="persona-chip" data-persona="ferni">
+        <span class="persona-dot" style="background: var(--color-ferni)"></span>
+        Ferni
+      </a>
+      <a href="../maya/expressions.html" class="persona-chip" data-persona="maya">
+        <span class="persona-dot" style="background: var(--color-maya)"></span>
+        Maya
+      </a>
+      <a href="../peter/expressions.html" class="persona-chip" data-persona="peter">
+        <span class="persona-dot" style="background: var(--color-peter)"></span>
+        Peter
+      </a>
+      <a href="../jordan/expressions.html" class="persona-chip" data-persona="jordan">
+        <span class="persona-dot" style="background: var(--color-jordan)"></span>
+        Jordan
+      </a>
+      <a href="../alex/expressions.html" class="persona-chip" data-persona="alex">
+        <span class="persona-dot" style="background: var(--color-alex)"></span>
+        Alex
+      </a>
+      <a href="expressions.html" class="persona-chip active" data-persona="nayan">
+        <span class="persona-dot" style="background: var(--color-nayan)"></span>
+        Nayan
+      </a>
     </div>
   </nav>
 
@@ -257,18 +478,18 @@
               <stop offset="0%" stop-color="#b08f5f"/>
               <stop offset="100%" stop-color="#9a7b4f"/>
             </linearGradient>
-            <clipPath id="eyeClipLeft"><ellipse cx="70" cy="90" rx="20" ry="18"/></clipPath>
-            <clipPath id="eyeClipRight"><ellipse cx="130" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipLeft"><ellipse id="eyeClipLeftShape" cx="70" cy="90" rx="20" ry="18"/></clipPath>
+            <clipPath id="eyeClipRight"><ellipse id="eyeClipRightShape" cx="130" cy="90" rx="20" ry="18"/></clipPath>
           </defs>
-          <g class="avatar-body"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
+          <g class="avatar-body" id="avatarBody"><circle cx="100" cy="100" r="85" fill="url(#bodyGradient)"/></g>
           <!-- LUXO STYLE: opaque white eyes, no pupils - expression comes from eye shape -->
-          <g class="eyes-group">
+          <g class="eyes-group" id="eyesGroup">
             <g clip-path="url(#eyeClipLeft)">
-              <ellipse cx="70" cy="90" rx="20" ry="18" fill="white"/>
+              <ellipse id="eyeLeft" cx="70" cy="90" rx="20" ry="18" fill="white"/>
             </g>
             <path d="M 50,72 Q 70,72 90,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidLeft"/>
             <g clip-path="url(#eyeClipRight)">
-              <ellipse cx="130" cy="90" rx="20" ry="18" fill="white"/>
+              <ellipse id="eyeRight" cx="130" cy="90" rx="20" ry="18" fill="white"/>
             </g>
             <path d="M 110,72 Q 130,72 150,72" fill="none" stroke="url(#bodyGradient)" stroke-width="14" stroke-linecap="round" id="lidRight"/>
           </g>
@@ -279,12 +500,67 @@
       <div class="stage-controls">
         <div class="current-expression" id="currentExpression">Neutral</div>
         <div class="expression-trigger" id="expressionTrigger">Present. Patient. Ready to explore deeper meaning.</div>
+        <div class="expression-info" id="expressionInfo">
+          <div class="expression-info-grid">
+            <div class="info-item"><label>Lid Path</label><span id="infoLid">M 50,72 Q 70,72 90,72</span></div>
+            <div class="info-item"><label>Eye Scale</label><span id="infoEyeScale">1.0, 1.0</span></div>
+            <div class="info-item"><label>Glow</label><span id="infoGlow">protective</span></div>
+          </div>
+        </div>
         <div class="micro-demo">
-          <button class="micro-btn" data-micro="stillness">Stillness Pause</button>
           <button class="micro-btn" data-micro="wisdom">Wisdom 156ms</button>
+          <button class="micro-btn" data-micro="stillness">Stillness 143ms</button>
           <button class="micro-btn" data-micro="warmth">Warmth 143ms</button>
+          <button class="micro-btn" data-micro="presence">Presence 130ms</button>
+          <button class="micro-btn" data-micro="insight">Insight 117ms</button>
+          <button class="micro-btn" data-micro="compassion">Compassion 137ms</button>
         </div>
       </div>
+    </div>
+
+    <!-- Animation Layers Panel -->
+    <div class="layers-panel">
+      <div class="layers-header">
+        <h3>Animation Layers</h3>
+      </div>
+      <div class="layers-grid">
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerBreathing" checked>
+          <div class="layer-info">
+            <div class="layer-name">Breathing</div>
+            <div class="layer-timing">5.2s cycle (4s base x 1.3)</div>
+          </div>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerBlinking" checked>
+          <div class="layer-info">
+            <div class="layer-name">Random Blinking</div>
+            <div class="layer-timing">3.9-9.1s interval (1.3x)</div>
+          </div>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerGaze" checked>
+          <div class="layer-info">
+            <div class="layer-name">Gaze Drift</div>
+            <div class="layer-timing">10.4s cycle (8s base x 1.3)</div>
+          </div>
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" id="layerAnticipation">
+          <div class="layer-info">
+            <div class="layer-name">Anticipation</div>
+            <div class="layer-timing">0.52s micro-response (1.3x)</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Waveform Section -->
+    <div class="waveform-section">
+      <div class="waveform-header">
+        <h3>Voice Waveform Shapes</h3>
+      </div>
+      <div class="waveform-grid" id="waveformGrid"></div>
     </div>
 
     <div class="profile-section">
@@ -298,7 +574,7 @@
     </div>
 
     <h3 class="section-title">Nayan's Expressions</h3>
-    <div class="expression-grid" id="expressionGrid"></div>
+    <div class="expression-families" id="expressionFamilies"></div>
 
     <h3 class="section-title">Character Traits</h3>
     <div class="traits-grid">
@@ -318,122 +594,404 @@
   </div>
 
   <script>
-    const EXPRESSIONS = [
-      { name: 'Neutral', trigger: 'Present, patient, ready', lid: 'M 50,72 Q 70,72 90,72', glow: 'protective' },
-      { name: 'Contemplating', trigger: 'Processing deep question', lid: 'M 50,74 Q 70,72 90,74', glow: 'protective', signature: true },
-      { name: 'Wise', trigger: 'Offering perspective', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden' },
-      { name: 'Listening', trigger: 'Holding space', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective' },
-      { name: 'Understanding', trigger: 'Seeing deeper meaning', lid: 'M 50,76 Q 70,76 90,76', glow: 'sage' },
-      { name: 'Gentle', trigger: 'Soft challenge', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden' },
-      { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'warm' },
-      { name: 'Reflecting', trigger: 'Mirroring back', lid: 'M 50,74 Q 70,72 90,74', glow: 'sage' },
-      { name: 'Present', trigger: 'Grounding moment', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective' },
-      { name: 'Curious', trigger: 'Exploring meaning', lid: 'M 50,70 Q 70,66 90,70', glow: 'sage' },
-      { name: 'Holding', trigger: 'User in difficulty', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective' },
-      { name: 'Serene', trigger: 'Peaceful wisdom', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden' }
+    /* =============================================================================
+       NAYAN PATEL - THE WISDOM KEEPER
+       Timing: 1.3x (slowest - deliberate, contemplative)
+       Signature: Stillness effect with breathing pause
+       ============================================================================= */
+
+    // Base eye dimensions (scaled by eyeScale for expressions)
+    var BASE_EYE_RX = 20;
+    var BASE_EYE_RY = 18;
+
+    // Expression families organized by Nayan's wisdom domain
+    var EXPRESSION_FAMILIES = {
+      wisdom: [
+        { name: 'Wise', trigger: 'Offering perspective', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden', eyeScale: [1.0, 1.05] },
+        { name: 'Contemplating', trigger: 'Processing deep question', lid: 'M 50,74 Q 70,72 90,74', glow: 'protective', eyeScale: [1.0, 0.95], signature: true },
+        { name: 'Insightful', trigger: 'Pattern recognition moment', lid: 'M 50,72 Q 70,68 90,72', glow: 'insight', eyeScale: [1.05, 0.9] },
+        { name: 'Teaching', trigger: 'Sharing knowledge gently', lid: 'M 50,75 Q 70,76 90,75', glow: 'golden', eyeScale: [1.0, 1.0] },
+        { name: 'Synthesizing', trigger: 'Connecting life patterns', lid: 'M 50,73 Q 70,70 90,73', glow: 'insight', eyeScale: [1.02, 0.92] }
+      ],
+      presence: [
+        { name: 'Present', trigger: 'Grounding moment', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective', eyeScale: [1.0, 1.0] },
+        { name: 'Listening', trigger: 'Holding space actively', lid: 'M 50,74 Q 70,74 90,74', glow: 'protective', eyeScale: [1.0, 1.02] },
+        { name: 'Centered', trigger: 'Deep grounding', lid: 'M 50,75 Q 70,75 90,75', glow: 'stillness', eyeScale: [1.0, 1.0] },
+        { name: 'Neutral', trigger: 'Ready, patient', lid: 'M 50,72 Q 70,72 90,72', glow: 'protective', eyeScale: [1.0, 1.0] },
+        { name: 'Attentive', trigger: 'Focused listening', lid: 'M 50,73 Q 70,71 90,73', glow: 'protective', eyeScale: [1.02, 0.95] }
+      ],
+      reflection: [
+        { name: 'Reflecting', trigger: 'Mirroring back', lid: 'M 50,74 Q 70,72 90,74', glow: 'sage', eyeScale: [1.0, 0.95] },
+        { name: 'Pondering', trigger: 'Deep thought', lid: 'M 50,75 Q 70,73 90,75', glow: 'stillness', eyeScale: [0.98, 0.92] },
+        { name: 'Curious', trigger: 'Exploring meaning', lid: 'M 50,70 Q 70,66 90,70', glow: 'sage', eyeScale: [1.08, 0.88] },
+        { name: 'Questioning', trigger: 'Gentle inquiry', lid: 'M 50,71 Q 70,67 90,71', glow: 'insight', eyeScale: [1.05, 0.9] },
+        { name: 'Remembering', trigger: 'Accessing past wisdom', lid: 'M 50,76 Q 70,74 90,76', glow: 'golden', eyeScale: [0.98, 0.95] }
+      ],
+      holdingSpace: [
+        { name: 'Holding', trigger: 'User in difficulty', lid: 'M 50,76 Q 70,76 90,76', glow: 'protective', eyeScale: [1.0, 1.0] },
+        { name: 'Supportive', trigger: 'Being with pain', lid: 'M 50,77 Q 70,78 90,77', glow: 'warm', eyeScale: [1.0, 1.05] },
+        { name: 'Compassionate', trigger: 'Deep empathy', lid: 'M 50,78 Q 70,80 90,78', glow: 'warm', eyeScale: [1.0, 1.08] },
+        { name: 'Patient', trigger: 'Waiting with user', lid: 'M 50,75 Q 70,75 90,75', glow: 'stillness', eyeScale: [1.0, 1.0] },
+        { name: 'Accepting', trigger: 'Non-judgmental presence', lid: 'M 50,76 Q 70,77 90,76', glow: 'protective', eyeScale: [1.0, 1.02] }
+      ],
+      warmth: [
+        { name: 'Warm', trigger: 'Connection moment', lid: 'M 50,78 Q 70,80 90,78', glow: 'warm', eyeScale: [1.02, 1.1] },
+        { name: 'Gentle', trigger: 'Soft challenge', lid: 'M 50,76 Q 70,78 90,76', glow: 'golden', eyeScale: [1.0, 1.05] },
+        { name: 'Serene', trigger: 'Peaceful wisdom', lid: 'M 50,78 Q 70,80 90,78', glow: 'golden', eyeScale: [1.0, 1.08] },
+        { name: 'Understanding', trigger: 'Seeing deeper meaning', lid: 'M 50,76 Q 70,76 90,76', glow: 'sage', eyeScale: [1.0, 1.0] }
+      ]
+    };
+
+    // Micro-expressions: subliminal emotional flashes (scaled for 1.3x timing)
+    var MICRO_EXPRESSIONS = {
+      wisdom: { lid: 'M 50,76 Q 70,78 90,76', glow: 'golden', duration: 156 },
+      stillness: { lid: 'M 50,75 Q 70,75 90,75', glow: 'stillness', duration: 143 },
+      warmth: { lid: 'M 50,78 Q 70,80 90,78', glow: 'warm', duration: 143 },
+      presence: { lid: 'M 50,74 Q 70,74 90,74', glow: 'protective', duration: 130 },
+      insight: { lid: 'M 50,72 Q 70,68 90,72', glow: 'insight', duration: 117 },
+      compassion: { lid: 'M 50,78 Q 70,80 90,78', glow: 'warm', duration: 137 }
+    };
+
+    // Waveform shapes for voice visualization
+    var WAVEFORM_SHAPES = [
+      { name: 'Contemplating', heights: [12, 20, 28, 20, 12] },
+      { name: 'Present', heights: [18, 22, 26, 22, 18] },
+      { name: 'Wisdom', heights: [15, 25, 35, 25, 15] },
+      { name: 'Serene', heights: [20, 24, 22, 24, 20] }
     ];
 
-    const GLOW_COLORS = {
+    // Glow colors mapped to emotional states
+    var GLOW_COLORS = {
       protective: 'rgba(176, 143, 95, 0.5)',
       golden: 'rgba(196, 162, 101, 0.5)',
       sage: 'rgba(90, 122, 81, 0.5)',
-      warm: 'rgba(229, 165, 92, 0.5)'
+      warm: 'rgba(229, 165, 92, 0.5)',
+      insight: 'rgba(156, 121, 75, 0.6)',
+      stillness: 'rgba(210, 175, 115, 0.4)'
     };
 
-    const avatarContainer = document.getElementById('avatarContainer');
-    const avatarGlow = document.getElementById('avatarGlow');
-    const lidLeft = document.getElementById('lidLeft');
-    const lidRight = document.getElementById('lidRight');
-    const currentExpressionEl = document.getElementById('currentExpression');
-    const expressionTriggerEl = document.getElementById('expressionTrigger');
-    const expressionGrid = document.getElementById('expressionGrid');
-    const stillnessIndicator = document.getElementById('stillnessIndicator');
+    // DOM Elements
+    var avatarContainer = document.getElementById('avatarContainer');
+    var avatarGlow = document.getElementById('avatarGlow');
+    var avatarBody = document.getElementById('avatarBody');
+    var eyesGroup = document.getElementById('eyesGroup');
+    var lidLeft = document.getElementById('lidLeft');
+    var lidRight = document.getElementById('lidRight');
+    var eyeLeft = document.getElementById('eyeLeft');
+    var eyeRight = document.getElementById('eyeRight');
+    var eyeClipLeftShape = document.getElementById('eyeClipLeftShape');
+    var eyeClipRightShape = document.getElementById('eyeClipRightShape');
+    var currentExpressionEl = document.getElementById('currentExpression');
+    var expressionTriggerEl = document.getElementById('expressionTrigger');
+    var expressionFamiliesEl = document.getElementById('expressionFamilies');
+    var expressionInfo = document.getElementById('expressionInfo');
+    var stillnessIndicator = document.getElementById('stillnessIndicator');
 
-    function buildExpressionGrid() {
-      EXPRESSIONS.forEach((expr, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'expression-btn' + (i === 0 ? ' active' : '');
-        btn.textContent = expr.name;
-        btn.addEventListener('click', () => setExpression(expr, btn));
-        expressionGrid.appendChild(btn);
+    // Info display elements
+    var infoLid = document.getElementById('infoLid');
+    var infoEyeScale = document.getElementById('infoEyeScale');
+    var infoGlow = document.getElementById('infoGlow');
+
+    // State
+    var currentExpression = null;
+    var blinkInterval = null;
+    var isBlinking = false;
+
+    // Layer controls
+    var layerBreathing = document.getElementById('layerBreathing');
+    var layerBlinking = document.getElementById('layerBlinking');
+    var layerGaze = document.getElementById('layerGaze');
+    var layerAnticipation = document.getElementById('layerAnticipation');
+
+    /* -------------------------------------------------------------------------
+       Expression Families Grid (Safe DOM Methods)
+       ------------------------------------------------------------------------- */
+    function buildExpressionFamilies() {
+      var familyNames = {
+        wisdom: 'Wisdom',
+        presence: 'Presence',
+        reflection: 'Reflection',
+        holdingSpace: 'Holding Space',
+        warmth: 'Warmth'
+      };
+
+      Object.keys(EXPRESSION_FAMILIES).forEach(function(familyKey) {
+        var family = EXPRESSION_FAMILIES[familyKey];
+
+        var section = document.createElement('div');
+        section.className = 'family-section';
+
+        var header = document.createElement('div');
+        header.className = 'family-header';
+
+        var dot = document.createElement('div');
+        dot.className = 'family-dot';
+        header.appendChild(dot);
+
+        var name = document.createElement('span');
+        name.className = 'family-name';
+        name.textContent = familyNames[familyKey];
+        header.appendChild(name);
+
+        section.appendChild(header);
+
+        var expressionsDiv = document.createElement('div');
+        expressionsDiv.className = 'family-expressions';
+
+        family.forEach(function(expr) {
+          var btn = document.createElement('button');
+          btn.className = 'expression-btn' + (expr.signature ? ' signature' : '');
+          btn.textContent = expr.name;
+          btn.addEventListener('click', function() { setExpression(expr, btn); });
+          expressionsDiv.appendChild(btn);
+        });
+
+        section.appendChild(expressionsDiv);
+        expressionFamiliesEl.appendChild(section);
       });
     }
 
-    function setExpression(expr, btn) {
-      document.querySelectorAll('.expression-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      lidLeft.setAttribute('d', expr.lid);
-      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
-      avatarGlow.style.background = GLOW_COLORS[expr.glow];
-      currentExpressionEl.textContent = expr.name;
-      expressionTriggerEl.textContent = expr.trigger;
-      if (expr.signature) playStillness();
+    /* -------------------------------------------------------------------------
+       Waveform Grid (Safe DOM Methods)
+       ------------------------------------------------------------------------- */
+    function buildWaveformGrid() {
+      var waveformGrid = document.getElementById('waveformGrid');
+
+      WAVEFORM_SHAPES.forEach(function(shape, index) {
+        var card = document.createElement('div');
+        card.className = 'waveform-card' + (index === 0 ? ' active' : '');
+
+        var bars = document.createElement('div');
+        bars.className = 'waveform-bars';
+
+        shape.heights.forEach(function(h) {
+          var bar = document.createElement('div');
+          bar.className = 'waveform-bar';
+          bar.style.height = h + 'px';
+          bars.appendChild(bar);
+        });
+
+        card.appendChild(bars);
+
+        var label = document.createElement('div');
+        label.className = 'waveform-label';
+        label.textContent = shape.name;
+        card.appendChild(label);
+
+        card.addEventListener('click', function() {
+          document.querySelectorAll('.waveform-card').forEach(function(c) { c.classList.remove('active'); });
+          card.classList.add('active');
+        });
+
+        waveformGrid.appendChild(card);
+      });
     }
 
+    /* -------------------------------------------------------------------------
+       Set Expression
+       ------------------------------------------------------------------------- */
+    function setExpression(expr, btn) {
+      // Clear active state from all buttons
+      document.querySelectorAll('.expression-btn').forEach(function(b) { b.classList.remove('active'); });
+      if (btn) btn.classList.add('active');
+
+      currentExpression = expr;
+
+      // Update lid paths
+      lidLeft.setAttribute('d', expr.lid);
+      lidRight.setAttribute('d', expr.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+
+      // Update eye scale if provided
+      var scale = expr.eyeScale || [1.0, 1.0];
+      var newRx = BASE_EYE_RX * scale[0];
+      var newRy = BASE_EYE_RY * scale[1];
+
+      eyeLeft.setAttribute('rx', newRx);
+      eyeLeft.setAttribute('ry', newRy);
+      eyeRight.setAttribute('rx', newRx);
+      eyeRight.setAttribute('ry', newRy);
+      eyeClipLeftShape.setAttribute('rx', newRx);
+      eyeClipLeftShape.setAttribute('ry', newRy);
+      eyeClipRightShape.setAttribute('rx', newRx);
+      eyeClipRightShape.setAttribute('ry', newRy);
+
+      // Update glow
+      avatarGlow.style.background = GLOW_COLORS[expr.glow];
+
+      // Update display
+      currentExpressionEl.textContent = expr.name;
+      expressionTriggerEl.textContent = expr.trigger;
+
+      // Update info panel
+      expressionInfo.classList.add('visible');
+      infoLid.textContent = expr.lid;
+      infoEyeScale.textContent = scale[0].toFixed(2) + ', ' + scale[1].toFixed(2);
+      infoGlow.textContent = expr.glow;
+
+      // Trigger signature effect if applicable
+      if (expr.signature) {
+        playStillness();
+      }
+    }
+
+    /* -------------------------------------------------------------------------
+       Stillness Effect (Nayan's Signature)
+       ------------------------------------------------------------------------- */
     function playStillness() {
       avatarContainer.classList.add('stillness');
       stillnessIndicator.classList.add('active');
 
+      // Pause breathing and gaze during stillness
+      avatarBody.classList.add('paused');
+      eyesGroup.classList.add('paused');
+
       // Stillness lasts longer for Nayan (1.3x)
-      setTimeout(() => {
+      setTimeout(function() {
         avatarContainer.classList.remove('stillness');
         stillnessIndicator.classList.remove('active');
+        avatarBody.classList.remove('paused');
+        eyesGroup.classList.remove('paused');
       }, 3900); // 3000ms * 1.3
     }
 
-    document.querySelectorAll('.micro-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const type = btn.dataset.micro;
-        if (type === 'stillness') playStillness();
-        else if (type === 'wisdom') playMicroExpression('M 50,76 Q 70,78 90,76', 'golden', 156);
-        else if (type === 'warmth') playMicroExpression('M 50,78 Q 70,80 90,78', 'warm', 143);
-      });
-    });
+    /* -------------------------------------------------------------------------
+       Micro-expressions
+       ------------------------------------------------------------------------- */
+    function playMicroExpression(type) {
+      var micro = MICRO_EXPRESSIONS[type];
+      if (!micro) return;
 
-    function playMicroExpression(lid, glow, duration) {
-      const currentLid = lidLeft.getAttribute('d');
-      const currentGlow = avatarGlow.style.background;
-      lidLeft.setAttribute('d', lid);
-      lidRight.setAttribute('d', lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
-      avatarGlow.style.background = GLOW_COLORS[glow];
+      // Store current state
+      var currentLid = lidLeft.getAttribute('d');
+      var currentGlow = avatarGlow.style.background;
+
+      // Flash the micro-expression
+      lidLeft.setAttribute('d', micro.lid);
+      lidRight.setAttribute('d', micro.lid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+      avatarGlow.style.background = GLOW_COLORS[micro.glow];
       avatarGlow.style.opacity = '0.9';
-      setTimeout(() => {
+
+      // Return to previous state
+      setTimeout(function() {
         lidLeft.setAttribute('d', currentLid);
         lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
         avatarGlow.style.background = currentGlow;
         avatarGlow.style.opacity = '0.6';
-      }, duration);
+      }, micro.duration);
     }
 
-    buildExpressionGrid();
+    /* -------------------------------------------------------------------------
+       Random Blinking (1.3x timing = 3.9-9.1s interval)
+       ------------------------------------------------------------------------- */
+    function blink() {
+      if (isBlinking) return;
+      isBlinking = true;
+
+      var currentLid = lidLeft.getAttribute('d');
+
+      // Close eyes
+      lidLeft.setAttribute('d', 'M 50,90 Q 70,90 90,90');
+      lidRight.setAttribute('d', 'M 110,90 Q 130,90 150,90');
+
+      // Open eyes (slower for Nayan)
+      setTimeout(function() {
+        lidLeft.setAttribute('d', currentLid);
+        lidRight.setAttribute('d', currentLid.replace(/50/g, '110').replace(/70/g, '130').replace(/90/g, '150'));
+        isBlinking = false;
+      }, 195); // 150ms * 1.3
+    }
+
+    function startRandomBlinking() {
+      function scheduleNextBlink() {
+        // 3.9-9.1 second interval (3-7s * 1.3)
+        var delay = 3900 + Math.random() * 5200;
+        blinkInterval = setTimeout(function() {
+          if (layerBlinking.checked) {
+            blink();
+          }
+          scheduleNextBlink();
+        }, delay);
+      }
+      scheduleNextBlink();
+    }
+
+    function stopRandomBlinking() {
+      if (blinkInterval) {
+        clearTimeout(blinkInterval);
+        blinkInterval = null;
+      }
+    }
+
+    /* -------------------------------------------------------------------------
+       Animation Layer Controls
+       ------------------------------------------------------------------------- */
+    layerBreathing.addEventListener('change', function() {
+      if (this.checked) {
+        avatarBody.style.animation = 'breathing 5.2s ease-in-out infinite';
+      } else {
+        avatarBody.style.animation = 'none';
+      }
+    });
+
+    layerBlinking.addEventListener('change', function() {
+      if (this.checked) {
+        startRandomBlinking();
+      } else {
+        stopRandomBlinking();
+      }
+    });
+
+    layerGaze.addEventListener('change', function() {
+      if (this.checked) {
+        eyesGroup.style.animation = 'gazeDrift 10.4s ease-in-out infinite';
+      } else {
+        eyesGroup.style.animation = 'none';
+      }
+    });
+
+    layerAnticipation.addEventListener('change', function() {
+      if (this.checked) {
+        eyesGroup.classList.add('anticipating');
+        setTimeout(function() {
+          eyesGroup.classList.remove('anticipating');
+          layerAnticipation.checked = false;
+        }, 520); // 0.52s
+      }
+    });
+
+    /* -------------------------------------------------------------------------
+       Micro-expression Button Handlers
+       ------------------------------------------------------------------------- */
+    document.querySelectorAll('.micro-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var type = btn.dataset.micro;
+        if (type === 'stillness') {
+          // Special handling for stillness - it's both a micro and signature
+          playStillness();
+        } else {
+          playMicroExpression(type);
+        }
+      });
+    });
+
+    /* -------------------------------------------------------------------------
+       Initialize
+       ------------------------------------------------------------------------- */
+    buildExpressionFamilies();
+    buildWaveformGrid();
+    startRandomBlinking();
+
+    // Set initial expression
+    var neutralExpr = EXPRESSION_FAMILIES.presence.find(function(e) { return e.name === 'Neutral'; });
+    if (neutralExpr) {
+      setExpression(neutralExpr, null);
+    }
   </script>
 
-  <footer>
-    <div class="footer-logo">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#5a7751"/>
-            <stop offset="100%" style="stop-color:#3d5a35"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="46" fill="url(#footerGrad)"/>
-        <!-- LUXO STYLE: opaque white eyes, no pupils -->
-        <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-        <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-      </svg>
-    </div>
-    <p class="footer-tagline">"Friends forget. Ferni doesn't."</p>
-    <nav class="footer-links" aria-label="Footer navigation">
-      <a href="../../capabilities/index.html">Capabilities</a>
-      <a href="../../brand-book.html">Brand Book</a>
-      <a href="../../brand-kit.html">Brand Kit</a>
-      <a href="../../icons.html">Icons</a>
-      <a href="../../components.html">Components</a>
-      <a href="../../accessibility.html">Accessibility</a>
-      <a href="../../sound-design.html">Sound</a>
-    </nav>
-    <p class="footer-copyright">Ferni Brand Library v2.0</p>
-  </footer>
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="../../shared/nav.js" defer></script>
 </body>
 </html>

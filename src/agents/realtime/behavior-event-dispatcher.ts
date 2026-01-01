@@ -23,6 +23,22 @@ import type {
   SuggestedBehaviorResponse,
 } from '../../types/behavior-types.js';
 
+// Import signal factories from services layer (shared with tools)
+import {
+  createModeShiftSignal,
+  createPacingChangeSignal,
+  createHoldSpaceSignal,
+  createProcessingSignal,
+} from '../../services/behavior/index.js';
+
+// Re-export for backward compatibility
+export {
+  createModeShiftSignal,
+  createPacingChangeSignal,
+  createHoldSpaceSignal,
+  createProcessingSignal,
+};
+
 const log = createLogger({ module: 'BehaviorEventDispatcher' });
 
 // ============================================================================
@@ -322,59 +338,6 @@ export async function emitBehaviorSignal(
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to emit behavior signal');
   }
-}
-
-/**
- * Create behavior signal from mode shift
- */
-export function createModeShiftSignal(
-  mode: BehaviorState['currentMode'],
-  reason?: string
-): BehaviorSignal {
-  return {
-    type: 'mode_shift',
-    mode,
-    reason,
-    timestamp: Date.now(),
-  };
-}
-
-/**
- * Create behavior signal from pacing change
- */
-export function createPacingChangeSignal(
-  pacing: BehaviorState['currentPacing']['speed'],
-  reason?: string
-): BehaviorSignal {
-  return {
-    type: 'pacing_change',
-    pacing,
-    reason,
-    timestamp: Date.now(),
-  };
-}
-
-/**
- * Create hold space signal
- */
-export function createHoldSpaceSignal(duration: number, reason?: string): BehaviorSignal {
-  return {
-    type: 'hold_space',
-    duration,
-    reason,
-    timestamp: Date.now(),
-  };
-}
-
-/**
- * Create processing signal
- */
-export function createProcessingSignal(isStart: boolean, expression?: string): BehaviorSignal {
-  return {
-    type: isStart ? 'processing_start' : 'processing_end',
-    expression,
-    timestamp: Date.now(),
-  };
 }
 
 // ============================================================================

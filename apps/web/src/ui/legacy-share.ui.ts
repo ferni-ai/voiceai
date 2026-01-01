@@ -488,7 +488,7 @@ function render(): string {
                 ${sharedWith.map(member => `
                   <div class="legacy-share-member">
                     <div class="legacy-share-member-avatar">
-                      ${(member.name || member.email)[0].toUpperCase()}
+                      ${(member.name || member.email || '?')[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div class="legacy-share-member-info">
                       <p class="legacy-share-member-name">${member.name || member.email}</p>
@@ -523,7 +523,7 @@ export async function openLegacyShare(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this legacy");
     return;
   }
@@ -587,7 +587,7 @@ function attachListeners(): void {
 }
 
 async function handleCopyLink(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const linkInput = shareModal?.querySelector('#share-link') as HTMLInputElement;
   
   if (linkInput) {
@@ -603,7 +603,7 @@ async function handleCopyLink(): Promise<void> {
 }
 
 async function handleSendInvite(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const emailInput = shareModal?.querySelector('#invite-email') as HTMLInputElement;
   const nameInput = shareModal?.querySelector('#invite-name') as HTMLInputElement;

@@ -18,7 +18,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { appState } from '../state/index.js';
 import { t } from '../i18n/index.js';
 
@@ -111,20 +111,20 @@ function checkSonosOAuthReturn(): 'success' | 'error' | null {
 // ============================================================================
 
 const SVG_ICONS = {
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-  thermometer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
-  lightbulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>',
-  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
-  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
-  unlink: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-.12-7.07 5 5 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 .12 7.07 5 5 0 0 0 6.95 0l1.71-1.71"/></svg>',
-  chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>',
-  chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>',
-  wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
-  sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-  speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>',
-  apple: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>',
+  close: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  home: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  thermometer: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+  lightbulb: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>',
+  sun: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  link: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+  unlink: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-.12-7.07 5 5 0 0 0-6.95 0l-1.72 1.71"/><path d="m5.17 11.75-1.71 1.71a5 5 0 0 0 .12 7.07 5 5 0 0 0 6.95 0l1.71-1.71"/></svg>',
+  chevronRight: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  chevronLeft: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  wifi: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
+  sparkles: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  speaker: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><circle cx="12" cy="14" r="4"/><line x1="12" y1="6" x2="12.01" y2="6"/></svg>',
+  apple: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/></svg>',
 } as const;
 
 type IconName = keyof typeof SVG_ICONS;
@@ -135,7 +135,9 @@ function createIcon(name: IconName): SVGSVGElement | null {
   const doc = parser.parseFromString(svgString, 'image/svg+xml');
   const svg = doc.querySelector('svg');
   if (svg && !doc.querySelector('parsererror')) {
-    return svg;
+    // Import the node from the XML document into the current HTML document
+    // This ensures the SVG renders correctly
+    return document.importNode(svg, true) as SVGSVGElement;
   }
   return null;
 }
@@ -197,7 +199,7 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.75);
-      backdrop-filter: blur(8px);
+      backdrop-filter: var(--glass-blur-subtle, blur(8px));
     }
 
     .smart-home-settings__panel {
@@ -208,7 +210,7 @@ function injectStyles(): void {
       background: var(--color-bg-elevated, #FFFDFB);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-xl, 0 8px 32px rgba(0, 0, 0, 0.12));
       display: flex;
       flex-direction: column;
       transform: scale(0.95);
@@ -318,7 +320,7 @@ function injectStyles(): void {
 
     .smart-home-settings__card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
     }
 
     .smart-home-settings__card--connected {
@@ -704,11 +706,11 @@ async function fetchStatus(): Promise<IntegrationStatus> {
   // Fetch status for all integrations in parallel
   // Note: Ecobee uses /api/ecobee/status (separate route)
   const [ecobeeRes, hueRes, lifxRes, sonosRes, homekitRes] = await Promise.all([
-    apiGet<IntegrationStatus['ecobee']>(`/api/ecobee/status`, { headers: { 'X-User-ID': userId } }).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['hue']>(`/api/smart-home/hue/status?userId=${userId}`).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['lifx']>(`/api/smart-home/lifx/status?userId=${userId}`).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['sonos']>(`/api/smart-home/sonos/status?userId=${userId}`).catch(() => ({ ok: false, data: null })),
-    apiGet<IntegrationStatus['homeKit']>(`/api/smart-home/homekit/status?userId=${userId}`).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['ecobee']>(`/api/ecobee/status`, { userId }).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['hue']>(`/api/smart-home/hue/status`, { userId }).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['lifx']>(`/api/smart-home/lifx/status`, { userId }).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['sonos']>(`/api/smart-home/sonos/status`, { userId }).catch(() => ({ ok: false, data: null })),
+    apiGet<IntegrationStatus['homeKit']>(`/api/smart-home/homekit/status`, { userId }).catch(() => ({ ok: false, data: null })),
   ]);
 
   return {
@@ -1426,9 +1428,7 @@ async function connectEcobee(_apiKey: string): Promise<void> {
     const userId = getUserId();
     
     // Start the Ecobee link flow (gets PIN)
-    const response = await apiPost<{ pin: string; expiresIn: number }>('/api/ecobee/link/start', {}, {
-      headers: { 'X-User-ID': userId },
-    });
+    const response = await apiPost<{ pin: string; expiresIn: number }>('/api/ecobee/link/start', { userId });
 
     if (!response.ok || !response.data?.pin) {
       throw new Error(response.error || 'Failed to get PIN');
@@ -1442,9 +1442,7 @@ async function connectEcobee(_apiKey: string): Promise<void> {
 
     // Poll for completion
     const checkInterval = setInterval(async () => {
-      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', {
-        headers: { 'X-User-ID': userId },
-      });
+      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', { userId });
       
       if (statusRes.ok && statusRes.data?.authorized) {
         clearInterval(checkInterval);
@@ -1629,9 +1627,7 @@ async function disconnectIntegration(integration: string): Promise<void> {
     
     // Ecobee uses a different route
     if (integration === 'ecobee') {
-      await apiDelete('/api/ecobee/disconnect', {
-        headers: { 'X-User-ID': userId },
-      });
+      await apiDelete(`/api/ecobee/disconnect?userId=${userId}`);
     } else {
       await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
     }

@@ -724,7 +724,7 @@ export async function openProfessionalTasks(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this assistant");
     return;
   }
@@ -818,7 +818,7 @@ function attachListeners(): void {
 }
 
 async function handleAddSkill(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const skill = prompt("Add a skill this assistant excels at:");
   if (!skill || !currentAgent) return;
@@ -842,7 +842,7 @@ async function handleAddSkill(): Promise<void> {
 }
 
 async function handleAddDomain(): Promise<void> {
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   
   const name = prompt("Domain name (e.g., 'Marketing', 'Finance'):");
   if (!name || !currentAgent) return;
@@ -874,7 +874,7 @@ async function handleEditSkill(e: Event): Promise<void> {
   
   if (!currentAgent) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const skills = (currentAgent.personality?.values || []);
   const currentSkill = skills[index];
 
@@ -908,7 +908,7 @@ async function handleDeleteSkill(e: Event): Promise<void> {
   
   if (!currentAgent) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const skills = (currentAgent.personality?.values || []);
 
   if (!confirm(`Remove skill "${skills[index]}"?`)) return;
@@ -939,9 +939,10 @@ async function handleEditDomain(e: Event): Promise<void> {
   
   if (!currentAgent) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const domains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
   const currentDomain = domains[index];
+  if (!currentDomain) return;
 
   const newName = prompt('Domain name:', currentDomain.name);
   if (!newName) return;
@@ -975,10 +976,10 @@ async function handleDeleteDomain(e: Event): Promise<void> {
   
   if (!currentAgent) return;
 
-  const { toast } = await import('./toast.ui.js');
+  const { toast } = await import('./whisper.ui.js');
   const domains = (currentAgent.memories?.wisdom || []) as unknown as Array<{ name: string; description: string }>;
-
-  if (!confirm(`Remove domain "${domains[index].name}"?`)) return;
+  const domainToDelete = domains[index];
+  if (!domainToDelete || !confirm(`Remove domain "${domainToDelete.name}"?`)) return;
 
   try {
     const updatedDomains = domains.filter((_, i) => i !== index);

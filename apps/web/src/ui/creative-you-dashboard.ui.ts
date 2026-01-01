@@ -398,18 +398,18 @@ export class CreativeYouDashboard {
     const responses = await Promise.all(requests);
     let idx = 0;
 
-    if (loadVideo && responses[idx]) {
+    if (loadVideo) {
       const videoRes = responses[idx++];
-      if (videoRes.ok) {
+      if (videoRes?.ok) {
         const data = await videoRes.json();
         this.dailyVideo = data.dailyPick;
         this.renderVideoPick();
       }
     }
 
-    if (loadPodcast && responses[idx]) {
+    if (loadPodcast) {
       const podcastRes = responses[idx];
-      if (podcastRes.ok) {
+      if (podcastRes?.ok) {
         const data = await podcastRes.json();
         this.dailyPodcast = data.dailyPick;
         this.renderPodcastPick();

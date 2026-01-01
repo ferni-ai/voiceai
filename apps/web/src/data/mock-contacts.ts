@@ -479,8 +479,10 @@ export function updateMockContact(
     c => c.id === contactId || c.contactId === contactId
   );
   if (baseIndex !== -1) {
+    const baseContact = MOCK_CONTACTS[baseIndex];
+    if (!baseContact) return undefined;
     // We can't mutate MOCK_CONTACTS, so create an entry in additionalContacts
-    const updated = { ...MOCK_CONTACTS[baseIndex], ...updates };
+    const updated: MockContact = { ...baseContact, ...updates } as MockContact;
     // Remove if already in additionalContacts
     additionalContacts = additionalContacts.filter(
       c => c.id !== contactId && c.contactId !== contactId
@@ -494,10 +496,12 @@ export function updateMockContact(
     c => c.id === contactId || c.contactId === contactId
   );
   if (additionalIndex !== -1) {
+    const existingContact = additionalContacts[additionalIndex];
+    if (!existingContact) return undefined;
     additionalContacts[additionalIndex] = {
-      ...additionalContacts[additionalIndex],
+      ...existingContact,
       ...updates,
-    };
+    } as MockContact;
     return additionalContacts[additionalIndex];
   }
 

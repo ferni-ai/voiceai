@@ -16,7 +16,7 @@ import { DURATION, prefersReducedMotion } from '../config/animation-constants.js
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('CalendarProviderUI');
 

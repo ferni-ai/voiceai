@@ -10382,7 +10382,7 @@ body {
   position: absolute;
   width: 4px;
   height: 4px;
-  background: var(--ambient-color, rgba(139, 92, 246, 0.1));
+  background: var(--ambient-color, rgba(74, 103, 65, 0.1));
   border-radius: 50%;
   opacity: 0.3;
   animation: floatParticle var(--particle-speed, 20s) infinite linear;

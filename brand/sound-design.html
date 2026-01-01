@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sound Design | Ferni Brand</title>
   <link rel="stylesheet" href="master-tokens.css">
+  <link rel="stylesheet" href="brand-components.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -539,28 +540,8 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-    <div class="header-content">
-      <a href="index.html" class="logo">
-        <svg viewBox="0 0 100 100" fill="none">
-          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
-          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
-          <!-- LUXO STYLE: no mouth, expression through eyes only -->
-        </svg>
-        <span class="logo-text">Ferni Brand</span>
-      </a>
-      <nav class="nav" role="navigation" aria-label="Main navigation">
-        <a href="index.html">Home</a>
-        <a href="capabilities/index.html">Capabilities</a>
-        <a href="brand-book.html">Brand Book</a>
-        <a href="brand-kit.html">Brand Kit</a>
-        <a href="icons.html">Icons</a>
-        <a href="components.html">Components</a>
-      </nav>
-    </div>
-  </header>
+  <!-- Shared Navigation -->
+  <div id="nav-placeholder"></div>
 
   <!-- Hero -->
   <section class="hero">
@@ -1168,9 +1149,10 @@
 
   </main>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <p>&copy; 2024 Ferni. Sound design specifications for the Ferni ecosystem.</p>
-  </footer>
+  <!-- Shared Footer -->
+  <div id="footer-placeholder"></div>
+
+  <!-- Shared Navigation Script -->
+  <script src="shared/nav.js" defer></script>
 </body>
 </html>

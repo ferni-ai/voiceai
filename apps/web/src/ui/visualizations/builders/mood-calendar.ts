@@ -12,10 +12,8 @@
 
 import {
   createElement,
-  createFlexContainer,
   setStyles,
   createScreenReaderLabel,
-  getCssVar,
 } from '../utils/dom.js';
 import type {
   MoodCalendarData,
@@ -24,7 +22,7 @@ import type {
   DeviceContext,
   VisualizationResult,
 } from '../types.js';
-import { DEFAULT_COLORS, CSS_COLOR_VARS } from '../types.js';
+import { CSS_COLOR_VARS } from '../types.js';
 import { t } from '../../../i18n/index.js';
 
 // ============================================================================
@@ -195,7 +193,7 @@ function buildMobile(
     dayCol.appendChild(cell);
 
     const label = createElement('span', 'viz-day-label');
-    label.textContent = DAYS_SHORT[i];
+    label.textContent = DAYS_SHORT[i] ?? '';
     dayCol.appendChild(label);
 
     heatmapContainer.appendChild(dayCol);
@@ -405,7 +403,8 @@ function getLastNEntries(entries: MoodEntry[], n: number): (MoodEntry | null)[] 
 
   // Add actual entries
   for (let i = startIdx; i < entries.length; i++) {
-    result.push(entries[i]);
+    const entry = entries[i];
+    result.push(entry ?? null);
   }
 
   return result;

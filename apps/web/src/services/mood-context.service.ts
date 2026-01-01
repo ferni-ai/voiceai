@@ -258,8 +258,8 @@ function getTimeOfDay(hour: number): TimeBasedMood {
     }
   }
   
-  // Default to afternoon if somehow not found
-  return TIME_MOODS[2] ?? TIME_MOODS[0];
+  // Default to afternoon if somehow not found (TIME_MOODS[2] is afternoon)
+  return TIME_MOODS[2] ?? TIME_MOODS[0]!;
 }
 
 /**

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog - Ferni</title>
+  <meta name="description" content="Stories from building Ferni—the AI team that's always here for you.">
+  <meta property="og:title" content="Ferni Blog">
+  <meta property="og:description" content="Building in public: How we're creating AI that feels human.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../../brand/master-tokens.css">
+  <link rel="stylesheet" href="blog.css">
+  <style>
+    .blog-hero {
+      padding: 4rem 0 3rem;
+      text-align: center;
+      background: linear-gradient(180deg, var(--color-cream) 0%, var(--color-warm-white) 100%);
+    }
+
+    .blog-hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 800;
+      color: var(--color-ink);
+      margin-bottom: 1rem;
+    }
+
+    .blog-hero p {
+      font-size: 1.25rem;
+      color: var(--color-ink-light);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .blog-grid {
+      padding: 3rem 0 5rem;
+    }
+
+    .blog-list {
+      display: grid;
+      gap: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .blog-card {
+      display: block;
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 2px 8px rgba(44, 37, 32, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(44, 37, 32, 0.1);
+    }
+
+    .blog-card-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: var(--color-cream);
+      color: var(--color-accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: 100px;
+      margin-bottom: 1rem;
+    }
+
+    .blog-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .blog-card p {
+      color: var(--color-ink-light);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .blog-card-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: var(--color-ink-muted);
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-ink-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+      padding: 0 1.5rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .featured-card {
+      background: linear-gradient(135deg, var(--color-ferni) 0%, #3a5a3a 100%);
+      color: white;
+    }
+
+    .featured-card .blog-card-badge {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .featured-card h2 {
+      color: white;
+    }
+
+    .featured-card p {
+      color: rgba(255,255,255,0.85);
+    }
+
+    .featured-card .blog-card-meta {
+      color: rgba(255,255,255,0.7);
+    }
+
+    .more-stories {
+      padding-top: 2rem;
+      border-top: 1px solid var(--color-cream);
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-container">
+      <a href="../index.html" class="nav-logo">
+        <svg width="36" height="36" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <span>Ferni</span>
+      </a>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="index.html" class="active">Blog</a>
+        <a href="https://app.ferni.ai" class="btn btn-primary btn-sm">Try Ferni</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="blog-hero">
+    <div class="container">
+      <h1>Building in Public</h1>
+      <p>The real story of how we're building AI that feels human—not the sanitized pitch deck version.</p>
+    </div>
+  </header>
+
+  <main class="blog-grid">
+    <h3 class="section-title">Featured</h3>
+
+    <div class="blog-list">
+      <a href="09-the-loneliness-gap.html" class="blog-card featured-card">
+        <span class="blog-card-badge">Must Read</span>
+        <h2>The Loneliness Gap</h2>
+        <p>Between when you need help and when it's available—that's where we live. At 2:47am, you're wide awake. Your brain won't stop. This is the gap nobody talks about.</p>
+        <div class="blog-card-meta">
+          <span>6 min read</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="more-stories">
+      <h3 class="section-title">The Series</h3>
+
+      <div class="blog-list">
+        <a href="01-why-we-let-ai-help-build-ferni.html" class="blog-card">
+          <span class="blog-card-badge">Part 1</span>
+          <h2>Why We Let AI Help Build Ferni</h2>
+          <p>What it means to be an AI-native company—and why we think it matters. The irony isn't lost on us: we're building AI life coaches, coached by AI every day.</p>
+          <div class="blog-card-meta">
+            <span>5 min read</span>
+          </div>
+        </a>
+
+        <a href="02-how-ai-helped-design-its-own-brain.html" class="blog-card">
+          <span class="blog-card-badge">Part 2</span>
+          <h2>How an AI Helped Design Its Own Brain</h2>
+          <p>The architecture behind Ferni's team of specialists—and how we got here. When we started building, we had a problem that seemed simple on the surface.</p>
+          <div class="blog-card-meta">
+            <span>6 min read</span>
+          </div>
+        </a>
+
+        <a href="03-giving-ai-a-personality.html" class="blog-card">
+          <span class="blog-card-badge">Part 3</span>
+          <h2>Giving AI a Personality (Without Losing Its Soul)</h2>
+          <p>How we created six distinct specialists who feel genuinely different. Peter thinks before he speaks. Jordan gets excited easily. Maya never judges.</p>
+          <div class="blog-card-meta">
+            <span>6 min read</span>
+          </div>
+        </a>
+
+        <a href="04-daily-standup-with-ai.html" class="blog-card">
+          <span class="blog-card-badge">Part 4</span>
+          <h2>Our Daily Standup Has an AI in the Room</h2>
+          <p>What it's actually like to build software with AI as a pair programming partner. Every morning, before I write a line of code, I have a conversation.</p>
+          <div class="blog-card-meta">
+            <span>7 min read</span>
+          </div>
+        </a>
+
+        <a href="05-how-ferni-remembers-you.html" class="blog-card">
+          <span class="blog-card-badge">Part 5</span>
+          <h2>How Ferni Remembers You (Without Being Creepy)</h2>
+          <p>The deliberate choices behind memory that feels helpful, not invasive. Most AI assistants remember everything. Ferni remembers what matters.</p>
+          <div class="blog-card-meta">
+            <span>6 min read</span>
+          </div>
+        </a>
+
+        <a href="06-we-ship-every-day.html" class="blog-card">
+          <span class="blog-card-badge">Part 6</span>
+          <h2>We Ship Every Day. Here's How.</h2>
+          <p>The rapid development cycle behind Ferni—and what AI makes possible. Last Tuesday, a user told Jordan her trip suggestions felt "too touristy." By Friday, they didn't.</p>
+          <div class="blog-card-meta">
+            <span>5 min read</span>
+          </div>
+        </a>
+
+        <a href="07-ai-should-make-you-feel-less-alone.html" class="blog-card">
+          <span class="blog-card-badge">Part 7</span>
+          <h2>AI Should Make You Feel Less Alone</h2>
+          <p>Why we built a life coach—and what we hope it does for people. At 2am, when you can't sleep and your thoughts are racing, most people have no one to talk to.</p>
+          <div class="blog-card-meta">
+            <span>6 min read</span>
+          </div>
+        </a>
+
+        <a href="08-whats-next-for-ferni.html" class="blog-card">
+          <span class="blog-card-badge">Part 8</span>
+          <h2>What's Next for Ferni</h2>
+          <p>A glimpse at what we're building—and the questions we're still figuring out. Six months ago, Ferni didn't exist. In six months, what you see today will feel like version 0.1.</p>
+          <div class="blog-card-meta">
+            <span>5 min read</span>
+          </div>
+        </a>
+
+        <a href="10-stories-from-the-2am-hour.html" class="blog-card">
+          <span class="blog-card-badge">Stories</span>
+          <h2>Stories from the 2am Hour</h2>
+          <p>Real conversations from real people, when the world is asleep. Names and details have been changed, but the experiences are genuine.</p>
+          <div class="blog-card-meta">
+            <span>5 min read</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <svg width="48" height="48" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="var(--color-ferni)"/>
+          <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+          <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+        </svg>
+        <p>Better than human.<br>Always available.</p>
+      </div>
+      <p class="footer-copyright">© 2024 Ferni. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

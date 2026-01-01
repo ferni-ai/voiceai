@@ -313,7 +313,7 @@ function renderFilterTabs(currentFilter: TimelineFilterType, timeline: TimelineI
   });
 
   // Only show filters that have items (except 'all' which always shows)
-  const availableFilters = FILTER_OPTIONS.filter(f => f === 'all' || counts[f] > 0);
+  const availableFilters = FILTER_OPTIONS.filter(f => f === 'all' || (counts[f] ?? 0) > 0);
 
   return availableFilters.map(filter => `
     <button

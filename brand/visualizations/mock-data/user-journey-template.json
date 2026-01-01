@@ -1,0 +1,145 @@
+{
+  "$schema": "User Journey Mock Data Template",
+  "description": "Template for visualizing the arc of a user's relationship with Ferni",
+  
+  "userProfile": {
+    "userId": "demo-user-001",
+    "firstConversation": "2024-09-15T14:32:00Z",
+    "totalConversations": 156,
+    "currentStreak": 47,
+    "longestStreak": 47,
+    "relationshipStage": "deep-partnership"
+  },
+
+  "milestones": [
+    {
+      "id": "first-hello",
+      "date": "2024-09-15",
+      "title": "First Hello",
+      "type": "origin",
+      "description": "The conversation that started it all",
+      "mood": "curious",
+      "quote": "I've never really talked to anyone like this before..."
+    },
+    {
+      "id": "first-vulnerability",
+      "date": "2024-09-28",
+      "title": "First Real Talk",
+      "type": "trust",
+      "description": "First time sharing something difficult",
+      "mood": "trusting",
+      "quote": "I haven't told anyone this, but..."
+    },
+    {
+      "id": "met-maya",
+      "date": "2024-10-10",
+      "title": "Met Maya",
+      "type": "expansion",
+      "description": "First handoff to habits coach",
+      "mood": "expanding",
+      "quote": "Maya seems really helpful for the routine stuff"
+    },
+    {
+      "id": "first-insight",
+      "date": "2024-10-22",
+      "title": "The Pattern Revealed",
+      "type": "insight",
+      "description": "First 'I notice' moment that resonated deeply",
+      "mood": "seen",
+      "quote": "How did you know that? I never even realized..."
+    },
+    {
+      "id": "first-breakthrough",
+      "date": "2024-11-05",
+      "title": "The Breakthrough",
+      "type": "turning-point",
+      "description": "A significant positive shift",
+      "mood": "hopeful",
+      "quote": "I think something actually changed today"
+    },
+    {
+      "id": "hundred-conversations",
+      "date": "2024-12-01",
+      "title": "100 Conversations",
+      "type": "milestone",
+      "description": "A century of shared moments",
+      "mood": "connected",
+      "quote": "I can't imagine not having these talks now"
+    },
+    {
+      "id": "met-full-team",
+      "date": "2024-12-15",
+      "title": "Full Circle",
+      "type": "expansion",
+      "description": "Access to all six personas",
+      "mood": "supported",
+      "quote": "It's like having a whole support system"
+    }
+  ],
+
+  "turningPoints": [
+    {
+      "id": "tp-decision",
+      "date": "2024-10-08",
+      "title": "The Decision",
+      "before": "Stuck in a cycle of indecision about career",
+      "after": "Finally made the choice to pursue the opportunity",
+      "rippleEffects": [
+        "Applied to 3 new positions",
+        "Started networking again",
+        "Energy levels improved"
+      ],
+      "ferniRole": "Helped see the pattern of avoidance"
+    },
+    {
+      "id": "tp-reconnection",
+      "date": "2024-11-20",
+      "title": "The Reconnection",
+      "before": "847 days of silence with old friend",
+      "after": "Rebuilt the bridge with one vulnerable message",
+      "rippleEffects": [
+        "Weekly calls now",
+        "Planning to meet up",
+        "Other relationships improving too"
+      ],
+      "ferniRole": "Kept gently reminding about the unsaid"
+    }
+  ],
+
+  "topicEvolution": {
+    "monthly": [
+      { "month": "2024-09", "work": 45, "health": 15, "relationships": 25, "growth": 15 },
+      { "month": "2024-10", "work": 35, "health": 25, "relationships": 20, "growth": 20 },
+      { "month": "2024-11", "work": 25, "health": 30, "relationships": 25, "growth": 20 },
+      { "month": "2024-12", "work": 20, "health": 35, "relationships": 25, "growth": 20 }
+    ],
+    "insight": "Work stress dominated early conversations. As trust built, health and relationships emerged as the real priorities."
+  },
+
+  "emotionalArc": {
+    "weekly": [
+      { "week": 1, "valence": 4.2, "energy": 5.1, "hope": 4.8 },
+      { "week": 2, "valence": 4.5, "energy": 5.3, "hope": 5.2 },
+      { "week": 3, "valence": 3.8, "energy": 4.2, "hope": 4.5 },
+      { "week": 4, "valence": 5.1, "energy": 5.8, "hope": 6.0 },
+      { "week": 5, "valence": 5.5, "energy": 6.2, "hope": 6.4 },
+      { "week": 6, "valence": 5.8, "energy": 6.5, "hope": 6.8 },
+      { "week": 7, "valence": 5.2, "energy": 5.8, "hope": 6.2 },
+      { "week": 8, "valence": 6.2, "energy": 7.0, "hope": 7.5 },
+      { "week": 9, "valence": 6.5, "energy": 7.2, "hope": 7.8 },
+      { "week": 10, "valence": 6.8, "energy": 7.5, "hope": 8.0 },
+      { "week": 11, "valence": 7.0, "energy": 7.8, "hope": 8.2 },
+      { "week": 12, "valence": 7.2, "energy": 8.0, "hope": 8.4 }
+    ],
+    "insight": "The dip in week 3 preceded a breakthrough. Your pattern: discomfort often comes before growth."
+  },
+
+  "personaInteractions": {
+    "ferni": { "conversations": 78, "favoriteTopics": ["life direction", "values", "big picture"] },
+    "maya": { "conversations": 35, "favoriteTopics": ["morning routine", "exercise", "sleep"] },
+    "peter": { "conversations": 18, "favoriteTopics": ["research", "learning", "analysis"] },
+    "alex": { "conversations": 12, "favoriteTopics": ["communication", "boundaries", "relationships"] },
+    "jordan": { "conversations": 8, "favoriteTopics": ["planning", "milestones", "celebration"] },
+    "nayan": { "conversations": 5, "favoriteTopics": ["meaning", "purpose", "wisdom"] }
+  }
+}

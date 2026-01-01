@@ -349,12 +349,14 @@ const PERMISSION_DISPLAY: Record<
 };
 
 // Trust badges use simple text characters (brand compliant)
-const TRUST_BADGES: Record<string, { label: string; color: string; icon: string }> = {
+const TRUST_BADGES = {
   platform: { label: 'By Ferni', color: 'var(--persona-primary)', icon: '✓' },
   verified: { label: 'Verified', color: 'var(--color-semantic-success)', icon: '✓' },
   community: { label: 'Community', color: 'var(--color-semantic-warning)', icon: '●' },
   unverified: { label: 'Review pending', color: 'var(--color-semantic-error)', icon: '○' },
-};
+} as const;
+
+const DEFAULT_TRUST_BADGE = TRUST_BADGES.community;
 
 // ============================================================================
 // STATE
@@ -453,7 +455,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
   el.setAttribute('aria-modal', 'true');
   el.setAttribute('aria-labelledby', 'consent-title');
 
-  const trustBadge = TRUST_BADGES[item.trustLevel] || TRUST_BADGES.community;
+  const trustBadge = TRUST_BADGES[item.trustLevel as keyof typeof TRUST_BADGES] ?? DEFAULT_TRUST_BADGE;
   const hasHighSensitivity = [...item.permissions.required, ...item.permissions.optional].some(
     (p) => PERMISSION_DISPLAY[getPermissionScope(p)]?.sensitivity === 'high'
   );

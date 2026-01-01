@@ -739,3 +739,202 @@ export function deindexLearningStyle(userId: string, styleId: string): void {
   });
   log.debug({ userId, id: styleId }, 'Learning style removed from index');
 }
+
+// ============================================================================
+// CURIOSITY MEMORY (Follow Through on Passing Mentions)
+// ============================================================================
+
+interface CuriosityMentionForIndex {
+  id: string;
+  entity: string;
+  entityType: 'person' | 'place' | 'event' | 'activity' | 'goal';
+  originalContext: string;
+  priority: 'low' | 'medium' | 'high';
+  followUpEligible: boolean;
+  mentionedAt?: Date | string;
+}
+
+/**
+ * Index a curiosity mention for semantic search
+ * "You mentioned Sam a few weeks ago. How are they?"
+ */
+export function indexCuriosityMention(
+  userId: string,
+  mention: CuriosityMentionForIndex,
+  changeType: ChangeType = 'update'
+): void {
+  const contentParts = [
+    `User mentioned ${mention.entity} (${mention.entityType}).`,
+    `Context: ${mention.originalContext}.`,
+    `Priority: ${mention.priority}.`,
+    mention.followUpEligible ? 'Still needs follow-up.' : 'Already followed up.',
+  ].filter(Boolean);
+
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType,
+    userId,
+    entityType: 'curiosity_mention' as EntityType,
+    entityId: mention.id,
+    content: contentParts.join(' '),
+    metadata: {
+      entityType: mention.entityType,
+      priority: mention.priority,
+      followUpEligible: mention.followUpEligible,
+      date:
+        mention.mentionedAt instanceof Date
+          ? mention.mentionedAt.toISOString()
+          : mention.mentionedAt,
+    },
+  });
+
+  log.debug(
+    { userId, entity: mention.entity, type: mention.entityType },
+    'Curiosity mention indexed'
+  );
+}
+
+/**
+ * Remove curiosity mention from semantic index (e.g., after follow-up)
+ */
+export function deindexCuriosityMention(userId: string, mentionId: string): void {
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType: 'delete',
+    userId,
+    entityType: 'curiosity_mention' as EntityType,
+    entityId: mentionId,
+    content: '',
+  });
+  log.debug({ userId, id: mentionId }, 'Curiosity mention removed from index');
+}
+
+// ============================================================================
+// BETWEEN-SESSION THINKING (Continuous Presence)
+// ============================================================================
+
+interface BetweenSessionThinkingForIndex {
+  id: string;
+  topic: string;
+  reflection: string;
+  sessionNumber: number;
+  depth: 'surface' | 'moderate' | 'deep';
+  emotionalTone?: string;
+  createdAt?: Date | string;
+}
+
+/**
+ * Index a between-session thinking moment
+ * "I've been thinking about what you said..."
+ */
+export function indexBetweenSessionThinking(
+  userId: string,
+  thinking: BetweenSessionThinkingForIndex,
+  changeType: ChangeType = 'update'
+): void {
+  const contentParts = [
+    `Between-session reflection: ${thinking.topic}.`,
+    `Ferni's thought: ${thinking.reflection}.`,
+    `Depth: ${thinking.depth}.`,
+    thinking.emotionalTone ? `Emotional tone: ${thinking.emotionalTone}.` : '',
+  ].filter(Boolean);
+
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType,
+    userId,
+    entityType: 'between_session_thinking' as EntityType,
+    entityId: thinking.id,
+    content: contentParts.join(' '),
+    metadata: {
+      depth: thinking.depth,
+      sessionNumber: thinking.sessionNumber,
+      emotionalTone: thinking.emotionalTone,
+      date:
+        thinking.createdAt instanceof Date ? thinking.createdAt.toISOString() : thinking.createdAt,
+    },
+  });
+
+  log.debug(
+    { userId, topic: thinking.topic, depth: thinking.depth },
+    'Between-session thinking indexed'
+  );
+}
+
+/**
+ * Remove between-session thinking from semantic index
+ */
+export function deindexBetweenSessionThinking(userId: string, thinkingId: string): void {
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType: 'delete',
+    userId,
+    entityType: 'between_session_thinking' as EntityType,
+    entityId: thinkingId,
+    content: '',
+  });
+  log.debug({ userId, id: thinkingId }, 'Between-session thinking removed from index');
+}
+
+// ============================================================================
+// PERSONA GROWTH (Mutual Growth)
+// ============================================================================
+
+interface PersonaGrowthForIndex {
+  id: string;
+  personaId: string;
+  growthType: 'perspective' | 'empathy' | 'knowledge' | 'curiosity' | 'values';
+  description: string;
+  userInfluence: string;
+  date?: Date | string;
+}
+
+/**
+ * Index a persona growth moment
+ * "You've changed how I think about this"
+ */
+export function indexPersonaGrowth(
+  userId: string,
+  growth: PersonaGrowthForIndex,
+  changeType: ChangeType = 'update'
+): void {
+  const contentParts = [
+    `Persona ${growth.personaId} grew: ${growth.description}.`,
+    `Growth type: ${growth.growthType}.`,
+    `User's influence: ${growth.userInfluence}.`,
+  ].filter(Boolean);
+
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType,
+    userId,
+    entityType: 'persona_growth' as EntityType,
+    entityId: growth.id,
+    content: contentParts.join(' '),
+    metadata: {
+      personaId: growth.personaId,
+      growthType: growth.growthType,
+      date: growth.date instanceof Date ? growth.date.toISOString() : growth.date,
+    },
+  });
+
+  log.debug(
+    { userId, personaId: growth.personaId, growthType: growth.growthType },
+    'Persona growth indexed'
+  );
+}
+
+/**
+ * Remove persona growth from semantic index
+ */
+export function deindexPersonaGrowth(userId: string, growthId: string): void {
+  onStoreChange({
+    storeType: 'trust' as StoreType,
+    changeType: 'delete',
+    userId,
+    entityType: 'persona_growth' as EntityType,
+    entityId: growthId,
+    content: '',
+  });
+  log.debug({ userId, id: growthId }, 'Persona growth removed from index');
+}

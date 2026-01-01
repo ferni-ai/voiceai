@@ -1021,7 +1021,10 @@ export class MusicMemoryManager {
       if (this.preferences.favoriteGenres.length > 10) {
         this.preferences.favoriteGenres = this.preferences.favoriteGenres.slice(-10);
       }
-      log.debug('Learned genre preference', { genre, totalGenres: this.preferences.favoriteGenres.length });
+      log.debug('Learned genre preference', {
+        genre,
+        totalGenres: this.preferences.favoriteGenres.length,
+      });
     }
 
     // 🎵 Record mood-music correlation (mood -> genre association)
@@ -1074,7 +1077,7 @@ export class MusicMemoryManager {
   }): void {
     const { type, category, value } = params;
     const normalizedValue = value.toLowerCase().trim();
-    
+
     if (type === 'like') {
       if (category === 'genre') {
         if (!this.preferences.favoriteGenres.includes(normalizedValue)) {
@@ -1104,7 +1107,7 @@ export class MusicMemoryManager {
       // Note: We don't track disliked genres separately, but we could remove them from favorites
       if (category === 'genre' && this.preferences.favoriteGenres.includes(normalizedValue)) {
         this.preferences.favoriteGenres = this.preferences.favoriteGenres.filter(
-          g => g !== normalizedValue
+          (g) => g !== normalizedValue
         );
       }
       log.debug('Recorded explicit dislike', { category, value });

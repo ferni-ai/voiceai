@@ -59,6 +59,12 @@ import {
 import { getOutreachOrchestrator } from '../../services/outreach/outreach-orchestrator.js';
 import { startThinkingOfYouEngine } from '../../services/outreach/thinking-of-you.js';
 
+// "Better Than Human" - Intelligent Onboarding Arc
+import {
+  initializeOnboarding,
+  isInOnboardingPeriod,
+} from '../../services/outreach/intelligent-onboarding-arc.js';
+
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
 
@@ -90,6 +96,16 @@ import {
   isOrchestratorInitialized,
   refreshToolsForContext,
 } from '../../tools/orchestrator/index.js';
+
+// Context Carrier - Maintains state across tool calls within a session (P0 Integration)
+import { getContextCarrier } from '../../tools/context-carrier.js';
+
+// Unified Memory Service - Resets session-specific memory state
+
+// Proactive Memory Surfacing - Resets proactive surfacing state
+
+// Session Lifecycle Hooks - presence tracking, correction context, outreach suppression
+import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
 
 // Session State Management (Single Source of Truth)
 import { createSessionStateManager, type SessionStateManager } from '../session/session-state.js';
@@ -247,6 +263,18 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   });
 
   // ================================================================
+  // P0 INTEGRATION: Context Carrier & Memory Session Start
+  // Initialize state tracking for this session before background loading
+  // ================================================================
+  if (userId) {
+    // Start context carrier session for tool state tracking
+    const contextCarrier = getContextCarrier();
+    contextCarrier.startSession(sessionId, userId);
+    contextCarrier.recordPersonaEngaged(sessionId, sessionPersona.id);
+    diag.session('Context carrier session started', { sessionId, userId });
+  }
+
+  // ================================================================
   // ⚡ OPTIMIZATION: BACKGROUND PROFILE LOADING (Non-blocking!)
   // These profiles enhance the experience but are NOT needed for the greeting.
   // Load them in background so user hears Ferni immediately.
@@ -258,6 +286,22 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     // They'll be ready by the time context building needs them (after first user turn)
     fireAndForget(async () => {
       await Promise.all([
+        // Session lifecycle hooks - presence tracking, correction context, outreach suppression
+        sessionLifecycle
+          .onStart(userId, sessionId, sessionPersona.id, 'voice')
+          .then((result) => {
+            diag.session('Session lifecycle started', {
+              userId,
+              sessionId,
+              personaId: sessionPersona.id,
+              hasCorrectionContext: result.correctionContext.length > 0,
+              recommendedPersona: result.recommendedPersona,
+            });
+          })
+          .catch((lifecycleErr) =>
+            diag.warn('Session lifecycle start failed (non-fatal)', { error: String(lifecycleErr) })
+          ),
+
         // Trust profiles
         loadTrustProfiles(userId)
           .then(() => diag.session('Trust profiles loaded for user', { userId }))
@@ -325,6 +369,104 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             error: String(bthErr),
           })
         ),
+
+        // 🧠 MEMORY ENHANCEMENT: Load between-session thinking records
+        // "I've been thinking about what you said..." - Continuous Presence
+        (async () => {
+          try {
+            const {
+              incrementSessionCount,
+              loadThinkingRecords,
+              loadTonalProfile,
+              startSessionTexture,
+              loadTextureProfile,
+            } = await import('../../services/trust-systems/index.js');
+            const { loadCuriosityProfile, loadPersonaGrowthProfile } =
+              await import('../../services/trust-systems/index.js');
+            const { loadUnifiedProfile } =
+              await import('../../services/trust-systems/unified-persistence.js');
+
+            // Load unified profile first (includes all trust systems)
+            const unifiedProfile = await loadUnifiedProfile(userId);
+
+            if (unifiedProfile) {
+              // Hydrate individual systems from unified profile
+              if (unifiedProfile.systems.betweenSessionThinking) {
+                const records = unifiedProfile.systems.betweenSessionThinking as Array<{
+                  id: string;
+                  userId: string;
+                  personaId: string;
+                  topic: string;
+                  userQuote?: string;
+                  context: string;
+                  emotionalWeight: 'light' | 'medium' | 'heavy';
+                  thinkingType:
+                    | 'mulling'
+                    | 'connecting'
+                    | 'realizing'
+                    | 'questioning'
+                    | 'remembering'
+                    | 'concerned';
+                  createdAt: Date;
+                  surfacedAt?: Date;
+                  sessionsSince: number;
+                  sourceSessionId: string;
+                }>;
+                loadThinkingRecords(userId, records);
+              }
+              if (unifiedProfile.systems.tonalMemory) {
+                loadTonalProfile(
+                  userId,
+                  unifiedProfile.systems.tonalMemory as Parameters<typeof loadTonalProfile>[1]
+                );
+              }
+              if (unifiedProfile.systems.curiosityMemory) {
+                loadCuriosityProfile(
+                  userId,
+                  unifiedProfile.systems.curiosityMemory as Parameters<
+                    typeof loadCuriosityProfile
+                  >[1]
+                );
+              }
+              if (unifiedProfile.systems.personaGrowth) {
+                const growthData = unifiedProfile.systems.personaGrowth as Record<string, unknown>;
+                if (growthData[sessionPersona.id]) {
+                  loadPersonaGrowthProfile(
+                    userId,
+                    sessionPersona.id,
+                    growthData[sessionPersona.id] as Parameters<typeof loadPersonaGrowthProfile>[2]
+                  );
+                }
+              }
+              // Load conversation texture profile for this persona
+              if (unifiedProfile.systems.conversationTexture) {
+                const textureData = unifiedProfile.systems.conversationTexture as Record<
+                  string,
+                  unknown
+                >;
+                if (textureData[sessionPersona.id]) {
+                  loadTextureProfile(
+                    userId,
+                    sessionPersona.id,
+                    textureData[sessionPersona.id] as Parameters<typeof loadTextureProfile>[2]
+                  );
+                }
+              }
+            }
+
+            // Start tracking conversation texture for this session
+            startSessionTexture(userId, sessionPersona.id, sessionId);
+
+            // Increment session counter for between-session thinking
+            incrementSessionCount(userId);
+
+            diag.session('🧠 Memory enhancement profiles loaded', { userId });
+          } catch (memoryErr) {
+            diag.warn('Memory enhancement load failed (non-fatal)', {
+              error: String(memoryErr),
+            });
+          }
+        })(),
 
         // Predictive Intelligence - initialize pattern tracking for predictions
         (async () => {
@@ -591,6 +733,33 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   // Fire and forget the promise (don't block)
   void trialStatusPromise;
+
+  // ================================================================
+  // INITIALIZE INTELLIGENT ONBOARDING ARC (Better Than Human)
+  // Auto-initializes for new users, persists to Firestore, generates
+  // personalized check-ins during the first 14 days.
+  // ================================================================
+  if (userId) {
+    fireAndForget(async () => {
+      try {
+        // Initialize onboarding for new users
+        if (!isReturningUser) {
+          await initializeOnboarding(userId, {
+            name: userName || services.userProfile?.name,
+          });
+          diag.session('Onboarding arc initialized for new user', { userId });
+        } else {
+          // For returning users, check if they're in onboarding period
+          const inOnboarding = await isInOnboardingPeriod(userId);
+          if (inOnboarding) {
+            diag.session('User in onboarding period', { userId });
+          }
+        }
+      } catch (err) {
+        diag.warn('Onboarding initialization failed (non-fatal)', { error: String(err) });
+      }
+    }, 'session-init:onboarding-init');
+  }
 
   // ================================================================
   // INITIALIZE CONVERSATION STATE

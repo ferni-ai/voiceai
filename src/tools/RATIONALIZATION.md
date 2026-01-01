@@ -195,13 +195,89 @@ Root files that have been moved but retain re-export shims:
 
 ---
 
-## Future Consolidation Candidates
+## Completed: December 31, 2024 Audit
 
-These root-level files could still be moved:
+### 7. Dynamic Loader Module (`dynamic-loader/`)
 
-| File | Lines | Suggested Location | Purpose |
-|------|-------|-------------------|---------|
-| `team-integration.ts` | 815 | `handoff/` | Team routing |
+**Before:**
+- `dynamic-loader.ts` (root) - 832 lines, monolithic
+
+**After:**
+- `dynamic-loader/types.ts` - Type definitions
+- `dynamic-loader/topic-mappings.ts` - 150+ topic→domain mappings
+- `dynamic-loader/index.ts` - DynamicToolLoader class
+
+**Usage:**
+```typescript
+// NEW (recommended)
+import { dynamicToolLoader, TOPIC_TO_DOMAINS } from './dynamic-loader/index.js';
+
+// OLD (deprecated - re-export shim)
+import { dynamicToolLoader } from './dynamic-loader.js';
+```
+
+---
+
+### 8. Team Coordination Module (`handoff/team-coordination/`)
+
+**Before:**
+- `team-integration.ts` (root) - 814 lines, mixed concerns
+
+**After:**
+- `handoff/team-coordination/types.ts` - Types + team member capabilities
+- `handoff/team-coordination/helpers.ts` - Validation + utilities  
+- `handoff/team-coordination/core.ts` - Core coordination functions
+- `handoff/team-coordination/tools.ts` - LLM tool definitions
+- `handoff/team-coordination/index.ts` - Re-exports
+
+**Usage:**
+```typescript
+// NEW (recommended)
+import { createTeamIntegrationTools, TEAM_CAPABILITIES } from './handoff/team-coordination/index.js';
+
+// OLD (deprecated - re-export shim)
+import { createTeamIntegrationTools } from './team-integration.js';
+```
+
+---
+
+### 9. Deleted Deprecated Files
+
+| File | Status | Reason |
+|------|--------|--------|
+| `gamification.ts` | ✅ Deleted | Moved to `domains/habits/gamification-v2.ts` |
+| `persona-memory-tools.ts` | ✅ Deleted | Moved to `domains/memory/persona-tools.ts` |
+
+---
+
+### 10. Semantic Router Cleanup
+
+Deleted stale pointer files (docs moved to `docs/architecture/`):
+- ✅ `semantic-router/CRITICAL-AUDIT.md`
+- ✅ `semantic-router/CRITICAL-PATH-AUDIT.md`
+- ✅ `semantic-router/SEMANTIC-ROUTING-AUDIT.md`
+- ✅ `semantic-router/STATE-OF-THE-ART-AUDIT.md`
+- ✅ `semantic-router/DOMAIN-BRIDGE-SCALING-PLAN.md`
+- ✅ `semantic-router/PERSISTENCE-GAPS.md`
+
+---
+
+### 11. Domain Consolidation Documentation
+
+Created `docs/architecture/DOMAIN-CONSOLIDATION-OPPORTUNITIES.md` documenting:
+- Already consolidated domains
+- Future consolidation candidates
+- Why certain domains remain separate
+
+---
+
+## Already Existed (Verified Working)
+
+These systems were already in place:
+- **Tool pruning** (`maxTools: 50` in `data/model-config.json`)
+- **Tool analytics** (`src/services/analytics/tool-usage-analytics.ts`)
+- **Optimization tests** (`src/tests/optimization-system.test.ts` - 586 lines)
+- **Persistence** (Firestore + Redis, per `docs/architecture/SEMANTIC-ROUTER.md`)
 
 ---
 
@@ -242,5 +318,5 @@ pnpm vitest run src/tools/__tests__/
 
 ---
 
-*Last updated: December 2024*
+*Last updated: December 31, 2024*
 

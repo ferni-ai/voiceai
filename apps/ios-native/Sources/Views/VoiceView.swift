@@ -551,7 +551,7 @@ struct VoiceView: View {
         }
     }
 
-    private func microExpressionType(from value: String) -> MicroExpressionType? {
+    private func microExpressionType(from value: String) -> FerniShared.MicroExpressionType? {
         switch value.lowercased() {
         case "recognition": return .recognition
         case "concern": return .concern
@@ -562,7 +562,7 @@ struct VoiceView: View {
         }
     }
 
-    private func concernLevel(from value: String) -> ConcernLevel {
+    private func concernLevel(from value: String) -> FerniShared.ConcernLevel {
         switch value.lowercased() {
         case "mild": return .mild
         case "moderate": return .moderate

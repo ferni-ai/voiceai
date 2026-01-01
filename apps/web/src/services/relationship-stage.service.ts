@@ -429,10 +429,13 @@ function isComeback(lastConversation: number | null): boolean {
  * This ensures the subtitle stays consistent within a day
  */
 function pickDailyRandom<T>(items: T[]): T {
+  if (items.length === 0) {
+    throw new Error('pickDailyRandom called with empty array');
+  }
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
   );
-  return items[dayOfYear % items.length];
+  return items[dayOfYear % items.length]!;
 }
 
 // ============================================================================
@@ -785,7 +788,8 @@ class RelationshipStageService {
    */
   getRelationshipComment(): string {
     const comments = RELATIONSHIP_COMMENTS[this.data.stage];
-    return comments[Math.floor(Math.random() * comments.length)];
+    if (!comments || comments.length === 0) return "We're building something special.";
+    return comments[Math.floor(Math.random() * comments.length)]!;
   }
 
   /**
@@ -898,7 +902,13 @@ class RelationshipStageService {
     }
 
     const nextStage = stageOrder[currentIndex + 1];
+    if (!nextStage) {
+      return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
+    }
     const threshold = STAGE_THRESHOLDS[nextStage];
+    if (!threshold) {
+      return { nextStage, progress: 0, requirement: 'Keep connecting!' };
+    }
     const metrics = this.data.metrics;
 
     // Calculate progress as average of all requirements

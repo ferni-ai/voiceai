@@ -153,7 +153,7 @@ export class DJBooth {
   private conversationStartTime: number = Date.now();
   private recentTopics: string[] = [];
   private lastSpontaneousCheck = 0;
-  
+
   // 🎵 Track current emotional context for mood-music learning
   private currentEmotionalContext: string | undefined;
 
@@ -570,11 +570,11 @@ export class DJBooth {
   /**
    * 🎵 Record explicit music preference from conversation
    * Call this when user says things like "I love jazz" or "I don't like country music"
-   * 
+   *
    * @example
    * // User says "I really love jazz"
    * djBooth.recordExplicitPreference({ type: 'like', category: 'genre', value: 'Jazz' });
-   * 
+   *
    * // User says "I'm not a fan of Taylor Swift"
    * djBooth.recordExplicitPreference({ type: 'dislike', category: 'artist', value: 'Taylor Swift' });
    */
@@ -592,8 +592,10 @@ export class DJBooth {
    * For when users ask "What music do you remember I like?"
    */
   getMusicPreferencesSummary(): string {
-    return this.djEnhancements?.getPreferencesSummary() ?? 
-      "I haven't learned your music preferences yet. Play some music and I'll start learning what you like!";
+    return (
+      this.djEnhancements?.getPreferencesSummary() ??
+      "I haven't learned your music preferences yet. Play some music and I'll start learning what you like!"
+    );
   }
 
   // ==========================================================================

@@ -704,7 +704,7 @@ export async function openTaskMode(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this assistant");
     return;
   }
@@ -808,7 +808,7 @@ function handleNext(): void {
     if (template) {
       const missingRequired = template.inputs.find(i => i.required && !taskData.inputs[i.id]);
       if (missingRequired) {
-        import('./toast.ui.js').then(({ toast }) => {
+        import('./whisper.ui.js').then(({ toast }) => {
           toast.warning(t('toasts.pleaseFillInMissingrequiredlabel'));
         });
         return;

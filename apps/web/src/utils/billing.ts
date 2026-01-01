@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from './logger.js';
-import { toast } from '../ui/toast.ui.js';
+import { toast } from '../ui/whisper.ui.js';
 
 const log = createLogger('Billing');
 

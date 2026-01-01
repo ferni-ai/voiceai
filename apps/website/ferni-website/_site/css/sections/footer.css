@@ -107,7 +107,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--color-text-muted, #8a7d73);
+  /* WCAG AA: #756A5E on #fffdfb = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, #756A5E);
   margin: 0 0 clamp(4px, 0.8vw, 8px);
 }
 
@@ -115,7 +116,8 @@
   display: block;
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(0.875rem, 1.2vw, 0.9375rem);
-  color: var(--color-text-secondary, #5c524a);
+  /* WCAG AA: #5C544A on #fffdfb = 5.6:1 contrast ratio */
+  color: var(--color-text-secondary, #5C544A);
   text-decoration: none;
   padding: 4px 0;
   transition: color var(--duration-fast, 150ms);
@@ -154,7 +156,8 @@
 .footer__motto {
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(0.8125rem, 1.1vw, 0.875rem);
-  color: var(--color-text-muted, #8a7d73);
+  /* WCAG AA: #756A5E on #fffdfb = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, #756A5E);
   font-style: italic;
   padding-left: clamp(8px, 1.2vw, 12px);
   border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.12));
@@ -170,7 +173,8 @@
 
 .footer__legal span,
 .footer__legal a {
-  color: var(--color-text-muted, #8a7d73);
+  /* WCAG AA: #756A5E on #fffdfb = 4.7:1 contrast ratio */
+  color: var(--color-text-muted, #756A5E);
   text-decoration: none;
   transition: color var(--duration-fast, 150ms);
 }
@@ -363,6 +367,25 @@
   text-decoration: none;
 }
 
+/* Footer avatar with Ferni eyes - MUST have fixed size to constrain SVG */
+.footer-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, var(--color-accent, #4a6741) 0%, var(--color-accent-dark, #3d5a35) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+}
+
+.footer-avatar .ferni-eyes-svg {
+  width: 28px;
+  height: 28px;
+}
+
 .footer-tagline {
   font-family: var(--font-body);
   font-size: var(--text-base, 1rem);
@@ -427,6 +450,163 @@
   font-family: var(--font-body);
   font-size: var(--text-sm, 0.875rem);
   color: var(--color-text-dimmed);
+}
+
+/* ============================================================================
+   MEET YOUR TEAM SECTION
+   Shows the 6 AI personas with their brand colors
+   ============================================================================ */
+
+.footer-team {
+  text-align: center;
+  padding: clamp(48px, 8vw, 80px) 0 clamp(40px, 6vw, 60px);
+  border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+}
+
+.footer-team__title {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 800;
+  color: var(--color-text-primary, #2c2520);
+  margin: 0 0 clamp(6px, 1vw, 10px);
+  letter-spacing: -0.02em;
+}
+
+.footer-team__subtitle {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.875rem, 1.2vw, 1rem);
+  color: var(--color-text-secondary, #5c524a);
+  margin: 0 0 clamp(28px, 4vw, 40px);
+}
+
+.footer-team__avatars {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(16px, 3vw, 32px);
+  flex-wrap: wrap;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.team-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: transform var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.team-avatar:hover {
+  transform: translateY(-4px);
+}
+
+.team-avatar__orb {
+  width: clamp(52px, 8vw, 64px);
+  height: clamp(52px, 8vw, 64px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: box-shadow var(--duration-fast, 150ms), transform var(--duration-fast, 150ms);
+}
+
+.team-avatar:hover .team-avatar__orb {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+/* Outer ring animation on hover */
+.team-avatar__orb::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  transition: opacity var(--duration-fast, 150ms), transform var(--duration-fast, 150ms);
+  transform: scale(0.9);
+}
+
+.team-avatar:hover .team-avatar__orb::before {
+  opacity: 0.3;
+  transform: scale(1);
+}
+
+.team-avatar__orb .ferni-eyes-svg {
+  width: clamp(32px, 5vw, 40px);
+  height: clamp(32px, 5vw, 40px);
+}
+
+.team-avatar__name {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(0.8125rem, 1.1vw, 0.9375rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #2c2520);
+  letter-spacing: -0.01em;
+}
+
+.team-avatar__role {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: clamp(0.6875rem, 0.9vw, 0.75rem);
+  color: var(--color-text-muted, #756A5E);
+  margin-top: -4px;
+}
+
+/* Brand colors for each persona orb */
+.team-avatar--ferni .team-avatar__orb {
+  background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%);
+  color: #4a6741;
+  box-shadow: 0 4px 16px rgba(74, 103, 65, 0.25);
+}
+
+.team-avatar--maya .team-avatar__orb {
+  background: linear-gradient(135deg, #a67a6a 0%, #8c6355 100%);
+  color: #a67a6a;
+  box-shadow: 0 4px 16px rgba(166, 122, 106, 0.25);
+}
+
+.team-avatar--peter .team-avatar__orb {
+  background: linear-gradient(135deg, #3a6b73 0%, #2d545b 100%);
+  color: #3a6b73;
+  box-shadow: 0 4px 16px rgba(58, 107, 115, 0.25);
+}
+
+.team-avatar--jordan .team-avatar__orb {
+  background: linear-gradient(135deg, #c4856a 0%, #a86c53 100%);
+  color: #c4856a;
+  box-shadow: 0 4px 16px rgba(196, 133, 106, 0.25);
+}
+
+.team-avatar--alex .team-avatar__orb {
+  background: linear-gradient(135deg, #5a6b8a 0%, #47556e 100%);
+  color: #5a6b8a;
+  box-shadow: 0 4px 16px rgba(90, 107, 138, 0.25);
+}
+
+.team-avatar--nayan .team-avatar__orb {
+  background: linear-gradient(135deg, #b8956a 0%, #9c7d55 100%);
+  color: #b8956a;
+  box-shadow: 0 4px 16px rgba(184, 149, 106, 0.25);
+}
+
+/* Team avatars mobile responsiveness */
+@media (max-width: 600px) {
+  .footer-team__avatars {
+    gap: clamp(12px, 4vw, 20px);
+  }
+
+  .team-avatar__orb {
+    width: clamp(44px, 12vw, 56px);
+    height: clamp(44px, 12vw, 56px);
+  }
+
+  .team-avatar__orb .ferni-eyes-svg {
+    width: clamp(26px, 7vw, 34px);
+    height: clamp(26px, 7vw, 34px);
+  }
 }
 
 /* ============================================================================
@@ -508,6 +688,27 @@
   
   .footer-bottom {
     border-top-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-dark-text-muted, #ddd6cc);
+  }
+
+  /* Team section dark mode */
+  .footer-team {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-team__title {
+    color: var(--color-bg-primary, #fffdfb);
+  }
+
+  .footer-team__subtitle {
+    color: var(--color-dark-text-secondary, #f0ebe4);
+  }
+
+  .team-avatar__name {
+    color: var(--color-bg-primary, #fffdfb);
+  }
+
+  .team-avatar__role {
     color: var(--color-dark-text-muted, #ddd6cc);
   }
 }

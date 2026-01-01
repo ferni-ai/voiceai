@@ -13,6 +13,7 @@ import type { PersonaId } from '../../personas/types.js';
 import type { ThreadMessage, EngagementChannel } from './types.js';
 import {
   getOrCreateThread,
+  getThread,
   addMessage,
   getActiveThread,
   updateThreadTopics,
@@ -72,12 +73,22 @@ export async function initializeThreadRecording(
   try {
     // Check for existing thread from options
     if (options?.existingThreadId) {
-      sessionThreads.set(sessionId, options.existingThreadId);
-      log.info(
-        { sessionId, threadId: options.existingThreadId },
-        '🧵 Thread recording initialized (existing thread)'
-      );
-      return { threadId: options.existingThreadId, isNew: false };
+      // Verify the thread actually exists before using it
+      const existingThread = await getThread(options.existingThreadId);
+      if (existingThread) {
+        sessionThreads.set(sessionId, options.existingThreadId);
+        log.info(
+          { sessionId, threadId: options.existingThreadId },
+          '🧵 Thread recording initialized (existing thread)'
+        );
+        return { threadId: options.existingThreadId, isNew: false };
+      } else {
+        log.debug(
+          { sessionId, threadId: options.existingThreadId },
+          '🧵 Existing thread not found in index, will create new one'
+        );
+        // Fall through to create a new thread
+      }
     }
 
     // Get or create thread

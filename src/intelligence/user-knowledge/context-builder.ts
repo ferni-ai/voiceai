@@ -259,14 +259,22 @@ function buildAspirationsSection(
   // Dreams
   const activeDreams = aspirations.dreams.filter((d) => d.status === 'active');
   if (activeDreams.length > 0) {
-    parts.push(`🌟 Dreams: ${activeDreams.slice(0, 3).map((d) => d.description).join('; ')}`);
+    parts.push(
+      `🌟 Dreams: ${activeDreams
+        .slice(0, 3)
+        .map((d) => d.description)
+        .join('; ')}`
+    );
   }
 
   // Pending commitments
   const pendingCommitments = aspirations.commitments.filter((c) => c.status === 'pending');
   if (pendingCommitments.length > 0) {
     parts.push(
-      `📋 Commitments: ${pendingCommitments.slice(0, 3).map((c) => c.description).join('; ')}`
+      `📋 Commitments: ${pendingCommitments
+        .slice(0, 3)
+        .map((c) => c.description)
+        .join('; ')}`
     );
   }
 
@@ -274,7 +282,10 @@ function buildAspirationsSection(
   const overdueCommitments = aspirations.commitments.filter((c) => c.status === 'overdue');
   if (overdueCommitments.length > 0) {
     parts.push(
-      `⚠️ OVERDUE: ${overdueCommitments.slice(0, 2).map((c) => c.description).join('; ')}`
+      `⚠️ OVERDUE: ${overdueCommitments
+        .slice(0, 2)
+        .map((c) => c.description)
+        .join('; ')}`
     );
   }
 
@@ -371,7 +382,10 @@ function buildSharedHistorySection(
   const unresolvedLoops = sharedHistory.openLoops.filter((l) => !l.resolved);
   if (unresolvedLoops.length > 0) {
     parts.push(
-      `🔄 Follow up on: ${unresolvedLoops.slice(0, 2).map((l) => l.topic).join(', ')}`
+      `🔄 Follow up on: ${unresolvedLoops
+        .slice(0, 2)
+        .map((l) => l.topic)
+        .join(', ')}`
     );
   }
 

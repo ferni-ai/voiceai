@@ -83,7 +83,7 @@ const STYLES = `
     justify-content: space-between;
     padding: var(--space-4) var(--space-5);
     border-bottom: 1px solid var(--color-border);
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), transparent);
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), transparent);
   }
 
   .roleplay-mode-title {
@@ -541,7 +541,7 @@ export async function openRoleplayMode(agentId: string): Promise<void> {
   currentAgent = await getCustomAgent(agentId);
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't find this character");
     return;
   }

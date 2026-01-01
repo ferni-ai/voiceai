@@ -1921,7 +1921,9 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
   };
 
   // Pad to start on correct day
-  const firstDate = new Date(calendar[0].date);
+  const firstEntry = calendar[0];
+  if (!firstEntry) return '';
+  const firstDate = new Date(firstEntry.date);
   const startPadding = firstDate.getDay();
   const paddedCalendar = Array(startPadding).fill(null).concat(calendar);
 

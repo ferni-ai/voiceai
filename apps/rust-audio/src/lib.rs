@@ -1283,6 +1283,10 @@ pub struct NativePostTTSConfig {
     /// Tempo variation depth (0-1, default: 0.03)
     /// How much the tempo can vary (3% typical for natural speech)
     pub tempo_variation_depth: Option<f64>,
+
+    /// Enable onset softening (micro-fades on hard glottal attacks)
+    /// Reduces harsh vowel-initial sounds for more natural speech
+    pub enable_onset_softening: Option<bool>,
 }
 
 impl NativePostTTSConfig {
@@ -1359,6 +1363,7 @@ impl NativePostTTSConfig {
         if let Some(v) = self.lip_smack_probability { config.lip_smack_probability = v as f32; }
         if let Some(v) = self.enable_tempo_variation { config.enable_tempo_variation = v; }
         if let Some(v) = self.tempo_variation_depth { config.tempo_variation_depth = v as f32; }
+        if let Some(v) = self.enable_onset_softening { config.enable_onset_softening = v; }
 
         config
     }

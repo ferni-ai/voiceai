@@ -201,9 +201,8 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
               // Fire-and-forget: speak the result via safeGenerateReply
               fireAndForget(async () => {
                 try {
-                  const { safeGenerateReply, formatToolResult } = await import(
-                    '../shared/safe-generate-reply.js'
-                  );
+                  const { safeGenerateReply, formatToolResult } =
+                    await import('../shared/safe-generate-reply.js');
 
                   // Format the tool result with behavioral instructions
                   const instructions = formatToolResult(toolName, resultToSpeak);

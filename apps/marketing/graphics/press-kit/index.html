@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Press Kit - Ferni</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="../../../../brand/master-tokens.css">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    .press-header {
+      padding: 80px 0 60px;
+      text-align: center;
+      background: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .press-header h1 {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .press-header p {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Section */
+    .section {
+      padding: 60px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .section:last-child {
+      border-bottom: none;
+    }
+
+    .section h2 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .section p {
+      color: var(--color-text-secondary);
+      margin-bottom: 24px;
+    }
+
+    /* Asset Grid */
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 24px;
+    }
+
+    .asset-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .asset-card:hover {
+      border-color: var(--color-accent);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      transform: translateY(-4px);
+    }
+
+    .asset-preview {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .asset-preview svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .asset-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .asset-card span {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* Color Grid */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+    }
+
+    .color-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .color-swatch {
+      height: 80px;
+    }
+
+    .color-info {
+      padding: 12px;
+    }
+
+    .color-info h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .color-info code {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      font-family: monospace;
+    }
+
+    /* Typography Sample */
+    .type-sample {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    .type-sample h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+
+    .type-display {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .type-body {
+      font-family: var(--font-body);
+      font-size: 18px;
+      color: var(--color-text-secondary);
+    }
+
+    /* Team Grid */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .team-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .team-member {
+      text-align: center;
+    }
+
+    .team-member svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 8px;
+    }
+
+    .team-member h4 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .team-member span {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* Download Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--color-border-default);
+      color: var(--color-text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    /* Guidelines */
+    .guidelines {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .guidelines {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .guideline-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .guideline-card h4 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .guideline-card.do h4 {
+      color: #22c55e;
+    }
+
+    .guideline-card.dont h4 {
+      color: #ef4444;
+    }
+
+    .guideline-card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .guideline-card li {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      padding: 6px 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .guideline-card li:last-child {
+      border-bottom: none;
+    }
+
+    /* Footer */
+    .press-footer {
+      padding: 60px 0;
+      text-align: center;
+      background: var(--color-bg-secondary);
+    }
+
+    .press-footer h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .press-footer p {
+      color: var(--color-text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .press-footer a {
+      color: var(--color-accent);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="press-header">
+    <div class="container">
+      <h1>Ferni Press Kit</h1>
+      <p>Official brand assets for media coverage, partnerships, and promotional use.</p>
+    </div>
+  </header>
+
+  <!-- Logo Section -->
+  <section class="section">
+    <div class="container">
+      <h2>Logo & Avatar</h2>
+      <p>The Ferni avatar is our primary brand mark—a simple, warm character with LUXO-style eyes (opaque white, no pupils).</p>
+
+      <div class="asset-grid">
+        <div class="asset-card">
+          <div class="asset-preview">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="#4A6741"/>
+              <ellipse cx="36" cy="48" rx="8" ry="10" fill="white"/>
+              <ellipse cx="64" cy="48" rx="8" ry="10" fill="white"/>
+            </svg>
+          </div>
+          <h3>Ferni Logo</h3>
+          <span>SVG, PNG (256, 512, 1024)</span>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-preview" style="flex-direction: row; gap: 4px;">
+            <svg viewBox="0 0 100 100" style="width: 36px; height: 36px;">
+              <circle cx="50" cy="50" r="46" fill="#4A6741"/>
+              <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+              <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+            </svg>
+            <span style="font-family: var(--font-display); font-size: 24px; font-weight: 700;">Ferni</span>
+          </div>
+          <h3>Lockup Horizontal</h3>
+          <span>SVG</span>
+        </div>
+
+        <div class="asset-card">
+          <div class="asset-preview" style="font-family: var(--font-display); font-size: 32px; font-weight: 700;">
+            Ferni
+          </div>
+          <h3>Wordmark</h3>
+          <span>SVG (Light & Dark)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team Avatars -->
+  <section class="section">
+    <div class="container">
+      <h2>Meet the Team</h2>
+      <p>Six AI specialists, each with a unique personality and area of expertise.</p>
+
+      <div class="team-grid">
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#4A6741"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Ferni</h4>
+          <span>The Coordinator</span>
+        </div>
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#A67A6A"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Maya</h4>
+          <span>Habits Coach</span>
+        </div>
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#3A6B73"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Peter</h4>
+          <span>The Quant</span>
+        </div>
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#C4856A"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Jordan</h4>
+          <span>Life Planner</span>
+        </div>
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#5A6B8A"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Alex</h4>
+          <span>Chief of Staff</span>
+        </div>
+        <div class="team-member">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="#B8956A"/>
+            <ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/>
+            <ellipse cx="64" cy="48" rx="7" ry="9" fill="white"/>
+          </svg>
+          <h4>Nayan</h4>
+          <span>The Sage</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Colors -->
+  <section class="section">
+    <div class="container">
+      <h2>Brand Colors</h2>
+      <p>Our warm, natural palette inspired by organic materials.</p>
+
+      <h3 style="font-size: 16px; font-weight: 600; margin: 24px 0 16px;">Primary Palette</h3>
+      <div class="color-grid">
+        <div class="color-card">
+          <div class="color-swatch" style="background: #FAF8F5;"></div>
+          <div class="color-info">
+            <h4>Warm White</h4>
+            <code>#FAF8F5</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #2C2520;"></div>
+          <div class="color-info">
+            <h4>Natural Ink</h4>
+            <code>#2C2520</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #3D5A45;"></div>
+          <div class="color-info">
+            <h4>Accent Green</h4>
+            <code>#3D5A45</code>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 600; margin: 32px 0 16px;">Persona Colors</h3>
+      <div class="color-grid">
+        <div class="color-card">
+          <div class="color-swatch" style="background: #4A6741;"></div>
+          <div class="color-info">
+            <h4>Ferni</h4>
+            <code>#4A6741</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #A67A6A;"></div>
+          <div class="color-info">
+            <h4>Maya</h4>
+            <code>#A67A6A</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #3A6B73;"></div>
+          <div class="color-info">
+            <h4>Peter</h4>
+            <code>#3A6B73</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #C4856A;"></div>
+          <div class="color-info">
+            <h4>Jordan</h4>
+            <code>#C4856A</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #5A6B8A;"></div>
+          <div class="color-info">
+            <h4>Alex</h4>
+            <code>#5A6B8A</code>
+          </div>
+        </div>
+        <div class="color-card">
+          <div class="color-swatch" style="background: #B8956A;"></div>
+          <div class="color-info">
+            <h4>Nayan</h4>
+            <code>#B8956A</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Typography -->
+  <section class="section">
+    <div class="container">
+      <h2>Typography</h2>
+
+      <div class="type-sample">
+        <h3>Display Font: Plus Jakarta Sans</h3>
+        <div class="type-display">Better than human.</div>
+        <div class="type-body">Used for headlines, titles, and display text. Weights: Bold (700), Extrabold (800).</div>
+      </div>
+
+      <div class="type-sample">
+        <h3>Body Font: Inter</h3>
+        <div class="type-body" style="font-size: 24px; margin-bottom: 8px;">The quick brown fox jumps over the lazy dog.</div>
+        <div class="type-body">Used for body text, UI elements, and captions. Weights: Regular (400), Medium (500), Semibold (600).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guidelines -->
+  <section class="section">
+    <div class="container">
+      <h2>Usage Guidelines</h2>
+
+      <div class="guidelines">
+        <div class="guideline-card do">
+          <h4>✓ Do</h4>
+          <ul>
+            <li>Use official logo files—don't recreate</li>
+            <li>Maintain minimum clear space (1× logo height)</li>
+            <li>Use persona colors correctly for each character</li>
+            <li>Maintain LUXO-style eyes (opaque white, no pupils)</li>
+            <li>Use approved background colors</li>
+          </ul>
+        </div>
+        <div class="guideline-card dont">
+          <h4>✗ Don't</h4>
+          <ul>
+            <li>Add pupils or alter avatar eyes</li>
+            <li>Stretch or distort logos</li>
+            <li>Use unapproved colors</li>
+            <li>Place on busy backgrounds without sufficient contrast</li>
+            <li>Modify the wordmark typography</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <footer class="press-footer">
+    <div class="container">
+      <h3>Need something else?</h3>
+      <p>Contact us for additional assets or custom requests.</p>
+      <a href="mailto:press@ferni.ai" class="btn">press@ferni.ai</a>
+    </div>
+  </footer>
+
+</body>
+</html>

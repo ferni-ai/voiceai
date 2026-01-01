@@ -1,3 +1,4 @@
+// TODO: Fix type errors - array indexing for insights
 /**
  * Team Insights UI
  *
@@ -20,7 +21,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('TeamInsightsUI');
@@ -97,7 +98,12 @@ const ICONS = {
 };
 
 // Persona-specific icons/colors
-const PERSONA_STYLES: Record<string, { color: string; icon: string }> = {
+const DEFAULT_STYLE = {
+  color: 'var(--persona-ferni, #4a6741)',
+  icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`,
+};
+
+const PERSONA_STYLES: Record<string, typeof DEFAULT_STYLE> = {
   peter: {
     color: 'var(--persona-peter, #3a6b73)',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>`,
@@ -479,19 +485,19 @@ function createPanel(): HTMLElement {
           <!-- Capabilities Preview -->
           <div class="team-insights-empty__capabilities">
             <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.peter.icon}</span>
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.peter?.icon ?? DEFAULT_STYLE.icon}</span>
               Pattern spotting
             </div>
             <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.maya.icon}</span>
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.maya?.icon ?? DEFAULT_STYLE.icon}</span>
               Habit tracking
             </div>
             <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.jordan.icon}</span>
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.jordan?.icon ?? DEFAULT_STYLE.icon}</span>
               Goal progress
             </div>
             <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.nayan.icon}</span>
+              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.nayan?.icon ?? DEFAULT_STYLE.icon}</span>
               Wisdom moments
             </div>
           </div>
@@ -560,7 +566,7 @@ function renderInsightsList(): void {
   listEl.style.display = 'flex';
   listEl.innerHTML = state.insights
     .map((insight) => {
-      const style = PERSONA_STYLES[insight.source] || PERSONA_STYLES.system;
+      const style = PERSONA_STYLES[insight.source] ?? DEFAULT_STYLE;
       const priorityClass = insight.priority === 'high' || insight.priority === 'critical' 
         ? 'insight-high-priority' 
         : '';
@@ -707,7 +713,9 @@ export async function checkForNewInsights(): Promise<void> {
 
       // Show notification for the most important one
       const mostImportant = newHighPriority[0];
-      showInsightNotification(mostImportant);
+      if (mostImportant) {
+        showInsightNotification(mostImportant);
+      }
     }
 
     state.insights = data.insights;

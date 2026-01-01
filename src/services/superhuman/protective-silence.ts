@@ -110,7 +110,8 @@ export async function recordBoundary(
         situation: `Topic: ${boundary.topic} (${boundary.category})`,
         whatWeDidntSay: boundary.triggerKeywords.join(', '),
         whyWeHeld: boundary.reason || `This is a ${boundary.severity} boundary`,
-        userState: boundary.source === 'detected_reaction' ? 'showed discomfort' : 'stated boundary',
+        userState:
+          boundary.source === 'detected_reaction' ? 'showed discomfort' : 'stated boundary',
         outcome: boundary.safeAlternatives?.length
           ? `Can redirect to: ${boundary.safeAlternatives.join(', ')}`
           : undefined,

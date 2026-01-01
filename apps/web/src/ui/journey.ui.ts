@@ -40,7 +40,7 @@ import { JOURNEY_ICONS } from './icons/journey-icons.js';
 import { injectJourneyStyles } from './journey/styles.js';
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 import { fetchJourneyData, loadFromCache } from './trust-journey/data.js';
 import type { TrustJourneyData } from './trust-journey/types.js';
 
@@ -302,7 +302,8 @@ function createModal(): void {
   const grouped: Record<string, typeof milestones> = {};
   for (const m of milestones) {
     if (!grouped[m.category]) grouped[m.category] = [];
-    grouped[m.category].push(m);
+    const categoryGroup = grouped[m.category];
+    if (categoryGroup) categoryGroup.push(m);
   }
 
   // Calculate streak info

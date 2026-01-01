@@ -7,7 +7,7 @@
  * @module services/linkedin
  */
 
-import { toast } from '../ui/toast.ui.js';
+import { toast } from '../ui/whisper.ui.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================

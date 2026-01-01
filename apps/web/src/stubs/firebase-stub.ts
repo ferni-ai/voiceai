@@ -113,11 +113,11 @@ export const signInWithCustomToken = (_auth: Auth, _customToken: string): Promis
   return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const signInAnonymously = (_auth: Auth): Promise<UserCredential> => {
+export const signInWithPopup = (_auth: Auth, _provider: unknown): Promise<UserCredential> => {
   return Promise.reject(new Error('Firebase not configured'));
 };
 
-export const signInWithPopup = (_auth: Auth, _provider: unknown): Promise<UserCredential> => {
+export const signInWithCredential = (_auth: Auth, _credential: unknown): Promise<UserCredential> => {
   return Promise.reject(new Error('Firebase not configured'));
 };
 
@@ -168,8 +168,8 @@ export default {
   getAuth,
   onAuthStateChanged,
   signInWithCustomToken,
-  signInAnonymously,
   signInWithPopup,
+  signInWithCredential,
   signOut,
   linkWithCredential,
   sendPasswordResetEmail,

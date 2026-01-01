@@ -269,11 +269,17 @@ export function animateSpringMultiple(
     let allSettled = true;
 
     for (let i = 0; i < properties.length; i++) {
-      states[i] = springStep(states[i], properties[i].to, config, dt);
-      properties[i].onUpdate(states[i].position);
-
-      if (!isSettled(states[i], properties[i].to)) {
-        allSettled = false;
+      const state = states[i];
+      const prop = properties[i];
+      if (!state || !prop) continue;
+      
+      states[i] = springStep(state, prop.to, config, dt);
+      const newState = states[i];
+      if (newState) {
+        prop.onUpdate(newState.position);
+        if (!isSettled(newState, prop.to)) {
+          allSettled = false;
+        }
       }
     }
 

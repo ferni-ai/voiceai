@@ -142,7 +142,10 @@ export function renderCalendar(): void {
 
   // Add filter indicator
   if (filterDate) {
-    const [fYear, fMonth, fDay] = filterDate.split('-').map(Number);
+    const parts = filterDate.split('-').map(Number);
+    const fYear = parts[0] ?? new Date().getFullYear();
+    const fMonth = parts[1] ?? 1;
+    const fDay = parts[2] ?? 1;
     const filterDateFormatted = new Date(fYear, fMonth - 1, fDay).toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',

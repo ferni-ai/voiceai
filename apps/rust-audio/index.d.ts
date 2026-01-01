@@ -475,6 +475,11 @@ export interface NativePostTtsConfig {
    * How much the tempo can vary (3% typical for natural speech)
    */
   tempoVariationDepth?: number
+  /**
+   * Enable onset softening (micro-fades on hard glottal attacks)
+   * Reduces harsh vowel-initial sounds for more natural speech
+   */
+  enableOnsetSoftening?: boolean
 }
 /** Statistics from processing a frame */
 export interface NativeProcessingStats {

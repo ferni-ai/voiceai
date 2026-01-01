@@ -394,7 +394,6 @@ function buildTablet(
     zIndex: '10',
     background: 'var(--glass-thick-bg, rgba(255, 255, 255, 0.85))',
     backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
     padding: '0.875rem 1.125rem',
     borderRadius: 'var(--radius-lg, 1rem)',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -437,7 +436,6 @@ function buildTablet(
     zIndex: '10',
     background: 'var(--glass-thick-bg, rgba(255, 255, 255, 0.85))',
     backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
     padding: '0.75rem 1rem',
     borderRadius: 'var(--radius-lg, 1rem)',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -537,7 +535,6 @@ function buildTablet(
       padding: '0.375rem 0.625rem',
       background: 'var(--glass-thick-bg, rgba(255, 255, 255, 0.85))',
       backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
       borderRadius: 'var(--radius-full, 9999px)',
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.06)',
       border: '1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06))',
@@ -579,7 +576,6 @@ function buildTablet(
       zIndex: '10',
       background: 'var(--color-semantic-warning-tint, rgba(166, 124, 53, 0.08))',
       backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
       padding: '0.75rem 1rem',
       borderRadius: 'var(--radius-lg, 1rem)',
       boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
@@ -608,7 +604,7 @@ function buildTablet(
       color: 'var(--color-text-primary, #2C2520)',
       lineHeight: '1.3',
     });
-    reconnectName.textContent = data.needsAttention[0];
+    reconnectName.textContent = data.needsAttention[0] ?? '';
     if (data.needsAttention.length > 1) {
       const more = createElement('span');
       setStyles(more, {
@@ -891,7 +887,7 @@ function formatRelativeDate(dateStr: string): string {
  */
 function truncateName(name: string): string {
   if (name.length <= 10) return name;
-  return name.split(' ')[0]; // First name only
+  return name.split(' ')[0] ?? name; // First name only
 }
 
 // ============================================================================

@@ -23,7 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // toast is available if needed for error messages
-// import { toast } from './toast.ui.js';
+// import { toast } from './whisper.ui.js';
 
 const log = createLogger('BillingUI');
 

@@ -25,12 +25,12 @@ export async function exportJournal(): Promise<void> {
   const entries = getEntries();
   
   if (!currentAgent || entries.length === 0) {
-    const { toast } = await import('../toast.ui.js');
+    const { toast } = await import('../whisper.ui.js');
     toast.warning(t('toasts.noEntriesToExport'));
     return;
   }
 
-  const { toast } = await import('../toast.ui.js');
+  const { toast } = await import('../whisper.ui.js');
 
   try {
     const stats = calculateStats(entries);
@@ -98,12 +98,12 @@ export async function shareJournal(): Promise<void> {
   const entries = getEntries();
   
   if (!currentAgent || entries.length === 0) {
-    const { toast } = await import('../toast.ui.js');
+    const { toast } = await import('../whisper.ui.js');
     toast.warning(t('toasts.noEntriesToShare'));
     return;
   }
 
-  const { toast } = await import('../toast.ui.js');
+  const { toast } = await import('../whisper.ui.js');
 
   // Build share content (recent entry summary)
   const recentEntry = [...entries].sort((a, b) => {

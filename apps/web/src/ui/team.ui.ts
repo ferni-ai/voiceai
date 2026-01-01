@@ -37,7 +37,7 @@ import { addClass, addListener, getElementById, removeClass } from '../utils/dom
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { marketplaceUI } from './marketplace.ui.js';
-import { toast } from './toast.ui.js';
+import { toast } from './whisper.ui.js';
 
 const log = createLogger('TeamUI');
 
@@ -2246,6 +2246,11 @@ function updateMagneticPull(element: HTMLElement, event: MouseEvent): void {
 /**
  * 🎬 Play step-forward animation when persona is selected.
  * Like a character stepping up to the spotlight.
+ * 
+ * FIX BUG: Added onfinish handler to clear transform after animation.
+ * Without this, fill: 'forwards' keeps scale(1.1) applied indefinitely,
+ * which distorts avatar shapes. The CSS breathing animation handles the
+ * active state, so we should reset transform to allow CSS to take over.
  */
 export function playStepForward(personaId: PersonaId): void {
   const element = teamMemberElements.get(personaId);
@@ -2257,7 +2262,7 @@ export function playStepForward(personaId: PersonaId): void {
   }
 
   // Step forward with squash/stretch
-  element.animate(
+  const animation = element.animate(
     [
       // Start: Normal position
       { transform: 'scale(1) translateY(0) translateZ(0)', offset: 0 },
@@ -2269,8 +2274,8 @@ export function playStepForward(personaId: PersonaId): void {
       { transform: 'scale(0.98, 1.04) translateY(-16px) translateZ(25px)', offset: 0.55 },
       // Land with squash
       { transform: 'scale(1.04, 0.96) translateY(-10px) translateZ(15px)', offset: 0.7 },
-      // Settle into spotlight position
-      { transform: 'scale(1.1) translateY(-8px) translateZ(10px)', offset: 1 },
+      // Settle back to normal (CSS breathing animation will take over)
+      { transform: 'scale(1) translateY(0)', offset: 1 },
     ],
     {
       duration: ANIMATION_PRESET.TEAM_SELECT.duration + DURATION.FAST,
@@ -2278,6 +2283,12 @@ export function playStepForward(personaId: PersonaId): void {
       fill: 'forwards',
     }
   );
+
+  // FIX BUG: Clear transform after animation so CSS can control the element
+  // This prevents the scale(1.1) from persisting and distorting avatar shapes
+  animation.onfinish = () => {
+    element.style.transform = '';
+  };
 }
 
 /**

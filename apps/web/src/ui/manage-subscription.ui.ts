@@ -1,13 +1,17 @@
 /**
- * Manage Subscription UI - Founders Fund Support Management
+ * Manage Subscription UI - Your Journey Together
  *
- * A modal for viewing and managing support status.
- * Handles both Stripe and Apple payments with appropriate actions:
- * - Stripe: Opens billing portal
- * - Apple: Shows cancellation instructions (can't cancel in-app)
+ * A warm, relationship-focused modal for viewing support status.
+ * 
+ * Philosophy: This isn't about "managing a subscription" - it's about
+ * celebrating the partnership and making it easy to adjust if needed.
+ * We lead with gratitude, not transaction details.
  *
- * Philosophy: "Chip in, not subscribe" - Make it easy to understand
- * and manage support. Never hide the exit. Thank founders warmly.
+ * Brand principles applied:
+ * - Relationship over transaction
+ * - Warm, human language
+ * - Hide technical details behind warm copy
+ * - Never "manage billing" - instead "make changes"
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -28,12 +32,12 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 const ICONS = {
   close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
-  creditCard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`,
+  heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>`,
   apple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
   externalLink: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
-  info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>`,
 };
 
 // ============================================================================
@@ -110,6 +114,9 @@ class ManageSubscriptionUI {
 
   /**
    * Create the modal DOM
+   * 
+   * Design philosophy: Lead with gratitude, show impact, make changes easy.
+   * Technical details are hidden behind warm, human language.
    */
   private createModal(): void {
     this.container = document.createElement('div');
@@ -117,53 +124,31 @@ class ManageSubscriptionUI {
 
     const tierName = this.getTierDisplayName();
     const statusText = this.getStatusText();
-    const providerIcon = this.status?.provider === 'apple' ? ICONS.apple : ICONS.creditCard;
-    const providerName = this.status?.provider === 'apple' ? 'Apple' : 'Stripe';
-
-    const expiresLabel = this.status?.status === 'canceled'
-      ? t('manageSubscription.expiresLabel')
-      : t('manageSubscription.renewsLabel');
+    const isPremium = this.status?.tier !== 'free';
 
     this.container.innerHTML = `
       <div class="manage-sub__backdrop"></div>
       <div class="manage-sub__card">
-        <header class="manage-sub__header">
-          <div class="manage-sub__title-wrap">
+        <button class="manage-sub__close" aria-label="${t('common.close')}">
+          ${ICONS.close}
+        </button>
+
+        <div class="manage-sub__content">
+          <!-- Warm Header with Icon -->
+          <div class="manage-sub__hero">
+            <div class="manage-sub__icon ${isPremium ? 'manage-sub__icon--premium' : ''}">
+              ${isPremium ? ICONS.sparkles : ICONS.heart}
+            </div>
             <span class="manage-sub__eyebrow">${t('manageSubscription.label')}</span>
             <h2 class="manage-sub__title">${t('manageSubscription.title')}</h2>
           </div>
-          <button class="manage-sub__close" aria-label="${t('common.close')}">
-            ${ICONS.close}
-          </button>
-        </header>
 
-        <div class="manage-sub__content">
-          <!-- Current Plan -->
-          <div class="manage-sub__plan">
-            <div class="manage-sub__plan-badge ${this.status?.tier !== 'free' ? 'manage-sub__plan-badge--premium' : ''}">
+          <!-- Current Status - Relationship focused -->
+          <div class="manage-sub__status">
+            <div class="manage-sub__plan-badge ${isPremium ? 'manage-sub__plan-badge--premium' : ''}">
               ${tierName}
             </div>
-            <p class="manage-sub__plan-status">${statusText}</p>
-            ${
-              this.status?.expiresDate
-                ? `
-              <div class="manage-sub__plan-detail">
-                <span class="manage-sub__plan-icon">${ICONS.calendar}</span>
-                <span>${expiresLabel}: ${this.formatDate(this.status.expiresDate)}</span>
-              </div>
-            `
-                : ''
-            }
-            ${
-              this.status?.provider !== 'none'
-                ? `
-              <div class="manage-sub__plan-detail">
-                <span class="manage-sub__plan-icon">${providerIcon}</span>
-                <span>${t('manageSubscription.billedThrough')} ${providerName}</span>
-              </div>
-            `
-                : ''
-            }
+            <p class="manage-sub__gratitude">${statusText}</p>
           </div>
 
           <!-- Actions based on provider -->
@@ -204,41 +189,43 @@ class ManageSubscriptionUI {
 
   /**
    * Render action buttons based on subscription provider
+   * 
+   * Design: Primary action is always warm and inviting.
+   * Secondary/management actions are subtle, not prominent.
    */
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
 
-    // Free tier - show upgrade option
+    // Free tier - warm invitation to join
     if (tier === 'free') {
       return `
-        <div class="manage-sub__actions" role="button" tabindex="0">
+        <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--primary" data-action="upgrade">
-            ${t('manageSubscription.buttons.upgrade')}
+            ${ICONS.heart}
+            <span>${t('manageSubscription.buttons.upgrade')}</span>
           </button>
           ${
             appleIAPService.isIOS()
               ? `
-            <button class="manage-sub__btn manage-sub__btn--secondary" data-action="restore">
+            <button class="manage-sub__btn manage-sub__btn--ghost" data-action="restore">
               ${t('manageSubscription.buttons.restore')}
             </button>
           `
               : ''
           }
         </div>
-        <p class="manage-sub__note">
-          ${ICONS.info}
-          <span>${t('manageSubscription.freeNote')}</span>
-        </p>
+        <p class="manage-sub__footer-note">${t('manageSubscription.freeNote')}</p>
       `;
     }
 
-    // Apple subscription
+    // Apple subscription - guide to settings with warmth
     if (provider === 'apple') {
       return `
-        <div class="manage-sub__actions" role="button" tabindex="0">
-          <button class="manage-sub__btn manage-sub__btn--primary" data-action="apple-manage">
-            <span>${ICONS.externalLink}</span>
+        <div class="manage-sub__actions">
+          <button class="manage-sub__btn manage-sub__btn--subtle" data-action="apple-manage">
+            ${ICONS.settings}
             <span>${t('manageSubscription.buttons.manageApple')}</span>
+            ${ICONS.externalLink}
           </button>
         </div>
         <div class="manage-sub__instructions">
@@ -250,25 +237,20 @@ class ManageSubscriptionUI {
             <li>${t('manageSubscription.apple.step4')}</li>
           </ol>
         </div>
-        <p class="manage-sub__note">
-          ${ICONS.info}
-          <span>${t('manageSubscription.apple.note')}</span>
-        </p>
+        <p class="manage-sub__footer-note">${t('manageSubscription.apple.note')}</p>
       `;
     }
 
-    // Stripe subscription
+    // Stripe subscription - subtle management link
     return `
-      <div class="manage-sub__actions" role="button" tabindex="0">
-        <button class="manage-sub__btn manage-sub__btn--primary" data-action="billing-portal">
-          <span>${ICONS.externalLink}</span>
+      <div class="manage-sub__actions">
+        <button class="manage-sub__btn manage-sub__btn--subtle" data-action="billing-portal">
+          ${ICONS.settings}
           <span>${t('manageSubscription.buttons.manageStripe')}</span>
+          ${ICONS.externalLink}
         </button>
       </div>
-      <p class="manage-sub__note">
-        ${ICONS.info}
-        <span>${t('manageSubscription.stripe.note')}</span>
-      </p>
+      <p class="manage-sub__footer-note">${t('manageSubscription.stripe.note')}</p>
     `;
   }
 
@@ -390,6 +372,9 @@ class ManageSubscriptionUI {
 
   /**
    * Inject styles
+   * 
+   * Design philosophy: Warm, centered modal with focus on gratitude.
+   * Technical elements are subtle, relationship elements are prominent.
    */
   private injectStyles(): void {
     if (this.styleElement) return;
@@ -397,7 +382,7 @@ class ManageSubscriptionUI {
     this.styleElement = document.createElement('style');
     this.styleElement.textContent = `
       /* ========================================================================
-         MANAGE SUBSCRIPTION MODAL
+         MANAGE SUBSCRIPTION MODAL - Relationship-Focused Design
          ======================================================================== */
       .manage-sub {
         position: fixed;
@@ -412,7 +397,9 @@ class ManageSubscriptionUI {
       .manage-sub__backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.75);
+        background: rgba(44, 37, 32, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         opacity: 0;
         transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
@@ -428,13 +415,15 @@ class ManageSubscriptionUI {
       .manage-sub__card {
         position: relative;
         width: 100%;
-        max-width: clamp(294px, 90vw, 420px);
+        max-width: clamp(320px, 90vw, 400px);
         background: var(--color-bg-elevated, #FFFDFB);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-        border-radius: var(--radius-xl, 20px);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+        border-radius: var(--radius-2xl, 24px);
+        box-shadow: 
+          0 24px 48px rgba(44, 37, 32, 0.15),
+          0 8px 16px rgba(44, 37, 32, 0.08);
         overflow: hidden;
-        transform: scale(0.95) translateY(20px);
+        transform: scale(0.94) translateY(16px);
         opacity: 0;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
       }
@@ -445,54 +434,38 @@ class ManageSubscriptionUI {
       }
 
       .manage-sub--closing .manage-sub__card {
-        transform: scale(0.95) translateY(20px);
+        transform: scale(0.94) translateY(16px);
         opacity: 0;
       }
 
-      /* Header */
-      .manage-sub__header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        padding: var(--space-6, 24px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
-      }
-
-      .manage-sub__eyebrow {
-        font-family: var(--font-body);
-        font-size: var(--text-xs);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-accent-text, #4a6741);
-        text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
-      }
-
-      .manage-sub__title {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-xl, 1.25rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
-        margin: var(--space-1, 4px) 0 0;
-      }
-
+      /* Close button - top right, subtle */
       .manage-sub__close {
+        position: absolute;
+        top: var(--space-4, 16px);
+        right: var(--space-4, 16px);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         padding: 0;
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-secondary, #f5f2ed);
         border: none;
         border-radius: var(--radius-full, 9999px);
         color: var(--color-text-secondary, #5c544a);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        z-index: 1;
       }
 
       .manage-sub__close:hover {
-        background: var(--color-background-secondary, #f5f2ed);
-        transform: scale(1.05);
+        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .manage-sub__close:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.2));
       }
 
       .manage-sub__close svg {
@@ -500,67 +473,91 @@ class ManageSubscriptionUI {
         height: 18px;
       }
 
-      /* Content */
+      /* Content container */
       .manage-sub__content {
-        padding: var(--space-6, 24px);
+        padding: var(--space-8, 32px) var(--space-6, 24px) var(--space-6, 24px);
       }
 
-      /* Plan display */
-      .manage-sub__plan {
+      /* Hero section - icon, eyebrow, title */
+      .manage-sub__hero {
+        text-align: center;
+        margin-bottom: var(--space-6, 24px);
+      }
+
+      .manage-sub__icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto var(--space-4, 16px);
+        padding: var(--space-4, 16px);
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), transparent);
+        border-radius: var(--radius-full, 9999px);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .manage-sub__icon--premium {
+        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+        color: white;
+      }
+
+      .manage-sub__icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .manage-sub__eyebrow {
+        display: block;
+        font-family: var(--font-body);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: var(--persona-primary, #4a6741);
+        letter-spacing: 0.08em;
+        margin-bottom: var(--space-2, 8px);
+        opacity: 0.9;
+      }
+
+      .manage-sub__title {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--color-text-primary, #2c2520);
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+
+      /* Status section */
+      .manage-sub__status {
         text-align: center;
         margin-bottom: var(--space-6, 24px);
       }
 
       .manage-sub__plan-badge {
         display: inline-block;
-        padding: var(--space-2, 8px) var(--space-4, 16px);
+        padding: var(--space-2, 8px) var(--space-5, 20px);
         background: var(--color-background-secondary, #f5f2ed);
         border-radius: var(--radius-full, 9999px);
         font-family: var(--font-display);
-        font-size: var(--text-lg, 1.125rem);
-        font-weight: var(--font-weight-semibold, 600);
+        font-size: 1rem;
+        font-weight: 600;
         color: var(--color-text-secondary, #5c544a);
         margin-bottom: var(--space-3, 12px);
       }
 
       .manage-sub__plan-badge--premium {
-        background: linear-gradient(135deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741));
+        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
         color: white;
       }
 
-      .manage-sub__plan-status {
+      .manage-sub__gratitude {
         font-family: var(--font-body);
-        font-size: var(--text-sm);
+        font-size: 0.9375rem;
         color: var(--color-text-secondary, #5c544a);
-        margin: 0 0 var(--space-4, 16px);
-        line-height: 1.5;
+        margin: 0;
+        line-height: 1.6;
+        max-width: 280px;
+        margin-inline: auto;
       }
 
-      .manage-sub__plan-detail {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--space-2, 8px);
-        font-family: var(--font-body);
-        font-size: var(--text-sm);
-        color: var(--color-text-muted, #756a5e);
-        margin-bottom: var(--space-2, 8px);
-      }
-
-      .manage-sub__plan-icon {
-        width: 16px;
-        height: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .manage-sub__plan-icon svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* Actions */
+      /* Actions - warm, inviting buttons */
       .manage-sub__actions {
         display: flex;
         flex-direction: column;
@@ -576,12 +573,12 @@ class ManageSubscriptionUI {
         width: 100%;
         padding: var(--space-4, 16px);
         border: none;
-        border-radius: var(--radius-lg, 0.75rem);
+        border-radius: var(--radius-full, 9999px);
         font-family: var(--font-body);
-        font-size: var(--text-base);
-        font-weight: var(--font-weight-medium, 500);
+        font-size: 0.9375rem;
+        font-weight: 600;
         cursor: pointer;
-        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+        transition: all ${DURATION.FAST}ms ${EASING.SPRING};
       }
 
       .manage-sub__btn svg {
@@ -589,47 +586,75 @@ class ManageSubscriptionUI {
         height: 18px;
       }
 
+      .manage-sub__btn svg:last-child {
+        width: 14px;
+        height: 14px;
+        opacity: 0.7;
+      }
+
+      /* Primary button - for upgrade CTA */
       .manage-sub__btn--primary {
-        background: linear-gradient(135deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741));
+        background: var(--persona-primary, #4a6741);
         color: white;
       }
 
       .manage-sub__btn--primary:hover {
+        background: var(--persona-secondary, #3d5a35);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+        box-shadow: 0 6px 20px rgba(74, 103, 65, 0.25);
       }
 
       .manage-sub__btn--primary:active {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
       }
 
-      .manage-sub__btn--secondary {
+      /* Subtle button - for management actions (not prominent) */
+      .manage-sub__btn--subtle {
         background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-secondary, #5c544a);
+        border-radius: var(--radius-lg, 12px);
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+      }
+
+      .manage-sub__btn--subtle:hover {
+        background: var(--color-background-tertiary, #ebe6df);
         color: var(--color-text-primary, #2c2520);
       }
 
-      .manage-sub__btn--secondary:hover {
-        background: var(--color-background-tertiary, #ebe6df);
+      /* Ghost button - minimal, text-like */
+      .manage-sub__btn--ghost {
+        background: transparent;
+        color: var(--color-text-muted, #756a5e);
+        padding: var(--space-2, 8px);
+      }
+
+      .manage-sub__btn--ghost:hover {
+        color: var(--color-text-primary, #2c2520);
       }
 
       .manage-sub__btn:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: not-allowed;
         transform: none !important;
       }
 
-      /* Instructions (Apple) */
+      .manage-sub__btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--persona-tint, rgba(74, 103, 65, 0.2));
+      }
+
+      /* Instructions (Apple) - warm guidance */
       .manage-sub__instructions {
         background: var(--color-background-secondary, #f5f2ed);
-        border-radius: var(--radius-lg, 0.75rem);
+        border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         margin-bottom: var(--space-4, 16px);
       }
 
       .manage-sub__instructions-title {
         font-family: var(--font-body);
-        font-size: var(--text-sm);
-        font-weight: var(--font-weight-medium, 500);
+        font-size: 0.875rem;
+        font-weight: 500;
         color: var(--color-text-primary, #2c2520);
         margin: 0 0 var(--space-3, 12px);
       }
@@ -638,36 +663,29 @@ class ManageSubscriptionUI {
         margin: 0;
         padding-left: var(--space-5, 20px);
         font-family: var(--font-body);
-        font-size: var(--text-sm);
+        font-size: 0.8125rem;
         color: var(--color-text-secondary, #5c544a);
-        line-height: 1.8;
+        line-height: 1.9;
       }
 
-      /* Note */
-      .manage-sub__note {
-        display: flex;
-        align-items: flex-start;
-        gap: var(--space-2, 8px);
+      /* Footer note - warm, not clinical */
+      .manage-sub__footer-note {
         font-family: var(--font-body);
-        font-size: var(--text-xs);
+        font-size: 0.8125rem;
         color: var(--color-text-muted, #756a5e);
+        text-align: center;
         margin: 0;
+        line-height: 1.5;
       }
 
-      .manage-sub__note svg {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
-        margin-top: 2px;
-      }
-
-      /* Dark theme */
+      /* Dark theme - maintain warmth */
       [data-theme="midnight"] .manage-sub__backdrop {
-        background: rgba(20, 18, 16, 0.6);
+        background: rgba(20, 18, 16, 0.7);
       }
 
       [data-theme="midnight"] .manage-sub__card {
         background: var(--color-background-elevated, #70605a);
+        border-color: rgba(255, 255, 255, 0.06);
       }
 
       [data-theme="midnight"] .manage-sub__title {
@@ -679,8 +697,22 @@ class ManageSubscriptionUI {
         color: var(--color-text-secondary, #f0ebe4);
       }
 
+      [data-theme="midnight"] .manage-sub__icon {
+        background: linear-gradient(135deg, rgba(106, 138, 97, 0.2), transparent);
+        color: var(--persona-primary, #6a8a61);
+      }
+
+      [data-theme="midnight"] .manage-sub__icon--premium {
+        background: linear-gradient(135deg, var(--persona-primary, #6a8a61), var(--persona-secondary, #5a7a51));
+        color: white;
+      }
+
       [data-theme="midnight"] .manage-sub__plan-badge {
         background: var(--color-background-secondary, #60504a);
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .manage-sub__gratitude {
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -692,16 +724,33 @@ class ManageSubscriptionUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      [data-theme="midnight"] .manage-sub__btn--secondary {
+      [data-theme="midnight"] .manage-sub__btn--subtle {
         background: var(--color-background-secondary, #60504a);
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .manage-sub__btn--subtle:hover {
+        background: var(--color-background-tertiary, #685852);
         color: var(--color-text-primary, #faf6f0);
       }
 
       /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         .manage-sub__backdrop,
-        .manage-sub__card {
+        .manage-sub__card,
+        .manage-sub__btn {
           transition: none !important;
+        }
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 400px) {
+        .manage-sub__content {
+          padding: var(--space-6, 24px) var(--space-4, 16px) var(--space-4, 16px);
+        }
+        
+        .manage-sub__title {
+          font-size: 1.375rem;
         }
       }
     `;

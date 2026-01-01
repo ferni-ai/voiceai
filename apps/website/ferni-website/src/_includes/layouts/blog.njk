@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | Ferni</title>
+  <meta name="description" content="{{ description or excerpt or site.tagline }}">
+
+  {# ====== PRECONNECT & PRELOAD ====== #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  {# ====== FONTS ====== #}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  {# ====== FAVICONS ====== #}
+  <link rel="icon" href="/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <meta name="theme-color" content="#4a6741">
+
+  {# ====== STYLES ====== #}
+  <link rel="stylesheet" href="/css/story-brand.css?v=20251231b">
+  <link rel="stylesheet" href="/css/blog-page.css?v=20251231b">
+  <link rel="stylesheet" href="/css/sections/footer.css?v=20251231b">
+  <link rel="stylesheet" href="/css/dark-mode.css?v=20251231b">
+
+  {# ====== OPEN GRAPH ====== #}
+  <meta property="og:title" content="{{ title }} | Ferni Blog">
+  <meta property="og:description" content="{{ description or excerpt or site.tagline }}">
+  <meta property="og:image" content="https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}">
+  <meta property="og:url" content="https://ferni.ai{{ page.url }}">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Ferni">
+
+  {# ====== TWITTER CARD ====== #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ferniAI">
+  <meta name="twitter:title" content="{{ title }} | Ferni Blog">
+  <meta name="twitter:description" content="{{ description or excerpt }}">
+  <meta name="twitter:image" content="https://ferni.ai{{ ogImage or '/images/og-blog.jpg' }}">
+
+  {# ====== CANONICAL ====== #}
+  <link rel="canonical" href="https://ferni.ai{{ page.url }}">
+
+  {# ====== ANALYTICS ====== #}
+  {% if site.analytics.gaId %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ site.analytics.gaId }}');
+  </script>
+  {% endif %}
+</head>
+<body class="blog-page">
+  {# ====== SKIP LINK ====== #}
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  {# ====== NAVIGATION ====== #}
+  <nav class="nav" id="nav" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="/" class="nav__logo nav__logo--wordmark-only">
+        <span class="nav__logo-text">Ferni</span>
+      </a>
+
+      <ul class="nav__links">
+        <li><a href="/features/" class="nav__link">Features</a></li>
+        <li><a href="/team/" class="nav__link">Team</a></li>
+        <li><a href="/blog/" class="nav__link{% if '/blog/' in page.url %} is-active{% endif %}">Blog</a></li>
+        <li><a href="/about/" class="nav__link">About</a></li>
+      </ul>
+
+      <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
+        Get Started
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+
+      <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  {# ====== MOBILE MENU ====== #}
+  <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu__header">
+      <span class="nav__logo-text">Ferni</span>
+      <button class="mobile-menu__close" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <nav class="mobile-menu__nav">
+      <a href="/features/">Features</a>
+      <a href="/team/">Meet the Team</a>
+      <a href="/blog/">Blog</a>
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+    <div class="mobile-menu__cta">
+      <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+        Get Started Free
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+
+  {# ====== MAIN CONTENT ====== #}
+  <main id="main-content">
+    {{ content | safe }}
+  </main>
+
+  {# ====== FOOTER ====== #}
+  {% include "partials/home/footer.njk" %}
+
+  {# ====== SCRIPTS ====== #}
+  <script>
+  (function() {
+    'use strict';
+
+    // Nav scroll effect
+    const nav = document.getElementById('nav');
+    if (nav) {
+      window.addEventListener('scroll', () => {
+        nav.classList.toggle('is-scrolled', window.scrollY > 50);
+      }, { passive: true });
+    }
+
+    // Mobile menu
+    const mobileToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileClose = document.querySelector('.mobile-menu__close');
+
+    if (mobileToggle && mobileMenu) {
+      mobileToggle.addEventListener('click', () => {
+        mobileMenu.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      });
+
+      if (mobileClose) {
+        mobileClose.addEventListener('click', () => {
+          mobileMenu.classList.remove('is-open');
+          document.body.style.overflow = '';
+        });
+      }
+
+      mobileMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenu.classList.remove('is-open');
+          document.body.style.overflow = '';
+        });
+      });
+    }
+
+    // Reveal animations
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    revealElements.forEach(el => {
+      revealObserver.observe(el);
+      // Show if already in viewport
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        el.classList.add('is-visible');
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

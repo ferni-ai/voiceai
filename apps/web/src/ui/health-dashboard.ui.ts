@@ -89,8 +89,8 @@ const STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+backdrop-filter: var(--glass-blur-subtle, blur(12px));
+      -webkit-backdrop-filter: var(--glass-blur-subtle, blur(12px));
 }
 
 .health-dashboard-container {
@@ -587,7 +587,7 @@ function getDayLabel(dateString: string): string {
   if (date.toDateString() === today.toDateString()) {
     return 'Today';
   }
-  return days[date.getDay()];
+  return days[date.getDay()] ?? '';
 }
 
 // ============================================================================

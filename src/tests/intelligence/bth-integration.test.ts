@@ -131,23 +131,29 @@ vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
       status: 'active',
     },
   ]),
-  getPendingCommitments: vi.fn().mockResolvedValue([
-    { commitment: 'Exercise 3x week', dueDate: new Date(), fulfilled: false },
-  ]),
+  getPendingCommitments: vi
+    .fn()
+    .mockResolvedValue([{ commitment: 'Exercise 3x week', dueDate: new Date(), fulfilled: false }]),
   getCommitmentsForTopic: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock ferni commitments
 vi.mock('../../services/superhuman/semantic-intelligence/ferni-commitments.js', () => ({
-  getPendingCommitments: vi.fn().mockResolvedValue([
-    { commitment: 'Check in about job interview', madeAt: new Date(), fulfilled: false },
-  ]),
+  getPendingCommitments: vi
+    .fn()
+    .mockResolvedValue([
+      { commitment: 'Check in about job interview', madeAt: new Date(), fulfilled: false },
+    ]),
 }));
 
 // Mock inside joke memory
 vi.mock('../../services/superhuman/inside-joke-memory.js', () => ({
   loadSharedMoments: vi.fn().mockResolvedValue([
-    { essence: 'The "spreadsheet incident"', context: 'Work project gone wrong', createdAt: Date.now() },
+    {
+      essence: 'The "spreadsheet incident"',
+      context: 'Work project gone wrong',
+      createdAt: Date.now(),
+    },
   ]),
 }));
 
@@ -222,8 +228,20 @@ vi.mock('../../services/superhuman/semantic-intelligence/emotional-trajectories.
       userId: 'test-user-123',
       theme: 'work anxiety',
       waypoints: [
-        { timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000, emotion: 'anxious', intensity: 0.6, valence: -0.3, arousal: 0.5 },
-        { timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000, emotion: 'hopeful', intensity: 0.4, valence: 0.2, arousal: 0.4 },
+        {
+          timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000,
+          emotion: 'anxious',
+          intensity: 0.6,
+          valence: -0.3,
+          arousal: 0.5,
+        },
+        {
+          timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000,
+          emotion: 'hopeful',
+          intensity: 0.4,
+          valence: 0.2,
+          arousal: 0.4,
+        },
         { timestamp: Date.now(), emotion: 'calm', intensity: 0.3, valence: 0.5, arousal: 0.3 },
       ],
       phase: 'resolving',
@@ -238,7 +256,12 @@ vi.mock('../../services/superhuman/semantic-intelligence/emotional-trajectories.
 // Mock coaching patterns
 vi.mock('../../intelligence/coaching-patterns.js', () => ({
   getUserPatterns: vi.fn().mockResolvedValue([
-    { pattern: 'Gets anxious before presentations', patternType: 'anxiety', occurrences: 3, surfacedToUser: false },
+    {
+      pattern: 'Gets anxious before presentations',
+      patternType: 'anxiety',
+      occurrences: 3,
+      surfacedToUser: false,
+    },
   ]),
 }));
 
@@ -246,7 +269,11 @@ vi.mock('../../intelligence/coaching-patterns.js', () => ({
 vi.mock('../../intelligence/patterns/cross-domain-correlator.js', () => ({
   getCrossCorrelator: vi.fn(() => ({
     getCorrelations: vi.fn().mockReturnValue([
-      { domains: ['work', 'sleep'], insight: 'Poor sleep correlates with work stress', confidence: 'likely' },
+      {
+        domains: ['work', 'sleep'],
+        insight: 'Poor sleep correlates with work stress',
+        confidence: 'likely',
+      },
     ]),
     clearUser: vi.fn(),
   })),
@@ -318,7 +345,9 @@ describe('Better Than Human Integration', () => {
       const knowledge = await getUserKnowledge(TEST_USER_ID);
 
       expect(knowledge.boundaries.ferniCommitments.length).toBeGreaterThan(0);
-      expect(knowledge.boundaries.ferniCommitments[0].description).toBe('Check in about job interview');
+      expect(knowledge.boundaries.ferniCommitments[0].description).toBe(
+        'Check in about job interview'
+      );
     });
 
     it('should load inside jokes into shared history', async () => {

@@ -733,6 +733,7 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead') || "What's Ahead")}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
           `
                 )
@@ -1035,7 +1036,7 @@ class SettingsMenuUI {
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
       'wearable-settings': { icon: ICONS.watch, label: t('menu.items.wearables') },
       'linkedin-settings': { icon: ICONS.linkedin, label: t('menu.items.linkedin') },
-      'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.calendar') },
+      'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.whatsAhead') || "What's Ahead" },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
@@ -1052,6 +1053,7 @@ class SettingsMenuUI {
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
       .map((action) => {
         const item = menuItems[action];
+        if (!item) return '';
         return `
           <button aria-label="${item.label}" class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
             <span class="settings-menu__icon">${item.icon}</span>

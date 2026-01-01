@@ -160,7 +160,7 @@ export async function openAgentEditor(agentId: string): Promise<void> {
     // Fetch latest agent data
     const agent = await getCustomAgent(agentId);
     if (!agent) {
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.error(t('toasts.agentNotFound'));
       return;
     }
@@ -183,7 +183,7 @@ export async function openAgentEditor(agentId: string): Promise<void> {
     log.info('Agent editor opened:', agentId);
   } catch (err) {
     log.error('Failed to open agent editor:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't load agent");
   }
 }
@@ -741,11 +741,11 @@ async function handleAddMemory(): Promise<void> {
         currentAgent = updated;
         renderTab();
       }
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.success(t('toasts.memoryAdded'));
     } catch (err) {
       log.error('Failed to add memory:', err);
-      const { toast } = await import('./toast.ui.js');
+      const { toast } = await import('./whisper.ui.js');
       toast.error("Couldn't add memory");
     }
   }
@@ -774,11 +774,11 @@ async function handleDeleteMemory(
       memories.sharedMoments = memories.sharedMoments.filter((m) => m.id !== memoryId);
     }
     renderTab();
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.memoryDeleted'));
   } catch (err) {
     log.error('Failed to delete memory:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't delete memory");
   }
 }
@@ -792,11 +792,11 @@ async function handleVoiceSelect(voiceId: string): Promise<void> {
     currentAgent.voice.type = 'selected';
     currentAgent.voice.status = 'ready';
     renderTab();
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.voiceUpdated'));
   } catch (err) {
     log.error('Failed to select voice:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't update voice");
   }
 }
@@ -824,12 +824,12 @@ async function saveChanges(): Promise<void> {
     updateHeader();
     dispatchCustomAgentEvent('custom-agent:updated', { agentId: currentAgent.id });
 
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.infoChangesSaved'));
     soundUI.play('success');
   } catch (err) {
     log.error('Failed to save changes:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't save changes");
   } finally {
     if (saveBtn) {
@@ -858,11 +858,11 @@ async function deleteAgent(): Promise<void> {
     hasUnsavedChanges = false;
     await closeAgentEditor();
 
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.success(t('toasts.agentDeleted'));
   } catch (err) {
     log.error('Failed to delete agent:', err);
-    const { toast } = await import('./toast.ui.js');
+    const { toast } = await import('./whisper.ui.js');
     toast.error("Couldn't delete agent");
   }
 }

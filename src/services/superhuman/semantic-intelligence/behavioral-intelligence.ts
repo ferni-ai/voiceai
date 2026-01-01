@@ -640,11 +640,13 @@ async function savePattern(userId: string, pattern: SelfSabotagePattern): Promis
         behavior: pattern.behavior,
         trigger: pattern.trigger,
         context: [pattern.consequence],
-        frequency: pattern.frequency >= 4 ? 'frequent' : pattern.frequency >= 2 ? 'occasional' : 'rare',
+        frequency:
+          pattern.frequency >= 4 ? 'frequent' : pattern.frequency >= 2 ? 'occasional' : 'rare',
         impact: 'negative',
         relatedPatterns: [],
         observations: pattern.instances.slice(0, 3).map((i) => i.context),
-        firstObserved: pattern.instances[pattern.instances.length - 1]?.timestamp?.toISOString() ||
+        firstObserved:
+          pattern.instances[pattern.instances.length - 1]?.timestamp?.toISOString() ||
           new Date().toISOString(),
         lastObserved: pattern.instances[0]?.timestamp?.toISOString() || new Date().toISOString(),
       },
@@ -761,11 +763,16 @@ async function saveTrigger(userId: string, trigger: Trigger): Promise<void> {
       {
         pattern: `When "${trigger.triggerPattern}" occurs, response is: ${trigger.response}${trigger.emotion ? ` (emotion: ${trigger.emotion})` : ''}`,
         category: trigger.triggerType === 'emotional' ? 'emotional' : 'behavioral',
-        evidence: trigger.instances.slice(0, 5).map(
-          (inst) => inst.context || `Occurred at ${inst.timestamp.toLocaleDateString()}`
-        ),
+        evidence: trigger.instances
+          .slice(0, 5)
+          .map((inst) => inst.context || `Occurred at ${inst.timestamp.toLocaleDateString()}`),
         frequency: trigger.confidence >= 0.8 ? 'strong' : 'consistent',
-        significance: trigger.sensitivity >= 0.8 ? 'critical' : trigger.sensitivity >= 0.5 ? 'important' : 'curious',
+        significance:
+          trigger.sensitivity >= 0.8
+            ? 'critical'
+            : trigger.sensitivity >= 0.5
+              ? 'important'
+              : 'curious',
         surfacedGently: false,
         discoveredAt: new Date().toISOString(),
         lastObserved: trigger.instances[0]?.timestamp?.toISOString() || new Date().toISOString(),

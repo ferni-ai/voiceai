@@ -87,7 +87,7 @@ export function initAccountButtonUI(): void {
       updateButtonState(currentAuthState);
     }
     // Show warm confirmation toast
-    import('./toast.ui.js').then(({ toast }) => {
+    import('./whisper.ui.js').then(({ toast }) => {
       toast.success("Got it! I'll remember you now.");
     });
   };
@@ -103,7 +103,7 @@ export function initAccountButtonUI(): void {
     const errorMessage = customEvent.detail?.error ?? 'Something went wrong';
     log.warn('One-Tap sign-in failed:', errorMessage);
 
-    import('./toast.ui.js').then(({ toast }) => {
+    import('./whisper.ui.js').then(({ toast }) => {
       toast.error(errorMessage);
     });
   };

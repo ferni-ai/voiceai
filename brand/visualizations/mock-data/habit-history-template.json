@@ -1,0 +1,144 @@
+{
+  "$schema": "Habit History Mock Data Template",
+  "description": "Template for activity rings, calendars, and habit tracking visualizations",
+
+  "habits": [
+    {
+      "id": "morning-stretch",
+      "name": "Morning Stretches",
+      "category": "health",
+      "persona": "maya",
+      "currentStreak": 47,
+      "longestStreak": 47,
+      "totalCompletions": 89,
+      "totalAttempts": 112,
+      "successRate": 79,
+      "ringColor": "#4A6741",
+      "dailyTarget": 1,
+      "timeOfDay": "morning",
+      "history": {
+        "lastWeek": [1, 1, 1, 1, 1, 1, 1],
+        "lastMonth": [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+      },
+      "insights": {
+        "bestDay": "Tuesday",
+        "worstDay": "Sunday",
+        "correlations": ["Better sleep quality (+23%)", "Reduced back pain mentions (-45%)"],
+        "prediction": "91% likely to maintain through January"
+      },
+      "milestones": [
+        { "streak": 7, "achieved": "2024-11-18", "celebration": "First full week!" },
+        { "streak": 21, "achieved": "2024-12-02", "celebration": "Three weeks strong!" },
+        { "streak": 30, "achieved": "2024-12-11", "celebration": "A whole month!" },
+        { "streak": 50, "upcoming": "2025-01-03", "celebration": "Half century!" }
+      ]
+    },
+    {
+      "id": "learning-time",
+      "name": "Learning Time",
+      "category": "growth",
+      "persona": "nayan",
+      "currentStreak": 12,
+      "longestStreak": 23,
+      "totalCompletions": 156,
+      "totalAttempts": 180,
+      "successRate": 87,
+      "ringColor": "#B8956A",
+      "dailyTarget": 30,
+      "unit": "minutes",
+      "timeOfDay": "evening",
+      "history": {
+        "lastWeek": [45, 30, 35, 0, 40, 25, 43],
+        "lastMonth": [30, 35, 40, 25, 0, 45, 30, 35, 40, 30, 45, 50, 0, 30, 35, 40, 45, 30, 35, 40, 45, 50, 55, 40, 45, 30, 35, 40, 45, 43]
+      },
+      "insights": {
+        "bestDay": "Saturday",
+        "worstDay": "Friday",
+        "averageDaily": 37,
+        "topicBreakdown": { "Spanish": 60, "Reading": 25, "Courses": 15 },
+        "correlations": ["Higher when low-stress day", "Lower after social events"],
+        "prediction": "72% likely to reach B2 Spanish by August"
+      },
+      "weeklyGoalProgress": {
+        "target": 210,
+        "current": 218,
+        "percentage": 104
+      }
+    },
+    {
+      "id": "screen-free",
+      "name": "Screen-Free Presence",
+      "category": "balance",
+      "persona": "peter",
+      "currentStreak": 8,
+      "longestStreak": 15,
+      "totalCompletions": 67,
+      "totalAttempts": 90,
+      "successRate": 74,
+      "ringColor": "#3A6B73",
+      "dailyTarget": 10,
+      "unit": "hours",
+      "timeOfDay": "any",
+      "history": {
+        "lastWeek": [11, 10, 9, 12, 11, 14, 11],
+        "lastMonth": [8, 9, 10, 11, 10, 12, 9, 10, 11, 12, 11, 10, 11, 12, 13, 10, 9, 11, 12, 11, 10, 11, 12, 13, 11, 10, 11, 12, 14, 11]
+      },
+      "insights": {
+        "bestDay": "Saturday",
+        "worstDay": "Wednesday",
+        "averageDaily": 10.8,
+        "correlations": ["Relationship quality (+35% on high days)", "Sleep quality (+18%)"],
+        "prediction": "Trending up - 85% likely to average 11+ hours next month"
+      }
+    }
+  ],
+
+  "activityRings": {
+    "today": {
+      "growth": { "current": 85, "goal": 100, "label": "Growth", "color": "#4A6741" },
+      "wisdom": { "current": 72, "goal": 100, "label": "Wisdom", "color": "#B8956A" },
+      "balance": { "current": 92, "goal": 100, "label": "Balance", "color": "#3A6B73" }
+    },
+    "weekSummary": {
+      "daysAllRingsClosed": 4,
+      "bestDay": "Tuesday",
+      "totalPoints": 1847
+    },
+    "streakCelebration": {
+      "active": true,
+      "days": 47,
+      "message": "Your longest streak ever!",
+      "persona": "maya",
+      "encouragement": "This one feels different. Keep going."
+    }
+  },
+
+  "yearCalendar": {
+    "heatmapData": [
+      [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [4, 3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [3, 2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+      [2, 1, 0, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 3, 2, 1, 2, 3, 4, 4, 3, 2, 3, 4, 4, 3, 2, 3, 4, 4, 4, 3, 4, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
+    ],
+    "narrativeInsight": "February slump (work stress), April resurgence (found stride), Summer streak (everything clicked). Jordan noticed your 3-week rhythm: high energy for two weeks, then recovery needed.",
+    "monthlyHighlights": [
+      { "month": "Feb", "theme": "Struggle", "note": "Work stress peak, lowest consistency" },
+      { "month": "Apr", "theme": "Breakthrough", "note": "Found morning routine that stuck" },
+      { "month": "Jul", "theme": "Flourishing", "note": "Longest streak began" },
+      { "month": "Nov", "theme": "Sustained", "note": "47-day streak still going" }
+    ]
+  },
+
+  "habitFormationScience": {
+    "personalThreshold": 28,
+    "note": "Your historical habit formation threshold is 28 days. Most people: 21-66 days.",
+    "currentHabitsForming": [
+      { "habit": "Morning stretch", "day": 47, "status": "solidified", "probability": 95 },
+      { "habit": "Learning time", "day": 12, "status": "building", "probability": 71 },
+      { "habit": "Gratitude journal", "day": 5, "status": "fragile", "probability": 35 }
+    ]
+  }
+}

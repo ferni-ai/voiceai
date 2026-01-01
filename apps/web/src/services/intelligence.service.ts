@@ -221,7 +221,7 @@ export async function isToolAnticipated(toolId: string): Promise<boolean> {
 export async function getTopSuggestion(): Promise<ProactiveSuggestion | null> {
   const result = await getProactiveSuggestions();
   if (!result || result.suggestions.length === 0) return null;
-  return result.suggestions[0];
+  return result.suggestions[0] ?? null;
 }
 
 /**

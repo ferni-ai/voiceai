@@ -245,7 +245,8 @@ const OUTREACH_RULES: OutreachRule[] = [
     action: {
       type: 'peter_ferni_insight',
       topic: 'what matters most',
-      insight: 'Sometimes our values pull us in different directions. That tension is actually information.',
+      insight:
+        'Sometimes our values pull us in different directions. That tension is actually information.',
     },
     priority: 75,
   },
@@ -468,14 +469,14 @@ const OUTREACH_RULES: OutreachRule[] = [
     action: {
       type: 'peter_ferni_insight',
       topic: 'holding two truths at once',
-      insight: 'It\'s okay to feel both things. That\'s not confusion - that\'s complexity.',
+      insight: "It's okay to feel both things. That's not confusion - that's complexity.",
     },
     priority: 62,
   },
 
   {
     name: 'Blind Spot Pattern Surface',
-    description: 'Surface a pattern they can\'t see themselves',
+    description: "Surface a pattern they can't see themselves",
     triggers: {
       signalTypes: ['blind_spot_pattern'],
       operator: 'OR',
@@ -486,8 +487,8 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'peter_ferni_insight',
-      topic: 'something I\'ve been noticing',
-      insight: 'I\'ve been watching a pattern and wanted to share what I see.',
+      topic: "something I've been noticing",
+      insight: "I've been watching a pattern and wanted to share what I see.",
     },
     priority: 40,
   },
@@ -506,7 +507,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     action: {
       type: 'peter_ferni_insight',
       topic: 'where things might be heading',
-      insight: 'I care about your future. Can we talk about some patterns I\'m seeing?',
+      insight: "I care about your future. Can we talk about some patterns I'm seeing?",
     },
     priority: 68,
   },
@@ -524,7 +525,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'ferni_check_in',
-      reason: 'Your voice sounded different last time. Just wanted to make sure you\'re okay.',
+      reason: "Your voice sounded different last time. Just wanted to make sure you're okay.",
     },
     priority: 78,
   },
@@ -557,7 +558,8 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'ferni_check_in',
-      reason: 'I know you\'ve had a lot of people time lately. No need to respond - just thinking of you.',
+      reason:
+        "I know you've had a lot of people time lately. No need to respond - just thinking of you.",
     },
     priority: 35,
   },
@@ -591,7 +593,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'maya_habit_support',
-      habitName: 'prep for what\'s coming',
+      habitName: "prep for what's coming",
       isEncouragement: true,
     },
     priority: 63,
@@ -712,7 +714,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'maya_habit_support',
-      habitName: 'that bill that\'s due',
+      habitName: "that bill that's due",
       isEncouragement: false,
     },
     priority: 38,
@@ -731,7 +733,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'ferni_check_in',
-      reason: 'I\'ve noticed some rough nights. How can I support you?',
+      reason: "I've noticed some rough nights. How can I support you?",
     },
     priority: 47,
   },
@@ -746,7 +748,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     },
     action: {
       type: 'ferni_check_in',
-      reason: 'Big day ahead. You\'ve got this. I\'m here if you need anything.',
+      reason: "Big day ahead. You've got this. I'm here if you need anything.",
     },
     priority: 40,
   },
@@ -820,7 +822,7 @@ const OUTREACH_RULES: OutreachRule[] = [
     action: {
       type: 'peter_ferni_insight',
       topic: 'the path not taken',
-      insight: 'Sometimes looking at what we didn\'t choose helps clarify what we actually want.',
+      insight: "Sometimes looking at what we didn't choose helps clarify what we actually want.",
     },
     priority: 50,
   },
@@ -855,7 +857,7 @@ const OUTREACH_RULES: OutreachRule[] = [
       type: 'team_roundtable',
       personas: ['ferni', 'peter-john', 'maya-habits'],
       topic: 'something that keeps coming up',
-      reason: 'Let\'s finally work through this together',
+      reason: "Let's finally work through this together",
     },
     priority: 48,
   },
@@ -907,9 +909,10 @@ function checkTimingIntelligence(context: {
   const quietStart = context.quietHoursStart ?? DEFAULT_QUIET_HOURS_START;
   const quietEnd = context.quietHoursEnd ?? DEFAULT_QUIET_HOURS_END;
 
-  const isQuietHours = quietStart > quietEnd
-    ? currentHour >= quietStart || currentHour < quietEnd // e.g., 22-8 crosses midnight
-    : currentHour >= quietStart && currentHour < quietEnd;
+  const isQuietHours =
+    quietStart > quietEnd
+      ? currentHour >= quietStart || currentHour < quietEnd // e.g., 22-8 crosses midnight
+      : currentHour >= quietStart && currentHour < quietEnd;
 
   if (isQuietHours) {
     return {
@@ -962,9 +965,10 @@ export function getOptimalOutreachTime(context: {
 
   // If in quiet hours, schedule for end of quiet hours
   const quietStart = context.quietHoursStart ?? DEFAULT_QUIET_HOURS_START;
-  const isQuietHours = quietStart > quietEnd
-    ? currentHour >= quietStart || currentHour < quietEnd
-    : currentHour >= quietStart && currentHour < quietEnd;
+  const isQuietHours =
+    quietStart > quietEnd
+      ? currentHour >= quietStart || currentHour < quietEnd
+      : currentHour >= quietStart && currentHour < quietEnd;
 
   if (isQuietHours) {
     const optimalTime = new Date(now);
@@ -1017,10 +1021,7 @@ export async function processSuperhumanSignals(
   if (!hasUrgentSignal && !hasCrisis) {
     const timing = checkTimingIntelligence(userContext);
     if (!timing.canOutreach) {
-      log.debug(
-        { userId, reason: timing.reason },
-        '⏰ Outreach deferred due to timing'
-      );
+      log.debug({ userId, reason: timing.reason }, '⏰ Outreach deferred due to timing');
       return null;
     }
   }
@@ -1029,7 +1030,12 @@ export async function processSuperhumanSignals(
   // GATING INTELLIGENCE: Check for "don't reach out now" signals
   // =========================================================================
   const hasGatingSignal = signals.some((s) =>
-    ['receptivity_low', 'energy_wave_avoid', 'silence_processing', 'social_battery_depleted'].includes(s.type)
+    [
+      'receptivity_low',
+      'energy_wave_avoid',
+      'silence_processing',
+      'social_battery_depleted',
+    ].includes(s.type)
   );
 
   // High receptivity = prefer to reach out now
@@ -1041,7 +1047,14 @@ export async function processSuperhumanSignals(
     // Unless we have positive gating override
     if (!hasHighReceptivity && !hasOptimalEnergy) {
       log.debug(
-        { userId, gatingSignals: signals.filter(s => ['receptivity_low', 'energy_wave_avoid', 'silence_processing'].includes(s.type)).map(s => s.type) },
+        {
+          userId,
+          gatingSignals: signals
+            .filter((s) =>
+              ['receptivity_low', 'energy_wave_avoid', 'silence_processing'].includes(s.type)
+            )
+            .map((s) => s.type),
+        },
         '🚫 Outreach blocked by gating signals'
       );
       return null;
@@ -1221,7 +1234,12 @@ export function signalFromCrisis(crisisData: {
 }): SuperhumanSignal {
   return {
     type: 'crisis_detected',
-    severity: crisisData.severity === 'severe' ? 'urgent' : crisisData.severity === 'high' ? 'high' : 'medium',
+    severity:
+      crisisData.severity === 'severe'
+        ? 'urgent'
+        : crisisData.severity === 'high'
+          ? 'high'
+          : 'medium',
     source: 'emotional-first-aid',
     data: crisisData,
     timestamp: new Date(),
@@ -1643,7 +1661,10 @@ export function signalFromMoodPrediction(prediction: {
   basedOn: string[];
 }): SuperhumanSignal | null {
   const negativeMoods = ['low', 'sad', 'anxious', 'stressed', 'overwhelmed'];
-  if (!negativeMoods.includes(prediction.predictedMood.toLowerCase()) || prediction.confidence < 0.6) {
+  if (
+    !negativeMoods.includes(prediction.predictedMood.toLowerCase()) ||
+    prediction.confidence < 0.6
+  ) {
     return null;
   }
 
@@ -1725,7 +1746,12 @@ export function signalFromCalendarPrep(event: {
 
   return {
     type: 'calendar_prep_needed',
-    severity: event.difficulty === 'high_stakes' ? 'high' : event.difficulty === 'challenging' ? 'medium' : 'low',
+    severity:
+      event.difficulty === 'high_stakes'
+        ? 'high'
+        : event.difficulty === 'challenging'
+          ? 'medium'
+          : 'low',
     source: 'calendar-prep-coaching',
     data: event,
     timestamp: new Date(),
@@ -1924,7 +1950,7 @@ export function signalFromFinancial(event: {
 }): SuperhumanSignal | null {
   if (event.eventType === 'savings_progress' && (event.progress ?? 0) >= 0.5) {
     const milestones = [0.5, 0.75, 1.0];
-    if (milestones.some(m => Math.abs((event.progress ?? 0) - m) < 0.05)) {
+    if (milestones.some((m) => Math.abs((event.progress ?? 0) - m) < 0.05)) {
       return {
         type: 'financial_goal_progress',
         severity: (event.progress ?? 0) >= 1.0 ? 'high' : 'medium',
@@ -2023,7 +2049,8 @@ export function signalFromEmotionalTrajectory(trajectory: {
 
   return {
     type: 'emotional_trajectory_shift',
-    severity: trajectory.direction === 'declining' && trajectory.weeklyTrend < -0.5 ? 'high' : 'medium',
+    severity:
+      trajectory.direction === 'declining' && trajectory.weeklyTrend < -0.5 ? 'high' : 'medium',
     source: 'emotional-trajectories',
     data: trajectory,
     timestamp: new Date(),
@@ -2207,7 +2234,11 @@ export async function integrateWithSemanticIntelligence(
   userId: string,
   turnData: {
     crisisDetected?: { type: string; severity: 'low' | 'moderate' | 'high' | 'severe' };
-    capacityLevel?: { level: 'depleted' | 'low' | 'moderate' | 'good' | 'high'; burnoutRisk: boolean; indicators: string[] };
+    capacityLevel?: {
+      level: 'depleted' | 'low' | 'moderate' | 'good' | 'high';
+      burnoutRisk: boolean;
+      indicators: string[];
+    };
     valuesConflict?: { statedValue: string; demonstratedValue: string; tension: string };
     openLoops?: Array<{ type: string; content: string; priority: number }>;
     temporalAnomaly?: { description: string; unusualBehavior: string };

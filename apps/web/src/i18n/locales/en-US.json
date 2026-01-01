@@ -11,6 +11,7 @@
     "retry": "Try again",
     "tryAgain": "Try Again",
     "cancel": "Cancel",
+    "maybeLater": "Later",
     "save": "Save",
     "saving": "Saving...",
     "saved": "Saved!",
@@ -204,16 +205,17 @@
       "musicalYou": "Music Together",
       "creativeYou": "Get Creative",
       "discoverAgents": "Meet More Friends",
-      "journaling": "Let's Journal",
+      "journaling": "The Chronicle",
       "connections": "Connected Apps",
       "personalize": "Make It Yours",
       "voiceAccent": "How I Sound",
-      "guidedPractices": "Guided Moments",
+      "guidedPractices": "The Sanctuary",
       "createPractice": "Build a Ritual",
       "practices": "Daily Rituals",
       "wearables": "Your Devices",
       "linkedin": "LinkedIn",
       "calendar": "Your Calendar",
+      "whatsAhead": "What's Ahead",
       "notifications": "When I'll Check In",
       "toggleTheme": "Light / Dark",
       "themeLanguage": "Look & Feel",
@@ -628,41 +630,41 @@
     "yourJourney": "Your Journey"
   },
   "manageSubscription": {
-    "label": "FOUNDERS FUND",
-    "title": "Your Support",
+    "label": "GROWING TOGETHER",
+    "title": "We're in This Together",
     "expiresLabel": "Active until",
     "renewsLabel": "Renews",
     "billedThrough": "Billed through",
     "buttons": {
-      "upgrade": "Become a Founder",
+      "upgrade": "Join the Journey",
       "restore": "Restore Purchases",
       "restoring": "Restoring...",
-      "manageApple": "Manage in Settings",
-      "manageStripe": "Manage Billing"
+      "manageApple": "Make Changes",
+      "manageStripe": "Make Changes"
     },
     "apple": {
-      "instructionsTitle": "To change your support:",
+      "instructionsTitle": "To make changes:",
       "step1": "Open Settings on your device",
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
-      "step4": "Find and tap \"Ferni\"",
-      "note": "Apple requires subscriptions to be managed through iOS Settings"
+      "step4": "Find Ferni",
+      "note": "Apple handles changes through Settings"
     },
     "stripe": {
-      "note": "Update payment method, view history, or change anytime"
+      "note": "You can update or change things anytime"
     },
     "restore": {
-      "noFound": "No purchases found",
-      "failed": "Restore failed"
+      "noFound": "Nothing found to restore",
+      "failed": "That didn't work. Try again?"
     },
     "status": {
-      "free": "You're part of the community. Ferni is free forever.",
-      "active": "You're a Founding Member. Thank you for helping us build this!",
-      "canceled": "Your support ends soon, but you're always welcome. Thank you for being a Founder.",
-      "pastDue": "There was an issue with your payment. Mind updating your payment method?",
-      "default": "You're a Founder. Thank you for believing in us!"
+      "free": "You're part of this. Ferni will always be here.",
+      "active": "You're helping us build something special. Thank you for believing in this.",
+      "canceled": "Your support meant everything. You're always welcome back.",
+      "pastDue": "Looks like something needs updating. Mind taking a look?",
+      "default": "You believed in us early. That means more than you know."
     },
-    "freeNote": "Founding Members get unlimited time, full team access, and help keep Ferni free for everyone"
+    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone"
   },
   "creativeYou": {
     "eyebrow": "THINGS I FOUND FOR YOU",
@@ -884,6 +886,30 @@
     }
   },
   "contactSettings": {
+    "eyebrow": "Stay Connected",
+    "title": "How can I reach you?",
+    "subtitle": "Share your contact info so I can check in, celebrate wins, and be there when you need me.",
+    "phoneLabel": "Text or call me",
+    "emailLabel": "Send me updates",
+    "nameLabel": "What should I call you?",
+    "privacyNote": "I'll only use this for check-ins. Never spam, never shared.",
+    "quietHours": "Quiet Hours",
+    "dontCall": "Don't call",
+    "until": "until",
+    "quietNote": "I'll stay quiet during these hours. If something feels urgent, I might still reach out.",
+    "detectedTimezone": "Your timezone",
+    "verified": "Verified",
+    "sendCode": "Send me a code",
+    "sendingCode": "Sending code...",
+    "codeSent": "I sent a 6-digit code to",
+    "success": "Saved! I'll use this to stay in touch.",
+    "successWithQuiet": "Saved! I'll stay quiet during those hours.",
+    "phoneVerified": "Got it! I'll know your number now.",
+    "errorNoPhone": "Add a phone number first",
+    "errorSendCode": "Couldn't send the code. Try again?",
+    "errorInvalidCode": "That code didn't work. Try again?",
+    "errorVerifyFailed": "Couldn't verify. Want another code?",
+    "errorSave": "Couldn't save that. Try again?",
     "verify": {
       "sending": "Sending code...",
       "withCode": "Verify with code"
@@ -1307,6 +1333,8 @@
     "previousStory": "Previous story",
     "profile": "Profile",
     "proud": "Proud",
+    "quietHoursEnd": "Quiet hours end time",
+    "quietHoursStart": "Quiet hours start time",
     "rain": "Rain",
     "rainbow": "Rainbow",
     "readAloud": "Read aloud",
@@ -1478,6 +1506,7 @@
     "userProfile": "User profile",
     "useThis": "Use This",
     "validateAll": "Validate All",
+    "verifyPhone": "Verify phone number",
     "viewAllMoments": "View all moments",
     "viewAllPredictions": "View All Predictions",
     "viewAllScheduledMeetings": "View all scheduled meetings",

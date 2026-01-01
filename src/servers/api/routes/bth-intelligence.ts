@@ -74,7 +74,7 @@ export async function handleBTHIntelligenceRoutes(
     // GET /api/bth/:userId - Get complete user knowledge
     if (req.method === 'GET' && !subPath) {
       log.debug({ userId }, 'Getting complete user knowledge');
-      
+
       const knowledge = await getUserKnowledgeImpl(userId);
       const formattedContext = formatKnowledgeForContextImpl(knowledge, {
         maxTokens: 800,
@@ -102,9 +102,9 @@ export async function handleBTHIntelligenceRoutes(
       }
 
       log.debug({ userId, question }, 'Querying user knowledge');
-      
+
       const result = await askAboutUserImpl(userId, question);
-      
+
       sendJson(res, 200, {
         success: true,
         userId,
@@ -117,9 +117,9 @@ export async function handleBTHIntelligenceRoutes(
     // GET /api/bth/:userId/completeness
     if (req.method === 'GET' && subPath === 'completeness') {
       log.debug({ userId }, 'Getting knowledge completeness');
-      
+
       const completeness = await getKnowledgeCompletenessImpl(userId);
-      
+
       sendJson(res, 200, {
         success: true,
         userId,
@@ -134,7 +134,7 @@ export async function handleBTHIntelligenceRoutes(
       const style = (query.style as string) || 'concise';
 
       log.debug({ userId, maxTokens, style }, 'Getting LLM context');
-      
+
       const knowledge = await getUserKnowledgeImpl(userId);
       const context = formatKnowledgeForContextImpl(knowledge, {
         maxTokens,
@@ -155,7 +155,7 @@ export async function handleBTHIntelligenceRoutes(
     // POST /api/bth/:userId/refresh - Force refresh cache
     if (req.method === 'POST' && subPath === 'refresh') {
       log.debug({ userId }, 'Force refreshing user knowledge cache');
-      
+
       clearKnowledgeCacheImpl(userId);
       const knowledge = await getUserKnowledgeImpl(userId, { forceRefresh: true });
 

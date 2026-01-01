@@ -125,13 +125,13 @@ public class BetterThanHumanIntegration: ObservableObject {
     // MARK: - Engine API
 
     /// Trigger micro-expression (called from backend emotion events)
-    public func triggerMicroExpression(_ type: MicroExpressionType) {
+    public func triggerMicroExpression(_ type: FerniShared.MicroExpressionType) {
         engine.triggerMicroExpression(type)
         betterThanHumanState = engine.currentState
     }
 
     /// Signal concern level (called from backend)
-    public func signalConcern(level: ConcernLevel) {
+    public func signalConcern(level: FerniShared.ConcernLevel) {
         engine.signalConcern(level: level)
         betterThanHumanState = engine.currentState
     }
