@@ -782,18 +782,38 @@ description: Six specialists, one relationship. Each brings what the others can'
 
   /* ============================================
      SCROLL REVEAL - Content Always Visible
-     Override global styles.css .reveal (opacity:0, blur)
+     Override global pixar-animations.css .reveal (opacity:0, blur)
+     CRITICAL: Use high specificity to ensure override
      ============================================ */
+  #main-content .reveal,
+  .team-hero,
+  .kintsugi-section,
+  .why-section,
+  .specialists-header,
+  .persona-section,
+  .cta-section {
+    opacity: 1 !important;
+    filter: none !important;
+    visibility: visible !important;
+  }
+
   .reveal {
     opacity: 1 !important;
-    transform: translateY(20px) !important;
+    transform: translateY(20px);
     filter: none !important;
     transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .reveal.is-visible {
-    transform: translateY(0) !important;
+  .reveal.visible {
+    transform: translateY(0);
+  }
+
+  /* Fallback: if JS doesn't run, content still visible */
+  @media (prefers-reduced-motion: reduce), (scripting: none) {
+    .reveal {
+      transform: translateY(0) !important;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1329,6 +1349,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // Fallback: if IntersectionObserver not supported, show all immediately
+  if (!('IntersectionObserver' in window)) {
+    revealElements.forEach(el => el.classList.add('visible'));
+    return;
+  }
+
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1342,6 +1368,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   revealElements.forEach(el => revealObserver.observe(el));
+
+  // Safety fallback: if elements aren't visible after 2 seconds, force show
+  setTimeout(() => {
+    revealElements.forEach(el => {
+      if (!el.classList.contains('visible')) {
+        el.classList.add('visible');
+      }
+    });
+  }, 2000);
 });
 </script>
 

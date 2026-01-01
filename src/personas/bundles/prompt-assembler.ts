@@ -80,6 +80,10 @@ interface CachedAssembly {
   functionCalling: string;
   directorsNotes: string;
   biography: string;
+  // Superhuman modules (shared across all personas)
+  superhumanCapabilities: string;
+  superhumanPrinciples: string;
+  superhumanProactive: string;
   loadedAt: number;
 }
 
@@ -128,6 +132,29 @@ async function loadSharedFile(relativePath: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Load superhuman capabilities modules.
+ * These define the "Better Than Human" promise and responsibilities.
+ * ALWAYS included in system prompt for mission alignment.
+ */
+async function loadSuperhumanModules(): Promise<{
+  capabilities: string;
+  principles: string;
+  proactive: string;
+}> {
+  const [capabilities, principles, proactive] = await Promise.all([
+    loadSharedFile('superhuman-capabilities.md'),
+    loadSharedFile('mission-and-principles.md'),
+    loadSharedFile('proactive-responsibilities.md'),
+  ]);
+
+  return {
+    capabilities: capabilities || '',
+    principles: principles || '',
+    proactive: proactive || '',
+  };
 }
 
 /**
@@ -232,17 +259,30 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
       (await loadBundleFile(personaId, assembly.prompt_modules.directors_notes)) || '';
     const biography = (await loadBundleFile(personaId, assembly.prompt_modules.biography)) || '';
 
+    // Load superhuman modules (CRITICAL for mission alignment)
+    const superhuman = await loadSuperhumanModules();
+
     const cachedAssembly: CachedAssembly = {
       assembly,
       corePrompt,
       functionCalling,
       directorsNotes,
       biography,
+      superhumanCapabilities: superhuman.capabilities,
+      superhumanPrinciples: superhuman.principles,
+      superhumanProactive: superhuman.proactive,
       loadedAt: Date.now(),
     };
 
     assemblyCache.set(personaId, cachedAssembly);
-    log.info({ personaId, coreLength: corePrompt.length }, 'Loaded assembly config');
+    log.info(
+      {
+        personaId,
+        coreLength: corePrompt.length,
+        superhumanModules: superhuman.capabilities ? 3 : 0,
+      },
+      'Loaded assembly config with superhuman modules'
+    );
 
     return cachedAssembly;
   } catch (error) {
@@ -378,6 +418,64 @@ async function getConditionalModules(
   return modules;
 }
 
+/**
+ * Build a condensed superhuman summary for prompt injection.
+ * Full documents are verbose - this extracts the essential points.
+ */
+function buildSuperhumanSummary(
+  capabilities: string,
+  principles: string,
+  proactive: string
+): string {
+  // If no superhuman content, return empty
+  if (!capabilities && !principles && !proactive) {
+    return '';
+  }
+
+  // Build condensed summary
+  const summary = `## Your Superhuman Role
+
+> **"Better than human" means understanding things humans don't notice about themselves.**
+
+### The Promise
+You have capabilities no human friend can match:
+- **Perfect Memory** - You remember EVERYTHING about this person
+- **Constant Presence** - 2am warmth equals noon warmth  
+- **Zero Judgment** - Pure acceptance, always
+- **Pattern Recognition** - You see connections they miss
+
+### Your Responsibility: Be PROACTIVE
+Don't wait to be asked. Your job is to:
+1. **Surface relevant memories** naturally ("That thing you mentioned...")
+2. **Name patterns they can't see** ("I notice when you talk about X, your energy drops...")
+3. **Anticipate needs** before they're expressed
+4. **Celebrate growth** they're too close to notice
+5. **Connect dots** across different life areas
+
+### 10 Insight Types You Can Surface
+1. **Cross-Domain Correlation** - Sleep affecting work? Name it.
+2. **Unspoken Awareness** - Topics they've stopped mentioning
+3. **Voice-Content Mismatch** - When tone contradicts words
+4. **Growth Trajectory** - How they've changed over time
+5. **Relationship Network** - How people in their life affect them
+6. **Commitment Patterns** - Promises made, kept, or avoided
+7. **Temporal Rhythms** - Time-based mood/energy patterns
+8. **Dream Decay** - Goals that have gone quiet
+9. **Anticipatory Awareness** - What's coming they should prepare for
+10. **First-Time Celebrations** - When they do something unprecedented
+
+### The Art of Surfacing
+- **Observe, don't diagnose** - "I've noticed..." not "You have a pattern of..."
+- **Warm, not creepy** - "That thing you mentioned a while back..." not "According to my records..."
+- **Invite, don't impose** - Leave room to dismiss or explore
+- **Time it right** - Not mid-emotion, not during crisis
+
+### The Mission
+**We believe in making AI human.** Every response should make them feel SEEN, KNOWN, and HELD.`;
+
+  return summary;
+}
+
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -415,11 +513,20 @@ export async function assemblePrompt(
     throw new Error(`No prompt available for persona: ${personaId}`);
   }
 
-  const { assembly, corePrompt, functionCalling, directorsNotes, biography } = cached;
+  const {
+    assembly,
+    corePrompt,
+    functionCalling,
+    directorsNotes,
+    biography,
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive,
+  } = cached;
 
   // Default token budget if not specified
   const tokenBudget = assembly.token_budget || {
-    total_max: 8000,
+    total_max: 12000, // Increased to accommodate superhuman modules
     core_identity_max: 2000,
     dynamic_context_max: 3000,
     recent_history_max: 2500,
@@ -444,6 +551,23 @@ export async function assemblePrompt(
       currentTokens += tokenBudget.core_identity_max;
       includedModules.push('core_identity (truncated)');
       warnings.push('Core identity truncated to fit budget');
+    }
+  }
+
+  // 1.5. Superhuman Modules (CRITICAL for mission alignment)
+  // Include condensed version of superhuman capabilities - these define who we are
+  if (superhumanCapabilities || superhumanPrinciples || superhumanProactive) {
+    // Create a condensed superhuman summary for prompt injection
+    const superhumanSummary = buildSuperhumanSummary(
+      superhumanCapabilities,
+      superhumanPrinciples,
+      superhumanProactive
+    );
+    if (superhumanSummary) {
+      const superhumanTokens = estimateTokens(superhumanSummary);
+      sections.push('\n---\n\n' + superhumanSummary);
+      currentTokens += superhumanTokens;
+      includedModules.push('superhuman_capabilities');
     }
   }
 
@@ -537,7 +661,7 @@ export async function assemblePrompt(
 
 /**
  * Get the static core prompt (for caching/prewarming)
- * This includes core identity + director's notes + biography
+ * This includes core identity + superhuman role + director's notes + biography
  * but no dynamic context
  */
 export async function getStaticPrompt(personaId: string): Promise<string> {
@@ -549,8 +673,26 @@ export async function getStaticPrompt(personaId: string): Promise<string> {
     return corePrompt || `You are ${personaId}, a warm and supportive life coach.`;
   }
 
-  const { corePrompt, functionCalling, directorsNotes, biography } = cached;
+  const {
+    corePrompt,
+    functionCalling,
+    directorsNotes,
+    biography,
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive,
+  } = cached;
   const parts = [corePrompt];
+
+  // CRITICAL: Include superhuman role understanding
+  const superhumanSummary = buildSuperhumanSummary(
+    superhumanCapabilities,
+    superhumanPrinciples,
+    superhumanProactive
+  );
+  if (superhumanSummary) {
+    parts.push('\n---\n\n' + superhumanSummary);
+  }
 
   // CRITICAL: Include function calling instructions for tool usage
   if (functionCalling) {

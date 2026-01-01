@@ -7,7 +7,7 @@ authorInitials: 'JD'
 authorColor: '#c4856a'
 date: 2024-12-10
 category: "Design Philosophy"
-image: "voice-first.jpg"
+image: "voice-first.png"
 readTime: "7 min read"
 color: "#a67a6a"
 icon: "mic"

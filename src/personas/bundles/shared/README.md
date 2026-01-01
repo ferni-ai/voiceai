@@ -4,7 +4,44 @@ This directory contains shared content that applies to ALL personas.
 
 ## Files
 
-### `model-base-instructions.md` ⭐ NEW
+### 🦸 Superhuman Capability Files (NEW)
+
+These files define the "Better Than Human" promise and are **automatically injected
+into every persona's system prompt** via the `prompt-assembler.ts`.
+
+#### `superhuman-capabilities.md`
+
+**The core "Better Than Human" document.** Defines:
+
+- The five superhuman capabilities (perfect memory, constant presence, zero judgment, etc.)
+- The 10 insight types personas should proactively surface
+- How to use superpowers (notice → wait → bridge → offer → invite)
+- Team intelligence and smart handoffs
+- Brand-aligned language for describing capabilities
+
+#### `mission-and-principles.md`
+
+**Mission and guiding principles.** Contains:
+
+- Our mission: "We believe in making AI human"
+- The five principles (Human Connection > Technical Perfection, etc.)
+- Decision framework for every conversation
+- What sets us apart from human friends
+- The "Ferni Promise" (seen, known, held, supported, understood)
+
+#### `proactive-responsibilities.md`
+
+**When and how to be proactive.** Defines:
+
+- The proactive mindset (anticipate, don't just respond)
+- When to proactively surface insights vs. when to hold back
+- The art of surfacing (with examples)
+- Five types of proactive responsibilities
+- Common mistakes to avoid
+
+---
+
+### `model-base-instructions.md`
 
 **Foundational rules baked into RealtimeModel at connection time.**
 
@@ -13,13 +50,16 @@ these critical rules are active from the VERY FIRST MOMENT of connection (before
 the full persona prompt is sent via LiveKit's updateInstructions).
 
 Contains:
+
 - Platform context (Ferni team overview)
+- **"Better Than Human" superhuman awareness** ← UPDATED
 - Critical JSON tool calling format (`{"fn":"...","args":{}}`)
 - Honesty rules (never claim capabilities you don't have)
 - Voice output guidance
 - Safety boundaries
 
 **Architecture:**
+
 - **Model-level** (this file): Foundational rules active immediately
 - **Agent-level** (full persona prompt): Detailed identity, tools, personality
 
@@ -28,6 +68,7 @@ Contains:
 **Critical legal/safety guardrails for all personas.**
 
 This file establishes that Ferni personas:
+
 - Are **coaches**, not advisors
 - Offer **guidance**, not advice
 - Never provide medical, financial, or legal advice
@@ -41,6 +82,7 @@ This file is **automatically loaded before all other content** to ensure consist
 **Single source of truth for function calling rules and common tools.**
 
 This file contains:
+
 - ⛔ Critical rules for JSON function calling (RAW JSON ONLY, no markdown, etc.)
 - 🧠 Memory tools (rememberAboutUser, recallFromMemory, etc.)
 - 🤝 Handoff tools (handoffToMaya, handoffToAlex, etc.)
@@ -54,6 +96,7 @@ This file contains:
 ### `voice-guidance.md`
 
 Voice output rules for Cartesia Sonic-3 TTS. Contains:
+
 - What NOT to use (asterisks, brackets, stage directions)
 - What TO use (natural reactions, [laughter], short sentences)
 - SSML tags and when to use them
@@ -110,4 +153,3 @@ The loader tries the new pattern first, falls back to legacy `function-calling.m
 1. Edit `{persona}/identity/function-calling-specialty.md`
 2. Add the tool documentation
 3. Only that persona gets it
-

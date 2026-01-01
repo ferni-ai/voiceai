@@ -239,20 +239,27 @@
    =======================================================
 */
 
-/* Base reveal state */
+/* Progressive enhancement: content visible by default (no JS required) */
 .reveal {
-  opacity: 0;
-  transform: translateY(30px) scale(0.98);
-  filter: blur(3px);
-  transition: 
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: none;
+  transition:
     opacity 700ms var(--ease-expo-out),
     transform 700ms var(--ease-expo-out),
     filter 300ms ease;
   will-change: opacity, transform, filter;
 }
 
-.reveal.visible,
-.reveal.is-visible {
+/* Only hide and animate when JavaScript has loaded */
+html.loaded .reveal:not(.visible):not(.is-visible) {
+  opacity: 0;
+  transform: translateY(30px) scale(0.98);
+  filter: blur(3px);
+}
+
+html.loaded .reveal.visible,
+html.loaded .reveal.is-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   filter: blur(0);
@@ -606,11 +613,13 @@ details summary:hover {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
-  .reveal {
-    opacity: 1;
-    transform: none;
-    filter: none;
+
+  .reveal,
+  html.loaded .reveal,
+  html.loaded .reveal:not(.visible):not(.is-visible) {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
   }
   
   .hero-ferni,
