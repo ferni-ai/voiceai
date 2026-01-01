@@ -14,9 +14,9 @@
   /* Base text styling */
   background: linear-gradient(
     135deg,
-    var(--color-ferni, #4a6741) 0%,
-    #3d5a35 50%,
-    var(--color-ferni, #4a6741) 100%
+    var(--color-ferni, var(--color-ferni)) 0%,
+    var(--color-ferni-secondary) 50%,
+    var(--color-ferni, var(--color-ferni)) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -71,11 +71,11 @@
   /* Enhanced gradient with more colors */
   background: linear-gradient(
     calc(135deg + var(--hue-shift, 0deg)),
-    #4a6741 0%,
-    #5a8052 25%,
-    #4a6741 50%,
-    #3d5a35 75%,
-    #4a6741 100%
+    var(--color-ferni) 0%,
+    var(--color-ferni) 25%,
+    var(--color-ferni) 50%,
+    var(--color-ferni-secondary) 75%,
+    var(--color-ferni) 100%
   );
   background-size: 200% 100%;
   -webkit-background-clip: text;
@@ -108,7 +108,7 @@
   mix-blend-mode: overlay;
   pointer-events: none;
   opacity: 0.5;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* ============================================================================

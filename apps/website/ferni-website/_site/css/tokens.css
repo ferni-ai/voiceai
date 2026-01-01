@@ -37,28 +37,28 @@
   /* =========================================================================
      COLORS - BACKGROUND
      ========================================================================= */
-  --color-bg-primary: #F5F1E8;      /* Paper Cream - main background */
-  --color-bg-secondary: #E8E0D5;    /* Sand - cards, sections */
-  --color-bg-elevated: #FFFDFB;     /* Elevated surfaces */
-  --color-bg-dark: #2C2520;         /* Dark sections, footer */
-  --color-bg-code: #2C2520;         /* Code blocks */
+  --color-bg-primary: var(--color-bg-primary);      /* Paper Cream - main background */
+  --color-bg-secondary: var(--color-bg-secondary);    /* Sand - cards, sections */
+  --color-bg-elevated: var(--color-bg-elevated);     /* Elevated surfaces */
+  --color-bg-dark: var(--color-text-primary);         /* Dark sections, footer */
+  --color-bg-code: var(--color-text-primary);         /* Code blocks */
 
   /* =========================================================================
      COLORS - TEXT
      ========================================================================= */
-  --color-text-primary: #2C2520;    /* Natural Ink - headlines */
-  --color-text-secondary: #5C544A;  /* Body text */
-  --color-text-muted: #756A5E;      /* Captions, hints */
-  --color-text-dimmed: #A89D90;     /* Disabled, placeholder */
-  --color-text-inverse: #F5F1E8;    /* Text on dark backgrounds */
+  --color-text-primary: var(--color-text-primary);    /* Natural Ink - headlines */
+  --color-text-secondary: var(--color-text-secondary);  /* Body text */
+  --color-text-muted: var(--color-text-muted);      /* Captions, hints */
+  --color-text-dimmed: var(--color-text-muted);     /* Disabled, placeholder */
+  --color-text-inverse: var(--color-bg-primary);    /* Text on dark backgrounds */
 
   /* =========================================================================
      COLORS - ACCENT
      ========================================================================= */
-  --color-accent: #3D5A45;          /* Forest Green - CTAs, links */
-  --color-accent-hover: #4a6d52;    /* Hover state */
+  --color-accent: var(--color-accent);          /* Forest Green - CTAs, links */
+  --color-accent-hover: var(--color-accent-hover);    /* Hover state */
   --color-accent-light: rgba(61, 90, 69, 0.1);  /* Light accent bg */
-  --color-highlight: #C4A265;       /* Warm Amber - emphasis */
+  --color-highlight: var(--color-nayan);       /* Warm Amber - emphasis */
   --color-highlight-glow: rgba(196, 162, 101, 0.2);
 
   /* =========================================================================
@@ -70,7 +70,7 @@
   --color-error-bg: rgba(166, 90, 82, 0.1);
   --color-warning: #a6854a;
   --color-warning-bg: rgba(166, 133, 74, 0.1);
-  --color-info: #3a6b73;
+  --color-info: var(--color-peter);
   --color-info-bg: rgba(58, 107, 115, 0.1);
 
   /* =========================================================================
@@ -86,31 +86,31 @@
      ========================================================================= */
   --color-cinematic-black: #0a0a0a;
   --color-cinematic-dark: #121212;
-  --color-cinematic-deep: #1a1a1a;
+  --color-cinematic-deep: var(--color-bg-dark);
   --color-cinematic-surface: #222222;
   --color-cinematic-overlay-light: rgba(0, 0, 0, 0.3);
   --color-cinematic-overlay-medium: rgba(0, 0, 0, 0.5);
   --color-cinematic-overlay-heavy: rgba(0, 0, 0, 0.7);
   --color-cinematic-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
-  --color-cinematic-text: #ffffff;
-  --color-cinematic-text-secondary: #f0ebe4;
-  --color-cinematic-text-muted: #ddd6cc;
-  --color-cinematic-text-subtle: #c8bfb4;
+  --color-cinematic-text: var(--color-text-inverse);
+  --color-cinematic-text-secondary: var(--color-bg-secondary);
+  --color-cinematic-text-muted: var(--color-text-muted);
+  --color-cinematic-text-subtle: var(--color-text-dimmed);
   
   /* =========================================================================
      COLORS - FERNI WARM CINEMATIC (Brand-aligned)
      Warm, earthy darks instead of cold pure blacks
      ========================================================================= */
-  --color-ferni-cinematic-black: #1a1614;
-  --color-ferni-cinematic-dark: #2c2520;
-  --color-ferni-cinematic-deep: #3a332e;
-  --color-ferni-cinematic-surface: #4a4038;
+  --color-ferni-cinematic-black: var(--color-bg-dark);
+  --color-ferni-cinematic-dark: var(--color-text-primary);
+  --color-ferni-cinematic-deep: var(--color-bg-dark-elevated);
+  --color-ferni-cinematic-surface: var(--color-bg-dark-surface);
   --color-ferni-cinematic-elevated: #584840;
   --color-ferni-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(44, 37, 32, 0.5) 100%);
-  --color-ferni-cinematic-text: #ffffff;
-  --color-ferni-cinematic-text-secondary: #f0ebe4;
-  --color-ferni-cinematic-text-muted: #ddd6cc;
-  --color-ferni-cinematic-text-accent: #C4A265;
+  --color-ferni-cinematic-text: var(--color-text-inverse);
+  --color-ferni-cinematic-text-secondary: var(--color-bg-secondary);
+  --color-ferni-cinematic-text-muted: var(--color-text-muted);
+  --color-ferni-cinematic-text-accent: var(--color-nayan);
   
   /* =========================================================================
      PREMIUM GLASSMORPHISM (Google Flow style buttons)
@@ -136,29 +136,29 @@
   /* =========================================================================
      COLORS - PERSONAS
      ========================================================================= */
-  --color-ferni: #4a6741;
-  --color-ferni-secondary: #3d5a35;
+  --color-ferni: var(--color-ferni);
+  --color-ferni-secondary: var(--color-ferni-secondary);
 
   /* Garden/Sage Colors - Community funding theme */
   --color-sage: var(--color-ferni);
   --color-sage-dark: var(--color-ferni-secondary);
   --color-bg-sage-subtle: rgba(74, 103, 65, 0.05);
 
-  --color-jack: #9a7b5a;
+  --color-jack: var(--color-jack);
   --color-jack-secondary: #7d6348;
-  --color-peter: #3a6b73;
+  --color-peter: var(--color-peter);
   --color-peter-secondary: #2d5359;
-  --color-alex: #5a6b8a;
+  --color-alex: var(--color-alex);
   --color-alex-secondary: #4a5a73;
-  --color-maya: #a67a6a;
+  --color-maya: var(--color-maya);
   --color-maya-secondary: #8a635a;
-  --color-jordan: #c4856a;
+  --color-jordan: var(--color-jordan);
   --color-jordan-secondary: #a86d55;
-  --color-jaggi: #b8956a;
+  --color-jaggi: var(--color-nayan);
   --color-jaggi-secondary: #9a7a52;
 
   /* Nayan (alias for jaggi) */
-  --color-nayan: #b8956a;
+  --color-nayan: var(--color-nayan);
   --color-nayan-secondary: #9a7a52;
 
   /* =========================================================================
@@ -166,7 +166,7 @@
      Light/Subtle/Glow variants for data viz and capabilities showcase
      ========================================================================= */
   --color-ferni-light: #5a7a51;
-  --color-ferni-dark: #3d5a35;
+  --color-ferni-dark: var(--color-ferni-secondary);
   --color-ferni-subtle: rgba(74, 103, 65, 0.1);
   --color-ferni-border: rgba(74, 103, 65, 0.3);
   --color-ferni-glow: rgba(74, 103, 65, 0.4);
@@ -474,7 +474,7 @@ code {
   border-radius: var(--radius-full);
   color: var(--color-cinematic-text);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 500;
   text-decoration: none;
   box-shadow: var(--glass-btn-shadow);
@@ -490,7 +490,7 @@ code {
 
 /* Text Gradient */
 .text-gradient-light {
-  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background: linear-gradient(135deg, var(--color-text-inverse) 0%, rgba(255, 255, 255, 0.7) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -560,7 +560,7 @@ code {
   
   .btn-glass {
     padding: 14px 24px;
-    font-size: 14px;
+    font-size: var(--text-sm);
   }
 }
 
@@ -573,23 +573,23 @@ code {
 @media (prefers-color-scheme: dark) {
   :root {
     /* Background Colors - Warm Ferni Dark Palette */
-    --color-bg-primary: #2c2520;           /* Warm dark brown */
-    --color-bg-secondary: #3a332e;         /* Slightly lighter */
-    --color-bg-elevated: #4a4038;          /* Card surfaces */
-    --color-bg-dark: #1a1614;              /* Deepest dark */
+    --color-bg-primary: var(--color-text-primary);           /* Warm dark brown */
+    --color-bg-secondary: var(--color-bg-dark-elevated);         /* Slightly lighter */
+    --color-bg-elevated: var(--color-bg-dark-surface);          /* Card surfaces */
+    --color-bg-dark: var(--color-bg-dark);              /* Deepest dark */
     
     /* Text Colors - High Contrast for Readability */
-    --color-text-primary: #ffffff;         /* Pure white for headlines */
-    --color-text-secondary: #f0ebe4;       /* Warm cream for body */
-    --color-text-muted: #ddd6cc;           /* Muted for captions */
-    --color-text-dimmed: #c8bfb4;          /* Subtle text */
-    --color-text-inverse: #2c2520;         /* Dark text on light bg */
+    --color-text-primary: var(--color-text-inverse);         /* Pure white for headlines */
+    --color-text-secondary: var(--color-bg-secondary);       /* Warm cream for body */
+    --color-text-muted: var(--color-text-muted);           /* Muted for captions */
+    --color-text-dimmed: var(--color-text-dimmed);          /* Subtle text */
+    --color-text-inverse: var(--color-text-primary);         /* Dark text on light bg */
     
     /* Accent Colors - Brighter for Dark Mode */
     --color-accent: #5a7a52;               /* Brighter forest green */
     --color-accent-hover: #6a8a62;         /* Even brighter on hover */
     --color-accent-light: rgba(90, 122, 82, 0.2);
-    --color-highlight: #d4b275;            /* Brighter warm amber */
+    --color-highlight: var(--color-highlight);            /* Brighter warm amber */
     --color-highlight-glow: rgba(212, 178, 117, 0.3);
     
     /* Border Colors - Visible on Dark */

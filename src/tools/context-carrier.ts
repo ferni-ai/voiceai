@@ -91,7 +91,7 @@ export interface ContextSnapshot {
 // ============================================================================
 
 class ContextCarrier {
-  private sessions: Map<string, ContextCarrierState> = new Map();
+  private sessions = new Map<string, ContextCarrierState>();
 
   // ==========================================================================
   // SESSION MANAGEMENT
@@ -145,10 +145,7 @@ class ContextCarrier {
     const snapshot = this.getSnapshot(sessionId);
     this.sessions.delete(sessionId);
 
-    log.debug(
-      { sessionId, duration: snapshot?.sessionDuration },
-      'Context carrier session ended'
-    );
+    log.debug({ sessionId, duration: snapshot?.sessionDuration }, 'Context carrier session ended');
 
     return snapshot;
   }
@@ -189,7 +186,7 @@ class ContextCarrier {
   /**
    * Get recent topics (for continuity)
    */
-  getRecentTopics(sessionId: string, count: number = 5): string[] {
+  getRecentTopics(sessionId: string, count = 5): string[] {
     const state = this.sessions.get(sessionId);
     if (!state) return [];
     return state.topicsDiscussed.slice(-count);
@@ -230,18 +227,12 @@ class ContextCarrier {
   /**
    * Check if a tool was used recently
    */
-  wasToolUsedRecently(
-    sessionId: string,
-    toolId: string,
-    withinMinutes: number = 5
-  ): boolean {
+  wasToolUsedRecently(sessionId: string, toolId: string, withinMinutes = 5): boolean {
     const state = this.sessions.get(sessionId);
     if (!state) return false;
 
     const cutoff = Date.now() - withinMinutes * 60 * 1000;
-    return state.toolsUsed.some(
-      (t) => t.toolId === toolId && t.timestamp.getTime() > cutoff
-    );
+    return state.toolsUsed.some((t) => t.toolId === toolId && t.timestamp.getTime() > cutoff);
   }
 
   /**
@@ -251,9 +242,7 @@ class ContextCarrier {
     const state = this.sessions.get(sessionId);
     if (!state) return 0;
 
-    const tools = toolId
-      ? state.toolsUsed.filter((t) => t.toolId === toolId)
-      : state.toolsUsed;
+    const tools = toolId ? state.toolsUsed.filter((t) => t.toolId === toolId) : state.toolsUsed;
 
     if (tools.length === 0) return 0;
 
@@ -268,12 +257,7 @@ class ContextCarrier {
   /**
    * Record emotional state
    */
-  recordEmotion(
-    sessionId: string,
-    emotion: string,
-    intensity: number,
-    trigger?: string
-  ): void {
+  recordEmotion(sessionId: string, emotion: string, intensity: number, trigger?: string): void {
     const state = this.sessions.get(sessionId);
     if (state) {
       state.emotionalJourney.push({
@@ -297,9 +281,7 @@ class ContextCarrier {
   /**
    * Get emotional trend
    */
-  getEmotionalTrend(
-    sessionId: string
-  ): 'improving' | 'stable' | 'declining' | 'volatile' {
+  getEmotionalTrend(sessionId: string): 'improving' | 'stable' | 'declining' | 'volatile' {
     const state = this.sessions.get(sessionId);
     if (!state || state.emotionalJourney.length < 2) return 'stable';
 
@@ -374,9 +356,7 @@ class ContextCarrier {
   completeFollowUp(sessionId: string, followUpId: string): void {
     const state = this.sessions.get(sessionId);
     if (state) {
-      state.pendingFollowUps = state.pendingFollowUps.filter(
-        (f) => f.id !== followUpId
-      );
+      state.pendingFollowUps = state.pendingFollowUps.filter((f) => f.id !== followUpId);
     }
   }
 
@@ -470,9 +450,7 @@ class ContextCarrier {
       currentEmotion: this.getCurrentEmotion(sessionId),
       emotionalTrend: this.getEmotionalTrend(sessionId),
       pendingFollowUpCount: state.pendingFollowUps.length,
-      sessionDuration: Math.floor(
-        (Date.now() - state.startedAt.getTime()) / 1000
-      ),
+      sessionDuration: Math.floor((Date.now() - state.startedAt.getTime()) / 1000),
     };
   }
 }

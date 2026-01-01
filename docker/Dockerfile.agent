@@ -122,10 +122,20 @@ COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/commands/build/build-cli-binary.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/ ./apps/cli/src/
 
-# Build TypeScript + Bundle Agent + CLI
+# Copy tool manifest/embeddings build scripts
+COPY scripts/build-tool-manifest.ts ./scripts/
+COPY scripts/build-tool-embeddings.ts ./scripts/
+
+# Build TypeScript + Bundle Agent + CLI + Tool Artifacts
 # - Agent bundle: 2441 modules → 1 file (eliminates 30-120s module loading)
+# - Tool manifest: 655 tools pre-indexed (100x faster than dynamic imports)
+# - Tool embeddings: 653 pre-computed vectors (30x faster semantic matching)
 # - CLI bundle: Packaged for in-container ops
 RUN pnpm run build:fast && \
+    echo "=== Building tool manifest + embeddings (100x faster startup!) ===" && \
+    pnpm exec tsx scripts/build-tool-manifest.ts && \
+    pnpm exec tsx scripts/build-tool-embeddings.ts && \
+    ls -lh dist/tool-manifest.json dist/tool-embeddings.json && \
     echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
     pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
@@ -228,6 +238,7 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules/.pnpm -name "*.js" -exec grep -l "PATCHED" {} \; 2>/dev/null | head -6 || echo "pnpm verification done"
 
 # Copy built files from builder
+# Includes: dist/tool-manifest.json, dist/tool-embeddings.json (100x faster startup!)
 COPY --from=builder /app/dist ./dist
 
 # Copy Rust native modules (SIMD-accelerated audio processing)

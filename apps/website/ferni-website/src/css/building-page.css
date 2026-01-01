@@ -134,7 +134,7 @@
   width: 24px;
   height: 36px;
   border: 2px solid var(--color-border-medium);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   position: relative;
 }
 
@@ -146,7 +146,7 @@
   width: 4px;
   height: 8px;
   background: var(--color-ferni);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform: translateX(-50%);
   animation: scroll-hint 2s ease-in-out infinite;
 }
@@ -398,7 +398,7 @@
 /* ========== THE UNUSUAL THING ========== */
 .building-unusual {
   padding: var(--space-24) var(--space-6);
-  background: linear-gradient(135deg, var(--color-ferni) 0%, #3d5a35 100%);
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
   color: white;
 }
 

@@ -5,6 +5,11 @@
 
 ---
 
+> **慈悲** (*Jihi*) — Compassion without conditions. The quality of being fully present for another's suffering without needing anything in return.
+> True friendship is not possession. It is presence.
+
+---
+
 ## The Thought Experiment
 
 Imagine your best friend—but with superpowers.

@@ -96,6 +96,12 @@ export interface CoordinatorAdapterConfig {
   initialAgent?: string;
   /** TTS instance for voice switching - CRITICAL for actual voice change! */
   tts?: TTSWithVoiceSwitch;
+  /**
+   * CRITICAL: Session ID for speech coordination.
+   * Must match the sessionId used in initializeSpeechCoordination().
+   * Without this, coordinatedSay() fails with "sessionId: 'unknown'".
+   */
+  sessionId?: string;
 }
 
 /**
@@ -132,12 +138,15 @@ export class CoordinatorAdapter {
   private readonly tts?: TTSWithVoiceSwitch;
 
   constructor(config: CoordinatorAdapterConfig) {
-    const { ctx, session, services, room, getVoiceAgentRef, initialAgent, tts } = config;
+    const { ctx, session, services, room, getVoiceAgentRef, initialAgent, tts, sessionId: configSessionId } = config;
     this.session = session;
     this.services = services;
     this.room = room;
     this.getVoiceAgentRef = getVoiceAgentRef;
-    this.sessionId = ctx.room?.name || `adapter-${Date.now()}`;
+    // CRITICAL: Use passed sessionId to match speech coordination.
+    // Previously used ctx.room?.name which didn't match the sessionId used in
+    // initializeSpeechCoordination(), causing "sessionId: 'unknown'" errors.
+    this.sessionId = configSessionId || services.sessionId || ctx.room?.name || `adapter-${Date.now()}`;
     this.tts = tts;
 
     // Create the coordinator with our callbacks
@@ -298,6 +307,9 @@ export class CoordinatorAdapter {
    * 2. Session TTS (actual Cartesia voice change)
    *
    * Without step 2, the voice doesn't actually change!
+   *
+   * VOICE ID FIX: Always use resolveVoiceId for single source of truth.
+   * The passed voiceId parameter may be unreliable - resolver handles fallbacks.
    */
   private async handleVoiceSwitch(voiceId: string, personaId: string): Promise<void> {
     log.debug({ voiceId, personaId }, '🎤 Switching voice');
@@ -316,15 +328,32 @@ export class CoordinatorAdapter {
     voiceManager.switchVoice(personaId);
 
     // Step 2: CRITICAL - Update session TTS (actually changes the voice!)
-    // Without this, the voice stays the same even though state changed
+    // VOICE ID FIX: Use resolveVoiceId for single source of truth
+    // This ensures consistent voice ID regardless of what was passed
     if (this.tts?.switchVoice) {
       const displayName = getPersonaDisplayName(personaId);
-      const resolvedVoiceId = voiceId || getVoiceId(personaId);
-      this.tts.switchVoice(displayName, resolvedVoiceId);
-      log.info(
-        { voiceId: resolvedVoiceId, personaId, displayName },
-        '✅ Session TTS voice switched'
+
+      // Use voice-id-resolver as single source of truth
+      const voiceIdResult = resolveVoiceId(
+        { voiceId, personaId },
+        { logLevel: 'info' }
       );
+
+      if (!voiceIdResult.success) {
+        log.error(
+          { personaId, error: voiceIdResult.error },
+          '🚨 Voice ID resolution failed - using fallback'
+        );
+        // Emergency fallback to getVoiceId
+        const fallbackVoiceId = getVoiceId(personaId);
+        this.tts.switchVoice(displayName, fallbackVoiceId);
+      } else {
+        log.info(
+          { voiceId: voiceIdResult.voiceId, source: voiceIdResult.source, personaId, displayName },
+          '✅ Session TTS voice switched (via resolver)'
+        );
+        this.tts.switchVoice(displayName, voiceIdResult.voiceId);
+      }
     } else {
       log.warn({ personaId }, '⚠️ No TTS available for voice switch - voice may not change!');
     }

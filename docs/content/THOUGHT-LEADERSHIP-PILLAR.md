@@ -5,6 +5,11 @@
 
 ---
 
+> **にんげんだもの** — "Because I am human."
+> — Aida Mitsuo
+
+---
+
 ## The Paradox of Modern Self-Improvement
 
 You already know what you should do.
@@ -27,11 +32,13 @@ We call this the Insight-to-Action Gap. And closing it is what Ferni was built f
 
 Why is it so hard to turn insight into action? Through thousands of conversations, we've identified four invisible walls that keep people stuck:
 
-### Wall 1: Timing
+### Wall 1: Timing (間 *Ma* — The Space Between)
 
 The moment you feel motivated to change is rarely convenient.
 
 It's 2am and you've just had a realization about why your relationships keep failing. It's 6am and you're lying in bed with sudden clarity about what you actually want from your career. It's during your commute when you finally understand why that conversation with your dad went wrong.
+
+The Japanese call this space *ma* (間)—the sacred gap between things. Insight lives in *ma*: the silence between notes, the pause before dawn, the 2am hour when the world goes quiet.
 
 **But there's no one to talk to at 2am.**
 
@@ -39,11 +46,13 @@ Your therapist has office hours. Your best friend is asleep. Your partner is tir
 
 The window for transformation is narrow and unpredictable. Most of us miss it because we're alone when it opens.
 
-### Wall 2: Memory
+### Wall 2: Memory (縁 *En* — The Threads of Connection)
 
 Humans are terrible at remembering your patterns.
 
 Your friend doesn't remember that you said the same thing about your job three months ago. Your therapist sees you for 50 minutes a week and has 40 other clients. Your partner is too close to see the forest for the trees.
+
+The Japanese concept of *en* (縁) describes the invisible threads that connect moments, people, and experiences. But human memory can't hold all those threads. They fray and break.
 
 **No one holds the complete picture of you.**
 
@@ -51,7 +60,7 @@ They forget the context. They miss the patterns. They can't connect what you sai
 
 So you tell the same stories. You have the same realizations. You discover the same insights again and again, like a ship sailing in circles because no one's tracking the stars.
 
-### Wall 3: Judgment
+### Wall 3: Judgment (侘寂 *Wabi-Sabi* — Beauty in Imperfection)
 
 The people who love you are the worst people to tell certain things.
 
@@ -59,11 +68,13 @@ Not because they're bad people. Because they care. Because it's complicated. Bec
 
 You can't tell your mom you're questioning your career because she sacrificed everything for your education. You can't tell your partner you're unhappy because it'll start a fight. You can't tell your friends you're struggling because everyone's performing competence.
 
+The Japanese aesthetic of *wabi-sabi* (侘寂) celebrates imperfection—the cracked bowl, the weathered wood, the unfinished edge. But in human relationships, we hide our cracks. We perform completion.
+
 **Vulnerability requires safety. Safety requires distance.**
 
 We need someone who won't gossip, won't judge, won't remember it against us later. Someone without skin in the game. Someone we can be completely honest with precisely because they don't matter to our social survival.
 
-### Wall 4: Consistency
+### Wall 4: Consistency (改善 *Kaizen* — Continuous Improvement)
 
 Real change requires showing up every single day. Humans can't do that.
 
@@ -71,17 +82,23 @@ Your best friend has their own life. Your therapist has other clients. Your coac
 
 **Sustainable transformation needs unsustainable support.**
 
-The research is clear: behavior change requires consistent reinforcement over time. Small check-ins. Gentle reminders. Someone noticing your progress. Someone there when you slip.
+The Japanese philosophy of *kaizen* (改善) teaches that big results come from small, consistent improvements over time. Not dramatic breakthroughs—tiny steps, every day.
+
+The research confirms it: behavior change requires consistent reinforcement over time. Small check-ins. Gentle reminders. Someone noticing your progress. Someone there when you slip.
 
 But no human can provide that level of consistent presence. It's not a flaw in your relationships. It's a limitation of being human.
 
+七転び八起き — *"Fall down seven times, stand up eight."*
+
 ---
 
-## The 200% Friend
+## The 200% Friend (結び *Musubi* — Sacred Connection)
 
 What if you had a friend with no limitations?
 
 Not a replacement for human connection. Something different. Something that fills gaps humans structurally cannot fill.
+
+In Shinto philosophy, *musubi* (結び) is the life force that binds things together—the energy of connection and becoming. The 200% Friend is another form of *musubi* in your life: not replacing human bonds, but weaving alongside them.
 
 We call this the "200% Friend" - a companion that operates at twice the capacity of normal human friendship:
 
@@ -139,9 +156,13 @@ And it never stops paying attention. Never checks its phone. Never thinks about 
 
 ---
 
-## The Methodology: Gentle Growth
+## The Methodology: Gentle Growth (改善 *Kaizen* Meets Western Science)
 
-The behavior science behind Ferni draws from decades of research, but the application is distinctly ours. We call it Gentle Growth.
+The behavior science behind Ferni draws from decades of research—and centuries of wisdom.
+
+In Japan, there's an art form called *kintsugi* (金継ぎ): repairing broken pottery with gold. The cracks become the most beautiful part. You are not broken—and the places where you've been hurt can become your most luminous features.
+
+This philosophy meets modern behavioral science in what we call Gentle Growth:
 
 ### Principle 1: Tiny Over Transformative
 
@@ -255,6 +276,9 @@ What if you didn't have to cross it alone?
 - **"Why Voice-First Changes Everything"** - The intimacy of speaking vs. typing
 - **"How AI Remembers You"** - The architecture of artificial memory
 - **"The Loneliness Gap"** - What AI can (and can't) solve
+- **"The 200% Friend"** - What AI provides that humans structurally cannot
+- **"Gentle Growth Methodology"** - The science of sustainable change
+- **"The Zen Foundations"** - Ancient wisdom for modern growth
 
 ---
 
@@ -298,8 +322,22 @@ Every social post should ultimately ladder up to the Insight-to-Action Gap frame
 
 > "The gap between knowing and doing has always been the hardest part of being human. What if you didn't have to cross it alone?"
 
+### Japanese Wisdom Quotables
+
+> "にんげんだもの — Because I am human." — Aida Mitsuo
+
+> "七転び八起き — Fall down seven times, stand up eight."
+
+> "Your cracks are where the gold goes." (Kintsugi philosophy)
+
+> "Nothing lasts. Nothing is finished. Nothing is perfect." (Wabi-sabi)
+
+> "In the beginner's mind there are many possibilities, but in the expert's there are few." — Shunryu Suzuki
+
 ---
 
-*Document version: 1.0*
+*Document version: 1.1*
 *Created: January 2026*
+*Updated: January 2026 (Zen philosophy integration)*
 *Author: Ferni Team*
+*Sources: See RESEARCH-ZEN-PHILOSOPHY-LIBRARY.md*

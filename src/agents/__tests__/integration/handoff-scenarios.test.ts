@@ -618,13 +618,21 @@ describe('Emotion Preservation Through TTS Cache', () => {
    * This ensures emotion-aware TTS caching actually works during handoffs.
    */
 
+  // FIXED: Match real UserData structure where sessionId lives in services
+  // Previously this mock used userData.sessionId directly, which masked bugs
+  // where sessionId was being looked up in the wrong place
   interface MockUserData {
     userId: string;
-    sessionId: string;
     personaId: string;
     currentEmotion?: string;
     wasInterrupted?: boolean;
     interruptType?: 'hard' | 'soft';
+    // FIXED: sessionId lives in services, not directly on userData
+    services?: {
+      sessionId?: string;
+    };
+    // Legacy field for backward compatibility tests only
+    sessionId?: string;
   }
 
   interface TtsSessionContext {
@@ -637,13 +645,18 @@ describe('Emotion Preservation Through TTS Cache', () => {
   }
 
   // Simulate the extractTtsSessionContext function from tts-wrapper.ts
+  // FIXED: Now matches the real implementation that looks in services.sessionId
   const extractTtsSessionContext = (
     userData: MockUserData | undefined,
     defaultPersonaId: string
   ): TtsSessionContext => {
+    // FIXED: Match real implementation - sessionId is in services, not directly on userData
+    const services = userData?.services as { sessionId?: string } | undefined;
     return {
       userId: userData?.userId,
-      sessionId: userData?.sessionId,
+      // CRITICAL: sessionId lives in userData.services.sessionId, NOT userData.sessionId
+      // This matches the fix in tts-wrapper.ts line ~540
+      sessionId: services?.sessionId ?? (userData?.sessionId as string | undefined),
       personaId: userData?.personaId || defaultPersonaId,
       wasInterrupted: userData?.wasInterrupted,
       interruptType: userData?.interruptType,
@@ -659,10 +672,11 @@ describe('Emotion Preservation Through TTS Cache', () => {
 
   it('should propagate emotion from turn analysis to TTS cache key', () => {
     // Step 1: Simulate turn-handler setting emotion in userData
+    // FIXED: sessionId is now in services to match real UserData structure
     const userData: MockUserData = {
       userId: 'user-123',
-      sessionId: 'session-456',
       personaId: 'ferni',
+      services: { sessionId: 'session-456' },
     };
 
     // Simulate emotional analysis result setting currentEmotion
@@ -689,11 +703,12 @@ describe('Emotion Preservation Through TTS Cache', () => {
 
   it('should preserve emotion during handoff context transfer', () => {
     // Before handoff: Ferni detects user is anxious about wedding planning
+    // FIXED: sessionId is now in services to match real UserData structure
     const sourceUserData: MockUserData = {
       userId: 'user-bride',
-      sessionId: 'session-wedding',
       personaId: 'ferni',
       currentEmotion: 'anxious',
+      services: { sessionId: 'session-wedding' },
     };
 
     // Prepare handoff context
@@ -708,12 +723,13 @@ describe('Emotion Preservation Through TTS Cache', () => {
     };
 
     // After handoff: Jordan's agent should receive the emotional context
+    // FIXED: sessionId is now in services to match real UserData structure
     const targetUserData: MockUserData = {
       userId: sourceUserData.userId,
-      sessionId: sourceUserData.sessionId,
       personaId: 'jordan',
       // Emotion should be preserved from handoff context
       currentEmotion: handoffContext.emotionalContext.primary,
+      services: { sessionId: sourceUserData.services?.sessionId },
     };
 
     // Verify emotion propagates to new persona's TTS context
@@ -733,11 +749,12 @@ describe('Emotion Preservation Through TTS Cache', () => {
   });
 
   it('should handle emotion changes during conversation', () => {
+    // FIXED: sessionId is now in services to match real UserData structure
     const userData: MockUserData = {
       userId: 'user-123',
-      sessionId: 'session-456',
       personaId: 'ferni',
       currentEmotion: 'anxious',
+      services: { sessionId: 'session-456' },
     };
 
     // First turn: anxious
@@ -761,10 +778,11 @@ describe('Emotion Preservation Through TTS Cache', () => {
   });
 
   it('should use neutral emotion when currentEmotion is not set', () => {
+    // FIXED: sessionId is now in services to match real UserData structure
     const userData: MockUserData = {
       userId: 'user-123',
-      sessionId: 'session-456',
       personaId: 'ferni',
+      services: { sessionId: 'session-456' },
       // currentEmotion is NOT set
     };
 
@@ -804,12 +822,13 @@ describe('Emotion Preservation Through TTS Cache', () => {
     // This test simulates the full flow from handoff initiation to TTS cache lookup
 
     // === Phase 1: Ferni's session (before handoff) ===
+    // FIXED: sessionId is now in services to match real UserData structure
     const ferniSession = {
       userData: {
         userId: 'user-planning',
-        sessionId: 'session-handoff-001',
         personaId: 'ferni',
         currentEmotion: 'overwhelmed',
+        services: { sessionId: 'session-handoff-001' },
       } as MockUserData,
     };
 
@@ -830,13 +849,14 @@ describe('Emotion Preservation Through TTS Cache', () => {
     };
 
     // === Phase 3: Jordan's session (after handoff) ===
+    // FIXED: sessionId is now in services to match real UserData structure
     const jordanSession = {
       userData: {
         userId: handoffPayload.sourcePersona, // Same user
-        sessionId: ferniSession.userData.sessionId, // Same session
         personaId: 'jordan',
         // Key assertion: emotion preserved from handoff
         currentEmotion: handoffPayload.emotionalState.primary,
+        services: { sessionId: ferniSession.userData.services?.sessionId }, // Same session
       } as MockUserData,
     };
 
@@ -846,7 +866,7 @@ describe('Emotion Preservation Through TTS Cache', () => {
     // Critical assertions for E2E emotion flow
     expect(jordanTtsContext.emotion).toBe('overwhelmed');
     expect(jordanTtsContext.personaId).toBe('jordan');
-    expect(jordanTtsContext.sessionId).toBe(ferniSession.userData.sessionId);
+    expect(jordanTtsContext.sessionId).toBe(ferniSession.userData.services?.sessionId);
 
     // Jordan's first response with empathetic tone uses emotion-aware cache
     const jordanResponseKey = generateCacheKey(

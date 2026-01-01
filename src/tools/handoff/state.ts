@@ -1,27 +1,35 @@
 /**
- * Handoff State Management
- * Manages current agent state, history, and context
+ * Handoff State Management (GLOBAL STATE - DEPRECATED)
  *
- * REFACTORED: Now uses AgentDirectory for ID normalization.
- * The hardcoded mapping tables have been removed.
+ * ⚠️ DEPRECATED: This module uses GLOBAL state shared across all sessions.
  *
- * ⚠️ MIGRATION NOTICE:
- * This module contains GLOBAL state that is shared across all sessions.
- * For new code, prefer the session-scoped state from './session-state.js':
+ * ## Recommended: Unified Handoff Module
  *
+ * For new code, use the unified handoff module at `src/handoff/`:
  * ```typescript
- * // New (preferred) - session-isolated state
- * import { getSessionState, getCurrentAgent } from './session-state.js';
- * const state = getSessionState(sessionId);
- * const agent = getCurrentAgent(state);
- *
- * // Old (legacy) - global state
- * import { getCurrentAgent } from './state.js';
- * const agent = getCurrentAgent();
+ * import {
+ *   getCurrentAgent,    // Session-scoped
+ *   startHandoff,       // Session-scoped
+ *   completeHandoff,    // Session-scoped
+ *   isHandoffAllowed,   // Session-scoped
+ *   handoffEvents,      // Event bus (re-exported from this file)
+ * } from '../../handoff/index.js';
  * ```
  *
- * @see session-state.ts for the new session-scoped implementation
- * @see docs/audits/AGENT-TRANSFER-BUGS-GAPS.md for migration context
+ * ## What's Still Valid in This File
+ *
+ * - `handoffEvents` - Event emitter for handoff coordination (re-exported by unified module)
+ * - `cameoUnlockEvents` - Event emitter for cameo unlocks (re-exported by unified module)
+ *
+ * ## What's Deprecated
+ *
+ * - `getCurrentAgent()` without sessionId - Use `getCurrentAgent(sessionId)` from unified module
+ * - `setCurrentAgent()` without sessionId - Use `setCurrentAgent(sessionId, agentId)` from unified module
+ * - All other global state functions - Use session-scoped versions from unified module
+ *
+ * @deprecated Use `src/handoff/index.js` for new code
+ * @see src/handoff/unified-state.ts for the new session-scoped implementation
+ * @see docs/architecture/HANDOFF-CLEAN-ARCHITECTURE.md for migration guide
  */
 
 import { EventEmitter } from 'events';

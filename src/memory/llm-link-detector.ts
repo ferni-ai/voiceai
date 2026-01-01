@@ -119,9 +119,7 @@ export class LLMLinkDetector {
 
     const pairs = this.generatePairs(memories);
     const newPairs = pairs.filter(
-      ([a, b]) =>
-        !existingPairs.has(`${a.id}-${b.id}`) &&
-        !existingPairs.has(`${b.id}-${a.id}`)
+      ([a, b]) => !existingPairs.has(`${a.id}-${b.id}`) && !existingPairs.has(`${b.id}-${a.id}`)
     );
 
     if (newPairs.length === 0) return [];
@@ -148,9 +146,7 @@ export class LLMLinkDetector {
 
     const pairs = this.generatePairs(memories);
     const newPairs = pairs.filter(
-      ([a, b]) =>
-        !existingPairs.has(`${a.id}-${b.id}`) &&
-        !existingPairs.has(`${b.id}-${a.id}`)
+      ([a, b]) => !existingPairs.has(`${a.id}-${b.id}`) && !existingPairs.has(`${b.id}-${a.id}`)
     );
 
     if (newPairs.length === 0) return [];
@@ -177,9 +173,7 @@ export class LLMLinkDetector {
 
     const pairs = this.generatePairs(memories);
     const newPairs = pairs.filter(
-      ([a, b]) =>
-        !existingPairs.has(`${a.id}-${b.id}`) &&
-        !existingPairs.has(`${b.id}-${a.id}`)
+      ([a, b]) => !existingPairs.has(`${a.id}-${b.id}`) && !existingPairs.has(`${b.id}-${a.id}`)
     );
 
     if (newPairs.length === 0) return [];
@@ -217,9 +211,11 @@ export class LLMLinkDetector {
     const newPairs = pairs.filter(([a, b]) => {
       const existingTypes = existingPairMap.get(`${a.id}-${b.id}`) || [];
       // Only process if missing causal, narrative, or contrast
-      return !existingTypes.includes('caused_by') ||
-             !existingTypes.includes('narrative') ||
-             !existingTypes.includes('contradiction');
+      return (
+        !existingTypes.includes('caused_by') ||
+        !existingTypes.includes('narrative') ||
+        !existingTypes.includes('contradiction')
+      );
     });
 
     if (newPairs.length === 0) {
@@ -251,10 +247,7 @@ export class LLMLinkDetector {
   /**
    * Create links from detected results
    */
-  async createDetectedLinks(
-    userId: string,
-    detected: DetectedLink[]
-  ): Promise<MemoryLink[]> {
+  async createDetectedLinks(userId: string, detected: DetectedLink[]): Promise<MemoryLink[]> {
     const memoryGraph = getMemoryGraph();
     const created: MemoryLink[] = [];
 
@@ -291,9 +284,7 @@ export class LLMLinkDetector {
     const pairs: Array<[MemoryItem, MemoryItem]> = [];
 
     // Sort by timestamp to consider temporal ordering
-    const sorted = [...memories].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-    );
+    const sorted = [...memories].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     for (let i = 0; i < sorted.length; i++) {
       for (let j = i + 1; j < sorted.length; j++) {
@@ -387,10 +378,7 @@ Rules:
 - Return empty array if no meaningful links found`;
   }
 
-  private parseResponse(
-    text: string,
-    pairs: Array<[MemoryItem, MemoryItem]>
-  ): DetectedLink[] {
+  private parseResponse(text: string, pairs: Array<[MemoryItem, MemoryItem]>): DetectedLink[] {
     try {
       const parsed = JSON.parse(text);
       const links: DetectedLink[] = [];
@@ -407,7 +395,7 @@ Rules:
           type: link.type as LinkType,
           confidence: link.confidence || 0.5,
           evidence: link.evidence || '',
-          bidirectional: link.bidirectional ?? (link.type === 'narrative'),
+          bidirectional: link.bidirectional ?? link.type === 'narrative',
         });
       }
 
@@ -422,9 +410,9 @@ Rules:
     const now = Date.now();
     const elapsed = now - this.lastCallTime;
     if (elapsed < this.config.delayBetweenCalls) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.config.delayBetweenCalls - elapsed)
-      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, this.config.delayBetweenCalls - elapsed);
+      });
     }
     this.lastCallTime = Date.now();
   }

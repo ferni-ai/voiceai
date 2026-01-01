@@ -141,8 +141,8 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-2xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -162,22 +162,22 @@
 
 .demo-widget__emotion-badge--concern {
   background: rgba(138, 106, 90, 0.15);
-  color: #7a5a4a;
+  color: var(--color-jack);
 }
 
 .demo-widget__emotion-badge--delight {
   background: rgba(106, 138, 90, 0.15);
-  color: #4a6741;
+  color: var(--color-ferni);
 }
 
 .demo-widget__emotion-badge--curious {
   background: rgba(58, 107, 115, 0.15);
-  color: #3a5b63;
+  color: var(--color-peter);
 }
 
 .demo-widget__emotion-badge--thinking {
   background: rgba(90, 107, 138, 0.15);
-  color: #4a5b73;
+  color: var(--color-alex);
 }
 
 /* ============================================================================
@@ -190,10 +190,10 @@
   bottom: 100%;
   left: 16px;
   padding: 4px 10px;
-  background: var(--color-paper-cream, #F5F1E8);
+  background: var(--color-paper-cream, var(--color-bg-primary));
   border-radius: 8px 8px 0 0;
-  font-size: 11px;
-  color: var(--color-text-secondary, #5C544A);
+  font-size: var(--text-2xs);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   opacity: 0;
   transform: translateY(4px);
   transition: 
@@ -213,7 +213,7 @@
   width: 4px;
   height: 4px;
   margin-left: 4px;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   border-radius: 50%;
   animation: reading-dot 1s ease-in-out infinite;
 }

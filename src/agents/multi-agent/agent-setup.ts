@@ -40,7 +40,7 @@ import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
 // FIX: Import retry counter cleanup for WeakMap session GC
 import { clearRetryCounter } from '../shared/tool-call-sanitizer.js';
 // Speech coordination for centralized speech management
-import { coordinatedSay } from '../../speech/coordination/index.js';
+import { coordinatedSay, cleanupSpeechCoordination } from '../../speech/coordination/index.js';
 
 const log = getLogger();
 
@@ -525,41 +525,209 @@ Reference past context when relevant, but don't force it. Let the conversation f
   });
 
   // 2. Tool loading promise
+  // HANDOFF FIX: Tool loading was taking 22.9s and causing Gemini session timeout
+  // During handoffs, we use a shorter timeout to ensure greeting speaks promptly
+  // CRITICAL: Handoff tools MUST always be available, even if full tool loading times out
   mark('tools_start');
-  const toolsPromise = (async (): Promise<Record<string, unknown>> => {
+
+  // =========================================================================
+  // FAST PATH FOR HANDOFFS: Skip expensive orchestrator, use cached tools!
+  // =========================================================================
+  // The full tool orchestrator does semantic matching + intelligence enhancement
+  // which takes 5-20 seconds. For handoffs, we DON'T need all that - we just need
+  // the basic tools to continue the conversation.
+  //
+  // Strategy:
+  // 1. HANDOFFS: Use session-cached handoff tools + essential tools (instant!)
+  // 2. INITIAL: Full orchestrator (but cache handoff tools for future handoffs)
+  // =========================================================================
+  const HANDOFF_TOOL_TIMEOUT_MS = 5000; // 5s timeout for handoffs (increased from 3s)
+  const NORMAL_TOOL_TIMEOUT_MS = 15000; // 15s for initial agent startup
+  const toolTimeoutMs = isHandoff ? HANDOFF_TOOL_TIMEOUT_MS : NORMAL_TOOL_TIMEOUT_MS;
+
+  // =========================================================================
+  // ⚡ FAST PATH: Use centralized implementation (skips semantic router)
+  // This is 10-40x faster than full orchestrator: 200-500ms vs 5-20s
+  // =========================================================================
+  const loadHandoffToolsFast = async (): Promise<Record<string, unknown>> => {
+    const fastStart = Date.now();
     try {
-      const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
-        await import('../../tools/orchestrator/voice-agent-integration.js');
-      mark('tools_orchestrator_imported');
-
-      // Initialize orchestrator if needed
-      if (!isOrchestratorInitialized()) {
-        await initializeToolOrchestrator();
-      }
-
-      // Get tools for this persona
+      const { getToolsForAgent } = await import('../../tools/orchestrator/voice-agent-integration.js');
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+
       const { tools, meta } = await getToolsForAgent({
         persona: { id: persona.id, displayName: persona.name },
         userId: userId || 'anonymous',
         userProfile: services.userProfile,
         subscriptionTier,
-        initialTranscript: '',
         services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+        // ⚡ FAST PATH FLAG: Skip semantic router entirely!
+        fastPath: true,
+        sessionId,
       });
 
       log.info(
-        { personaId: persona.id, toolCount: meta.toolCount, mode: meta.mode },
-        '🎭 Tools loaded for multi-agent persona'
+        {
+          personaId: persona.id,
+          toolCount: meta.toolCount,
+          elapsedMs: Date.now() - fastStart,
+          sources: meta.sources,
+        },
+        '⚡ FAST PATH: Tools loaded for handoff (semantic router skipped)'
       );
+
       return tools;
+    } catch (err) {
+      log.error({ personaId: persona.id, error: String(err) }, '❌ Fast path failed');
+      return {};
+    }
+  };
+
+  // SLOW PATH: Full orchestrator with semantic matching (for initial agent)
+  const loadHandoffToolsOnly = async (): Promise<Record<string, unknown>> => {
+    // This is the fallback when full tool loading times out
+    // Just return handoff tools so the agent can at least hand off to someone else
+    try {
+      const { buildHandoffTools } = await import('../../tools/handoff/handoff-factory.js');
+      const subscriptionTier =
+        (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+      const { tools: handoffTools, toolCount } = await buildHandoffTools({
+        currentAgentId: persona.id,
+        userProfile: services.userProfile,
+        subscriptionTier,
+        services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+      });
+      log.info(
+        { personaId: persona.id, handoffToolCount: toolCount },
+        '🔄 Handoff tools loaded as timeout fallback'
+      );
+      return handoffTools;
+    } catch (err) {
+      log.error({ personaId: persona.id, error: String(err) }, '❌ Failed to load handoff tools');
+      return {};
+    }
+  };
+
+  const loadToolsInner = async (): Promise<Record<string, unknown>> => {
+    const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
+      await import('../../tools/orchestrator/voice-agent-integration.js');
+    mark('tools_orchestrator_imported');
+
+    // Initialize orchestrator if needed
+    if (!isOrchestratorInitialized()) {
+      await initializeToolOrchestrator();
+    }
+
+    // Get tools for this persona
+    const subscriptionTier =
+      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+    const { tools, meta } = await getToolsForAgent({
+      persona: { id: persona.id, displayName: persona.name },
+      userId: userId || 'anonymous',
+      userProfile: services.userProfile,
+      subscriptionTier,
+      initialTranscript: '',
+      services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+    });
+
+    log.info(
+      { personaId: persona.id, toolCount: meta.toolCount, mode: meta.mode },
+      '🎭 Tools loaded for multi-agent persona'
+    );
+    return tools;
+  };
+
+  const toolsPromise = (async (): Promise<Record<string, unknown>> => {
+    try {
+      // =========================================================================
+      // HANDOFF FAST PATH: Skip expensive orchestrator!
+      // =========================================================================
+      // For handoffs, use the fast path which loads from session cache + essential tools.
+      // This typically completes in <500ms vs 5-20 seconds for full orchestrator.
+      // =========================================================================
+      if (isHandoff) {
+        log.info({ personaId: persona.id }, '⚡ Using FAST PATH for handoff tool loading');
+        const fastResult = await Promise.race([
+          loadHandoffToolsFast(),
+          new Promise<null>((resolve) =>
+            setTimeout(() => {
+              log.warn(
+                { personaId: persona.id, timeoutMs: toolTimeoutMs },
+                '⏰ Fast path timeout - this should not happen!'
+              );
+              resolve(null);
+            }, toolTimeoutMs)
+          ),
+        ]);
+        
+        if (fastResult === null || Object.keys(fastResult).length === 0) {
+          log.error({ personaId: persona.id }, '❌ Fast path returned no tools - falling back');
+          return await loadHandoffToolsOnly();
+        }
+        
+        return fastResult;
+      }
+
+      // =========================================================================
+      // INITIAL AGENT: Full orchestrator path (slower but comprehensive)
+      // =========================================================================
+      const result = await Promise.race([
+        loadToolsInner(),
+        new Promise<null>((resolve) =>
+          setTimeout(() => {
+            log.warn(
+              { personaId: persona.id, timeoutMs: toolTimeoutMs, isHandoff },
+              '⏰ Tool loading timeout - loading ONLY handoff tools as fallback'
+            );
+            resolve(null);
+          }, toolTimeoutMs)
+        ),
+      ]);
+
+      // If timeout won, STILL load handoff tools - they're critical for peer-to-peer handoffs!
+      if (result === null) {
+        log.warn(
+          { personaId: persona.id },
+          '🔄 Full tool loading timed out - loading essential handoff tools'
+        );
+        return await loadHandoffToolsOnly();
+      }
+
+      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
+      // This ensures handoff tools are ready BEFORE any handoff request
+      try {
+        const cacheStart = Date.now();
+        const { warmupHandoffToolsForSession } = await import(
+          '../../tools/handoff/session-cache.js'
+        );
+        const tier =
+          (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+        await warmupHandoffToolsForSession(
+          sessionId,
+          services.userProfile,
+          tier,
+          services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } }
+        );
+        log.info(
+          { sessionId, elapsedMs: Date.now() - cacheStart },
+          '✅ Handoff tools cache warmed (ready for instant handoffs)'
+        );
+      } catch (warmupErr) {
+        log.warn(
+          { sessionId, error: String(warmupErr) },
+          '⚠️ Failed to warmup handoff tools cache (handoffs may be slower)'
+        );
+      }
+
+      return result;
     } catch (toolErr) {
       log.warn(
         { error: String(toolErr), personaId: persona.id },
-        '⚠️ Failed to load tools for multi-agent persona (will have no tools)'
+        '⚠️ Failed to load tools - falling back to handoff tools only'
       );
-      return {};
+      // Even on error, try to load handoff tools
+      return await loadHandoffToolsOnly();
     }
   })();
 
@@ -783,12 +951,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     userData,
     voiceOptions: {
       allowInterruptions: true,
-      // UPDATED Dec 2024: Tighter delays for snappier conversation
-      // Human turn-taking gaps are 200-500ms
-      minEndpointingDelay: 250, // Was 400ms
-      maxEndpointingDelay: 800, // Was 1200ms
+      // UPDATED Jan 2026: Ultra-tight delays for natural conversation
+      // Human turn-taking gaps are 200-400ms - we should match that
+      minEndpointingDelay: 150, // Was 250ms - be snappier
+      maxEndpointingDelay: 450, // Was 800ms - don't wait too long
       minInterruptionWords: 1,
-      minInterruptionDuration: 200, // Was 300ms
+      minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
       preemptiveGeneration: true,
     },
   });
@@ -1137,6 +1305,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
         log.warn({ error: String(err) }, '🧹 [CLEANUP] Error clearing retry counter');
       }
 
+      // FIX: Clean up speech coordination to prevent memory leaks and stale state
+      // This was missing in multi-agent mode, causing potential issues during handoffs
+      log.debug({ sessionId }, '🧹 [CLEANUP] Cleaning up speech coordination...');
+      try {
+        cleanupSpeechCoordination(sessionId);
+        log.debug({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Speech coordination cleaned up');
+      } catch (err) {
+        log.warn({ error: String(err) }, '🧹 [CLEANUP] Error cleaning up speech coordination');
+      }
+
       // FIX: Add timeout to session.close() to prevent indefinite hangs during handoff
       // session.close() can block if the session is in a draining state
       log.info({ sessionId, personaId: persona.id }, '🧹 [CLEANUP] Calling session.close()...');
@@ -1234,11 +1412,32 @@ function buildHandoffContext(config: AgentSetupConfig): string | null {
 /**
  * Create TTS engine with persona's voice.
  * Uses the same PersonaAwareTTS pattern as voice-agent-entry.ts
+ *
+ * VOICE ID FIX: Use resolveVoiceId for single source of truth
  */
 async function createPersonaTTS(personaId: string) {
   const voiceManagerModule = await import('../../speech/voice-manager.js');
+  const { resolveVoiceId } = await import('../../tools/handoff/voice-id-resolver.js');
 
-  const voiceId = getVoiceId(personaId);
+  // VOICE ID FIX: Use resolver as single source of truth
+  const voiceIdResult = resolveVoiceId({ personaId }, { logLevel: 'info' });
+  let voiceId: string;
+
+  if (voiceIdResult.success) {
+    voiceId = voiceIdResult.voiceId;
+    log.info(
+      { personaId, voiceId, source: voiceIdResult.source },
+      '🎭 Voice ID resolved via single source of truth'
+    );
+  } else {
+    // Fallback when voice ID resolution fails
+    log.warn(
+      { personaId },
+      '⚠️ Voice ID resolution failed - using fallback getVoiceId'
+    );
+    voiceId = getVoiceId(personaId); // Emergency fallback
+  }
+
   const voiceName = getPersonaDisplayName(personaId);
 
   // Log the voice ID we're using - this is critical for debugging

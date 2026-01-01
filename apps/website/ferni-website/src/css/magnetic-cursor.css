@@ -33,7 +33,7 @@
 
 /* Secondary button hover enhancement */
 .btn--secondary.is-magnetic-hover {
-  border-color: var(--color-ferni, #4a6741);
+  border-color: var(--color-ferni, var(--color-ferni));
   box-shadow: 
     0 4px 20px rgba(74, 103, 65, 0.15),
     0 0 0 2px rgba(74, 103, 65, 0.05);
@@ -60,7 +60,7 @@
 .btn--secondary .magnetic-glow {
   background: radial-gradient(
     circle,
-    var(--color-ferni, #4a6741) 0%,
+    var(--color-ferni, var(--color-ferni)) 0%,
     transparent 70%
   );
 }
@@ -74,7 +74,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   mix-blend-mode: difference;
   pointer-events: none;
   z-index: 9999;
@@ -218,7 +218,7 @@
 
 .btn:focus-visible,
 [data-magnetic]:focus-visible {
-  outline: 2px solid var(--color-ferni, #4a6741);
+  outline: 2px solid var(--color-ferni, var(--color-ferni));
   outline-offset: 4px;
 }
 

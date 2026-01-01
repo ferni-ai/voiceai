@@ -51,7 +51,7 @@
 
 .invite-logo-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -189,7 +189,7 @@
 }
 
 .waitlist__subhead {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   line-height: 1.6;
   color: var(--color-text-secondary);
   margin: 0 0 2.5rem;
@@ -216,12 +216,12 @@
 .waitlist__field input {
   width: 100%;
   padding: 1rem 1.25rem;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-family: inherit;
   color: var(--color-text-primary);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-medium);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   outline: none;
   transition: all 0.2s ease;
 }
@@ -246,7 +246,7 @@
 
 .waitlist__error {
   display: block;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-error);
   margin-top: 0.5rem;
   text-align: left;
@@ -273,13 +273,13 @@
   gap: 0.75rem;
   width: 100%;
   padding: 1rem 2rem;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
   font-family: inherit;
   color: var(--color-text-inverse);
   background: var(--color-accent);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -334,7 +334,7 @@
    ============================================ */
 
 .waitlist__note {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
   margin: 0;
 }
@@ -384,14 +384,14 @@
 
 .waitlist__success-headline {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 2rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0 0 0.75rem;
 }
 
 .waitlist__success-message {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   color: var(--color-text-secondary);
   margin: 0;
 }
@@ -415,7 +415,7 @@
   padding: 1.5rem 2rem;
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .invite-footer p {
@@ -442,11 +442,11 @@
   }
 
   .waitlist__headline {
-    font-size: 1.75rem;
+    font-size: var(--text-2xl);
   }
 
   .waitlist__subhead {
-    font-size: 1rem;
+    font-size: var(--text-base);
     margin-bottom: 2rem;
   }
 
@@ -461,11 +461,11 @@
 
 @media (prefers-color-scheme: dark) {
   .invite-only-page {
-    --color-bg-primary: #1a1816;
-    --color-bg-elevated: #252220;
-    --color-text-primary: #faf8f5;
-    --color-text-secondary: #b8b2a8;
-    --color-text-muted: #8a847a;
+    --color-bg-primary: var(--color-bg-dark);
+    --color-bg-elevated: var(--color-bg-dark-elevated);
+    --color-text-primary: var(--color-bg-primary);
+    --color-text-secondary: var(--color-text-secondary);
+    --color-text-muted: var(--color-text-muted);
     --color-border-medium: rgba(255, 255, 255, 0.1);
     --color-border-strong: rgba(255, 255, 255, 0.15);
   }

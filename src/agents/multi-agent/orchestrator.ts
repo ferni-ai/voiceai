@@ -678,6 +678,9 @@ export class AgentOrchestrator {
 
   /**
    * Make the new agent greet the user warmly.
+   *
+   * HANDOFF FIX: Added retry and direct session fallback to ensure greeting plays
+   * even if the coordinated speech system has issues.
    */
   private async agentGreets(
     agent: PersonaAgent,
@@ -685,37 +688,53 @@ export class AgentOrchestrator {
     request: HandoffRequest
   ): Promise<void> {
     const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
+    const textToSpeak = greeting || "Hey! What's up?";
 
     log.info(
       {
         to: agent.personaId,
         from: previousPersonaId,
         hasGreeting: !!greeting,
-        greetingPreview: greeting?.slice(0, 60),
+        greetingPreview: textToSpeak?.slice(0, 60),
       },
       '🎭 [GREETING] Preparing greeting speech...'
     );
 
-    if (greeting) {
-      const duration = this.estimateSpeechDuration(greeting);
-      diag.entry(`🎭 ${agent.personaId} greeting: "${greeting.slice(0, 50)}..."`);
-      log.info(
-        { personaId: agent.personaId, estimatedDurationMs: duration },
-        '🎭 [GREETING] Speaking...'
+    const duration = this.estimateSpeechDuration(textToSpeak);
+    diag.entry(`🎭 ${agent.personaId} greeting: "${textToSpeak.slice(0, 50)}..."`);
+    log.info(
+      { personaId: agent.personaId, estimatedDurationMs: duration },
+      '🎭 [GREETING] Speaking...'
+    );
+
+    // HANDOFF FIX: Try coordinated speech first, fall back to direct session.say
+    // This ensures the greeting plays even if speech coordination has issues.
+    try {
+      agent.say(textToSpeak, { allowInterruptions: false });
+    } catch (sayError) {
+      log.warn(
+        { personaId: agent.personaId, error: String(sayError) },
+        '🎭 [GREETING] Coordinated say failed, trying direct session speak...'
       );
 
-      // Greet warmly - no muting, let it flow
-      agent.say(greeting, { allowInterruptions: false });
-      await this.waitForSpeechComplete(duration);
-
-      log.info({ personaId: agent.personaId }, '🎭 [GREETING] Wait complete');
-    } else {
-      // Even without banter, say a minimal greeting
-      const fallback = "Hey! What's up?";
-      log.info({ personaId: agent.personaId, fallback }, '🎭 [GREETING] Using fallback');
-      agent.say(fallback, { allowInterruptions: false });
-      await this.waitForSpeechComplete(1500);
+      // Fallback: Try direct session.say if coordinated speech fails
+      try {
+        const session = agent.session as { say?: (text: string, opts?: unknown) => void };
+        if (session?.say) {
+          session.say(textToSpeak, { allowInterruptions: false });
+          log.info({ personaId: agent.personaId }, '🎭 [GREETING] Direct session speak succeeded');
+        }
+      } catch (directError) {
+        log.error(
+          { personaId: agent.personaId, error: String(directError) },
+          '🎭 [GREETING] ❌ Both coordinated and direct speech failed!'
+        );
+        // Don't throw - handoff should still complete even without greeting
+      }
     }
+
+    await this.waitForSpeechComplete(duration);
+    log.info({ personaId: agent.personaId }, '🎭 [GREETING] Wait complete');
   }
 
   /**

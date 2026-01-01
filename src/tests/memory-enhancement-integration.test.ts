@@ -242,7 +242,10 @@ describe('Memory Enhancement Integration', () => {
       const input: Partial<ContextBuilderInput> = {
         persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
         userData: { turnCount: 5 } as ContextBuilderInput['userData'],
-        services: { userId: testUserId, sessionId: testSessionId } as ContextBuilderInput['services'],
+        services: {
+          userId: testUserId,
+          sessionId: testSessionId,
+        } as ContextBuilderInput['services'],
         analysis: {
           topics: { detected: ['friend', 'visit'] },
           emotion: { primary: 'happy', needsSupport: false },
@@ -260,7 +263,10 @@ describe('Memory Enhancement Integration', () => {
       const input: Partial<ContextBuilderInput> = {
         persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
         userData: { turnCount: 3 } as ContextBuilderInput['userData'],
-        services: { userId: testUserId, sessionId: testSessionId } as ContextBuilderInput['services'],
+        services: {
+          userId: testUserId,
+          sessionId: testSessionId,
+        } as ContextBuilderInput['services'],
         analysis: {
           topics: { detected: ['friend'] },
           emotion: { primary: 'neutral' },
@@ -289,7 +295,10 @@ describe('Memory Enhancement Integration', () => {
       const input: Partial<ContextBuilderInput> = {
         persona: { id: testPersonaId, name: 'Ferni' } as ContextBuilderInput['persona'],
         userData: { turnCount: 3 } as ContextBuilderInput['userData'],
-        services: { userId: testUserId, sessionId: testSessionId } as ContextBuilderInput['services'],
+        services: {
+          userId: testUserId,
+          sessionId: testSessionId,
+        } as ContextBuilderInput['services'],
         analysis: {
           topics: { detected: ['fear', 'anxiety'] },
           emotion: { primary: 'fear', needsSupport: true },
@@ -308,7 +317,17 @@ describe('Memory Enhancement Integration', () => {
       // Snapshot is created only if turnCount >= 2
       if (snapshot) {
         // Tone should reflect vulnerability/fear
-        expect(['vulnerable', 'serious', 'mixed', 'playful', 'analytical', 'supportive', 'exploratory', 'celebratory', 'reflective']).toContain(snapshot.primaryTone);
+        expect([
+          'vulnerable',
+          'serious',
+          'mixed',
+          'playful',
+          'analytical',
+          'supportive',
+          'exploratory',
+          'celebratory',
+          'reflective',
+        ]).toContain(snapshot.primaryTone);
       }
     });
   });

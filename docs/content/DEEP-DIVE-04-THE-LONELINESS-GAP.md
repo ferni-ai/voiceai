@@ -5,6 +5,11 @@
 
 ---
 
+> **結び** (*Musubi*) — Connection. The life force that binds all things together.
+> You are not as alone as you feel. The threads of connection extend beyond what you can see.
+
+---
+
 ## The Epidemic No One's Talking About
 
 In 2023, the U.S. Surgeon General declared loneliness a public health epidemic.

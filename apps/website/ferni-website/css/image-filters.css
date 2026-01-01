@@ -50,7 +50,7 @@
     brightness(1.04);
   
   /* Soften edges */
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -204,8 +204,8 @@
 .ferni-image-container {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
-  background: #F5F1E8; /* Paper Cream fallback */
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary); /* Paper Cream fallback */
 }
 
 .ferni-image-container img {

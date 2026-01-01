@@ -281,7 +281,7 @@ describe('Emotional Contagion Timing System', () => {
 
       // Very next turn with similar emotion
       const input2 = createMockInput({
-        userText: "Still frustrated",
+        userText: 'Still frustrated',
         analysis: {
           emotion: {
             primary: 'frustration',

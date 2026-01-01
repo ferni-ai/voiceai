@@ -232,7 +232,7 @@ export class ProactiveMemorySurfacingService {
 
       // 4. Generate natural phrasing
       const style = this.selectStyle(context, bestMemory.item);
-      const phrasing = await this.generatePhrasing(bestMemory, style, context);
+      const phrasing = this.generatePhrasing(bestMemory, style, context);
 
       // 5. Calculate final confidence
       const factors = this.calculateFactors(context, bestMemory, recallResult);

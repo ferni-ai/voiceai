@@ -708,12 +708,15 @@ export async function generateReplyWithContext(
     waitForPlayout?: boolean;
     timeoutMs?: number;
     logContext?: string;
+    /** Session ID for session-closing check - prevents errors during disconnect */
+    sessionId?: string;
   }
 ): Promise<SafeGenerateReplyResult> {
-  const { context, logContext = 'context-reply', ...rest } = options;
+  const { context, logContext = 'context-reply', sessionId, ...rest } = options;
   return safeGenerateReply(session, {
     instructions: stageDirection(context),
     context: logContext,
+    sessionId,
     ...rest,
   });
 }

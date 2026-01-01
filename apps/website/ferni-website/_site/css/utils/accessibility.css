@@ -59,7 +59,7 @@ details:focus-visible {
 .dark-section :focus-visible,
 .footer :focus-visible,
 [data-theme='dark'] :focus-visible {
-  outline-color: var(--color-bg-primary, #faf8f5);
+  outline-color: var(--color-bg-primary, var(--color-bg-primary));
   box-shadow: 0 0 0 3px rgba(250, 248, 245, 0.2);
 }
 

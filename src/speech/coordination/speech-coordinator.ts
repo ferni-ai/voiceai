@@ -223,11 +223,45 @@ export class SpeechCoordinator {
   }
 
   /**
-   * Attach a session to the coordinator
+   * Attach a session to the coordinator.
+   * 
+   * HANDOFF FIX: If coordinator is stuck in SPEAKING state from a previous session,
+   * reset to IDLE and process queue. This happens during handoffs when the old
+   * session is replaced before its onSpeechEnded callback fires.
    */
   attachSession(session: voice.AgentSession): void {
+    const wasInSpeakingState = this.state === CoordinatorState.SPEAKING;
+    const hadPendingRequests = this.queue.length > 0;
+    
     this.session = session;
-    log.info('Session attached to speech coordinator');
+    
+    // HANDOFF FIX: If we're replacing a session that was speaking,
+    // the onSpeechEnded callback from the old session won't fire.
+    // Reset state to IDLE so queued requests can be processed.
+    if (wasInSpeakingState) {
+      log.warn(
+        { previousState: this.state, queueLength: this.queue.length },
+        '⚠️ Attaching session while in SPEAKING state - resetting to IDLE (old session speech orphaned)'
+      );
+      this.currentRequest = null;
+      this.transitionTo(CoordinatorState.IDLE);
+    }
+    
+    log.info(
+      { queueLength: this.queue.length, wasInSpeakingState },
+      'Session attached to speech coordinator'
+    );
+    
+    // Process any pending queue items after a brief delay
+    // (allows the new session to fully initialize)
+    if (hadPendingRequests || wasInSpeakingState) {
+      setTimeout(() => {
+        if (this.state === CoordinatorState.IDLE && this.queue.length > 0) {
+          log.info({ queueLength: this.queue.length }, '🔄 Processing pending speech queue after session attach');
+          this.processQueue();
+        }
+      }, 100);
+    }
   }
 
   /**

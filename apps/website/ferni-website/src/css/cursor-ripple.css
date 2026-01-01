@@ -132,7 +132,7 @@
   height: 8px;
   margin: -4px;
   border-radius: 50%;
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   opacity: 0;
 }
 

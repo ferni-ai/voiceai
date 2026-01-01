@@ -172,15 +172,15 @@ async function handleFeedback(req: IncomingMessage, res: ServerResponse): Promis
       await unifiedMemory.reinforceMemory(userId, body.memoryId, 1.2);
     }
 
-    log.debug(
-      { userId, memoryId: body.memoryId, action: body.action },
-      'Memory feedback recorded'
-    );
+    log.debug({ userId, memoryId: body.memoryId, action: body.action }, 'Memory feedback recorded');
 
     sendJSON(res, { success: true });
     return true;
   } catch (error) {
-    log.error({ error: String(error), userId, memoryId: body.memoryId }, 'Feedback recording failed');
+    log.error(
+      { error: String(error), userId, memoryId: body.memoryId },
+      'Feedback recording failed'
+    );
     sendError(res, 'Failed to record feedback', 500);
     return true;
   }

@@ -41,6 +41,100 @@ import {
 const log = createLogger({ module: 'TtsWrapper' });
 
 // =============================================================================
+// GARBAGE RESPONSE DETECTION & RECOVERY
+// =============================================================================
+
+/**
+ * Detect if LLM output is garbage/meaningless.
+ *
+ * Garbage responses include:
+ * - Empty or whitespace-only
+ * - Just punctuation (like ".")
+ * - Very short non-words (< 3 meaningful chars)
+ * - Just "..." or similar filler
+ *
+ * These indicate Gemini went into a bad state and needs recovery.
+ */
+function detectGarbageResponse(trimmedOutput: string): boolean {
+  // Empty or whitespace only
+  if (!trimmedOutput || trimmedOutput.length === 0) {
+    return true;
+  }
+
+  // Just punctuation (. , ! ? ... etc)
+  const punctuationOnly = /^[.,!?;:\-–—…'"()[\]{}]+$/;
+  if (punctuationOnly.test(trimmedOutput)) {
+    return true;
+  }
+
+  // Very short meaningless output (< 3 chars after removing punctuation)
+  const withoutPunctuation = trimmedOutput.replace(/[.,!?;:\-–—…'"()[\]{}]/g, '').trim();
+  if (withoutPunctuation.length < 3) {
+    return true;
+  }
+
+  // Just ellipsis variants
+  if (/^\.{2,}$/.test(trimmedOutput) || trimmedOutput === '...' || trimmedOutput === '…') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Trigger recovery when garbage response is detected.
+ *
+ * This speaks a brief fallback message to maintain conversation flow
+ * while Gemini recovers (or we prepare for another turn).
+ */
+async function triggerGarbageRecovery(
+  session: voice.AgentSession,
+  sessionId: string | undefined,
+  personaId: string | undefined
+): Promise<void> {
+  // Record this as a quality degradation event
+  if (sessionId) {
+    try {
+      const { recordGeminiEmptyResponse } = await import(
+        '../voice-agent/quality-degradation-monitor.js'
+      );
+      recordGeminiEmptyResponse(sessionId);
+    } catch {
+      // Non-critical - just logging
+    }
+  }
+
+  // Small delay to let the empty/garbage audio "complete" first
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  // Warm, human fallback messages (not robotic "I didn't understand")
+  const fallbackMessages = [
+    "Hmm, I lost my train of thought for a second there. What were you saying?",
+    "Sorry, something slipped. Can you say that again?",
+    "My mind wandered for a moment. I'm back - what's up?",
+    "Oops, I got a little distracted. I'm here now.",
+  ];
+
+  const fallback = fallbackMessages[Math.floor(Math.random() * fallbackMessages.length)];
+
+  log.info(
+    { sessionId, personaId, fallback: fallback.slice(0, 50) },
+    '🔄 GARBAGE RECOVERY: Speaking fallback message'
+  );
+
+  try {
+    // Use session.say() to speak the fallback directly
+    // This bypasses generateReply which might also be timing out
+    await session.say(fallback, { allowInterruptions: true });
+  } catch (err) {
+    log.error(
+      { error: String(err), sessionId },
+      '🔄 GARBAGE RECOVERY: session.say() failed, conversation may be stuck'
+    );
+  }
+}
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
@@ -112,7 +206,8 @@ export interface TtsWrapperOptions {
  *     tools: this._tools,
  *     sessionContext: {
  *       userId: this.session.userData?.userId,
- *       sessionId: this.session.userData?.sessionId,
+ *       // IMPORTANT: sessionId lives in userData.services, not directly on userData
+ *       sessionId: this.session.userData?.services?.sessionId,
  *       personaId: 'jordan-taylor',
  *       wasInterrupted: this.session.userData?.wasInterrupted,
  *       interruptType: this.session.userData?.interruptType,
@@ -199,6 +294,11 @@ export async function wrappedTtsNode(
           ];
           const hasGeminiProblem = geminiProblemPatterns.some((p) => p.test(rawLLMBuffer));
 
+          // 🚨 GARBAGE RESPONSE DETECTION - LLM output too short/empty to be meaningful
+          // This catches cases where Gemini outputs just ".", punctuation, or near-empty text
+          const trimmedOutput = rawLLMBuffer.trim();
+          const isGarbageResponse = detectGarbageResponse(trimmedOutput);
+
           // E2E TRACE LOG - Always visible in production logs
           log.info(
             {
@@ -209,14 +309,45 @@ export async function wrappedTtsNode(
               containsWeather,
               containsMusic,
               hasGeminiProblem,
+              isGarbageResponse,
               verdict: containsJson
                 ? '✅ JSON_DETECTED'
-                : hasGeminiProblem
-                  ? '🚨 GEMINI_PROBLEM_PATTERN'
-                  : '💬 PLAIN_TEXT',
+                : isGarbageResponse
+                  ? '🚨 GARBAGE_RESPONSE'
+                  : hasGeminiProblem
+                    ? '🚨 GEMINI_PROBLEM_PATTERN'
+                    : '💬 PLAIN_TEXT',
             },
-            `🔍 E2E TRACE [1/4] LLM OUTPUT: ${containsJson ? 'JSON' : hasGeminiProblem ? '⚠️ GEMINI PROBLEM' : 'text'} (${rawLLMBuffer.length} chars)`
+            `🔍 E2E TRACE [1/4] LLM OUTPUT: ${containsJson ? 'JSON' : isGarbageResponse ? '🚨 GARBAGE' : hasGeminiProblem ? '⚠️ GEMINI PROBLEM' : 'text'} (${rawLLMBuffer.length} chars)`
           );
+
+          // 🚨 GARBAGE RECOVERY: If LLM output is garbage, trigger fallback
+          // This fires async - doesn't block stream completion
+          if (isGarbageResponse && options.session) {
+            // Log detailed context for debugging
+            log.error(
+              {
+                sessionId,
+                rawOutput: rawLLMBuffer,
+                trimmedOutput,
+                trimmedLength: trimmedOutput.length,
+                rawLength: rawLLMBuffer.length,
+                containsJson,
+                containsMusic,
+                hasGeminiProblem,
+                personaId,
+                // Character codes to see invisible chars
+                charCodes: rawLLMBuffer.slice(0, 20).split('').map(c => c.charCodeAt(0)),
+              },
+              '🚨 GARBAGE RESPONSE DETECTED - Gemini output is meaningless!'
+            );
+
+            // Fire-and-forget: speak a fallback message
+            // This runs after the empty/garbage audio completes
+            triggerGarbageRecovery(options.session, sessionId, personaId).catch((err) => {
+              log.error({ error: String(err) }, 'Garbage recovery failed');
+            });
+          }
         }
       },
     });
@@ -399,9 +530,31 @@ export function extractTtsSessionContext(
   const { session } = agent;
   const userData = session?.userData as Record<string, unknown> | undefined;
 
+  // BUG FIX: sessionId lives in userData.services.sessionId, NOT userData.sessionId!
+  // UserData has services?: SessionServices, and SessionServices has sessionId: string.
+  // Previously this was always returning undefined, causing sessionId: 'unknown' in handoffs.
+  const services = userData?.services as { sessionId?: string } | undefined;
+  const extractedSessionId = services?.sessionId ?? (userData?.sessionId as string | undefined);
+
+  // DIAGNOSTIC: Log when sessionId is missing or 'unknown'
+  if (!extractedSessionId || extractedSessionId === 'unknown') {
+    log.warn(
+      {
+        hasSession: !!session,
+        hasUserData: !!userData,
+        hasServices: !!services,
+        servicesSessionId: services?.sessionId,
+        userDataSessionId: userData?.sessionId,
+        personaId: defaultPersonaId,
+        userDataKeys: userData ? Object.keys(userData).slice(0, 10) : [],
+      },
+      '⚠️ [HANDOFF-DEBUG] sessionId extraction failed - check userData.services'
+    );
+  }
+
   return {
     userId: userData?.userId as string | undefined,
-    sessionId: userData?.sessionId as string | undefined,
+    sessionId: extractedSessionId,
     personaId: (userData?.personaId as string | undefined) || defaultPersonaId,
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,

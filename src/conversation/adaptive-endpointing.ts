@@ -93,35 +93,35 @@ export interface UserSpeakingProfile {
 // CONSTANTS
 // ============================================================================
 
-/** Base endpointing delays in milliseconds */
+/** Base endpointing delays in milliseconds - TIGHTENED Jan 2026 */
 const BASE_DELAYS = {
-  min: 400,
-  max: 1200,
+  min: 200, // Was 400ms - human turn gaps are 200-400ms
+  max: 500, // Was 1200ms - don't wait too long
 };
 
-/** Adjustments for different contexts */
+/** Adjustments for different contexts - REDUCED for snappier turns */
 const ADJUSTMENTS = {
-  // Topic weight
-  heavyTopic: { minAdd: 300, maxAdd: 600 },
-  mediumTopic: { minAdd: 100, maxAdd: 200 },
+  // Topic weight - reduced by ~50%
+  heavyTopic: { minAdd: 150, maxAdd: 300 }, // Was 300/600
+  mediumTopic: { minAdd: 50, maxAdd: 100 }, // Was 100/200
 
-  // Sentence completeness
-  incompleteThought: { minAdd: 400, maxAdd: 700 },
-  partialThought: { minAdd: 200, maxAdd: 400 },
+  // Sentence completeness - reduced significantly
+  incompleteThought: { minAdd: 150, maxAdd: 300 }, // Was 400/700
+  partialThought: { minAdd: 100, maxAdd: 200 }, // Was 200/400
 
-  // Emotional intensity
-  highEmotion: { minAdd: 200, maxAdd: 400 },
-  crisisLevel: { minAdd: 400, maxAdd: 800 },
+  // Emotional intensity - reduced
+  highEmotion: { minAdd: 100, maxAdd: 200 }, // Was 200/400
+  crisisLevel: { minAdd: 200, maxAdd: 400 }, // Was 400/800
 
   // Speaking rate
-  slowSpeaker: { minAdd: 200, maxAdd: 300 }, // <100 WPM
-  fastSpeaker: { minSub: 100, maxSub: 150 }, // >160 WPM
+  slowSpeaker: { minAdd: 100, maxAdd: 150 }, // Was 200/300
+  fastSpeaker: { minSub: 100, maxSub: 150 }, // Keep same
 
-  // Conversation phase
-  supporting: { minAdd: 150, maxAdd: 300 }, // Give space in support mode
+  // Conversation phase - reduced
+  supporting: { minAdd: 75, maxAdd: 150 }, // Was 150/300
 
-  // Utterance type
-  incompleteUtterance: { minAdd: 300, maxAdd: 500 },
+  // Utterance type - reduced
+  incompleteUtterance: { minAdd: 150, maxAdd: 250 }, // Was 300/500
 };
 
 /** Signals that suggest incomplete thought */

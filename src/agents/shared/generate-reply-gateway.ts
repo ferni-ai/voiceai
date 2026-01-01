@@ -81,6 +81,156 @@ const DEBOUNCE_MS = 500;
 /** Time after which circuit breaker enters "half-open" state to allow recovery */
 const CIRCUIT_BREAKER_RESET_MS = 10_000;
 
+/** After this many consecutive failures, trigger graceful exit instead of leaving user in silence */
+const GRACEFUL_EXIT_THRESHOLD = 5;
+
+// ============================================================================
+// ERROR ANALYSIS HELPERS
+// ============================================================================
+
+interface GeminiErrorDetails {
+  errorType: 'timeout' | 'rate_limit' | 'auth' | 'connection' | 'api' | 'unknown';
+  errorCode?: number | string;
+  isRetryable: boolean;
+  isGeminiDead: boolean;
+  httpStatus?: number;
+  rawErrorName?: string;
+}
+
+/**
+ * Extract detailed error information from Gemini API errors.
+ *
+ * This helps diagnose WHY Gemini failed:
+ * - 429 = Rate limit (temporary)
+ * - 401/403 = Auth issue (permanent)
+ * - ETIMEDOUT = Connection timeout
+ * - "generation_created" timeout = Gemini session dead
+ */
+function extractGeminiErrorDetails(error: unknown): GeminiErrorDetails {
+  const details: GeminiErrorDetails = {
+    errorType: 'unknown',
+    isRetryable: true,
+    isGeminiDead: false,
+  };
+
+  if (!error) return details;
+
+  const errorStr = String(error);
+  const errorObj = error as Record<string, unknown>;
+
+  // Check for Error instance properties
+  if (error instanceof Error) {
+    details.rawErrorName = error.name;
+
+    // Extract error code if present
+    if ('code' in error) {
+      details.errorCode = (error as { code: unknown }).code as string | number;
+    }
+    if ('status' in error) {
+      details.httpStatus = (error as { status: unknown }).status as number;
+    }
+    if ('statusCode' in error) {
+      details.httpStatus = (error as { statusCode: unknown }).statusCode as number;
+    }
+  }
+
+  // Classify error type based on message/code
+  if (errorStr.includes('Gateway timeout') || errorStr.includes('Safe timeout')) {
+    details.errorType = 'timeout';
+    details.isGeminiDead = true; // Our timeout fired, Gemini didn't respond
+  } else if (errorStr.includes('generation_created') || errorStr.includes('timed out waiting')) {
+    details.errorType = 'timeout';
+    details.isGeminiDead = true; // Gemini session is likely dead
+  } else if (
+    errorStr.includes('429') ||
+    errorStr.includes('rate limit') ||
+    errorStr.includes('RESOURCE_EXHAUSTED')
+  ) {
+    details.errorType = 'rate_limit';
+    details.errorCode = 429;
+    details.isRetryable = true;
+  } else if (
+    errorStr.includes('401') ||
+    errorStr.includes('403') ||
+    errorStr.includes('UNAUTHENTICATED') ||
+    errorStr.includes('PERMISSION_DENIED')
+  ) {
+    details.errorType = 'auth';
+    details.isRetryable = false; // Auth errors won't self-heal
+  } else if (
+    errorStr.includes('ETIMEDOUT') ||
+    errorStr.includes('ECONNRESET') ||
+    errorStr.includes('ENOTFOUND') ||
+    errorStr.includes('WebSocket')
+  ) {
+    details.errorType = 'connection';
+    details.isGeminiDead = true;
+  } else if (errorStr.includes('500') || errorStr.includes('503') || errorStr.includes('INTERNAL')) {
+    details.errorType = 'api';
+    details.isRetryable = true;
+  }
+
+  // Check nested error objects (some APIs wrap errors)
+  if (errorObj.response && typeof errorObj.response === 'object') {
+    const response = errorObj.response as Record<string, unknown>;
+    if (response.status) {
+      details.httpStatus = response.status as number;
+    }
+    if (response.data && typeof response.data === 'object') {
+      const data = response.data as Record<string, unknown>;
+      if (data.error && typeof data.error === 'object') {
+        const innerError = data.error as Record<string, unknown>;
+        if (innerError.code) details.errorCode = innerError.code as string | number;
+      }
+    }
+  }
+
+  return details;
+}
+
+/**
+ * Trigger a graceful exit when LLM is completely unresponsive.
+ *
+ * This says goodbye in a warm way and signals the frontend to disconnect,
+ * rather than leaving the user in awkward silence.
+ */
+async function triggerGracefulExit(sessionId: string): Promise<void> {
+  // Warm, human goodbye messages (not "I'm experiencing technical difficulties")
+  const goodbyeMessages = [
+    "Oh, looks like I need to step away for a moment. Talk to you soon!",
+    "Hey, I think I need to take a quick break. Catch you in a bit!",
+    "Hmm, something's up on my end. Let me reconnect - talk soon!",
+    "I should probably step away for a sec. Be right back!",
+  ];
+
+  const goodbye = goodbyeMessages[Math.floor(Math.random() * goodbyeMessages.length)];
+
+  log.warn({ sessionId, goodbye: goodbye.slice(0, 50) }, '👋 [GATEWAY] Speaking graceful exit');
+
+  try {
+    // Say goodbye using coordinatedSay (doesn't require generateReply)
+    await coordinatedSay(sessionId, goodbye, { allowInterruptions: false });
+
+    // Wait a moment for TTS to complete
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    // Signal frontend to disconnect
+    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
+    await sendFrontendSignal('conversation_end', {
+      reason: 'graceful_exit_failures',
+      disconnectDelay: 500, // Short delay since TTS already played
+      timestamp: Date.now(),
+    });
+
+    log.info({ sessionId }, '👋 [GATEWAY] Graceful exit complete - frontend notified');
+  } catch (err) {
+    log.error(
+      { error: String(err), sessionId },
+      '👋 [GATEWAY] Graceful exit failed - user may be stuck'
+    );
+  }
+}
+
 // ============================================================================
 // SESSION STATE TRACKING
 // ============================================================================
@@ -479,6 +629,47 @@ export async function generateReply(
     const errorMessage = error instanceof Error ? error.message : String(error);
     const latencyMs = Date.now() - startTime;
 
+    // 🔍 ENHANCED ERROR LOGGING: Extract Gemini-specific error details
+    const errorDetails = extractGeminiErrorDetails(error);
+    log.error(
+      {
+        sessionId,
+        context,
+        error: errorMessage,
+        ...errorDetails,
+        consecutiveFailures: state.consecutiveFailures,
+        latencyMs,
+        stackPreview: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
+      },
+      `🚨 [GATEWAY] Gemini error: ${errorDetails.errorType} - ${errorMessage.slice(0, 100)}`
+    );
+
+    // 🚨 GRACEFUL EXIT: Too many consecutive failures - Gemini is unrecoverable
+    // Rather than leaving user in silence, say goodbye and disconnect
+    if (state.consecutiveFailures >= GRACEFUL_EXIT_THRESHOLD) {
+      log.error(
+        {
+          sessionId,
+          context,
+          consecutiveFailures: state.consecutiveFailures,
+          threshold: GRACEFUL_EXIT_THRESHOLD,
+        },
+        '🚨 [GATEWAY] Too many failures - triggering graceful exit'
+      );
+
+      // Fire-and-forget graceful exit (don't block return)
+      triggerGracefulExit(sessionId).catch((err) => {
+        log.error({ error: String(err) }, 'Graceful exit failed');
+      });
+
+      return {
+        success: false,
+        usedFallback: false,
+        error: `Graceful exit triggered after ${state.consecutiveFailures} failures`,
+        latencyMs,
+      };
+    }
+
     // If we were in half-open state and this call failed, reset the timer
     if (state.circuitBreakerOpenedAt !== undefined && state.consecutiveFailures >= 3) {
       state.circuitBreakerOpenedAt = Date.now(); // Restart the timer
@@ -547,18 +738,17 @@ export async function prewarmSession(
     return false;
   }
 
-  log.info({ sessionId }, '🔥 [GATEWAY] Starting session prewarm (EXPERIMENTAL: quick mode)...');
-
-  // EXPERIMENTAL: Skip the slow generateReply prewarm
-  // The first real user interaction will warm the Gemini connection
-  // This avoids the 15-second blocking prewarm
+  // Determine prewarm mode:
+  // SKIP_PREWARM_GENERATEREPLY=false → Full prewarm (calls generateReply to establish connection)
+  // SKIP_PREWARM_GENERATEREPLY=true/unset → Quick mode (500ms delay, lazy connection)
   const SKIP_PREWARM_GENERATEREPLY = process.env.SKIP_PREWARM_GENERATEREPLY !== 'false';
 
   if (SKIP_PREWARM_GENERATEREPLY) {
-    // Just wait a short delay and mark ready
+    log.info({ sessionId }, '🔥 [GATEWAY] Starting session prewarm (QUICK MODE)...');
+    // Just wait a minimal delay and mark ready
     // The Gemini connection will be established lazily on first real message
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 500);
+      setTimeout(resolve, 50); // Was 500ms - reduced for snappier response
     });
 
     if (cancelledSessions.has(sessionId)) {
@@ -569,15 +759,18 @@ export async function prewarmSession(
     markSessionReady(sessionId);
     log.info(
       { sessionId, durationMs: Date.now() - startTime },
-      '🔥 [GATEWAY] Prewarm complete (QUICK MODE - no generateReply)'
+      '🔥 [GATEWAY] Prewarm complete (QUICK MODE - lazy connection)'
     );
     return true;
   }
 
+  log.info({ sessionId }, '🔥 [GATEWAY] Starting FULL prewarm (establishing Gemini connection)...');
+
   try {
-    // Call generateReply with minimal instruction
+    // Call generateReply with minimal instruction to establish Gemini WebSocket
+    // Reduced timeout from 20s to 5s since this is now synchronous in startup path
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Prewarm timeout (20s)')), 20000);
+      setTimeout(() => reject(new Error('Prewarm timeout (5s)')), 5000);
     });
 
     const prewarmPromise = (async () => {
@@ -611,9 +804,12 @@ export async function prewarmSession(
       return false;
     }
 
-    // SUCCESS - mark session ready
+    // SUCCESS - Gemini connection is now established
     markSessionReady(sessionId);
-    log.info({ sessionId, durationMs: Date.now() - startTime }, '🔥 [GATEWAY] Prewarm complete');
+    log.info(
+      { sessionId, durationMs: Date.now() - startTime },
+      '🔥 [GATEWAY] FULL prewarm complete - Gemini connection established'
+    );
     return true;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

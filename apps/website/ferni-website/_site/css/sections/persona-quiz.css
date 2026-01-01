@@ -259,23 +259,23 @@
    ============================================================================ */
 @media (prefers-color-scheme: dark) {
   .quiz-section {
-    background: var(--color-ferni-cinematic-dark, #2c2520);
+    background: var(--color-ferni-cinematic-dark, var(--color-text-primary));
   }
   
   .quiz-section .section__eyebrow {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .quiz-section .section__title {
-    color: var(--color-ferni-cinematic-text, #ffffff);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
   .quiz-section .section__subtitle {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   .persona-quiz {
-    background: var(--color-ferni-cinematic-surface, #4a4038);
+    background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
     border-color: rgba(255, 255, 255, 0.1);
     box-shadow: 
       0 4px 16px rgba(0, 0, 0, 0.3),
@@ -287,55 +287,55 @@
   }
   
   .quiz__step {
-    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
   }
   
   .quiz__question {
-    color: var(--color-ferni-cinematic-text, #ffffff);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
   .quiz__answer {
-    color: var(--color-ferni-cinematic-text, #ffffff);
-    background: var(--color-ferni-cinematic-deep, #3a332e);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
+    background: var(--color-ferni-cinematic-deep, var(--color-bg-dark-elevated));
     border-color: rgba(255, 255, 255, 0.12);
   }
   
   .quiz__answer:hover {
     background: rgba(74, 103, 65, 0.25);
-    border-color: var(--color-ferni, #4a6741);
+    border-color: var(--color-ferni, var(--color-ferni));
   }
   
   .quiz__answer--selected {
-    background: var(--color-ferni, #4a6741);
-    border-color: var(--color-ferni, #4a6741);
-    color: #ffffff;
+    background: var(--color-ferni, var(--color-ferni));
+    border-color: var(--color-ferni, var(--color-ferni));
+    color: var(--color-text-inverse);
   }
   
   .quiz__result-label {
-    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
   }
   
   .quiz__result-name {
-    color: var(--color-ferni-cinematic-text, #ffffff);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
   .quiz__result-role {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   .quiz__result-match {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
   
   .quiz__result-note {
-    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
   }
   
   .quiz__result-actions .btn--ghost {
-    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
   }
   
   .quiz__result-actions .btn--ghost:hover {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
 }

@@ -58,17 +58,17 @@
   .section-cta {
     background: linear-gradient(
       145deg,
-      var(--color-ferni-cinematic-deep, #3a332e) 0%,
-      var(--color-ferni-cinematic-dark, #2c2520) 100%
+      var(--color-ferni-cinematic-deep, var(--color-bg-dark-elevated)) 0%,
+      var(--color-ferni-cinematic-dark, var(--color-text-primary)) 100%
     );
   }
   
   .cta-headline {
-    color: var(--color-ferni-cinematic-text, #ffffff);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
   .cta-body {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
 }
 

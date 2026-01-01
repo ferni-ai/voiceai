@@ -15,16 +15,16 @@
    - Apple-level polish and attention to detail
 
    Color Palette (Dark Mode):
-   - Background: #2c2520 (warm dark brown)
-   - Elevated: #3a332e (slightly lighter)
-   - Surface: #4a4038 (card surfaces)
-   - Deep: #1a1614 (for dramatic sections)
+   - Background: var(--color-text-primary) (warm dark brown)
+   - Elevated: var(--color-bg-dark-elevated) (slightly lighter)
+   - Surface: var(--color-bg-dark-surface) (card surfaces)
+   - Deep: var(--color-bg-dark) (for dramatic sections)
 
-   Text Colors (all WCAG AA compliant on #2c2520):
-   - Primary: #ffffff (12.1:1 contrast)
-   - Secondary: #f0ebe4 (9.8:1 contrast)
-   - Muted: #ddd6cc (7.5:1 contrast)
-   - Dimmed: #c8bfb4 (5.9:1 contrast)
+   Text Colors (all WCAG AA compliant on var(--color-text-primary)):
+   - Primary: var(--color-text-inverse) (12.1:1 contrast)
+   - Secondary: var(--color-bg-secondary) (9.8:1 contrast)
+   - Muted: var(--color-text-muted) (7.5:1 contrast)
+   - Dimmed: var(--color-text-dimmed) (5.9:1 contrast)
 
    ======================================================= */
 
@@ -35,29 +35,29 @@
 
 [data-theme="dark"] {
   /* ===== Surface Colors ===== */
-  --color-background: #2c2520;
-  --color-background-elevated: #3a332e;
-  --color-background-surface: #4a4038;
-  --color-background-deep: #1a1614;
+  --color-background: var(--color-text-primary);
+  --color-background-elevated: var(--color-bg-dark-elevated);
+  --color-background-surface: var(--color-bg-dark-surface);
+  --color-background-deep: var(--color-bg-dark);
 
   /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
-  --color-bg-primary: #2c2520;
-  --color-bg-secondary: #3a332e;
-  --color-paper-cream: #2c2520;
-  --color-sand: #3a332e;
-  --color-background-subtle: #3a332e;
+  --color-bg-primary: var(--color-text-primary);
+  --color-bg-secondary: var(--color-bg-dark-elevated);
+  --color-paper-cream: var(--color-text-primary);
+  --color-sand: var(--color-bg-dark-elevated);
+  --color-background-subtle: var(--color-bg-dark-elevated);
 
   /* ===== Text Colors - WCAG AA Compliant ===== */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #f0ebe4;
-  --color-text-muted: #ddd6cc;
-  --color-text-dimmed: #c8bfb4;
+  --color-text-primary: var(--color-text-inverse);
+  --color-text-secondary: var(--color-bg-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-dimmed: var(--color-text-dimmed);
 
   /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
   --color-accent: var(--color-ferni-text, #a5c99a);
-  --color-accent-hover: #b8d8a8;
+  --color-accent-hover: var(--color-ferni-light);
   --color-accent-light: rgba(165, 201, 154, 0.2);
-  --color-highlight: #d4b275;
+  --color-highlight: var(--color-highlight);
   --color-highlight-glow: rgba(212, 178, 117, 0.3);
 
   /* ===== Border Colors ===== */
@@ -114,29 +114,29 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* ===== Surface Colors ===== */
-    --color-background: #2c2520;
-    --color-background-elevated: #3a332e;
-    --color-background-surface: #4a4038;
-    --color-background-deep: #1a1614;
+    --color-background: var(--color-text-primary);
+    --color-background-elevated: var(--color-bg-dark-elevated);
+    --color-background-surface: var(--color-bg-dark-surface);
+    --color-background-deep: var(--color-bg-dark);
     
     /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
-    --color-bg-primary: #2c2520;
-    --color-bg-secondary: #3a332e;
-    --color-paper-cream: #2c2520;
-    --color-sand: #3a332e;
-    --color-background-subtle: #3a332e;
+    --color-bg-primary: var(--color-text-primary);
+    --color-bg-secondary: var(--color-bg-dark-elevated);
+    --color-paper-cream: var(--color-text-primary);
+    --color-sand: var(--color-bg-dark-elevated);
+    --color-background-subtle: var(--color-bg-dark-elevated);
     
     /* ===== Text Colors - WCAG AA Compliant ===== */
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #f0ebe4;
-    --color-text-muted: #ddd6cc;
-    --color-text-dimmed: #c8bfb4;
+    --color-text-primary: var(--color-text-inverse);
+    --color-text-secondary: var(--color-bg-secondary);
+    --color-text-muted: var(--color-text-muted);
+    --color-text-dimmed: var(--color-text-dimmed);
     
     /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
     --color-accent: var(--color-ferni-text, #a5c99a);
-    --color-accent-hover: #b8d8a8;
+    --color-accent-hover: var(--color-ferni-light);
     --color-accent-light: rgba(165, 201, 154, 0.2);
-    --color-highlight: #d4b275;
+    --color-highlight: var(--color-highlight);
     --color-highlight-glow: rgba(212, 178, 117, 0.3);
     
     /* ===== Border Colors ===== */
@@ -613,27 +613,27 @@
   
   .memory-story__tag--anxious {
     background: rgba(196, 133, 106, 0.2);
-    color: #e8a98a;
+    color: var(--color-maya);
   }
   
   .memory-story__tag--scared {
     background: rgba(184, 149, 106, 0.2);
-    color: #d4b889;
+    color: var(--color-nayan);
   }
   
   .memory-story__tag--distracted {
     background: rgba(90, 107, 138, 0.2);
-    color: #8a9ab8;
+    color: var(--color-alex);
   }
   
   .memory-story__tag--guilty {
     background: rgba(166, 122, 106, 0.2);
-    color: #c49a8a;
+    color: var(--color-maya);
   }
   
   .memory-story__tag--relieved {
     background: rgba(90, 122, 82, 0.2);
-    color: #8aba7a;
+    color: var(--color-ferni);
   }
   
   /* Ferni Response Card - Special Treatment */
@@ -1718,12 +1718,12 @@
 
 @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
   :root {
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #ffffff;
-    --color-text-muted: #e0e0e0;
+    --color-text-primary: var(--color-text-inverse);
+    --color-text-secondary: var(--color-text-inverse);
+    --color-text-muted: var(--color-text-secondary);
     --color-border-subtle: rgba(255, 255, 255, 0.3);
     --color-border-medium: rgba(255, 255, 255, 0.5);
-    --color-accent: #7aa06a;
+    --color-accent: var(--color-ferni);
   }
 }
 

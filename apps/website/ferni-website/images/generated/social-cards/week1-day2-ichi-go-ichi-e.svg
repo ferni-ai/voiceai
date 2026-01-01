@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="627" viewBox="0 0 1200 627" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFDFB"/>
+      <stop offset="100%" style="stop-color:#F5F1E8"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3A6B73"/>
+      <stop offset="100%" style="stop-color:#5d7a54"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="627" fill="url(#bgGradient)"/>
+
+  <!-- Left accent bar -->
+  <rect x="0" y="0" width="8" height="627" fill="url(#accentGradient)"/>
+
+  <!-- Subtle texture pattern -->
+  <pattern id="texture" patternUnits="userSpaceOnUse" width="100" height="100">
+    <circle cx="50" cy="50" r="0.5" fill="#7A6F63" opacity="0.1"/>
+  </pattern>
+  <rect width="1200" height="627" fill="url(#texture)" opacity="0.5"/>
+
+  <!-- Content layout: Kanji on left, text on right -->
+
+  <!-- Kanji section (left side) -->
+  <g transform="translate(80, 313.5)">
+    <!-- Large kanji character -->
+    <text x="0" y="0"
+          font-family="Noto Sans JP, Yu Gothic, Meiryo, sans-serif"
+          font-size="180"
+          font-weight="300"
+          fill="#2C2520"
+          text-anchor="start"
+          dominant-baseline="middle"
+          letter-spacing="10">一期一会</text>
+  </g>
+
+  <!-- Divider line -->
+  <line x1="480" y1="100" x2="480" y2="527" stroke="#3A6B73" stroke-width="1" opacity="0.3"/>
+
+  <!-- Text section (right side) -->
+  <g transform="translate(540, 0)">
+    <!-- Romaji pronunciation -->
+    <text x="0" y="180"
+          font-family="Plus Jakarta Sans, Inter, sans-serif"
+          font-size="28"
+          font-weight="500"
+          fill="#3A6B73"
+          letter-spacing="4">Ichi-go Ichi-e</text>
+
+    <!-- English translation -->
+    <text x="0" y="220"
+          font-family="Plus Jakarta Sans, Inter, sans-serif"
+          font-size="20"
+          font-weight="400"
+          fill="#5C5248">"One time, one meeting"</text>
+
+    <!-- Wisdom quote -->
+    <text x="0" y="300"
+          font-family="Crimson Text, Georgia, serif"
+          font-size="32"
+          font-weight="400"
+          font-style="italic"
+          fill="#2C2520">
+      <tspan x="0" dy="0">This moment will never come again. Give it</tspan><tspan x="0" dy="44">your full attention.</tspan>
+    </text>
+
+    <!-- Hashtags hint -->
+    <text x="0" y="527"
+          font-family="Inter, sans-serif"
+          font-size="16"
+          fill="#7A6F63">#JapaneseWisdom #DailyReflection #Mindfulness</text>
+  </g>
+
+  <!-- Ferni branding (bottom right) -->
+  <g transform="translate(1020, 567)">
+    <text x="0" y="0"
+          font-family="Plus Jakarta Sans, sans-serif"
+          font-size="24"
+          font-weight="600"
+          fill="#4a6741">ferni.ai</text>
+  </g>
+
+  <!-- Series indicator (bottom left) -->
+  <text x="80" y="587"
+        font-family="Inter, sans-serif"
+        font-size="14"
+        fill="#7A6F63">Daily Wisdom Series</text>
+</svg>

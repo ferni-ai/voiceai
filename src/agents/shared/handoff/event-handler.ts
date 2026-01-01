@@ -14,7 +14,8 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { UserData } from '../types.js';
-import { handoffEvents } from '../../../tools/handoff/state.js';
+// Unified handoff module (Phase 3 migration)
+import { handoffEvents } from '../../../handoff/index.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 
@@ -96,15 +97,16 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
     sessionId: configSessionId,
     initialAgent,
   } = config;
-  // Use passed sessionId if available, otherwise fall back to room name
-  // CRITICAL: This MUST match the sessionId used by data-channel-handler
-  const sessionId = configSessionId || ctx.room?.name || `event-handler-${Date.now()}`;
+  // Use passed sessionId if available, then services.sessionId, then room name
+  // CRITICAL: This MUST match the sessionId used in initializeSpeechCoordination()
+  const sessionId = configSessionId || services.sessionId || ctx.room?.name || `event-handler-${Date.now()}`;
 
   log.info({ sessionId, initialAgent }, '📡 Creating voiceSwitch event handler');
 
   // Ensure coordinator adapter exists for this session
   // CRITICAL: Always pass initialAgent so the state manager knows the starting persona!
   // CRITICAL: Pass tts so the actual voice can be changed!
+  // CRITICAL: Pass sessionId so speech coordination works correctly!
   const adapterConfig: CoordinatorAdapterConfig = {
     ctx,
     session,
@@ -113,6 +115,7 @@ export function createEventHandler(config: EventHandlerConfig): EventHandlerResu
     getVoiceAgentRef,
     initialAgent: initialAgent || 'ferni', // Default to ferni if not provided
     tts, // CRITICAL: Without this, LLM-initiated handoffs won't switch voice!
+    sessionId, // CRITICAL: Without this, coordinatedSay fails with "sessionId: 'unknown'"
   };
 
   // Get or create the adapter

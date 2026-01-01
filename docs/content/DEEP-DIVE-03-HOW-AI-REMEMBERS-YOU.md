@@ -5,6 +5,11 @@
 
 ---
 
+> **縁** (*En*) — The invisible threads that connect moments, people, and experiences.
+> Some call it fate. Some call it karma. We call it memory that holds the full tapestry.
+
+---
+
 ## The Friend Who Never Forgets
 
 Imagine a friend who remembers everything you've ever told them.

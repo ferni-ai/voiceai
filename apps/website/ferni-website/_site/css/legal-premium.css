@@ -685,8 +685,8 @@
 
 /* Crisis/Emergency Callout */
 .legal-article .callout--crisis {
-  background: linear-gradient(135deg, #fef3f2, #fee2e2);
-  border-left-color: #dc2626;
+  background: linear-gradient(135deg, var(--color-error-bg), var(--color-error-bg));
+  border-left-color: var(--color-error);
   position: relative;
   overflow: hidden;
 }
@@ -698,7 +698,7 @@
   left: 0;
   width: 4px;
   height: 100%;
-  background: #dc2626;
+  background: var(--color-error);
   animation: pulse-warning 2s infinite;
 }
 
@@ -708,7 +708,7 @@
 }
 
 .legal-article .callout--crisis strong {
-  color: #b91c1c;
+  color: var(--color-error);
 }
 
 /* Success/Confirmation Callout */
@@ -723,12 +723,12 @@
 
 /* Info Callout */
 .legal-article .callout--info {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, var(--color-info-bg), var(--color-info-bg));
+  border-left-color: var(--color-info);
 }
 
 .legal-article .callout--info strong {
-  color: #1d4ed8;
+  color: var(--color-info);
 }
 
 /* Quote/Highlight Callout */
@@ -746,7 +746,7 @@
   top: -8px;
   left: 20px;
   font-family: var(--font-display);
-  font-size: 4rem;
+  font-size: var(--text-5xl);
   font-weight: 800;
   color: var(--color-accent);
   opacity: 0.2;
@@ -805,7 +805,7 @@
   }
   
   .legal-hero__badge {
-    font-size: 0.625rem;
+    font-size: var(--text-2xs);
     padding: var(--space-1_5) var(--space-3);
   }
   
@@ -911,9 +911,9 @@
 .legal-contact__btn:focus-visible,
 .legal-footer-nav__link:focus-visible,
 .legal-top:focus-visible {
-  outline: 2px solid var(--color-ferni, #4a6741);
+  outline: 2px solid var(--color-ferni, var(--color-ferni));
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 /* ============================================================================
@@ -966,7 +966,7 @@
   .legal-hero__gradient {
     background: 
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.15), transparent),
-      linear-gradient(180deg, #2c2520 0%, #3a3330 100%);
+      linear-gradient(180deg, var(--color-text-primary) 0%, #3a3330 100%);
   }
   
   .legal-hero__pattern {
@@ -976,54 +976,54 @@
   
   .legal-back {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-back:hover {
     background: rgba(74, 103, 65, 0.2);
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-hero__badge {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-hero__title {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-hero__subtitle {
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-hero__meta {
-    color: var(--color-dark-text-muted, #ddd6cc);
+    color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
   .legal-main {
-    background: #2c2520;
+    background: var(--color-text-primary);
   }
   
   .legal-toc__header {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
     border-bottom-color: rgba(255, 255, 255, 0.1);
   }
   
   .legal-toc__link {
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-toc__link:hover {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
     background: rgba(255, 255, 255, 0.05);
   }
   
   .legal-toc__link.active {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
     background: rgba(196, 162, 101, 0.1);
-    border-left-color: var(--color-highlight, #C4A265);
+    border-left-color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-trust {
@@ -1032,12 +1032,12 @@
   
   .legal-trust__item {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
   
   .legal-article {
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-article section {
@@ -1046,28 +1046,28 @@
   
   .legal-article h2,
   .legal-article h3 {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-article h2 .section-icon {
     background: rgba(74, 103, 65, 0.2);
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-article li::marker {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-article li strong {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-article a {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-article a:hover {
-    color: #d4b475;
+    color: var(--color-highlight);
   }
   
   .legal-article .callout {
@@ -1076,7 +1076,7 @@
   }
   
   .legal-article .callout p {
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-article .callout--crisis {
@@ -1093,7 +1093,7 @@
   
   .legal-article .data-table th {
     background: rgba(255, 255, 255, 0.05);
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-article .data-table th,
@@ -1112,47 +1112,47 @@
   
   .legal-contact__icon {
     background: rgba(74, 103, 65, 0.15);
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .legal-contact__content h3 {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-contact__content p {
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-contact__btn {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-contact__btn:hover {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-contact__btn--primary {
-    background: var(--color-ferni, #4a6741);
-    border-color: var(--color-ferni, #4a6741);
+    background: var(--color-ferni, var(--color-ferni));
+    border-color: var(--color-ferni, var(--color-ferni));
     color: white;
   }
   
   .legal-top {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-dark-text-secondary, #f0ebe4);
+    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
   }
   
   .legal-top:hover {
-    background: var(--color-ferni, #4a6741);
-    border-color: var(--color-ferni, #4a6741);
+    background: var(--color-ferni, var(--color-ferni));
+    border-color: var(--color-ferni, var(--color-ferni));
   }
   
   .legal-footer-nav {
-    background: #252220;
+    background: var(--color-bg-dark-elevated);
     border-top-color: rgba(255, 255, 255, 0.08);
   }
   
@@ -1167,15 +1167,15 @@
   }
   
   .legal-footer-nav__label {
-    color: var(--color-dark-text-muted, #ddd6cc);
+    color: var(--color-dark-text-muted, var(--color-text-muted));
   }
   
   .legal-footer-nav__title {
-    color: var(--color-bg-primary, #fffdfb);
+    color: var(--color-bg-primary, var(--color-bg-elevated));
   }
   
   .legal-footer-nav__link svg {
-    color: var(--color-dark-text-muted, #ddd6cc);
+    color: var(--color-dark-text-muted, var(--color-text-muted));
   }
 }
 

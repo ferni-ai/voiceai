@@ -6,7 +6,9 @@
 
 import { tts } from '@livekit/agents';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
-import { getCurrentAgent } from '../../tools/handoff/index.js';
+// NOTE: This uses the global getCurrentAgent (no sessionId) because DynamicTTS
+// is deprecated and doesn't have session context. Use PersonaAwareTTS instead.
+import { getCurrentAgent } from '../../tools/handoff/state.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import { normalizeAgentId } from './manager.js';

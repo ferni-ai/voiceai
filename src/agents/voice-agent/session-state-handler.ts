@@ -831,11 +831,13 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
               });
 
               // Use generateReplyWithContext which formats as behavioral instructions
+              // Pass sessionId so session-closing check prevents errors during disconnect
               void generateReplyWithContext(session, {
                 context: contextParts,
                 fallbackMessage: "I'm here whenever you're ready.",
                 allowInterruptions: true,
                 logContext: 'early-dead-air-checkin',
+                sessionId,
               });
             }
           }

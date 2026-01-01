@@ -444,11 +444,11 @@ details summary:hover {
 .gradient-text {
   background: linear-gradient(
     135deg,
-    #2d4a32 0%,
-    #3d5a35 25%,
-    #4a6741 50%,
-    #5a8060 75%,
-    #4a6741 100%
+    var(--color-ferni-secondary) 0%,
+    var(--color-ferni-secondary) 25%,
+    var(--color-ferni) 50%,
+    var(--color-ferni) 75%,
+    var(--color-ferni) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -481,7 +481,7 @@ details summary:hover {
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @keyframes shimmer {

@@ -14,9 +14,8 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { getToolSuccessTracker } from './tool-success-tracker.js';
+import { getToolSuccessTracker, type ToolRecommendation } from './tool-success-tracker.js';
 import { getContextCarrier } from './context-carrier.js';
-import type { ToolRecommendation } from './tool-success-tracker.js';
 
 const log = createLogger({ module: 'MemoryAwareRouter' });
 
@@ -93,10 +92,7 @@ export class MemoryAwareRouter {
   /**
    * Calculate routing boosts based on memory and context
    */
-  async calculateBoosts(
-    context: RoutingContext,
-    toolIds: string[]
-  ): Promise<RoutingBoost[]> {
+  async calculateBoosts(context: RoutingContext, toolIds: string[]): Promise<RoutingBoost[]> {
     const boosts: RoutingBoost[] = [];
 
     for (const toolId of toolIds) {
@@ -193,7 +189,7 @@ export class MemoryAwareRouter {
   async getMemoryBasedRecommendations(
     context: RoutingContext,
     availableTools: string[],
-    maxResults: number = 5
+    maxResults = 5
   ): Promise<ToolRecommendation[]> {
     const tracker = getToolSuccessTracker();
 
@@ -216,10 +212,7 @@ export class MemoryAwareRouter {
   /**
    * Calculate boost based on user's history with the tool
    */
-  private async calculateHistoryBoost(
-    context: RoutingContext,
-    toolId: string
-  ): Promise<number> {
+  private async calculateHistoryBoost(context: RoutingContext, toolId: string): Promise<number> {
     const tracker = getToolSuccessTracker();
     const metrics = await tracker.getMetrics(context.userId, toolId);
 
@@ -238,20 +231,13 @@ export class MemoryAwareRouter {
   /**
    * Calculate boost based on current context
    */
-  private async calculateContextBoost(
-    context: RoutingContext,
-    toolId: string
-  ): Promise<number> {
+  private async calculateContextBoost(context: RoutingContext, toolId: string): Promise<number> {
     const tracker = getToolSuccessTracker();
-    const contextualRate = await tracker.getContextualSuccessRate(
-      context.userId,
-      toolId,
-      {
-        topic: context.topic,
-        emotion: context.emotion,
-        personaId: context.personaId,
-      }
-    );
+    const contextualRate = await tracker.getContextualSuccessRate(context.userId, toolId, {
+      topic: context.topic,
+      emotion: context.emotion,
+      personaId: context.personaId,
+    });
 
     // Convert contextual rate to boost
     const boost = 0.5 + contextualRate * this.config.contextBoostWeight * 2;
@@ -262,10 +248,7 @@ export class MemoryAwareRouter {
   /**
    * Calculate penalty for recently used tools
    */
-  private calculateRecencyPenalty(
-    context: RoutingContext,
-    toolId: string
-  ): number {
+  private calculateRecencyPenalty(context: RoutingContext, toolId: string): number {
     // Check if tool was used recently in this session
     const recentTools = context.recentToolIds || [];
 
@@ -275,8 +258,7 @@ export class MemoryAwareRouter {
 
     // More recent = higher penalty
     const recency = recentTools.indexOf(toolId);
-    const penalty =
-      1 - this.config.recencyPenaltyWeight * (1 - recency / recentTools.length);
+    const penalty = 1 - this.config.recencyPenaltyWeight * (1 - recency / recentTools.length);
 
     return penalty;
   }
@@ -284,10 +266,7 @@ export class MemoryAwareRouter {
   /**
    * Calculate boost based on emotional fit
    */
-  private calculateEmotionalBoost(
-    context: RoutingContext,
-    toolId: string
-  ): number {
+  private calculateEmotionalBoost(context: RoutingContext, toolId: string): number {
     if (!context.emotion) return 1.0;
 
     const emotionLower = context.emotion.toLowerCase();
@@ -343,12 +322,9 @@ export class MemoryAwareRouter {
     });
 
     // Record in context carrier
-    contextCarrier.recordToolUsage(
-      context.sessionId,
-      toolId,
-      success ? 'success' : 'failure',
-      { duration: latency }
-    );
+    contextCarrier.recordToolUsage(context.sessionId, toolId, success ? 'success' : 'failure', {
+      duration: latency,
+    });
 
     log.debug(
       { toolId, userId: context.userId, success, latency },
@@ -359,10 +335,7 @@ export class MemoryAwareRouter {
   /**
    * Get the user's most successful tools for suggestions
    */
-  async getUserPreferredTools(
-    userId: string,
-    count: number = 5
-  ): Promise<string[]> {
+  async getUserPreferredTools(userId: string, count = 5): Promise<string[]> {
     const tracker = getToolSuccessTracker();
     const topTools = await tracker.getTopTools(userId, count);
     return topTools.map((t) => t.toolId);

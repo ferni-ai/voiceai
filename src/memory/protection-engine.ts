@@ -100,9 +100,9 @@ const DEFAULT_CONFIG: ProtectionConfig = {
 export class ProtectionEngine {
   private db: FirebaseFirestore.Firestore | null;
   private config: ProtectionConfig;
-  private protectionCache: Map<string, ProtectedMemory[]> = new Map();
+  private protectionCache = new Map<string, ProtectedMemory[]>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
-  private cacheExpiry: Map<string, number> = new Map();
+  private cacheExpiry = new Map<string, number>();
 
   constructor(config?: Partial<ProtectionConfig>) {
     this.db = getFirestoreDb();
@@ -124,14 +124,9 @@ export class ProtectionEngine {
   /**
    * Get protection level for a memory (null if not protected)
    */
-  async getProtectionLevel(
-    userId: string,
-    memoryId: string
-  ): Promise<ProtectionLevel | null> {
+  async getProtectionLevel(userId: string, memoryId: string): Promise<ProtectionLevel | null> {
     const protections = await this.getProtections(userId);
-    const protection = protections.find(
-      (p) => p.memoryId === memoryId && !this.isExpired(p)
-    );
+    const protection = protections.find((p) => p.memoryId === memoryId && !this.isExpired(p));
     return protection?.protectionLevel ?? null;
   }
 
@@ -172,10 +167,7 @@ export class ProtectionEngine {
     // Invalidate cache
     this.protectionCache.delete(userId);
 
-    log.info(
-      { userId, memoryId, level, reason },
-      'Memory protected'
-    );
+    log.info({ userId, memoryId, level, reason }, 'Memory protected');
 
     return protection;
   }
@@ -246,10 +238,7 @@ export class ProtectionEngine {
   /**
    * Analyze a memory and auto-protect if it meets criteria
    */
-  async analyzeAndProtect(
-    memory: MemoryItem,
-    userId: string
-  ): Promise<ProtectedMemory | null> {
+  async analyzeAndProtect(memory: MemoryItem, userId: string): Promise<ProtectedMemory | null> {
     const reasons: string[] = [];
     let level: ProtectionLevel | null = null;
 
@@ -267,18 +256,14 @@ export class ProtectionEngine {
 
     // Check for core identity keywords
     const contentLower = memory.content.toLowerCase();
-    const identityMatch = this.config.coreIdentityKeywords.find((kw) =>
-      contentLower.includes(kw)
-    );
+    const identityMatch = this.config.coreIdentityKeywords.find((kw) => contentLower.includes(kw));
     if (identityMatch) {
       reasons.push(`Core identity keyword: "${identityMatch}"`);
       level = 'core_identity';
     }
 
     // Check for milestone keywords
-    const milestoneMatch = this.config.milestoneKeywords.find((kw) =>
-      contentLower.includes(kw)
-    );
+    const milestoneMatch = this.config.milestoneKeywords.find((kw) => contentLower.includes(kw));
     if (milestoneMatch) {
       reasons.push(`Life milestone keyword: "${milestoneMatch}"`);
       level = 'life_milestone';
@@ -340,10 +325,7 @@ export class ProtectionEngine {
       }
     }
 
-    log.debug(
-      { protected: protectedCount, skipped: skippedCount },
-      'Batch protection complete'
-    );
+    log.debug({ protected: protectedCount, skipped: skippedCount }, 'Batch protection complete');
 
     return { protected: protectedCount, skipped: skippedCount };
   }
@@ -363,10 +345,7 @@ export class ProtectionEngine {
       await this.unprotect(userId, protection.memoryId);
     }
 
-    log.debug(
-      { userId, expiredCount: expired.length },
-      'Cleaned up expired protections'
-    );
+    log.debug({ userId, expiredCount: expired.length }, 'Cleaned up expired protections');
 
     return expired.length;
   }

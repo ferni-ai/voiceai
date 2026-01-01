@@ -79,7 +79,13 @@ interface WaitlistSignup {
 
 type WaitlistSource = 'landing' | 'marketplace' | 'developer' | 'feature' | 'newsletter';
 
-const VALID_SOURCES: WaitlistSource[] = ['landing', 'marketplace', 'developer', 'feature', 'newsletter'];
+const VALID_SOURCES: WaitlistSource[] = [
+  'landing',
+  'marketplace',
+  'developer',
+  'feature',
+  'newsletter',
+];
 
 // ============================================================================
 // HELPERS
@@ -1247,10 +1253,21 @@ function extractNameFromEmail(email: string): string | null {
 
   // Skip generic/functional emails
   const genericPrefixes = [
-    'info', 'contact', 'hello', 'admin', 'support', 'sales', 'marketing',
-    'team', 'noreply', 'no-reply', 'notifications', 'newsletter', 'test'
+    'info',
+    'contact',
+    'hello',
+    'admin',
+    'support',
+    'sales',
+    'marketing',
+    'team',
+    'noreply',
+    'no-reply',
+    'notifications',
+    'newsletter',
+    'test',
   ];
-  if (genericPrefixes.some(prefix => localPart.startsWith(prefix))) {
+  if (genericPrefixes.some((prefix) => localPart.startsWith(prefix))) {
     return null;
   }
 
@@ -1295,29 +1312,29 @@ const FEATURED_POSTS = [
   {
     title: 'Why Voice-First AI Changes Everything',
     url: '/blog/why-voice-first/',
-    excerpt: 'There\'s something different about talking to AI instead of typing.'
+    excerpt: "There's something different about talking to AI instead of typing.",
   },
   {
     title: 'How Ferni Remembers You',
     url: '/blog/how-ferni-remembers-you/',
-    excerpt: 'Building memory systems that make AI feel like it truly knows you.'
+    excerpt: 'Building memory systems that make AI feel like it truly knows you.',
   },
   {
     title: 'The Loneliness Gap',
     url: '/blog/the-loneliness-gap/',
-    excerpt: 'Why we\'re building AI that makes you feel less alone, not more.'
+    excerpt: "Why we're building AI that makes you feel less alone, not more.",
   },
   {
     title: 'Giving AI a Personality',
     url: '/blog/giving-ai-a-personality/',
-    excerpt: 'The design decisions behind making AI companions feel real.'
-  }
+    excerpt: 'The design decisions behind making AI companions feel real.',
+  },
 ];
 
 /**
  * Get a featured blog post (rotates based on day)
  */
-function getFeaturedPost(): typeof FEATURED_POSTS[0] {
+function getFeaturedPost(): (typeof FEATURED_POSTS)[0] {
   const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
   return FEATURED_POSTS[dayOfYear % FEATURED_POSTS.length];
 }
@@ -1356,9 +1373,7 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
   const signoff = getPersonalSignoff();
 
   // Personalized greeting
-  const personalGreeting = firstName
-    ? `${greeting}, ${firstName}!`
-    : `${greeting}!`;
+  const personalGreeting = firstName ? `${greeting}, ${firstName}!` : `${greeting}!`;
 
   // Personalized headline
   const headline = firstName ? `Welcome, ${firstName}.` : `You're in.`;
@@ -1466,9 +1481,7 @@ ${signoff.name}${signoff.role ? `\n${signoff.role}` : ''}
 ferni.ai - Building AI that feels human`;
 
   // Personalized subject line
-  const subject = firstName
-    ? `Welcome to Ferni, ${firstName}`
-    : 'Welcome to Ferni';
+  const subject = firstName ? `Welcome to Ferni, ${firstName}` : 'Welcome to Ferni';
 
   try {
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
@@ -1489,7 +1502,10 @@ ferni.ai - Building AI that feels human`;
     });
 
     if (response.status === 202) {
-      log.info({ email: hashEmail(email), personalized: !!firstName }, 'Newsletter welcome email sent');
+      log.info(
+        { email: hashEmail(email), personalized: !!firstName },
+        'Newsletter welcome email sent'
+      );
     } else {
       log.warn({ status: response.status }, 'Failed to send newsletter welcome email');
     }

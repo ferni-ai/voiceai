@@ -1451,12 +1451,12 @@ ${threadContext.content}
       userData,
       voiceOptions: {
         allowInterruptions: true,
-        // UPDATED Dec 2024: Tighter delays for snappier conversation
-        // Human turn-taking gaps are 200-500ms
-        minEndpointingDelay: 250, // Was 400ms
-        maxEndpointingDelay: 800, // Was 1200ms
+        // UPDATED Jan 2026: Ultra-tight delays for natural conversation
+        // Human turn-taking gaps are 200-400ms - we should match that
+        minEndpointingDelay: 150, // Was 250ms - be snappier
+        maxEndpointingDelay: 450, // Was 800ms - don't wait too long
         minInterruptionWords: 1,
-        minInterruptionDuration: 200, // Was 300ms
+        minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
         preemptiveGeneration: true,
       },
     });

@@ -83,12 +83,7 @@ describe('LearningEngine', () => {
     });
 
     it('should infer "acknowledged" for short neutral responses', () => {
-      const reaction = engine.inferReaction(
-        'Oh yeah, right.',
-        false,
-        false,
-        false
-      );
+      const reaction = engine.inferReaction('Oh yeah, right.', false, false, false);
 
       expect(reaction).toBe('acknowledged');
     });
@@ -246,9 +241,8 @@ describe('UnifiedMemoryService Phase 2 Integration', () => {
 
   it('should initialize with learning engine', async () => {
     // Import dynamically to avoid initialization issues
-    const { getUnifiedMemoryService, resetUnifiedMemoryService } = await import(
-      '../services/unified-memory-service.js'
-    );
+    const { getUnifiedMemoryService, resetUnifiedMemoryService } =
+      await import('../services/unified-memory-service.js');
 
     resetUnifiedMemoryService();
     const service = getUnifiedMemoryService();

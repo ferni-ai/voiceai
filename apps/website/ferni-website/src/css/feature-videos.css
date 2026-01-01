@@ -23,7 +23,7 @@
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-xl, 16px);
   overflow: hidden;
-  background: var(--color-bg-secondary, #E8E0D5);
+  background: var(--color-bg-secondary, var(--color-bg-secondary));
 }
 
 .feature-video video {
@@ -116,7 +116,7 @@
 .feature-video-play svg {
   width: 16px;
   height: 16px;
-  fill: var(--color-accent, #3D5A45);
+  fill: var(--color-accent, var(--color-accent));
   margin-left: 2px; /* Optical centering for play icon */
 }
 

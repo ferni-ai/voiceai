@@ -5,6 +5,11 @@
 
 ---
 
+> **息** (*Iki*) — Breath. In Japanese, the word for breath is also the word for life.
+> When you speak, you breathe your truth into existence.
+
+---
+
 ## The Difference is Biological
 
 Try an experiment:

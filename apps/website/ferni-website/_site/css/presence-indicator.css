@@ -14,12 +14,12 @@
   padding: 8px 16px;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
-  border-radius: 100px;
+  border-radius: var(--radius-full);
   box-shadow: 
     0 2px 12px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(74, 103, 65, 0.08);
-  font-size: 13px;
-  color: var(--color-text-secondary, #5C544A);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   opacity: 0;
   transform: translateY(10px);
   transition: 
@@ -52,12 +52,12 @@
 
 /* Inner dot - always visible */
 .presence-indicator__pulse::before {
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
 }
 
 /* Outer pulse - animates */
 .presence-indicator__pulse::after {
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   animation: presence-pulse 2s ease-in-out infinite;
 }
 
@@ -79,7 +79,7 @@
 .presence-indicator__count {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni, var(--color-ferni));
   min-width: 24px;
   text-align: center;
   transition: transform 0.2s ease;
@@ -163,7 +163,7 @@
 
 @media (max-width: 768px) {
   .presence-indicator {
-    font-size: 12px;
+    font-size: var(--text-xs);
     padding: 6px 12px;
   }
   

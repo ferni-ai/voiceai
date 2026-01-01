@@ -142,7 +142,7 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
             scoreBreakdown: { semantic: 0.5, temporal: 0.3, emotional: 0.4, contextual: 0.3 },
             reason: 'Topic match',
           },
-          phrasing: "That reminds me of when you mentioned hiking!",
+          phrasing: 'That reminds me of when you mentioned hiking!',
           style: 'warm' as const,
           decisionFactors: {
             timingScore: 0.8,
@@ -181,12 +181,8 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
 
   describe('Better Than Human Memory Context Builder', () => {
     it('should export context builder', async () => {
-      const {
-        betterThanHumanMemoryBuilder,
-        buildBetterThanHumanMemoryContext,
-      } = await import(
-        '../intelligence/context-builders/memory/better-than-human-memory.js'
-      );
+      const { betterThanHumanMemoryBuilder, buildBetterThanHumanMemoryContext } =
+        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
 
       expect(betterThanHumanMemoryBuilder).toBeDefined();
       expect(betterThanHumanMemoryBuilder.id).toBe('better_than_human_memory');
@@ -194,9 +190,8 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
     });
 
     it('should return empty array when no userId', async () => {
-      const { buildBetterThanHumanMemoryContext } = await import(
-        '../intelligence/context-builders/memory/better-than-human-memory.js'
-      );
+      const { buildBetterThanHumanMemoryContext } =
+        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
 
       const result = await buildBetterThanHumanMemoryContext({
         userText: 'Hello',
@@ -211,9 +206,8 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
     });
 
     it('should build session priming on turn 0', async () => {
-      const { buildBetterThanHumanMemoryContext } = await import(
-        '../intelligence/context-builders/memory/better-than-human-memory.js'
-      );
+      const { buildBetterThanHumanMemoryContext } =
+        await import('../intelligence/context-builders/memory/better-than-human-memory.js');
 
       const result = await buildBetterThanHumanMemoryContext({
         userText: 'Hello',
@@ -282,10 +276,8 @@ describe('Phase 4: Proactive Memory Surfacing', () => {
 
 describe('Phase 4: End-to-End Flow', () => {
   it('should handle complete proactive surfacing flow', async () => {
-    const {
-      getProactiveMemorySurfacing,
-      resetProactiveMemorySurfacing,
-    } = await import('../services/proactive-memory-surfacing.js');
+    const { getProactiveMemorySurfacing, resetProactiveMemorySurfacing } =
+      await import('../services/proactive-memory-surfacing.js');
 
     resetProactiveMemorySurfacing();
     const service = getProactiveMemorySurfacing();

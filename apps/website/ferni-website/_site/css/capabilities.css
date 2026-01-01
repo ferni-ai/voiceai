@@ -78,7 +78,7 @@
   background: var(--color-accent);
   color: white;
   padding: 10px 20px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: var(--text-sm);
   font-weight: 600;
   margin-bottom: 24px;
@@ -199,7 +199,7 @@
 .viz-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
   padding: 32px;
   transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
   position: relative;
@@ -278,7 +278,7 @@
   gap: 16px;
   padding: 20px;
   background: var(--color-ferni-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border-left: 4px solid var(--color-ferni);
   margin-bottom: 24px;
 }
@@ -346,7 +346,7 @@
   max-width: 300px;
   height: auto;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.02) 0%, transparent 70%);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 /* Connection lines with varying strength */
@@ -414,7 +414,7 @@
   gap: 24px;
   padding: 12px 16px;
   background: var(--color-bg-secondary);
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
 }
 
 .constellation-health-item {
@@ -426,13 +426,13 @@
 
 .constellation-health-value {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 700;
   line-height: 1;
 }
 
 .constellation-health-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -451,7 +451,7 @@
   gap: 12px;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   transition: all 0.2s ease;
 }
@@ -474,7 +474,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .constellation-story-content {
@@ -484,13 +484,13 @@
 
 .constellation-story-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .constellation-story-meta {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
@@ -508,7 +508,7 @@
   padding: 16px;
   background: linear-gradient(135deg, rgba(184, 149, 106, 0.1) 0%, rgba(184, 149, 106, 0.05) 100%);
   border: 1px solid rgba(184, 149, 106, 0.25);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-top: 8px;
 }
 
@@ -524,12 +524,12 @@
   border-radius: 50%;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .constellation-whisper-text {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -637,7 +637,7 @@
 
 .radar-label {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   fill: var(--color-text-secondary);
   text-anchor: middle;
 }
@@ -658,7 +658,7 @@
 .values-legend-line {
   width: 24px;
   height: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .values-legend-line--target {
@@ -678,7 +678,7 @@
 }
 
 .values-legend-text {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
 }
 
@@ -692,7 +692,7 @@
 .values-story {
   padding: 14px;
   background: var(--color-bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   transition: all 0.2s ease;
 }
@@ -718,13 +718,13 @@
 
 .values-story-value {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
 }
 
 .values-story-gap,
 .values-story-aligned {
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -742,7 +742,7 @@
 }
 
 .values-story-bar-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   width: 28px;
   text-transform: uppercase;
@@ -773,7 +773,7 @@
 }
 
 .values-story-insight {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
   margin: 0;
@@ -788,7 +788,7 @@
   padding: 16px;
   background: linear-gradient(135deg, rgba(58, 107, 115, 0.1) 0%, rgba(58, 107, 115, 0.05) 100%);
   border: 1px solid rgba(58, 107, 115, 0.25);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-top: 8px;
 }
 
@@ -804,12 +804,12 @@
   border-radius: 50%;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .values-whisper-text {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -917,7 +917,7 @@
   align-items: center;
   padding: 10px 14px;
   background: var(--color-bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
 }
 
@@ -939,12 +939,12 @@
 .energy-zone-time {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
 }
 
 .energy-zone-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -963,7 +963,7 @@
   gap: 12px;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   transition: all 0.2s ease;
 }
@@ -991,7 +991,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-bg-elevated);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .energy-story-content {
@@ -1001,13 +1001,13 @@
 
 .energy-story-title {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .energy-story-meta {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
@@ -1025,7 +1025,7 @@
   padding: 16px;
   background: linear-gradient(135deg, rgba(166, 122, 106, 0.1) 0%, rgba(166, 122, 106, 0.05) 100%);
   border: 1px solid rgba(166, 122, 106, 0.25);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-top: 8px;
 }
 
@@ -1041,12 +1041,12 @@
   border-radius: 50%;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .energy-whisper-text {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -1099,7 +1099,7 @@
 
 .growth-ring-label {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   fill: var(--color-text-secondary);
 }
@@ -1203,13 +1203,13 @@
 .seasons-stat-value {
   display: block;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-text-primary);
 }
 
 .seasons-stat-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1228,7 +1228,7 @@
   align-items: flex-start;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -1260,14 +1260,14 @@
 
 .seasons-story-title {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
 
 .seasons-story-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
@@ -1300,12 +1300,12 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
   flex-shrink: 0;
 }
 
 .seasons-whisper-text {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -1359,7 +1359,7 @@
   right: 0;
   height: 3px;
   background: var(--color-border-medium);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform: translateY(-50%);
 }
 
@@ -1371,7 +1371,7 @@
   width: 45%;
   height: 100%;
   background: linear-gradient(90deg, var(--color-alex) 0%, var(--color-ferni) 100%);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 .timeline-node {
@@ -1429,7 +1429,7 @@
 }
 
 .timeline-node-label {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   white-space: nowrap;
   position: absolute;
@@ -1494,7 +1494,7 @@
 
 /* Timeline node date */
 .timeline-node-date {
-  font-size: 9px;
+  font-size: var(--text-2xs);
   color: var(--color-text-dimmed);
   white-space: nowrap;
   position: absolute;
@@ -1538,13 +1538,13 @@
 .commitment-stat-value {
   display: block;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--color-text-primary);
 }
 
 .commitment-stat-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1563,7 +1563,7 @@
   align-items: flex-start;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -1607,14 +1607,14 @@
 
 .commitment-story-title {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
 
 .commitment-story-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
@@ -1647,12 +1647,12 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
   flex-shrink: 0;
 }
 
 .commitment-whisper-text {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -1770,7 +1770,7 @@
 
 .capacity-center-value {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--color-text-primary);
   line-height: 1;
@@ -1828,7 +1828,7 @@
   gap: 12px;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   transition: border-color 0.2s ease;
 }
@@ -1895,7 +1895,7 @@
     var(--color-peter-subtle) 0%,
     var(--color-bg-secondary) 100%
   );
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-peter);
   border-opacity: 0.3;
   margin-top: 8px;
@@ -1911,7 +1911,7 @@
   background: var(--color-peter);
   color: white;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -1948,7 +1948,7 @@
   position: relative;
   height: 280px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(180deg,
     var(--color-bg-secondary) 0%,
     var(--color-nayan-subtle) 100%
@@ -1963,7 +1963,7 @@
   height: 40px;
   background: linear-gradient(180deg,
     var(--color-maya) 0%,
-    #8b6b5a 100%
+    var(--color-jack) 100%
   );
   border-radius: 0 0 16px 16px;
 }
@@ -2011,7 +2011,7 @@
 }
 
 .dream-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-secondary);
   margin-top: 8px;
   text-align: center;
@@ -2022,10 +2022,10 @@
 }
 
 .dream-status {
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   margin-top: 4px;
 }
 
@@ -2125,7 +2125,7 @@
 }
 
 .garden-legend-label {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--color-text-muted);
 }
 
@@ -2168,7 +2168,7 @@
   align-items: flex-start;
   padding: 12px;
   background: var(--color-bg-secondary);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -2216,14 +2216,14 @@
 
 .garden-story-title {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 2px;
 }
 
 .garden-story-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
@@ -2256,12 +2256,12 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--text-sm);
   flex-shrink: 0;
 }
 
 .garden-whisper-text {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
@@ -2305,7 +2305,7 @@
 .capability-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-subtle);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   padding: 28px;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -2541,8 +2541,8 @@
 
   .dream-garden-ground {
     background: linear-gradient(180deg,
-      #6b5b4a 0%,
-      #4a3f35 100%
+      var(--color-jack-secondary) 0%,
+      var(--color-text-primary) 100%
     );
   }
 
@@ -2808,8 +2808,8 @@
 
 [data-theme="dark"] .dream-garden-ground {
   background: linear-gradient(180deg,
-    #6b5b4a 0%,
-    #4a3f35 100%
+    var(--color-jack-secondary) 0%,
+    var(--color-text-primary) 100%
   );
 }
 

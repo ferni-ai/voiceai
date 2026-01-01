@@ -103,7 +103,7 @@
       rgba(0, 0, 0, 0.1) 0%,
       transparent 50%
     ),
-    var(--color-ferni, #4a6741);
+    var(--color-ferni, var(--color-ferni));
   
   position: relative;
   overflow: hidden;
@@ -720,7 +720,7 @@
    ============================================================================ */
 
 .hero-ferni--living:focus-visible {
-  outline: 2px solid var(--color-accent, #3D5A45);
+  outline: 2px solid var(--color-accent, var(--color-accent));
   outline-offset: 8px;
   border-radius: 50%;
 }

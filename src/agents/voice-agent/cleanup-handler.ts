@@ -762,6 +762,18 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // GROUP 3: PARALLEL SERVICE CLEANUP (independent, can run together)
   // ================================================================
   const serviceGroup = await Promise.allSettled([
+    // Handoff tools session cache cleanup (prevents memory leaks)
+    (async () => {
+      try {
+        const { clearHandoffToolsCache } = await import(
+          '../../tools/handoff/session-cache.js'
+        );
+        clearHandoffToolsCache(sessionId);
+      } catch {
+        // Non-critical, ignore
+      }
+    })(),
+
     // GlobalThis session data cleanup (prevents memory leaks from session-init-handler)
     (async () => {
       // Clean up trigger context and life context stored on globalThis

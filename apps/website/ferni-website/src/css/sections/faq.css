@@ -72,7 +72,7 @@
    ============================================================================ */
 @media (prefers-color-scheme: dark) {
   .section-faq {
-    background: var(--color-ferni-cinematic-dark, #2c2520);
+    background: var(--color-ferni-cinematic-dark, var(--color-text-primary));
   }
   
   .faq-item {
@@ -80,19 +80,19 @@
   }
   
   .faq-question {
-    color: var(--color-ferni-cinematic-text, #ffffff);
+    color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
   
   .faq-question:hover {
-    color: var(--color-highlight, #C4A265);
+    color: var(--color-highlight, var(--color-nayan));
   }
   
   .faq-question svg {
-    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+    color: var(--color-ferni-cinematic-text-muted, var(--color-text-muted));
   }
   
   .faq-answer-inner {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+    color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
 }
 

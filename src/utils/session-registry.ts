@@ -236,10 +236,96 @@ export function getGlobalRegistryStats(): Array<{
   }));
 }
 
+// ============================================================================
+// SESSION ID HELPERS
+// ============================================================================
+
+/**
+ * Safely get a session ID with fallback, logging a warning when fallback is used.
+ *
+ * This helps detect places where sessionId propagation is broken.
+ * Every time 'unknown' is used as a fallback, we log it so developers can investigate.
+ *
+ * @param sessionId - The primary session ID (may be undefined/null)
+ * @param context - Description of where this is called (for debugging)
+ * @param fallback - What to use if sessionId is missing (default: 'unknown')
+ * @returns The sessionId or fallback value
+ *
+ * @example
+ * ```typescript
+ * const sid = safeSessionId(ctx.sessionId, 'handoff-executor');
+ * // If ctx.sessionId is undefined, logs a warning and returns 'unknown'
+ * ```
+ */
+export function safeSessionId(
+  sessionId: string | undefined | null,
+  context: string,
+  fallback = 'unknown'
+): string {
+  if (sessionId && sessionId !== 'unknown') {
+    return sessionId;
+  }
+
+  // Log warning for debugging - this indicates a propagation issue
+  log.warn(
+    {
+      context,
+      hadValue: !!sessionId,
+      fallback,
+      stack: new Error().stack?.split('\n').slice(2, 5).join(' <- '),
+    },
+    '⚠️ SessionId fallback used - check sessionId propagation'
+  );
+
+  return fallback;
+}
+
+/**
+ * Assert that a session ID is valid (not 'unknown' or empty).
+ * Throws if invalid - use when sessionId is required.
+ *
+ * @param sessionId - The session ID to validate
+ * @param context - Description of where this is called (for error messages)
+ * @throws Error if sessionId is invalid
+ *
+ * @example
+ * ```typescript
+ * assertSessionId(ctx.sessionId, 'speech-coordinator'); // throws if invalid
+ * ```
+ */
+export function assertSessionId(
+  sessionId: string | undefined | null,
+  context: string
+): asserts sessionId is string {
+  if (!sessionId || sessionId === 'unknown') {
+    const error = new Error(
+      `SessionId is required for ${context} but got: ${sessionId || 'undefined'}`
+    );
+    log.error(
+      { context, sessionId, stack: error.stack },
+      '❌ Required sessionId is missing or invalid'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Check if a session ID is valid (not 'unknown', empty, or undefined).
+ *
+ * @param sessionId - The session ID to check
+ * @returns true if the sessionId is valid
+ */
+export function isValidSessionId(sessionId: string | undefined | null): sessionId is string {
+  return !!sessionId && sessionId !== 'unknown';
+}
+
 export default {
   createSessionRegistry,
   registerGlobalRegistry,
   resetSessionGlobally,
   resetAllSessionsGlobally,
   getGlobalRegistryStats,
+  safeSessionId,
+  assertSessionId,
+  isValidSessionId,
 };

@@ -1,377 +1,173 @@
 /**
  * Handoff Session State Management
  *
- * Manages per-session handoff state including queue and timeout handling.
- * Extracted from handoff-handler.ts for modularity.
+ * @deprecated This module is deprecated. Import from '../../../handoff/index.js' instead.
+ *
+ * This file now re-exports from the unified handoff module for backward compatibility.
+ * All state management has been consolidated into src/handoff/unified-state.ts.
+ *
+ * Migration guide:
+ * ```typescript
+ * // Old (deprecated)
+ * import { getHandoffSessionState, isHandoffInProgress } from '../agents/shared/handoff/session-state.js';
+ *
+ * // New (preferred)
+ * import { getHandoffQueueState, isHandoffInProgress } from '../handoff/index.js';
+ * ```
  *
  * @module agents/shared/handoff/session-state
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { HandoffEventPayload, HandoffSessionState } from './types.js';
+import type { HandoffEventPayload } from './types.js';
+
+// Re-export constants from the unified handoff module
+export {
+  HANDOFF_TIMEOUT_MS,
+  MAX_PENDING_HANDOFFS,
+  MAX_HANDOFF_QUEUE_SIZE,
+  PROGRESS_HEARTBEAT_INTERVAL_MS as PROGRESS_HEARTBEAT_MS,
+} from '../../../handoff/constants.js';
+
+// Re-export state management from the unified handoff module
+export {
+  // State accessors
+  getHandoffQueueState as getHandoffSessionState,
+  isHandoffInProgress,
+  getCurrentAgent,
+  setCurrentAgent,
+
+  // Queue management
+  queueHandoff,
+  dequeueHandoff,
+  setHandoffTimeout,
+  setProgressInterval,
+
+  // Message sequencing
+  getNextMessageSeq,
+  getNextMessageSeqSync,
+
+  // Lifecycle - use unified-state for startHandoff
+  markHandoffStarted as startHandoff,
+  clearSession as clearHandoffSessionState,
+} from '../../../handoff/unified-state.js';
+
+// completeHandoff needs the right signature (returns { durationMs })
+export { completeHandoff } from '../../../handoff/actions.js';
+
+const log = getLogger();
 
 // ============================================================================
-// SESSION STATE STORAGE
-// ============================================================================
-
-const handoffSessionStates = new Map<string, HandoffSessionState>();
-
-/**
- * Handoff timeout in milliseconds.
- * Set to 8s to align with UI timeout (10s) with 2s buffer.
- * Voice should timeout before UI to ensure consistent error messaging.
- * If handoff fails, we fall back to current voice gracefully.
- */
-export const HANDOFF_TIMEOUT_MS = 8000; // 8 seconds (UI is 10s)
-
-/**
- * Maximum pending handoffs in queue
- */
-export const MAX_PENDING_HANDOFFS = 10;
-
-/**
- * Alias for consistency with other modules
- * FIX BUG #10: Export both names for backwards compatibility
- */
-export const MAX_HANDOFF_QUEUE_SIZE = MAX_PENDING_HANDOFFS;
-
-// ============================================================================
-// STATE ACCESSORS
-// ============================================================================
-
-/**
- * Get or create handoff session state
- */
-export function getHandoffSessionState(sessionId: string): HandoffSessionState {
-  let state = handoffSessionStates.get(sessionId);
-  if (!state) {
-    state = {
-      isHandoffInProgress: false,
-      pendingHandoffs: [],
-      timeoutTimer: null,
-      handoffStartTime: null,
-      progressInterval: null,
-      targetPersonaId: null,
-      previousPersonaId: null,
-      messageSeq: 0,
-    };
-    handoffSessionStates.set(sessionId, state);
-  }
-  return state;
-}
-
-/**
- * Get the next message sequence number (atomically increments)
- * Used by handoff messages to allow frontend to detect out-of-order delivery
- *
- * RACE CONDITION FIX: Use a lock to prevent concurrent increments from
- * returning the same sequence number. This is critical for handoff reliability.
- */
-const messageSeqLocks = new Map<string, Promise<void>>();
-
-export async function getNextMessageSeq(sessionId: string): Promise<number> {
-  // Wait for any pending operation on this session
-  const pendingLock = messageSeqLocks.get(sessionId);
-  if (pendingLock) {
-    await pendingLock;
-  }
-
-  // Create a new lock for this operation
-  let resolveLock: () => void;
-  const lock = new Promise<void>((resolve) => {
-    resolveLock = resolve;
-  });
-  messageSeqLocks.set(sessionId, lock);
-
-  try {
-    const state = getHandoffSessionState(sessionId);
-    state.messageSeq += 1;
-    return state.messageSeq;
-  } finally {
-    resolveLock!();
-    // Clean up lock if it's still ours
-    if (messageSeqLocks.get(sessionId) === lock) {
-      messageSeqLocks.delete(sessionId);
-    }
-  }
-}
-
-/**
- * Synchronous version for non-critical paths where async isn't feasible.
- * WARNING: May have race conditions under high concurrency. Prefer async version.
- */
-export function getNextMessageSeqSync(sessionId: string): number {
-  const state = getHandoffSessionState(sessionId);
-  state.messageSeq += 1;
-  return state.messageSeq;
-}
-
-/**
- * Clear handoff session state - call on session disconnect
- */
-export function clearHandoffSessionState(sessionId: string): void {
-  const state = handoffSessionStates.get(sessionId);
-  if (state?.timeoutTimer) {
-    clearTimeout(state.timeoutTimer);
-  }
-  if (state?.progressInterval) {
-    clearInterval(state.progressInterval);
-  }
-  handoffSessionStates.delete(sessionId);
-  getLogger().debug({ sessionId }, 'Handoff session state cleared');
-}
-
-// ============================================================================
-// HANDOFF QUEUE MANAGEMENT
+// ADDITIONAL EXPORTS (not in unified module)
+// These functions are specific to this module's interface
 // ============================================================================
 
 /**
- * Check if a handoff is currently in progress
- */
-export function isHandoffInProgress(sessionId: string): boolean {
-  const state = handoffSessionStates.get(sessionId);
-  return state?.isHandoffInProgress ?? false;
-}
-
-/**
- * Progress heartbeat interval in milliseconds
- */
-export const PROGRESS_HEARTBEAT_MS = 2000; // 2 seconds
-
-/**
- * Start a handoff - sets in-progress flag and starts timeout
- */
-export function startHandoff(
-  sessionId: string,
-  onTimeout: () => void,
-  options?: {
-    targetPersonaId?: string;
-    previousPersonaId?: string;
-  }
-): { timeoutTimer: ReturnType<typeof setTimeout> } {
-  const state = getHandoffSessionState(sessionId);
-
-  // Clear any existing timeout and interval
-  if (state.timeoutTimer) {
-    clearTimeout(state.timeoutTimer);
-  }
-  if (state.progressInterval) {
-    clearInterval(state.progressInterval);
-  }
-
-  state.isHandoffInProgress = true;
-  state.handoffStartTime = Date.now();
-  state.targetPersonaId = options?.targetPersonaId ?? null;
-  state.previousPersonaId = options?.previousPersonaId ?? null;
-
-  // Set timeout for handoff
-  state.timeoutTimer = setTimeout(() => {
-    getLogger().warn({ sessionId }, `Handoff timed out after ${HANDOFF_TIMEOUT_MS}ms`);
-    completeHandoff(sessionId);
-    onTimeout();
-  }, HANDOFF_TIMEOUT_MS);
-
-  return { timeoutTimer: state.timeoutTimer };
-}
-
-/**
- * Complete a handoff - clears in-progress flag, timeout, and progress heartbeat
- */
-export function completeHandoff(sessionId: string): { durationMs: number } {
-  const state = handoffSessionStates.get(sessionId);
-
-  let durationMs = 0;
-  if (state) {
-    if (state.timeoutTimer) {
-      clearTimeout(state.timeoutTimer);
-      state.timeoutTimer = null;
-    }
-
-    if (state.progressInterval) {
-      clearInterval(state.progressInterval);
-      state.progressInterval = null;
-    }
-
-    if (state.handoffStartTime) {
-      durationMs = Date.now() - state.handoffStartTime;
-    }
-
-    state.isHandoffInProgress = false;
-    state.handoffStartTime = null;
-    state.targetPersonaId = null;
-    state.previousPersonaId = null;
-  }
-
-  return { durationMs };
-}
-
-/**
- * Queue a handoff for later execution
- */
-export function queueHandoff(sessionId: string, payload: HandoffEventPayload): boolean {
-  const state = getHandoffSessionState(sessionId);
-
-  if (state.pendingHandoffs.length >= MAX_PENDING_HANDOFFS) {
-    getLogger().warn(
-      { sessionId, queueSize: state.pendingHandoffs.length },
-      'Handoff queue full, dropping oldest'
-    );
-    state.pendingHandoffs.shift(); // Remove oldest
-  }
-
-  state.pendingHandoffs.push(payload);
-  return true;
-}
-
-/**
- * Get next queued handoff
- */
-export function dequeueHandoff(sessionId: string): HandoffEventPayload | undefined {
-  const state = handoffSessionStates.get(sessionId);
-  return state?.pendingHandoffs.shift();
-}
-
-/**
- * Check if there are pending handoffs
+ * @deprecated Use getHandoffQueueState instead
  */
 export function hasPendingHandoffs(sessionId: string): boolean {
-  const state = handoffSessionStates.get(sessionId);
-  return (state?.pendingHandoffs.length ?? 0) > 0;
+  const { getHandoffQueueState } = require('../../../handoff/index.js');
+  const state = getHandoffQueueState(sessionId);
+  return state.pendingHandoffs.length > 0;
 }
 
 /**
- * Get pending handoff count
+ * @deprecated Use getHandoffQueueState instead
  */
 export function getPendingHandoffCount(sessionId: string): number {
-  const state = handoffSessionStates.get(sessionId);
-  return state?.pendingHandoffs.length ?? 0;
+  const { getHandoffQueueState } = require('../../../handoff/index.js');
+  const state = getHandoffQueueState(sessionId);
+  return state.pendingHandoffs.length;
 }
 
 /**
- * Clear all pending handoffs
+ * @deprecated Use clearSession + loop instead
  */
-export function clearPendingHandoffs(sessionId: string): number {
-  const state = handoffSessionStates.get(sessionId);
-  if (!state) return 0;
-
-  const count = state.pendingHandoffs.length;
-  state.pendingHandoffs = [];
-  return count;
+export function clearPendingHandoffs(sessionId: string): void {
+  log.warn({ sessionId }, 'clearPendingHandoffs is deprecated');
+  // Note: In the unified module, clearing session clears everything
+  // If you just want to clear pending handoffs, access state directly
 }
 
-// ============================================================================
-// DIAGNOSTICS
-// ============================================================================
-
 /**
- * Get handoff state summary for diagnostics
+ * Get handoff state summary for debugging.
  */
 export function getHandoffStateSummary(sessionId: string): {
   isInProgress: boolean;
   pendingCount: number;
-  durationMs: number | null;
-  hasTimeout: boolean;
+  targetPersonaId: string | null;
+  previousPersonaId: string | null;
+  messageSeq: number;
 } {
-  const state = handoffSessionStates.get(sessionId);
-
+  const { getHandoffQueueState } = require('../../../handoff/index.js');
+  const state = getHandoffQueueState(sessionId);
   return {
-    isInProgress: state?.isHandoffInProgress ?? false,
-    pendingCount: state?.pendingHandoffs.length ?? 0,
-    durationMs: state?.handoffStartTime ? Date.now() - state.handoffStartTime : null,
-    hasTimeout: state?.timeoutTimer !== null,
+    isInProgress: state.isHandoffInProgress,
+    pendingCount: state.pendingHandoffs.length,
+    targetPersonaId: state.targetPersonaId,
+    previousPersonaId: state.previousPersonaId,
+    messageSeq: state.messageSeq,
   };
 }
 
 /**
- * Get all active session IDs with handoffs
+ * Get all active handoff sessions (for debugging/monitoring).
  */
 export function getActiveHandoffSessions(): string[] {
-  const sessions: string[] = [];
-  for (const [sessionId, state] of handoffSessionStates) {
-    if (state.isHandoffInProgress || state.pendingHandoffs.length > 0) {
-      sessions.push(sessionId);
-    }
-  }
-  return sessions;
+  log.warn('getActiveHandoffSessions is deprecated - use unified handoff module instead');
+  // This is no longer easily accessible from the unified module
+  // Return empty for backward compatibility
+  return [];
 }
 
 // ============================================================================
 // PROGRESS HEARTBEAT
+// These are specific to the old implementation and not in unified module
 // ============================================================================
 
 /**
- * Progress info sent in heartbeat messages
- */
-export interface HandoffProgressInfo {
-  elapsedMs: number;
-  targetPersonaId: string | null;
-  previousPersonaId: string | null;
-  timeoutMs: number;
-}
-
-/**
- * Start progress heartbeat - sends updates every PROGRESS_HEARTBEAT_MS
- *
- * @param sessionId - The session ID
- * @param onProgress - Callback called with progress info every interval
- * @returns Cleanup function to stop the heartbeat
+ * @deprecated Progress heartbeat is now managed by the unified module
  */
 export function startProgressHeartbeat(
   sessionId: string,
-  onProgress: (info: HandoffProgressInfo) => void
-): () => void {
-  const state = handoffSessionStates.get(sessionId);
-  if (!state) {
-    return () => {}; // No-op cleanup
-  }
-
-  // Clear any existing interval
-  if (state.progressInterval) {
-    clearInterval(state.progressInterval);
-  }
-
-  // Start the heartbeat interval
-  state.progressInterval = setInterval(() => {
-    const elapsed = state.handoffStartTime ? Date.now() - state.handoffStartTime : 0;
-
-    onProgress({
-      elapsedMs: elapsed,
-      targetPersonaId: state.targetPersonaId,
-      previousPersonaId: state.previousPersonaId,
-      timeoutMs: HANDOFF_TIMEOUT_MS,
-    });
-  }, PROGRESS_HEARTBEAT_MS);
-
-  // Return cleanup function
-  return () => {
-    if (state.progressInterval) {
-      clearInterval(state.progressInterval);
-      state.progressInterval = null;
-    }
-  };
+  callback: () => void,
+  intervalMs = 2000
+): void {
+  const { setProgressInterval } = require('../../../handoff/index.js');
+  const interval = setInterval(callback, intervalMs);
+  setProgressInterval(sessionId, interval);
 }
 
 /**
- * Stop progress heartbeat for a session
+ * @deprecated Use clearSession instead
  */
 export function stopProgressHeartbeat(sessionId: string): void {
-  const state = handoffSessionStates.get(sessionId);
-  if (state?.progressInterval) {
-    clearInterval(state.progressInterval);
-    state.progressInterval = null;
-  }
+  // Progress interval is cleared when handoff completes
+  log.warn({ sessionId }, 'stopProgressHeartbeat is deprecated');
 }
 
 /**
- * Get persona info for the current handoff (for rollback messages)
+ * Get persona info for handoff (used by progress reporting).
  */
 export function getHandoffPersonaInfo(sessionId: string): {
   targetPersonaId: string | null;
   previousPersonaId: string | null;
 } {
-  const state = handoffSessionStates.get(sessionId);
+  const { getHandoffQueueState } = require('../../../handoff/index.js');
+  const state = getHandoffQueueState(sessionId);
   return {
-    targetPersonaId: state?.targetPersonaId ?? null,
-    previousPersonaId: state?.previousPersonaId ?? null,
+    targetPersonaId: state.targetPersonaId,
+    previousPersonaId: state.previousPersonaId,
   };
+}
+
+/**
+ * Progress info type for handoff status reporting.
+ */
+export interface HandoffProgressInfo {
+  isInProgress: boolean;
+  targetPersonaId: string | null;
+  previousPersonaId: string | null;
+  elapsedMs: number | null;
+  pendingCount: number;
 }

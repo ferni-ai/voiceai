@@ -120,7 +120,7 @@
   width: 3px;
   height: 100%;
   background: rgba(255, 255, 255, 0.8);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transform-origin: center;
   animation: waveformIdle 1.2s ease-in-out infinite;
   animation-delay: calc(var(--bar-index, 0) * 0.1s);

@@ -2,7 +2,14 @@
  * Handoff Module
  *
  * Unified exports for the coordinator-based handoff system.
- * This replaces the old handoff-handler.ts with a cleaner architecture.
+ *
+ * @deprecated This module is deprecated. Import from '../../handoff/index.js' instead.
+ *
+ * The handoff system has been consolidated into a single unified module at:
+ * - src/handoff/index.ts (main entry point)
+ * - src/handoff/unified-state.ts (state management)
+ * - src/handoff/actions.ts (high-level actions)
+ * - src/handoff/types.ts (type definitions)
  *
  * @module agents/shared/handoff
  */
@@ -10,7 +17,7 @@
 // Types
 export * from './types.js';
 
-// Session state management
+// Re-export from unified handoff module for backward compatibility
 export {
   HANDOFF_TIMEOUT_MS,
   MAX_PENDING_HANDOFFS,

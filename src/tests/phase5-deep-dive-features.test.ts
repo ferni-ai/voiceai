@@ -45,18 +45,16 @@ describe('Phase 5: Protection Engine', () => {
   });
 
   it('should export protection engine functions', async () => {
-    const { getProtectionEngine, resetProtectionEngine } = await import(
-      '../memory/protection-engine.js'
-    );
+    const { getProtectionEngine, resetProtectionEngine } =
+      await import('../memory/protection-engine.js');
 
     expect(getProtectionEngine).toBeDefined();
     expect(resetProtectionEngine).toBeDefined();
   });
 
   it('should create a singleton instance', async () => {
-    const { getProtectionEngine, resetProtectionEngine } = await import(
-      '../memory/protection-engine.js'
-    );
+    const { getProtectionEngine, resetProtectionEngine } =
+      await import('../memory/protection-engine.js');
 
     resetProtectionEngine();
     const engine1 = getProtectionEngine();
@@ -66,9 +64,8 @@ describe('Phase 5: Protection Engine', () => {
   });
 
   it('should protect high emotional weight memories', async () => {
-    const { getProtectionEngine, resetProtectionEngine } = await import(
-      '../memory/protection-engine.js'
-    );
+    const { getProtectionEngine, resetProtectionEngine } =
+      await import('../memory/protection-engine.js');
 
     resetProtectionEngine();
     const engine = getProtectionEngine();
@@ -93,9 +90,8 @@ describe('Phase 5: Protection Engine', () => {
   });
 
   it('should protect memories with milestone keywords', async () => {
-    const { getProtectionEngine, resetProtectionEngine } = await import(
-      '../memory/protection-engine.js'
-    );
+    const { getProtectionEngine, resetProtectionEngine } =
+      await import('../memory/protection-engine.js');
 
     resetProtectionEngine();
     const engine = getProtectionEngine();
@@ -119,9 +115,8 @@ describe('Phase 5: Protection Engine', () => {
   });
 
   it('should protect user-marked memories', async () => {
-    const { getProtectionEngine, resetProtectionEngine } = await import(
-      '../memory/protection-engine.js'
-    );
+    const { getProtectionEngine, resetProtectionEngine } =
+      await import('../memory/protection-engine.js');
 
     resetProtectionEngine();
     const engine = getProtectionEngine();
@@ -150,18 +145,16 @@ describe('Phase 5: Protection Engine', () => {
 
 describe('Phase 5: Spreading Activation', () => {
   it('should export spreading activation functions', async () => {
-    const { getSpreadingActivation, resetSpreadingActivation } = await import(
-      '../memory/spreading-activation.js'
-    );
+    const { getSpreadingActivation, resetSpreadingActivation } =
+      await import('../memory/spreading-activation.js');
 
     expect(getSpreadingActivation).toBeDefined();
     expect(resetSpreadingActivation).toBeDefined();
   });
 
   it('should create engine with default config', async () => {
-    const { getSpreadingActivation, resetSpreadingActivation } = await import(
-      '../memory/spreading-activation.js'
-    );
+    const { getSpreadingActivation, resetSpreadingActivation } =
+      await import('../memory/spreading-activation.js');
 
     resetSpreadingActivation();
     const engine = getSpreadingActivation();
@@ -170,9 +163,7 @@ describe('Phase 5: Spreading Activation', () => {
   });
 
   it('should spread activation from a source memory', async () => {
-    const { SpreadingActivationEngine } = await import(
-      '../memory/spreading-activation.js'
-    );
+    const { SpreadingActivationEngine } = await import('../memory/spreading-activation.js');
 
     const engine = new SpreadingActivationEngine({
       decayFactor: 0.5,
@@ -194,9 +185,8 @@ describe('Phase 5: Spreading Activation', () => {
 
 describe('Phase 5: Decay Curves', () => {
   it('should export decay curve functions', async () => {
-    const { getDecayCurveCalculator, MEMORY_TYPE_CURVES } = await import(
-      '../memory/decay-curves.js'
-    );
+    const { getDecayCurveCalculator, MEMORY_TYPE_CURVES } =
+      await import('../memory/decay-curves.js');
 
     expect(getDecayCurveCalculator).toBeDefined();
     expect(MEMORY_TYPE_CURVES).toBeDefined();
@@ -213,9 +203,8 @@ describe('Phase 5: Decay Curves', () => {
   });
 
   it('should calculate exponential decay correctly', async () => {
-    const { getDecayCurveCalculator, resetDecayCurveCalculator } = await import(
-      '../memory/decay-curves.js'
-    );
+    const { getDecayCurveCalculator, resetDecayCurveCalculator } =
+      await import('../memory/decay-curves.js');
 
     resetDecayCurveCalculator();
     const calculator = getDecayCurveCalculator();
@@ -237,9 +226,8 @@ describe('Phase 5: Decay Curves', () => {
   });
 
   it('should respect protection flag', async () => {
-    const { getDecayCurveCalculator, resetDecayCurveCalculator } = await import(
-      '../memory/decay-curves.js'
-    );
+    const { getDecayCurveCalculator, resetDecayCurveCalculator } =
+      await import('../memory/decay-curves.js');
 
     resetDecayCurveCalculator();
     const calculator = getDecayCurveCalculator();
@@ -274,18 +262,14 @@ describe('Phase 5: Decay Curves', () => {
 
 describe('Phase 5: Context Carrier', () => {
   it('should export context carrier functions', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     expect(getContextCarrier).toBeDefined();
     expect(resetContextCarrier).toBeDefined();
   });
 
   it('should start and end sessions', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     resetContextCarrier();
     const carrier = getContextCarrier();
@@ -299,9 +283,7 @@ describe('Phase 5: Context Carrier', () => {
   });
 
   it('should track surfaced memories', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     resetContextCarrier();
     const carrier = getContextCarrier();
@@ -314,9 +296,7 @@ describe('Phase 5: Context Carrier', () => {
   });
 
   it('should track tool usage', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     resetContextCarrier();
     const carrier = getContextCarrier();
@@ -333,9 +313,7 @@ describe('Phase 5: Context Carrier', () => {
   });
 
   it('should track emotional journey', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     resetContextCarrier();
     const carrier = getContextCarrier();
@@ -353,9 +331,7 @@ describe('Phase 5: Context Carrier', () => {
   });
 
   it('should manage follow-ups', async () => {
-    const { getContextCarrier, resetContextCarrier } = await import(
-      '../tools/context-carrier.js'
-    );
+    const { getContextCarrier, resetContextCarrier } = await import('../tools/context-carrier.js');
 
     resetContextCarrier();
     const carrier = getContextCarrier();
@@ -386,18 +362,16 @@ describe('Phase 5: Context Carrier', () => {
 
 describe('Phase 5: Tool Success Tracker', () => {
   it('should export tool success tracker functions', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } = await import(
-      '../tools/tool-success-tracker.js'
-    );
+    const { getToolSuccessTracker, resetToolSuccessTracker } =
+      await import('../tools/tool-success-tracker.js');
 
     expect(getToolSuccessTracker).toBeDefined();
     expect(resetToolSuccessTracker).toBeDefined();
   });
 
   it('should record tool calls', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } = await import(
-      '../tools/tool-success-tracker.js'
-    );
+    const { getToolSuccessTracker, resetToolSuccessTracker } =
+      await import('../tools/tool-success-tracker.js');
 
     resetToolSuccessTracker();
     const tracker = getToolSuccessTracker();
@@ -419,9 +393,8 @@ describe('Phase 5: Tool Success Tracker', () => {
   });
 
   it('should calculate contextual success rate', async () => {
-    const { getToolSuccessTracker, resetToolSuccessTracker } = await import(
-      '../tools/tool-success-tracker.js'
-    );
+    const { getToolSuccessTracker, resetToolSuccessTracker } =
+      await import('../tools/tool-success-tracker.js');
 
     resetToolSuccessTracker();
     const tracker = getToolSuccessTracker();
@@ -441,18 +414,16 @@ describe('Phase 5: Tool Success Tracker', () => {
 
 describe('Phase 5: Pattern Formation', () => {
   it('should export pattern formation functions', async () => {
-    const { getPatternFormation, resetPatternFormation } = await import(
-      '../memory/pattern-formation.js'
-    );
+    const { getPatternFormation, resetPatternFormation } =
+      await import('../memory/pattern-formation.js');
 
     expect(getPatternFormation).toBeDefined();
     expect(resetPatternFormation).toBeDefined();
   });
 
   it('should detect behavioral patterns', async () => {
-    const { getPatternFormation, resetPatternFormation } = await import(
-      '../memory/pattern-formation.js'
-    );
+    const { getPatternFormation, resetPatternFormation } =
+      await import('../memory/pattern-formation.js');
 
     resetPatternFormation();
     const engine = getPatternFormation();
@@ -501,9 +472,7 @@ describe('Phase 5: Pattern Formation', () => {
   });
 
   it('should detect temporal patterns', async () => {
-    const { PatternFormationEngine } = await import(
-      '../memory/pattern-formation.js'
-    );
+    const { PatternFormationEngine } = await import('../memory/pattern-formation.js');
 
     const engine = new PatternFormationEngine({
       minOccurrences: 2,
@@ -534,18 +503,16 @@ describe('Phase 5: Pattern Formation', () => {
 
 describe('Phase 5: Memory-Aware Router', () => {
   it('should export memory-aware router functions', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } = await import(
-      '../tools/memory-aware-router.js'
-    );
+    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
+      await import('../tools/memory-aware-router.js');
 
     expect(getMemoryAwareRouter).toBeDefined();
     expect(resetMemoryAwareRouter).toBeDefined();
   });
 
   it('should calculate routing boosts', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } = await import(
-      '../tools/memory-aware-router.js'
-    );
+    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
+      await import('../tools/memory-aware-router.js');
 
     resetMemoryAwareRouter();
     const router = getMemoryAwareRouter();
@@ -567,9 +534,8 @@ describe('Phase 5: Memory-Aware Router', () => {
   });
 
   it('should enhance tool scores', async () => {
-    const { getMemoryAwareRouter, resetMemoryAwareRouter } = await import(
-      '../tools/memory-aware-router.js'
-    );
+    const { getMemoryAwareRouter, resetMemoryAwareRouter } =
+      await import('../tools/memory-aware-router.js');
 
     resetMemoryAwareRouter();
     const router = getMemoryAwareRouter();
@@ -603,18 +569,16 @@ describe('Phase 5: Memory-Aware Router', () => {
 
 describe('Phase 5: LLM Link Detector', () => {
   it('should export LLM link detector functions', async () => {
-    const { getLLMLinkDetector, resetLLMLinkDetector } = await import(
-      '../memory/llm-link-detector.js'
-    );
+    const { getLLMLinkDetector, resetLLMLinkDetector } =
+      await import('../memory/llm-link-detector.js');
 
     expect(getLLMLinkDetector).toBeDefined();
     expect(resetLLMLinkDetector).toBeDefined();
   });
 
   it('should handle empty memory arrays', async () => {
-    const { getLLMLinkDetector, resetLLMLinkDetector } = await import(
-      '../memory/llm-link-detector.js'
-    );
+    const { getLLMLinkDetector, resetLLMLinkDetector } =
+      await import('../memory/llm-link-detector.js');
 
     resetLLMLinkDetector();
     const detector = getLLMLinkDetector();

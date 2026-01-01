@@ -358,24 +358,24 @@ export function analyzeTurnSignals(sessionId: string, context: TurnContext): Tur
   // RESPONSE TIMING CALCULATION
   // =========================================================================
 
-  // Base delay on their rhythm
-  let recommendedDelay = 200; // Minimum
+  // Base delay on their rhythm - keep it tight for snappy conversation
+  let recommendedDelay = 150; // Minimum - was 200ms
 
-  // Emotional adjustment
+  // Emotional adjustment - reduced to stay responsive
   if (context.emotion === 'sad' || context.emotion === 'anxious') {
-    recommendedDelay += 400; // Give space
+    recommendedDelay += 200; // Was 400ms - still give space but not too much
   } else if (isUrgent || context.emotion === 'excited') {
-    recommendedDelay = 100; // Quick response
+    recommendedDelay = 80; // Was 100ms - quick response
   }
 
-  // Hesitation adjustment
+  // Hesitation adjustment - reduced significantly
   if (isHesitating && !context.isFinal) {
-    recommendedDelay += 600; // Wait for them to finish thinking
+    recommendedDelay += 250; // Was 600ms - still wait but not forever
   }
 
-  // Low confidence adjustment
+  // Low confidence adjustment - reduced
   if (completionConfidence < 0.6) {
-    recommendedDelay += 300; // Not sure they're done
+    recommendedDelay += 150; // Was 300ms - not sure they're done but stay engaged
   }
 
   // =========================================================================

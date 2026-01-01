@@ -6,7 +6,8 @@
 
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { getCanonicalPersonaId } from '../../personas/voice-registry.js';
-import { handoffEvents } from '../../tools/handoff/index.js';
+// Unified handoff module (Phase 3 migration)
+import { handoffEvents } from '../../handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { VOICES } from './config.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';

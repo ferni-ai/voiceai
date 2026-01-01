@@ -58,7 +58,7 @@ body:not(.at-top) .scroll-progress {
   width: 2px;
   height: 100px;
   background: rgba(74, 103, 65, 0.12);
-  border-radius: 1px;
+  border-radius: var(--radius-xs);
   overflow: visible;
 }
 
@@ -68,8 +68,8 @@ body:not(.at-top) .scroll-progress {
   left: 0;
   width: 100%;
   height: 100%;
-  background: var(--color-ferni, #4a6741);
-  border-radius: 1px;
+  background: var(--color-ferni, var(--color-ferni));
+  border-radius: var(--radius-xs);
   transform-origin: top;
   transform: scaleY(0);
   transition: transform 0.15s ease-out;
@@ -88,7 +88,7 @@ body:not(.at-top) .scroll-progress {
     rgba(74, 103, 65, 0.4) 50%,
     transparent 100%
   );
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transform-origin: top;
   transform: scaleY(0);
   opacity: 0;
@@ -117,14 +117,14 @@ body:not(.at-top) .scroll-progress {
 }
 
 .scroll-progress__marker:focus-visible {
-  outline: 2px solid var(--color-ferni, #4a6741);
+  outline: 2px solid var(--color-ferni, var(--color-ferni));
   outline-offset: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 .scroll-progress__marker-num {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: rgba(74, 103, 65, 0.3);
   letter-spacing: 0.05em;
@@ -144,7 +144,7 @@ body:not(.at-top) .scroll-progress {
 
 .scroll-progress__marker-label {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: transparent;
   white-space: nowrap;
   max-width: 0;
@@ -155,7 +155,7 @@ body:not(.at-top) .scroll-progress {
 
 /* Hover state */
 .scroll-progress__marker:hover .scroll-progress__marker-num {
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni, var(--color-ferni));
 }
 
 .scroll-progress__marker:hover .scroll-progress__marker-dot {
@@ -164,7 +164,7 @@ body:not(.at-top) .scroll-progress {
 }
 
 .scroll-progress__marker:hover .scroll-progress__marker-label {
-  color: var(--color-text-secondary, #5C544A);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   max-width: 150px;
   opacity: 1;
   padding-left: 4px;
@@ -176,18 +176,18 @@ body:not(.at-top) .scroll-progress {
 }
 
 .scroll-progress__marker.is-passed .scroll-progress__marker-dot {
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   opacity: 0.6;
 }
 
 /* Active state */
 .scroll-progress__marker.is-active .scroll-progress__marker-num {
-  color: var(--color-ferni, #4a6741);
-  font-size: 11px;
+  color: var(--color-ferni, var(--color-ferni));
+  font-size: var(--text-2xs);
 }
 
 .scroll-progress__marker.is-active .scroll-progress__marker-dot {
-  background: var(--color-ferni, #4a6741);
+  background: var(--color-ferni, var(--color-ferni));
   transform: scale(1.8);
   box-shadow: 0 0 12px rgba(74, 103, 65, 0.4);
 }
@@ -212,18 +212,18 @@ body:not(.at-top) .scroll-progress__current {
 
 .scroll-progress__chapter-num {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 28px;
+  font-size: var(--text-3xl);
   font-weight: 700;
-  color: var(--color-ferni, #4a6741);
+  color: var(--color-ferni, var(--color-ferni));
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
 .scroll-progress__chapter-title {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 500;
-  color: var(--color-text-secondary, #5C544A);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   text-transform: uppercase;
   letter-spacing: 0.1em;
   max-width: 120px;
@@ -244,7 +244,7 @@ body:not(.at-top) .scroll-progress__current {
   }
   
   .scroll-progress__chapter-num {
-    font-size: 20px;
+    font-size: var(--text-xl);
   }
   
   .scroll-progress__chapter-title {
@@ -452,7 +452,7 @@ body:not(.at-top) .scroll-progress__current {
     rgba(74, 103, 65, 0.15) 50%,
     transparent 100%
   );
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   animation: accent-glow 2s ease-out forwards;
   pointer-events: none;
 }
@@ -479,7 +479,7 @@ body:not(.at-top) .scroll-progress__current {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--color-ferni, #4a6741) 50%,
+    var(--color-ferni, var(--color-ferni)) 50%,
     transparent 100%
   );
   transform: scaleX(0);
@@ -762,10 +762,10 @@ body:not(.at-top) .scroll-indicator {
   height: 10px;
   background: linear-gradient(
     180deg,
-    var(--color-ferni, #4a6741) 0%,
+    var(--color-ferni, var(--color-ferni)) 0%,
     rgba(74, 103, 65, 0.3) 100%
   );
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   animation: scroll-wheel 2.5s ease-in-out infinite;
 }
 
@@ -793,9 +793,9 @@ body:not(.at-top) .scroll-indicator {
 }
 
 .scroll-indicator__text {
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
-  color: var(--color-text-secondary, #5C544A);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   text-transform: uppercase;
   letter-spacing: 0.15em;
   opacity: 0.7;
@@ -822,8 +822,8 @@ body:not(.at-top) .scroll-indicator {
 .scroll-indicator__arrows span {
   width: 12px;
   height: 12px;
-  border-right: 2px solid var(--color-ferni, #4a6741);
-  border-bottom: 2px solid var(--color-ferni, #4a6741);
+  border-right: 2px solid var(--color-ferni, var(--color-ferni));
+  border-bottom: 2px solid var(--color-ferni, var(--color-ferni));
   transform: rotate(45deg);
   opacity: 0.3;
 }

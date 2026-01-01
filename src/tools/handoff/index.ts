@@ -3,13 +3,28 @@
  *
  * Agent handoff system for transitioning between team members.
  *
- * NEW SYSTEM (Agent-Agnostic):
- *   import { buildHandoffTools, executeHandoff } from './handoff/index.js';
- *   const { tools } = await buildHandoffTools('ferni');
+ * ## Recommended: Unified Handoff Module
  *
- * LEGACY SYSTEM (Deprecated):
- *   import { createHandoffTools } from './handoff/index.js';
- *   const tools = createHandoffTools();
+ * For state management, use the new unified module:
+ * ```typescript
+ * import {
+ *   getCurrentAgent,
+ *   startHandoff,
+ *   completeHandoff,
+ *   isHandoffAllowed,
+ *   handoffEvents,
+ * } from '../../handoff/index.js';
+ * ```
+ *
+ * ## This Module: Specialized Functionality
+ *
+ * This module provides specialized handoff functionality:
+ * - Tool building: `buildHandoffTools()`, `getHandoffToolsForAgent()`
+ * - Detection: `shouldHandoffToAlex()`, `shouldHandoffToMaya()`, etc.
+ * - Coordination: `HandoffCoordinator`, `HandoffTransaction`
+ * - Validation: `validateHandoffPreconditions()`, `quickValidate()`
+ *
+ * @see src/handoff/index.ts for unified state management
  */
 
 // Type exports

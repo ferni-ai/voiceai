@@ -92,7 +92,7 @@ const DEFAULT_CONFIG: PatternFormationConfig = {
 
 export class PatternFormationEngine {
   private config: PatternFormationConfig;
-  private patternsCache: Map<string, DetectedPattern[]> = new Map();
+  private patternsCache = new Map<string, DetectedPattern[]>();
 
   constructor(config?: Partial<PatternFormationConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -105,10 +105,7 @@ export class PatternFormationEngine {
   /**
    * Detect all patterns from a user's memories
    */
-  async detectPatterns(
-    userId: string,
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  async detectPatterns(userId: string, memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const allPatterns: DetectedPattern[] = [];
 
     // Detect each type of pattern
@@ -158,9 +155,7 @@ export class PatternFormationEngine {
   /**
    * Detect behavioral patterns (repeated actions)
    */
-  private async detectBehavioralPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectBehavioralPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Group by action-like content
@@ -179,11 +174,7 @@ export class PatternFormationEngine {
 
     for (const [topic, group] of byTopic) {
       if (group.length >= this.config.minOccurrences) {
-        const pattern = this.createPattern(
-          'behavioral',
-          group,
-          `Tends to ${topic.toLowerCase()}`
-        );
+        const pattern = this.createPattern('behavioral', group, `Tends to ${topic.toLowerCase()}`);
         if (pattern) patterns.push(pattern);
       }
     }
@@ -194,9 +185,7 @@ export class PatternFormationEngine {
   /**
    * Detect emotional patterns (emotional responses that repeat)
    */
-  private async detectEmotionalPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectEmotionalPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Group by emotional weight
@@ -214,8 +203,7 @@ export class PatternFormationEngine {
 
     for (const [topic, group] of emotionTopics) {
       if (group.length >= this.config.minOccurrences) {
-        const avgWeight =
-          group.reduce((sum, m) => sum + m.emotionalWeight, 0) / group.length;
+        const avgWeight = group.reduce((sum, m) => sum + m.emotionalWeight, 0) / group.length;
         const intensity = avgWeight > 0.8 ? 'strong' : 'moderate';
 
         const pattern = this.createPattern(
@@ -233,9 +221,7 @@ export class PatternFormationEngine {
   /**
    * Detect temporal patterns (time-based)
    */
-  private async detectTemporalPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectTemporalPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Group by day of week
@@ -247,24 +233,12 @@ export class PatternFormationEngine {
       byDayOfWeek.set(day, existing);
     }
 
-    const dayNames = [
-      'Sunday',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-    ];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     for (const [day, group] of byDayOfWeek) {
       // Check if significantly more than average
       const avgPerDay = memories.length / 7;
       if (group.length > avgPerDay * 1.5 && group.length >= this.config.minOccurrences) {
-        const pattern = this.createPattern(
-          'temporal',
-          group,
-          `More active on ${dayNames[day]}s`
-        );
+        const pattern = this.createPattern('temporal', group, `More active on ${dayNames[day]}s`);
         if (pattern) {
           pattern.frequency = dayNames[day];
           patterns.push(pattern);
@@ -290,11 +264,7 @@ export class PatternFormationEngine {
     for (const [timeOfDay, group] of byTimeOfDay) {
       const avgPerTime = memories.length / 4;
       if (group.length > avgPerTime * 1.5 && group.length >= this.config.minOccurrences) {
-        const pattern = this.createPattern(
-          'temporal',
-          group,
-          `Most active in the ${timeOfDay}`
-        );
+        const pattern = this.createPattern('temporal', group, `Most active in the ${timeOfDay}`);
         if (pattern) {
           pattern.frequency = timeOfDay;
           patterns.push(pattern);
@@ -308,9 +278,7 @@ export class PatternFormationEngine {
   /**
    * Detect relational patterns (patterns involving people)
    */
-  private async detectRelationalPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectRelationalPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Group by person mentioned
@@ -326,8 +294,7 @@ export class PatternFormationEngine {
     for (const [person, group] of byPerson) {
       if (group.length >= this.config.minOccurrences) {
         // Look for common emotions with this person
-        const avgEmotion =
-          group.reduce((sum, m) => sum + m.emotionalWeight, 0) / group.length;
+        const avgEmotion = group.reduce((sum, m) => sum + m.emotionalWeight, 0) / group.length;
         const emotionLevel =
           avgEmotion > 0.7
             ? 'emotionally significant'
@@ -353,9 +320,7 @@ export class PatternFormationEngine {
   /**
    * Detect topical patterns (recurring themes)
    */
-  private async detectTopicalPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectTopicalPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Group by topic
@@ -363,11 +328,7 @@ export class PatternFormationEngine {
 
     for (const [topic, group] of byTopic) {
       if (group.length >= this.config.minOccurrences) {
-        const pattern = this.createPattern(
-          'topical',
-          group,
-          `Frequently thinks about ${topic}`
-        );
+        const pattern = this.createPattern('topical', group, `Frequently thinks about ${topic}`);
         if (pattern) patterns.push(pattern);
       }
     }
@@ -378,15 +339,11 @@ export class PatternFormationEngine {
   /**
    * Detect sequential patterns (A leads to B)
    */
-  private async detectSequentialPatterns(
-    memories: MemoryItem[]
-  ): Promise<DetectedPattern[]> {
+  private async detectSequentialPatterns(memories: MemoryItem[]): Promise<DetectedPattern[]> {
     const patterns: DetectedPattern[] = [];
 
     // Sort by time
-    const sorted = [...memories].sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-    );
+    const sorted = [...memories].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     // Look for topic → topic sequences
     const sequences = new Map<string, number>();
@@ -460,17 +417,12 @@ export class PatternFormationEngine {
     const lastOccurrence = new Date(Math.max(...timestamps));
 
     // Calculate confidence based on frequency and recency
-    const daysSinceFirst =
-      (Date.now() - firstOccurrence.getTime()) / (24 * 60 * 60 * 1000);
+    const daysSinceFirst = (Date.now() - firstOccurrence.getTime()) / (24 * 60 * 60 * 1000);
     const frequency = memories.length / Math.max(1, daysSinceFirst / 30); // Per month
     const recency =
-      1 -
-      Math.min(
-        1,
-        (Date.now() - lastOccurrence.getTime()) / (90 * 24 * 60 * 60 * 1000)
-      );
+      1 - Math.min(1, (Date.now() - lastOccurrence.getTime()) / (90 * 24 * 60 * 60 * 1000));
 
-    const confidence = Math.min(1, (frequency * 0.3 + recency * 0.4 + memories.length / 10 * 0.3));
+    const confidence = Math.min(1, frequency * 0.3 + recency * 0.4 + (memories.length / 10) * 0.3);
 
     return {
       id: `pattern_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,

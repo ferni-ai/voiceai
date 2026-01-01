@@ -79,7 +79,7 @@ export class SpreadingActivationEngine {
   async spreadFromMemory(
     userId: string,
     sourceMemoryId: string,
-    initialActivation: number = 1.0
+    initialActivation = 1.0
   ): Promise<ActivationResult[]> {
     const memoryGraph = getMemoryGraph();
     const allLinks = await memoryGraph.getLinks(userId);
@@ -167,9 +167,7 @@ export class SpreadingActivationEngine {
     results.delete(sourceMemoryId);
 
     // Sort by activation strength
-    const sorted = Array.from(results.values()).sort(
-      (a, b) => b.activation - a.activation
-    );
+    const sorted = Array.from(results.values()).sort((a, b) => b.activation - a.activation);
 
     log.debug(
       {
@@ -232,7 +230,7 @@ export class SpreadingActivationEngine {
   async activateByTopic(
     userId: string,
     seedMemoryIds: string[],
-    topK: number = 10
+    topK = 10
   ): Promise<ActivationResult[]> {
     // Spread from seed memories
     const activations = await this.spreadFromMultiple(userId, seedMemoryIds);
@@ -248,7 +246,7 @@ export class SpreadingActivationEngine {
   async findActivators(
     userId: string,
     targetMemoryId: string,
-    maxSources: number = 5
+    maxSources = 5
   ): Promise<ActivationResult[]> {
     const memoryGraph = getMemoryGraph();
     const allLinks = await memoryGraph.getLinks(userId);

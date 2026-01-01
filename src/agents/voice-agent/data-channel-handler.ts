@@ -19,13 +19,14 @@ import type { MacOSContextPayload } from '../../intelligence/context-builders/ma
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { getCurrentAgent } from '../../tools/handoff/index.js';
+// Unified handoff module (Phase 3 migration)
 import {
-  completeHandoff,
-  getHandoffPersonaInfo,
-  getNextMessageSeqSync,
+  getCurrentAgent,
   isHandoffInProgress,
-} from '../shared/handoff/session-state.js';
+  getNextMessageSeqSync,
+} from '../../handoff/index.js';
+import { completeHandoff } from '../../handoff/actions.js';
+import { getHandoffPersonaInfo } from '../shared/handoff/session-state.js';
 import type { UserData } from '../shared/types.js';
 
 // New coordinator-based handoff system
@@ -228,7 +229,7 @@ async function handleHandoffRequest(
   // Helper to send failure message to frontend
   const sendFailure = async (errorMsg: string) => {
     try {
-      const currentAgent = getCurrentAgent();
+      const currentAgent = getCurrentAgent(sessionId);
       const failureMessage = JSON.stringify({
         type: 'handoff_failed',
         newAgent: targetPersona,

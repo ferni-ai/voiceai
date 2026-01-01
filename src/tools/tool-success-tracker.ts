@@ -75,10 +75,10 @@ export interface ToolRecommendation {
 
 export class ToolSuccessTracker {
   private db: FirebaseFirestore.Firestore | null;
-  private metricsCache: Map<string, ToolMetrics> = new Map();
-  private recentCalls: Map<string, ToolCall[]> = new Map();
+  private metricsCache = new Map<string, ToolMetrics>();
+  private recentCalls = new Map<string, ToolCall[]>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
-  private cacheExpiry: Map<string, number> = new Map();
+  private cacheExpiry = new Map<string, number>();
 
   constructor() {
     this.db = getFirestoreDb();
@@ -132,12 +132,11 @@ export class ToolSuccessTracker {
     metrics.totalCalls++;
     if (call.success) metrics.successfulCalls++;
     metrics.averageLatency =
-      (metrics.averageLatency * (metrics.totalCalls - 1) + call.latency) /
-      metrics.totalCalls;
+      (metrics.averageLatency * (metrics.totalCalls - 1) + call.latency) / metrics.totalCalls;
 
     // Update by topic
     if (call.context?.topic) {
-      const topic = call.context.topic;
+      const { topic } = call.context;
       if (!metrics.successByTopic[topic]) {
         metrics.successByTopic[topic] = { success: 0, total: 0 };
       }
@@ -147,7 +146,7 @@ export class ToolSuccessTracker {
 
     // Update by emotion
     if (call.context?.emotion) {
-      const emotion = call.context.emotion;
+      const { emotion } = call.context;
       if (!metrics.successByEmotion[emotion]) {
         metrics.successByEmotion[emotion] = { success: 0, total: 0 };
       }
@@ -176,8 +175,7 @@ export class ToolSuccessTracker {
     // Calculate recent success rate
     const recentCalls = this.recentCalls.get(key)?.slice(-20) || [];
     const recentSuccesses = recentCalls.filter((c) => c.success).length;
-    metrics.recentSuccessRate =
-      recentCalls.length > 0 ? recentSuccesses / recentCalls.length : 0;
+    metrics.recentSuccessRate = recentCalls.length > 0 ? recentSuccesses / recentCalls.length : 0;
 
     // Calculate trend
     metrics.trend = this.calculateTrend(key);
@@ -315,16 +313,12 @@ export class ToolSuccessTracker {
     userId: string,
     availableTools: string[],
     context: { topic?: string; emotion?: string; personaId?: string },
-    maxResults: number = 5
+    maxResults = 5
   ): Promise<ToolRecommendation[]> {
     const recommendations: ToolRecommendation[] = [];
 
     for (const toolId of availableTools) {
-      const successRate = await this.getContextualSuccessRate(
-        userId,
-        toolId,
-        context
-      );
+      const successRate = await this.getContextualSuccessRate(userId, toolId, context);
       const metrics = await this.getMetrics(userId, toolId);
 
       // Generate reason
@@ -354,9 +348,7 @@ export class ToolSuccessTracker {
     }
 
     // Sort by confidence and return top N
-    return recommendations
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, maxResults);
+    return recommendations.sort((a, b) => b.confidence - a.confidence).slice(0, maxResults);
   }
 
   /**
@@ -364,7 +356,7 @@ export class ToolSuccessTracker {
    */
   async getTopTools(
     userId: string,
-    count: number = 5
+    count = 5
   ): Promise<Array<{ toolId: string; successRate: number }>> {
     const toolMetrics: Array<{ toolId: string; successRate: number }> = [];
 
@@ -387,9 +379,7 @@ export class ToolSuccessTracker {
       }
     }
 
-    return toolMetrics
-      .sort((a, b) => b.successRate - a.successRate)
-      .slice(0, count);
+    return toolMetrics.sort((a, b) => b.successRate - a.successRate).slice(0, count);
   }
 
   // ==========================================================================
@@ -433,10 +423,8 @@ export class ToolSuccessTracker {
     const firstHalf = calls.slice(0, Math.floor(calls.length / 2));
     const secondHalf = calls.slice(Math.floor(calls.length / 2));
 
-    const firstRate =
-      firstHalf.filter((c) => c.success).length / firstHalf.length;
-    const secondRate =
-      secondHalf.filter((c) => c.success).length / secondHalf.length;
+    const firstRate = firstHalf.filter((c) => c.success).length / firstHalf.length;
+    const secondRate = secondHalf.filter((c) => c.success).length / secondHalf.length;
 
     const diff = secondRate - firstRate;
     if (diff > 0.1) return 'improving';

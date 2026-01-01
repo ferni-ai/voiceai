@@ -191,7 +191,7 @@ export class DecayCurveCalculator {
   ): number {
     // Emotional memories decay slower
     if (memory.emotionalWeight > 0.5) {
-      decay *= 1 - (this.config.emotionalBoost * memory.emotionalWeight);
+      decay *= 1 - this.config.emotionalBoost * memory.emotionalWeight;
     }
 
     // Each access reduces decay
@@ -244,10 +244,7 @@ export class DecayCurveCalculator {
   /**
    * Get memories that should be archived (fully decayed)
    */
-  getArchiveCandidates(
-    memories: MemoryItem[],
-    threshold: number = 0.9
-  ): MemoryItem[] {
+  getArchiveCandidates(memories: MemoryItem[], threshold = 0.9): MemoryItem[] {
     return memories.filter((memory) => {
       const decay = this.calculateDecay(memory);
       return decay >= threshold;
@@ -257,10 +254,7 @@ export class DecayCurveCalculator {
   /**
    * Predict when a memory will reach a decay threshold
    */
-  predictDecayDate(
-    memory: MemoryItem,
-    targetDecay: number = 0.5
-  ): Date | null {
+  predictDecayDate(memory: MemoryItem, targetDecay = 0.5): Date | null {
     const curve = MEMORY_TYPE_CURVES[memory.type] || 'exponential';
 
     if (curve === 'none' || curve === 'plateau') {

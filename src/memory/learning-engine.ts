@@ -39,18 +39,18 @@ export interface SurfacingEvent {
   memoryType: string;
   memoryTopics: string[];
   emotionalWeight: number;
-  
+
   /** How the memory was surfaced */
   surfacingMethod: 'proactive' | 'query_response' | 'association';
-  
+
   /** Context when surfaced */
   conversationPhase: 'opening' | 'mid' | 'closing';
   userEmotionalState: 'positive' | 'neutral' | 'negative' | 'vulnerable';
   timeSinceSessionStart: number; // minutes
-  
+
   /** User's reaction */
   reaction: MemoryReaction;
-  
+
   /** Timing */
   surfacedAt: Date;
   reactedAt?: Date;
@@ -61,34 +61,34 @@ export interface SurfacingEvent {
  */
 export interface UserLearnings {
   userId: string;
-  
+
   /** Overall stats */
   totalSurfacings: number;
   positiveReactions: number;
   negativeReactions: number;
-  
+
   /** Topic preferences (topic → engagement score 0-1) */
   topicReceptivity: Map<string, number>;
-  
+
   /** Memory type preferences (type → engagement score 0-1) */
   typeReceptivity: Map<string, number>;
-  
+
   /** Best conversation phases for proactive surfacing */
   preferredPhases: Map<string, number>; // phase → success rate
-  
+
   /** Emotional states where proactive surfacing worked */
   emotionalReceptivity: Map<string, number>; // state → success rate
-  
+
   /** Timing patterns */
   averageTimeToEngage: number; // minutes into session
-  
+
   /** Adjusted thresholds based on learning */
   adjustedThresholds: {
     minConfidence: number; // Default 0.6, adjusted per user
     maxProactivePerSession: number; // Default 3, adjusted per user
     emotionalSensitivity: number; // 0-1, how much to weight emotional state
   };
-  
+
   lastUpdated: Date;
 }
 
@@ -98,13 +98,13 @@ export interface UserLearnings {
 export interface LearningConfig {
   /** Minimum events before adjusting thresholds */
   minEventsForLearning: number;
-  
+
   /** How much each event adjusts scores (0-1) */
   learningRate: number;
-  
+
   /** Decay rate for old learnings (per day) */
   learningDecay: number;
-  
+
   /** Maximum adjustment to thresholds */
   maxThresholdAdjustment: number;
 }
@@ -143,9 +143,9 @@ const DEFAULT_LEARNINGS: Omit<UserLearnings, 'userId'> = {
 
 export class LearningEngine {
   private config: LearningConfig;
-  private userLearnings: Map<string, UserLearnings> = new Map();
-  private pendingEvents: Map<string, SurfacingEvent> = new Map();
-  
+  private userLearnings = new Map<string, UserLearnings>();
+  private pendingEvents = new Map<string, SurfacingEvent>();
+
   constructor(config?: Partial<LearningConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -169,7 +169,7 @@ export class LearningEngine {
     }
   ): string {
     const eventId = `surf_${userId}_${Date.now()}`;
-    
+
     const event: SurfacingEvent = {
       id: eventId,
       userId,
@@ -184,11 +184,11 @@ export class LearningEngine {
       reaction: 'acknowledged', // Default, will be updated
       surfacedAt: new Date(),
     };
-    
+
     this.pendingEvents.set(eventId, event);
-    
+
     log.debug({ eventId, memoryId: memory.id, userId }, 'Recorded memory surfacing');
-    
+
     return eventId;
   }
 
@@ -201,19 +201,19 @@ export class LearningEngine {
       log.warn({ eventId }, 'No pending event found for reaction');
       return;
     }
-    
+
     event.reaction = reaction;
     event.reactedAt = new Date();
-    
+
     // Update user learnings
     await this.updateLearnings(event);
-    
+
     // Persist event
     await this.persistEvent(event);
-    
+
     // Remove from pending
     this.pendingEvents.delete(eventId);
-    
+
     log.debug({ eventId, reaction, userId: event.userId }, 'Recorded reaction');
   }
 
@@ -230,22 +230,22 @@ export class LearningEngine {
     if (expressedDiscomfort) {
       return 'negative';
     }
-    
+
     if (expressedGratitude) {
       return 'grateful';
     }
-    
+
     if (changedTopic) {
       return 'ignored';
     }
-    
+
     // Check response length as engagement proxy
     const wordCount = userResponse.trim().split(/\s+/).length;
-    
+
     if (wordCount > 20) {
       return 'engaged'; // Detailed response = engaged
     }
-    
+
     return 'acknowledged';
   }
 
@@ -258,14 +258,14 @@ export class LearningEngine {
    */
   private async updateLearnings(event: SurfacingEvent): Promise<void> {
     let learnings: UserLearnings | undefined = this.userLearnings.get(event.userId);
-    
+
     if (!learnings) {
       const loaded = await this.loadLearnings(event.userId);
       if (loaded) {
         learnings = loaded;
       } else {
-        learnings = { 
-          ...DEFAULT_LEARNINGS, 
+        learnings = {
+          ...DEFAULT_LEARNINGS,
           userId: event.userId,
           // Initialize with empty Maps
           topicReceptivity: new Map(),
@@ -276,54 +276,55 @@ export class LearningEngine {
       }
       this.userLearnings.set(event.userId, learnings);
     }
-    
+
     // Update overall stats
     learnings.totalSurfacings++;
-    
+
     const isPositive = event.reaction === 'engaged' || event.reaction === 'grateful';
     const isNegative = event.reaction === 'negative';
-    
+
     if (isPositive) learnings.positiveReactions++;
     if (isNegative) learnings.negativeReactions++;
-    
+
     // Calculate reaction score: positive = +1, negative = -1, others = 0
     const reactionScore = isPositive ? 1 : isNegative ? -1 : 0;
-    
+
     // Update topic receptivity
     for (const topic of event.memoryTopics) {
       const current = learnings.topicReceptivity.get(topic) ?? 0.5;
       const updated = this.adjustScore(current, reactionScore);
       learnings.topicReceptivity.set(topic, updated);
     }
-    
+
     // Update type receptivity
     const currentTypeScore = learnings.typeReceptivity.get(event.memoryType) ?? 0.5;
     learnings.typeReceptivity.set(
       event.memoryType,
       this.adjustScore(currentTypeScore, reactionScore)
     );
-    
+
     // Update phase preferences
     const currentPhaseScore = learnings.preferredPhases.get(event.conversationPhase) ?? 0.5;
     learnings.preferredPhases.set(
       event.conversationPhase,
       this.adjustScore(currentPhaseScore, reactionScore)
     );
-    
+
     // Update emotional receptivity
-    const currentEmotionalScore = learnings.emotionalReceptivity.get(event.userEmotionalState) ?? 0.5;
+    const currentEmotionalScore =
+      learnings.emotionalReceptivity.get(event.userEmotionalState) ?? 0.5;
     learnings.emotionalReceptivity.set(
       event.userEmotionalState,
       this.adjustScore(currentEmotionalScore, reactionScore)
     );
-    
+
     // Adjust thresholds if we have enough data
     if (learnings.totalSurfacings >= this.config.minEventsForLearning) {
       this.adjustThresholds(learnings);
     }
-    
+
     learnings.lastUpdated = new Date();
-    
+
     // Persist learnings
     await this.persistLearnings(learnings);
   }
@@ -342,7 +343,7 @@ export class LearningEngine {
   private adjustThresholds(learnings: UserLearnings): void {
     const successRate = learnings.positiveReactions / learnings.totalSurfacings;
     const maxAdj = this.config.maxThresholdAdjustment;
-    
+
     // If user frequently ignores/negatively reacts, raise confidence threshold
     if (successRate < 0.3) {
       learnings.adjustedThresholds.minConfidence = Math.min(
@@ -365,7 +366,7 @@ export class LearningEngine {
         3 + Math.floor((successRate - 0.7) * 3)
       );
     }
-    
+
     log.debug(
       {
         userId: learnings.userId,
@@ -385,12 +386,12 @@ export class LearningEngine {
    */
   async getThresholds(userId: string): Promise<UserLearnings['adjustedThresholds']> {
     let learnings = this.userLearnings.get(userId);
-    
+
     if (!learnings) {
       const loaded = await this.loadLearnings(userId);
       learnings = loaded ?? undefined;
     }
-    
+
     return learnings?.adjustedThresholds ?? DEFAULT_LEARNINGS.adjustedThresholds;
   }
 
@@ -411,12 +412,12 @@ export class LearningEngine {
     recommendation: 'surface' | 'skip' | 'defer';
   }> {
     let learnings = this.userLearnings.get(userId);
-    
+
     if (!learnings) {
       const loaded = await this.loadLearnings(userId);
       learnings = loaded ?? undefined;
     }
-    
+
     // If no learnings, return default moderate score
     if (!learnings || learnings.totalSurfacings < this.config.minEventsForLearning) {
       return {
@@ -425,43 +426,45 @@ export class LearningEngine {
         recommendation: 'surface',
       };
     }
-    
+
     const factors: Record<string, number> = {};
-    
+
     // Topic receptivity (average of memory topics)
-    const topicScores = memory.topics?.map(t => learnings!.topicReceptivity.get(t) ?? 0.5) ?? [0.5];
+    const topicScores = memory.topics?.map((t) => learnings!.topicReceptivity.get(t) ?? 0.5) ?? [
+      0.5,
+    ];
     factors.topic = topicScores.reduce((a, b) => a + b, 0) / topicScores.length;
-    
+
     // Type receptivity
     factors.type = learnings.typeReceptivity.get(memory.type) ?? 0.5;
-    
+
     // Phase preference
     factors.phase = learnings.preferredPhases.get(context.conversationPhase) ?? 0.5;
-    
+
     // Emotional state receptivity
     factors.emotional = learnings.emotionalReceptivity.get(context.userEmotionalState) ?? 0.5;
-    
+
     // Emotional sensitivity weighting
-    const emotionalAdjustment = context.userEmotionalState === 'vulnerable'
-      ? 1 - learnings.adjustedThresholds.emotionalSensitivity
-      : 1;
+    const emotionalAdjustment =
+      context.userEmotionalState === 'vulnerable'
+        ? 1 - learnings.adjustedThresholds.emotionalSensitivity
+        : 1;
     factors.emotionalAdjustment = emotionalAdjustment;
-    
+
     // Calculate weighted score
-    const score = (
-      factors.topic * 0.3 +
-      factors.type * 0.2 +
-      factors.phase * 0.2 +
-      factors.emotional * 0.3
-    ) * emotionalAdjustment;
-    
+    const score =
+      (factors.topic * 0.3 + factors.type * 0.2 + factors.phase * 0.2 + factors.emotional * 0.3) *
+      emotionalAdjustment;
+
     // Determine recommendation
     const threshold = learnings.adjustedThresholds.minConfidence;
-    const recommendation: 'surface' | 'skip' | 'defer' = 
-      score >= threshold ? 'surface' :
-      score >= threshold - 0.1 ? 'defer' : // Close to threshold
-      'skip';
-    
+    const recommendation: 'surface' | 'skip' | 'defer' =
+      score >= threshold
+        ? 'surface'
+        : score >= threshold - 0.1
+          ? 'defer' // Close to threshold
+          : 'skip';
+
     return { score, factors, recommendation };
   }
 
@@ -478,12 +481,12 @@ export class LearningEngine {
     thresholds: UserLearnings['adjustedThresholds'];
   }> {
     let learnings = this.userLearnings.get(userId);
-    
+
     if (!learnings) {
       const loaded = await this.loadLearnings(userId);
       learnings = loaded ?? undefined;
     }
-    
+
     if (!learnings || learnings.totalSurfacings === 0) {
       return {
         hasLearnings: false,
@@ -495,7 +498,7 @@ export class LearningEngine {
         thresholds: DEFAULT_LEARNINGS.adjustedThresholds,
       };
     }
-    
+
     // Find top and avoid topics
     const topicEntries = Array.from(learnings.topicReceptivity.entries());
     const topTopics = topicEntries
@@ -503,19 +506,18 @@ export class LearningEngine {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([topic]) => topic);
-    
+
     const avoidTopics = topicEntries
       .filter(([, score]) => score < 0.3)
       .sort((a, b) => a[1] - b[1])
       .slice(0, 3)
       .map(([topic]) => topic);
-    
+
     // Find best phase
     const phaseEntries = Array.from(learnings.preferredPhases.entries());
-    const bestPhase = phaseEntries.length > 0
-      ? phaseEntries.sort((a, b) => b[1] - a[1])[0][0]
-      : null;
-    
+    const bestPhase =
+      phaseEntries.length > 0 ? phaseEntries.sort((a, b) => b[1] - a[1])[0][0] : null;
+
     return {
       hasLearnings: true,
       totalInteractions: learnings.totalSurfacings,
@@ -538,7 +540,7 @@ export class LearningEngine {
   async reinforceMemory(
     userId: string,
     memoryId: string,
-    reactionStrength: number = 1.0
+    reactionStrength = 1.0
   ): Promise<{
     previousStrength: number;
     newStrength: number;
@@ -547,9 +549,9 @@ export class LearningEngine {
     // This would integrate with memory-decay.ts to boost strength
     // For now, return metadata about what would happen
     const boost = Math.min(0.3, reactionStrength * this.config.learningRate * 2);
-    
+
     log.debug({ userId, memoryId, boost }, 'Would reinforce memory');
-    
+
     return {
       previousStrength: 0.5, // Would read from actual memory
       newStrength: Math.min(1, 0.5 + boost),
@@ -571,15 +573,20 @@ export class LearningEngine {
         log.debug({ userId }, 'Firestore not available, returning null learnings');
         return null;
       }
-      
-      const doc = await db.collection('bogle_users').doc(userId).collection('learnings').doc('memory').get();
-      
+
+      const doc = await db
+        .collection('bogle_users')
+        .doc(userId)
+        .collection('learnings')
+        .doc('memory')
+        .get();
+
       if (!doc.exists) {
         return null;
       }
-      
+
       const data = doc.data()!;
-      
+
       // Convert stored objects back to Maps
       return {
         userId,
@@ -610,7 +617,7 @@ export class LearningEngine {
         log.debug({ userId: learnings.userId }, 'Firestore not available, skipping persist');
         return;
       }
-      
+
       // Convert Maps to objects for Firestore
       const data = {
         totalSurfacings: learnings.totalSurfacings,
@@ -624,7 +631,7 @@ export class LearningEngine {
         adjustedThresholds: learnings.adjustedThresholds,
         lastUpdated: new Date(),
       };
-      
+
       await db
         .collection('bogle_users')
         .doc(learnings.userId)
@@ -646,7 +653,7 @@ export class LearningEngine {
         log.debug({ eventId: event.id }, 'Firestore not available, skipping event persist');
         return;
       }
-      
+
       await db
         .collection('bogle_users')
         .doc(event.userId)
@@ -672,20 +679,17 @@ export class LearningEngine {
   async decayLearnings(userId: string): Promise<void> {
     const learnings = this.userLearnings.get(userId);
     if (!learnings) return;
-    
+
     const daysSinceUpdate = (Date.now() - learnings.lastUpdated.getTime()) / (1000 * 60 * 60 * 24);
     const decayFactor = Math.pow(1 - this.config.learningDecay, daysSinceUpdate);
-    
+
     // Decay all scores toward 0.5 (neutral)
     for (const [topic, score] of learnings.topicReceptivity) {
-      learnings.topicReceptivity.set(
-        topic,
-        0.5 + (score - 0.5) * decayFactor
-      );
+      learnings.topicReceptivity.set(topic, 0.5 + (score - 0.5) * decayFactor);
     }
-    
+
     // Similar for other receptivity maps...
-    
+
     await this.persistLearnings(learnings);
   }
 
@@ -694,20 +698,15 @@ export class LearningEngine {
    */
   async clearLearnings(userId: string): Promise<void> {
     this.userLearnings.delete(userId);
-    
+
     try {
       const db = getFirestoreDb();
       if (!db) {
         log.debug({ userId }, 'Firestore not available, only cleared in-memory learnings');
         return;
       }
-      
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('learnings')
-        .doc('memory')
-        .delete();
+
+      await db.collection('bogle_users').doc(userId).collection('learnings').doc('memory').delete();
     } catch (error) {
       log.error({ error, userId }, 'Failed to clear learnings');
     }

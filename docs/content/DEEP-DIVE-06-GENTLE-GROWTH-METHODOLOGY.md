@@ -5,6 +5,11 @@
 
 ---
 
+> **改善** (*Kaizen*) — Continuous improvement through small steps. The understanding that great change comes not from revolution, but from evolution.
+> A journey of a thousand miles begins with a single step. — Lao Tzu
+
+---
+
 ## Against Hustle Culture
 
 We've been sold a lie about change.

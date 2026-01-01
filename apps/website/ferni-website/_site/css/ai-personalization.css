@@ -22,7 +22,7 @@
     rgba(74, 103, 65, 0.1) 50%,
     transparent 100%
   );
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   opacity: 0;
   animation: ai-shimmer 2s ease-out 0.5s forwards;
   pointer-events: none;
@@ -105,7 +105,7 @@
 
 .late-night-mode .hero__tagline {
   /* More prominent for late-night message */
-  font-size: 1.1em;
+  font-size: var(--text-lg);
   color: var(--color-text-secondary);
 }
 
@@ -157,7 +157,7 @@
   background: linear-gradient(
     135deg,
     var(--color-ferni) 0%,
-    #5a8052 100%
+    var(--color-ferni) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -214,7 +214,7 @@
   background: linear-gradient(
     135deg,
     var(--color-ferni) 0%,
-    #3d5a35 100%
+    var(--color-ferni-secondary) 100%
   );
   color: white;
 }
@@ -342,8 +342,8 @@
   transform: translateX(-50%) translateY(4px);
   background: var(--color-background-elevated, white);
   padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
   box-shadow: 
@@ -510,11 +510,11 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
-  background: var(--color-text-primary, #2C2520);
-  color: var(--color-paper-cream, #FFFDFB);
-  font-size: 0.875rem;
+  background: var(--color-text-primary, var(--color-text-primary));
+  color: var(--color-paper-cream, var(--color-bg-elevated));
+  font-size: var(--text-sm);
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   box-shadow: 0 4px 16px rgba(44, 37, 32, 0.2);
   animation: nudge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -528,7 +528,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: var(--color-text-primary, #2C2520);
+  border-top-color: var(--color-text-primary, var(--color-text-primary));
 }
 
 @keyframes nudge-appear {

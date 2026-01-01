@@ -26,6 +26,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 // Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
+// VOICE ID FIX: Use resolver for single source of truth
+import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
 
 const logger = getLogger();
 
@@ -127,6 +129,11 @@ export interface CameoHandlerConfig {
   getVoiceAgentRef?: () => CameoVoiceAgentRef | null;
   /** FIX BUG: Store host persona for restoring after cameo */
   hostPersona?: PersonaConfig;
+  /**
+   * CRITICAL: Session ID for speech coordination.
+   * Must match the sessionId used in initializeSpeechCoordination().
+   */
+  sessionId?: string;
 }
 
 /**
@@ -145,10 +152,11 @@ export interface CameoHandlerResult {
  * Create handlers for cameo lifecycle events
  */
 export function createCameoHandlers(config: CameoHandlerConfig) {
-  const { ctx, session, tts, hostPersonaId, hostVoiceId, getVoiceAgentRef, hostPersona } = config;
+  const { ctx, session, tts, hostPersonaId, hostVoiceId, getVoiceAgentRef, hostPersona, sessionId: configSessionId } = config;
 
-  // Generate a session ID for tracking cameo state
-  const sessionId = ctx.room?.name || `cameo-${Date.now()}`;
+  // Use passed sessionId if available, to match speech coordination
+  // CRITICAL: Must match the sessionId used in initializeSpeechCoordination()
+  const sessionId = configSessionId || ctx.room?.name || `cameo-${Date.now()}`;
 
   /**
    * Handle cameo_started - switch voice AND LLM instructions to cameo persona
@@ -213,10 +221,21 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           const voiceManager = await getVoiceManagerCached(sessionId);
           voiceManager.switchVoice(personaId);
 
-          // Also switch session TTS if it supports voice switching
-          const resolvedVoiceId = voiceId || getVoiceId(personaId);
+          // VOICE ID FIX: Use resolver as single source of truth for Cartesia voice ID
+          const voiceIdResult = resolveVoiceId(
+            { voiceId, personaId },
+            { logLevel: 'debug' }
+          );
+          const resolvedVoiceId = voiceIdResult.success
+            ? voiceIdResult.voiceId
+            : getVoiceId(personaId); // Fallback
+
           if (tts.switchVoice && resolvedVoiceId) {
             tts.switchVoice(getPersonaDisplayName(personaId), resolvedVoiceId);
+            logger.info(
+              { personaId, voiceId: resolvedVoiceId, source: voiceIdResult.success ? voiceIdResult.source : 'fallback' },
+              '🎤 Cameo TTS voice switched via resolver'
+            );
           }
 
           voiceSwitchSuccess = true;
@@ -380,13 +399,23 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
 
       // Switch voice back to host
       // FIX ISSUE #1: Pass sessionId to use session-scoped voice manager
+      // VOICE ID FIX: Validate via resolver even for host
       try {
         const voiceManager = await getVoiceManagerCached(sessionId);
         voiceManager.switchVoice(hostPersonaId);
 
+        // Verify voice ID via resolver (hostVoiceId should match)
+        const voiceIdResult = resolveVoiceId(
+          { voiceId: hostVoiceId, personaId: hostPersonaId },
+          { logLevel: 'debug' }
+        );
+        const resolvedHostVoiceId = voiceIdResult.success
+          ? voiceIdResult.voiceId
+          : hostVoiceId; // Use passed value as fallback
+
         // Also switch session TTS
         if (tts.switchVoice) {
-          tts.switchVoice(getPersonaDisplayName(hostPersonaId), hostVoiceId);
+          tts.switchVoice(getPersonaDisplayName(hostPersonaId), resolvedHostVoiceId);
         }
 
         diag.entry(`🎤 Voice returned to ${hostPersonaId}`);
@@ -496,14 +525,24 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
 
       // Ensure voice is back to host
       // FIX ISSUE #1: Pass sessionId to use session-scoped voice manager
+      // VOICE ID FIX: Validate via resolver
       try {
         const voiceManager = await getVoiceManagerCached(sessionId);
         voiceManager.switchVoice(hostPersonaId);
 
+        // Verify voice ID via resolver
+        const voiceIdResult = resolveVoiceId(
+          { voiceId: hostVoiceId, personaId: hostPersonaId },
+          { logLevel: 'debug' }
+        );
+        const resolvedHostVoiceId = voiceIdResult.success
+          ? voiceIdResult.voiceId
+          : hostVoiceId;
+
         if (tts && 'switchVoice' in tts) {
           (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(
             getPersonaDisplayName(hostPersonaId),
-            hostVoiceId
+            resolvedHostVoiceId
           );
         }
       } catch (voiceErr) {

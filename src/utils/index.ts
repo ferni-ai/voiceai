@@ -146,6 +146,9 @@ export {
   resetSessionGlobally,
   resetAllSessionsGlobally,
   getGlobalRegistryStats,
+  safeSessionId,
+  assertSessionId,
+  isValidSessionId,
   type SessionRegistry,
   type SessionRegistryOptions,
 } from './session-registry.js';

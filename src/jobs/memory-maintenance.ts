@@ -19,10 +19,9 @@ import { getUnifiedMemoryService } from '../services/unified-memory-service.js';
 import { getProtectionEngine } from '../memory/protection-engine.js';
 import { getPatternFormation } from '../memory/pattern-formation.js';
 import { getLLMLinkDetector } from '../memory/llm-link-detector.js';
-import { getMemoryGraph } from '../memory/memory-graph.js';
+import { getMemoryGraph, type MemoryLink } from '../memory/memory-graph.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import { getUserMemories } from '../memory/lifecycle-integration.js';
-import type { MemoryLink } from '../memory/memory-graph.js';
 
 const log = createLogger({ module: 'MemoryMaintenanceJob' });
 
@@ -238,10 +237,7 @@ export async function runBatchMaintenance(
 /**
  * Get users who need maintenance
  */
-async function getUsersForMaintenance(
-  maxUsers: number,
-  minDaysSince: number
-): Promise<string[]> {
+async function getUsersForMaintenance(maxUsers: number, minDaysSince: number): Promise<string[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
@@ -306,18 +302,13 @@ async function recordMaintenanceRun(userId: string): Promise<void> {
   if (!db) return;
 
   try {
-    await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('system')
-      .doc('maintenance')
-      .set(
-        {
-          lastRun: new Date().toISOString(),
-          version: 1, // For tracking schema changes
-        },
-        { merge: true }
-      );
+    await db.collection('bogle_users').doc(userId).collection('system').doc('maintenance').set(
+      {
+        lastRun: new Date().toISOString(),
+        version: 1, // For tracking schema changes
+      },
+      { merge: true }
+    );
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to record maintenance run');
   }
