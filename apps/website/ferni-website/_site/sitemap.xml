@@ -421,12 +421,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/blog/</loc>
-    <lastmod>12/31/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/help/</loc>
     <lastmod>12/31/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -477,6 +471,18 @@
   <url>
     <loc>https://ferni.ai/about/</loc>
     <lastmod>12/31/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/blog/</loc>
+    <lastmod>1/1/2026</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/capabilities/</loc>
+    <lastmod>1/1/2026</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

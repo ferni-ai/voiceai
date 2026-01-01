@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-01
 category: "Building in Public"
+image: "ai-native.png"
+imageAlt: "Two hands collaborating to shape a glowing form"
 readTime: 5
 series: "building-in-public"
 seriesPart: 1

@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-05
 category: "Building in Public"
+image: "memory.png"
+imageAlt: "Layered translucent shapes with meaningful symbols at different depths"
 readTime: 6
 series: "building-in-public"
 seriesPart: 5

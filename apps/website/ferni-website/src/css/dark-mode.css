@@ -2218,3 +2218,166 @@
   box-shadow: 0 0 0 4px var(--color-highlight-glow);
 }
 
+/* ----- Capabilities Page ----- */
+@media (prefers-color-scheme: dark) {
+  .capabilities-hero-title,
+  .capabilities-title {
+    color: var(--color-text-primary);
+  }
+
+  .capabilities-hero-subtitle,
+  .capabilities-subtitle {
+    color: var(--color-text-secondary);
+  }
+
+  .capabilities-overline {
+    color: var(--color-accent);
+  }
+
+  .viz-card,
+  .capability-card {
+    background: var(--color-background-elevated);
+    border-color: var(--color-border-subtle);
+  }
+
+  .viz-card:hover,
+  .capability-card:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .viz-card-title,
+  .capability-name {
+    color: var(--color-text-primary);
+  }
+
+  .viz-card-meta,
+  .capability-desc {
+    color: var(--color-text-secondary);
+  }
+
+  .bth-callout {
+    background: rgba(74, 103, 65, 0.15);
+    border-left-color: var(--color-accent);
+  }
+
+  .bth-callout-title {
+    color: var(--color-accent);
+  }
+
+  .bth-callout-text {
+    color: var(--color-text-secondary);
+  }
+
+  .constellation-container {
+    background: radial-gradient(ellipse at center, rgba(60, 55, 50, 0.5) 0%, var(--color-background-elevated) 100%);
+  }
+
+  .constellation-star text {
+    fill: var(--color-text-muted);
+  }
+
+  .radar-label {
+    fill: var(--color-text-secondary);
+  }
+
+  .life-season-card {
+    background: var(--color-background-surface);
+  }
+
+  .life-season-card:hover {
+    background: var(--color-background-elevated);
+  }
+
+  .life-season-name {
+    color: var(--color-text-primary);
+  }
+
+  .life-season-desc {
+    color: var(--color-text-muted);
+  }
+
+  .capability-icon {
+    background: rgba(74, 103, 65, 0.2);
+  }
+}
+
+[data-theme="dark"] .capabilities-hero-title,
+[data-theme="dark"] .capabilities-title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .capabilities-hero-subtitle,
+[data-theme="dark"] .capabilities-subtitle {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .capabilities-overline {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .viz-card,
+[data-theme="dark"] .capability-card {
+  background: var(--color-background-elevated);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .viz-card:hover,
+[data-theme="dark"] .capability-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .viz-card-title,
+[data-theme="dark"] .capability-name {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .viz-card-meta,
+[data-theme="dark"] .capability-desc {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .bth-callout {
+  background: rgba(74, 103, 65, 0.15);
+  border-left-color: var(--color-accent);
+}
+
+[data-theme="dark"] .bth-callout-title {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .bth-callout-text {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .constellation-container {
+  background: radial-gradient(ellipse at center, rgba(60, 55, 50, 0.5) 0%, var(--color-background-elevated) 100%);
+}
+
+[data-theme="dark"] .constellation-star text {
+  fill: var(--color-text-muted);
+}
+
+[data-theme="dark"] .radar-label {
+  fill: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .life-season-card {
+  background: var(--color-background-surface);
+}
+
+[data-theme="dark"] .life-season-card:hover {
+  background: var(--color-background-elevated);
+}
+
+[data-theme="dark"] .life-season-name {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .life-season-desc {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .capability-icon {
+  background: rgba(74, 103, 65, 0.2);
+}
+

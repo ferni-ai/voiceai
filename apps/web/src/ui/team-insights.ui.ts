@@ -438,73 +438,132 @@ function createPanel(): HTMLElement {
         <div class="team-insights-list" style="display: none;"></div>
         
         <div class="team-insights-empty" style="display: none;">
-          <!-- Hero: Icon + Title -->
+          <!-- Hero: Constellation Visualization -->
+          <div class="team-insights-empty__constellation">
+            <div class="team-insights-empty__constellation-glow"></div>
+            
+            <!-- Central Ferni -->
+            <div class="team-insights-empty__central" style="--persona-color: var(--persona-ferni, #4a6741);">
+              <div class="team-insights-empty__central-ring"></div>
+              <div class="team-insights-empty__central-avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              </div>
+            </div>
+            
+            <!-- Orbiting Team Members -->
+            <div class="team-insights-empty__orbit">
+              <div class="team-insights-empty__orbiter" style="--angle: 0deg; --persona-color: var(--persona-peter, #3a6b73);">
+                <div class="team-insights-empty__orbiter-inner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                </div>
+                <span class="team-insights-empty__orbiter-name">Peter</span>
+              </div>
+              <div class="team-insights-empty__orbiter" style="--angle: 72deg; --persona-color: var(--persona-maya, #a67a6a);">
+                <div class="team-insights-empty__orbiter-inner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+                </div>
+                <span class="team-insights-empty__orbiter-name">Maya</span>
+              </div>
+              <div class="team-insights-empty__orbiter" style="--angle: 144deg; --persona-color: var(--persona-jordan, #c4856a);">
+                <div class="team-insights-empty__orbiter-inner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                </div>
+                <span class="team-insights-empty__orbiter-name">Jordan</span>
+              </div>
+              <div class="team-insights-empty__orbiter" style="--angle: 216deg; --persona-color: var(--persona-alex, #5a6b8a);">
+                <div class="team-insights-empty__orbiter-inner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                </div>
+                <span class="team-insights-empty__orbiter-name">Alex</span>
+              </div>
+              <div class="team-insights-empty__orbiter" style="--angle: 288deg; --persona-color: var(--persona-nayan, #8a7a6a);">
+                <div class="team-insights-empty__orbiter-inner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
+                </div>
+                <span class="team-insights-empty__orbiter-name">Nayan</span>
+              </div>
+            </div>
+            
+            <!-- Connection Lines -->
+            <svg class="team-insights-empty__connections" viewBox="0 0 240 240">
+              <defs>
+                <linearGradient id="connectionGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style="stop-color:var(--persona-ferni, #4a6741);stop-opacity:0.3"/>
+                  <stop offset="50%" style="stop-color:var(--persona-ferni, #4a6741);stop-opacity:0.6"/>
+                  <stop offset="100%" style="stop-color:var(--persona-ferni, #4a6741);stop-opacity:0.3"/>
+                </linearGradient>
+              </defs>
+              <circle cx="120" cy="120" r="70" fill="none" stroke="url(#connectionGrad)" stroke-width="1" stroke-dasharray="4 4" class="team-insights-empty__orbit-path"/>
+            </svg>
+          </div>
+          
+          <!-- Title & Message -->
           <div class="team-insights-empty__hero">
-            <div class="team-insights-empty__icon">${ICONS.users}</div>
-            <div class="team-insights-empty__text">
-              <h3 class="team-insights-empty__title">Your team is always watching</h3>
-              <p class="team-insights-empty__message">
-                Six brilliant minds working together behind the scenes. 
-                When they notice something—a pattern, an opportunity, a moment 
-                that matters—they'll surface it here.
-              </p>
+            <h3 class="team-insights-empty__title">Six minds, thinking of you</h3>
+            <p class="team-insights-empty__message">
+              Your inner circle is always working behind the scenes—spotting patterns, tracking progress, finding wisdom. When something matters, they'll surface it here.
+            </p>
+          </div>
+          
+          <!-- Team Specialties - What They Watch For -->
+          <div class="team-insights-empty__specialties">
+            <div class="team-insights-empty__specialty" style="--delay: 0ms; --accent: var(--persona-peter, #3a6b73);">
+              <div class="team-insights-empty__specialty-bar"></div>
+              <div class="team-insights-empty__specialty-content">
+                <span class="team-insights-empty__specialty-name">Peter</span>
+                <span class="team-insights-empty__specialty-focus">watches your patterns</span>
+              </div>
+            </div>
+            <div class="team-insights-empty__specialty" style="--delay: 60ms; --accent: var(--persona-maya, #a67a6a);">
+              <div class="team-insights-empty__specialty-bar"></div>
+              <div class="team-insights-empty__specialty-content">
+                <span class="team-insights-empty__specialty-name">Maya</span>
+                <span class="team-insights-empty__specialty-focus">tracks your habits</span>
+              </div>
+            </div>
+            <div class="team-insights-empty__specialty" style="--delay: 120ms; --accent: var(--persona-jordan, #c4856a);">
+              <div class="team-insights-empty__specialty-bar"></div>
+              <div class="team-insights-empty__specialty-content">
+                <span class="team-insights-empty__specialty-name">Jordan</span>
+                <span class="team-insights-empty__specialty-focus">celebrates milestones</span>
+              </div>
+            </div>
+            <div class="team-insights-empty__specialty" style="--delay: 180ms; --accent: var(--persona-alex, #5a6b8a);">
+              <div class="team-insights-empty__specialty-bar"></div>
+              <div class="team-insights-empty__specialty-content">
+                <span class="team-insights-empty__specialty-name">Alex</span>
+                <span class="team-insights-empty__specialty-focus">spots opportunities</span>
+              </div>
+            </div>
+            <div class="team-insights-empty__specialty" style="--delay: 240ms; --accent: var(--persona-nayan, #8a7a6a);">
+              <div class="team-insights-empty__specialty-bar"></div>
+              <div class="team-insights-empty__specialty-content">
+                <span class="team-insights-empty__specialty-name">Nayan</span>
+                <span class="team-insights-empty__specialty-focus">finds deeper meaning</span>
+              </div>
             </div>
           </div>
           
-          <!-- Team Preview - The Six Minds -->
-          <div class="team-insights-empty__team">
-            <div class="team-insights-empty__label">Your Inner Circle</div>
-            <div class="team-insights-empty__personas">
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-ferni, #4a6741);">FE</div>
-                <span class="team-insights-empty__persona-name">Ferni</span>
+          <!-- Sample Insight Preview -->
+          <div class="team-insights-empty__preview">
+            <div class="team-insights-empty__preview-label">
+              <span class="team-insights-empty__preview-pulse"></span>
+              What team insights look like
+            </div>
+            <div class="team-insights-empty__preview-card">
+              <div class="team-insights-empty__preview-source" style="color: var(--persona-peter, #3a6b73);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                Peter noticed
               </div>
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-peter, #3a6b73);">PJ</div>
-                <span class="team-insights-empty__persona-name">Peter</span>
-              </div>
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-maya, #a67a6a);">MS</div>
-                <span class="team-insights-empty__persona-name">Maya</span>
-              </div>
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-jordan, #c4856a);">JT</div>
-                <span class="team-insights-empty__persona-name">Jordan</span>
-              </div>
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-alex, #5a6b8a);">AC</div>
-                <span class="team-insights-empty__persona-name">Alex</span>
-              </div>
-              <div class="team-insights-empty__persona">
-                <div class="team-insights-empty__avatar" style="background: var(--persona-nayan, #8a7a6a);">NA</div>
-                <span class="team-insights-empty__persona-name">Nayan</span>
-              </div>
+              <p class="team-insights-empty__preview-text">"Your energy dips every Sunday evening. This pattern appeared 6 times in the last 2 months."</p>
+              <span class="team-insights-empty__preview-action">Suggested action: plan something you love for Sunday nights</span>
             </div>
           </div>
           
-          <!-- Capabilities Preview -->
-          <div class="team-insights-empty__capabilities">
-            <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.peter?.icon ?? DEFAULT_STYLE.icon}</span>
-              Pattern spotting
-            </div>
-            <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.maya?.icon ?? DEFAULT_STYLE.icon}</span>
-              Habit tracking
-            </div>
-            <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.jordan?.icon ?? DEFAULT_STYLE.icon}</span>
-              Goal progress
-            </div>
-            <div class="team-insights-empty__capability">
-              <span class="team-insights-empty__capability-icon">${PERSONA_STYLES.nayan?.icon ?? DEFAULT_STYLE.icon}</span>
-              Wisdom moments
-            </div>
-          </div>
-          
-          <!-- Vision Statement -->
-          <div class="team-insights-empty__vision">
-            Insights will appear as the team notices things worth sharing.
+          <!-- Promise -->
+          <div class="team-insights-empty__promise">
+            <span class="team-insights-empty__promise-icon">${ICONS.sparkles}</span>
+            <span>Better than human. Always watching out for you.</span>
           </div>
         </div>
       </div>
@@ -893,144 +952,332 @@ function injectStyles(): void {
       to { transform: rotate(360deg); }
     }
     
-    /* Empty State - Storytelling Design */
+    /* ======================================
+       EMPTY STATE - "Six Minds" Constellation Design
+       ====================================== */
+    
     .team-insights-empty {
       padding: 0;
-      color: var(--color-text-secondary);
     }
     
-    .team-insights-empty__hero {
+    /* Constellation Visualization */
+    .team-insights-empty__constellation {
+      position: relative;
+      width: 240px;
+      height: 200px;
+      margin: 0 auto var(--space-md, 16px);
+    }
+    
+    .team-insights-empty__constellation-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(
+        circle,
+        var(--persona-ferni-tint, rgba(74, 103, 65, 0.12)) 0%,
+        transparent 70%
+      );
+      border-radius: 50%;
+      animation: teamConstellationGlow 4s ease-in-out infinite;
+    }
+    
+    @keyframes teamConstellationGlow {
+      0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+    }
+    
+    /* Central Ferni */
+    .team-insights-empty__central {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+    
+    .team-insights-empty__central-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        var(--persona-color, var(--persona-ferni, #4a6741)) 0%,
+        transparent 50%
+      );
+      opacity: 0.2;
+      animation: teamCentralPulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes teamCentralPulse {
+      0%, 100% { transform: scale(1); opacity: 0.2; }
+      50% { transform: scale(1.2); opacity: 0.3; }
+    }
+    
+    .team-insights-empty__central-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        var(--persona-ferni, #4a6741),
+        var(--persona-ferni-secondary, #3d5a35)
+      );
       display: flex;
-      gap: var(--space-md, 16px);
-      align-items: flex-start;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 
+        0 4px 20px rgba(74, 103, 65, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+    
+    .team-insights-empty__central-avatar svg {
+      width: 26px;
+      height: 26px;
+    }
+    
+    /* Connections SVG */
+    .team-insights-empty__connections {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    
+    .team-insights-empty__orbit-path {
+      animation: teamOrbitRotate 20s linear infinite;
+      transform-origin: center;
+    }
+    
+    @keyframes teamOrbitRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Orbiting Team Members */
+    .team-insights-empty__orbit {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+    }
+    
+    .team-insights-empty__orbiter {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(var(--angle, 0deg)) translateY(-70px) rotate(calc(-1 * var(--angle, 0deg)));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .team-insights-empty__orbiter-inner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        var(--persona-color),
+        color-mix(in srgb, var(--persona-color) 80%, black)
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+    
+    .team-insights-empty__orbiter:hover .team-insights-empty__orbiter-inner {
+      transform: scale(1.15);
+    }
+    
+    .team-insights-empty__orbiter-inner svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .team-insights-empty__orbiter-name {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      opacity: 0;
+      transition: opacity ${DURATION.FAST}ms;
+    }
+    
+    .team-insights-empty__orbiter:hover .team-insights-empty__orbiter-name {
+      opacity: 1;
+    }
+    
+    /* Hero Text */
+    .team-insights-empty__hero {
+      text-align: center;
       margin-bottom: var(--space-lg, 26px);
-    }
-    
-    .team-insights-empty__icon {
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-      color: var(--persona-primary, var(--color-ferni));
-    }
-    
-    .team-insights-empty__icon svg {
-      width: 100%;
-      height: 100%;
-    }
-    
-    .team-insights-empty__text {
-      flex: 1;
-      min-width: 0; /* Prevent flex overflow */
     }
     
     .team-insights-empty__title {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 600;
       color: var(--color-text-primary);
-      margin: 0 0 var(--space-xs, 4px) 0;
-      line-height: 1.3;
+      margin: 0 0 var(--space-sm, 8px) 0;
     }
     
     .team-insights-empty__message {
       font-size: 14px;
       color: var(--color-text-secondary);
       line-height: 1.5;
-      margin: 0;
+      margin: 0 auto;
+      max-width: 320px;
     }
     
-    /* Team Preview - The Six Minds */
-    .team-insights-empty__team {
+    /* Team Specialties */
+    .team-insights-empty__specialties {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs, 6px);
       margin-bottom: var(--space-lg, 26px);
-      text-align: center;
     }
     
-    .team-insights-empty__label {
+    .team-insights-empty__specialty {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm, 8px);
+      padding: var(--space-sm, 8px) var(--space-md, 12px);
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
+      border-radius: var(--radius-md, 8px);
+      opacity: 0;
+      transform: translateX(-8px);
+      animation: teamSpecialtyEnter ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+    
+    @keyframes teamSpecialtyEnter {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .team-insights-empty__specialty-bar {
+      width: 3px;
+      height: 100%;
+      min-height: 24px;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.7;
+    }
+    
+    .team-insights-empty__specialty-content {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-xs, 6px);
+      flex: 1;
+    }
+    
+    .team-insights-empty__specialty-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .team-insights-empty__specialty-focus {
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Sample Preview */
+    .team-insights-empty__preview {
+      margin-bottom: var(--space-lg, 26px);
+    }
+    
+    .team-insights-empty__preview-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm, 8px);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-dimmed);
+      margin-bottom: var(--space-sm, 8px);
+    }
+    
+    .team-insights-empty__preview-pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--persona-peter, #3a6b73);
+      border-radius: 50%;
+      animation: teamPulseDot 2s ease-in-out infinite;
+    }
+    
+    @keyframes teamPulseDot {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+    
+    .team-insights-empty__preview-card {
+      padding: var(--space-md, 16px);
+      background: linear-gradient(
+        135deg,
+        rgba(58, 107, 115, 0.08),
+        var(--color-bg-secondary, rgba(44, 37, 32, 0.02))
+      );
+      border-radius: var(--radius-lg, 12px);
+      border: 1px solid rgba(58, 107, 115, 0.15);
+      border-left: 3px solid var(--persona-peter, #3a6b73);
+    }
+    
+    .team-insights-empty__preview-source {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs, 4px);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-muted);
       margin-bottom: var(--space-sm, 8px);
     }
     
-    .team-insights-empty__personas {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: var(--space-sm, 8px);
+    .team-insights-empty__preview-text {
+      font-size: 14px;
+      color: var(--color-text-primary);
+      line-height: 1.5;
+      margin: 0 0 var(--space-sm, 8px) 0;
+      opacity: 0.9;
     }
     
-    .team-insights-empty__persona {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-2xs, 4px);
-      opacity: 0.85;
-      transition: opacity var(--duration-fast, 100ms) ease;
+    .team-insights-empty__preview-action {
+      display: block;
+      font-size: 12px;
+      color: var(--persona-peter, #3a6b73);
+      font-style: italic;
     }
     
-    .team-insights-empty__persona:hover {
-      opacity: 1;
-    }
-    
-    .team-insights-empty__avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-full);
+    /* Promise Footer */
+    .team-insights-empty__promise {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
-      color: white;
-    }
-    
-    .team-insights-empty__persona-name {
-      font-size: 11px;
-      color: var(--color-text-muted);
-    }
-    
-    /* Capabilities Preview */
-    .team-insights-empty__capabilities {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
       gap: var(--space-sm, 8px);
-      margin-bottom: var(--space-lg, 26px);
-    }
-    
-    .team-insights-empty__capability {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs, 6px);
-      padding: var(--space-sm, 8px) var(--space-md, 12px);
+      padding: var(--space-md, 16px);
+      background: var(--color-bg-secondary, rgba(44, 37, 32, 0.03));
+      border-radius: var(--radius-lg, 12px);
       font-size: 13px;
       color: var(--color-text-secondary);
-      background: var(--color-bg-subtle, rgba(112, 96, 90, 0.03));
-      border-radius: var(--radius-md, 8px);
-      white-space: nowrap;
-    }
-    
-    .team-insights-empty__capability-icon {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      opacity: 0.7;
-    }
-    
-    .team-insights-empty__capability-icon svg {
-      width: 100%;
-      height: 100%;
-    }
-    
-    /* Vision Statement */
-    .team-insights-empty__vision {
-      text-align: center;
-      font-size: 13px;
-      color: var(--color-text-muted);
       font-style: italic;
-      padding: var(--space-md, 16px) var(--space-sm, 8px);
-      border-top: 1px solid var(--color-border-subtle);
+    }
+    
+    .team-insights-empty__promise-icon {
+      color: var(--persona-ferni, #4a6741);
+    }
+    
+    .team-insights-empty__promise-icon svg {
+      width: 18px;
+      height: 18px;
     }
     
     /* Legacy fallback classes */
@@ -1167,17 +1414,49 @@ function injectStyles(): void {
       }
     }
     
-    /* Dark theme overrides */
-    [data-theme="midnight"] .team-insights-empty__title {
-      color: var(--color-text-primary);
+    /* ======================================
+       DARK THEME - Team Insights
+       ====================================== */
+    
+    [data-theme="midnight"] .team-insights-content {
+      background: var(--color-bg-elevated, #1a1a1e);
     }
     
-    [data-theme="midnight"] .team-insights-empty__capability {
-      background: var(--color-bg-secondary);
+    [data-theme="midnight"] .team-insights-empty__constellation-glow {
+      background: radial-gradient(
+        circle,
+        rgba(74, 103, 65, 0.2) 0%,
+        transparent 70%
+      );
     }
     
-    [data-theme="midnight"] .team-insights-empty__vision {
-      border-top-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+    [data-theme="midnight"] .team-insights-empty__specialty {
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+    }
+    
+    [data-theme="midnight"] .team-insights-empty__preview-card {
+      background: linear-gradient(
+        135deg,
+        rgba(58, 107, 115, 0.12),
+        rgba(255, 255, 255, 0.02)
+      );
+      border-color: rgba(58, 107, 115, 0.2);
+    }
+    
+    [data-theme="midnight"] .team-insights-empty__promise {
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+    }
+    
+    [data-theme="midnight"] .team-insights-backdrop {
+      background: rgba(0, 0, 0, 0.75);
+    }
+    
+    [data-theme="midnight"] .team-insight-card {
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.04));
+    }
+    
+    [data-theme="midnight"] .team-insight-card:hover {
+      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.06));
     }
   `;
   document.head.appendChild(styleEl);

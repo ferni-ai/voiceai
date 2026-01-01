@@ -6,8 +6,8 @@ authorInitials: 'FE'
 authorColor: '#4a6741'
 date: 2025-01-10
 category: 'Product'
-image: 'voice-first.jpg'
-imageAlt: 'Person talking naturally'
+image: 'voice-first.png'
+imageAlt: 'Sound waves flowing organically in warm earth tones'
 readTime: 3
 ---
 

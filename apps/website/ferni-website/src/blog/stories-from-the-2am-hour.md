@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-10
 category: "Building in Public"
+image: "2am-stories.png"
+imageAlt: "Crescent moon with figures in late-night reflection"
 readTime: 8
 series: "building-in-public"
 seriesPart: 10

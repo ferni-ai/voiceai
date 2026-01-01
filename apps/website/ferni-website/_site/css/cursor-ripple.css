@@ -1,1 +1,168 @@
-.cursor-ripple-container{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}.cursor-ripple{--ripple-size:200px;--ripple-color:rgba(74, 103, 65, 0.15);position:absolute;width:var(--ripple-size);height:var(--ripple-size);margin-left:calc(var(--ripple-size)/ -2);margin-top:calc(var(--ripple-size)/ -2);border-radius:50%;background:radial-gradient(circle,var(--ripple-color) 0,transparent 70%);transform:scale(0);opacity:1;pointer-events:none}.cursor-ripple.is-animating{animation:ripple-expand .8s cubic-bezier(.16,1,.3,1) forwards}@keyframes ripple-expand{0%{transform:scale(0);opacity:1}100%{transform:scale(1);opacity:0}}.button-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.3);transform:scale(0);opacity:1;pointer-events:none}.button-ripple.is-animating{animation:button-ripple-expand .6s cubic-bezier(.16,1,.3,1) forwards}@keyframes button-ripple-expand{0%{transform:scale(0);opacity:.5}100%{transform:scale(1);opacity:0}}.btn--dark .button-ripple,.btn--primary .button-ripple{background:rgba(255,255,255,.25)}.btn--light .button-ripple,.btn--secondary .button-ripple{background:rgba(74,103,65,.15)}.cursor-ripple--soft{--ripple-color:rgba(74, 103, 65, 0.08);--ripple-size:300px}.cursor-ripple--soft.is-animating{animation-duration:1.2s}.cursor-ripple--intense{--ripple-color:rgba(74, 103, 65, 0.25);--ripple-size:150px}.cursor-ripple--intense.is-animating{animation-duration:.5s}.cursor-ripple::before{content:'';position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--color-ferni,#4a6741);opacity:0}.cursor-ripple.is-animating::before{animation:dot-flash .3s ease-out}@keyframes dot-flash{0%{opacity:0;transform:scale(0)}30%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(.5)}}@media (prefers-reduced-motion:reduce){.button-ripple,.cursor-ripple{display:none}}
+/**
+ * Cursor Ripple CSS
+ * Water-like click effects
+ */
+
+/* ============================================================================
+   RIPPLE CONTAINER
+   ============================================================================ */
+
+.cursor-ripple-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   GLOBAL CURSOR RIPPLE
+   ============================================================================ */
+
+.cursor-ripple {
+  --ripple-size: 200px;
+  --ripple-color: rgba(74, 103, 65, 0.15);
+  
+  position: absolute;
+  width: var(--ripple-size);
+  height: var(--ripple-size);
+  margin-left: calc(var(--ripple-size) / -2);
+  margin-top: calc(var(--ripple-size) / -2);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--ripple-color) 0%,
+    transparent 70%
+  );
+  transform: scale(0);
+  opacity: 1;
+  pointer-events: none;
+}
+
+.cursor-ripple.is-animating {
+  animation: ripple-expand 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   BUTTON RIPPLE - Material Design Style
+   ============================================================================ */
+
+.button-ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  opacity: 1;
+  pointer-events: none;
+}
+
+.button-ripple.is-animating {
+  animation: button-ripple-expand 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes button-ripple-expand {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Dark button variant */
+.btn--primary .button-ripple,
+.btn--dark .button-ripple {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Light button variant */
+.btn--secondary .button-ripple,
+.btn--light .button-ripple {
+  background: rgba(74, 103, 65, 0.15);
+}
+
+/* ============================================================================
+   RIPPLE VARIANTS
+   ============================================================================ */
+
+/* Soft ripple - more gentle */
+.cursor-ripple--soft {
+  --ripple-color: rgba(74, 103, 65, 0.08);
+  --ripple-size: 300px;
+}
+
+.cursor-ripple--soft.is-animating {
+  animation-duration: 1200ms;
+}
+
+/* Intense ripple - for emphasis */
+.cursor-ripple--intense {
+  --ripple-color: rgba(74, 103, 65, 0.25);
+  --ripple-size: 150px;
+}
+
+.cursor-ripple--intense.is-animating {
+  animation-duration: 500ms;
+}
+
+/* ============================================================================
+   CLICK INDICATOR DOT
+   ============================================================================ */
+
+/* Small dot that appears at click point */
+.cursor-ripple::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  background: var(--color-ferni, #4a6741);
+  opacity: 0;
+}
+
+.cursor-ripple.is-animating::before {
+  animation: dot-flash 300ms ease-out;
+}
+
+@keyframes dot-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  30% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-ripple,
+  .button-ripple {
+    display: none;
+  }
+}
+

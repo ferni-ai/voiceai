@@ -1,6 +1,979 @@
-"use strict";(function(){"use strict";const r={stiffness:.15,damping:.75,mass:1,velocityThreshold:.01,positionThreshold:.1,maxGazeOffset:15,gazeDeadzone:50,anticipationFactor:.1,saccadeChance:.003,saccadeDistance:3,saccadeDuration:50},o={trackingLag:.08,maxOffset:15,lookAtCTAs:!0,blinkIntervalMin:2500,blinkIntervalMax:5e3,blinkDuration:120,doubleBlinkChance:.15,blinkOnSaccade:!0,breathDurationBase:4e3,breathDurationVariance:500,breathScale:1.025,breathPauseChance:.1,enablePupilDilation:!0,pupilDilationSpeed:.05,minPupilScale:.85,maxPupilScale:1.15,attentionDecay:.995,attentionThreshold:.3,enableEmotionalMemory:!0,memoryDecayRate:.001,enableMicroExpressions:!0,expressions:{curious:{duration:120,intensity:.6},delighted:{duration:80,intensity:.8},thinking:{duration:200,intensity:.4},recognition:{duration:100,intensity:1},concern:{duration:150,intensity:.5},warmth:{duration:180,intensity:.7},hope_holding:{duration:250,intensity:.6,pupilDilation:1.08},steady_presence:{duration:300,intensity:.4,pupilDilation:1},courage_support:{duration:180,intensity:.7,pupilDilation:1.12},rest_permission:{duration:280,intensity:.5,pupilDilation:.95},transition_witness:{duration:220,intensity:.65,pupilDilation:1.05},comeback_recognition:{duration:150,intensity:.9,pupilDilation:1.15}}},e={mouseX:window.innerWidth/2,mouseY:window.innerHeight/2,targetX:0,targetY:0,currentX:0,currentY:0,velocityX:0,velocityY:0,pupilScale:1,targetPupilScale:1,isBlinking:!1,lastBlinkTime:0,nextBlinkIn:3e3,blinkPhase:0,breathPhase:0,breathDirection:1,breathHolding:!1,currentBreathDuration:o.breathDurationBase,scrollY:0,scrollVelocity:0,isScrolling:!1,scrollTimeout:null,attentionLevel:0,attentionTarget:null,lastInteractionTime:Date.now(),currentExpression:"neutral",expressionIntensity:0,expressionQueue:[],emotionalMemory:{curiosityScore:0,engagementScore:0,returningVisitor:!1,interactionCount:0},inSaccade:!1,saccadeStartTime:0,saccadeOffsetX:0,saccadeOffsetY:0,lastFrameTime:0,deltaTime:0,initialized:!1,prefersReducedMotion:!1,isVisible:!0,isFocused:!0};let i=null,v=null,c=null,p=null,w=[];function M(){if(e.prefersReducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches,window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",t=>{e.prefersReducedMotion=t.matches}),i=document.querySelector(".hero-ferni"),!i&&(i=document.querySelector("[data-ferni-avatar]"),!i)){b("No avatar element found, skipping initialization");return}v=i.querySelector(".hero-ferni__orb")||i.querySelector("[data-orb]"),c=i.querySelector(".hero-ferni__glow")||i.querySelector("[data-glow]"),p=i.querySelector(".hero-ferni__text")||i.querySelector("[data-text]"),w=i.querySelectorAll(".hero-ferni__ring, [data-ring]"),i.classList.add("hero-ferni--living"),X(),E(),e.prefersReducedMotion||(C(),q(),$()),H(),k(),J(),e.prefersReducedMotion||U(),e.initialized=!0,b("Avatar initialized with spring physics and section awareness")}function X(){if(o.enableEmotionalMemory)try{const t=sessionStorage.getItem("ferni_emotional_memory");if(t){const n=JSON.parse(t);e.emotionalMemory={...e.emotionalMemory,...n},e.emotionalMemory.interactionCount++}}catch{b("Could not load emotional memory")}}function ee(){if(o.enableEmotionalMemory)try{sessionStorage.setItem("ferni_emotional_memory",JSON.stringify(e.emotionalMemory))}catch{b("Could not save emotional memory")}}function k(){document.addEventListener("visibilitychange",()=>{e.isVisible=document.visibilityState==="visible",e.isVisible&&(e.lastFrameTime=performance.now())}),window.addEventListener("focus",()=>{e.isFocused=!0}),window.addEventListener("blur",()=>{e.isFocused=!1})}function b(...t){window.FERNI_DEBUG&&console.log("[LivingAvatar]",...t)}function E(){document.addEventListener("mousemove",L,{passive:!0}),document.addEventListener("touchmove",P,{passive:!0}),window.addEventListener("scroll",G,{passive:!0}),o.lookAtCTAs&&document.querySelectorAll('.btn, .nav__cta, a[href*="app.ferni"]').forEach(t=>{t.addEventListener("mouseenter",()=>T(t)),t.addEventListener("mouseleave",()=>_())}),document.addEventListener("click",V),document.addEventListener("visibilitychange",W)}function L(t){if(e.mouseX=t.clientX,e.mouseY=t.clientY,e.attentionLevel=Math.min(1,e.attentionLevel+.1),e.lastInteractionTime=Date.now(),e.attentionTarget||S(),o.enablePupilDilation){const n=Math.sqrt(Math.pow(t.movementX||0,2)+Math.pow(t.movementY||0,2));e.targetPupilScale=1+Math.min(n/100,.15)}}function P(t){t.touches.length>0&&(e.mouseX=t.touches[0].clientX,e.mouseY=t.touches[0].clientY,e.attentionLevel=Math.min(1,e.attentionLevel+.15),S())}function S(){if(!i)return;const t=i.getBoundingClientRect(),n=t.left+t.width/2,a=t.top+t.height/2,s=e.mouseX-n,l=e.mouseY-a,d=Math.sqrt(s*s+l*l);if(d<r.gazeDeadzone)return;const u=Math.max(window.innerWidth,window.innerHeight)/2,y=Math.min(d/u,1),m=O(y),h=s+(s-e.targetX*u/r.maxGazeOffset)*r.anticipationFactor,Z=l+(l-e.targetY*u/r.maxGazeOffset)*r.anticipationFactor;e.targetX=h/u*r.maxGazeOffset*m,e.targetY=Z/u*r.maxGazeOffset*m}function O(t){return 1-Math.pow(1-t,3)}function C(){let t=performance.now();function n(a){e.deltaTime=Math.min((a-t)/16.67,2),t=a,!e.prefersReducedMotion&&e.isVisible&&(I(),A(),F(),R(),B(),z()),requestAnimationFrame(n)}requestAnimationFrame(n)}function I(){const t=e.targetX-e.currentX,n=e.targetY-e.currentY,a=t*r.stiffness,s=n*r.stiffness;e.velocityX=(e.velocityX+a)*r.damping,e.velocityY=(e.velocityY+s)*r.damping,e.currentX+=e.velocityX*e.deltaTime,e.currentY+=e.velocityY*e.deltaTime;const l=Math.sqrt(e.velocityX*e.velocityX+e.velocityY*e.velocityY),d=Math.sqrt(t*t+n*n);l<r.velocityThreshold&&d<r.positionThreshold&&(e.currentX=e.targetX,e.currentY=e.targetY,e.velocityX=0,e.velocityY=0)}function A(){o.enablePupilDilation&&(e.pupilScale+=(e.targetPupilScale-e.pupilScale)*o.pupilDilationSpeed*e.deltaTime,e.pupilScale=Math.max(o.minPupilScale,Math.min(o.maxPupilScale,e.pupilScale)),e.targetPupilScale+=(1-e.targetPupilScale)*.02*e.deltaTime)}function B(){!e.inSaccade&&Math.random()<r.saccadeChance*e.deltaTime&&(e.inSaccade=!0,e.saccadeStartTime=performance.now(),e.saccadeOffsetX=(Math.random()-.5)*r.saccadeDistance*2,e.saccadeOffsetY=(Math.random()-.5)*r.saccadeDistance*2,o.blinkOnSaccade&&Math.random()<.3&&f()),e.inSaccade&&performance.now()-e.saccadeStartTime>r.saccadeDuration&&(e.inSaccade=!1,e.saccadeOffsetX=0,e.saccadeOffsetY=0)}function R(){if(e.attentionLevel*=Math.pow(o.attentionDecay,e.deltaTime),e.attentionLevel<o.attentionThreshold&&Math.random()<.001*e.deltaTime){const t=(Math.random()-.5)*r.maxGazeOffset,n=(Math.random()-.5)*r.maxGazeOffset*.5;e.targetX=t,e.targetY=n}}function z(){if(!v)return;const t=e.currentX+e.saccadeOffsetX,n=e.currentY+e.saccadeOffsetY,a=t*.3,s=-n*.3;if(v.style.transform=`
-      translate(${t}px, ${n}px)
-      rotateX(${s}deg)
-      rotateY(${a}deg)
-      scale(${e.pupilScale})
-    `,w.forEach((l,d)=>{const u=.3+d*.15,y=t*u,m=n*u,h=t*.1*(d+1);l.style.transform=`translate(${y}px, ${m}px) rotate(${h}deg)`}),c){const l=t*.15,d=n*.15;c.style.transform=`translate(${l}px, ${d}px)`}}function T(t){if(!i||e.prefersReducedMotion)return;e.attentionTarget=t;const n=t.getBoundingClientRect(),a=i.getBoundingClientRect(),s=n.left+n.width/2,l=n.top+n.height/2,d=a.left+a.width/2,u=a.top+a.height/2,y=s-d,m=l-u,h=Math.max(window.innerWidth,window.innerHeight)/2;e.targetX=y/h*o.maxOffset*1.5,e.targetY=m/h*o.maxOffset*1.5,o.enableMicroExpressions&&g("delighted"),o.attentionPulse&&c&&c.classList.add("hero-ferni__glow--pulse")}function _(){e.attentionTarget=null,c&&c.classList.remove("hero-ferni__glow--pulse"),S()}function q(){function t(){const n=o.blinkIntervalMin+Math.random()*(o.blinkIntervalMax-o.blinkIntervalMin);setTimeout(()=>{f(),t()},n)}t()}function f(){e.isBlinking||e.prefersReducedMotion||(e.isBlinking=!0,p&&p.classList.add("hero-ferni__text--blink"),setTimeout(()=>{p&&p.classList.remove("hero-ferni__text--blink"),e.isBlinking=!1,Math.random()<o.doubleBlinkChance&&setTimeout(()=>f(),200)},o.blinkDuration))}function F(){if(!i)return;const t=1/e.currentBreathDuration*16.67*e.deltaTime;e.breathHolding||(e.breathPhase+=t*e.breathDirection,e.breathPhase>=1?(e.breathPhase=1,e.breathDirection=-1,Math.random()<o.breathPauseChance&&(e.breathHolding=!0,setTimeout(()=>{e.breathHolding=!1},200+Math.random()*300))):e.breathPhase<=0&&(e.breathPhase=0,e.breathDirection=1,e.currentBreathDuration=o.breathDurationBase+(Math.random()-.5)*o.breathDurationVariance*2));const n=Math.sin(e.breathPhase*Math.PI),a=1+(o.breathScale-1)*n;if(i.style.setProperty("--breath-scale",a.toFixed(4)),c){const s=.4+n*.15;c.style.opacity=s.toFixed(3)}}function $(){i&&i.classList.add("hero-ferni--breathing")}function G(){const t=window.scrollY,n=t-e.scrollY;if(!e.isScrolling&&o.curiousOnScroll&&(e.isScrolling=!0,g("curious"),i&&!e.prefersReducedMotion)){const a=Math.max(-5,Math.min(5,n*.5));i.style.setProperty("--scroll-tilt",`${a}deg`)}clearTimeout(e.scrollTimeout),e.scrollTimeout=setTimeout(()=>{e.isScrolling=!1,i&&i.style.setProperty("--scroll-tilt","0deg")},150),e.scrollY=t}function g(t){if(!o.enableMicroExpressions||e.prefersReducedMotion||!i)return;const n=o.expressions[t];if(n){if(i.classList.remove(`hero-ferni--${e.currentExpression}`),e.currentExpression=t,i.classList.add(`hero-ferni--${t}`),n.pupilDilation){const a=e.targetPupilScale;e.targetPupilScale=n.pupilDilation,setTimeout(()=>{e.targetPupilScale=a},n.duration*.8)}t.includes("_")&&x(t),setTimeout(()=>{i.classList.remove(`hero-ferni--${t}`),e.currentExpression="neutral",x("neutral")},n.duration)}}function V(t){t.target.closest(".btn, button, a")&&f()}function H(){const t=localStorage.getItem("ferni_last_visit"),n=parseInt(localStorage.getItem("ferni_visit_count")||"0",10);t&&n>1&&setTimeout(()=>{g("recognition")},1500),localStorage.setItem("ferni_last_visit",Date.now().toString()),localStorage.setItem("ferni_visit_count",(n+1).toString())}function W(){}const j={features:{expression:"curious",delay:500},team:{expression:"delighted",delay:300},about:{expression:"warmth",delay:400},pricing:{expression:"courage_support",delay:600},faq:{expression:"curious",delay:400},demo:{expression:"delighted",delay:200},testimonials:{expression:"hope_holding",delay:400},stories:{expression:"hope_holding",delay:400},privacy:{expression:"steady_presence",delay:350},security:{expression:"steady_presence",delay:350},wellness:{expression:"rest_permission",delay:500},benefits:{expression:"rest_permission",delay:500},journey:{expression:"transition_witness",delay:300},"getting-started":{expression:"transition_witness",delay:300},success:{expression:"comeback_recognition",delay:250},results:{expression:"comeback_recognition",delay:250}};let Y=null,D=null;function J(){const t=document.querySelectorAll("section[id], [data-section]");t.length!==0&&(D=new IntersectionObserver(n=>{n.forEach(a=>{if(a.isIntersecting&&a.intersectionRatio>.3){const s=a.target.id||a.target.dataset.section;s&&s!==Y&&(Y=s,N(s))}})},{threshold:[.3,.5,.7],rootMargin:"-100px 0px -100px 0px"}),t.forEach(n=>D.observe(n)))}function N(t){for(const[n,a]of Object.entries(j))if(t.toLowerCase().includes(n)){setTimeout(()=>{g(a.expression)},a.delay);break}}let Q=null;function U(){function t(){const n=8e3+Math.random()*15e3;Q=setTimeout(()=>{e.isVisible&&e.attentionLevel<o.attentionThreshold&&K(),t()},n)}t()}function K(){const t=[()=>{const a=(Math.random()-.5)*r.maxGazeOffset*1.5,s=(Math.random()-.5)*r.maxGazeOffset*.8;e.targetX=a,e.targetY=s,setTimeout(()=>{e.targetX=0,e.targetY=0},1500+Math.random()*1e3)},()=>{i&&(i.style.setProperty("--scroll-tilt",`${(Math.random()-.5)*4}deg`),setTimeout(()=>{i.style.setProperty("--scroll-tilt","0deg")},2e3))},()=>{i&&(i.classList.add("hero-ferni--deep-breath"),setTimeout(()=>{i.classList.remove("hero-ferni--deep-breath")},3e3))},()=>{f(),setTimeout(()=>f(),250)}],n=t[Math.floor(Math.random()*t.length)];n()}function x(t){if(!c)return;const n={neutral:"rgba(74, 103, 65, 0.4)",curious:"rgba(58, 107, 115, 0.5)",delighted:"rgba(106, 138, 90, 0.5)",warmth:"rgba(166, 122, 106, 0.4)",concerned:"rgba(122, 106, 90, 0.4)",thinking:"rgba(90, 107, 138, 0.4)",hope_holding:"rgba(138, 154, 122, 0.45)",steady_presence:"rgba(90, 106, 90, 0.35)",courage_support:"rgba(122, 138, 90, 0.5)",rest_permission:"rgba(106, 122, 138, 0.35)",transition_witness:"rgba(138, 122, 154, 0.4)",comeback_recognition:"rgba(154, 138, 90, 0.5)"},a=n[t]||n.neutral;c.style.transition="background 0.3s ease-out",c.style.background=`radial-gradient(circle, ${a} 0%, transparent 70%)`}window.FerniAvatar={init:M,blink:f,lookAt:T,release:_,express:g,setMood:x,getState:()=>({...e})},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",M):M()})();
+/**
+ * Living Avatar System - Professional Grade
+ * Pixar-level character animation with physics-based movement
+ * 
+ * Features:
+ * - Spring physics for organic gaze movement with overshoot and settle
+ * - Pupil dilation based on interest level
+ * - Emotional memory system
+ * - Anticipatory movement (starts moving before target reached)
+ * - Saccadic eye movements for realism
+ * - Breathing that responds to page engagement
+ * 
+ * Technical: Uses requestAnimationFrame with delta time for smooth 60fps
+ */
+
+(function() {
+  'use strict';
+
+  // ============================================================================
+  // PHYSICS CONSTANTS - Tuned through iteration for "alive" feel
+  // ============================================================================
+  
+  const PHYSICS = {
+    // Spring dynamics for gaze
+    stiffness: 0.15,           // Spring tension (higher = snappier)
+    damping: 0.75,             // Friction (higher = less bounce)
+    mass: 1.0,                 // Inertia factor
+    
+    // Movement thresholds
+    velocityThreshold: 0.01,   // Below this, consider at rest
+    positionThreshold: 0.1,    // Snap to target when this close
+    
+    // Gaze limits
+    maxGazeOffset: 15,         // Maximum pixel offset for gaze
+    gazeDeadzone: 50,          // Ignore mouse movements within this radius
+    
+    // Anticipation
+    anticipationFactor: 0.1,   // How much to "lead" the target
+    
+    // Saccades (quick eye movements)
+    saccadeChance: 0.003,      // Per-frame chance of random saccade
+    saccadeDistance: 3,        // Max random offset
+    saccadeDuration: 50        // Ms for saccade to complete
+  };
+
+  const CONFIG = {
+    // Mouse tracking
+    trackingLag: 0.08,
+    maxOffset: 15,
+    lookAtCTAs: true,
+    
+    // Blinking - more sophisticated timing
+    blinkIntervalMin: 2500,
+    blinkIntervalMax: 5000,
+    blinkDuration: 120,
+    doubleBlinkChance: 0.15,
+    blinkOnSaccade: true,      // Sometimes blink during quick movements
+    
+    // Breathing - variable rate
+    breathDurationBase: 4000,
+    breathDurationVariance: 500,
+    breathScale: 1.025,
+    breathPauseChance: 0.1,    // Sometimes hold breath briefly
+    
+    // Pupil dilation
+    enablePupilDilation: true,
+    pupilDilationSpeed: 0.05,  // How fast pupil responds
+    minPupilScale: 0.85,
+    maxPupilScale: 1.15,
+    
+    // Attention system
+    attentionDecay: 0.995,     // Per-frame attention decay
+    attentionThreshold: 0.3,   // Below this, return to idle
+    
+    // Emotional memory
+    enableEmotionalMemory: true,
+    memoryDecayRate: 0.001,
+    
+    // Micro-expressions - subliminal (under 150ms)
+    enableMicroExpressions: true,
+    expressions: {
+      // Core expressions
+      curious: { duration: 120, intensity: 0.6 },
+      delighted: { duration: 80, intensity: 0.8 },
+      thinking: { duration: 200, intensity: 0.4 },
+      recognition: { duration: 100, intensity: 1.0 },
+      concern: { duration: 150, intensity: 0.5 },
+      warmth: { duration: 180, intensity: 0.7 },
+
+      // Life coaching expressions (from web app EQ system)
+      // These are slightly longer for sustained emotional presence
+      hope_holding: { duration: 250, intensity: 0.6, pupilDilation: 1.08 },
+      steady_presence: { duration: 300, intensity: 0.4, pupilDilation: 1.0 },
+      courage_support: { duration: 180, intensity: 0.7, pupilDilation: 1.12 },
+      rest_permission: { duration: 280, intensity: 0.5, pupilDilation: 0.95 },
+      transition_witness: { duration: 220, intensity: 0.65, pupilDilation: 1.05 },
+      comeback_recognition: { duration: 150, intensity: 0.9, pupilDilation: 1.15 }
+    }
+  };
+
+  // ============================================================================
+  // STATE - Physics-based with velocity tracking
+  // ============================================================================
+  
+  const state = {
+    // Position (current and target)
+    mouseX: window.innerWidth / 2,
+    mouseY: window.innerHeight / 2,
+    targetX: 0,
+    targetY: 0,
+    currentX: 0,
+    currentY: 0,
+    
+    // Velocity for spring physics
+    velocityX: 0,
+    velocityY: 0,
+    
+    // Pupil state
+    pupilScale: 1.0,
+    targetPupilScale: 1.0,
+    
+    // Blinking
+    isBlinking: false,
+    lastBlinkTime: 0,
+    nextBlinkIn: 3000,
+    blinkPhase: 0,  // 0 = open, 1 = closing, 2 = closed, 3 = opening
+    
+    // Breathing
+    breathPhase: 0,
+    breathDirection: 1,
+    breathHolding: false,
+    currentBreathDuration: CONFIG.breathDurationBase,
+    
+    // Scroll tracking
+    scrollY: 0,
+    scrollVelocity: 0,
+    isScrolling: false,
+    scrollTimeout: null,
+    
+    // Attention system
+    attentionLevel: 0,
+    attentionTarget: null,
+    lastInteractionTime: Date.now(),
+    
+    // Expression system
+    currentExpression: 'neutral',
+    expressionIntensity: 0,
+    expressionQueue: [],
+    
+    // Emotional memory (persists across session)
+    emotionalMemory: {
+      curiosityScore: 0,
+      engagementScore: 0,
+      returningVisitor: false,
+      interactionCount: 0
+    },
+    
+    // Saccade state
+    inSaccade: false,
+    saccadeStartTime: 0,
+    saccadeOffsetX: 0,
+    saccadeOffsetY: 0,
+    
+    // Animation timing
+    lastFrameTime: 0,
+    deltaTime: 0,
+    
+    // Flags
+    initialized: false,
+    prefersReducedMotion: false,
+    isVisible: true,
+    isFocused: true
+  };
+
+  // ============================================================================
+  // DOM REFERENCES
+  // ============================================================================
+  
+  let avatarEl = null;
+  let orbEl = null;
+  let glowEl = null;
+  let textEl = null;
+  let ringsEl = [];
+
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+  
+  function init() {
+    // Check for reduced motion preference
+    state.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    // Listen for changes to motion preference
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      state.prefersReducedMotion = e.matches;
+    });
+    
+    // Find the hero Ferni avatar
+    avatarEl = document.querySelector('.hero-ferni');
+    if (!avatarEl) {
+      // Try alternate selectors
+      avatarEl = document.querySelector('[data-ferni-avatar]');
+      if (!avatarEl) {
+        logDebug('No avatar element found, skipping initialization');
+        return;
+      }
+    }
+    
+    // Cache DOM references
+    orbEl = avatarEl.querySelector('.hero-ferni__orb') || avatarEl.querySelector('[data-orb]');
+    glowEl = avatarEl.querySelector('.hero-ferni__glow') || avatarEl.querySelector('[data-glow]');
+    textEl = avatarEl.querySelector('.hero-ferni__text') || avatarEl.querySelector('[data-text]');
+    ringsEl = avatarEl.querySelectorAll('.hero-ferni__ring, [data-ring]');
+    
+    // Add living class
+    avatarEl.classList.add('hero-ferni--living');
+    
+    // Load emotional memory from session
+    loadEmotionalMemory();
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Start unified animation loop (replaces separate loops)
+    if (!state.prefersReducedMotion) {
+      startAnimationLoop();
+      startBlinking();
+      startBreathing();
+    }
+    
+    // Check for returning visitor
+    checkReturningVisitor();
+    
+    // Track visibility
+    setupVisibilityTracking();
+    
+    // Section awareness - react to what user is reading
+    setupSectionAwareness();
+    
+    // Ambient behaviors - occasional spontaneous actions
+    if (!state.prefersReducedMotion) {
+      startAmbientBehaviors();
+    }
+    
+    state.initialized = true;
+    logDebug('Avatar initialized with spring physics and section awareness');
+  }
+  
+  function loadEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      const stored = sessionStorage.getItem('ferni_emotional_memory');
+      if (stored) {
+        const memory = JSON.parse(stored);
+        state.emotionalMemory = { ...state.emotionalMemory, ...memory };
+        state.emotionalMemory.interactionCount++;
+      }
+    } catch (e) {
+      logDebug('Could not load emotional memory');
+    }
+  }
+  
+  function saveEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      sessionStorage.setItem('ferni_emotional_memory', JSON.stringify(state.emotionalMemory));
+    } catch (e) {
+      logDebug('Could not save emotional memory');
+    }
+  }
+  
+  function setupVisibilityTracking() {
+    // Pause animations when tab not visible
+    document.addEventListener('visibilitychange', () => {
+      state.isVisible = document.visibilityState === 'visible';
+      if (state.isVisible) {
+        // Reset timing on visibility restore
+        state.lastFrameTime = performance.now();
+      }
+    });
+    
+    // Track window focus
+    window.addEventListener('focus', () => { state.isFocused = true; });
+    window.addEventListener('blur', () => { state.isFocused = false; });
+  }
+  
+  function logDebug(...args) {
+    if (window.FERNI_DEBUG) {
+      console.log('[LivingAvatar]', ...args);
+    }
+  }
+
+  // ============================================================================
+  // EVENT LISTENERS
+  // ============================================================================
+  
+  function setupEventListeners() {
+    // Mouse movement
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    
+    // Touch support
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
+    // Scroll
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // CTA hover attention
+    if (CONFIG.lookAtCTAs) {
+      document.querySelectorAll('.btn, .nav__cta, a[href*="app.ferni"]').forEach(btn => {
+        btn.addEventListener('mouseenter', () => lookAtElement(btn));
+        btn.addEventListener('mouseleave', () => releaseAttention());
+      });
+    }
+    
+    // Click feedback
+    document.addEventListener('click', handleClick);
+    
+    // Visibility change (pause when tab not visible)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  }
+
+  // ============================================================================
+  // MOUSE TRACKING - Spring physics for organic movement
+  // ============================================================================
+  
+  function handleMouseMove(e) {
+    state.mouseX = e.clientX;
+    state.mouseY = e.clientY;
+    
+    // Update attention based on movement
+    state.attentionLevel = Math.min(1, state.attentionLevel + 0.1);
+    state.lastInteractionTime = Date.now();
+    
+    if (!state.attentionTarget) {
+      updateTargetFromMouse();
+    }
+    
+    // Update pupil dilation based on cursor speed
+    if (CONFIG.enablePupilDilation) {
+      const speed = Math.sqrt(
+        Math.pow(e.movementX || 0, 2) + 
+        Math.pow(e.movementY || 0, 2)
+      );
+      // Fast movement = slight dilation (alertness)
+      state.targetPupilScale = 1.0 + Math.min(speed / 100, 0.15);
+    }
+  }
+  
+  function handleTouchMove(e) {
+    if (e.touches.length > 0) {
+      state.mouseX = e.touches[0].clientX;
+      state.mouseY = e.touches[0].clientY;
+      state.attentionLevel = Math.min(1, state.attentionLevel + 0.15);
+      updateTargetFromMouse();
+    }
+  }
+  
+  function updateTargetFromMouse() {
+    if (!avatarEl) return;
+    
+    const rect = avatarEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const dx = state.mouseX - centerX;
+    const dy = state.mouseY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Deadzone - ignore very small movements
+    if (distance < PHYSICS.gazeDeadzone) {
+      return;
+    }
+    
+    const maxDistance = Math.max(window.innerWidth, window.innerHeight) / 2;
+    
+    // Non-linear intensity curve (more responsive at edges)
+    const normalizedDist = Math.min(distance / maxDistance, 1);
+    const intensity = easeOutCubic(normalizedDist);
+    
+    // Calculate target with anticipation
+    const anticipatedX = dx + (dx - state.targetX * maxDistance / PHYSICS.maxGazeOffset) * PHYSICS.anticipationFactor;
+    const anticipatedY = dy + (dy - state.targetY * maxDistance / PHYSICS.maxGazeOffset) * PHYSICS.anticipationFactor;
+    
+    state.targetX = (anticipatedX / maxDistance) * PHYSICS.maxGazeOffset * intensity;
+    state.targetY = (anticipatedY / maxDistance) * PHYSICS.maxGazeOffset * intensity;
+  }
+  
+  // Easing function for natural movement
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+  
+  function startAnimationLoop() {
+    let lastTime = performance.now();
+    
+    function update(currentTime) {
+      // Calculate delta time for frame-rate independent animation
+      state.deltaTime = Math.min((currentTime - lastTime) / 16.67, 2); // Cap at 2x normal
+      lastTime = currentTime;
+      
+      if (!state.prefersReducedMotion && state.isVisible) {
+        updateGazePhysics();
+        updatePupil();
+        updateBreathing();
+        updateAttention();
+        updateSaccades();
+        applyTransforms();
+      }
+      
+      requestAnimationFrame(update);
+    }
+    
+    requestAnimationFrame(update);
+  }
+  
+  function updateGazePhysics() {
+    // Spring physics: F = -kx - cv
+    // where k = stiffness, x = displacement, c = damping, v = velocity
+    
+    const dx = state.targetX - state.currentX;
+    const dy = state.targetY - state.currentY;
+    
+    // Spring force
+    const forceX = dx * PHYSICS.stiffness;
+    const forceY = dy * PHYSICS.stiffness;
+    
+    // Apply force to velocity (with damping)
+    state.velocityX = (state.velocityX + forceX) * PHYSICS.damping;
+    state.velocityY = (state.velocityY + forceY) * PHYSICS.damping;
+    
+    // Apply velocity to position
+    state.currentX += state.velocityX * state.deltaTime;
+    state.currentY += state.velocityY * state.deltaTime;
+    
+    // Snap to target if very close and slow
+    const speed = Math.sqrt(state.velocityX * state.velocityX + state.velocityY * state.velocityY);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (speed < PHYSICS.velocityThreshold && dist < PHYSICS.positionThreshold) {
+      state.currentX = state.targetX;
+      state.currentY = state.targetY;
+      state.velocityX = 0;
+      state.velocityY = 0;
+    }
+  }
+  
+  function updatePupil() {
+    if (!CONFIG.enablePupilDilation) return;
+    
+    // Smooth pupil dilation
+    state.pupilScale += (state.targetPupilScale - state.pupilScale) * CONFIG.pupilDilationSpeed * state.deltaTime;
+    
+    // Clamp
+    state.pupilScale = Math.max(CONFIG.minPupilScale, Math.min(CONFIG.maxPupilScale, state.pupilScale));
+    
+    // Decay target back to normal
+    state.targetPupilScale += (1.0 - state.targetPupilScale) * 0.02 * state.deltaTime;
+  }
+  
+  function updateSaccades() {
+    // Random micro-saccades for realism
+    if (!state.inSaccade && Math.random() < PHYSICS.saccadeChance * state.deltaTime) {
+      state.inSaccade = true;
+      state.saccadeStartTime = performance.now();
+      state.saccadeOffsetX = (Math.random() - 0.5) * PHYSICS.saccadeDistance * 2;
+      state.saccadeOffsetY = (Math.random() - 0.5) * PHYSICS.saccadeDistance * 2;
+      
+      // Sometimes blink during saccade
+      if (CONFIG.blinkOnSaccade && Math.random() < 0.3) {
+        blink();
+      }
+    }
+    
+    if (state.inSaccade) {
+      const elapsed = performance.now() - state.saccadeStartTime;
+      if (elapsed > PHYSICS.saccadeDuration) {
+        state.inSaccade = false;
+        state.saccadeOffsetX = 0;
+        state.saccadeOffsetY = 0;
+      }
+    }
+  }
+  
+  function updateAttention() {
+    // Decay attention over time
+    state.attentionLevel *= Math.pow(CONFIG.attentionDecay, state.deltaTime);
+    
+    // Trigger idle behaviors when attention is low
+    if (state.attentionLevel < CONFIG.attentionThreshold) {
+      // Occasional "looking around"
+      if (Math.random() < 0.001 * state.deltaTime) {
+        const randomX = (Math.random() - 0.5) * PHYSICS.maxGazeOffset;
+        const randomY = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 0.5;
+        state.targetX = randomX;
+        state.targetY = randomY;
+      }
+    }
+  }
+  
+  function applyTransforms() {
+    if (!orbEl) return;
+    
+    // Combine gaze position with saccade offset
+    const finalX = state.currentX + state.saccadeOffsetX;
+    const finalY = state.currentY + state.saccadeOffsetY;
+    
+    // Apply to orb with subtle 3D rotation for depth
+    const rotateY = finalX * 0.3;
+    const rotateX = -finalY * 0.3;
+    
+    orbEl.style.transform = `
+      translate(${finalX}px, ${finalY}px)
+      rotateX(${rotateX}deg)
+      rotateY(${rotateY}deg)
+      scale(${state.pupilScale})
+    `;
+    
+    // Parallax rings with depth layering
+    ringsEl.forEach((ring, i) => {
+      const depth = 0.3 + (i * 0.15);
+      const ringX = finalX * depth;
+      const ringY = finalY * depth;
+      const ringRotate = finalX * 0.1 * (i + 1);
+      ring.style.transform = `translate(${ringX}px, ${ringY}px) rotate(${ringRotate}deg)`;
+    });
+    
+    // Glow follows with even more lag (atmospheric)
+    if (glowEl) {
+      const glowX = finalX * 0.15;
+      const glowY = finalY * 0.15;
+      glowEl.style.transform = `translate(${glowX}px, ${glowY}px)`;
+    }
+  }
+
+  // ============================================================================
+  // ATTENTION SYSTEM - Ferni looks at what matters
+  // ============================================================================
+  
+  function lookAtElement(el) {
+    if (!avatarEl || state.prefersReducedMotion) return;
+    
+    state.attentionTarget = el;
+    
+    const rect = el.getBoundingClientRect();
+    const avatarRect = avatarEl.getBoundingClientRect();
+    
+    const targetCenterX = rect.left + rect.width / 2;
+    const targetCenterY = rect.top + rect.height / 2;
+    const avatarCenterX = avatarRect.left + avatarRect.width / 2;
+    const avatarCenterY = avatarRect.top + avatarRect.height / 2;
+    
+    const dx = targetCenterX - avatarCenterX;
+    const dy = targetCenterY - avatarCenterY;
+    const maxDistance = Math.max(window.innerWidth, window.innerHeight) / 2;
+    
+    state.targetX = (dx / maxDistance) * CONFIG.maxOffset * 1.5; // Look more intently
+    state.targetY = (dy / maxDistance) * CONFIG.maxOffset * 1.5;
+    
+    // Show delight micro-expression
+    if (CONFIG.enableMicroExpressions) {
+      triggerExpression('delighted');
+    }
+    
+    // Pulse the glow
+    if (CONFIG.attentionPulse && glowEl) {
+      glowEl.classList.add('hero-ferni__glow--pulse');
+    }
+  }
+  
+  function releaseAttention() {
+    state.attentionTarget = null;
+    
+    if (glowEl) {
+      glowEl.classList.remove('hero-ferni__glow--pulse');
+    }
+    
+    // Return to tracking mouse
+    updateTargetFromMouse();
+  }
+
+  // ============================================================================
+  // BLINKING - Natural, randomized blinks
+  // ============================================================================
+  
+  function startBlinking() {
+    function scheduleBlink() {
+      const delay = CONFIG.blinkIntervalMin + 
+        Math.random() * (CONFIG.blinkIntervalMax - CONFIG.blinkIntervalMin);
+      
+      setTimeout(() => {
+        blink();
+        scheduleBlink();
+      }, delay);
+    }
+    
+    scheduleBlink();
+  }
+  
+  function blink() {
+    if (state.isBlinking || state.prefersReducedMotion) return;
+    
+    state.isBlinking = true;
+    
+    if (textEl) {
+      textEl.classList.add('hero-ferni__text--blink');
+    }
+    
+    setTimeout(() => {
+      if (textEl) {
+        textEl.classList.remove('hero-ferni__text--blink');
+      }
+      state.isBlinking = false;
+      
+      // Chance of double-blink
+      if (Math.random() < CONFIG.doubleBlinkChance) {
+        setTimeout(() => blink(), 200);
+      }
+    }, CONFIG.blinkDuration);
+  }
+
+  // ============================================================================
+  // BREATHING - Variable rate with natural pauses
+  // ============================================================================
+  
+  function updateBreathing() {
+    if (!avatarEl) return;
+    
+    // Breathing phase progression (0 to 1 to 0)
+    const breathSpeed = (1 / state.currentBreathDuration) * 16.67 * state.deltaTime;
+    
+    if (!state.breathHolding) {
+      state.breathPhase += breathSpeed * state.breathDirection;
+      
+      // Reverse direction at peaks
+      if (state.breathPhase >= 1) {
+        state.breathPhase = 1;
+        state.breathDirection = -1;
+        
+        // Chance to hold breath at peak (anticipation)
+        if (Math.random() < CONFIG.breathPauseChance) {
+          state.breathHolding = true;
+          setTimeout(() => {
+            state.breathHolding = false;
+          }, 200 + Math.random() * 300);
+        }
+      } else if (state.breathPhase <= 0) {
+        state.breathPhase = 0;
+        state.breathDirection = 1;
+        
+        // Vary breath duration each cycle
+        state.currentBreathDuration = CONFIG.breathDurationBase + 
+          (Math.random() - 0.5) * CONFIG.breathDurationVariance * 2;
+      }
+    }
+    
+    // Smooth sine curve for natural breathing
+    const breathCurve = Math.sin(state.breathPhase * Math.PI);
+    const breathScale = 1 + (CONFIG.breathScale - 1) * breathCurve;
+    
+    // Apply breath scale via CSS variable
+    avatarEl.style.setProperty('--breath-scale', breathScale.toFixed(4));
+    
+    // Breathing affects glow intensity too
+    if (glowEl) {
+      const glowIntensity = 0.4 + breathCurve * 0.15;
+      glowEl.style.opacity = glowIntensity.toFixed(3);
+    }
+  }
+  
+  function startBreathing() {
+    // Initial setup
+    if (avatarEl) {
+      avatarEl.classList.add('hero-ferni--breathing');
+    }
+  }
+
+  // ============================================================================
+  // SCROLL BEHAVIOR - Curious head tilt
+  // ============================================================================
+  
+  function handleScroll() {
+    const newScrollY = window.scrollY;
+    const scrollDelta = newScrollY - state.scrollY;
+    
+    if (!state.isScrolling && CONFIG.curiousOnScroll) {
+      state.isScrolling = true;
+      triggerExpression('curious');
+      
+      // Tilt in scroll direction
+      if (avatarEl && !state.prefersReducedMotion) {
+        const tilt = Math.max(-5, Math.min(5, scrollDelta * 0.5));
+        avatarEl.style.setProperty('--scroll-tilt', `${tilt}deg`);
+      }
+    }
+    
+    // Reset after scroll ends
+    clearTimeout(state.scrollTimeout);
+    state.scrollTimeout = setTimeout(() => {
+      state.isScrolling = false;
+      if (avatarEl) {
+        avatarEl.style.setProperty('--scroll-tilt', '0deg');
+      }
+    }, 150);
+    
+    state.scrollY = newScrollY;
+  }
+
+  // ============================================================================
+  // MICRO-EXPRESSIONS
+  // ============================================================================
+  
+  function triggerExpression(expressionName) {
+    if (!CONFIG.enableMicroExpressions || state.prefersReducedMotion) return;
+    if (!avatarEl) return;
+
+    const expression = CONFIG.expressions[expressionName];
+    if (!expression) return;
+
+    // Remove previous expression
+    avatarEl.classList.remove(`hero-ferni--${state.currentExpression}`);
+
+    // Add new expression
+    state.currentExpression = expressionName;
+    avatarEl.classList.add(`hero-ferni--${expressionName}`);
+
+    // Apply pupil dilation for life coaching expressions
+    if (expression.pupilDilation) {
+      const originalPupilScale = state.targetPupilScale;
+      state.targetPupilScale = expression.pupilDilation;
+
+      // Restore after expression completes
+      setTimeout(() => {
+        state.targetPupilScale = originalPupilScale;
+      }, expression.duration * 0.8); // Start returning slightly before expression ends
+    }
+
+    // Update glow mood for life coaching expressions
+    if (expressionName.includes('_')) {
+      updateGlowMood(expressionName);
+    }
+
+    // Auto-remove after duration
+    setTimeout(() => {
+      avatarEl.classList.remove(`hero-ferni--${expressionName}`);
+      state.currentExpression = 'neutral';
+      updateGlowMood('neutral');
+    }, expression.duration);
+  }
+
+  // ============================================================================
+  // CLICK FEEDBACK
+  // ============================================================================
+  
+  function handleClick(e) {
+    // Quick blink on any click
+    if (e.target.closest('.btn, button, a')) {
+      blink();
+    }
+  }
+
+  // ============================================================================
+  // RETURNING VISITOR RECOGNITION
+  // ============================================================================
+  
+  function checkReturningVisitor() {
+    const lastVisit = localStorage.getItem('ferni_last_visit');
+    const visitCount = parseInt(localStorage.getItem('ferni_visit_count') || '0', 10);
+    
+    if (lastVisit && visitCount > 1) {
+      // Returning visitor - show recognition
+      setTimeout(() => {
+        triggerExpression('recognition');
+      }, 1500);
+    }
+    
+    // Update visit tracking
+    localStorage.setItem('ferni_last_visit', Date.now().toString());
+    localStorage.setItem('ferni_visit_count', (visitCount + 1).toString());
+  }
+
+  // ============================================================================
+  // VISIBILITY
+  // ============================================================================
+  
+  function handleVisibilityChange() {
+    // Could pause animations when tab not visible
+    // For now, just noting the capability
+  }
+
+  // ============================================================================
+  // SECTION AWARENESS - Ferni reacts to what user is viewing
+  // ============================================================================
+  
+  const SECTION_REACTIONS = {
+    // Core sections
+    'features': { expression: 'curious', delay: 500 },
+    'team': { expression: 'delighted', delay: 300 },
+    'about': { expression: 'warmth', delay: 400 },
+    'pricing': { expression: 'courage_support', delay: 600 },  // Support during commitment decision
+    'faq': { expression: 'curious', delay: 400 },
+    'demo': { expression: 'delighted', delay: 200 },
+
+    // Life coaching enhanced sections
+    'testimonials': { expression: 'hope_holding', delay: 400 },      // Empathy for shared stories
+    'stories': { expression: 'hope_holding', delay: 400 },           // Empathy for shared stories
+    'privacy': { expression: 'steady_presence', delay: 350 },        // Reassurance on sensitive topics
+    'security': { expression: 'steady_presence', delay: 350 },       // Reassurance on sensitive topics
+    'wellness': { expression: 'rest_permission', delay: 500 },       // Permission to prioritize self
+    'benefits': { expression: 'rest_permission', delay: 500 },       // Permission to prioritize self
+    'journey': { expression: 'transition_witness', delay: 300 },     // Honoring new beginnings
+    'getting-started': { expression: 'transition_witness', delay: 300 }, // Honoring new beginnings
+    'success': { expression: 'comeback_recognition', delay: 250 },   // Celebrating wins
+    'results': { expression: 'comeback_recognition', delay: 250 }    // Celebrating wins
+  };
+  
+  let currentSection = null;
+  let sectionObserver = null;
+  
+  function setupSectionAwareness() {
+    // Find all major sections
+    const sections = document.querySelectorAll('section[id], [data-section]');
+    if (sections.length === 0) return;
+    
+    sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+          const sectionId = entry.target.id || entry.target.dataset.section;
+          if (sectionId && sectionId !== currentSection) {
+            currentSection = sectionId;
+            reactToSection(sectionId);
+          }
+        }
+      });
+    }, {
+      threshold: [0.3, 0.5, 0.7],
+      rootMargin: '-100px 0px -100px 0px'
+    });
+    
+    sections.forEach(section => sectionObserver.observe(section));
+  }
+  
+  function reactToSection(sectionId) {
+    // Find matching reaction
+    for (const [key, config] of Object.entries(SECTION_REACTIONS)) {
+      if (sectionId.toLowerCase().includes(key)) {
+        setTimeout(() => {
+          triggerExpression(config.expression);
+        }, config.delay);
+        break;
+      }
+    }
+  }
+
+  // ============================================================================
+  // AMBIENT BEHAVIORS - Occasional spontaneous actions
+  // ============================================================================
+  
+  let ambientTimer = null;
+  
+  function startAmbientBehaviors() {
+    // Schedule random ambient actions
+    function scheduleAmbient() {
+      const delay = 8000 + Math.random() * 15000; // 8-23 seconds
+      
+      ambientTimer = setTimeout(() => {
+        if (state.isVisible && state.attentionLevel < CONFIG.attentionThreshold) {
+          performAmbientAction();
+        }
+        scheduleAmbient();
+      }, delay);
+    }
+    
+    scheduleAmbient();
+  }
+  
+  function performAmbientAction() {
+    const actions = [
+      () => {
+        // Look around curiously
+        const randomX = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 1.5;
+        const randomY = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 0.8;
+        state.targetX = randomX;
+        state.targetY = randomY;
+        
+        setTimeout(() => {
+          state.targetX = 0;
+          state.targetY = 0;
+        }, 1500 + Math.random() * 1000);
+      },
+      () => {
+        // Slight head tilt (curious)
+        if (avatarEl) {
+          avatarEl.style.setProperty('--scroll-tilt', `${(Math.random() - 0.5) * 4}deg`);
+          setTimeout(() => {
+            avatarEl.style.setProperty('--scroll-tilt', '0deg');
+          }, 2000);
+        }
+      },
+      () => {
+        // Deep breath (settling)
+        if (avatarEl) {
+          avatarEl.classList.add('hero-ferni--deep-breath');
+          setTimeout(() => {
+            avatarEl.classList.remove('hero-ferni--deep-breath');
+          }, 3000);
+        }
+      },
+      () => {
+        // Quick double blink
+        blink();
+        setTimeout(() => blink(), 250);
+      }
+    ];
+    
+    // Pick a random action
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    action();
+  }
+
+  // ============================================================================
+  // GLOW COLOR MOOD - Subtle color shifts based on state
+  // ============================================================================
+  
+  function updateGlowMood(mood) {
+    if (!glowEl) return;
+
+    const moodColors = {
+      // Core moods
+      neutral: 'rgba(74, 103, 65, 0.4)',
+      curious: 'rgba(58, 107, 115, 0.5)',
+      delighted: 'rgba(106, 138, 90, 0.5)',
+      warmth: 'rgba(166, 122, 106, 0.4)',
+      concerned: 'rgba(122, 106, 90, 0.4)',
+      thinking: 'rgba(90, 107, 138, 0.4)',
+
+      // Life coaching moods - subtle, supportive colors
+      hope_holding: 'rgba(138, 154, 122, 0.45)',       // Gentle sage - empathetic presence
+      steady_presence: 'rgba(90, 106, 90, 0.35)',     // Deep calm green - unwavering
+      courage_support: 'rgba(122, 138, 90, 0.5)',     // Warm encouraging green
+      rest_permission: 'rgba(106, 122, 138, 0.35)',   // Cool restful blue-gray
+      transition_witness: 'rgba(138, 122, 154, 0.4)', // Gentle lavender - honoring change
+      comeback_recognition: 'rgba(154, 138, 90, 0.5)' // Warm gold - pride and celebration
+    };
+
+    const color = moodColors[mood] || moodColors.neutral;
+
+    // Smooth transition for glow color
+    glowEl.style.transition = 'background 0.3s ease-out';
+    glowEl.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+  }
+
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
+  
+  window.FerniAvatar = {
+    init,
+    blink,
+    lookAt: lookAtElement,
+    release: releaseAttention,
+    express: triggerExpression,
+    setMood: updateGlowMood,
+    getState: () => ({ ...state })
+  };
+
+  // ============================================================================
+  // AUTO-INIT
+  // ============================================================================
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+

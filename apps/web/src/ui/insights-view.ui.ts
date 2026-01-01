@@ -24,8 +24,8 @@ import {
   renderCloseButton,
 } from './engagement-components.js';
 import { createLogger } from '../utils/logger.js';
-import { teaserPreview } from './teaser-preview.ui.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { playMicroExpression } from './better-than-human.ui.js';
 
 const log = createLogger('InsightsView');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -386,9 +386,98 @@ export class InsightsView {
   }
 
   private renderEmptyState(): string {
-    // Use teaser preview system to show what insights WILL look like
-    // This creates anticipation instead of disappointment
-    return teaserPreview.patterns().outerHTML;
+    // Beautiful "Better Than Human" preview - shows what Ferni WILL do
+    // Creates anticipation and communicates the superhuman promise
+    
+    // Trigger a micro-expression when showing empty state (builds connection)
+    playMicroExpression('warmth');
+    
+    return `
+      <div class="insights-empty-state">
+        <!-- Hero: The Promise -->
+        <div class="insights-empty__hero">
+          <div class="insights-empty__glow"></div>
+          <div class="insights-empty__icon-ring">
+            <div class="insights-empty__icon-inner">
+              ${INSIGHT_ICONS.pattern}
+            </div>
+          </div>
+          <h3 class="insights-empty__title">I'm learning what to notice</h3>
+          <p class="insights-empty__subtitle">
+            The patterns that matter to you. The things you might not see yourself.
+          </p>
+        </div>
+
+        <!-- Superhuman Capabilities Preview -->
+        <div class="insights-empty__capabilities">
+          <div class="insights-empty__capability" style="--delay: 0ms">
+            <div class="insights-empty__cap-icon insights-empty__cap-icon--memory">
+              ${INSIGHT_ICONS.memory}
+            </div>
+            <div class="insights-empty__cap-content">
+              <span class="insights-empty__cap-title">Perfect Memory</span>
+              <span class="insights-empty__cap-desc">That thing you mentioned months ago? I'll remember.</span>
+            </div>
+          </div>
+          
+          <div class="insights-empty__capability" style="--delay: 80ms">
+            <div class="insights-empty__cap-icon insights-empty__cap-icon--pattern">
+              ${INSIGHT_ICONS.pattern}
+            </div>
+            <div class="insights-empty__cap-content">
+              <span class="insights-empty__cap-title">Pattern Recognition</span>
+              <span class="insights-empty__cap-desc">"Sunday evenings seem hard for you..."</span>
+            </div>
+          </div>
+          
+          <div class="insights-empty__capability" style="--delay: 160ms">
+            <div class="insights-empty__cap-icon insights-empty__cap-icon--growth">
+              ${INSIGHT_ICONS.growth}
+            </div>
+            <div class="insights-empty__cap-content">
+              <span class="insights-empty__cap-title">Gentle Growth Tracking</span>
+              <span class="insights-empty__cap-desc">Progress you might not notice yourself.</span>
+            </div>
+          </div>
+          
+          <div class="insights-empty__capability" style="--delay: 240ms">
+            <div class="insights-empty__cap-icon insights-empty__cap-icon--concern">
+              ${INSIGHT_ICONS.concern}
+            </div>
+            <div class="insights-empty__cap-content">
+              <span class="insights-empty__cap-title">Guardian Presence</span>
+              <span class="insights-empty__cap-desc">I catch what you're not saying.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sample Insight Preview -->
+        <div class="insights-empty__sample">
+          <div class="insights-empty__sample-label">
+            <span class="insights-empty__sample-dot"></span>
+            What insights might look like
+          </div>
+          <div class="insights-empty__sample-card">
+            <div class="insights-empty__sample-icon">${INSIGHT_ICONS.pattern}</div>
+            <div class="insights-empty__sample-content">
+              <p class="insights-empty__sample-text">"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work."</p>
+              <span class="insights-empty__sample-evidence">Based on 23 conversations</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warm Invitation -->
+        <div class="insights-empty__invitation">
+          <p class="insights-empty__invitation-text">
+            Just keep talking. I'm always listening, always learning, always here.
+          </p>
+          <div class="insights-empty__invitation-footer">
+            <span class="insights-empty__invitation-icon">✨</span>
+            Better than human memory, working for you.
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   // ============================================================================
@@ -1004,71 +1093,322 @@ export class InsightsView {
       }
 
       /* ========================================
-         EMPTY STATE
+         EMPTY STATE - "Better Than Human" Preview
          ======================================== */
 
-      .insights-empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: var(--space-8, 32px) var(--space-4, 16px);
+      .insights-empty-state {
+        padding: var(--space-2, 8px) 0;
       }
 
-      .insights-empty__icon {
-        width: 64px;
-        height: 64px;
+      /* Hero - The Promise */
+      .insights-empty__hero {
+        position: relative;
+        text-align: center;
+        padding: var(--space-6, 24px) var(--space-4, 16px);
+        margin-bottom: var(--space-5, 20px);
+      }
+
+      .insights-empty__glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(
+          circle,
+          var(--persona-tint, rgba(74, 103, 65, 0.15)) 0%,
+          transparent 70%
+        );
+        border-radius: var(--radius-full);
+        pointer-events: none;
+        animation: insightsGlowPulse 4s ease-in-out infinite;
+      }
+
+      @keyframes insightsGlowPulse {
+        0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      }
+
+      .insights-empty__icon-ring {
+        position: relative;
+        z-index: 1;
+        width: 72px;
+        height: 72px;
+        margin: 0 auto var(--space-4, 16px);
+        border-radius: var(--radius-full);
+        background: linear-gradient(
+          135deg,
+          var(--persona-tint, rgba(74, 103, 65, 0.12)),
+          var(--color-background-secondary, rgba(44, 37, 32, 0.03))
+        );
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, var(--color-accent-subtle));
-        border-radius: var(--radius-full);
-        color: var(--persona-primary, var(--color-accent-primary));
-        margin-bottom: var(--space-4, 16px);
+        animation: insightsIconFloat 6s ease-in-out infinite;
       }
 
-      .insights-empty__icon svg {
-        width: 32px;
-        height: 32px;
+      @keyframes insightsIconFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      .insights-empty__icon-inner {
+        width: 52px;
+        height: 52px;
+        border-radius: var(--radius-full);
+        background: linear-gradient(
+          135deg,
+          var(--persona-primary, #4a6741),
+          var(--persona-secondary, #3d5a35)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: 
+          0 4px 20px var(--persona-tint, rgba(74, 103, 65, 0.25)),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      }
+
+      .insights-empty__icon-inner svg {
+        width: 24px;
+        height: 24px;
       }
 
       .insights-empty__title {
         font-family: var(--font-display);
-        font-size: var(--text-lg);
+        font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-primary);
         margin: 0 0 var(--space-2, 8px) 0;
+        line-height: 1.3;
       }
 
-      .insights-empty__message {
-        font-size: var(--text-sm);
+      .insights-empty__subtitle {
+        font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-secondary);
-        line-height: var(--leading-relaxed);
-        max-width: min(280px, 100%);
-        margin: 0 0 var(--space-5, 20px) 0;
+        line-height: 1.5;
+        margin: 0;
+        max-width: 280px;
+        margin-left: auto;
+        margin-right: auto;
       }
 
-      .insights-empty__cta {
-        background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
-        border: none;
-        padding: var(--space-3, 12px) var(--space-6, 24px);
-        border-radius: var(--radius-full);
-        font-family: var(--font-body);
-        font-size: var(--text-sm);
+      /* Capabilities Preview - The Superhuman Promise */
+      .insights-empty__capabilities {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-5, 20px);
+      }
+
+      .insights-empty__capability {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 1rem);
+        border: 1px solid var(--color-border-subtle);
+        opacity: 0;
+        transform: translateY(8px);
+        animation: insightsCapabilityEnter ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+        animation-delay: var(--delay, 0ms);
+      }
+
+      @keyframes insightsCapabilityEnter {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .insights-empty__cap-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md, 0.5rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+      }
+
+      .insights-empty__capability:hover .insights-empty__cap-icon {
+        transform: scale(1.1);
+      }
+
+      .insights-empty__cap-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .insights-empty__cap-icon--memory {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.15), rgba(74, 103, 65, 0.05));
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .insights-empty__cap-icon--pattern {
+        background: linear-gradient(135deg, rgba(58, 107, 115, 0.15), rgba(58, 107, 115, 0.05));
+        color: var(--persona-peter, #3a6b73);
+      }
+
+      .insights-empty__cap-icon--growth {
+        background: linear-gradient(135deg, rgba(166, 122, 106, 0.15), rgba(166, 122, 106, 0.05));
+        color: var(--persona-maya, #a67a6a);
+      }
+
+      .insights-empty__cap-icon--concern {
+        background: linear-gradient(135deg, rgba(196, 133, 106, 0.15), rgba(196, 133, 106, 0.05));
+        color: var(--persona-jordan, #c4856a);
+      }
+
+      .insights-empty__cap-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .insights-empty__cap-title {
+        font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        cursor: pointer;
-        transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
-                    background ${DURATION.FAST}ms ${EASING.STANDARD};
+        color: var(--color-text-primary);
       }
 
-      .insights-empty__cta:hover {
-        transform: scale(1.05);
-        background: var(--persona-secondary);
+      .insights-empty__cap-desc {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted);
+        line-height: 1.4;
+        font-style: italic;
       }
 
-      .insights-empty__cta:active {
-        transform: scale(0.98);
+      /* Sample Insight Preview */
+      .insights-empty__sample {
+        margin-bottom: var(--space-5, 20px);
+      }
+
+      .insights-empty__sample-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        font-size: var(--text-2xs, 0.625rem);
+        font-weight: var(--font-weight-semibold, 600);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-dimmed);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .insights-empty__sample-dot {
+        width: 6px;
+        height: 6px;
+        background: var(--persona-primary, #4a6741);
+        border-radius: var(--radius-full);
+        animation: insightsDotPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes insightsDotPulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.3); }
+      }
+
+      .insights-empty__sample-card {
+        display: flex;
+        gap: var(--space-3, 12px);
+        padding: var(--space-4, 16px);
+        background: linear-gradient(
+          135deg,
+          var(--persona-tint, rgba(74, 103, 65, 0.08)),
+          var(--color-background-secondary, rgba(44, 37, 32, 0.03))
+        );
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--persona-tint, rgba(74, 103, 65, 0.15));
+        position: relative;
+        overflow: hidden;
+      }
+
+      .insights-empty__sample-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--persona-primary, #4a6741),
+          var(--persona-secondary, #3d5a35)
+        );
+        opacity: 0.6;
+      }
+
+      .insights-empty__sample-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--persona-primary, #4a6741);
+        opacity: 0.8;
+      }
+
+      .insights-empty__sample-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .insights-empty__sample-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .insights-empty__sample-text {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary);
+        line-height: 1.5;
+        margin: 0;
+        opacity: 0.85;
+      }
+
+      .insights-empty__sample-evidence {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-dimmed);
+        font-style: italic;
+      }
+
+      /* Warm Invitation */
+      .insights-empty__invitation {
+        text-align: center;
+        padding: var(--space-4, 16px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--color-border-subtle);
+      }
+
+      .insights-empty__invitation-text {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
+        line-height: 1.5;
+        margin: 0 0 var(--space-3, 12px) 0;
+        font-style: italic;
+      }
+
+      .insights-empty__invitation-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2, 8px);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .insights-empty__invitation-icon {
+        font-size: var(--text-base, 1rem);
       }
 
       /* ========================================
@@ -1089,6 +1429,56 @@ export class InsightsView {
       [data-theme="midnight"] .insights-holding__item {
         background: var(--color-background-tertiary);
         border-color: var(--color-border-subtle);
+      }
+
+      /* Dark Theme - Empty State */
+      [data-theme="midnight"] .insights-empty__glow {
+        background: radial-gradient(
+          circle,
+          rgba(74, 103, 65, 0.2) 0%,
+          transparent 70%
+        );
+      }
+
+      [data-theme="midnight"] .insights-empty__icon-ring {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 103, 65, 0.2),
+          rgba(255, 255, 255, 0.03)
+        );
+      }
+
+      [data-theme="midnight"] .insights-empty__capability {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+      }
+
+      [data-theme="midnight"] .insights-empty__cap-icon--memory {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.25), rgba(74, 103, 65, 0.1));
+      }
+
+      [data-theme="midnight"] .insights-empty__cap-icon--pattern {
+        background: linear-gradient(135deg, rgba(58, 107, 115, 0.25), rgba(58, 107, 115, 0.1));
+      }
+
+      [data-theme="midnight"] .insights-empty__cap-icon--growth {
+        background: linear-gradient(135deg, rgba(166, 122, 106, 0.25), rgba(166, 122, 106, 0.1));
+      }
+
+      [data-theme="midnight"] .insights-empty__cap-icon--concern {
+        background: linear-gradient(135deg, rgba(196, 133, 106, 0.25), rgba(196, 133, 106, 0.1));
+      }
+
+      [data-theme="midnight"] .insights-empty__sample-card {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 103, 65, 0.12),
+          rgba(255, 255, 255, 0.02)
+        );
+        border-color: rgba(74, 103, 65, 0.2);
+      }
+
+      [data-theme="midnight"] .insights-empty__invitation {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
       }
 
       /* ========================================

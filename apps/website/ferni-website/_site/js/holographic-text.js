@@ -1,1 +1,206 @@
-"use strict";(function(){"use strict";const o={intensity:.5,speed:.1,hueRange:30,saturationBoost:.1,refreshRate:16,debugMode:!1},t={mouseX:0,mouseY:0,currentX:0,currentY:0,elements:[],initialized:!1,animationId:null};function s(){if(t.elements=document.querySelectorAll(".holographic-text, [data-holographic], .hero__headline-accent"),t.elements.length===0){l("No holographic elements found");return}t.elements.forEach(d),document.addEventListener("mousemove",m,{passive:!0}),c(),t.initialized=!0,l("Holographic Text initialized with",t.elements.length,"elements")}function d(e){e.classList.add("holographic-text");const i=e.textContent,n=document.createElement("span");n.className="holographic-text__shimmer",n.setAttribute("aria-hidden","true"),window.getComputedStyle(e).position==="static"&&(e.style.position="relative"),e.appendChild(n),e._holoShimmer=n}function m(e){t.mouseX=e.clientX,t.mouseY=e.clientY}function c(){t.currentX+=(t.mouseX-t.currentX)*o.speed,t.currentY+=(t.mouseY-t.currentY)*o.speed,t.elements.forEach(p),t.animationId=requestAnimationFrame(c)}function p(e){const i=e._holoShimmer;if(!i)return;const n=e.getBoundingClientRect(),h=n.left+n.width/2,f=n.top+n.height/2,r=(t.currentX-h)/(window.innerWidth/2),u=(t.currentY-f)/(window.innerHeight/2),g=r*100*o.intensity,y=u*100*o.intensity,x=r*o.hueRange;i.style.setProperty("--shimmer-x",`${50+g}%`),i.style.setProperty("--shimmer-y",`${50+y}%`),i.style.setProperty("--hue-shift",`${x}deg`),e.style.setProperty("--holo-x",r.toFixed(3)),e.style.setProperty("--holo-y",u.toFixed(3))}function a(){t.animationId&&cancelAnimationFrame(t.animationId),document.removeEventListener("mousemove",m),t.elements.forEach(e=>{e._holoShimmer&&(e._holoShimmer.remove(),delete e._holoShimmer)}),t.elements=[],t.initialized=!1}function l(...e){o.debugMode&&console.log("[HolographicText]",...e)}window.FerniHolographicText={init:s,destroy:a,refresh:()=>{a(),s()},setIntensity:e=>{o.intensity=e},setDebug:e=>{o.debugMode=e}},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",s):s()})();
+/**
+ * Holographic Text Effect
+ * Prismatic shimmer that shifts with mouse position
+ * Like light refracting through glass
+ */
+
+(function() {
+  'use strict';
+
+  // ============================================================================
+  // CONFIGURATION
+  // ============================================================================
+  
+  const CONFIG = {
+    intensity: 0.5,           // How strong the effect is
+    speed: 0.1,               // How fast it follows mouse
+    hueRange: 30,             // Range of hue shift in degrees
+    saturationBoost: 0.1,     // How much to boost saturation
+    refreshRate: 16,          // ~60fps
+    debugMode: false
+  };
+
+  // ============================================================================
+  // STATE
+  // ============================================================================
+  
+  const state = {
+    mouseX: 0,
+    mouseY: 0,
+    currentX: 0,
+    currentY: 0,
+    elements: [],
+    initialized: false,
+    animationId: null
+  };
+
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+  
+  function init() {
+    // Find all holographic text elements
+    state.elements = document.querySelectorAll(
+      '.holographic-text, [data-holographic], .hero__headline-accent'
+    );
+    
+    if (state.elements.length === 0) {
+      logDebug('No holographic elements found');
+      return;
+    }
+    
+    // Prepare elements
+    state.elements.forEach(prepareElement);
+    
+    // Track mouse position
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    
+    // Start animation loop
+    animate();
+    
+    state.initialized = true;
+    logDebug('Holographic Text initialized with', state.elements.length, 'elements');
+  }
+
+  // ============================================================================
+  // ELEMENT PREPARATION
+  // ============================================================================
+  
+  function prepareElement(el) {
+    // Add holographic class if not present
+    el.classList.add('holographic-text');
+    
+    // Store original text for splitting if needed
+    const text = el.textContent;
+    
+    // Create shimmer overlay
+    const shimmer = document.createElement('span');
+    shimmer.className = 'holographic-text__shimmer';
+    shimmer.setAttribute('aria-hidden', 'true');
+    
+    // Make element position relative if not already
+    const position = window.getComputedStyle(el).position;
+    if (position === 'static') {
+      el.style.position = 'relative';
+    }
+    
+    // Add shimmer
+    el.appendChild(shimmer);
+    
+    // Store reference
+    el._holoShimmer = shimmer;
+  }
+
+  // ============================================================================
+  // MOUSE TRACKING
+  // ============================================================================
+  
+  function onMouseMove(e) {
+    state.mouseX = e.clientX;
+    state.mouseY = e.clientY;
+  }
+
+  // ============================================================================
+  // ANIMATION LOOP
+  // ============================================================================
+  
+  function animate() {
+    // Smooth follow
+    state.currentX += (state.mouseX - state.currentX) * CONFIG.speed;
+    state.currentY += (state.mouseY - state.currentY) * CONFIG.speed;
+    
+    // Update each element
+    state.elements.forEach(updateElement);
+    
+    state.animationId = requestAnimationFrame(animate);
+  }
+  
+  function updateElement(el) {
+    const shimmer = el._holoShimmer;
+    if (!shimmer) return;
+    
+    // Get element bounds
+    const rect = el.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Calculate relative position (-1 to 1)
+    const relX = (state.currentX - centerX) / (window.innerWidth / 2);
+    const relY = (state.currentY - centerY) / (window.innerHeight / 2);
+    
+    // Calculate shimmer position
+    const shimmerX = relX * 100 * CONFIG.intensity;
+    const shimmerY = relY * 100 * CONFIG.intensity;
+    
+    // Calculate hue shift based on position
+    const hueShift = relX * CONFIG.hueRange;
+    
+    // Apply to shimmer
+    shimmer.style.setProperty('--shimmer-x', `${50 + shimmerX}%`);
+    shimmer.style.setProperty('--shimmer-y', `${50 + shimmerY}%`);
+    shimmer.style.setProperty('--hue-shift', `${hueShift}deg`);
+    
+    // Also set on parent for additional CSS effects
+    el.style.setProperty('--holo-x', relX.toFixed(3));
+    el.style.setProperty('--holo-y', relY.toFixed(3));
+  }
+
+  // ============================================================================
+  // CLEANUP
+  // ============================================================================
+  
+  function destroy() {
+    if (state.animationId) {
+      cancelAnimationFrame(state.animationId);
+    }
+    
+    document.removeEventListener('mousemove', onMouseMove);
+    
+    state.elements.forEach(el => {
+      if (el._holoShimmer) {
+        el._holoShimmer.remove();
+        delete el._holoShimmer;
+      }
+    });
+    
+    state.elements = [];
+    state.initialized = false;
+  }
+
+  // ============================================================================
+  // UTILITY
+  // ============================================================================
+  
+  function logDebug(...args) {
+    if (CONFIG.debugMode) {
+      console.log('[HolographicText]', ...args);
+    }
+  }
+
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
+  
+  window.FerniHolographicText = {
+    init,
+    destroy,
+    refresh: () => {
+      destroy();
+      init();
+    },
+    setIntensity: (val) => { CONFIG.intensity = val; },
+    setDebug: (enabled) => { CONFIG.debugMode = enabled; }
+  };
+
+  // ============================================================================
+  // AUTO-INIT
+  // ============================================================================
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+

@@ -1,1 +1,216 @@
-.scroll-hero{position:relative;overflow:hidden;will-change:contents}.scroll-hero .hero-ferni__glow,.scroll-hero .hero-ferni__orb,.scroll-hero .hero-ferni__ring,.scroll-hero .hero__cta,.scroll-hero .hero__headline,.scroll-hero .hero__subhead,.scroll-hero .hero__tagline{will-change:transform,opacity;transition:none}.scroll-hero .hero-ferni{z-index:10}.scroll-hero .hero-ferni__orb{transform-origin:center center;box-shadow:0 10px 40px rgba(74,103,65,calc(.2 + var(--scroll-hero-progress,0) * .15)),inset 0 -8px 20px rgba(0,0,0,.15),inset 0 8px 20px rgba(255,255,255,.1)}.scroll-hero .hero-ferni__orb::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(calc(135deg + var(--scroll-rotation,0)),transparent 30%,rgba(255,255,255,.1) 50%,transparent 70%);pointer-events:none}.scroll-hero .hero-ferni__ring{transform-origin:center center}.scroll-hero .hero-ferni__ring:first-child{transition-delay:0s}.scroll-hero .hero-ferni__ring:nth-child(2){transition-delay:50ms}.scroll-hero .hero-ferni__ring:nth-child(3){transition-delay:0.1s}.scroll-hero .hero__content{position:relative;z-index:5}.hero-scrolled .hero__headline,.hero-scrolled .hero__subhead,.hero-scrolled .hero__tagline{filter:blur(calc(var(--scroll-hero-progress, 0) * 2px))}.scroll-hero .hero__bg-layer,.scroll-hero [data-parallax]{will-change:transform,opacity;transform-origin:center bottom}.scroll-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 0,transparent 60%,rgba(245,241,232,calc(var(--scroll-hero-progress,0) * .8)) 100%);pointer-events:none;z-index:2}body.hero-half-scrolled .scroll-hero .hero-ferni__glow{filter:saturate(1.2)}body.hero-fully-scrolled .scroll-hero{pointer-events:none}body.hero-fully-scrolled .scroll-hero .hero-ferni{pointer-events:auto}.scroll-hero.is-loaded .hero-ferni__orb{animation:hero-orb-entrance 1.2s cubic-bezier(.16,1,.3,1)}.scroll-hero.is-loaded .hero__headline{animation:hero-text-entrance .8s cubic-bezier(.16,1,.3,1) .2s both}.scroll-hero.is-loaded .hero__subhead{animation:hero-text-entrance .8s cubic-bezier(.16,1,.3,1) .4s both}.scroll-hero.is-loaded .hero__cta{animation:hero-cta-entrance .8s cubic-bezier(.34,1.56,.64,1) .6s both}@keyframes hero-orb-entrance{from{opacity:0;transform:translateY(40px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes hero-text-entrance{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}@keyframes hero-cta-entrance{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}@media (prefers-reduced-motion:reduce){.scroll-hero .hero-ferni__glow,.scroll-hero .hero-ferni__orb,.scroll-hero .hero-ferni__ring,.scroll-hero .hero__cta,.scroll-hero .hero__headline,.scroll-hero .hero__subhead,.scroll-hero .hero__tagline{transform:none!important;filter:none!important}.scroll-hero::after{display:none}}
+/**
+ * Scroll Hero Transformation CSS
+ * Cinematic scroll effects for the hero section
+ */
+
+/* ============================================================================
+   BASE SETUP
+   ============================================================================ */
+
+.scroll-hero {
+  position: relative;
+  overflow: hidden;
+  /* Ensure smooth transforms */
+  will-change: contents;
+}
+
+.scroll-hero .hero-ferni__orb,
+.scroll-hero .hero-ferni__glow,
+.scroll-hero .hero-ferni__ring,
+.scroll-hero .hero__headline,
+.scroll-hero .hero__subhead,
+.scroll-hero .hero__tagline,
+.scroll-hero .hero__cta {
+  will-change: transform, opacity;
+  transition: none; /* Disable CSS transitions, JS handles this */
+}
+
+/* ============================================================================
+   ORB SCROLL EFFECTS
+   ============================================================================ */
+
+.scroll-hero .hero-ferni {
+  z-index: 10; /* Ensure orb stays on top during transformation */
+}
+
+.scroll-hero .hero-ferni__orb {
+  transform-origin: center center;
+  /* Add subtle shadow that grows with scale */
+  box-shadow: 
+    0 10px 40px rgba(74, 103, 65, calc(0.2 + var(--scroll-hero-progress, 0) * 0.15)),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.15),
+    inset 0 8px 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Rotation effect via CSS variable */
+.scroll-hero .hero-ferni__orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    calc(135deg + var(--scroll-rotation, 0)),
+    transparent 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ============================================================================
+   RING EXPANSION
+   ============================================================================ */
+
+.scroll-hero .hero-ferni__ring {
+  transform-origin: center center;
+}
+
+/* Stagger ring animations */
+.scroll-hero .hero-ferni__ring:nth-child(1) {
+  transition-delay: 0ms;
+}
+.scroll-hero .hero-ferni__ring:nth-child(2) {
+  transition-delay: 50ms;
+}
+.scroll-hero .hero-ferni__ring:nth-child(3) {
+  transition-delay: 100ms;
+}
+
+/* ============================================================================
+   TEXT FADE EFFECTS
+   ============================================================================ */
+
+.scroll-hero .hero__content {
+  position: relative;
+  z-index: 5;
+}
+
+/* Add blur as text fades */
+.hero-scrolled .hero__headline,
+.hero-scrolled .hero__subhead,
+.hero-scrolled .hero__tagline {
+  filter: blur(calc(var(--scroll-hero-progress, 0) * 2px));
+}
+
+/* ============================================================================
+   BACKGROUND PARALLAX LAYERS
+   ============================================================================ */
+
+.scroll-hero [data-parallax],
+.scroll-hero .hero__bg-layer {
+  will-change: transform, opacity;
+  transform-origin: center bottom;
+}
+
+/* Gradient overlay that intensifies on scroll */
+.scroll-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 60%,
+    rgba(245, 241, 232, calc(var(--scroll-hero-progress, 0) * 0.8)) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ============================================================================
+   BODY STATE CLASSES
+   ============================================================================ */
+
+/* When hero is being scrolled */
+body.hero-scrolled .header {
+  /* Could add header effects here */
+}
+
+/* Half scrolled - orb is prominent */
+body.hero-half-scrolled .scroll-hero .hero-ferni__glow {
+  filter: saturate(1.2);
+}
+
+/* Fully scrolled - hero is mostly gone */
+body.hero-fully-scrolled .scroll-hero {
+  pointer-events: none;
+}
+
+body.hero-fully-scrolled .scroll-hero .hero-ferni {
+  pointer-events: auto;
+}
+
+/* ============================================================================
+   DRAMATIC ENTRANCE (First load)
+   ============================================================================ */
+
+.scroll-hero.is-loaded .hero-ferni__orb {
+  animation: hero-orb-entrance 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-hero.is-loaded .hero__headline {
+  animation: hero-text-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+.scroll-hero.is-loaded .hero__subhead {
+  animation: hero-text-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+.scroll-hero.is-loaded .hero__cta {
+  animation: hero-cta-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+}
+
+@keyframes hero-orb-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hero-text-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-cta-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hero .hero-ferni__orb,
+  .scroll-hero .hero-ferni__glow,
+  .scroll-hero .hero-ferni__ring,
+  .scroll-hero .hero__headline,
+  .scroll-hero .hero__subhead,
+  .scroll-hero .hero__tagline,
+  .scroll-hero .hero__cta {
+    transform: none !important;
+    filter: none !important;
+  }
+  
+  .scroll-hero::after {
+    display: none;
+  }
+}
+

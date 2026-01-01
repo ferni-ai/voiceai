@@ -1,4 +1,640 @@
-"use strict";(function(){"use strict";const s={sentiment:{positive:.7,negative:.3,neutral:.5},colors:{warmShift:10,coolShift:-5,saturationBoost:5,lightnessBoost:3},typing:{sampleWindow:5e3,minKeystrokes:3,breathMultiplier:1.5},attention:{minDuration:2e3,fadeDelay:3e4,maxSections:5},respectsReducedMotion:window.matchMedia("(prefers-reduced-motion: reduce)").matches},n={sentiment:.5,engagementLevel:0,typingRhythm:null,lastKeyTime:0,keystrokeTimes:[],attentionMap:new Map,scrollVelocity:0,mouseMovement:0,interactionCount:0,ferniMood:"present"},o={root:document.documentElement,signals:{fastScroll:-.05,slowScroll:.02,scrollPause:.03,ctaHover:.05,teamClick:.08,faqOpen:.04,timeSpent30s:.05,timeSpent60s:.08,returnVisitor:.1,demoOpen:.15},init(){localStorage.getItem("ferni_visited")&&this.adjustSentiment("returnVisitor"),this.applyColors()},adjustSentiment(e){const t=this.signals[e]||0;n.sentiment=Math.max(0,Math.min(1,n.sentiment+t)),this.applyColors(),c.updateMood()},applyColors(){if(s.respectsReducedMotion)return;const e=n.sentiment-s.sentiment.neutral,t=e>0?e*s.colors.warmShift:e*s.colors.coolShift,i=e>0?e*s.colors.saturationBoost:0,r=e*s.colors.lightnessBoost;this.root.style.setProperty("--sentiment-hue-shift",`${t}deg`),this.root.style.setProperty("--sentiment-saturation-boost",`${i}%`),this.root.style.setProperty("--sentiment-lightness-boost",`${r}%`),this.root.style.setProperty("--sentiment-level",n.sentiment);const a=.9+n.sentiment*.2;this.root.style.setProperty("--warmth-filter",`sepia(${(n.sentiment-.5)*10}%) saturate(${a*100}%)`)}},u={inputs:null,orb:null,init(){this.inputs=document.querySelectorAll('input[type="text"], input[type="email"], textarea'),this.orb=document.querySelector("[data-hero-orb], [data-orb-aware], .hero-ferni"),this.inputs.forEach(e=>{e.addEventListener("keydown",this.handleKeydown.bind(this)),e.addEventListener("focus",this.handleFocus.bind(this)),e.addEventListener("blur",this.handleBlur.bind(this))})},handleKeydown(e){const t=Date.now();if(n.lastKeyTime>0){const i=t-n.lastKeyTime;n.keystrokeTimes.push(i),n.keystrokeTimes.length>20&&n.keystrokeTimes.shift(),n.keystrokeTimes.length>=s.typing.minKeystrokes&&this.calculateRhythm()}n.lastKeyTime=t,n.keystrokeTimes.length>5&&o.adjustSentiment("slowScroll")},handleFocus(){this.orb&&!s.respectsReducedMotion&&this.orb.classList.add("ferni-listening-to-typing")},handleBlur(){this.orb&&this.orb.classList.remove("ferni-listening-to-typing"),n.keystrokeTimes=[],n.typingRhythm=null,this.resetBreath()},calculateRhythm(){const e=n.keystrokeTimes.reduce((i,r)=>i+r,0)/n.keystrokeTimes.length;n.typingRhythm=e;const t=Math.max(2e3,Math.min(6e3,e*s.typing.breathMultiplier*10));this.syncBreath(t)},syncBreath(e){!this.orb||s.respectsReducedMotion||(this.orb.style.setProperty("--typing-breath-rate",`${e}ms`),this.orb.classList.add("ferni-typing-sync"))},resetBreath(){this.orb&&(this.orb.classList.remove("ferni-typing-sync"),this.orb.style.removeProperty("--typing-breath-rate"))}},c={orb:null,moodIndicator:null,currentMood:"present",moods:{present:{breathRate:4e3,glowIntensity:.3,pulseChance:.1,description:"Calm, attentive presence"},curious:{breathRate:3500,glowIntensity:.4,pulseChance:.2,description:"Engaged and interested"},warm:{breathRate:4500,glowIntensity:.5,pulseChance:.3,description:"Connected and welcoming"},delighted:{breathRate:3e3,glowIntensity:.6,pulseChance:.4,description:"Excited and encouraging"},concerned:{breathRate:5e3,glowIntensity:.35,pulseChance:.15,description:"Attentive and supportive"}},init(){this.orb=document.querySelector("[data-hero-orb], [data-orb-aware], .hero-ferni"),this.updateMood()},updateMood(){const e=n.sentiment,t=n.engagementLevel;let i="present";e>.8&&t>=1?i="delighted":e>.65?i="warm":e>.55&&t>=1?i="curious":e<.35&&(i="concerned"),i!==this.currentMood&&this.transitionToMood(i)},transitionToMood(e){if(!this.orb||s.respectsReducedMotion)return;const t=this.moods[e];t&&(Object.keys(this.moods).forEach(i=>{this.orb.classList.remove(`ferni-mood-${i}`)}),this.orb.classList.add(`ferni-mood-${e}`),this.orb.style.setProperty("--mood-breath-rate",`${t.breathRate}ms`),this.orb.style.setProperty("--mood-glow-intensity",t.glowIntensity),this.currentMood=e,n.ferniMood=e,Math.random()<t.pulseChance&&this.moodPulse())},moodPulse(){!this.orb||s.respectsReducedMotion||this.orb.animate([{transform:"scale(1)",filter:"brightness(1)"},{transform:"scale(1.03)",filter:"brightness(1.1)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:600,easing:"cubic-bezier(0.34, 1.56, 0.64, 1)"})}},d={sections:null,observer:null,visibilityTimers:new Map,init(){this.sections=document.querySelectorAll("section[id], .section"),this.setupObserver()},setupObserver(){this.observer=new IntersectionObserver(e=>{e.forEach(t=>{const i=t.target,r=i.id||i.className;t.isIntersecting?this.startTracking(i,r):this.stopTracking(r)})},{threshold:.5}),this.sections.forEach(e=>this.observer.observe(e))},startTracking(e,t){const i=Date.now(),r=setInterval(()=>{const a=Date.now()-i;n.attentionMap.set(t,{duration:a,lastSeen:Date.now(),element:e}),a>=s.attention.minDuration&&this.markAttended(e,a),a===s.attention.minDuration&&o.adjustSentiment("scrollPause")},500);this.visibilityTimers.set(t,r)},stopTracking(e){const t=this.visibilityTimers.get(e);t&&(clearInterval(t),this.visibilityTimers.delete(e))},markAttended(e,t){if(!s.respectsReducedMotion&&!e.classList.contains("ferni-attended")){e.classList.add("ferni-attended");const i=Math.min(1,t/1e4);e.style.setProperty("--attention-intensity",i)}},getMostAttended(e=3){return Array.from(n.attentionMap.entries()).sort((i,r)=>r[1].duration-i[1].duration).slice(0,e).map(([i,r])=>({id:i,...r}))}},g={patterns:{teamInterest:{trigger:()=>{const e=n.attentionMap.get("team");return e&&e.duration>5e3},action:()=>this.highlightCTA("Meet the team \u2192","#team")},pricingIntent:{trigger:()=>{const e=n.attentionMap.get("pricing");return e&&e.duration>8e3},action:()=>this.showSoftNudge("Ready to start? Your first 5 conversations are free.")},ctaHesitation:{trigger:()=>n.interactionCount>10&&!n.hasClickedCTA,action:()=>this.showSoftNudge("No pressure. Just try talking to Ferni.")},highEngagementNoConversion:{trigger:()=>n.sentiment>.7&&n.engagementLevel>=2&&!n.hasConverted,action:()=>this.pulseDemo()}},triggeredPatterns:new Set,init(){setInterval(()=>this.checkPatterns(),5e3)},checkPatterns(){Object.entries(this.patterns).forEach(([e,t])=>{!this.triggeredPatterns.has(e)&&t.trigger()&&(this.triggeredPatterns.add(e),t.action())})},highlightCTA(e,t){const i=document.querySelector(`a[href="${t}"]`);i&&!s.respectsReducedMotion&&(i.classList.add("ferni-suggested"),setTimeout(()=>i.classList.remove("ferni-suggested"),5e3))},showSoftNudge(e){s.debug&&console.log("[Ferni Sentience] Soft nudge (disabled):",e)},pulseDemo(){const e=document.querySelector(".ferni-demo-trigger");e&&!s.respectsReducedMotion&&(e.classList.add("ferni-pulse-attention"),setTimeout(()=>e.classList.remove("ferni-pulse-attention"),3e3))}},p={lastScrollY:0,lastScrollTime:0,velocitySamples:[],init(){window.addEventListener("scroll",this.handleScroll.bind(this),{passive:!0})},handleScroll(){const e=Date.now(),t=window.scrollY;if(this.lastScrollTime>0){const i=Math.abs(t-this.lastScrollY),r=e-this.lastScrollTime,a=i/r;this.velocitySamples.push(a),this.velocitySamples.length>10&&this.velocitySamples.shift(),n.scrollVelocity=this.velocitySamples.reduce((m,b)=>m+b,0)/this.velocitySamples.length,a>3?o.adjustSentiment("fastScroll"):a<.5&&a>0&&o.adjustSentiment("slowScroll")}this.lastScrollY=t,this.lastScrollTime=e}},f={init(){document.querySelectorAll(".btn--primary, .btn--secondary").forEach(e=>{e.addEventListener("mouseenter",()=>{o.adjustSentiment("ctaHover"),n.interactionCount++}),e.addEventListener("click",()=>{n.hasClickedCTA=!0,o.adjustSentiment("demoOpen")})}),document.querySelectorAll(".team-card, .persona-card").forEach(e=>{e.addEventListener("click",()=>{o.adjustSentiment("teamClick"),n.engagementLevel=Math.min(2,n.engagementLevel+1)})}),document.querySelectorAll(".faq-item, details").forEach(e=>{e.addEventListener("toggle",()=>{o.adjustSentiment("faqOpen")})}),setTimeout(()=>{o.adjustSentiment("timeSpent30s"),n.engagementLevel=Math.min(2,n.engagementLevel+1)},3e4),setTimeout(()=>{o.adjustSentiment("timeSpent60s"),n.engagementLevel=2},6e4),document.addEventListener("click",e=>{e.target.closest(".ferni-demo-trigger")&&(o.adjustSentiment("demoOpen"),n.engagementLevel=2)})}};function y(){if(document.getElementById("ferni-sentience-styles"))return;const e=document.createElement("style");e.id="ferni-sentience-styles",e.textContent=`
+/**
+ * Ferni Sentience - Next-Generation AI Interactions
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * PHILOSOPHY: Make visitors FEEL understood before they even speak.
+ *
+ * This module adds five new "superhuman" capabilities:
+ *
+ * 1. SENTIMENT COLOR SHIFTS - Page warmth adapts to user engagement
+ * 2. TYPING CADENCE MIRRORING - Ferni breathes with your typing rhythm
+ * 3. EMOTIONAL CONTAGION - Ferni's mood influenced by detected sentiment
+ * 4. ATTENTION AWARENESS - Subtle feedback where you've spent time
+ * 5. PREDICTIVE PRESENCE - Anticipate and surface relevant content
+ *
+ * @module ferni-sentience
+ */
+
+(function () {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const CONFIG = {
+    // Sentiment thresholds
+    sentiment: {
+      positive: 0.7, // Above this = warm colors
+      negative: 0.3, // Below this = calming colors
+      neutral: 0.5,
+    },
+
+    // Color shift ranges (HSL adjustments)
+    colors: {
+      warmShift: 10, // Degrees toward warm (positive sentiment)
+      coolShift: -5, // Degrees toward cool (calming)
+      saturationBoost: 5, // % increase for positive
+      lightnessBoost: 3, // % increase for warmth
+    },
+
+    // Typing cadence settings
+    typing: {
+      sampleWindow: 5000, // ms to sample typing rhythm
+      minKeystrokes: 3, // Minimum keystrokes before adapting
+      breathMultiplier: 1.5, // How breath rate maps to typing rate
+    },
+
+    // Attention tracking
+    attention: {
+      minDuration: 2000, // ms before section counts as "attended"
+      fadeDelay: 30000, // ms before attention fades
+      maxSections: 5, // Max sections to track
+    },
+
+    // Reduced motion respect
+    respectsReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const state = {
+    sentiment: 0.5, // 0 = negative, 1 = positive
+    engagementLevel: 0, // 0 = browsing, 1 = engaged, 2 = invested
+    typingRhythm: null, // ms between keystrokes
+    lastKeyTime: 0,
+    keystrokeTimes: [],
+    attentionMap: new Map(), // section -> { duration, lastSeen }
+    scrollVelocity: 0,
+    mouseMovement: 0,
+    interactionCount: 0,
+    ferniMood: 'present', // present, curious, warm, concerned, delighted
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. SENTIMENT COLOR SHIFTS
+  // The page subtly warms up as users engage positively
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const SentimentColors = {
+    root: document.documentElement,
+
+    // Behavioral signals that indicate sentiment
+    signals: {
+      fastScroll: -0.05, // Scanning, not reading
+      slowScroll: 0.02, // Careful reading
+      scrollPause: 0.03, // Thinking about content
+      ctaHover: 0.05, // Interest in action
+      teamClick: 0.08, // Engagement with personas
+      faqOpen: 0.04, // Seeking information
+      timeSpent30s: 0.05, // Invested time
+      timeSpent60s: 0.08, // Very invested
+      returnVisitor: 0.1, // They came back!
+      demoOpen: 0.15, // Strong intent
+    },
+
+    init() {
+      // Check returning visitor
+      if (localStorage.getItem('ferni_visited')) {
+        this.adjustSentiment('returnVisitor');
+      }
+
+      // Apply initial CSS custom properties
+      this.applyColors();
+    },
+
+    adjustSentiment(signal) {
+      const delta = this.signals[signal] || 0;
+      state.sentiment = Math.max(0, Math.min(1, state.sentiment + delta));
+      this.applyColors();
+
+      // Update Ferni's mood based on sentiment
+      EmotionalContagion.updateMood();
+    },
+
+    applyColors() {
+      if (CONFIG.respectsReducedMotion) return;
+
+      // Calculate color adjustments based on sentiment
+      const sentimentDelta = state.sentiment - CONFIG.sentiment.neutral;
+
+      // Hue shift (warmer for positive, cooler for calming)
+      const hueShift =
+        sentimentDelta > 0
+          ? sentimentDelta * CONFIG.colors.warmShift
+          : sentimentDelta * CONFIG.colors.coolShift;
+
+      // Saturation boost for positive engagement
+      const satBoost = sentimentDelta > 0 ? sentimentDelta * CONFIG.colors.saturationBoost : 0;
+
+      // Lightness adjustment
+      const lightBoost = sentimentDelta * CONFIG.colors.lightnessBoost;
+
+      // Apply as CSS custom properties for use in animations
+      this.root.style.setProperty('--sentiment-hue-shift', `${hueShift}deg`);
+      this.root.style.setProperty('--sentiment-saturation-boost', `${satBoost}%`);
+      this.root.style.setProperty('--sentiment-lightness-boost', `${lightBoost}%`);
+      this.root.style.setProperty('--sentiment-level', state.sentiment);
+
+      // Subtle filter adjustment on hero background
+      const warmth = 0.9 + state.sentiment * 0.2;
+      this.root.style.setProperty(
+        '--warmth-filter',
+        `sepia(${(state.sentiment - 0.5) * 10}%) saturate(${warmth * 100}%)`
+      );
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. TYPING CADENCE MIRRORING
+  // Ferni's breathing syncs with your typing rhythm
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const TypingMirror = {
+    inputs: null,
+    orb: null,
+
+    init() {
+      this.inputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
+      this.orb = document.querySelector('[data-hero-orb], [data-orb-aware], .hero-ferni');
+
+      this.inputs.forEach((input) => {
+        input.addEventListener('keydown', this.handleKeydown.bind(this));
+        input.addEventListener('focus', this.handleFocus.bind(this));
+        input.addEventListener('blur', this.handleBlur.bind(this));
+      });
+    },
+
+    handleKeydown(e) {
+      const now = Date.now();
+
+      // Track keystroke timing
+      if (state.lastKeyTime > 0) {
+        const gap = now - state.lastKeyTime;
+        state.keystrokeTimes.push(gap);
+
+        // Keep only recent keystrokes
+        if (state.keystrokeTimes.length > 20) {
+          state.keystrokeTimes.shift();
+        }
+
+        // Calculate rhythm after minimum keystrokes
+        if (state.keystrokeTimes.length >= CONFIG.typing.minKeystrokes) {
+          this.calculateRhythm();
+        }
+      }
+
+      state.lastKeyTime = now;
+
+      // Positive sentiment signal for typing engagement
+      if (state.keystrokeTimes.length > 5) {
+        SentimentColors.adjustSentiment('slowScroll'); // Repurpose as "engaged typing"
+      }
+    },
+
+    handleFocus() {
+      // Ferni "leans in" when you start typing
+      if (this.orb && !CONFIG.respectsReducedMotion) {
+        this.orb.classList.add('ferni-listening-to-typing');
+      }
+    },
+
+    handleBlur() {
+      // Reset when done typing
+      if (this.orb) {
+        this.orb.classList.remove('ferni-listening-to-typing');
+      }
+      state.keystrokeTimes = [];
+      state.typingRhythm = null;
+      this.resetBreath();
+    },
+
+    calculateRhythm() {
+      const avg = state.keystrokeTimes.reduce((a, b) => a + b, 0) / state.keystrokeTimes.length;
+      state.typingRhythm = avg;
+
+      // Map typing rhythm to breath rate
+      // Fast typing (100ms gaps) = faster breathing
+      // Slow typing (500ms gaps) = slower, contemplative breathing
+      const breathRate = Math.max(2000, Math.min(6000, avg * CONFIG.typing.breathMultiplier * 10));
+
+      this.syncBreath(breathRate);
+    },
+
+    syncBreath(rate) {
+      if (!this.orb || CONFIG.respectsReducedMotion) return;
+
+      // Apply synced breathing animation
+      this.orb.style.setProperty('--typing-breath-rate', `${rate}ms`);
+      this.orb.classList.add('ferni-typing-sync');
+    },
+
+    resetBreath() {
+      if (!this.orb) return;
+      this.orb.classList.remove('ferni-typing-sync');
+      this.orb.style.removeProperty('--typing-breath-rate');
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. EMOTIONAL CONTAGION
+  // Ferni's mood is influenced by detected user sentiment
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const EmotionalContagion = {
+    orb: null,
+    moodIndicator: null,
+    currentMood: 'present',
+
+    moods: {
+      present: {
+        breathRate: 4000,
+        glowIntensity: 0.3,
+        pulseChance: 0.1,
+        description: 'Calm, attentive presence',
+      },
+      curious: {
+        breathRate: 3500,
+        glowIntensity: 0.4,
+        pulseChance: 0.2,
+        description: 'Engaged and interested',
+      },
+      warm: {
+        breathRate: 4500,
+        glowIntensity: 0.5,
+        pulseChance: 0.3,
+        description: 'Connected and welcoming',
+      },
+      delighted: {
+        breathRate: 3000,
+        glowIntensity: 0.6,
+        pulseChance: 0.4,
+        description: 'Excited and encouraging',
+      },
+      concerned: {
+        breathRate: 5000,
+        glowIntensity: 0.35,
+        pulseChance: 0.15,
+        description: 'Attentive and supportive',
+      },
+    },
+
+    init() {
+      this.orb = document.querySelector('[data-hero-orb], [data-orb-aware], .hero-ferni');
+      this.updateMood();
+    },
+
+    updateMood() {
+      const sentiment = state.sentiment;
+      const engagement = state.engagementLevel;
+
+      // Determine mood based on sentiment and engagement
+      let newMood = 'present';
+
+      if (sentiment > 0.8 && engagement >= 1) {
+        newMood = 'delighted';
+      } else if (sentiment > 0.65) {
+        newMood = 'warm';
+      } else if (sentiment > 0.55 && engagement >= 1) {
+        newMood = 'curious';
+      } else if (sentiment < 0.35) {
+        newMood = 'concerned';
+      }
+
+      if (newMood !== this.currentMood) {
+        this.transitionToMood(newMood);
+      }
+    },
+
+    transitionToMood(mood) {
+      if (!this.orb || CONFIG.respectsReducedMotion) return;
+
+      const moodConfig = this.moods[mood];
+      if (!moodConfig) return;
+
+      // Remove old mood class
+      Object.keys(this.moods).forEach((m) => {
+        this.orb.classList.remove(`ferni-mood-${m}`);
+      });
+
+      // Add new mood class
+      this.orb.classList.add(`ferni-mood-${mood}`);
+
+      // Apply mood-specific CSS properties
+      this.orb.style.setProperty('--mood-breath-rate', `${moodConfig.breathRate}ms`);
+      this.orb.style.setProperty('--mood-glow-intensity', moodConfig.glowIntensity);
+
+      this.currentMood = mood;
+      state.ferniMood = mood;
+
+      // Occasional mood pulse
+      if (Math.random() < moodConfig.pulseChance) {
+        this.moodPulse();
+      }
+    },
+
+    moodPulse() {
+      if (!this.orb || CONFIG.respectsReducedMotion) return;
+
+      this.orb.animate(
+        [
+          { transform: 'scale(1)', filter: 'brightness(1)' },
+          { transform: 'scale(1.03)', filter: 'brightness(1.1)' },
+          { transform: 'scale(1)', filter: 'brightness(1)' },
+        ],
+        {
+          duration: 600,
+          easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }
+      );
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. ATTENTION AWARENESS
+  // Subtle visual feedback showing where user has spent time
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const AttentionAwareness = {
+    sections: null,
+    observer: null,
+    visibilityTimers: new Map(),
+
+    init() {
+      this.sections = document.querySelectorAll('section[id], .section');
+      this.setupObserver();
+    },
+
+    setupObserver() {
+      this.observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const section = entry.target;
+            const sectionId = section.id || section.className;
+
+            if (entry.isIntersecting) {
+              this.startTracking(section, sectionId);
+            } else {
+              this.stopTracking(sectionId);
+            }
+          });
+        },
+        { threshold: 0.5 }
+      );
+
+      this.sections.forEach((section) => this.observer.observe(section));
+    },
+
+    startTracking(section, sectionId) {
+      const startTime = Date.now();
+
+      const timer = setInterval(() => {
+        const duration = Date.now() - startTime;
+
+        // Update attention map
+        state.attentionMap.set(sectionId, {
+          duration,
+          lastSeen: Date.now(),
+          element: section,
+        });
+
+        // Mark section as "attended" after threshold
+        if (duration >= CONFIG.attention.minDuration) {
+          this.markAttended(section, duration);
+        }
+
+        // Positive sentiment signal for attention
+        if (duration === CONFIG.attention.minDuration) {
+          SentimentColors.adjustSentiment('scrollPause');
+        }
+      }, 500);
+
+      this.visibilityTimers.set(sectionId, timer);
+    },
+
+    stopTracking(sectionId) {
+      const timer = this.visibilityTimers.get(sectionId);
+      if (timer) {
+        clearInterval(timer);
+        this.visibilityTimers.delete(sectionId);
+      }
+    },
+
+    markAttended(section, duration) {
+      if (CONFIG.respectsReducedMotion) return;
+
+      // Add subtle "attended" indicator
+      if (!section.classList.contains('ferni-attended')) {
+        section.classList.add('ferni-attended');
+
+        // Intensity based on duration
+        const intensity = Math.min(1, duration / 10000);
+        section.style.setProperty('--attention-intensity', intensity);
+      }
+    },
+
+    // Get most attended sections (for predictive content)
+    getMostAttended(count = 3) {
+      const sorted = Array.from(state.attentionMap.entries())
+        .sort((a, b) => b[1].duration - a[1].duration)
+        .slice(0, count);
+
+      return sorted.map(([id, data]) => ({ id, ...data }));
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. PREDICTIVE PRESENCE
+  // Anticipate and surface relevant content based on behavior patterns
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const PredictivePresence = {
+    patterns: {
+      // Pattern: User spent time on team section
+      teamInterest: {
+        trigger: () => {
+          const teamAttention = state.attentionMap.get('team');
+          return teamAttention && teamAttention.duration > 5000;
+        },
+        action: () => this.highlightCTA('Meet the team →', '#team'),
+      },
+
+      // Pattern: User read pricing carefully
+      pricingIntent: {
+        trigger: () => {
+          const pricingAttention = state.attentionMap.get('pricing');
+          return pricingAttention && pricingAttention.duration > 8000;
+        },
+        action: () => this.showSoftNudge('Ready to start? Your first 5 conversations are free.'),
+      },
+
+      // Pattern: User scrolled past CTA multiple times
+      ctaHesitation: {
+        trigger: () => state.interactionCount > 10 && !state.hasClickedCTA,
+        action: () => this.showSoftNudge('No pressure. Just try talking to Ferni.'),
+      },
+
+      // Pattern: High engagement, not converted
+      highEngagementNoConversion: {
+        trigger: () => state.sentiment > 0.7 && state.engagementLevel >= 2 && !state.hasConverted,
+        action: () => this.pulseDemo(),
+      },
+    },
+
+    triggeredPatterns: new Set(),
+
+    init() {
+      // Check patterns periodically
+      setInterval(() => this.checkPatterns(), 5000);
+    },
+
+    checkPatterns() {
+      Object.entries(this.patterns).forEach(([name, pattern]) => {
+        if (!this.triggeredPatterns.has(name) && pattern.trigger()) {
+          this.triggeredPatterns.add(name);
+          pattern.action();
+        }
+      });
+    },
+
+    highlightCTA(text, href) {
+      // Subtle highlight on relevant CTA
+      const cta = document.querySelector(`a[href="${href}"]`);
+      if (cta && !CONFIG.respectsReducedMotion) {
+        cta.classList.add('ferni-suggested');
+
+        // Remove after 5 seconds
+        setTimeout(() => cta.classList.remove('ferni-suggested'), 5000);
+      }
+    },
+
+    showSoftNudge(message) {
+      // DISABLED: Soft nudge boxes were intrusive
+      // Instead, log for debugging and use subtle visual cues
+      if (CONFIG.debug) {
+        console.log('[Ferni Sentience] Soft nudge (disabled):', message);
+      }
+      // The sentiment color shifts and mood changes provide enough feedback
+      // without floating boxes
+    },
+
+    pulseDemo() {
+      const demoTrigger = document.querySelector('.ferni-demo-trigger');
+      if (demoTrigger && !CONFIG.respectsReducedMotion) {
+        demoTrigger.classList.add('ferni-pulse-attention');
+        setTimeout(() => demoTrigger.classList.remove('ferni-pulse-attention'), 3000);
+      }
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SCROLL VELOCITY TRACKING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const ScrollTracker = {
+    lastScrollY: 0,
+    lastScrollTime: 0,
+    velocitySamples: [],
+
+    init() {
+      window.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
+    },
+
+    handleScroll() {
+      const now = Date.now();
+      const currentY = window.scrollY;
+
+      if (this.lastScrollTime > 0) {
+        const deltaY = Math.abs(currentY - this.lastScrollY);
+        const deltaT = now - this.lastScrollTime;
+        const velocity = deltaY / deltaT;
+
+        this.velocitySamples.push(velocity);
+        if (this.velocitySamples.length > 10) this.velocitySamples.shift();
+
+        state.scrollVelocity =
+          this.velocitySamples.reduce((a, b) => a + b, 0) / this.velocitySamples.length;
+
+        // Sentiment signals based on scroll behavior
+        if (velocity > 3) {
+          SentimentColors.adjustSentiment('fastScroll');
+        } else if (velocity < 0.5 && velocity > 0) {
+          SentimentColors.adjustSentiment('slowScroll');
+        }
+      }
+
+      this.lastScrollY = currentY;
+      this.lastScrollTime = now;
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INTERACTION TRACKING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const InteractionTracker = {
+    init() {
+      // Track CTA hovers
+      document.querySelectorAll('.btn--primary, .btn--secondary').forEach((btn) => {
+        btn.addEventListener('mouseenter', () => {
+          SentimentColors.adjustSentiment('ctaHover');
+          state.interactionCount++;
+        });
+
+        btn.addEventListener('click', () => {
+          state.hasClickedCTA = true;
+          SentimentColors.adjustSentiment('demoOpen');
+        });
+      });
+
+      // Track team card clicks
+      document.querySelectorAll('.team-card, .persona-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          SentimentColors.adjustSentiment('teamClick');
+          state.engagementLevel = Math.min(2, state.engagementLevel + 1);
+        });
+      });
+
+      // Track FAQ opens
+      document.querySelectorAll('.faq-item, details').forEach((item) => {
+        item.addEventListener('toggle', () => {
+          SentimentColors.adjustSentiment('faqOpen');
+        });
+      });
+
+      // Time-based engagement
+      setTimeout(() => {
+        SentimentColors.adjustSentiment('timeSpent30s');
+        state.engagementLevel = Math.min(2, state.engagementLevel + 1);
+      }, 30000);
+
+      setTimeout(() => {
+        SentimentColors.adjustSentiment('timeSpent60s');
+        state.engagementLevel = 2;
+      }, 60000);
+
+      // Demo modal tracking
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.ferni-demo-trigger')) {
+          SentimentColors.adjustSentiment('demoOpen');
+          state.engagementLevel = 2;
+        }
+      });
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CSS INJECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function injectStyles() {
+    if (document.getElementById('ferni-sentience-styles')) return;
+
+    const styles = document.createElement('style');
+    styles.id = 'ferni-sentience-styles';
+    styles.textContent = `
       /* Sentiment color shifts */
       :root {
         --sentiment-hue-shift: 0deg;
@@ -106,4 +742,170 @@
           transform: none;
         }
       }
-    `,document.head.appendChild(e)}const l={isMobile:/iPhone|iPad|iPod|Android/i.test(navigator.userAgent),supportsHaptics:"vibrate"in navigator,touchStartTime:0,init(){this.isMobile&&(document.addEventListener("touchstart",this.handleTouchStart.bind(this),{passive:!0}),document.addEventListener("touchend",this.handleTouchEnd.bind(this),{passive:!0}),this.initMobileScroll(),this.adjustNudgePositioning())},handleTouchStart(e){this.touchStartTime=Date.now(),e.target.closest(".btn, .team-card, .persona-card, .faq-item")&&n.interactionCount++},handleTouchEnd(e){const t=Date.now()-this.touchStartTime,i=e.target.closest(".btn--primary, .btn--secondary");t>500&&i&&(o.adjustSentiment("ctaHover"),this.hapticFeedback("light")),t<300&&i&&(o.adjustSentiment("ctaHover"),this.hapticFeedback("medium")),e.target.closest(".ferni-demo-trigger")&&this.hapticFeedback("heavy")},hapticFeedback(e){if(!this.supportsHaptics||s.respectsReducedMotion)return;const t={light:[10],medium:[20],heavy:[30,10,30],success:[10,50,20]};try{navigator.vibrate(t[e]||[10])}catch{}},initMobileScroll(){let e=0,t=0;document.addEventListener("touchmove",r=>{const a=r.touches[0];t=Math.abs(a.clientY-e),t>30&&o.adjustSentiment("fastScroll"),e=a.clientY},{passive:!0});let i;document.addEventListener("scroll",()=>{clearTimeout(i),i=setTimeout(()=>{t<5&&o.adjustSentiment("scrollPause"),t=0},150)},{passive:!0})},adjustNudgePositioning(){}};function h(){y(),o.init(),u.init(),c.init(),d.init(),g.init(),p.init(),f.init(),l.init(),window.FerniSentience={state:()=>({...n}),sentiment:()=>n.sentiment,mood:()=>n.ferniMood,attention:()=>d.getMostAttended(),adjustSentiment:e=>o.adjustSentiment(e),isMobile:()=>l.isMobile,haptic:e=>l.hapticFeedback(e)},console.log("%c\u{1F9E0} Ferni Sentience loaded","color: #4a6741; font-weight: bold;"),console.log("%c5 New Capabilities Active:","color: #756a5e; font-size: 11px;"),console.log("%c  1. Sentiment Color Shifts","color: #756a5e; font-size: 10px;"),console.log("%c  2. Typing Cadence Mirroring","color: #756a5e; font-size: 10px;"),console.log("%c  3. Emotional Contagion","color: #756a5e; font-size: 10px;"),console.log("%c  4. Attention Awareness","color: #756a5e; font-size: 10px;"),console.log("%c  5. Predictive Presence","color: #756a5e; font-size: 10px;"),l.isMobile&&console.log("%c  \u{1F4F1} Mobile optimizations active","color: #756a5e; font-size: 10px;")}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",h):h()})();
+    `;
+
+    document.head.appendChild(styles);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MOBILE TOUCH OPTIMIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const MobileOptimization = {
+    isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+    supportsHaptics: 'vibrate' in navigator,
+    touchStartTime: 0,
+
+    init() {
+      if (!this.isMobile) return;
+
+      // Touch-based sentiment signals
+      document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+      document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+
+      // Mobile scroll momentum detection
+      this.initMobileScroll();
+
+      // Adjust nudge positioning for mobile
+      this.adjustNudgePositioning();
+    },
+
+    handleTouchStart(e) {
+      this.touchStartTime = Date.now();
+
+      // Track touch on interactive elements
+      const target = e.target.closest('.btn, .team-card, .persona-card, .faq-item');
+      if (target) {
+        state.interactionCount++;
+      }
+    },
+
+    handleTouchEnd(e) {
+      const touchDuration = Date.now() - this.touchStartTime;
+      const target = e.target.closest('.btn--primary, .btn--secondary');
+
+      // Long press = strong intent
+      if (touchDuration > 500 && target) {
+        SentimentColors.adjustSentiment('ctaHover');
+        this.hapticFeedback('light');
+      }
+
+      // Quick tap on CTA = engagement
+      if (touchDuration < 300 && target) {
+        SentimentColors.adjustSentiment('ctaHover');
+        this.hapticFeedback('medium');
+      }
+
+      // Track demo widget interaction
+      if (e.target.closest('.ferni-demo-trigger')) {
+        this.hapticFeedback('heavy');
+      }
+    },
+
+    hapticFeedback(intensity) {
+      if (!this.supportsHaptics || CONFIG.respectsReducedMotion) return;
+
+      const patterns = {
+        light: [10],
+        medium: [20],
+        heavy: [30, 10, 30],
+        success: [10, 50, 20],
+      };
+
+      try {
+        navigator.vibrate(patterns[intensity] || [10]);
+      } catch (e) {
+        // Haptics not supported
+      }
+    },
+
+    initMobileScroll() {
+      let lastTouchY = 0;
+      let scrollVelocity = 0;
+
+      document.addEventListener(
+        'touchmove',
+        (e) => {
+          const touch = e.touches[0];
+          const deltaY = Math.abs(touch.clientY - lastTouchY);
+          scrollVelocity = deltaY;
+
+          // Fast flick = scanning
+          if (scrollVelocity > 30) {
+            SentimentColors.adjustSentiment('fastScroll');
+          }
+
+          lastTouchY = touch.clientY;
+        },
+        { passive: true }
+      );
+
+      // Scroll stop = reading
+      let scrollStopTimer;
+      document.addEventListener(
+        'scroll',
+        () => {
+          clearTimeout(scrollStopTimer);
+          scrollStopTimer = setTimeout(() => {
+            if (scrollVelocity < 5) {
+              SentimentColors.adjustSentiment('scrollPause');
+            }
+            scrollVelocity = 0;
+          }, 150);
+        },
+        { passive: true }
+      );
+    },
+
+    adjustNudgePositioning() {
+      // Soft nudges disabled - no positioning needed
+      // Mobile haptic feedback and touch tracking still active
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function init() {
+    injectStyles();
+
+    SentimentColors.init();
+    TypingMirror.init();
+    EmotionalContagion.init();
+    AttentionAwareness.init();
+    PredictivePresence.init();
+    ScrollTracker.init();
+    InteractionTracker.init();
+    MobileOptimization.init();
+
+    // Expose for debugging
+    window.FerniSentience = {
+      state: () => ({ ...state }),
+      sentiment: () => state.sentiment,
+      mood: () => state.ferniMood,
+      attention: () => AttentionAwareness.getMostAttended(),
+      adjustSentiment: (signal) => SentimentColors.adjustSentiment(signal),
+      isMobile: () => MobileOptimization.isMobile,
+      haptic: (type) => MobileOptimization.hapticFeedback(type),
+    };
+
+    console.log('%c🧠 Ferni Sentience loaded', 'color: #4a6741; font-weight: bold;');
+    console.log('%c5 New Capabilities Active:', 'color: #756a5e; font-size: 11px;');
+    console.log('%c  1. Sentiment Color Shifts', 'color: #756a5e; font-size: 10px;');
+    console.log('%c  2. Typing Cadence Mirroring', 'color: #756a5e; font-size: 10px;');
+    console.log('%c  3. Emotional Contagion', 'color: #756a5e; font-size: 10px;');
+    console.log('%c  4. Attention Awareness', 'color: #756a5e; font-size: 10px;');
+    console.log('%c  5. Predictive Presence', 'color: #756a5e; font-size: 10px;');
+    if (MobileOptimization.isMobile) {
+      console.log('%c  📱 Mobile optimizations active', 'color: #756a5e; font-size: 10px;');
+    }
+  }
+
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

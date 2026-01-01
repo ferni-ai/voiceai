@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-02
 category: "Building in Public"
+image: "ai-brain.png"
+imageAlt: "Concentric rings with memory symbols floating at different layers"
 readTime: 6
 series: "building-in-public"
 seriesPart: 2

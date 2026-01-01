@@ -21,7 +21,7 @@
   direction: ltr;
 }
 
-@media (max-width: 968px) {
+@media (max-width: 1024px) {
   .feature-grid {
     grid-template-columns: 1fr;
     gap: var(--space-10);

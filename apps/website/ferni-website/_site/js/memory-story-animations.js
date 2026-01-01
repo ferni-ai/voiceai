@@ -1,4 +1,93 @@
-"use strict";const EASING={gentle:"cubic-bezier(0.25, 0.1, 0.25, 1)",spring:"cubic-bezier(0.34, 1.56, 0.64, 1)",springGentle:"cubic-bezier(0.34, 1.2, 0.64, 1)",expoOut:"cubic-bezier(0.16, 1, 0.3, 1)",decelerate:"cubic-bezier(0.0, 0.0, 0.2, 1)",organic:"cubic-bezier(0.4, 0.2, 0.2, 1.1)",playful:"cubic-bezier(0.175, 0.885, 0.32, 1.275)",anticipate:"cubic-bezier(0.38, -0.4, 0.88, 0.65)"},DURATION={micro:50,fast:100,normal:200,slow:300,moderate:400,deliberate:500,dramatic:600,celebration:800,glacial:1500},STAGGER={fast:50,normal:80,slow:120,dramatic:180};class MemoryStoryAnimation{constructor(){this.section=document.querySelector(".memory-story"),this.chapters=[],this.insightPanel=null,this.dashboard=null,this.observer=null,this.hasAnimated=!1,this.section&&this.init()}init(){this.chapters=Array.from(this.section.querySelectorAll(".memory-story__chapter")),this.insightPanel=this.section.querySelector(".memory-story__insight"),this.dashboard=this.section.querySelector(".memory-dashboard"),this.injectKeyframes(),this.prepareElements(),this.setupIntersectionObserver(),this.setupHoverEffects(),console.log("%c\u{1F4D6} Memory Story Animations loaded","color: #4a6741; font-weight: bold;")}injectKeyframes(){const e=document.createElement("style");e.id="memory-story-keyframes",e.textContent=`
+/**
+ * Memory Story Animations
+ * 
+ * Applies Ferni's Pixar-inspired animation principles to the memory timeline.
+ * Creates a cinematic, emotionally resonant storytelling experience.
+ * 
+ * Animation Philosophy:
+ * - Staggered reveals create anticipation
+ * - Organic easings feel natural, not mechanical
+ * - Follow-through makes elements feel alive
+ * - The user's emotional journey is the hero
+ */
+
+// ============================================================================
+// ANIMATION CONSTANTS (from Ferni Design System)
+// ============================================================================
+
+const EASING = {
+  // Pixar-style organic easings
+  gentle: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+  spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  springGentle: 'cubic-bezier(0.34, 1.2, 0.64, 1)',
+  expoOut: 'cubic-bezier(0.16, 1, 0.3, 1)',
+  decelerate: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
+  organic: 'cubic-bezier(0.4, 0.2, 0.2, 1.1)',
+  playful: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  anticipate: 'cubic-bezier(0.38, -0.4, 0.88, 0.65)',
+};
+
+const DURATION = {
+  micro: 50,
+  fast: 100,
+  normal: 200,
+  slow: 300,
+  moderate: 400,
+  deliberate: 500,
+  dramatic: 600,
+  celebration: 800,
+  glacial: 1500,
+};
+
+const STAGGER = {
+  fast: 50,
+  normal: 80,
+  slow: 120,
+  dramatic: 180,
+};
+
+// ============================================================================
+// MEMORY STORY ANIMATION CLASS
+// ============================================================================
+
+class MemoryStoryAnimation {
+  constructor() {
+    this.section = document.querySelector('.memory-story');
+    this.chapters = [];
+    this.insightPanel = null;
+    this.dashboard = null;
+    this.observer = null;
+    this.hasAnimated = false;
+    
+    if (this.section) {
+      this.init();
+    }
+  }
+
+  init() {
+    this.chapters = Array.from(this.section.querySelectorAll('.memory-story__chapter'));
+    this.insightPanel = this.section.querySelector('.memory-story__insight');
+    this.dashboard = this.section.querySelector('.memory-dashboard');
+    
+    // Inject keyframes
+    this.injectKeyframes();
+    
+    // Set initial hidden state (CSS handles visibility)
+    this.prepareElements();
+    
+    // Set up scroll-triggered animations
+    this.setupIntersectionObserver();
+    
+    // Add hover effects
+    this.setupHoverEffects();
+    
+    console.log('%c📖 Memory Story Animations loaded', 'color: #4a6741; font-weight: bold;');
+  }
+
+  injectKeyframes() {
+    const style = document.createElement('style');
+    style.id = 'memory-story-keyframes';
+    style.textContent = `
       /* ========================================
          MEMORY STORY KEYFRAMES - Pixar-Inspired
          ======================================== */
@@ -352,10 +441,311 @@
           stroke-dashoffset: 0 !important;
         }
       }
-    `,document.head.appendChild(e)}prepareElements(){this.chapters.forEach((e,t)=>{e.classList.add("animate-ready"),e.style.setProperty("--chapter-index",t),e.querySelectorAll(".memory-story__tag").forEach((n,r)=>{n.style.setProperty("--tag-index",r)})}),this.insightPanel&&(this.insightPanel.classList.add("animate-ready"),this.insightPanel.querySelectorAll(".memory-story__insight-item").forEach((t,a)=>{t.style.setProperty("--item-index",a)})),this.dashboard&&(this.dashboard.classList.add("animate-ready"),this.dashboard.querySelectorAll(".memory-dashboard__pattern").forEach((t,a)=>{t.style.setProperty("--pattern-index",a)}))}setupIntersectionObserver(){if(window.matchMedia("(prefers-reduced-motion: reduce)").matches){this.chapters.forEach(t=>{t.classList.remove("animate-ready"),t.classList.add("animate-in")}),this.insightPanel&&(this.insightPanel.classList.remove("animate-ready"),this.insightPanel.classList.add("animate-in")),this.dashboard&&(this.dashboard.classList.remove("animate-ready"),this.dashboard.classList.add("animate-in"));return}this.observer=new IntersectionObserver(t=>{t.forEach(a=>{a.isIntersecting&&!a.target.classList.contains("animate-in")&&this.animateElement(a.target)})},{threshold:.2,rootMargin:"0px 0px -50px 0px"}),this.chapters.forEach(t=>{this.observer.observe(t)}),this.insightPanel&&this.observer.observe(this.insightPanel),this.dashboard&&this.observer.observe(this.dashboard)}animateElement(e){const t=this.chapters.indexOf(e),a=t===this.chapters.length-1,n=e===this.insightPanel,r=e===this.dashboard;let o=0;t>=0&&(o=STAGGER.dramatic),a&&(o+=DURATION.moderate),setTimeout(()=>{if(e.classList.remove("animate-ready"),e.classList.add("animate-in"),a){const i=e.querySelector(".memory-story__card--ferni");i&&setTimeout(()=>{i.style.animation=`warmthPulse 2s ${EASING.gentle} infinite`},DURATION.dramatic)}r&&this.animateDashboard(e)},o)}animateDashboard(e){this.animateStatCounters(e);const t=e.querySelector(".memory-dashboard__line");t&&(t.style.strokeDasharray="500",t.style.strokeDashoffset="500",t.style.animation=`drawLine 1.5s ${EASING.expoOut} forwards`);const a=e.querySelector(".memory-dashboard__area");a&&(a.style.opacity="0",setTimeout(()=>{a.style.transition=`opacity ${DURATION.deliberate}ms ${EASING.gentle}`,a.style.opacity="1"},DURATION.slow)),e.querySelectorAll(".memory-dashboard__point").forEach((s,m)=>{s.style.opacity="0",s.style.transform="scale(0)",setTimeout(()=>{s.style.transition=`all ${DURATION.moderate}ms ${EASING.spring}`,s.style.opacity="1",s.style.transform="scale(1)"},DURATION.slow+m*STAGGER.normal)});const r=e.querySelectorAll(".memory-dashboard__pattern");r.forEach((s,m)=>{setTimeout(()=>{s.style.opacity="1",s.style.transform="translateY(0)"},DURATION.dramatic+m*STAGGER.slow)});const o=e.querySelector(".memory-dashboard__web");o&&setTimeout(()=>{o.style.opacity="1",o.style.transform="translateY(0)"},DURATION.dramatic+r.length*STAGGER.slow);const i=e.querySelector(".memory-dashboard__footer");i&&setTimeout(()=>{i.style.opacity="1",i.style.transform="translateY(0)"},DURATION.celebration+r.length*STAGGER.slow)}animateStatCounters(e){e.querySelectorAll(".memory-dashboard__stat-value[data-count]").forEach((a,n)=>{const r=parseInt(a.dataset.count,10),o=n*150,i=1200+r*10;setTimeout(()=>{this.countUp(a,r,Math.min(i,2e3))},o)})}countUp(e,t,a){const n=performance.now(),r=0,o=s=>s===1?1:1-Math.pow(2,-10*s),i=s=>{const m=s-n,c=Math.min(m/a,1),l=o(c),d=Math.floor(r+(t-r)*l);e.textContent=d,c<1?requestAnimationFrame(i):(e.textContent=t,e.style.transform="scale(1.1)",e.style.transition=`transform 200ms ${EASING.spring}`,setTimeout(()=>{e.style.transform="scale(1)"},200))};requestAnimationFrame(i)}setupHoverEffects(){this.chapters.forEach(e=>{const t=e.querySelector(".memory-story__card");t&&(t.addEventListener("mousemove",a=>this.handleMagneticHover(a,t)),t.addEventListener("mouseleave",a=>this.resetMagneticHover(t)))})}handleMagneticHover(e,t){const a=t.getBoundingClientRect(),n=e.clientX-a.left-a.width/2,r=e.clientY-a.top-a.height/2,o=2,i=r/a.height*o,s=-(n/a.width)*o;t.style.transform=`
+    `;
+    document.head.appendChild(style);
+  }
+
+  prepareElements() {
+    // Prepare chapters for animation
+    this.chapters.forEach((chapter, index) => {
+      chapter.classList.add('animate-ready');
+      chapter.style.setProperty('--chapter-index', index);
+      
+      // Set tag indices for staggered animation
+      const tags = chapter.querySelectorAll('.memory-story__tag');
+      tags.forEach((tag, tagIndex) => {
+        tag.style.setProperty('--tag-index', tagIndex);
+      });
+    });
+    
+    // Prepare insight panel
+    if (this.insightPanel) {
+      this.insightPanel.classList.add('animate-ready');
+      
+      const items = this.insightPanel.querySelectorAll('.memory-story__insight-item');
+      items.forEach((item, index) => {
+        item.style.setProperty('--item-index', index);
+      });
+    }
+    
+    // Prepare dashboard (new data visualization)
+    if (this.dashboard) {
+      this.dashboard.classList.add('animate-ready');
+      
+      const patterns = this.dashboard.querySelectorAll('.memory-dashboard__pattern');
+      patterns.forEach((pattern, index) => {
+        pattern.style.setProperty('--pattern-index', index);
+      });
+    }
+  }
+
+  setupIntersectionObserver() {
+    // Reduced motion check
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    if (prefersReducedMotion) {
+      // Skip animations, just show content
+      this.chapters.forEach(chapter => {
+        chapter.classList.remove('animate-ready');
+        chapter.classList.add('animate-in');
+      });
+      if (this.insightPanel) {
+        this.insightPanel.classList.remove('animate-ready');
+        this.insightPanel.classList.add('animate-in');
+      }
+      if (this.dashboard) {
+        this.dashboard.classList.remove('animate-ready');
+        this.dashboard.classList.add('animate-in');
+      }
+      return;
+    }
+    
+    // Create observer for scroll-triggered animations
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !entry.target.classList.contains('animate-in')) {
+            this.animateElement(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.2,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+    
+    // Observe chapters
+    this.chapters.forEach(chapter => {
+      this.observer.observe(chapter);
+    });
+    
+    // Observe insight panel
+    if (this.insightPanel) {
+      this.observer.observe(this.insightPanel);
+    }
+    
+    // Observe dashboard
+    if (this.dashboard) {
+      this.observer.observe(this.dashboard);
+    }
+  }
+
+  animateElement(element) {
+    const index = this.chapters.indexOf(element);
+    const isFerniCard = index === this.chapters.length - 1;
+    const isInsightPanel = element === this.insightPanel;
+    const isDashboard = element === this.dashboard;
+    
+    // Calculate delay based on position
+    let delay = 0;
+    
+    if (index >= 0) {
+      // Stagger chapters - each one waits for the previous
+      delay = STAGGER.dramatic;
+    }
+    
+    // For Ferni's card, add a "thinking" moment
+    if (isFerniCard) {
+      delay += DURATION.moderate;
+    }
+    
+    // Trigger animation
+    setTimeout(() => {
+      element.classList.remove('animate-ready');
+      element.classList.add('animate-in');
+      
+      // Special "warmth pulse" for Ferni's card
+      if (isFerniCard) {
+        const card = element.querySelector('.memory-story__card--ferni');
+        if (card) {
+          setTimeout(() => {
+            card.style.animation = `warmthPulse 2s ${EASING.gentle} infinite`;
+          }, DURATION.dramatic);
+        }
+      }
+      
+      // Special animations for dashboard
+      if (isDashboard) {
+        this.animateDashboard(element);
+      }
+    }, delay);
+  }
+  
+  animateDashboard(dashboard) {
+    // Animate stat counters first
+    this.animateStatCounters(dashboard);
+    
+    // Animate the graph line drawing
+    const graphLine = dashboard.querySelector('.memory-dashboard__line');
+    if (graphLine) {
+      graphLine.style.strokeDasharray = '500';
+      graphLine.style.strokeDashoffset = '500';
+      graphLine.style.animation = `drawLine 1.5s ${EASING.expoOut} forwards`;
+    }
+    
+    // Animate the area fill
+    const area = dashboard.querySelector('.memory-dashboard__area');
+    if (area) {
+      area.style.opacity = '0';
+      setTimeout(() => {
+        area.style.transition = `opacity ${DURATION.deliberate}ms ${EASING.gentle}`;
+        area.style.opacity = '1';
+      }, DURATION.slow);
+    }
+    
+    // Animate data points with staggered pop
+    const points = dashboard.querySelectorAll('.memory-dashboard__point');
+    points.forEach((point, i) => {
+      point.style.opacity = '0';
+      point.style.transform = 'scale(0)';
+      setTimeout(() => {
+        point.style.transition = `all ${DURATION.moderate}ms ${EASING.spring}`;
+        point.style.opacity = '1';
+        point.style.transform = 'scale(1)';
+      }, DURATION.slow + (i * STAGGER.normal));
+    });
+    
+    // Animate pattern cards with staggered reveal
+    const patterns = dashboard.querySelectorAll('.memory-dashboard__pattern');
+    patterns.forEach((pattern, i) => {
+      setTimeout(() => {
+        pattern.style.opacity = '1';
+        pattern.style.transform = 'translateY(0)';
+      }, DURATION.dramatic + (i * STAGGER.slow));
+    });
+    
+    // Animate connection web
+    const web = dashboard.querySelector('.memory-dashboard__web');
+    if (web) {
+      setTimeout(() => {
+        web.style.opacity = '1';
+        web.style.transform = 'translateY(0)';
+      }, DURATION.dramatic + (patterns.length * STAGGER.slow));
+    }
+    
+    // Animate footer
+    const footer = dashboard.querySelector('.memory-dashboard__footer');
+    if (footer) {
+      setTimeout(() => {
+        footer.style.opacity = '1';
+        footer.style.transform = 'translateY(0)';
+      }, DURATION.celebration + (patterns.length * STAGGER.slow));
+    }
+  }
+  
+  /**
+   * Animate stat counters with a counting-up effect
+   * Creates a smooth, organic count-up animation
+   */
+  animateStatCounters(dashboard) {
+    const statValues = dashboard.querySelectorAll('.memory-dashboard__stat-value[data-count]');
+    
+    statValues.forEach((stat, index) => {
+      const targetValue = parseInt(stat.dataset.count, 10);
+      const startDelay = index * 150; // Stagger the starts
+      const duration = 1200 + (targetValue * 10); // Longer for bigger numbers
+      
+      setTimeout(() => {
+        this.countUp(stat, targetValue, Math.min(duration, 2000));
+      }, startDelay);
+    });
+  }
+  
+  /**
+   * Smooth count-up animation with easing
+   */
+  countUp(element, target, duration) {
+    const startTime = performance.now();
+    const startValue = 0;
+    
+    const easeOutExpo = (t) => {
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    };
+    
+    const animate = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeOutExpo(progress);
+      const currentValue = Math.floor(startValue + (target - startValue) * easedProgress);
+      
+      element.textContent = currentValue;
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        element.textContent = target;
+        // Add a subtle "pop" when complete
+        element.style.transform = 'scale(1.1)';
+        element.style.transition = `transform 200ms ${EASING.spring}`;
+        setTimeout(() => {
+          element.style.transform = 'scale(1)';
+        }, 200);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }
+
+  setupHoverEffects() {
+    // Add magnetic hover effect to cards
+    this.chapters.forEach(chapter => {
+      const card = chapter.querySelector('.memory-story__card');
+      if (card) {
+        card.addEventListener('mousemove', (e) => this.handleMagneticHover(e, card));
+        card.addEventListener('mouseleave', (e) => this.resetMagneticHover(card));
+      }
+    });
+  }
+
+  handleMagneticHover(e, card) {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    // Subtle tilt effect
+    const maxTilt = 2;
+    const tiltX = (y / rect.height) * maxTilt;
+    const tiltY = -(x / rect.width) * maxTilt;
+    
+    card.style.transform = `
       translateY(-6px) 
       scale(1.01) 
       perspective(1000px) 
-      rotateX(${i}deg) 
-      rotateY(${s}deg)
-    `}resetMagneticHover(e){e.style.transform=""}destroy(){this.observer&&this.observer.disconnect();const e=document.getElementById("memory-story-keyframes");e&&e.remove()}}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",()=>new MemoryStoryAnimation):new MemoryStoryAnimation,typeof module<"u"&&module.exports&&(module.exports=MemoryStoryAnimation);
+      rotateX(${tiltX}deg) 
+      rotateY(${tiltY}deg)
+    `;
+  }
+
+  resetMagneticHover(card) {
+    card.style.transform = '';
+  }
+
+  destroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+    
+    const styleEl = document.getElementById('memory-story-keyframes');
+    if (styleEl) {
+      styleEl.remove();
+    }
+  }
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => new MemoryStoryAnimation());
+} else {
+  new MemoryStoryAnimation();
+}
+
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = MemoryStoryAnimation;
+}
+

@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-09
 category: "Building in Public"
+image: "loneliness-gap.png"
+imageAlt: "Figure sitting by window at night in contemplative peace"
 readTime: 6
 series: "building-in-public"
 seriesPart: 9

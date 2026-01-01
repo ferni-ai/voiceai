@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-08
 category: "Building in Public"
+image: "whats-next.png"
+imageAlt: "Gentle horizon with winding paths leading into the distance"
 readTime: 5
 series: "building-in-public"
 seriesPart: 8

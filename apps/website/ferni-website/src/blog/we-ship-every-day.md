@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-06
 category: "Building in Public"
+image: "ship-every-day.png"
+imageAlt: "Upward flowing line with marks showing incremental progress"
 readTime: 5
 series: "building-in-public"
 seriesPart: 6

@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-03
 category: "Building in Public"
+image: "personality.png"
+imageAlt: "Six distinct abstract forms expressing unique personalities"
 readTime: 7
 series: "building-in-public"
 seriesPart: 3

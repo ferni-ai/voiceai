@@ -1,1 +1,228 @@
-.btn,[data-magnetic]{will-change:transform;transition:box-shadow .3s cubic-bezier(.4, 0, .2, 1),border-color .3s ease}.is-magnetic-hover{z-index:10}.btn--primary.is-magnetic-hover{box-shadow:0 8px 30px rgba(74,103,65,.35),0 0 0 2px rgba(74,103,65,.1)}.btn--secondary.is-magnetic-hover{border-color:var(--color-ferni,#4a6741);box-shadow:0 4px 20px rgba(74,103,65,.15),0 0 0 2px rgba(74,103,65,.05)}.magnetic-glow{mix-blend-mode:soft-light;filter:blur(20px)}.btn--primary .magnetic-glow{background:radial-gradient(circle,rgba(255,255,255,.4) 0,transparent 70%)}.btn--secondary .magnetic-glow{background:radial-gradient(circle,var(--color-ferni,#4a6741) 0,transparent 70%)}.cursor-trail{position:fixed;width:20px;height:20px;border-radius:50%;background:var(--color-ferni,#4a6741);mix-blend-mode:difference;pointer-events:none;z-index:9999;opacity:0;transform:translate(-50%,-50%) scale(.5);transition:opacity .3s ease,transform .3s cubic-bezier(.34, 1.56, .64, 1)}.cursor-trail.is-visible{opacity:.1;transform:translate(-50%,-50%) scale(1)}.cursor-trail.is-hovering{opacity:.2;transform:translate(-50%,-50%) scale(1.5)}.btn__text{display:inline-block;transition:transform .2s cubic-bezier(.4, 0, .2, 1)}.link--magnetic{position:relative;display:inline-block}.link--magnetic::after{content:'';position:absolute;bottom:-2px;left:0;width:100%;height:2px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .3s cubic-bezier(.4, 0, .2, 1)}.link--magnetic:hover::after{transform:scaleX(1)}.link--magnetic.is-magnetic-hover::after{transform-origin:center}.nav__cta.is-magnetic-hover{box-shadow:0 6px 24px rgba(74,103,65,.3),0 0 0 2px rgba(74,103,65,.1)}.nav__cta .magnetic-glow{background:radial-gradient(circle,rgba(255,255,255,.5) 0,transparent 70%)}.hero-cta a.is-magnetic-hover{box-shadow:0 12px 40px rgba(74,103,65,.4),0 0 0 3px rgba(74,103,65,.1)}.pricing-card[data-magnetic].is-magnetic-hover{box-shadow:0 20px 60px rgba(0,0,0,.12),0 0 0 1px rgba(74,103,65,.1)}@media (prefers-reduced-motion:reduce){.btn,.is-magnetic-hover,[data-magnetic]{transform:none!important;transition:none!important}.magnetic-glow{display:none!important}.cursor-trail{display:none!important}}@media (hover:none) and (pointer:coarse){.magnetic-glow{display:none}.btn,[data-magnetic]{transform:none!important}}.btn:focus-visible,[data-magnetic]:focus-visible{outline:2px solid var(--color-ferni,#4a6741);outline-offset:4px}.is-magnetic-hover:focus-visible{outline-offset:6px}
+/**
+ * Magnetic Cursor CSS
+ * Premium button interactions with physics-based movement
+ */
+
+/* ============================================================================
+   BASE MAGNETIC STYLES
+   ============================================================================ */
+
+[data-magnetic],
+.btn {
+  /* Ensure buttons can be transformed */
+  will-change: transform;
+  transition: 
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s ease;
+}
+
+/* ============================================================================
+   MAGNETIC HOVER STATE
+   ============================================================================ */
+
+.is-magnetic-hover {
+  z-index: 10;
+}
+
+/* Primary button hover enhancement */
+.btn--primary.is-magnetic-hover {
+  box-shadow: 
+    0 8px 30px rgba(74, 103, 65, 0.35),
+    0 0 0 2px rgba(74, 103, 65, 0.1);
+}
+
+/* Secondary button hover enhancement */
+.btn--secondary.is-magnetic-hover {
+  border-color: var(--color-ferni, #4a6741);
+  box-shadow: 
+    0 4px 20px rgba(74, 103, 65, 0.15),
+    0 0 0 2px rgba(74, 103, 65, 0.05);
+}
+
+/* ============================================================================
+   MAGNETIC GLOW
+   ============================================================================ */
+
+.magnetic-glow {
+  mix-blend-mode: soft-light;
+  filter: blur(20px);
+}
+
+/* Glow color variations */
+.btn--primary .magnetic-glow {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 70%
+  );
+}
+
+.btn--secondary .magnetic-glow {
+  background: radial-gradient(
+    circle,
+    var(--color-ferni, #4a6741) 0%,
+    transparent 70%
+  );
+}
+
+/* ============================================================================
+   CURSOR TRAIL (Optional - for even more polish)
+   ============================================================================ */
+
+.cursor-trail {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-ferni, #4a6741);
+  mix-blend-mode: difference;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+  transition: 
+    opacity 0.3s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cursor-trail.is-visible {
+  opacity: 0.1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.cursor-trail.is-hovering {
+  opacity: 0.2;
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+/* ============================================================================
+   BUTTON CONTENT SHIFT (Text follows cursor slightly)
+   ============================================================================ */
+
+.btn__text {
+  display: inline-block;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.is-magnetic-hover .btn__text {
+  /* JS will update this with transform */
+}
+
+/* ============================================================================
+   MAGNETIC LINK UNDERLINE
+   ============================================================================ */
+
+.link--magnetic {
+  position: relative;
+  display: inline-block;
+}
+
+.link--magnetic::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.link--magnetic:hover::after {
+  transform: scaleX(1);
+}
+
+.link--magnetic.is-magnetic-hover::after {
+  transform-origin: center;
+}
+
+/* ============================================================================
+   NAV CTA MAGNETIC EFFECTS
+   ============================================================================ */
+
+.nav__cta.is-magnetic-hover {
+  box-shadow: 
+    0 6px 24px rgba(74, 103, 65, 0.3),
+    0 0 0 2px rgba(74, 103, 65, 0.1);
+}
+
+.nav__cta .magnetic-glow {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.5) 0%,
+    transparent 70%
+  );
+}
+
+/* ============================================================================
+   HERO CTA SPECIAL TREATMENT
+   ============================================================================ */
+
+.hero-cta a.is-magnetic-hover {
+  box-shadow: 
+    0 12px 40px rgba(74, 103, 65, 0.4),
+    0 0 0 3px rgba(74, 103, 65, 0.1);
+}
+
+/* ============================================================================
+   FLOATING CARD MAGNETIC (e.g., pricing cards)
+   ============================================================================ */
+
+.pricing-card[data-magnetic].is-magnetic-hover {
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(74, 103, 65, 0.1);
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-magnetic],
+  .btn,
+  .is-magnetic-hover {
+    transform: none !important;
+    transition: none !important;
+  }
+  
+  .magnetic-glow {
+    display: none !important;
+  }
+  
+  .cursor-trail {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES (No magnetic effect)
+   ============================================================================ */
+
+@media (hover: none) and (pointer: coarse) {
+  .magnetic-glow {
+    display: none;
+  }
+  
+  [data-magnetic],
+  .btn {
+    transform: none !important;
+  }
+}
+
+/* ============================================================================
+   FOCUS STATES (Accessibility)
+   ============================================================================ */
+
+.btn:focus-visible,
+[data-magnetic]:focus-visible {
+  outline: 2px solid var(--color-ferni, #4a6741);
+  outline-offset: 4px;
+}
+
+.is-magnetic-hover:focus-visible {
+  outline-offset: 6px;
+}
+

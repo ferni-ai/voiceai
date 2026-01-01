@@ -157,6 +157,45 @@
   --color-jaggi: #b8956a;
   --color-jaggi-secondary: #9a7a52;
 
+  /* Nayan (alias for jaggi) */
+  --color-nayan: #b8956a;
+  --color-nayan-secondary: #9a7a52;
+
+  /* =========================================================================
+     PERSONA COLORS - Extended Palette (for visualizations)
+     Light/Subtle/Glow variants for data viz and capabilities showcase
+     ========================================================================= */
+  --color-ferni-light: #5a7a51;
+  --color-ferni-dark: #3d5a35;
+  --color-ferni-subtle: rgba(74, 103, 65, 0.1);
+  --color-ferni-border: rgba(74, 103, 65, 0.3);
+  --color-ferni-glow: rgba(74, 103, 65, 0.4);
+
+  --color-maya-light: #b88a7a;
+  --color-maya-dark: #8a5a4a;
+  --color-maya-subtle: rgba(166, 122, 106, 0.1);
+  --color-maya-glow: rgba(166, 122, 106, 0.4);
+
+  --color-peter-light: #4a7b83;
+  --color-peter-dark: #2d5a61;
+  --color-peter-subtle: rgba(58, 107, 115, 0.1);
+  --color-peter-glow: rgba(58, 107, 115, 0.4);
+
+  --color-jordan-light: #d4957a;
+  --color-jordan-dark: #a87058;
+  --color-jordan-subtle: rgba(196, 133, 106, 0.1);
+  --color-jordan-glow: rgba(196, 133, 106, 0.4);
+
+  --color-alex-light: #6a7b9a;
+  --color-alex-dark: #4a5b7a;
+  --color-alex-subtle: rgba(90, 107, 138, 0.1);
+  --color-alex-glow: rgba(90, 107, 138, 0.4);
+
+  --color-nayan-light: #c8a57a;
+  --color-nayan-dark: #9a7b55;
+  --color-nayan-subtle: rgba(184, 149, 106, 0.1);
+  --color-nayan-glow: rgba(184, 149, 106, 0.4);
+
   /* =========================================================================
      TYPOGRAPHY
      ========================================================================= */

@@ -1,4 +1,70 @@
-"use strict";(function(){"use strict";const a={STANDARD:"cubic-bezier(0.4, 0, 0.2, 1)",SPRING:"cubic-bezier(0.34, 1.56, 0.64, 1)",SPRING_GENTLE:"cubic-bezier(0.25, 1.2, 0.5, 1)",GENTLE:"cubic-bezier(0.25, 0.1, 0.25, 1)",ANTICIPATE:"cubic-bezier(0.38, -0.4, 0.88, 0.65)",EXPO_OUT:"cubic-bezier(0.16, 1, 0.3, 1)",SMOOTH:"cubic-bezier(0.45, 0, 0.55, 1)"},n={MICRO:50,FAST:100,NORMAL:200,SLOW:300,MODERATE:400,DELIBERATE:500,DRAMATIC:600,CELEBRATION:800,CINEMATIC:1200,GLACIAL:2e3};class E{constructor(){this.revealed=new Set,this.init()}init(){this.prefersReducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches,this.setupObservers(),this.addStyles()}addStyles(){const e=document.createElement("style");e.textContent=`
+/**
+ * Ferni Landing Page Animations
+ * Leveraging our design system choreography to tell the "better than human" story
+ *
+ * Philosophy: Everything alive breathes. Motion conveys warmth.
+ */
+
+(function () {
+  'use strict';
+
+  // ============================================================================
+  // CONSTANTS (from design-system/choreography)
+  // ============================================================================
+
+  const EASING = {
+    // Core easings
+    STANDARD: 'cubic-bezier(0.4, 0, 0.2, 1)', // Material standard
+    SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // Pixar-style overshoot bounce
+    SPRING_GENTLE: 'cubic-bezier(0.25, 1.2, 0.5, 1)', // Subtle bounce
+    GENTLE: 'cubic-bezier(0.25, 0.1, 0.25, 1)', // Organic, natural
+    ANTICIPATE: 'cubic-bezier(0.38, -0.4, 0.88, 0.65)', // Wind-up
+    EXPO_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)', // Dramatic exit
+    SMOOTH: 'cubic-bezier(0.45, 0, 0.55, 1)', // Smooth in/out
+  };
+
+  const DURATION = {
+    MICRO: 50, // Immediate feedback
+    FAST: 100, // Hover states
+    NORMAL: 200, // Standard transitions
+    SLOW: 300, // Deliberate moves
+    MODERATE: 400, // Panel slides
+    DELIBERATE: 500, // Emphasis
+    DRAMATIC: 600, // Celebrations
+    CELEBRATION: 800, // Major moments
+    CINEMATIC: 1200, // Hero animations
+    GLACIAL: 2000, // Ambient effects
+  };
+
+  // ============================================================================
+  // SCROLL REVEAL SYSTEM
+  // Staggered reveals with anticipation & follow-through (Pixar principles)
+  // ============================================================================
+
+  class ScrollRevealSystem {
+    constructor() {
+      this.revealed = new Set();
+      this.init();
+    }
+
+    init() {
+      // Check for reduced motion preference
+      this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Initialize observers
+      this.setupObservers();
+
+      // Add initial styles
+      this.addStyles();
+    }
+
+    addStyles() {
+      // Progressive enhancement: CSS in story-brand.css handles visibility
+      // This JS just adds .js-animate to enable animations and .is-visible when scrolled
+      // No dynamic opacity:0 injection - content is visible by default without JS
+
+      const style = document.createElement('style');
+      style.textContent = `
       /* Stagger timing for reveal children */
       .js-animate .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
       .js-animate .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 80ms; }
@@ -6,10 +72,84 @@
       .js-animate .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 240ms; }
       .js-animate .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 320ms; }
       .js-animate .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 400ms; }
-    `,document.head.appendChild(e)}setupObservers(){const e={root:null,rootMargin:"0px 0px -80px 0px",threshold:.1},t=new IntersectionObserver(s=>{s.forEach(o=>{o.isIntersecting&&!this.revealed.has(o.target)&&(this.reveal(o.target),this.revealed.add(o.target))})},e);document.querySelectorAll(".reveal, .reveal-stagger").forEach(s=>{t.observe(s)}),[".memory-demo__moment",".story",".proof-table__row",".journey__stage",".journey__note"].forEach(s=>{document.querySelectorAll(s).forEach(o=>{t.observe(o)})})}reveal(e){if(this.prefersReducedMotion){e.classList.add("is-visible");return}requestAnimationFrame(()=>{e.classList.add("is-visible")})}}class u{constructor(){this.revealed=new Set,this.prefersReducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches,this.init()}init(){this.addStyles(),this.setupObservers()}addStyles(){const e=document.createElement("style");e.id="memory-demo-animations",e.textContent=`
-      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+    `;
+      document.head.appendChild(style);
+    }
+
+    setupObservers() {
+      const options = {
+        root: null,
+        rootMargin: '0px 0px -80px 0px',
+        threshold: 0.1,
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !this.revealed.has(entry.target)) {
+            this.reveal(entry.target);
+            this.revealed.add(entry.target);
+          }
+        });
+      }, options);
+
+      // Observe all reveal elements
+      document.querySelectorAll('.reveal, .reveal-stagger').forEach((el) => {
+        observer.observe(el);
+      });
+
+      // Observe new storytelling sections
+      const storySelectors = [
+        '.memory-demo__moment',
+        '.story',
+        '.proof-table__row',
+        '.journey__stage',
+        '.journey__note',
+      ];
+
+      storySelectors.forEach((selector) => {
+        document.querySelectorAll(selector).forEach((el) => {
+          observer.observe(el);
+        });
+      });
+    }
+
+    reveal(element) {
+      if (this.prefersReducedMotion) {
+        element.classList.add('is-visible');
+        return;
+      }
+
+      // Add visible class with slight delay for better perception
+      requestAnimationFrame(() => {
+        element.classList.add('is-visible');
+      });
+    }
+  }
+
+  // ============================================================================
+  // MEMORY DEMO ANIMATION SYSTEM
+  // Cinematic reveal with staggered timing and expressive Ferni card
+  // ============================================================================
+
+  class MemoryDemoAnimation {
+    constructor() {
+      this.revealed = new Set();
+      this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.init();
+    }
+
+    init() {
+      this.addStyles();
+      this.setupObservers();
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.id = 'memory-demo-animations';
+      style.textContent = `
+      /* ═══════════════════════════════════════════════════════════════════════════
          MEMORY DEMO KEYFRAMES
-         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+         ═══════════════════════════════════════════════════════════════════════════ */
       
       @keyframes memory-float {
         0%, 100% {
@@ -68,30 +208,30 @@
         50% { border-color: rgba(255, 255, 255, 0.8); }
       }
       
-      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+      /* ═══════════════════════════════════════════════════════════════════════════
          FERNI CARD EXPRESSIVE STATES
-         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+         ═══════════════════════════════════════════════════════════════════════════ */
       
       .memory-demo__card--ferni.is-visible {
-        animation: memory-float 6s ${a.SMOOTH} infinite;
+        animation: memory-float 6s ${EASING.SMOOTH} infinite;
       }
       
       .memory-demo__card--ferni.is-visible.is-glowing {
-        animation: memory-float 6s ${a.SMOOTH} infinite,
-                   memory-glow-pulse 3s ${a.SMOOTH} infinite;
+        animation: memory-float 6s ${EASING.SMOOTH} infinite,
+                   memory-glow-pulse 3s ${EASING.SMOOTH} infinite;
       }
       
       .memory-demo__card--ferni .memory-demo__avatar {
-        transition: transform 0.3s ${a.SPRING}, box-shadow 0.3s ease;
+        transition: transform 0.3s ${EASING.SPRING}, box-shadow 0.3s ease;
       }
       
       .memory-demo__card--ferni.is-visible .memory-demo__avatar {
-        animation: avatar-presence-pulse 4s ${a.SMOOTH} infinite;
+        animation: avatar-presence-pulse 4s ${EASING.SMOOTH} infinite;
       }
       
       /* Timeline line animation */
       .memory-demo__line.is-animating {
-        animation: timeline-line-grow 1.5s ${a.EXPO_OUT} forwards;
+        animation: timeline-line-grow 1.5s ${EASING.EXPO_OUT} forwards;
       }
       
       /* Typewriter effect for Ferni's text */
@@ -122,7 +262,176 @@
           transition: none;
         }
       }
-    `,document.head.appendChild(e)}setupObservers(){const e=new IntersectionObserver(i=>{i.forEach(c=>{c.isIntersecting&&!this.revealed.has("section")&&(this.revealed.add("section"),this.animateSection())})},{threshold:.2}),t=document.querySelector(".memory-demo");t&&e.observe(t);const r=new IntersectionObserver(i=>{i.forEach(c=>{c.isIntersecting&&!this.revealed.has(c.target)&&(this.revealed.add(c.target),this.revealMoment(c.target))})},{threshold:.3,rootMargin:"0px 0px -50px 0px"});document.querySelectorAll(".memory-demo__moment").forEach((i,c)=>{i.dataset.index=c,r.observe(i)});const s=new IntersectionObserver(i=>{i.forEach(c=>{c.isIntersecting&&!this.revealed.has("insights")&&(this.revealed.add("insights"),this.revealInsights(c.target))})},{threshold:.2}),o=document.querySelector(".memory-demo__insights");o&&s.observe(o)}animateSection(){const e=document.querySelector(".memory-demo__line");e&&!this.prefersReducedMotion&&e.classList.add("is-animating")}revealMoment(e){const t=parseInt(e.dataset.index||0,10),r=this.prefersReducedMotion?0:t*150;setTimeout(()=>{e.classList.add("is-visible"),e.classList.contains("memory-demo__moment--today")&&this.revealFerniCard(e)},r)}revealFerniCard(e){const t=e.querySelector(".memory-demo__card--ferni");t&&setTimeout(()=>{this.prefersReducedMotion||t.classList.add("is-glowing");const r=t.querySelector(".memory-demo__text");r&&!this.prefersReducedMotion&&this.typewriterEffect(r)},400)}typewriterEffect(e){const t=e.textContent;e.textContent="",e.classList.add("memory-demo__text--typewriter","is-typing");let r=0;const s=25,o=()=>{r<t.length?(e.textContent+=t.charAt(r),r++,setTimeout(o,s)):e.classList.remove("is-typing")};o()}revealInsights(e){if(this.prefersReducedMotion){e.classList.add("is-visible"),e.querySelectorAll("li").forEach(r=>r.classList.add("is-visible"));return}e.classList.add("is-visible"),e.querySelectorAll(".memory-demo__insights-list li").forEach((r,s)=>{setTimeout(()=>{r.classList.add("is-visible")},200+s*120)})}}class f{constructor(){this.avatars=[],this.init()}init(){this.addStyles(),document.querySelectorAll(".persona-avatar__orb, .team-card .persona-avatar").forEach(e=>{this.startBreathing(e)})}addStyles(){const e=document.createElement("style");e.textContent=`
+    `;
+      document.head.appendChild(style);
+    }
+
+    setupObservers() {
+      // Observer for memory demo section
+      const sectionObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !this.revealed.has('section')) {
+              this.revealed.add('section');
+              this.animateSection();
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+
+      const memorySection = document.querySelector('.memory-demo');
+      if (memorySection) {
+        sectionObserver.observe(memorySection);
+      }
+
+      // Observer for individual moments (with stagger)
+      const momentObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !this.revealed.has(entry.target)) {
+              this.revealed.add(entry.target);
+              this.revealMoment(entry.target);
+            }
+          });
+        },
+        { threshold: 0.3, rootMargin: '0px 0px -50px 0px' }
+      );
+
+      document.querySelectorAll('.memory-demo__moment').forEach((moment, index) => {
+        moment.dataset.index = index;
+        momentObserver.observe(moment);
+      });
+
+      // Observer for insights panel
+      const insightsObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !this.revealed.has('insights')) {
+              this.revealed.add('insights');
+              this.revealInsights(entry.target);
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+
+      const insights = document.querySelector('.memory-demo__insights');
+      if (insights) {
+        insightsObserver.observe(insights);
+      }
+    }
+
+    animateSection() {
+      // Animate timeline line
+      const line = document.querySelector('.memory-demo__line');
+      if (line && !this.prefersReducedMotion) {
+        line.classList.add('is-animating');
+      }
+    }
+
+    revealMoment(element) {
+      const index = parseInt(element.dataset.index || 0, 10);
+      const delay = this.prefersReducedMotion ? 0 : index * 150;
+
+      setTimeout(() => {
+        element.classList.add('is-visible');
+
+        // Special treatment for Ferni's card (the last moment)
+        if (element.classList.contains('memory-demo__moment--today')) {
+          this.revealFerniCard(element);
+        }
+      }, delay);
+    }
+
+    revealFerniCard(moment) {
+      const card = moment.querySelector('.memory-demo__card--ferni');
+      if (!card) return;
+
+      // Add glow after initial reveal
+      setTimeout(() => {
+        if (!this.prefersReducedMotion) {
+          card.classList.add('is-glowing');
+        }
+
+        // Optionally trigger typewriter effect
+        const text = card.querySelector('.memory-demo__text');
+        if (text && !this.prefersReducedMotion) {
+          this.typewriterEffect(text);
+        }
+      }, 400);
+    }
+
+    typewriterEffect(textElement) {
+      const fullText = textElement.textContent;
+      textElement.textContent = '';
+      textElement.classList.add('memory-demo__text--typewriter', 'is-typing');
+
+      let charIndex = 0;
+      const typeSpeed = 25; // ms per character
+
+      const type = () => {
+        if (charIndex < fullText.length) {
+          textElement.textContent += fullText.charAt(charIndex);
+          charIndex++;
+          setTimeout(type, typeSpeed);
+        } else {
+          textElement.classList.remove('is-typing');
+        }
+      };
+
+      type();
+    }
+
+    revealInsights(panel) {
+      if (this.prefersReducedMotion) {
+        panel.classList.add('is-visible');
+        panel.querySelectorAll('li').forEach((li) => li.classList.add('is-visible'));
+        return;
+      }
+
+      // Reveal panel
+      panel.classList.add('is-visible');
+
+      // Stagger reveal list items
+      const items = panel.querySelectorAll('.memory-demo__insights-list li');
+      items.forEach((item, index) => {
+        setTimeout(
+          () => {
+            item.classList.add('is-visible');
+          },
+          200 + index * 120
+        );
+      });
+    }
+  }
+
+  // ============================================================================
+  // AVATAR BREATHING SYSTEM
+  // Everything alive breathes (Pixar principle)
+  // ============================================================================
+
+  class AvatarBreathingSystem {
+    constructor() {
+      this.avatars = [];
+      this.init();
+    }
+
+    init() {
+      // Add breathing animation styles
+      this.addStyles();
+
+      // Find and animate all avatars
+      document
+        .querySelectorAll('.persona-avatar__orb, .team-card .persona-avatar')
+        .forEach((avatar) => {
+          this.startBreathing(avatar);
+        });
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
       @keyframes avatar-breathe {
         0%, 100% {
           transform: scale3d(1, 1, 1) translateY(0);
@@ -139,7 +448,7 @@
       }
       
       .persona-avatar--breathing .persona-avatar__orb {
-        animation: avatar-breathe 5s ${a.SMOOTH} infinite;
+        animation: avatar-breathe 5s ${EASING.SMOOTH} infinite;
       }
       
       /* Glowing ring pulse */
@@ -155,12 +464,12 @@
       }
       
       .persona-avatar--breathing .persona-avatar__ring {
-        animation: ring-pulse 4s ${a.SMOOTH} infinite;
+        animation: ring-pulse 4s ${EASING.SMOOTH} infinite;
       }
       
       /* Hover state - excited breathing */
       .persona-avatar:hover .persona-avatar__orb {
-        animation: avatar-breathe 2s ${a.SPRING_GENTLE} infinite;
+        animation: avatar-breathe 2s ${EASING.SPRING_GENTLE} infinite;
       }
       
       @media (prefers-reduced-motion: reduce) {
@@ -170,7 +479,123 @@
           animation: none;
         }
       }
-    `,document.head.appendChild(e)}startBreathing(e){const t=e.closest(".persona-avatar");t&&t.classList.add("persona-avatar--breathing")}}class p{constructor(){this.counted=new Set,this.init()}init(){const e=new IntersectionObserver(t=>{t.forEach(r=>{r.isIntersecting&&!this.counted.has(r.target)&&(this.countUp(r.target),this.counted.add(r.target))})},{threshold:.5});document.querySelectorAll(".stat__value").forEach(t=>{e.observe(t)})}countUp(e){const t=e.textContent.trim(),r=t.includes("K"),s=t.includes("+"),o=t.match(/[\d.]+/);if(!o)return;const i=parseFloat(o[0]),c=n.CINEMATIC,x=performance.now();if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;const l=S=>{const w=S-x,h=Math.min(w/c,1),O=1-Math.pow(1-h,3);let m=(i*O).toFixed((r&&i<100,0));if(r&&(m+="K"),s&&(m+="+"),t.includes("\u221E")){e.textContent="\u221E";return}t.includes("<")&&(m="<"+m),e.textContent=m,h<1?requestAnimationFrame(l):e.textContent=t};e.textContent="0",requestAnimationFrame(l)}}class v{constructor(){this.hero=document.querySelector(".hero"),this.hero&&this.init()}init(){window.matchMedia("(prefers-reduced-motion: reduce)").matches||(this.addStyles(),this.setupParallax())}addStyles(){const e=document.createElement("style");e.textContent=`
+    `;
+      document.head.appendChild(style);
+    }
+
+    startBreathing(avatar) {
+      const parent = avatar.closest('.persona-avatar');
+      if (parent) {
+        parent.classList.add('persona-avatar--breathing');
+      }
+    }
+  }
+
+  // ============================================================================
+  // NUMBER COUNT-UP ANIMATION
+  // Stats that come alive (from celebration-moments.ts)
+  // ============================================================================
+
+  class NumberCountUp {
+    constructor() {
+      this.counted = new Set();
+      this.init();
+    }
+
+    init() {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !this.counted.has(entry.target)) {
+              this.countUp(entry.target);
+              this.counted.add(entry.target);
+            }
+          });
+        },
+        { threshold: 0.5 }
+      );
+
+      // Find all stat values
+      document.querySelectorAll('.stat__value').forEach((el) => {
+        observer.observe(el);
+      });
+    }
+
+    countUp(element) {
+      const text = element.textContent.trim();
+      const hasK = text.includes('K');
+      const hasPlus = text.includes('+');
+      const numMatch = text.match(/[\d.]+/);
+
+      if (!numMatch) return;
+
+      const endValue = parseFloat(numMatch[0]);
+      const duration = DURATION.CINEMATIC;
+      const startTime = performance.now();
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      const tick = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Expo out easing
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        const current = (endValue * eased).toFixed(hasK && endValue < 100 ? 0 : 0);
+
+        let display = current;
+        if (hasK) display += 'K';
+        if (hasPlus) display += '+';
+
+        // Keep special characters like ∞, <
+        if (text.includes('∞')) {
+          element.textContent = '∞';
+          return;
+        }
+        if (text.includes('<')) {
+          display = '<' + display;
+        }
+
+        element.textContent = display;
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          element.textContent = text; // Restore original
+        }
+      };
+
+      element.textContent = '0';
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // ============================================================================
+  // HERO PARALLAX & DEPTH
+  // Creating depth through motion
+  // ============================================================================
+
+  class HeroParallax {
+    constructor() {
+      this.hero = document.querySelector('.hero');
+      if (this.hero) {
+        this.init();
+      }
+    }
+
+    init() {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      this.addStyles();
+      this.setupParallax();
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
       .hero {
         --parallax-y: 0;
       }
@@ -187,12 +612,52 @@
       .scroll-indicator {
         opacity: calc(1 - var(--parallax-y) / 100);
       }
-    `,document.head.appendChild(e)}setupParallax(){let e=!1;window.addEventListener("scroll",()=>{e||(requestAnimationFrame(()=>{const t=window.scrollY,r=this.hero.offsetHeight,s=Math.min(t/r,1);this.hero.style.setProperty("--parallax-y",t*.15),e=!1}),e=!0)})}}class y{constructor(){this.init()}init(){this.addStyles()}addStyles(){const e=document.createElement("style");e.textContent=`
+    `;
+      document.head.appendChild(style);
+    }
+
+    setupParallax() {
+      let ticking = false;
+
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            const scrollY = window.scrollY;
+            const heroHeight = this.hero.offsetHeight;
+            const progress = Math.min(scrollY / heroHeight, 1);
+
+            this.hero.style.setProperty('--parallax-y', scrollY * 0.15);
+
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+    }
+  }
+
+  // ============================================================================
+  // BUTTON MICRO-INTERACTIONS
+  // Squash & stretch on press (Pixar principle)
+  // ============================================================================
+
+  class ButtonMicroInteractions {
+    constructor() {
+      this.init();
+    }
+
+    init() {
+      this.addStyles();
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
       /* Button hover lift */
       .btn {
-        transition: transform ${n.NORMAL}ms ${a.EXPO_OUT},
-                    box-shadow ${n.NORMAL}ms ${a.EXPO_OUT},
-                    background-color ${n.NORMAL}ms ${a.STANDARD};
+        transition: transform ${DURATION.NORMAL}ms ${EASING.EXPO_OUT},
+                    box-shadow ${DURATION.NORMAL}ms ${EASING.EXPO_OUT},
+                    background-color ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
       
       .btn:hover {
@@ -207,12 +672,12 @@
       /* Press state - squash */
       .btn:active {
         transform: scale(0.98) translateY(0);
-        transition-duration: ${n.FAST}ms;
+        transition-duration: ${DURATION.FAST}ms;
       }
       
       /* Icon arrow animation */
       .btn svg {
-        transition: transform ${n.SLOW}ms ${a.SPRING};
+        transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }
       
       .btn:hover svg {
@@ -228,11 +693,32 @@
           transition: none;
         }
       }
-    `,document.head.appendChild(e)}}class g{constructor(){this.init()}init(){this.addStyles()}addStyles(){const e=document.createElement("style");e.textContent=`
+    `;
+      document.head.appendChild(style);
+    }
+  }
+
+  // ============================================================================
+  // CARD HOVER EFFECTS
+  // Subtle lift with persona glow
+  // ============================================================================
+
+  class CardHoverEffects {
+    constructor() {
+      this.init();
+    }
+
+    init() {
+      this.addStyles();
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
       /* Team card hover */
       .team-card {
-        transition: transform ${n.SLOW}ms ${a.EXPO_OUT},
-                    box-shadow ${n.SLOW}ms ${a.EXPO_OUT};
+        transition: transform ${DURATION.SLOW}ms ${EASING.EXPO_OUT},
+                    box-shadow ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
       }
       
       .team-card:hover {
@@ -252,7 +738,7 @@
         border-radius: 50%;
         background: radial-gradient(circle, var(--persona-glow, rgba(74, 103, 65, 0.2)) 0%, transparent 70%);
         opacity: 0;
-        transition: opacity ${n.SLOW}ms ${a.EXPO_OUT};
+        transition: opacity ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
         pointer-events: none;
       }
       
@@ -267,8 +753,8 @@
       
       /* Use case card */
       .use-case {
-        transition: transform ${n.SLOW}ms ${a.EXPO_OUT},
-                    box-shadow ${n.SLOW}ms ${a.EXPO_OUT};
+        transition: transform ${DURATION.SLOW}ms ${EASING.EXPO_OUT},
+                    box-shadow ${DURATION.SLOW}ms ${EASING.EXPO_OUT};
       }
       
       .use-case:hover {
@@ -283,9 +769,31 @@
           transform: none;
         }
       }
-    `,document.head.appendChild(e)}}class b{constructor(){this.init()}init(){this.addStyles(),this.setupAccordions()}addStyles(){const e=document.createElement("style");e.textContent=`
+    `;
+      document.head.appendChild(style);
+    }
+  }
+
+  // ============================================================================
+  // FAQ ACCORDION ANIMATION
+  // Smooth expand/collapse with anticipation
+  // ============================================================================
+
+  class FAQAnimation {
+    constructor() {
+      this.init();
+    }
+
+    init() {
+      this.addStyles();
+      this.setupAccordions();
+    }
+
+    addStyles() {
+      const style = document.createElement('style');
+      style.textContent = `
       .faq-item summary {
-        transition: color ${n.NORMAL}ms ${a.STANDARD};
+        transition: color ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
       
       .faq-item[open] summary {
@@ -293,7 +801,7 @@
       }
       
       .faq-item__answer {
-        animation: faq-expand ${n.MODERATE}ms ${a.EXPO_OUT};
+        animation: faq-expand ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
       }
       
       @keyframes faq-expand {
@@ -309,10 +817,92 @@
       
       /* Chevron rotation */
       .faq-item summary::after {
-        transition: transform ${n.SLOW}ms ${a.SPRING};
+        transition: transform ${DURATION.SLOW}ms ${EASING.SPRING};
       }
       
       .faq-item[open] summary::after {
         transform: rotate(180deg);
       }
-    `,document.head.appendChild(e)}setupAccordions(){document.querySelectorAll(".faq-item").forEach(e=>{e.addEventListener("toggle",t=>{e.open&&document.querySelectorAll(".faq-item[open]").forEach(r=>{r!==e&&r.removeAttribute("open")})})})}}class _{constructor(){this.init()}init(){document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",t=>{const r=e.getAttribute("href");if(r==="#")return;const s=document.querySelector(r);if(s){t.preventDefault();const o=document.querySelector(".nav")?.offsetHeight||0,i=s.getBoundingClientRect().top+window.scrollY-o-20;window.scrollTo({top:i,behavior:"smooth"}),document.getElementById("mobileMenu")?.classList.remove("is-open")}})})}}document.addEventListener("DOMContentLoaded",()=>{window.matchMedia("(prefers-reduced-motion: reduce)").matches&&console.log("[Ferni Animations] Reduced motion preferred, animations minimized"),new u,new f,new p,new v,new y,new g,new b,new _,console.log("[Ferni Animations] All systems initialized \u{1F3AC}")})})();
+    `;
+      document.head.appendChild(style);
+    }
+
+    setupAccordions() {
+      document.querySelectorAll('.faq-item').forEach((item) => {
+        item.addEventListener('toggle', (e) => {
+          if (item.open) {
+            // Close other FAQs
+            document.querySelectorAll('.faq-item[open]').forEach((other) => {
+              if (other !== item) {
+                other.removeAttribute('open');
+              }
+            });
+          }
+        });
+      });
+    }
+  }
+
+  // ============================================================================
+  // SMOOTH SCROLL
+  // Buttery smooth anchor scrolling
+  // ============================================================================
+
+  class SmoothScroll {
+    constructor() {
+      this.init();
+    }
+
+    init() {
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', (e) => {
+          const targetId = anchor.getAttribute('href');
+          if (targetId === '#') return;
+
+          const target = document.querySelector(targetId);
+          if (target) {
+            e.preventDefault();
+
+            // Calculate offset for fixed nav
+            const navHeight = document.querySelector('.nav')?.offsetHeight || 0;
+            const targetPosition =
+              target.getBoundingClientRect().top + window.scrollY - navHeight - 20;
+
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth',
+            });
+
+            // Close mobile menu if open
+            document.getElementById('mobileMenu')?.classList.remove('is-open');
+          }
+        });
+      });
+    }
+  }
+
+  // ============================================================================
+  // INITIALIZE ALL ANIMATIONS
+  // ============================================================================
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Check for reduced motion preference globally
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      console.log('[Ferni Animations] Reduced motion preferred, animations minimized');
+    }
+
+    // Initialize animation systems (scroll reveal handled by inline script)
+    new MemoryDemoAnimation(); // Apple-Bold memory demo with staggered reveals
+    new AvatarBreathingSystem();
+    new NumberCountUp();
+    new HeroParallax();
+    new ButtonMicroInteractions();
+    new CardHoverEffects();
+    new FAQAnimation();
+    new SmoothScroll();
+
+    console.log('[Ferni Animations] All systems initialized 🎬');
+  });
+})(); // End IIFE

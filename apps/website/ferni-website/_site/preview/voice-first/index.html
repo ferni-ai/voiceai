@@ -1,1 +1,823 @@
-<!DOCTYPE html><html lang="en" dir="ltr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Preview: Voice-First Experience | Ferni</title><meta name="description" content="AI Prototype - Voice-first landing where Ferni greets you immediately"><link rel="canonical" href="https://ferni.ai/preview/voice-first/"><link rel="alternate" hreflang="en" href="https://ferni.ai/preview/voice-first/"><link rel="alternate" hreflang="x-default" href="https://ferni.ai/preview/voice-first/"><link rel="alternate" hreflang="en-GB" href="https://ferni.ai/en-GB/preview/voice-first/"><link rel="alternate" hreflang="es" href="https://ferni.ai/es/preview/voice-first/"><link rel="alternate" hreflang="fr" href="https://ferni.ai/fr/preview/voice-first/"><link rel="alternate" hreflang="de" href="https://ferni.ai/de/preview/voice-first/"><link rel="alternate" hreflang="ja" href="https://ferni.ai/ja/preview/voice-first/"><link rel="alternate" hreflang="ko" href="https://ferni.ai/ko/preview/voice-first/"><link rel="alternate" hreflang="zh-Hans" href="https://ferni.ai/zh-Hans/preview/voice-first/"><link rel="alternate" hreflang="zh-Hant" href="https://ferni.ai/zh-Hant/preview/voice-first/"><link rel="alternate" hreflang="ar" href="https://ferni.ai/ar/preview/voice-first/"><link rel="alternate" hreflang="he" href="https://ferni.ai/he/preview/voice-first/"><meta property="og:title" content="Preview: Voice-First Experience"><meta property="og:description" content="AI Prototype - Voice-first landing where Ferni greets you immediately"><meta property="og:type" content="website"><meta property="og:url" content="https://ferni.ai/preview/voice-first/"><meta property="og:site_name" content="Ferni"><meta property="og:locale" content="en"><meta property="og:image" content="https://ferni.ai/images/og-default.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@ferniAI"><meta name="twitter:title" content="Preview: Voice-First Experience"><meta name="twitter:description" content="AI Prototype - Voice-first landing where Ferni greets you immediately"><meta name="twitter:image" content="https://ferni.ai/images/og-default.png"><meta name="robots" content="index, follow"><meta name="author" content="Ferni"><meta name="theme-color" content="#4a6741"><link rel="manifest" href="/manifest.json"><link rel="icon" href="/images/favicon.ico" sizes="16x16 32x32 48x48"><link rel="icon" type="image/svg+xml" href="/images/favicon.svg"><link rel="icon" type="image/svg+xml" href="/images/favicon-animated.svg" media="(prefers-reduced-motion: no-preference)"><link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png"><link rel="apple-touch-icon" href="/images/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript><link rel="stylesheet" href="/css/design-tokens.css"><script> window.dataLayer = window.dataLayer || []; function gtag(){try{dataLayer.push(arguments)}catch(e){}} gtag('js', new Date()); gtag('config', 'G-2JXL8SQPF2', { 'send_page_view': true }); </script><script async src="https://www.googletagmanager.com/gtag/js?id=G-2JXL8SQPF2" onerror="console.log('Analytics blocked')"></script><link rel="stylesheet" href="/css/styles.css"><script type="application/ld+json"> { "@context": "https://schema.org", "@type": "Organization", "name": "Ferni", "url": "https://ferni.ai", "logo": "https://ferni.ai/images/logo.png", "description": "AI life coaching that remembers your whole story. Six specialists, one conversation.", "telephone": "+1-484-481-3081", "sameAs": [ "https://twitter.com/ferniAI" ] } </script></head><body><a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-ferni focus:text-white focus:rounded-lg focus:shadow-lg"> Skip to main content </a><header class="header"><div class="container header-inner"><a href="/" class="logo"><span class="font-display font-bold text-xl">Ferni</span></a><nav class="nav"><a href="/features/" > Features </a><a href="/team/" > Team </a><a href="/help/" > Help </a><a href="/about/" > About </a></nav></div></header><main id="main-content" role="main" tabindex="-1"><style> /* Voice-First Hero Styles */ .voice-hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%); position: relative; overflow: hidden; } .voice-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 30%, var(--color-accent-glow) 0%, transparent 60%); } .voice-hero__content { text-align: center; max-width: 600px; padding: var(--space-8); position: relative; z-index: 2; } /* Ferni Avatar - Large & Central */ .ferni-avatar-container { position: relative; margin-bottom: var(--space-8); } .ferni-avatar { width: 180px; height: 180px; margin: 0 auto; border-radius: 50%; background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 20px 60px var(--color-ferni-glow); cursor: pointer; transition: transform var(--duration-slow) var(--ease-ease-out); } .ferni-avatar:hover { transform: scale(1.02); } .ferni-avatar__initials { font-family: var(--font-accent); font-size: var(--text-6xl); color: white; font-weight: 700; letter-spacing: 0.05em; } /* Voice Rings Animation */ .voice-rings { position: absolute; inset: -30px; pointer-events: none; } .voice-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--color-ferni-glow); opacity: 0; transform: scale(0.8); } .voice-rings.active .voice-ring { animation: ringPulse 2s ease-out infinite; } .voice-ring:nth-child(1) { animation-delay: 0s; } .voice-ring:nth-child(2) { animation-delay: 0.4s; } .voice-ring:nth-child(3) { animation-delay: 0.8s; } @keyframes ringPulse { 0% { opacity: 0.6; transform: scale(1); } 100% { opacity: 0; transform: scale(1.8); } } /* Listening Indicator */ .listening-indicator { display: flex; align-items: center; justify-content: center; gap: var(--space-1); height: var(--space-8); margin-top: var(--space-4); opacity: 0; transition: opacity var(--duration-slow) var(--ease-ease-out); } .listening-indicator.active { opacity: 1; } .listening-bar { width: 4px; height: 20px; background: var(--color-ferni); border-radius: 2px; animation: soundBars 0.5s ease-in-out infinite alternate; } .listening-bar:nth-child(1) { animation-delay: 0s; height: 12px; } .listening-bar:nth-child(2) { animation-delay: 0.1s; height: 20px; } .listening-bar:nth-child(3) { animation-delay: 0.2s; height: 16px; } .listening-bar:nth-child(4) { animation-delay: 0.3s; height: 24px; } .listening-bar:nth-child(5) { animation-delay: 0.4s; height: 14px; } @keyframes soundBars { from { transform: scaleY(0.3); } to { transform: scaleY(1); } } /* Greeting Text */ .voice-greeting { font-family: var(--font-display); font-size: var(--text-3xl); color: var(--color-text-primary); margin-bottom: var(--space-4); min-height: 2.4em; opacity: 0; transform: translateY(20px); transition: all 0.6s ease; } .voice-greeting.visible { opacity: 1; transform: translateY(0); } .voice-subtext { font-size: var(--text-lg); color: var(--color-text-secondary); margin-bottom: var(--space-8); opacity: 0; transition: opacity 0.6s ease 0.3s; } .voice-subtext.visible { opacity: 1; } /* Start Button - Uses accent color for CTAs per brand guidelines */ .voice-start-btn { display: inline-flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-8); background: var(--color-accent); color: white; font-family: var(--font-body); font-size: var(--text-lg); font-weight: var(--font-weight-medium); border: none; border-radius: var(--radius-full); cursor: pointer; transition: all var(--duration-slow) var(--ease-ease-out); box-shadow: 0 4px 20px var(--color-accent-glow); } .voice-start-btn:hover { background: var(--color-accent-hover); transform: translateY(-2px); box-shadow: 0 6px 30px var(--color-accent-glow); } .voice-start-btn svg { width: 24px; height: 24px; } .voice-start-btn.hidden { opacity: 0; pointer-events: none; } /* Transcript Display */ .voice-transcript { margin-top: var(--space-8); padding: var(--space-6); background: var(--color-bg-elevated); border-radius: var(--radius-xl); border: 1px solid var(--color-border-subtle); min-height: 100px; opacity: 0; transition: opacity 0.4s ease; } .voice-transcript.visible { opacity: 1; } .transcript-line { display: flex; gap: var(--space-3); margin-bottom: var(--space-3); padding: var(--space-3); border-radius: var(--radius-lg); animation: fadeIn 0.4s ease; } .transcript-line.ferni { background: var(--color-accent-subtle); } .transcript-line.user { background: var(--color-bg-secondary); } .transcript-speaker { font-weight: 600; font-size: var(--text-sm); color: var(--color-text-muted); min-width: 60px; } .transcript-text { font-size: var(--text-base); color: var(--color-text-primary); line-height: 1.5; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } /* Preview Label */ .preview-label { position: fixed; top: var(--space-4); left: var(--space-4); background: rgba(255, 193, 7, 0.9); color: #333; padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600; z-index: 1000; display: flex; align-items: center; gap: var(--space-2); } .preview-nav { position: fixed; top: var(--space-4); right: var(--space-4); display: flex; gap: var(--space-2); z-index: 1000; } .preview-nav a { padding: var(--space-2) var(--space-4); background: var(--color-bg-elevated); border: 1px solid var(--color-border-medium); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--color-text-secondary); text-decoration: none; transition: all 0.2s ease; } .preview-nav a:hover { background: var(--color-bg-secondary); border-color: var(--color-accent); color: var(--color-text-primary); } .preview-nav a.active { background: var(--color-accent); color: white; border-color: var(--color-accent); } </style><div class="preview-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg> PREVIEW: Voice-First </div><nav class="preview-nav"><a href="/preview/voice-first/" class="active">Voice-First</a><a href="/preview/ai-quiz/">AI Quiz</a><a href="/preview/personalization/">Personalization</a><a href="/preview/live-chat/">Live Chat</a><a href="/">← Back to Main</a></nav><section class="voice-hero"><div class="voice-hero__content"><div class="ferni-avatar-container"><div class="ferni-avatar" id="ferniAvatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><div class="voice-rings" id="voiceRings"><div class="voice-ring"></div><div class="voice-ring"></div><div class="voice-ring"></div></div></div><div class="listening-indicator" id="listeningIndicator"><div class="listening-bar"></div><div class="listening-bar"></div><div class="listening-bar"></div><div class="listening-bar"></div><div class="listening-bar"></div></div><h1 class="voice-greeting" id="voiceGreeting">Hi, I'm Ferni.</h1><p class="voice-subtext" id="voiceSubtext">I'd love to hear what's on your mind today.</p><button class="voice-start-btn" id="startVoiceBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg> Start Talking </button><div class="voice-transcript" id="voiceTranscript"></div></div></section><script> (function() { 'use strict'; const avatar = document.getElementById('ferniAvatar'); const voiceRings = document.getElementById('voiceRings'); const listeningIndicator = document.getElementById('listeningIndicator'); const greeting = document.getElementById('voiceGreeting'); const subtext = document.getElementById('voiceSubtext'); const startBtn = document.getElementById('startVoiceBtn'); const transcript = document.getElementById('voiceTranscript'); // Ferni's conversational responses (simulated) const ferniResponses = [ { trigger: 'hello|hi|hey', response: "It's nice to hear from you. How are you feeling right now?" }, { trigger: 'stressed|anxious|worried', response: "I hear that. Stress can be overwhelming. What's weighing on you the most?" }, { trigger: 'work|job|career', response: "Work can take so much of our energy. What would make your work life feel more fulfilling?" }, { trigger: 'relationship|family|friend', response: "Relationships are so important. Tell me more about what's happening with them." }, { trigger: 'decision|choose|decide', response: "Big decisions can feel paralyzing. What outcomes matter most to you here?" }, { trigger: 'tired|exhausted|burnt out', response: "Your body is telling you something important. When was the last time you truly rested?" }, { trigger: 'happy|excited|good', response: "I love hearing that energy in your voice! What's bringing you joy right now?" }, { trigger: 'help|advice|guidance', response: "I'm here to help you find your own answers. What would help most right now?" }, ]; let isListening = false; let recognition = null; // Time-aware greeting function getTimeGreeting() { const hour = new Date().getHours(); if (hour < 12) return "Good morning. I'm Ferni."; if (hour < 17) return "Good afternoon. I'm Ferni."; if (hour < 21) return "Good evening. I'm Ferni."; return "You're up late. I'm Ferni."; } // Initialize with time-aware greeting greeting.textContent = getTimeGreeting(); // Auto-play greeting animation on load setTimeout(() => { greeting.classList.add('visible'); voiceRings.classList.add('active'); // Speak greeting (using Speech Synthesis for demo) if ('speechSynthesis' in window) { const utterance = new SpeechSynthesisUtterance(greeting.textContent); utterance.rate = 0.9; utterance.pitch = 1.0; utterance.onend = () => { voiceRings.classList.remove('active'); setTimeout(() => { subtext.classList.add('visible'); }, 300); }; // Wait for voices to load setTimeout(() => { speechSynthesis.speak(utterance); }, 500); } else { setTimeout(() => { voiceRings.classList.remove('active'); subtext.classList.add('visible'); }, 2000); } }, 800); // Start voice interaction startBtn.addEventListener('click', () => { if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { addTranscriptLine('system', 'Voice recognition is not supported in your browser. Try Chrome for the full experience.'); return; } startBtn.classList.add('hidden'); transcript.classList.add('visible'); startListening(); }); function startListening() { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; recognition = new SpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.onstart = () => { isListening = true; listeningIndicator.classList.add('active'); addTranscriptLine('system', 'Listening... speak freely.'); }; recognition.onresult = (event) => { let finalTranscript = ''; let interimTranscript = ''; for (let i = event.resultIndex; i < event.results.length; i++) { if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript; } else { interimTranscript += event.results[i][0].transcript; } } if (finalTranscript) { handleUserSpeech(finalTranscript.trim()); } }; recognition.onerror = (event) => { console.error('Speech recognition error:', event.error); if (event.error !== 'no-speech') { addTranscriptLine('system', `Voice error: ${event.error}. Click avatar to try again.`); } }; recognition.onend = () => { isListening = false; listeningIndicator.classList.remove('active'); // Restart if we want continuous conversation if (isListening) { recognition.start(); } }; recognition.start(); } function handleUserSpeech(text) { addTranscriptLine('user', text); // Find matching response const response = findResponse(text.toLowerCase()); // Simulate Ferni thinking voiceRings.classList.add('active'); setTimeout(() => { addTranscriptLine('ferni', response); speakResponse(response); }, 800); } function findResponse(text) { for (const r of ferniResponses) { if (new RegExp(r.trigger, 'i').test(text)) { return r.response; } } // Default thoughtful response const defaults = [ "That's interesting. Tell me more about what that means to you.", "I'm curious - what feels most important about that right now?", "I hear you. What would feel like progress on that?", "That's worth exploring deeper. What's behind that feeling?", ]; return defaults[Math.floor(Math.random() * defaults.length)]; } function speakResponse(text) { if ('speechSynthesis' in window) { const utterance = new SpeechSynthesisUtterance(text); utterance.rate = 0.9; utterance.pitch = 1.0; utterance.onend = () => { voiceRings.classList.remove('active'); }; speechSynthesis.speak(utterance); } else { setTimeout(() => voiceRings.classList.remove('active'), 2000); } } function addTranscriptLine(speaker, text) { const line = document.createElement('div'); line.className = `transcript-line ${speaker}`; const speakerEl = document.createElement('span'); speakerEl.className = 'transcript-speaker'; speakerEl.textContent = speaker === 'ferni' ? 'Ferni:' : speaker === 'user' ? 'You:' : ''; const textEl = document.createElement('span'); textEl.className = 'transcript-text'; textEl.textContent = text; if (speaker !== 'system') { line.appendChild(speakerEl); } line.appendChild(textEl); transcript.appendChild(line); // Scroll to bottom transcript.scrollTop = transcript.scrollHeight; } // Click avatar to restart listening avatar.addEventListener('click', () => { if (!isListening && recognition) { startListening(); } }); console.log('%c🎤 Voice-First Preview Loaded', 'color: #4a6741; font-weight: bold;'); })(); </script></main><footer class="footer"><div class="container"><div class="footer-content"><div class="footer-brand"><a href="/" class="footer-logo"><div class="footer-avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div><span class="logo-text font-display font-bold text-xl">Ferni</span></a><p class="footer-tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p></div><div class="footer-links"><div class="footer-column"><h4>Product</h4><a href="/team/">Meet the Team</a><a href="/features/">Features</a><a href="/help/">Help &amp; Support</a></div><div class="footer-column"><h4>Company</h4><a href="/about/">About</a><a href="/blog/">Blog</a><a href="/contact/">Contact</a></div><div class="footer-column"><h4>Connect</h4><a href="https://app.ferni.ai" target="_blank" rel="noopener">Web App</a><a href="tel:+14844813081" target="_blank" rel="noopener">Call Ferni</a><a href="https://twitter.com/ferniAI" target="_blank" rel="noopener">Twitter</a></div></div></div><div class="footer-bottom"><p>© 2025 Ferni. All rights reserved.</p><div class="footer-legal"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="/sms-consent/">SMS Consent</a><a href="/cookies/">Cookie</a><a href="/accessibility/">Accessibility</a></div></div></div></footer><script src="/js/better-than-human.js"></script><script src="/js/ferni-awakens.js"></script><script src="/js/apple-interactions.js"></script></body></html> 
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview: Voice-First Experience | Ferni</title>
+<meta name="description" content="AI Prototype - Voice-first landing where Ferni greets you immediately">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://ferni.ai/preview/voice-first/">
+
+<!-- Hreflang Tags for International SEO -->
+
+
+<link rel="alternate" hreflang="en" href="https://ferni.ai/preview/voice-first/">
+<link rel="alternate" hreflang="x-default" href="https://ferni.ai/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="en-GB" href="https://ferni.ai/en-GB/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="es" href="https://ferni.ai/es/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="fr" href="https://ferni.ai/fr/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="de" href="https://ferni.ai/de/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="ja" href="https://ferni.ai/ja/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="ko" href="https://ferni.ai/ko/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="zh-Hans" href="https://ferni.ai/zh-Hans/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="zh-Hant" href="https://ferni.ai/zh-Hant/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="ar" href="https://ferni.ai/ar/preview/voice-first/">
+
+
+
+<link rel="alternate" hreflang="he" href="https://ferni.ai/he/preview/voice-first/">
+
+
+
+<!-- Open Graph -->
+<meta property="og:title" content="Preview: Voice-First Experience">
+<meta property="og:description" content="AI Prototype - Voice-first landing where Ferni greets you immediately">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ferni.ai/preview/voice-first/">
+<meta property="og:site_name" content="Ferni">
+<meta property="og:locale" content="en">
+
+<meta property="og:image" content="https://ferni.ai/images/og-default.png">
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ferniAI">
+<meta name="twitter:title" content="Preview: Voice-First Experience">
+<meta name="twitter:description" content="AI Prototype - Voice-first landing where Ferni greets you immediately">
+
+<meta name="twitter:image" content="https://ferni.ai/images/og-default.png">
+
+
+<!-- Additional SEO -->
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ferni">
+<meta name="theme-color" content="#4a6741">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Favicon - Ferni Eyes -->
+<!-- ICO for legacy browsers (IE, older Safari) -->
+<link rel="icon" href="/images/favicon.ico" sizes="16x16 32x32 48x48">
+<!-- SVG for modern browsers (scales perfectly, supports animation) -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<!-- Animated favicon for supported browsers -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon-animated.svg" media="(prefers-reduced-motion: no-preference)">
+<!-- PNG fallback -->
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+<!-- Apple Touch Icon -->
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Fonts - Preconnect and optimized loading -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</noscript>
+
+<!-- Design Tokens -->
+<link rel="stylesheet" href="/css/design-tokens.css">
+
+<!-- Google Analytics (graceful failure) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
+  gtag('js', new Date());
+  gtag('config', 'G-2JXL8SQPF2', { 'send_page_view': true });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2JXL8SQPF2" 
+        onerror="console.log('Analytics blocked')"></script>
+
+  
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai",
+    "logo": "https://ferni.ai/images/logo.png",
+    "description": "AI life coaching that remembers your whole story. Six specialists, one conversation.",
+    "telephone": "+1-484-481-3081",
+    "sameAs": [
+      "https://twitter.com/ferniAI"
+    ]
+  }
+  </script>
+  
+  
+  
+</head>
+<body>
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-ferni focus:text-white focus:rounded-lg focus:shadow-lg">
+    Skip to main content
+  </a>
+  
+  
+  <header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">
+      <span class="font-display font-bold text-xl">Ferni</span>
+      
+    </a>
+    <nav class="nav">
+      
+        
+        
+        <a href="/features/" >
+          Features
+        </a>
+        
+        <a href="/team/" >
+          Team
+        </a>
+        
+        <a href="/help/" >
+          Help
+        </a>
+        
+        <a href="/about/" >
+          About
+        </a>
+        
+      
+    </nav>
+  </div>
+</header>
+
+
+  
+  
+  <main id="main-content" role="main" tabindex="-1">
+    
+<style>
+  /* Voice-First Hero Styles */
+  .voice-hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .voice-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 30%, var(--color-accent-glow) 0%, transparent 60%);
+  }
+
+  .voice-hero__content {
+    text-align: center;
+    max-width: 600px;
+    padding: var(--space-8);
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Ferni Avatar - Large & Central */
+  .ferni-avatar-container {
+    position: relative;
+    margin-bottom: var(--space-8);
+  }
+
+  .ferni-avatar {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 20px 60px var(--color-ferni-glow);
+    cursor: pointer;
+    transition: transform var(--duration-slow) var(--ease-ease-out);
+  }
+
+  .ferni-avatar:hover {
+    transform: scale(1.02);
+  }
+
+  .ferni-avatar__initials {
+    font-family: var(--font-accent);
+    font-size: var(--text-6xl);
+    color: white;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  /* Voice Rings Animation */
+  .voice-rings {
+    position: absolute;
+    inset: -30px;
+    pointer-events: none;
+  }
+
+  .voice-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--color-ferni-glow);
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .voice-rings.active .voice-ring {
+    animation: ringPulse 2s ease-out infinite;
+  }
+
+  .voice-ring:nth-child(1) { animation-delay: 0s; }
+  .voice-ring:nth-child(2) { animation-delay: 0.4s; }
+  .voice-ring:nth-child(3) { animation-delay: 0.8s; }
+
+  @keyframes ringPulse {
+    0% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.8);
+    }
+  }
+
+  /* Listening Indicator */
+  .listening-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    height: var(--space-8);
+    margin-top: var(--space-4);
+    opacity: 0;
+    transition: opacity var(--duration-slow) var(--ease-ease-out);
+  }
+
+  .listening-indicator.active {
+    opacity: 1;
+  }
+
+  .listening-bar {
+    width: 4px;
+    height: 20px;
+    background: var(--color-ferni);
+    border-radius: 2px;
+    animation: soundBars 0.5s ease-in-out infinite alternate;
+  }
+
+  .listening-bar:nth-child(1) { animation-delay: 0s; height: 12px; }
+  .listening-bar:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+  .listening-bar:nth-child(3) { animation-delay: 0.2s; height: 16px; }
+  .listening-bar:nth-child(4) { animation-delay: 0.3s; height: 24px; }
+  .listening-bar:nth-child(5) { animation-delay: 0.4s; height: 14px; }
+
+  @keyframes soundBars {
+    from { transform: scaleY(0.3); }
+    to { transform: scaleY(1); }
+  }
+
+  /* Greeting Text */
+  .voice-greeting {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-4);
+    min-height: 2.4em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s ease;
+  }
+
+  .voice-greeting.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .voice-subtext {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-8);
+    opacity: 0;
+    transition: opacity 0.6s ease 0.3s;
+  }
+
+  .voice-subtext.visible {
+    opacity: 1;
+  }
+
+  /* Start Button - Uses accent color for CTAs per brand guidelines */
+  .voice-start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-8);
+    background: var(--color-accent);
+    color: white;
+    font-family: var(--font-body);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--duration-slow) var(--ease-ease-out);
+    box-shadow: 0 4px 20px var(--color-accent-glow);
+  }
+
+  .voice-start-btn:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px var(--color-accent-glow);
+  }
+
+  .voice-start-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .voice-start-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Transcript Display */
+  .voice-transcript {
+    margin-top: var(--space-8);
+    padding: var(--space-6);
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border-subtle);
+    min-height: 100px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .voice-transcript.visible {
+    opacity: 1;
+  }
+
+  .transcript-line {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    animation: fadeIn 0.4s ease;
+  }
+
+  .transcript-line.ferni {
+    background: var(--color-accent-subtle);
+  }
+
+  .transcript-line.user {
+    background: var(--color-bg-secondary);
+  }
+
+  .transcript-speaker {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    min-width: 60px;
+  }
+
+  .transcript-text {
+    font-size: var(--text-base);
+    color: var(--color-text-primary);
+    line-height: 1.5;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Preview Label */
+  .preview-label {
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    background: rgba(255, 193, 7, 0.9);
+    color: #333;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .preview-nav {
+    position: fixed;
+    top: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    z-index: 1000;
+  }
+
+  .preview-nav a {
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-medium);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .preview-nav a:hover {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-accent);
+    color: var(--color-text-primary);
+  }
+
+  .preview-nav a.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+</style>
+
+<div class="preview-label">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 9v4M12 17h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+  </svg>
+  PREVIEW: Voice-First
+</div>
+
+<nav class="preview-nav">
+  <a href="/preview/voice-first/" class="active">Voice-First</a>
+  <a href="/preview/ai-quiz/">AI Quiz</a>
+  <a href="/preview/personalization/">Personalization</a>
+  <a href="/preview/live-chat/">Live Chat</a>
+  <a href="/">← Back to Main</a>
+</nav>
+
+<section class="voice-hero">
+  <div class="voice-hero__content">
+    <div class="ferni-avatar-container">
+      <div class="ferni-avatar" id="ferniAvatar">
+        <svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg>
+      </div>
+      <div class="voice-rings" id="voiceRings">
+        <div class="voice-ring"></div>
+        <div class="voice-ring"></div>
+        <div class="voice-ring"></div>
+      </div>
+    </div>
+
+    <div class="listening-indicator" id="listeningIndicator">
+      <div class="listening-bar"></div>
+      <div class="listening-bar"></div>
+      <div class="listening-bar"></div>
+      <div class="listening-bar"></div>
+      <div class="listening-bar"></div>
+    </div>
+
+    <h1 class="voice-greeting" id="voiceGreeting">Hi, I'm Ferni.</h1>
+    <p class="voice-subtext" id="voiceSubtext">I'd love to hear what's on your mind today.</p>
+
+    <button class="voice-start-btn" id="startVoiceBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+      </svg>
+      Start Talking
+    </button>
+
+    <div class="voice-transcript" id="voiceTranscript">
+      <!-- Transcript lines will appear here -->
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  'use strict';
+
+  const avatar = document.getElementById('ferniAvatar');
+  const voiceRings = document.getElementById('voiceRings');
+  const listeningIndicator = document.getElementById('listeningIndicator');
+  const greeting = document.getElementById('voiceGreeting');
+  const subtext = document.getElementById('voiceSubtext');
+  const startBtn = document.getElementById('startVoiceBtn');
+  const transcript = document.getElementById('voiceTranscript');
+
+  // Ferni's conversational responses (simulated)
+  const ferniResponses = [
+    { trigger: 'hello|hi|hey', response: "It's nice to hear from you. How are you feeling right now?" },
+    { trigger: 'stressed|anxious|worried', response: "I hear that. Stress can be overwhelming. What's weighing on you the most?" },
+    { trigger: 'work|job|career', response: "Work can take so much of our energy. What would make your work life feel more fulfilling?" },
+    { trigger: 'relationship|family|friend', response: "Relationships are so important. Tell me more about what's happening with them." },
+    { trigger: 'decision|choose|decide', response: "Big decisions can feel paralyzing. What outcomes matter most to you here?" },
+    { trigger: 'tired|exhausted|burnt out', response: "Your body is telling you something important. When was the last time you truly rested?" },
+    { trigger: 'happy|excited|good', response: "I love hearing that energy in your voice! What's bringing you joy right now?" },
+    { trigger: 'help|advice|guidance', response: "I'm here to help you find your own answers. What would help most right now?" },
+  ];
+
+  let isListening = false;
+  let recognition = null;
+
+  // Time-aware greeting
+  function getTimeGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning. I'm Ferni.";
+    if (hour < 17) return "Good afternoon. I'm Ferni.";
+    if (hour < 21) return "Good evening. I'm Ferni.";
+    return "You're up late. I'm Ferni.";
+  }
+
+  // Initialize with time-aware greeting
+  greeting.textContent = getTimeGreeting();
+
+  // Auto-play greeting animation on load
+  setTimeout(() => {
+    greeting.classList.add('visible');
+    voiceRings.classList.add('active');
+
+    // Speak greeting (using Speech Synthesis for demo)
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(greeting.textContent);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.onend = () => {
+        voiceRings.classList.remove('active');
+        setTimeout(() => {
+          subtext.classList.add('visible');
+        }, 300);
+      };
+      // Wait for voices to load
+      setTimeout(() => {
+        speechSynthesis.speak(utterance);
+      }, 500);
+    } else {
+      setTimeout(() => {
+        voiceRings.classList.remove('active');
+        subtext.classList.add('visible');
+      }, 2000);
+    }
+  }, 800);
+
+  // Start voice interaction
+  startBtn.addEventListener('click', () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      addTranscriptLine('system', 'Voice recognition is not supported in your browser. Try Chrome for the full experience.');
+      return;
+    }
+
+    startBtn.classList.add('hidden');
+    transcript.classList.add('visible');
+    startListening();
+  });
+
+  function startListening() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      isListening = true;
+      listeningIndicator.classList.add('active');
+      addTranscriptLine('system', 'Listening... speak freely.');
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        handleUserSpeech(finalTranscript.trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'no-speech') {
+        addTranscriptLine('system', `Voice error: ${event.error}. Click avatar to try again.`);
+      }
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      listeningIndicator.classList.remove('active');
+      // Restart if we want continuous conversation
+      if (isListening) {
+        recognition.start();
+      }
+    };
+
+    recognition.start();
+  }
+
+  function handleUserSpeech(text) {
+    addTranscriptLine('user', text);
+
+    // Find matching response
+    const response = findResponse(text.toLowerCase());
+
+    // Simulate Ferni thinking
+    voiceRings.classList.add('active');
+
+    setTimeout(() => {
+      addTranscriptLine('ferni', response);
+      speakResponse(response);
+    }, 800);
+  }
+
+  function findResponse(text) {
+    for (const r of ferniResponses) {
+      if (new RegExp(r.trigger, 'i').test(text)) {
+        return r.response;
+      }
+    }
+    // Default thoughtful response
+    const defaults = [
+      "That's interesting. Tell me more about what that means to you.",
+      "I'm curious - what feels most important about that right now?",
+      "I hear you. What would feel like progress on that?",
+      "That's worth exploring deeper. What's behind that feeling?",
+    ];
+    return defaults[Math.floor(Math.random() * defaults.length)];
+  }
+
+  function speakResponse(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.onend = () => {
+        voiceRings.classList.remove('active');
+      };
+      speechSynthesis.speak(utterance);
+    } else {
+      setTimeout(() => voiceRings.classList.remove('active'), 2000);
+    }
+  }
+
+  function addTranscriptLine(speaker, text) {
+    const line = document.createElement('div');
+    line.className = `transcript-line ${speaker}`;
+
+    const speakerEl = document.createElement('span');
+    speakerEl.className = 'transcript-speaker';
+    speakerEl.textContent = speaker === 'ferni' ? 'Ferni:' : speaker === 'user' ? 'You:' : '';
+
+    const textEl = document.createElement('span');
+    textEl.className = 'transcript-text';
+    textEl.textContent = text;
+
+    if (speaker !== 'system') {
+      line.appendChild(speakerEl);
+    }
+    line.appendChild(textEl);
+    transcript.appendChild(line);
+
+    // Scroll to bottom
+    transcript.scrollTop = transcript.scrollHeight;
+  }
+
+  // Click avatar to restart listening
+  avatar.addEventListener('click', () => {
+    if (!isListening && recognition) {
+      startListening();
+    }
+  });
+
+  console.log('%c🎤 Voice-First Preview Loaded', 'color: #4a6741; font-weight: bold;');
+})();
+</script>
+
+  </main>
+  
+  
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <div class="footer-avatar">
+            <svg class="ferni-eyes-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/>
+              <circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/>
+              <ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/>
+              <circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/>
+            </svg>
+          </div>
+          <span class="logo-text font-display font-bold text-xl">Ferni</span>
+        </a>
+        <p class="footer-tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+      </div>
+      
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>Product</h4>
+          
+          <a href="/team/">Meet the Team</a>
+          
+          <a href="/features/">Features</a>
+          
+          <a href="/help/">Help &amp; Support</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Company</h4>
+          
+          <a href="/about/">About</a>
+          
+          <a href="/blog/">Blog</a>
+          
+          <a href="/contact/">Contact</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Connect</h4>
+          
+          <a href="https://app.ferni.ai" target="_blank" rel="noopener">Web App</a>
+          
+          <a href="tel:+14844813081" target="_blank" rel="noopener">Call Ferni</a>
+          
+          <a href="https://twitter.com/ferniAI" target="_blank" rel="noopener">Twitter</a>
+          
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2026 Ferni. All rights reserved.</p>
+      <div class="footer-legal">
+        
+        <a href="/privacy/">Privacy</a>
+        
+        <a href="/terms/">Terms</a>
+        
+        <a href="/sms-consent/">SMS Consent</a>
+        
+        <a href="/cookies/">Cookie</a>
+        
+        <a href="/accessibility/">Accessibility</a>
+        
+      </div>
+    </div>
+  </div>
+</footer>
+
+  
+  
+  <!-- Scripts -->
+  <script src="/js/better-than-human.js"></script>
+  <script src="/js/ferni-awakens.js"></script>
+  <script src="/js/apple-interactions.js"></script>
+  
+</body>
+</html>
+

@@ -286,15 +286,15 @@
 }
 
 /* Small mobile */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .footer__hero {
     padding: clamp(36px, 6vw, 48px) 0;
   }
-  
+
   .footer__headline {
     font-size: clamp(1.5rem, 6vw, 1.875rem);
   }
-  
+
   .footer__cta {
     padding: 12px 24px;
     font-size: 0.9375rem;
@@ -398,7 +398,7 @@
   gap: var(--space-8, 32px);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .footer-links {
     grid-template-columns: 1fr;
     gap: var(--space-8, 32px);
@@ -593,7 +593,7 @@
 }
 
 /* Team avatars mobile responsiveness */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer-team__avatars {
     gap: clamp(12px, 4vw, 20px);
   }
@@ -710,5 +710,118 @@
 
   .team-avatar__role {
     color: var(--color-dark-text-muted, #ddd6cc);
+  }
+}
+
+/* ============================================================================
+   FOOTER INNER LAYOUT
+   Grid layout for brand + links sections
+   ============================================================================ */
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: clamp(32px, 6vw, 64px);
+  padding: clamp(40px, 6vw, 64px) 0;
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: clamp(32px, 5vw, 48px);
+  }
+}
+
+/* ============================================================================
+   FOOTER LOGO ICON
+   The Ferni eyes avatar in the footer brand section
+   ============================================================================ */
+
+.footer-logo-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, var(--color-ferni, #4a6741) 0%, #3d5a35 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(74, 103, 65, 0.25);
+}
+
+.footer-logo-icon .ferni-eyes-svg {
+  width: 28px;
+  height: 28px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.125rem, 1.8vw, 1.375rem);
+  font-weight: 800;
+  color: var(--color-text-primary, #2c2520);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.footer-logo:hover {
+  color: var(--color-ferni, #4a6741);
+}
+
+/* ============================================================================
+   FOOTER SOCIAL LINKS
+   Row of social media icon links
+   ============================================================================ */
+
+.footer-social {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(44, 37, 32, 0.06);
+  border-radius: 10px;
+  color: var(--color-text-secondary, #5c524a);
+  transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
+}
+
+.social-link:hover {
+  background: var(--color-ferni, #4a6741);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.social-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Dark mode for footer inner elements */
+@media (prefers-color-scheme: dark) {
+  .footer-logo {
+    color: var(--color-bg-primary, #fffdfb);
+  }
+
+  .footer-logo:hover {
+    color: var(--color-highlight, #C4A265);
+  }
+
+  .social-link {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-dark-text-secondary, #f0ebe4);
+  }
+
+  .social-link:hover {
+    background: var(--color-highlight, #C4A265);
+    color: var(--color-dark-bg, #2c2520);
   }
 }

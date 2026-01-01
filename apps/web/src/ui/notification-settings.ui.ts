@@ -233,11 +233,29 @@ class NotificationSettingsUI {
     if (!this.localPrefs) return '';
 
     return `
+      <!-- Hero Section: Better Than Human Promise -->
+      <div class="notif-settings__hero">
+        <div class="notif-settings__hero-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            <circle cx="18" cy="4" r="2" fill="currentColor" stroke="none" class="notif-settings__hero-pulse"/>
+          </svg>
+        </div>
+        <h3 class="notif-settings__hero-title">I'll reach out before you need to ask</h3>
+        <p class="notif-settings__hero-desc">
+          Friends forget. I don't. I'll notice patterns you can't see yourself, 
+          and check in at exactly the right moment.
+        </p>
+      </div>
+
+      <!-- Master Toggle -->
       <div class="notif-settings__group">
         <div class="notif-settings__row notif-settings__row--main">
+          <div class="notif-settings__row-icon">${ICONS.bell}</div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Enable Notifications</span>
-            <span class="notif-settings__desc">Receive push notifications from Ferni</span>
+            <span class="notif-settings__desc">Let me reach out when it matters</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="enabled" ${this.localPrefs.enabled ? 'checked' : ''}>
@@ -246,13 +264,44 @@ class NotificationSettingsUI {
         </div>
       </div>
 
+      <!-- Superhuman Capabilities Section -->
       <div class="notif-settings__group" data-requires="enabled">
-        <h3>What I'll remind you about</h3>
+        <div class="notif-settings__section-header">
+          <h3>What I'll Watch For</h3>
+          <span class="notif-settings__section-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/>
+            </svg>
+            Superhuman
+          </span>
+        </div>
         
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--guardian">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+          </div>
+          <div class="notif-settings__row-text">
+            <span class="notif-settings__label">Ferni Check-ins</span>
+            <span class="notif-settings__desc">I'll notice when you need support—before you ask</span>
+          </div>
+          <label class="notif-settings__toggle">
+            <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
+            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+          </label>
+        </div>
+
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--ritual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Daily Practice Reminders</span>
-            <span class="notif-settings__desc">Morning ritual prompts</span>
+            <span class="notif-settings__desc">Gentle nudges at your optimal time—I'll learn when you're most receptive</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="ritualReminders" ${this.localPrefs.ritualReminders ? 'checked' : ''}>
@@ -260,10 +309,15 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--streak">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+            </svg>
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Streak Milestones</span>
-            <span class="notif-settings__desc">Celebrate your consistency</span>
+            <span class="notif-settings__desc">Celebrate consistency—I remember every step of your journey</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="streakMilestones" ${this.localPrefs.streakMilestones ? 'checked' : ''}>
@@ -271,10 +325,16 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--prediction">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Prediction Results</span>
-            <span class="notif-settings__desc">When outcomes are ready</span>
+            <span class="notif-settings__desc">Know how accurate we're becoming together</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="predictionResults" ${this.localPrefs.predictionResults ? 'checked' : ''}>
@@ -282,32 +342,32 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--team">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="8" r="5"/>
+              <path d="M20 21a8 8 0 1 0-16 0"/>
+            </svg>
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Team Huddles</span>
-            <span class="notif-settings__desc">Multi-persona check-ins</span>
+            <span class="notif-settings__desc">When multiple perspectives see something important</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="teamHuddles" ${this.localPrefs.teamHuddles ? 'checked' : ''}>
             <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
           </label>
         </div>
-
-        <div class="notif-settings__row">
-          <div class="notif-settings__row-text">
-            <span class="notif-settings__label">Ferni Check-ins</span>
-            <span class="notif-settings__desc">Proactive wellness prompts</span>
-          </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
-          </label>
-        </div>
       </div>
 
+      <!-- Quiet Hours: Guardian Respects Boundaries -->
       <div class="notif-settings__group" data-requires="enabled">
-        <h3>Quiet Hours</h3>
-        <p class="notif-settings__group-desc">I won't disturb you during these hours</p>
+        <div class="notif-settings__section-header">
+          <h3>Quiet Hours</h3>
+        </div>
+        <p class="notif-settings__group-desc">
+          I respect your peace. Non-urgent messages wait until morning.
+        </p>
         
         <div class="notif-settings__time-row">
           <div class="notif-settings__time-field">
@@ -319,16 +379,32 @@ class NotificationSettingsUI {
             <input type="time" id="quiet-end" data-pref="quietHoursEnd" value="${this.localPrefs.quietHoursEnd || '08:00'}">
           </div>
         </div>
+        
+        <div class="notif-settings__quiet-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+            <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span>If you're awake at 2am and reach out, I'm here with the same presence as noon.</span>
+        </div>
       </div>
 
+      <!-- Extended Reach Section -->
       <div class="notif-settings__group">
-        <h3>Email & SMS</h3>
-        <p class="notif-settings__group-desc">Reach beyond the app</p>
+        <div class="notif-settings__section-header">
+          <h3>Beyond the App</h3>
+        </div>
+        <p class="notif-settings__group-desc">
+          When moments matter, I'll meet you where you are.
+        </p>
         
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--email">
+            ${ICONS.mail}
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Email Updates</span>
-            <span class="notif-settings__desc">Milestone celebrations and recaps</span>
+            <span class="notif-settings__desc">Milestone celebrations and weekly recaps</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="emailEnabled" ${this.outreachPrefs?.emailEnabled ? 'checked' : ''}>
@@ -336,10 +412,13 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--sms">
+            ${ICONS.message}
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">SMS Messages</span>
-            <span class="notif-settings__desc">Streak reminders and celebrations</span>
+            <span class="notif-settings__desc">Quick check-ins when I notice something</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
@@ -347,10 +426,13 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--milestone">
+            ${ICONS.sparkles}
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Milestone Celebrations</span>
-            <span class="notif-settings__desc">Email/SMS for big moments</span>
+            <span class="notif-settings__desc">Big moments deserve recognition</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
@@ -358,10 +440,15 @@ class NotificationSettingsUI {
           </label>
         </div>
 
-        <div class="notif-settings__row">
+        <div class="notif-settings__capability-row">
+          <div class="notif-settings__capability-icon notif-settings__capability-icon--recap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>
+            </svg>
+          </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">Weekly Recap</span>
-            <span class="notif-settings__desc">Summary of our conversations</span>
+            <span class="notif-settings__desc">Reflect on our conversations and your growth</span>
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
@@ -383,27 +470,164 @@ class NotificationSettingsUI {
     }
 
     if (this.upcomingItems.length === 0) {
-      return `
-        <div class="notif-settings__empty">
-          <div class="notif-settings__empty-icon">${ICONS.sparkles}</div>
-          <h3>No upcoming check-ins yet</h3>
-          <p>The more we chat, the better I understand when to reach out. Keep talking with me, and I'll start scheduling thoughtful check-ins based on what matters to you.</p>
-          <div class="notif-settings__empty-tip">
-            ${ICONS.heart}
-            <span>Tip: Enable "Ferni Check-ins" in Settings to let me proactively reach out</span>
-          </div>
-        </div>
-      `;
+      return this.renderUpcomingEmptyState();
     }
 
     const itemsHtml = this.upcomingItems.map((item) => this.renderUpcomingItem(item)).join('');
 
     return `
       <div class="notif-settings__upcoming-intro">
-        <p>Here's when I'm planning to check in with you</p>
+        <div class="notif-settings__upcoming-intro-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+          </svg>
+        </div>
+        <p>I'm watching out for you. Here's when I'll check in.</p>
       </div>
       <div class="notif-settings__upcoming-list">
         ${itemsHtml}
+      </div>
+    `;
+  }
+
+  /**
+   * Better Than Human empty state for the Upcoming tab
+   * Shows what proactive check-ins WILL look like with superhuman capabilities
+   */
+  private renderUpcomingEmptyState(): string {
+    return `
+      <div class="notif-settings__empty-hero">
+        <!-- Animated Guardian Icon -->
+        <div class="notif-settings__guardian-visual">
+          <div class="notif-settings__guardian-ring notif-settings__guardian-ring--outer"></div>
+          <div class="notif-settings__guardian-ring notif-settings__guardian-ring--inner"></div>
+          <div class="notif-settings__guardian-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+              <circle cx="12" cy="10" r="2" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+        </div>
+
+        <h3 class="notif-settings__empty-title">I'm learning when you need me</h3>
+        <p class="notif-settings__empty-subtitle">
+          The more we talk, the better I understand your rhythms, patterns, and needs.
+        </p>
+      </div>
+
+      <!-- Preview Badge -->
+      <div class="notif-settings__preview-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span>What this will look like</span>
+      </div>
+
+      <!-- Sample Upcoming Check-ins Preview -->
+      <div class="notif-settings__sample-checkins">
+        <div class="notif-settings__sample-checkin" style="animation-delay: 100ms">
+          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--ferni">F</div>
+          <div class="notif-settings__sample-content">
+            <span class="notif-settings__sample-persona">Ferni</span>
+            <span class="notif-settings__sample-time">Tomorrow at 8:15 AM</span>
+            <p class="notif-settings__sample-preview">"You mentioned feeling overwhelmed yesterday. How are you holding up?"</p>
+          </div>
+          <div class="notif-settings__sample-reason">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+            Noticed concern
+          </div>
+        </div>
+
+        <div class="notif-settings__sample-checkin" style="animation-delay: 200ms">
+          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--maya">M</div>
+          <div class="notif-settings__sample-content">
+            <span class="notif-settings__sample-persona">Maya</span>
+            <span class="notif-settings__sample-time">Friday at 7:00 AM</span>
+            <p class="notif-settings__sample-preview">"Your meditation streak is at 6 days! Ready for day 7?"</p>
+          </div>
+          <div class="notif-settings__sample-reason">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+              <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+            </svg>
+            Streak support
+          </div>
+        </div>
+
+        <div class="notif-settings__sample-checkin notif-settings__sample-checkin--watching" style="animation-delay: 300ms">
+          <div class="notif-settings__sample-avatar notif-settings__sample-avatar--peter">P</div>
+          <div class="notif-settings__sample-content">
+            <span class="notif-settings__sample-persona">Peter</span>
+            <span class="notif-settings__sample-time">Next Monday</span>
+            <p class="notif-settings__sample-preview">"That big presentation is coming up. Want to prep together?"</p>
+          </div>
+          <div class="notif-settings__sample-reason">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12">
+              <rect width="18" height="18" x="3" y="4" rx="2"/>
+              <line x1="16" x2="16" y1="2" y2="6"/>
+              <line x1="8" x2="8" y1="2" y2="6"/>
+            </svg>
+            Calendar aware
+          </div>
+        </div>
+      </div>
+
+      <!-- Four Superhuman Capabilities -->
+      <div class="notif-settings__capabilities">
+        <div class="notif-settings__capability" style="animation-delay: 150ms">
+          <div class="notif-settings__capability-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <span class="notif-settings__capability-name">Perfect Timing</span>
+          <span class="notif-settings__capability-desc">I learn when you're most receptive</span>
+        </div>
+
+        <div class="notif-settings__capability" style="animation-delay: 250ms">
+          <div class="notif-settings__capability-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+          <span class="notif-settings__capability-name">Pattern Detection</span>
+          <span class="notif-settings__capability-desc">I notice what you can't see</span>
+        </div>
+
+        <div class="notif-settings__capability" style="animation-delay: 350ms">
+          <div class="notif-settings__capability-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            </svg>
+          </div>
+          <span class="notif-settings__capability-name">Guardian Presence</span>
+          <span class="notif-settings__capability-desc">Watching out for you 24/7</span>
+        </div>
+
+        <div class="notif-settings__capability" style="animation-delay: 450ms">
+          <div class="notif-settings__capability-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <span class="notif-settings__capability-name">No Agenda</span>
+          <span class="notif-settings__capability-desc">Just checking because I care</span>
+        </div>
+      </div>
+
+      <!-- Call to Action -->
+      <div class="notif-settings__empty-cta">
+        <p class="notif-settings__empty-cta-text">
+          Keep talking with me. Every conversation helps me understand when and how to support you best.
+        </p>
+        <div class="notif-settings__empty-tip">
+          ${ICONS.sparkles}
+          <span>Enable "Ferni Check-ins" in Settings to unlock proactive support</span>
+        </div>
       </div>
     `;
   }
@@ -1018,53 +1242,476 @@ class NotificationSettingsUI {
         to { transform: rotate(360deg); }
       }
 
-      /* Empty state */
-      .notif-settings__empty {
+      /* Hero Section */
+      .notif-settings__hero {
         text-align: center;
-        padding: var(--space-8, 32px) var(--space-4, 16px);
+        padding: var(--space-4, 16px) var(--space-2, 8px) var(--space-6, 24px);
+        margin-bottom: var(--space-4, 16px);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
       }
 
-      .notif-settings__empty-icon {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto var(--space-4, 16px);
+      .notif-settings__hero-icon {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto var(--space-3, 12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.12)), var(--persona-tint, rgba(74, 103, 65, 0.04)));
+        border-radius: var(--radius-full);
         color: var(--persona-primary, #4a6741);
-        opacity: 0.6;
       }
 
-      .notif-settings__empty-icon svg {
-        width: 100%;
-        height: 100%;
+      .notif-settings__hero-icon svg {
+        width: 28px;
+        height: 28px;
       }
 
-      .notif-settings__empty h3 {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      .notif-settings__hero-pulse {
+        animation: heroPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes heroPulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
+      }
+
+      .notif-settings__hero-title {
+        font-family: var(--font-display);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-primary);
-        margin: 0 0 var(--space-3, 12px);
+        margin: 0 0 var(--space-2, 8px);
       }
 
-      .notif-settings__empty p {
+      .notif-settings__hero-desc {
         font-family: var(--font-body);
-        font-size: var(--text-sm);
+        font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-secondary);
-        line-height: 1.6;
-        margin: 0 0 var(--space-6, 24px);
-        max-width: 320px;
+        line-height: var(--leading-relaxed, 1.6);
+        margin: 0;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      /* Section Headers */
+      .notif-settings__section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3, 12px);
+      }
+
+      .notif-settings__section-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        padding: var(--space-1, 4px) var(--space-2, 8px);
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.15)), var(--persona-tint, rgba(74, 103, 65, 0.05)));
+        border-radius: var(--radius-full);
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold, 600);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wider, 0.05em);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      /* Capability Rows */
+      .notif-settings__capability-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px) 0;
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .notif-settings__capability-row:last-child {
+        border-bottom: none;
+      }
+
+      .notif-settings__capability-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-lg, 12px);
+        flex-shrink: 0;
+      }
+
+      .notif-settings__capability-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .notif-settings__capability-icon--guardian {
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .notif-settings__capability-icon--ritual {
+        background: rgba(166, 122, 106, 0.1);
+        color: var(--persona-maya, #a67a6a);
+      }
+
+      .notif-settings__capability-icon--streak {
+        background: rgba(196, 133, 106, 0.1);
+        color: var(--persona-jordan, #c4856a);
+      }
+
+      .notif-settings__capability-icon--prediction {
+        background: rgba(58, 107, 115, 0.1);
+        color: var(--persona-peter, #3a6b73);
+      }
+
+      .notif-settings__capability-icon--team {
+        background: rgba(90, 107, 138, 0.1);
+        color: var(--persona-alex, #5a6b8a);
+      }
+
+      .notif-settings__capability-icon--email {
+        background: rgba(90, 107, 138, 0.1);
+        color: var(--persona-alex, #5a6b8a);
+      }
+
+      .notif-settings__capability-icon--sms {
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .notif-settings__capability-icon--milestone {
+        background: rgba(184, 149, 106, 0.1);
+        color: var(--persona-nayan, #b8956a);
+      }
+
+      .notif-settings__capability-icon--recap {
+        background: rgba(58, 107, 115, 0.1);
+        color: var(--persona-peter, #3a6b73);
+      }
+
+      /* Row with icon */
+      .notif-settings__row-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        border-radius: var(--radius-lg, 12px);
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+      }
+
+      .notif-settings__row-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Quiet Hours Note */
+      .notif-settings__quiet-note {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2, 8px);
+        padding: var(--space-3, 12px);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.05));
+        border-radius: var(--radius-lg, 12px);
+        margin-top: var(--space-4, 16px);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted);
+        line-height: var(--leading-relaxed, 1.6);
+        font-style: italic;
+      }
+
+      .notif-settings__quiet-note svg {
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      /* ====== UPCOMING TAB EMPTY STATE ====== */
+      
+      .notif-settings__empty-hero {
+        text-align: center;
+        padding: var(--space-4, 16px) 0 var(--space-6, 24px);
+      }
+
+      /* Guardian Visual Animation */
+      .notif-settings__guardian-visual {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto var(--space-4, 16px);
+      }
+
+      .notif-settings__guardian-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid var(--persona-primary, #4a6741);
+      }
+
+      .notif-settings__guardian-ring--outer {
+        inset: 0;
+        opacity: 0.15;
+        animation: guardianPulseOuter 3s ease-in-out infinite;
+      }
+
+      .notif-settings__guardian-ring--inner {
+        inset: 12px;
+        opacity: 0.25;
+        animation: guardianPulseInner 3s ease-in-out infinite 0.3s;
+      }
+
+      @keyframes guardianPulseOuter {
+        0%, 100% { transform: scale(1); opacity: 0.15; }
+        50% { transform: scale(1.1); opacity: 0.25; }
+      }
+
+      @keyframes guardianPulseInner {
+        0%, 100% { transform: scale(1); opacity: 0.25; }
+        50% { transform: scale(1.05); opacity: 0.4; }
+      }
+
+      .notif-settings__guardian-icon {
+        position: absolute;
+        inset: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.15)), var(--persona-tint, rgba(74, 103, 65, 0.05)));
+        border-radius: 50%;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .notif-settings__guardian-icon svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .notif-settings__empty-title {
+        font-family: var(--font-display);
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px);
+      }
+
+      .notif-settings__empty-subtitle {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
+        line-height: var(--leading-relaxed, 1.6);
+        margin: 0;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      /* Preview Badge */
+      .notif-settings__preview-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-1, 4px);
+        padding: var(--space-1, 4px) var(--space-3, 12px);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        border-radius: var(--radius-full);
+        margin: var(--space-4, 16px) auto;
+        color: var(--persona-primary, #4a6741);
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold, 600);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wider, 0.05em);
+      }
+
+      /* Sample Check-ins */
+      .notif-settings__sample-checkins {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-6, 24px);
+        position: relative;
+      }
+
+      .notif-settings__sample-checkins::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(to bottom, transparent, var(--color-bg-elevated, #FFFDFB));
+        pointer-events: none;
+        border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+      }
+
+      .notif-settings__sample-checkin {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-lg, 12px);
+        opacity: 0;
+        transform: translateY(8px);
+        animation: sampleCheckinSlide ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+      }
+
+      @keyframes sampleCheckinSlide {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .notif-settings__sample-checkin--watching {
+        opacity: 0.7;
+      }
+
+      .notif-settings__sample-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: white;
+        flex-shrink: 0;
+      }
+
+      .notif-settings__sample-avatar--ferni { background: var(--persona-primary, #4a6741); }
+      .notif-settings__sample-avatar--maya { background: var(--persona-maya, #a67a6a); }
+      .notif-settings__sample-avatar--peter { background: var(--persona-peter, #3a6b73); }
+      .notif-settings__sample-avatar--alex { background: var(--persona-alex, #5a6b8a); }
+      .notif-settings__sample-avatar--jordan { background: var(--persona-jordan, #c4856a); }
+      .notif-settings__sample-avatar--nayan { background: var(--persona-nayan, #b8956a); }
+
+      .notif-settings__sample-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .notif-settings__sample-persona {
+        display: block;
+        font-family: var(--font-display);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+      }
+
+      .notif-settings__sample-time {
+        font-size: 10px;
+        color: var(--color-text-muted);
+      }
+
+      .notif-settings__sample-preview {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
+        font-style: italic;
+        margin: var(--space-1, 4px) 0 0;
+        line-height: var(--leading-snug, 1.375);
+      }
+
+      .notif-settings__sample-reason {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        font-size: 9px;
+        font-weight: var(--font-weight-medium, 500);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wide, 0.025em);
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+        padding: var(--space-1, 4px) var(--space-2, 8px);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        border-radius: var(--radius-sm, 6px);
+      }
+
+      /* Superhuman Capabilities Grid */
+      .notif-settings__capabilities {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-6, 24px);
+      }
+
+      .notif-settings__capability {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-lg, 12px);
+        opacity: 0;
+        transform: translateY(8px);
+        animation: capabilitySlide ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+      }
+
+      @keyframes capabilitySlide {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .notif-settings__capability-badge {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--persona-tint, rgba(74, 103, 65, 0.15));
+        border-radius: var(--radius-full);
+        color: var(--persona-primary, #4a6741);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .notif-settings__capability-badge svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .notif-settings__capability-name {
+        font-family: var(--font-display);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .notif-settings__capability-desc {
+        font-size: 10px;
+        color: var(--color-text-muted);
+        line-height: var(--leading-snug, 1.375);
+      }
+
+      /* Empty State CTA */
+      .notif-settings__empty-cta {
+        text-align: center;
+      }
+
+      .notif-settings__empty-cta-text {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
+        line-height: var(--leading-relaxed, 1.6);
+        margin: 0 0 var(--space-4, 16px);
+        max-width: 280px;
         margin-left: auto;
         margin-right: auto;
       }
 
       .notif-settings__empty-tip {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-4, 16px);
         background: var(--color-background-secondary, #f5f2ed);
         border-radius: var(--radius-lg, 12px);
-        font-size: var(--text-xs);
+        font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-secondary);
       }
 
@@ -1073,6 +1720,36 @@ class NotificationSettingsUI {
         height: 16px;
         color: var(--persona-primary, #4a6741);
         flex-shrink: 0;
+      }
+
+      /* Upcoming Intro Enhancement */
+      .notif-settings__upcoming-intro-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto var(--space-2, 8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        border-radius: var(--radius-full);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .notif-settings__upcoming-intro-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .notif-settings__upcoming-intro {
+        text-align: center;
+        margin-bottom: var(--space-4, 16px);
+      }
+
+      .notif-settings__upcoming-intro p {
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: 0;
       }
 
       /* Upcoming list */
@@ -1324,6 +2001,70 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #685852); }
       [data-theme="midnight"] .notif-settings__dialog { background: var(--color-background-elevated, #70605a); }
       [data-theme="midnight"] .notif-settings__dialog-option { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
+
+      /* Dark theme - New Better Than Human elements */
+      [data-theme="midnight"] .notif-settings__hero-icon {
+        background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.2)), var(--persona-tint-dark, rgba(140, 179, 128, 0.08)));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__hero-title,
+      [data-theme="midnight"] .notif-settings__empty-title,
+      [data-theme="midnight"] .notif-settings__sample-persona,
+      [data-theme="midnight"] .notif-settings__capability-name { color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .notif-settings__hero-desc,
+      [data-theme="midnight"] .notif-settings__empty-subtitle,
+      [data-theme="midnight"] .notif-settings__empty-cta-text,
+      [data-theme="midnight"] .notif-settings__sample-preview { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__section-badge {
+        background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__capability-icon {
+        background: var(--color-background-tertiary, #685852);
+      }
+      [data-theme="midnight"] .notif-settings__capability-icon--guardian { color: var(--persona-primary-dark, #8cb380); }
+      [data-theme="midnight"] .notif-settings__capability-icon--ritual { color: #c9a99a; }
+      [data-theme="midnight"] .notif-settings__capability-icon--streak { color: #daa88a; }
+      [data-theme="midnight"] .notif-settings__capability-icon--prediction { color: #6a9ba3; }
+      [data-theme="midnight"] .notif-settings__capability-icon--team { color: #8a9bba; }
+      [data-theme="midnight"] .notif-settings__row-icon {
+        background: var(--color-background-tertiary, #685852);
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__quiet-note {
+        background: var(--color-background-secondary, #60504a);
+      }
+      [data-theme="midnight"] .notif-settings__quiet-note svg { color: var(--persona-primary-dark, #8cb380); }
+      [data-theme="midnight"] .notif-settings__guardian-ring { border-color: var(--persona-primary-dark, #8cb380); }
+      [data-theme="midnight"] .notif-settings__guardian-icon {
+        background: linear-gradient(135deg, var(--persona-tint-dark, rgba(140, 179, 128, 0.25)), var(--persona-tint-dark, rgba(140, 179, 128, 0.1)));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__preview-badge {
+        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__sample-checkin {
+        background: var(--color-background-secondary, #60504a);
+      }
+      [data-theme="midnight"] .notif-settings__sample-checkins::after {
+        background: linear-gradient(to bottom, transparent, var(--color-background-elevated, #70605a));
+      }
+      [data-theme="midnight"] .notif-settings__sample-reason {
+        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.15));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__capability {
+        background: var(--color-background-secondary, #60504a);
+      }
+      [data-theme="midnight"] .notif-settings__capability-badge {
+        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
+        color: var(--persona-primary-dark, #8cb380);
+      }
+      [data-theme="midnight"] .notif-settings__upcoming-intro-icon {
+        background: var(--persona-tint-dark, rgba(140, 179, 128, 0.2));
+        color: var(--persona-primary-dark, #8cb380);
+      }
 
       @media (prefers-reduced-motion: reduce) {
         .notif-settings { transition: opacity ${DURATION.FAST}ms linear; }

@@ -127,6 +127,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('images/stock-lifestyle');
   eleventyConfig.addPassthroughCopy('images/testimonials');
   eleventyConfig.addPassthroughCopy('images/sequence');
+  eleventyConfig.addPassthroughCopy('images/blog');
 
   // Developers directory
   eleventyConfig.addPassthroughCopy('developers');

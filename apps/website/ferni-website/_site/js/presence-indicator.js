@@ -1,7 +1,201 @@
-"use strict";(function(){"use strict";const n={minCount:23,maxCount:89,updateInterval:8e3,animationDuration:600,fluctuation:.15,showDelay:3e3,debugMode:!1},e={currentCount:0,displayedCount:0,element:null,countElement:null,updateTimer:null,initialized:!1};function a(){if(e.element=document.querySelector(".presence-indicator, [data-presence]"),!e.element){e.element=l();const t=document.querySelector(".hero, [data-hero]"),o=document.querySelector(".hero__badges, .trust-badges");o?o.appendChild(e.element):t?t.appendChild(e.element):document.body.appendChild(e.element)}e.countElement=e.element.querySelector(".presence-indicator__count"),e.currentCount=m(),e.displayedCount=e.currentCount,r(e.currentCount,!1),setTimeout(()=>{e.element.classList.add("is-visible")},n.showDelay),e.updateTimer=setInterval(u,n.updateInterval),e.initialized=!0,s("Presence Indicator initialized")}function l(){const t=document.createElement("div");return t.className="presence-indicator",t.setAttribute("role","status"),t.setAttribute("aria-live","polite"),t.innerHTML=`
+/**
+ * Live Presence Indicator
+ * "X people are talking with Ferni right now"
+ * Creates social proof with subtle animation
+ */
+
+(function() {
+  'use strict';
+
+  // ============================================================================
+  // CONFIGURATION
+  // ============================================================================
+  
+  const CONFIG = {
+    minCount: 23,             // Minimum "active" users
+    maxCount: 89,             // Maximum "active" users
+    updateInterval: 8000,     // How often to update (ms)
+    animationDuration: 600,   // Count animation duration
+    fluctuation: 0.15,        // How much the count can change (15%)
+    showDelay: 3000,          // Delay before showing
+    debugMode: false
+  };
+
+  // ============================================================================
+  // STATE
+  // ============================================================================
+  
+  const state = {
+    currentCount: 0,
+    displayedCount: 0,
+    element: null,
+    countElement: null,
+    updateTimer: null,
+    initialized: false
+  };
+
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+  
+  function init() {
+    // Create or find presence indicator
+    state.element = document.querySelector('.presence-indicator, [data-presence]');
+    
+    if (!state.element) {
+      // Create the indicator
+      state.element = createIndicator();
+      
+      // Find best placement
+      const hero = document.querySelector('.hero, [data-hero]');
+      const trustBadges = document.querySelector('.hero__badges, .trust-badges');
+      
+      if (trustBadges) {
+        trustBadges.appendChild(state.element);
+      } else if (hero) {
+        hero.appendChild(state.element);
+      } else {
+        document.body.appendChild(state.element);
+      }
+    }
+    
+    state.countElement = state.element.querySelector('.presence-indicator__count');
+    
+    // Initialize count
+    state.currentCount = getRandomCount();
+    state.displayedCount = state.currentCount;
+    updateDisplay(state.currentCount, false);
+    
+    // Show after delay
+    setTimeout(() => {
+      state.element.classList.add('is-visible');
+    }, CONFIG.showDelay);
+    
+    // Start periodic updates
+    state.updateTimer = setInterval(updateCount, CONFIG.updateInterval);
+    
+    state.initialized = true;
+    logDebug('Presence Indicator initialized');
+  }
+
+  // ============================================================================
+  // CREATE INDICATOR DOM
+  // ============================================================================
+  
+  function createIndicator() {
+    const indicator = document.createElement('div');
+    indicator.className = 'presence-indicator';
+    indicator.setAttribute('role', 'status');
+    indicator.setAttribute('aria-live', 'polite');
+    
+    indicator.innerHTML = `
       <div class="presence-indicator__pulse"></div>
       <div class="presence-indicator__content">
         <span class="presence-indicator__count">0</span>
         <span class="presence-indicator__text">people talking with Ferni right now</span>
       </div>
-    `,t}function m(){return Math.floor(n.minCount+Math.random()*(n.maxCount-n.minCount))}function u(){const t=Math.floor(e.currentCount*n.fluctuation),o=Math.floor(Math.random()*t*2)-t;let i=e.currentCount+o;i=Math.max(n.minCount,Math.min(n.maxCount,i)),p(e.currentCount,i),e.currentCount=i,e.element.classList.add("is-updating"),setTimeout(()=>{e.element.classList.remove("is-updating")},600),s("Updated count to",i)}function p(t,o){const i=n.animationDuration,f=performance.now(),C=o-t;function c(h){const g=h-f,d=Math.min(g/i,1),M=1-Math.pow(1-d,3),v=Math.round(t+C*M);r(v,!0),d<1&&requestAnimationFrame(c)}requestAnimationFrame(c)}function r(t,o=!1){e.countElement&&(e.countElement.textContent=t,e.displayedCount=t,o&&(e.countElement.classList.add("is-changing"),setTimeout(()=>{e.countElement.classList.remove("is-changing")},200)))}function s(...t){n.debugMode&&console.log("[PresenceIndicator]",...t)}window.FerniPresenceIndicator={init:a,getCount:()=>e.currentCount,forceUpdate:u,setDebug:t=>{n.debugMode=t}},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",a):a()})();
+    `;
+    
+    return indicator;
+  }
+
+  // ============================================================================
+  // COUNT MANAGEMENT
+  // ============================================================================
+  
+  function getRandomCount() {
+    return Math.floor(CONFIG.minCount + Math.random() * (CONFIG.maxCount - CONFIG.minCount));
+  }
+  
+  function updateCount() {
+    const fluctuationAmount = Math.floor(state.currentCount * CONFIG.fluctuation);
+    const change = Math.floor(Math.random() * fluctuationAmount * 2) - fluctuationAmount;
+    
+    let newCount = state.currentCount + change;
+    
+    // Keep within bounds
+    newCount = Math.max(CONFIG.minCount, Math.min(CONFIG.maxCount, newCount));
+    
+    // Animate to new count
+    animateCount(state.currentCount, newCount);
+    state.currentCount = newCount;
+    
+    // Pulse animation
+    state.element.classList.add('is-updating');
+    setTimeout(() => {
+      state.element.classList.remove('is-updating');
+    }, 600);
+    
+    logDebug('Updated count to', newCount);
+  }
+  
+  function animateCount(from, to) {
+    const duration = CONFIG.animationDuration;
+    const startTime = performance.now();
+    const difference = to - from;
+    
+    function step(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out
+      const eased = 1 - Math.pow(1 - progress, 3);
+      
+      const currentValue = Math.round(from + difference * eased);
+      updateDisplay(currentValue, true);
+      
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+    
+    requestAnimationFrame(step);
+  }
+  
+  function updateDisplay(count, animate = false) {
+    if (!state.countElement) return;
+    
+    state.countElement.textContent = count;
+    state.displayedCount = count;
+    
+    if (animate) {
+      state.countElement.classList.add('is-changing');
+      setTimeout(() => {
+        state.countElement.classList.remove('is-changing');
+      }, 200);
+    }
+  }
+
+  // ============================================================================
+  // UTILITY
+  // ============================================================================
+  
+  function logDebug(...args) {
+    if (CONFIG.debugMode) {
+      console.log('[PresenceIndicator]', ...args);
+    }
+  }
+
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
+  
+  window.FerniPresenceIndicator = {
+    init,
+    getCount: () => state.currentCount,
+    forceUpdate: updateCount,
+    setDebug: (enabled) => { CONFIG.debugMode = enabled; }
+  };
+
+  // ============================================================================
+  // AUTO-INIT
+  // ============================================================================
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+

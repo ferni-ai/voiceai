@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-07
 category: "Building in Public"
+image: "feel-less-alone.png"
+imageAlt: "Two overlapping shapes with golden glow where they intersect"
 readTime: 6
 series: "building-in-public"
 seriesPart: 7

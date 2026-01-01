@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2025-01-04
 category: "Building in Public"
+image: "daily-standup.png"
+imageAlt: "Circular arrangement of figures in collaborative meeting"
 readTime: 5
 series: "building-in-public"
 seriesPart: 4
