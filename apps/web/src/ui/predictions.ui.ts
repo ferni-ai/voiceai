@@ -148,7 +148,28 @@ export class PredictionsUI {
   private renderEmptyState(): string {
     // Use teaser preview system to show what predictions WILL look like
     // This creates anticipation and shows the value of prediction games
-    return teaserPreview.predictions().outerHTML;
+    try {
+      const previewElement = teaserPreview.predictions();
+      if (previewElement && previewElement.outerHTML) {
+        return previewElement.outerHTML;
+      }
+      log.warn('Teaser preview returned empty element');
+    } catch (err) {
+      log.error('Failed to render teaser preview for predictions', err);
+    }
+
+    // Fallback: simple empty state message
+    return `
+      <div class="predictions-empty-fallback" style="padding: var(--space-6); text-align: center;">
+        <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">
+          No predictions yet
+        </p>
+        <p style="color: var(--color-text-muted); font-size: 0.875rem;">
+          Talk to Peter about making some predictions about your week ahead.
+          He'll help you build self-awareness through prediction games.
+        </p>
+      </div>
+    `;
   }
 
   /**
@@ -488,8 +509,12 @@ export class PredictionsUI {
       return;
     }
 
-    // Leave as empty state
-    log.debug('No predictions data available, showing empty state');
+    // Explicitly render empty state (in case initial render failed)
+    log.debug('No predictions data available, rendering empty state');
+    const content = this.container?.querySelector('#predictions-content');
+    if (content) {
+      content.innerHTML = this.renderEmptyState();
+    }
   }
 
   /**
