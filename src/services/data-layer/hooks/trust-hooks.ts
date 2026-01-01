@@ -299,8 +299,8 @@ export const onCuriosityMentionChange = createDomainHook<CuriosityMentionEntity>
 interface BetweenSessionThinkingEntity {
   topic: string;
   reflection: string;
-  sessionNumber: number;
-  depth: 'surface' | 'moderate' | 'deep';
+  sessionNumber?: number;
+  depth: 'surface' | 'moderate' | 'deep' | 'profound';
   emotionalTone?: string;
   createdAt: string;
 }
@@ -361,11 +361,24 @@ export const onPersonaGrowthChange = createDomainHook<PersonaGrowthEntity>({
 interface ConversationTextureEntity {
   personaId: string;
   sessionId: string;
-  tone: 'playful' | 'serious' | 'vulnerable' | 'curious' | 'mixed';
-  depth: 'light' | 'moderate' | 'deep' | 'profound';
-  rhythm: 'rapid' | 'flowing' | 'measured' | 'slow';
+  // ConversationTone from conversation-texture.ts
+  tone:
+    | 'playful'
+    | 'serious'
+    | 'vulnerable'
+    | 'analytical'
+    | 'exploratory'
+    | 'supportive'
+    | 'celebratory'
+    | 'reflective'
+    | 'mixed';
+  // DepthLevel from conversation-texture.ts
+  depth: 'surface' | 'moderate' | 'deep' | 'profound';
+  // ConversationRhythm from conversation-texture.ts
+  rhythm: 'rapid' | 'flowing' | 'contemplative' | 'variable';
   topics: string[];
-  energyPattern: 'building' | 'steady' | 'winding_down' | 'variable';
+  // EnergyPattern from conversation-texture.ts
+  energyPattern: 'building' | 'steady' | 'winding_down' | 'peaks_and_valleys';
   date: string;
 }
 

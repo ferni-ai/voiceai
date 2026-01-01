@@ -105,17 +105,17 @@ export const semanticIntelligenceBuilder: ContextBuilder = {
     const { services, userData, analysis, userText, voiceEmotion } = input;
     const userId = services?.userId;
 
-    // Only for authenticated users with enough conversation history
+    // Only for authenticated users
     if (!userId) {
       return [];
     }
 
     const turnCount = userData?.turnCount || 0;
+    const isSessionStart = turnCount <= 1;
 
-    // Don't run on first 2 turns (not enough context yet)
-    if (turnCount < 2) {
-      return [];
-    }
+    // On session start, we want semantic intelligence even without prior context
+    // This enables "I remember from last time..." moments on first turn
+    // MEMORY category handles when this runs: first 3 turns + every 5th turn + returning users
 
     try {
       // Extract current context signals

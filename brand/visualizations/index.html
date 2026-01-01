@@ -100,7 +100,7 @@
     .orb-1 {
       width: 600px;
       height: 600px;
-      background: radial-gradient(circle, var(--glass-glow-nayan) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--color-nayan-glow) 0%, transparent 70%);
       top: -200px;
       left: -200px;
       animation-delay: 0s;
@@ -109,7 +109,7 @@
     .orb-2 {
       width: 500px;
       height: 500px;
-      background: radial-gradient(circle, var(--glass-glow-ferni) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 70%);
       top: 40%;
       right: -150px;
       animation-delay: -7s;
@@ -118,7 +118,7 @@
     .orb-3 {
       width: 400px;
       height: 400px;
-      background: radial-gradient(circle, rgba(58, 107, 115, 0.25) 0%, transparent 70%);
+      background: radial-gradient(circle, var(--color-peter-glow) 0%, transparent 70%);
       bottom: 10%;
       left: 20%;
       animation-delay: -14s;
@@ -1100,8 +1100,9 @@
     }
 
     .scenario-card:hover {
-      border-color: var(--glass-border-hover);
+      border-color: var(--color-ferni);
       transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
     }
 
     .scenario-card::before {
@@ -3309,8 +3310,7 @@
 
     .chapter.current .chapter-marker {
       background: var(--color-nayan);
-      box-shadow: 0 0 0 4px rgba(184, 149, 106, 0.2),
-                  0 0 12px rgba(184, 149, 106, 0.3);
+      box-shadow: var(--shadow-nayan);
     }
 
     .chapter-year {
@@ -3376,18 +3376,22 @@
       gap: var(--space-4);
       padding: var(--space-5) var(--space-6);
       margin-top: var(--space-8);
-      background: linear-gradient(135deg, rgba(74, 103, 65, 0.08), rgba(184, 149, 106, 0.05));
-      border: 1px solid var(--glass-border);
+      background: linear-gradient(135deg,
+        var(--color-ferni-subtle),
+        var(--color-nayan-subtle));
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-lg);
       position: relative;
       overflow: hidden;
       transition: transform var(--duration-normal) var(--ease-spring),
-                  border-color var(--duration-fast) var(--ease-out);
+                  border-color var(--duration-fast) var(--ease-out),
+                  box-shadow var(--duration-fast) var(--ease-out);
     }
 
     .insight-card:hover {
       transform: translateX(4px);
-      border-color: var(--glass-border-hover);
+      border-color: var(--color-ferni);
+      box-shadow: var(--shadow-sm);
     }
 
     .insight-card::before {
@@ -3423,7 +3427,7 @@
     .insight-icon--maya { color: var(--color-maya); }
     .insight-icon--nayan { color: var(--color-nayan); }
     .insight-icon--ferni { color: var(--color-ferni); }
-    .insight-icon--alex { color: var(--color-alex, #5a6b8a); }
+    .insight-icon--alex { color: var(--color-alex); }
     .insight-icon--jordan { color: var(--color-jordan); }
     .insight-icon--peter { color: var(--color-peter); }
 
@@ -3542,7 +3546,7 @@
     }
 
     .final-insight-text {
-      font-family: Georgia, serif;
+      font-family: var(--font-display);
       font-size: clamp(var(--text-base), 3vw, var(--text-xl));
       font-style: italic;
       color: var(--color-text-primary);
@@ -5191,7 +5195,7 @@
 
       <div class="viz-card">
         <div class="mirror-container">
-          <div class="mirror-side">
+          <div class="mirror-side mirror-side--user">
             <div class="mirror-side-title">What You Say</div>
             <div class="mirror-items">
               <div class="mirror-item">"I'm fine, just busy"</div>
@@ -5207,7 +5211,7 @@
             </svg>
           </div>
 
-          <div class="mirror-side">
+          <div class="mirror-side mirror-side--ferni">
             <div class="mirror-side-title">What Ferni Notices</div>
             <div class="mirror-items">
               <div class="mirror-item">You've mentioned "busy" 47 times this month</div>
@@ -5252,10 +5256,10 @@
               <linearGradient id="riverGrowth" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="var(--color-nayan)"/><stop offset="100%" stop-color="var(--color-nayan-dark)"/></linearGradient>
             </defs>
 
-            <text x="60" y="240" fill="var(--text-muted)" font-size="11" font-family="Inter, sans-serif">Jul</text>
-            <text x="300" y="240" fill="var(--text-muted)" font-size="11" font-family="Inter, sans-serif">Sep</text>
-            <text x="540" y="240" fill="var(--text-muted)" font-size="11" font-family="Inter, sans-serif">Nov</text>
-            <text x="760" y="240" fill="var(--text-muted)" font-size="11" font-family="Inter, sans-serif">Jan</text>
+            <text x="60" y="240" fill="var(--color-text-muted)" font-size="11" font-family="var(--font-body)">Jul</text>
+            <text x="300" y="240" fill="var(--color-text-muted)" font-size="11" font-family="var(--font-body)">Sep</text>
+            <text x="540" y="240" fill="var(--color-text-muted)" font-size="11" font-family="var(--font-body)">Nov</text>
+            <text x="760" y="240" fill="var(--color-text-muted)" font-size="11" font-family="var(--font-body)">Jan</text>
 
             <path class="river-stream" fill="url(#riverWork)" d="M0,80 C80,75 120,60 200,50 C280,40 320,45 400,55 C480,65 520,80 600,85 C680,90 720,75 800,70 L800,110 C720,115 680,130 600,125 C520,120 480,105 400,95 C320,85 280,80 200,90 C120,100 80,115 0,120 Z"/>
             <path class="river-stream" fill="url(#riverFamily)" d="M0,120 C80,115 120,100 200,90 C280,80 320,85 400,95 C480,105 520,120 600,125 C680,130 720,115 800,110 L800,145 C720,150 680,165 600,160 C520,155 480,140 400,130 C320,120 280,115 200,125 C120,135 80,150 0,155 Z"/>
@@ -5310,12 +5314,12 @@
               <line x1="140" y1="140" x2="45" y2="195" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
               <line x1="140" y1="140" x2="45" y2="85" stroke="rgba(245,242,237,0.12)" stroke-width="1"/>
 
-              <text x="140" y="20" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Health</text>
-              <text x="245" y="85" fill="var(--text-muted)" font-size="10" font-family="Inter, sans-serif">Family</text>
-              <text x="245" y="200" fill="var(--text-muted)" font-size="10" font-family="Inter, sans-serif">Growth</text>
-              <text x="140" y="268" fill="var(--text-muted)" font-size="10" text-anchor="middle" font-family="Inter, sans-serif">Creativity</text>
-              <text x="35" y="200" fill="var(--text-muted)" font-size="10" text-anchor="end" font-family="Inter, sans-serif">Rest</text>
-              <text x="35" y="85" fill="var(--text-muted)" font-size="10" text-anchor="end" font-family="Inter, sans-serif">Career</text>
+              <text x="140" y="20" fill="var(--color-text-muted)" font-size="10" text-anchor="middle" font-family="var(--font-body)">Health</text>
+              <text x="245" y="85" fill="var(--color-text-muted)" font-size="10" font-family="var(--font-body)">Family</text>
+              <text x="245" y="200" fill="var(--color-text-muted)" font-size="10" font-family="var(--font-body)">Growth</text>
+              <text x="140" y="268" fill="var(--color-text-muted)" font-size="10" text-anchor="middle" font-family="var(--font-body)">Creativity</text>
+              <text x="35" y="200" fill="var(--color-text-muted)" font-size="10" text-anchor="end" font-family="var(--font-body)">Rest</text>
+              <text x="35" y="85" fill="var(--color-text-muted)" font-size="10" text-anchor="end" font-family="var(--font-body)">Career</text>
 
               <polygon points="140,40 220,90 220,190 140,240 60,190 60,90" fill="rgba(184, 149, 106, 0.12)" stroke="var(--color-nayan)" stroke-width="1.5"/>
               <polygon points="140,60 200,100 210,180 140,220 80,170 70,100" fill="rgba(74, 103, 65, 0.12)" stroke="var(--color-ferni)" stroke-width="1.5"/>

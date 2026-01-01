@@ -148,6 +148,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // NOTE: unified-memory-orchestrator consolidates memory, advanced-memory, proactive-memory,
   // and human-memory into a single coordinated system. Legacy builders disabled to avoid redundancy.
   // NEW: better-than-human-memory provides proactive surfacing with timing, learning, and graph-based recall.
+  // MOVED: semantic-intelligence-integration now runs on MEMORY triggers (not just COGNITIVE) for full E2E integration
   [BuilderCategory.MEMORY]: [
     'superhuman-session-priming', // NEW: Surfaces ALL superhuman memory at session start (Better Than Human)
     'better-than-human-memory', // P0: Proactive surfacing with timing intelligence and learning
@@ -162,6 +163,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'cross-session-threading', // KEPT: Threading context is unique
     'thinking-of-you', // NEW: Proactive callbacks and "I was thinking about you" moments
     'memory-enhancement', // NEW: Tonal memory, curiosity follow-through, between-session thinking, persona growth
+    'semantic-intelligence-integration', // MOVED: V3.0-V3.7 semantic intelligence - runs on every memory trigger (first 3 turns + every 5th)
   ],
 
   // PERSONA - Character and identity
@@ -212,7 +214,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'cognitive-insights',
     'pattern-surfacing',
     'superhuman-insights',
-    'semantic-intelligence-integration', // V3.0-V3.7: Semantic intelligence context injection
+    // 'semantic-intelligence-integration', // MOVED to MEMORY for full E2E integration
     'life-context-synthesis', // Phase 6: Cross-domain life context awareness
   ],
 

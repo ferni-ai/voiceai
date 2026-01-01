@@ -497,6 +497,52 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
               hasGrowthProfile: !!growthProfile,
               hasTextureProfile: !!textureProfile,
             });
+
+            // 🔍 SEMANTIC INDEXING: Index to data layer for semantic search
+            // Fire-and-forget - don't block cleanup for indexing
+            try {
+              const { onConversationTextureChange, onBetweenSessionThinkingChange } =
+                await import('../../services/data-layer/hooks/trust-hooks.js');
+
+              // Index conversation texture
+              if (textureProfile) {
+                // Get the latest snapshot for energy pattern
+                const latestSnapshot = textureProfile.snapshots?.[textureProfile.snapshots.length - 1];
+                void onConversationTextureChange(userId, sessionId, {
+                  personaId: sessionPersona?.id || 'ferni',
+                  sessionId,
+                  tone: textureProfile.patterns?.usualTone || 'mixed',
+                  depth: textureProfile.patterns?.usualDepth || 'moderate',
+                  rhythm: textureProfile.patterns?.usualRhythm || 'flowing',
+                  topics: textureProfile.patterns?.frequentTopics?.slice(0, 5) || [],
+                  energyPattern: latestSnapshot?.energy || 'steady',
+                  date: new Date().toISOString(),
+                }, 'create');
+              }
+
+              // Index between-session thinking for semantic retrieval
+              for (const record of thinkingRecords.slice(0, 5)) {
+                const createdAtStr =
+                  record.createdAt instanceof Date
+                    ? record.createdAt.toISOString()
+                    : (record.createdAt as string) || new Date().toISOString();
+                void onBetweenSessionThinkingChange(userId, record.id || `thinking-${Date.now()}`, {
+                  topic: record.topic,
+                  reflection: record.userQuote || record.topic,
+                  depth: record.emotionalWeight === 'heavy' ? 'deep' : 'moderate',
+                  emotionalTone: record.emotionalWeight,
+                  createdAt: createdAtStr,
+                }, 'create');
+              }
+
+              diag.session('🔍 Memory enhancement indexed to semantic layer', {
+                userId,
+                textureIndexed: !!textureProfile,
+                thinkingIndexed: Math.min(thinkingRecords.length, 5),
+              });
+            } catch (indexErr) {
+              diag.debug('Semantic indexing failed (non-fatal)', { error: String(indexErr) });
+            }
           } catch (memErr) {
             diag.warn('Memory enhancement persistence failed (non-fatal)', {
               error: String(memErr),
