@@ -156,36 +156,49 @@ User says: "Help me reconnect with my partner"
 
 ---
 
-## Implementation Plan
+## Implementation Status
 
-### Phase 1: Wire Orphaned Tools to Context Builders
+### ✅ Phase 1: Wire Orphaned Tools to Context Builders (DONE - Jan 2026)
 
-**Files to modify:**
-- `src/intelligence/context-builders/domain-fluency.ts`
-- `src/tools/orchestrator/unified-tool-orchestrator.ts`
+**Files modified:**
+- `src/intelligence/context-builders/domain-fluency.ts` - Added domain fluencies
+- `src/tools/dynamic-tool-router.ts` - Added intent detection keywords
 
-**Domains to wire:**
-- envy, shame, resentment → Available via context builders
+**Domains wired:**
+- ✅ envy → Ferni (context builder + dynamic router)
+- ✅ shame → Ferni (context builder + dynamic router)
+- ✅ resentment → Ferni (context builder + dynamic router)
+- ✅ midlife → Nayan (context builder + dynamic router)
+- ✅ empty-nest → Nayan (context builder + dynamic router)
+- ✅ coming-out → Ferni (context builder + dynamic router)
+- ✅ faith-transition → Nayan (context builder + dynamic router)
+- ✅ blended-family → Ferni (context builder + dynamic router)
 
-### Phase 2: Update Agent Manifests
+### ✅ Phase 2: Update Agent Manifests (DONE - Jan 2026)
 
-**Files to modify:**
-- Each `persona.manifest.json` in `bundles/` and `marketplace-agents/`
+**Files modified:**
+- `src/personas/bundles/ferni/persona.manifest.json` - Added `_domain_ownership`
+- `src/personas/bundles/nayan-patel/persona.manifest.json` - Added `_domain_ownership`
+- `apps/marketplace-agents/agents/sage-relationship-navigator/persona.manifest.json` - Added intimacy domain
+- `apps/marketplace-agents/agents/river-grief-companion/persona.manifest.json` - Added infidelity domain
 
-**Add domain ownership:**
+**Domain ownership structure:**
 ```json
 {
-  "knowledge": {
-    "domains": ["intimacy", "relationships", "communication"],
-    "exclusive_domains": ["intimacy"],  // NEW: Only this agent handles
-    "shared_domains": ["relationships"]  // NEW: Multiple agents can handle
+  "_domain_ownership": {
+    "exclusive": ["grief", "meaning", "vulnerability"],
+    "shared": ["relationships", "life-transitions"],
+    "handoff_preferred": {
+      "intimacy": "sage-relationship-navigator",
+      "infidelity": "river"
+    }
   }
 }
 ```
 
-### Phase 3: Semantic Handoff Router
+### 🔄 Phase 3: Semantic Handoff Router (FUTURE)
 
-**New file:** `src/tools/handoff/semantic-router.ts`
+**Planned file:** `src/tools/handoff/semantic-router.ts`
 
 ```typescript
 interface SemanticHandoffRouter {
@@ -195,26 +208,11 @@ interface SemanticHandoffRouter {
 }
 ```
 
-### Phase 4: Tool Inventory Command
+### ✅ Phase 4: Tool Validation Command (DONE - Jan 2026)
 
-**New command:** `pnpm tools:inventory`
+**New command:** `pnpm tools:validate`
 
-Output:
-```
-┌────────────────────────────────────────────────────────────┐
-│ AGENT TOOL INVENTORY                                        │
-├──────────────┬──────────┬─────────────────────────────────┤
-│ Agent        │ Tools    │ Domains                          │
-├──────────────┼──────────┼─────────────────────────────────┤
-│ Ferni        │ 45       │ life-coaching, grief, meaning... │
-│ Sage         │ 32       │ intimacy, relationships...       │
-│ River        │ 28       │ grief, loss, infidelity...       │
-│ ...          │          │                                  │
-└──────────────┴──────────┴─────────────────────────────────┘
-
-UNASSIGNED DOMAINS (orphaned):
-- visual-memory (7 tools) - Needs photo integration
-```
+Shows tool wiring status, domain coverage, and orphaned tools.
 
 ---
 

@@ -393,8 +393,25 @@
       "neurodiversity",
       "trauma-support",
       "chronic-conditions",
-      "midlife"
+      "midlife",
+      "envy",
+      "shame",
+      "resentment",
+      "empty-nest",
+      "coming-out",
+      "faith-transition",
+      "blended-family"
     ],
+    "_domain_ownership": {
+      "exclusive": ["grief", "meaning", "vulnerability", "crisis", "second-chances", "envy", "shame", "resentment"],
+      "shared": ["relationships", "life-transitions", "presence", "wisdom"],
+      "handoff_preferred": {
+        "intimacy": "sage-relationship-navigator",
+        "infidelity": "river",
+        "midlife": "nayan-patel",
+        "faith-transition": "nayan-patel"
+      }
+    },
     "required": [
       "handoffToAlex",
       "handoffToMaya",

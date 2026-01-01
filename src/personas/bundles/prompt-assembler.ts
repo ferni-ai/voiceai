@@ -13,7 +13,7 @@
  */
 
 import { readFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { BundlePromptAssembly } from './types.js';
@@ -565,7 +565,7 @@ export async function assemblePrompt(
     );
     if (superhumanSummary) {
       const superhumanTokens = estimateTokens(superhumanSummary);
-      sections.push('\n---\n\n' + superhumanSummary);
+      sections.push(`\n---\n\n${superhumanSummary}`);
       currentTokens += superhumanTokens;
       includedModules.push('superhuman_capabilities');
     }
@@ -576,7 +576,7 @@ export async function assemblePrompt(
     const fcTokens = estimateTokens(functionCalling);
     // Always include function calling even if it pushes over budget - tools are critical
     sections.push(
-      '\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling
+      `\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n${functionCalling}`
     );
     currentTokens += fcTokens;
     includedModules.push('function_calling');
@@ -586,7 +586,7 @@ export async function assemblePrompt(
   if (directorsNotes && currentTokens < tokenBudget.total_max - 1000) {
     const notesTokens = estimateTokens(directorsNotes);
     if (currentTokens + notesTokens <= tokenBudget.total_max) {
-      sections.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
+      sections.push(`\n---\n\n## Director's Notes\n\n${directorsNotes}`);
       currentTokens += notesTokens;
       includedModules.push('directors_notes');
     } else {
@@ -602,7 +602,7 @@ export async function assemblePrompt(
       dynamicTokens <= tokenBudget.dynamic_context_max &&
       currentTokens + dynamicTokens <= tokenBudget.total_max
     ) {
-      sections.push('\n---\n\n## Current Context\n\n' + dynamicContext);
+      sections.push(`\n---\n\n## Current Context\n\n${dynamicContext}`);
       currentTokens += dynamicTokens;
       includedModules.push('dynamic_context');
     } else {
@@ -616,7 +616,7 @@ export async function assemblePrompt(
     const content = conditionalContent[i];
     const contentTokens = estimateTokens(content);
     if (currentTokens + contentTokens <= tokenBudget.total_max) {
-      sections.push('\n---\n\n' + content);
+      sections.push(`\n---\n\n${content}`);
       currentTokens += contentTokens;
       includedModules.push(`conditional_${i}`);
     } else {
@@ -630,7 +630,7 @@ export async function assemblePrompt(
     const bioSummary = biography.slice(0, tokenBudget.hints_max * 4);
     const bioTokens = estimateTokens(bioSummary);
     if (currentTokens + bioTokens <= tokenBudget.total_max) {
-      sections.push('\n---\n\n## Your Background (Reference)\n\n' + bioSummary);
+      sections.push(`\n---\n\n## Your Background (Reference)\n\n${bioSummary}`);
       currentTokens += bioTokens;
       includedModules.push('biography (summary)');
     } else {
@@ -691,22 +691,22 @@ export async function getStaticPrompt(personaId: string): Promise<string> {
     superhumanProactive
   );
   if (superhumanSummary) {
-    parts.push('\n---\n\n' + superhumanSummary);
+    parts.push(`\n---\n\n${superhumanSummary}`);
   }
 
   // CRITICAL: Include function calling instructions for tool usage
   if (functionCalling) {
-    parts.push('\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling);
+    parts.push(`\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n${functionCalling}`);
   }
 
   if (directorsNotes) {
-    parts.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
+    parts.push(`\n---\n\n## Director's Notes\n\n${directorsNotes}`);
   }
 
   if (biography) {
     // Include abbreviated biography
     const bioPreview = biography.slice(0, 4000);
-    parts.push('\n---\n\n## Your Background (Reference)\n\n' + bioPreview);
+    parts.push(`\n---\n\n## Your Background (Reference)\n\n${bioPreview}`);
   }
 
   return parts.join('\n');
