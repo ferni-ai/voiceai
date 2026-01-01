@@ -783,10 +783,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     userData,
     voiceOptions: {
       allowInterruptions: true,
-      minEndpointingDelay: 400,
-      maxEndpointingDelay: 1200,
+      // UPDATED Dec 2024: Tighter delays for snappier conversation
+      // Human turn-taking gaps are 200-500ms
+      minEndpointingDelay: 250, // Was 400ms
+      maxEndpointingDelay: 800, // Was 1200ms
       minInterruptionWords: 1,
-      minInterruptionDuration: 300,
+      minInterruptionDuration: 200, // Was 300ms
       preemptiveGeneration: true,
     },
   });

@@ -36,9 +36,11 @@ export interface EndpointingSettings {
 // DEFAULT SETTINGS
 // ============================================================================
 
+// UPDATED Dec 2024: Faster defaults for snappier conversation
+// Human turn-taking gaps are 200-500ms
 const DEFAULT_SETTINGS: EndpointingSettings = {
-  minDelay: 400,
-  maxDelay: 1200,
+  minDelay: 250, // Was 400ms
+  maxDelay: 800, // Was 1200ms
   preemptiveGeneration: true,
 };
 
@@ -104,21 +106,22 @@ export function getAdaptiveEndpointingSettings(context: EndpointingContext): End
   }
 
   // 4. CONVERSATION PHASE adjustments
+  // UPDATED Dec 2024: Tightened all phase timings for snappier feel
   switch (conversationPhase) {
     case 'opening':
       // Quick and responsive in opening
-      minDelay = Math.min(minDelay, 350);
-      maxDelay = Math.min(maxDelay, 1000);
+      minDelay = Math.min(minDelay, 200);
+      maxDelay = Math.min(maxDelay, 700);
       break;
     case 'supporting':
-      // Most patient during support
-      minDelay = Math.max(minDelay, 500);
-      maxDelay = Math.max(maxDelay, 1600);
+      // Most patient during support (still reduced)
+      minDelay = Math.max(minDelay, 400);
+      maxDelay = Math.max(maxDelay, 1200);
       break;
     case 'closing':
       // Quicker wrap-up
-      minDelay = Math.min(minDelay, 400);
-      maxDelay = Math.min(maxDelay, 1100);
+      minDelay = Math.min(minDelay, 250);
+      maxDelay = Math.min(maxDelay, 800);
       break;
     case 'exploring':
     default:
@@ -126,10 +129,10 @@ export function getAdaptiveEndpointingSettings(context: EndpointingContext): End
       break;
   }
 
-  // 5. SHORT MESSAGES - Quicker response
+  // 5. SHORT MESSAGES - Quicker response (even faster now)
   if (userText.length < 20 && !isHeavyTopic && emotionalIntensity < 0.5) {
-    minDelay = Math.min(minDelay, 300);
-    maxDelay = Math.min(maxDelay, 900);
+    minDelay = Math.min(minDelay, 200);
+    maxDelay = Math.min(maxDelay, 600);
   }
 
   // Ensure min < max

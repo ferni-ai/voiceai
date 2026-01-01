@@ -1266,6 +1266,11 @@ ${threadContext.content}
       process.stderr.write(`[voice-agent-entry] 📍 No city in metadata (location unavailable)\n`);
     }
 
+    // Store userLocation in userData so it flows through to TTS context
+    // This enables weather tool to use IP-detected location as fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (userData as any).userLocation = userLocation;
+
     // Get tools from orchestrator
     const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
       persona: { id: sessionPersona.id, displayName: sessionPersona.name },
@@ -1446,10 +1451,12 @@ ${threadContext.content}
       userData,
       voiceOptions: {
         allowInterruptions: true,
-        minEndpointingDelay: 400,
-        maxEndpointingDelay: 1200,
+        // UPDATED Dec 2024: Tighter delays for snappier conversation
+        // Human turn-taking gaps are 200-500ms
+        minEndpointingDelay: 250, // Was 400ms
+        maxEndpointingDelay: 800, // Was 1200ms
         minInterruptionWords: 1,
-        minInterruptionDuration: 300,
+        minInterruptionDuration: 200, // Was 300ms
         preemptiveGeneration: true,
       },
     });

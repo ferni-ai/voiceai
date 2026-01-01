@@ -260,6 +260,9 @@ export const VAD_CONFIG = {
   /**
    * Audio to include before detected speech starts (ms)
    * Captures the beginning of words that might be cut off
+   *
+   * UPDATED Dec 2024: Reduced from 300ms → 200ms for faster response
+   * while still capturing word beginnings
    */
   get prefixPaddingMs(): number {
     const envValue = process.env.VAD_PREFIX_PADDING_MS;
@@ -269,13 +272,15 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 300; // Default: 300ms padding
+    return 200; // Default: 200ms padding (reduced from 300ms)
   },
 
   /**
    * Duration of silence required to end speech detection (ms)
-   * Higher values allow for natural pauses without triggering response
-   * Increased from 500ms to 600ms for more natural conversation
+   * Lower = faster response, Higher = more tolerant of natural pauses
+   *
+   * UPDATED Dec 2024: Reduced from 600ms → 400ms for snappier conversation
+   * Research: Human turn-taking gaps are 200-500ms
    */
   get silenceDurationMs(): number {
     const envValue = process.env.VAD_SILENCE_DURATION_MS;
@@ -285,7 +290,7 @@ export const VAD_CONFIG = {
         return parsed;
       }
     }
-    return 600; // Default: 600ms silence before turn end
+    return 400; // Default: 400ms silence before turn end (reduced from 600ms)
   },
 
   /** Whether to create a response after speech ends */
