@@ -1326,9 +1326,9 @@ function getFeaturedPost(): typeof FEATURED_POSTS[0] {
  * Personal sign-off variations for warmth
  */
 const PERSONAL_SIGNOFFS = [
-  { name: 'Seth', role: 'Co-founder' },
+  { name: 'Ferni', role: null },
   { name: 'The Ferni Team', role: null },
-  { name: 'The Ferni Team', role: null },
+  { name: 'Your friends at Ferni', role: null },
   { name: 'The Ferni Team', role: null },
 ];
 
