@@ -507,17 +507,23 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
               // Index conversation texture
               if (textureProfile) {
                 // Get the latest snapshot for energy pattern
-                const latestSnapshot = textureProfile.snapshots?.[textureProfile.snapshots.length - 1];
-                void onConversationTextureChange(userId, sessionId, {
-                  personaId: sessionPersona?.id || 'ferni',
+                const latestSnapshot =
+                  textureProfile.snapshots?.[textureProfile.snapshots.length - 1];
+                void onConversationTextureChange(
+                  userId,
                   sessionId,
-                  tone: textureProfile.patterns?.usualTone || 'mixed',
-                  depth: textureProfile.patterns?.usualDepth || 'moderate',
-                  rhythm: textureProfile.patterns?.usualRhythm || 'flowing',
-                  topics: textureProfile.patterns?.frequentTopics?.slice(0, 5) || [],
-                  energyPattern: latestSnapshot?.energy || 'steady',
-                  date: new Date().toISOString(),
-                }, 'create');
+                  {
+                    personaId: sessionPersona?.id || 'ferni',
+                    sessionId,
+                    tone: textureProfile.patterns?.usualTone || 'mixed',
+                    depth: textureProfile.patterns?.usualDepth || 'moderate',
+                    rhythm: textureProfile.patterns?.usualRhythm || 'flowing',
+                    topics: textureProfile.patterns?.frequentTopics?.slice(0, 5) || [],
+                    energyPattern: latestSnapshot?.energy || 'steady',
+                    date: new Date().toISOString(),
+                  },
+                  'create'
+                );
               }
 
               // Index between-session thinking for semantic retrieval
@@ -526,13 +532,18 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
                   record.createdAt instanceof Date
                     ? record.createdAt.toISOString()
                     : (record.createdAt as string) || new Date().toISOString();
-                void onBetweenSessionThinkingChange(userId, record.id || `thinking-${Date.now()}`, {
-                  topic: record.topic,
-                  reflection: record.userQuote || record.topic,
-                  depth: record.emotionalWeight === 'heavy' ? 'deep' : 'moderate',
-                  emotionalTone: record.emotionalWeight,
-                  createdAt: createdAtStr,
-                }, 'create');
+                void onBetweenSessionThinkingChange(
+                  userId,
+                  record.id || `thinking-${Date.now()}`,
+                  {
+                    topic: record.topic,
+                    reflection: record.userQuote || record.topic,
+                    depth: record.emotionalWeight === 'heavy' ? 'deep' : 'moderate',
+                    emotionalTone: record.emotionalWeight,
+                    createdAt: createdAtStr,
+                  },
+                  'create'
+                );
               }
 
               diag.session('🔍 Memory enhancement indexed to semantic layer', {

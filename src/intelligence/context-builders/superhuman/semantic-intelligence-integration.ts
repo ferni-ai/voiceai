@@ -122,7 +122,6 @@ export const semanticIntelligenceBuilder: ContextBuilder = {
       const currentTopics = analysis?.topics?.detected || [];
       const currentEmotion = analysis?.emotion?.primary || voiceEmotion?.emotion;
       const currentPerson = extractMentionedPerson(userText || '');
-      const isSessionStart = turnCount <= 2;
 
       // Check cache first
       const cachedContext = getCachedContext(userId, currentTopics, currentEmotion, currentPerson);
