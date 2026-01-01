@@ -147,7 +147,7 @@ jobs:
         
       - name: Upload visual diff artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: visual-regression-diff
           path: |
@@ -190,7 +190,7 @@ jobs:
         
       - name: Upload a11y report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: accessibility-report
           path: frontend-typescript/a11y-report/

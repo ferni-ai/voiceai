@@ -61,7 +61,7 @@ jobs:
           npm run build
 
       - name: Upload frontend build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-dist
           path: frontend-typescript/dist/
@@ -140,7 +140,7 @@ jobs:
           npm run build:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-build
           path: |
@@ -207,7 +207,7 @@ jobs:
           npm run build:win
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-build
           path: |
@@ -260,7 +260,7 @@ jobs:
           npm run build:linux
 
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-build
           path: |
@@ -318,7 +318,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload iOS project
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ios-project
           path: apps/ios-native/
@@ -391,7 +391,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-build
           path: |
