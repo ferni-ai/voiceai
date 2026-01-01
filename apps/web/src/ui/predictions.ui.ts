@@ -25,7 +25,6 @@ import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
-import { teaserPreview } from './teaser-preview.ui.js';
 import {
   enhancePredictionsWithNarrative,
   injectStorytellingStyles,
@@ -143,31 +142,93 @@ export class PredictionsUI {
   }
 
   /**
-   * Render empty state - shows teaser preview of what predictions WILL look like
+   * Render empty state - beautiful preview of what predictions WILL look like
+   * 
+   * Philosophy: Transform "No data yet" into "This is what you'll see"
+   * Shows the value proposition through realistic preview data.
    */
   private renderEmptyState(): string {
-    // Use teaser preview system to show what predictions WILL look like
-    // This creates anticipation and shows the value of prediction games
-    try {
-      const previewElement = teaserPreview.predictions();
-      if (previewElement && previewElement.outerHTML) {
-        return previewElement.outerHTML;
-      }
-      log.warn('Teaser preview returned empty element');
-    } catch (err) {
-      log.error('Failed to render teaser preview for predictions', err);
-    }
-
-    // Fallback: simple empty state message
+    // Generate inspiring preview with realistic dummy data
     return `
-      <div class="predictions-empty-fallback" style="padding: var(--space-6); text-align: center;">
-        <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">
-          No predictions yet
-        </p>
-        <p style="color: var(--color-text-muted); font-size: 0.875rem;">
-          Talk to Peter about making some predictions about your week ahead.
-          He'll help you build self-awareness through prediction games.
-        </p>
+      <div class="predictions-empty">
+        <!-- Hero Section -->
+        <div class="predictions-empty__hero">
+          <div class="predictions-empty__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <h3 class="predictions-empty__title">Your Crystal Ball</h3>
+          <p class="predictions-empty__subtitle">
+            I'll learn to anticipate what you need before you ask.
+          </p>
+        </div>
+
+        <!-- Preview Badge -->
+        <div class="predictions-empty__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Preview</span>
+        </div>
+
+        <!-- Sample Predictions (shows what it WILL look like) -->
+        <div class="predictions-empty__samples">
+          <div class="predictions-empty__sample predictions-empty__sample--accurate">
+            <div class="predictions-empty__sample-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Accurate
+            </div>
+            <p class="predictions-empty__sample-text">"You'd feel overwhelmed this week"</p>
+            <span class="predictions-empty__sample-result">You mentioned stress on Tuesday</span>
+          </div>
+
+          <div class="predictions-empty__sample predictions-empty__sample--accurate">
+            <div class="predictions-empty__sample-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Accurate
+            </div>
+            <p class="predictions-empty__sample-text">"The gym habit would struggle"</p>
+            <span class="predictions-empty__sample-result">You skipped 2 sessions</span>
+          </div>
+
+          <div class="predictions-empty__sample predictions-empty__sample--watching">
+            <div class="predictions-empty__sample-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Watching
+            </div>
+            <p class="predictions-empty__sample-text">"Sunday evening will feel heavy"</p>
+            <span class="predictions-empty__sample-result">I'll check in with you</span>
+          </div>
+        </div>
+
+        <!-- Accuracy Preview -->
+        <div class="predictions-empty__accuracy">
+          <span class="predictions-empty__accuracy-value">78%</span>
+          <span class="predictions-empty__accuracy-label">Prediction accuracy</span>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="predictions-empty__cta">
+          <p class="predictions-empty__cta-text">
+            Talk to Peter about making predictions. Build self-awareness through the prediction game.
+          </p>
+          <div class="predictions-empty__unlock-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
+              <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/>
+            </svg>
+            <span>Keep talking. We're building something.</span>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -1016,46 +1077,237 @@ export class PredictionsUI {
         cursor: not-allowed;
       }
 
-      /* Empty state */
+      /* ========================================
+         EMPTY STATE - "Crystal Ball" Preview
+         Shows what predictions WILL look like
+         Philosophy: "This is what you'll see"
+         ======================================== */
+
       .predictions-empty {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        gap: var(--space-4, 16px);
+        padding: var(--space-2, 8px);
+      }
+
+      /* Hero Section */
+      .predictions-empty__hero {
         text-align: center;
-        padding: var(--space-8, 32px) var(--space-4, 16px);
+        padding: var(--space-4, 16px) var(--space-2, 8px);
       }
 
       .predictions-empty__icon {
-        width: 64px;
-        height: 64px;
+        width: 56px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--persona-tint, var(--color-accent-subtle));
+        background: linear-gradient(
+          135deg,
+          var(--persona-tint, rgba(74, 103, 65, 0.15)),
+          var(--persona-tint, rgba(74, 103, 65, 0.05))
+        );
         border-radius: var(--radius-full);
-        color: var(--color-accent-text);
-        margin-bottom: var(--space-4, 16px);
+        margin: 0 auto var(--space-3, 12px);
+        color: var(--persona-primary, #4a6741);
+        animation: iconFloat 3s ease-in-out infinite;
+      }
+
+      @keyframes iconFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
       }
 
       .predictions-empty__icon svg {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
       }
 
       .predictions-empty__title {
         font-family: var(--font-display);
-        font-size: var(--text-lg);
+        font-size: var(--text-lg, 1.125rem);
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-primary);
-        margin: 0 0 var(--space-2, 8px) 0;
+        margin: 0 0 var(--space-1, 4px) 0;
       }
 
-      .predictions-empty__text {
-        font-size: var(--text-sm);
+      .predictions-empty__subtitle {
+        font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-secondary);
-        line-height: var(--leading-relaxed);
-        max-width: min(280px, 100%);
         margin: 0;
+        line-height: var(--leading-relaxed, 1.6);
+      }
+
+      /* Preview Badge */
+      .predictions-empty__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-1, 4px);
+        padding: var(--space-1, 4px) var(--space-3, 12px);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.1));
+        border-radius: var(--radius-full);
+        margin: 0 auto;
+        color: var(--persona-primary, #4a6741);
+        font-size: var(--text-2xs, 0.625rem);
+        font-weight: var(--font-weight-semibold, 600);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wider, 0.05em);
+      }
+
+      /* Sample Predictions */
+      .predictions-empty__samples {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .predictions-empty__sample {
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(0, 0, 0, 0.02));
+        border-radius: var(--radius-lg, 12px);
+        text-align: left;
+        opacity: 0;
+        transform: translateY(8px);
+        animation: sampleSlideIn ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+      }
+
+      .predictions-empty__sample:nth-child(1) { animation-delay: 100ms; }
+      .predictions-empty__sample:nth-child(2) { animation-delay: 180ms; }
+      .predictions-empty__sample:nth-child(3) { animation-delay: 260ms; }
+
+      @keyframes sampleSlideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .predictions-empty__sample--accurate {
+        border-left: 3px solid var(--persona-primary, #4a6741);
+      }
+
+      .predictions-empty__sample--watching {
+        border-left: 3px solid var(--color-text-muted, #9a8a7a);
+        opacity: 0.85;
+      }
+
+      .predictions-empty__sample-status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        font-size: var(--text-2xs, 0.625rem);
+        font-weight: var(--font-weight-semibold, 600);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wide, 0.025em);
+        color: var(--persona-primary, #4a6741);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .predictions-empty__sample--watching .predictions-empty__sample-status {
+        color: var(--color-text-muted, #9a8a7a);
+      }
+
+      .predictions-empty__sample-text {
+        font-size: var(--text-sm, 0.875rem);
+        font-style: italic;
+        color: var(--color-text-primary);
+        margin: var(--space-1, 4px) 0;
+        line-height: var(--leading-snug, 1.375);
+      }
+
+      .predictions-empty__sample-result {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted);
+      }
+
+      /* Accuracy Preview */
+      .predictions-empty__accuracy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: var(--space-4, 16px);
+        background: linear-gradient(
+          135deg,
+          var(--persona-tint, rgba(74, 103, 65, 0.12)),
+          var(--persona-tint, rgba(74, 103, 65, 0.04))
+        );
+        border-radius: var(--radius-xl, 16px);
+        opacity: 0;
+        animation: fadeIn ${DURATION.SLOW}ms ${EASING.GENTLE} 400ms forwards;
+      }
+
+      @keyframes fadeIn {
+        to { opacity: 1; }
+      }
+
+      .predictions-empty__accuracy-value {
+        font-family: var(--font-display);
+        font-size: var(--text-3xl, 1.875rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--persona-primary, #4a6741);
+        line-height: 1;
+      }
+
+      .predictions-empty__accuracy-label {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wide, 0.025em);
+        margin-top: var(--space-1, 4px);
+      }
+
+      /* CTA Section */
+      .predictions-empty__cta {
+        text-align: center;
+        padding-top: var(--space-3, 12px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.06));
+      }
+
+      .predictions-empty__cta-text {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
+        margin: 0 0 var(--space-3, 12px) 0;
+        line-height: var(--leading-relaxed, 1.6);
+      }
+
+      .predictions-empty__unlock-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        background: var(--color-background-tertiary, rgba(0, 0, 0, 0.03));
+        border-radius: var(--radius-lg, 12px);
+        color: var(--color-text-muted);
+        font-size: var(--text-xs, 0.75rem);
+        font-style: italic;
+      }
+
+      .predictions-empty__unlock-hint svg {
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+      }
+
+      /* Fade gradient overlay for "preview" feel */
+      .predictions-empty__samples::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          var(--color-bg-elevated, #FFFDFB)
+        );
+        pointer-events: none;
+        border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+      }
+
+      .predictions-empty__samples {
+        position: relative;
       }
 
       /* Dark Theme */
@@ -1079,6 +1331,39 @@ export class PredictionsUI {
 
       [data-theme="midnight"] .prediction-card__icon {
         background: var(--color-background-tertiary);
+      }
+
+      /* Dark Theme - Empty State */
+      [data-theme="midnight"] .predictions-empty__icon {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 103, 65, 0.25),
+          rgba(74, 103, 65, 0.1)
+        );
+      }
+
+      [data-theme="midnight"] .predictions-empty__sample {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.03));
+      }
+
+      [data-theme="midnight"] .predictions-empty__accuracy {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 103, 65, 0.2),
+          rgba(74, 103, 65, 0.08)
+        );
+      }
+
+      [data-theme="midnight"] .predictions-empty__samples::after {
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          var(--color-background-elevated, #1a1a2e)
+        );
+      }
+
+      [data-theme="midnight"] .predictions-empty__unlock-hint {
+        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.05));
       }
 
       /* Responsive */

@@ -165,6 +165,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'thinking-of-you', // NEW: Proactive callbacks and "I was thinking about you" moments
     'memory-enhancement', // NEW: Tonal memory, curiosity follow-through, between-session thinking, persona growth
     'semantic-intelligence-integration', // MOVED: V3.0-V3.7 semantic intelligence - runs on every memory trigger (first 3 turns + every 5th)
+    'generated-insights', // NEW: 10 categories of superhuman insights (correlations, growth, relationships, etc.)
   ],
 
   // PERSONA - Character and identity

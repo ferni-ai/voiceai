@@ -45,6 +45,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'thinking-of-you': async () => import('../thinking-of-you.js'), // Proactive callbacks and follow-ups
   'memory-enhancement': async () => import('../memory-enhancement.js'), // Tonal memory, curiosity, thinking, growth
   'better-than-human-memory': async () => import('../memory/better-than-human-memory.js'), // P0: Proactive surfacing with timing + learning
+  'generated-insights': async () => import('../superhuman/generated-insights.js'), // NEW: 10 categories of superhuman insights
 
   // PERSONA (in personas/)
   'twin-profile-context': async () => import('../twin-profile-context.js'), // Digital Twin profile for personalization
