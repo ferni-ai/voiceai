@@ -1237,7 +1237,108 @@ Just reply if you need anything. I'm here. 🌱`;
 }
 
 /**
- * Send newsletter subscription confirmation email
+ * Extract a likely first name from an email address
+ * e.g., "seth.ford@gmail.com" → "Seth"
+ *       "john_doe@example.com" → "John"
+ *       "marketing@company.com" → null (generic)
+ */
+function extractNameFromEmail(email: string): string | null {
+  const localPart = email.split('@')[0]?.toLowerCase() || '';
+
+  // Skip generic/functional emails
+  const genericPrefixes = [
+    'info', 'contact', 'hello', 'admin', 'support', 'sales', 'marketing',
+    'team', 'noreply', 'no-reply', 'notifications', 'newsletter', 'test'
+  ];
+  if (genericPrefixes.some(prefix => localPart.startsWith(prefix))) {
+    return null;
+  }
+
+  // Extract first name from common patterns
+  // "firstname.lastname" → "firstname"
+  // "firstname_lastname" → "firstname"
+  // "firstnamelastname" → try to detect (harder)
+  const separators = /[._-]/;
+  const parts = localPart.split(separators);
+  const firstName = parts[0];
+
+  // Skip if it's just numbers or too short
+  if (!firstName || firstName.length < 2 || /^\d+$/.test(firstName)) {
+    return null;
+  }
+
+  // Capitalize first letter
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1);
+}
+
+/**
+ * Get a warm, time-aware greeting
+ */
+function getTimeBasedGreeting(): string {
+  const hour = new Date().getUTCHours();
+  // Assume US-centric timing (UTC-5 to UTC-8)
+  const adjustedHour = (hour - 6 + 24) % 24; // Roughly central time
+
+  if (adjustedHour >= 5 && adjustedHour < 12) {
+    return 'Good morning';
+  } else if (adjustedHour >= 12 && adjustedHour < 17) {
+    return 'Good afternoon';
+  } else {
+    return 'Good evening';
+  }
+}
+
+/**
+ * Featured blog posts to recommend (rotate through these)
+ */
+const FEATURED_POSTS = [
+  {
+    title: 'Why Voice-First AI Changes Everything',
+    url: '/blog/why-voice-first/',
+    excerpt: 'There\'s something different about talking to AI instead of typing.'
+  },
+  {
+    title: 'How Ferni Remembers You',
+    url: '/blog/how-ferni-remembers-you/',
+    excerpt: 'Building memory systems that make AI feel like it truly knows you.'
+  },
+  {
+    title: 'The Loneliness Gap',
+    url: '/blog/the-loneliness-gap/',
+    excerpt: 'Why we\'re building AI that makes you feel less alone, not more.'
+  },
+  {
+    title: 'Giving AI a Personality',
+    url: '/blog/giving-ai-a-personality/',
+    excerpt: 'The design decisions behind making AI companions feel real.'
+  }
+];
+
+/**
+ * Get a featured blog post (rotates based on day)
+ */
+function getFeaturedPost(): typeof FEATURED_POSTS[0] {
+  const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  return FEATURED_POSTS[dayOfYear % FEATURED_POSTS.length];
+}
+
+/**
+ * Personal sign-off variations for warmth
+ */
+const PERSONAL_SIGNOFFS = [
+  { name: 'Seth', role: 'Co-founder' },
+  { name: 'The Ferni Team', role: null },
+  { name: 'The Ferni Team', role: null },
+  { name: 'The Ferni Team', role: null },
+];
+
+function getPersonalSignoff(): { name: string; role: string | null } {
+  const index = Math.floor(Math.random() * PERSONAL_SIGNOFFS.length);
+  return PERSONAL_SIGNOFFS[index];
+}
+
+/**
+ * Send newsletter subscription confirmation email with deep personalization
  */
 async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
   const sendgridApiKey = process.env.SENDGRID_API_KEY;
@@ -1247,6 +1348,20 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
     log.debug('SendGrid not configured, skipping newsletter welcome email');
     return;
   }
+
+  // Deep personalization elements
+  const firstName = extractNameFromEmail(email);
+  const greeting = getTimeBasedGreeting();
+  const featuredPost = getFeaturedPost();
+  const signoff = getPersonalSignoff();
+
+  // Personalized greeting
+  const personalGreeting = firstName
+    ? `${greeting}, ${firstName}!`
+    : `${greeting}!`;
+
+  // Personalized headline
+  const headline = firstName ? `Welcome, ${firstName}.` : `You're in.`;
 
   const html = `
 <!DOCTYPE html>
@@ -1267,6 +1382,15 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
     .what-to-expect li { margin: 8px 0; }
     .cta { display: block; background: #3D5A45; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 500; text-align: center; margin: 24px 0; }
     .cta:hover { background: #4a6741; }
+    .featured { background: #fff; border: 1px solid #E5DFD6; border-radius: 12px; padding: 20px; margin: 24px 0; }
+    .featured-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #9A8B7A; margin-bottom: 8px; }
+    .featured-title { font-size: 18px; font-weight: 600; color: #2C2520; margin: 0 0 8px; }
+    .featured-title a { color: #2C2520; text-decoration: none; }
+    .featured-title a:hover { color: #4a6741; }
+    .featured-excerpt { color: #6B5C4D; font-size: 14px; margin: 0; }
+    .signoff { margin-top: 24px; }
+    .signoff-name { font-weight: 500; color: #2C2520; }
+    .signoff-role { font-size: 13px; color: #9A8B7A; }
     .footer { font-size: 13px; color: #9A8B7A; text-align: center; margin-top: 24px; border-top: 1px solid #E5DFD6; padding-top: 24px; }
     .footer a { color: #4a6741; text-decoration: none; }
   </style>
@@ -1283,11 +1407,11 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
           <circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/>
         </svg>
       </div>
-      <h1>You're in.</h1>
-      <p class="subtitle">Thanks for joining our community.</p>
+      <h1>${headline}</h1>
+      <p class="subtitle">${personalGreeting} Thanks for joining our community.</p>
 
       <div class="what-to-expect">
-        <h3>What we send:</h3>
+        <h3>What you'll get:</h3>
         <ul>
           <li>New blog posts about AI coaching, personal growth, and building Ferni</li>
           <li>Product updates when we ship something meaningful</li>
@@ -1295,14 +1419,23 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
         </ul>
       </div>
 
+      <div class="featured">
+        <div class="featured-label">Start here</div>
+        <h4 class="featured-title"><a href="https://ferni.ai${featuredPost.url}">${featuredPost.title}</a></h4>
+        <p class="featured-excerpt">${featuredPost.excerpt}</p>
+      </div>
+
       <p>We respect your inbox. No spam, no daily newsletters, no stuff that wastes your time.</p>
 
       <p>If you ever want to chat, just reply to any email. We read everything.</p>
 
-      <a href="https://ferni.ai/blog/" class="cta">Read the Blog</a>
+      <a href="https://ferni.ai/blog/" class="cta">Explore the Blog</a>
+
+      <div class="signoff">
+        <span class="signoff-name">${signoff.name}</span>${signoff.role ? `<br><span class="signoff-role">${signoff.role}</span>` : ''}
+      </div>
 
       <p class="footer">
-        The Ferni Team<br>
         <a href="https://ferni.ai">ferni.ai</a> · Building AI that feels human
       </p>
     </div>
@@ -1310,23 +1443,32 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
 </body>
 </html>`;
 
-  const text = `You're in.
+  const text = `${headline}
 
-Thanks for joining our community.
+${personalGreeting} Thanks for joining our community.
 
-What we send:
+What you'll get:
 - New blog posts about AI coaching, personal growth, and building Ferni
 - Product updates when we ship something meaningful
 - Occasionally, something we think you'll find genuinely useful
+
+START HERE: ${featuredPost.title}
+${featuredPost.excerpt}
+https://ferni.ai${featuredPost.url}
 
 We respect your inbox. No spam, no daily newsletters, no stuff that wastes your time.
 
 If you ever want to chat, just reply to any email. We read everything.
 
-Read the blog: https://ferni.ai/blog/
+Explore the blog: https://ferni.ai/blog/
 
-The Ferni Team
+${signoff.name}${signoff.role ? `\n${signoff.role}` : ''}
 ferni.ai - Building AI that feels human`;
+
+  // Personalized subject line
+  const subject = firstName
+    ? `Welcome to Ferni, ${firstName}`
+    : 'Welcome to Ferni';
 
   try {
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
@@ -1338,7 +1480,7 @@ ferni.ai - Building AI that feels human`;
       body: JSON.stringify({
         personalizations: [{ to: [{ email }] }],
         from: { email: fromEmail, name: 'Ferni' },
-        subject: 'Welcome to Ferni',
+        subject,
         content: [
           { type: 'text/plain', value: text },
           { type: 'text/html', value: html },
@@ -1347,7 +1489,7 @@ ferni.ai - Building AI that feels human`;
     });
 
     if (response.status === 202) {
-      log.info({ email: hashEmail(email) }, 'Newsletter welcome email sent');
+      log.info({ email: hashEmail(email), personalized: !!firstName }, 'Newsletter welcome email sent');
     } else {
       log.warn({ status: response.status }, 'Failed to send newsletter welcome email');
     }
