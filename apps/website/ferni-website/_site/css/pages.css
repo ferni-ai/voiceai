@@ -2202,7 +2202,7 @@ section {
   .team-member-profile__avatar {
     width: 120px;
     height: 120px;
-    font-size: 36px;
+    font-size: var(--text-4xl);
   }
 
   .about-cta__buttons,
@@ -2249,7 +2249,7 @@ section {
   }
 
   .team-member__avatar span {
-    font-size: 36px;
+    font-size: var(--text-4xl);
   }
 
   .team-member__cta-buttons {

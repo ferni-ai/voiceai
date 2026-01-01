@@ -1125,7 +1125,7 @@ button {
 }
 .stat-number {
   font-family: var(--font-display);
-  font-size: 56px;
+  font-size: var(--text-5xl);
   font-weight: 700;
   color: var(--color-text);
   line-height: 1;

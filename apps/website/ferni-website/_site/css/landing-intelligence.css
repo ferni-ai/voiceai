@@ -1276,7 +1276,7 @@
 
 .memory-demo__magic svg {
   flex-shrink: 0;
-  color: #e6c89a; /* Warm gold - high visibility */
+  color: var(--color-highlight); /* Warm gold - high visibility */
   width: 26px;
   height: 26px;
   filter: drop-shadow(0 0 12px rgba(230, 200, 154, 0.5));
@@ -1414,7 +1414,7 @@
 
 .journey__depth-bar-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-text-primary));
   text-align: center;
@@ -1423,7 +1423,7 @@
 }
 
 .journey__depth-bar-content {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary, #70605a);
   text-align: center;
 }
@@ -1445,7 +1445,7 @@
   padding: var(--space-3) var(--space-4);
   background: rgba(74, 103, 65, 0.06);
   border-radius: var(--radius-sm);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary, #70605a);
 }
 

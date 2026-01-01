@@ -889,7 +889,7 @@ button {
   top: var(--space-16);
   left: var(--space-8);
   font-family: Georgia, serif;
-  font-size: 200px;
+  font-size: var(--text-6xl);
   line-height: 1;
   color: var(--color-border);
   opacity: 0.5;
@@ -1270,7 +1270,7 @@ button {
 
 .pricing-card__price {
   font-family: var(--font-display);
-  font-size: 56px;
+  font-size: var(--text-5xl);
   font-weight: 800;
   letter-spacing: -0.03em;
   margin-bottom: var(--space-2);

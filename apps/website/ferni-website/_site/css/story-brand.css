@@ -1522,7 +1522,7 @@ button {
 /* Title - Bold and confident */
 .feature__title {
   font-family: var(--font-display);
-  font-size: 1.375rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--color-natural-ink);
@@ -1615,7 +1615,7 @@ button {
 .assistant-phone__notch {
   width: 100px;
   height: 28px;
-  background: #000;
+  background: var(--color-bg-dark);
   border-radius: var(--radius-full);
 }
 
@@ -2356,7 +2356,7 @@ button {
    The moment of decision - powerful, inviting
    ============================================ */
 .final-cta {
-  background: linear-gradient(180deg, #0d0b09 0%, var(--color-bg-dark) 100%);
+  background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark) 100%);
   color: white;
   text-align: center;
   padding: clamp(100px, 15vh, 160px) var(--space-6);
@@ -3218,7 +3218,7 @@ button {
 
 .faq .section__subtitle {
   font-size: var(--text-lg);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   max-width: 540px;
   margin: 0 auto;
   line-height: var(--lh-relaxed);
@@ -3308,7 +3308,7 @@ button {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--lh-relaxed);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   animation: faq-expand var(--duration-slow) var(--ease-out-expo);
 }
 
@@ -3349,7 +3349,7 @@ button {
 
 .how-it-works .section__subtitle {
   font-size: var(--text-lg);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   max-width: 540px;
   margin: 0 auto;
 }
@@ -3465,7 +3465,7 @@ button {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--lh-relaxed);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   margin-bottom: var(--space-4);
 }
 
@@ -4366,7 +4366,7 @@ html {
 
 .security .section__subtitle {
   font-size: var(--text-lg);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   max-width: 540px;
   margin: 0 auto;
 }
@@ -4448,7 +4448,7 @@ html {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   line-height: var(--lh-relaxed);
-  color: #5a524c;
+  color: var(--color-text-secondary);
 }
 
 /* ============================================
@@ -5110,7 +5110,7 @@ img[loading='lazy']:not([data-src]) {
    The emotional core - powerful, immersive, memorable
    ============================================ */
 .two-am {
-  background: #0d0b09;
+  background: var(--color-bg-dark);
   padding: 0;
   overflow: hidden;
   position: relative;
@@ -5172,7 +5172,7 @@ img[loading='lazy']:not([data-src]) {
   font-size: clamp(1.5rem, 4vw, 2.5rem);
   font-style: italic;
   font-weight: 500;
-  color: #f5f3f0;
+  color: var(--color-text-inverse);
   line-height: 1.4;
   letter-spacing: -0.01em;
 }
@@ -5224,7 +5224,7 @@ img[loading='lazy']:not([data-src]) {
 
 /* THE RESPONSE - Relief moment */
 .two-am__response {
-  background: linear-gradient(180deg, #0d0b09 0%, var(--color-paper-cream) 30%);
+  background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-paper-cream) 30%);
   padding: clamp(80px, 12vh, 120px) var(--space-6);
   display: flex;
   justify-content: center;
@@ -5536,7 +5536,7 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__row:hover .proof-table__good::after {
   content: '✓';
   margin-left: var(--space-2);
-  font-size: 0.75em;
+  font-size: var(--text-xs);
   opacity: 0.7;
 }
 
@@ -5824,7 +5824,7 @@ img[loading='lazy']:not([data-src]) {
 
 .journey .section__subtitle {
   font-size: var(--text-lg);
-  color: #5a524c;
+  color: var(--color-text-secondary);
   max-width: 540px;
   margin: 0 auto;
 }
@@ -6804,8 +6804,8 @@ body[data-time-of-day='early-morning'] {
    ============================================ */
 
 .story-page {
-  background: #FAF9F7;
-  background: var(--color-paper-cream, #FAF9F7);
+  background: var(--color-bg-primary);
+  background: var(--color-paper-cream, var(--color-bg-primary));
   min-height: 100vh;
 }
 

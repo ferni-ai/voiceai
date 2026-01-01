@@ -59,6 +59,20 @@ vi.mock('../../../../memory/index.js', () => ({
       summary: 'Test relationship summary',
     }),
   },
+  getMemoryOrchestrator: vi.fn(() => ({
+    recall: vi.fn().mockResolvedValue({
+      primaryMemories: [],
+      associatedMemories: [],
+      emotionalThreads: [],
+      patterns: [],
+      approachGuidance: null,
+      triggers: [],
+      generatedReferences: [],
+    }),
+    store: vi.fn().mockResolvedValue({ success: true }),
+    extractSignals: vi.fn().mockResolvedValue({ signals: [] }),
+  })),
+  resetMemoryOrchestrator: vi.fn(),
 }));
 
 // ============================================================================
