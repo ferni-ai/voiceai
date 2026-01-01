@@ -6,7 +6,7 @@ authorInitials: 'FE'
 authorColor: '#4a6741'
 date: 2025-01-15
 category: 'Announcements'
-image: 'introducing-ferni.png'
+image: 'introducing-ferni.jpg'
 imageAlt: 'Six organic shapes in gentle constellation representing the Ferni team'
 readTime: 4
 ---

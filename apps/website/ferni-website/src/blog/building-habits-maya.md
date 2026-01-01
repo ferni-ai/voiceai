@@ -6,7 +6,7 @@ authorInitials: "MY"
 authorColor: "#a67a6a"
 date: 2025-01-05
 category: "Meet the Team"
-image: "habits-maya.png"
+image: "habits-maya.jpg"
 imageAlt: "Seedling growing with gentle growth ripples in terracotta and sage"
 readTime: 5
 ---

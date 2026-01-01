@@ -225,21 +225,21 @@
 
   "navigation": {
     "main": [
-      { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
+      { "title": "Capabilities", "url": "/capabilities/", "i18nKey": "nav.capabilities" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "Help", "url": "/help/", "i18nKey": "nav.help" },
+      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" }
     ],
     "mobile": [
-      { "title": "Features", "url": "/features/", "i18nKey": "nav.features" },
+      { "title": "Capabilities", "url": "/capabilities/", "i18nKey": "nav.capabilities" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
-      { "title": "Help", "url": "/help/", "i18nKey": "nav.help" },
+      { "title": "Blog", "url": "/blog/", "i18nKey": "nav.blog" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" }
     ],
     "footer": {
       "product": [
         { "title": "Meet the Team", "url": "/team/" },
-        { "title": "Features", "url": "/features/" },
+        { "title": "Capabilities", "url": "/capabilities/" },
         { "title": "Help & Support", "url": "/help/" }
       ],
       "company": [
