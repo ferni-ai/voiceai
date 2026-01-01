@@ -352,6 +352,16 @@ const personaGrowthPolicy: EntityIndexingPolicy = {
   ttlDays: 0, // Never expire - persona growth is permanent
 };
 
+const conversationTexturePolicy: EntityIndexingPolicy = {
+  entityType: 'conversation_texture',
+  priority: 'always',
+  conditions: {
+    maxPerUser: 100, // Track conversation feel over time
+  },
+  contentFields: ['personaId', 'tone', 'depth', 'rhythm', 'topics', 'energyPattern'],
+  ttlDays: 180, // Expire after 6 months - texture is about recent patterns
+};
+
 // ============================================================================
 // SUPERHUMAN POLICIES
 // ============================================================================
@@ -1827,6 +1837,7 @@ export const DEFAULT_INDEXING_POLICY: IndexingPolicy = {
     curiosityMentionPolicy,
     betweenSessionThinkingPolicy,
     personaGrowthPolicy,
+    conversationTexturePolicy,
     // Superhuman
     dreamPolicy,
     lifeChapterPolicy,
@@ -2157,6 +2168,7 @@ export function getPoliciesByDomain(): Record<string, EntityIndexingPolicy[]> {
       curiosityMentionPolicy,
       betweenSessionThinkingPolicy,
       personaGrowthPolicy,
+      conversationTexturePolicy,
     ],
     superhuman: [
       dreamPolicy,

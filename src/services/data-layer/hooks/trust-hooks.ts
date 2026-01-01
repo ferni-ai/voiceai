@@ -355,6 +355,45 @@ export const onPersonaGrowthChange = createDomainHook<PersonaGrowthEntity>({
 });
 
 // ============================================================================
+// CONVERSATION TEXTURE (NEW - December 2024)
+// ============================================================================
+
+interface ConversationTextureEntity {
+  personaId: string;
+  sessionId: string;
+  tone: 'playful' | 'serious' | 'vulnerable' | 'curious' | 'mixed';
+  depth: 'light' | 'moderate' | 'deep' | 'profound';
+  rhythm: 'rapid' | 'flowing' | 'measured' | 'slow';
+  topics: string[];
+  energyPattern: 'building' | 'steady' | 'winding_down' | 'variable';
+  date: string;
+}
+
+/**
+ * Track the "feel" or "vibe" of conversations over time
+ * "Our talks tend to go deep with a flowing rhythm"
+ */
+export const onConversationTextureChange = createDomainHook<ConversationTextureEntity>({
+  storeType: 'trust',
+  entityType: 'conversation_texture',
+  contentBuilder: (t) =>
+    joinNonEmpty([
+      `Conversation texture with ${t.personaId}: ${t.tone} tone, ${t.depth} depth.`,
+      `Rhythm: ${t.rhythm}. Energy: ${t.energyPattern}.`,
+      t.topics.length > 0 ? `Topics discussed: ${t.topics.slice(0, 3).join(', ')}.` : null,
+    ]),
+  metadataExtractor: (t) => ({
+    personaId: t.personaId,
+    sessionId: t.sessionId,
+    tone: t.tone,
+    depth: t.depth,
+    rhythm: t.rhythm,
+    energyPattern: t.energyPattern,
+    date: t.date,
+  }),
+});
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -369,10 +408,11 @@ export const trustHooks = {
   onTonalMemoryChange,
   onVulnerabilityMomentChange,
   onTrustMilestoneChange,
-  // New memory enhancement hooks
+  // New memory enhancement hooks (December 2024)
   onCuriosityMentionChange,
   onBetweenSessionThinkingChange,
   onPersonaGrowthChange,
+  onConversationTextureChange,
 };
 
 export default trustHooks;

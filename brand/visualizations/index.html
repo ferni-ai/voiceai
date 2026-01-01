@@ -2855,10 +2855,10 @@
     }
 
     .card-gold {
-      padding: var(--space-3);
-      background: var(--color-gold-subtle);
-      border-left: 2px solid var(--color-gold);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: var(--space-4);
+      background: var(--color-nayan-subtle);
+      border-left: 3px solid var(--color-nayan);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
     }
 
     .gold-label {
@@ -2866,7 +2866,7 @@
       font-weight: var(--font-semibold);
       text-transform: uppercase;
       letter-spacing: var(--tracking-wider);
-      color: var(--color-gold);
+      color: var(--color-nayan);
       margin-bottom: var(--space-2);
       display: flex;
       align-items: center;
@@ -2875,13 +2875,13 @@
 
     .gold-label::before {
       content: '\u25C6';
-      font-size: 8px;
-      color: var(--color-gold);
+      font-size: var(--text-xs);
+      color: var(--color-nayan);
     }
 
     .gold-text {
       font-size: var(--text-sm);
-      color: var(--text-primary);
+      color: var(--color-text-primary);
       line-height: var(--leading-relaxed);
       font-weight: var(--font-medium);
     }
@@ -2890,7 +2890,7 @@
        THE MIRROR - What You Say vs What Ferni Notices
        ============================================ */
     .mirror-section {
-      margin-bottom: var(--space-12);
+      padding: var(--space-16) 0;
     }
 
     .mirror-container {
@@ -2909,18 +2909,27 @@
 
     .mirror-side {
       padding: var(--space-6);
-      background: rgba(28, 26, 24, 0.6);
-      border: 1px solid var(--glass-border);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .mirror-side--user {
+      border-top: 3px solid var(--color-alex);
+    }
+
+    .mirror-side--ferni {
+      border-top: 3px solid var(--color-ferni);
     }
 
     .mirror-side-title {
       font-size: var(--text-xs);
       font-weight: var(--font-semibold);
       text-transform: uppercase;
-      letter-spacing: var(--tracking-wide);
-      color: var(--text-muted);
-      margin-bottom: var(--space-4);
+      letter-spacing: var(--tracking-wider);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-5);
       text-align: center;
     }
 
@@ -2931,18 +2940,18 @@
     }
 
     .mirror-item {
-      padding: var(--space-3) var(--space-4);
-      background: rgba(245, 242, 237, 0.02);
+      padding: var(--space-4);
+      background: var(--color-bg-secondary);
       border-radius: var(--radius-md);
       font-size: var(--text-sm);
-      color: var(--text-secondary);
-      line-height: var(--leading-normal);
+      color: var(--color-text-secondary);
+      line-height: var(--leading-relaxed);
       transition: all var(--duration-fast) var(--ease-out);
     }
 
     .mirror-item:hover {
-      background: rgba(245, 242, 237, 0.05);
-      color: var(--text-primary);
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
     }
 
     .mirror-divider {
@@ -2950,15 +2959,22 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 44px;
-      height: 44px;
-      background: var(--bg-primary);
-      border: 1px solid var(--glass-border-hover);
+      width: 48px;
+      height: 48px;
+      background: var(--color-bg-primary);
+      border: 2px solid var(--color-border-default);
       border-radius: var(--radius-full);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10;
+      box-shadow: var(--shadow-md);
+    }
+
+    .mirror-divider svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-ferni);
     }
 
     @media (max-width: 768px) {
@@ -2969,13 +2985,17 @@
        CONVERSATION RIVER - Stream Graph
        ============================================ */
     .river-section {
-      margin-bottom: var(--space-12);
+      padding: var(--space-16) 0;
     }
 
     .river-container {
-      height: 240px;
+      height: 280px;
       position: relative;
-      margin: var(--space-4) 0;
+      margin: var(--space-8) 0;
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .river-svg {
@@ -2984,34 +3004,35 @@
     }
 
     .river-stream {
-      fill-opacity: 0.75;
-      transition: fill-opacity var(--duration-fast) var(--ease-out);
+      fill-opacity: 0.7;
+      transition: fill-opacity var(--duration-fast) var(--ease-out),
+                  transform var(--duration-fast) var(--ease-out);
     }
 
     .river-stream:hover {
-      fill-opacity: 0.9;
+      fill-opacity: 0.95;
     }
 
     .river-legend {
       display: flex;
-      gap: var(--space-6);
+      gap: var(--space-8);
       justify-content: center;
       flex-wrap: wrap;
-      margin-top: var(--space-6);
+      margin-top: var(--space-8);
     }
 
     .river-legend-item {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
+      gap: var(--space-3);
       font-size: var(--text-sm);
-      color: var(--text-secondary);
+      color: var(--color-text-secondary);
     }
 
     .river-legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: var(--radius-sm);
       flex-shrink: 0;
     }
 
@@ -3019,12 +3040,12 @@
        VALUES RADAR - Stated vs Lived
        ============================================ */
     .radar-section {
-      margin-bottom: var(--space-12);
+      padding: var(--space-16) 0;
     }
 
     .radar-container {
       display: flex;
-      gap: var(--space-10);
+      gap: var(--space-12);
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
@@ -3032,9 +3053,13 @@
 
     .radar-chart {
       position: relative;
-      width: 280px;
-      height: 280px;
+      width: 320px;
+      height: 320px;
       flex-shrink: 0;
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4);
+      border: 1px solid var(--color-border-subtle);
     }
 
     .radar-chart svg {
@@ -3045,87 +3070,90 @@
     .radar-legend {
       display: flex;
       flex-direction: column;
-      gap: var(--space-4);
-      max-width: 280px;
+      gap: var(--space-5);
+      max-width: 320px;
     }
 
     .radar-legend-item {
       display: flex;
       align-items: center;
-      gap: var(--space-3);
+      gap: var(--space-4);
     }
 
     .radar-legend-line {
-      width: 20px;
-      height: 3px;
-      border-radius: 2px;
+      width: 24px;
+      height: 4px;
+      border-radius: var(--radius-sm);
       flex-shrink: 0;
     }
 
     .radar-legend-text {
       font-size: var(--text-sm);
-      color: var(--text-secondary);
+      color: var(--color-text-secondary);
     }
 
     .radar-insight {
-      padding: var(--space-4);
-      background: rgba(184, 149, 106, 0.08);
-      border-radius: var(--radius-md);
-      margin-top: var(--space-2);
+      padding: var(--space-5);
+      background: var(--color-nayan-subtle);
+      border-radius: var(--radius-lg);
+      margin-top: var(--space-4);
+      border-left: 3px solid var(--color-nayan);
     }
 
     .radar-insight-text {
       font-size: var(--text-sm);
-      color: var(--text-secondary);
+      color: var(--color-text-secondary);
       font-style: italic;
-      line-height: var(--leading-normal);
+      line-height: var(--leading-relaxed);
     }
 
     /* ============================================
        THE UNSAID - Gentle Reminders
        ============================================ */
     .unsaid-section {
-      margin-bottom: var(--space-12);
+      padding: var(--space-16) 0;
     }
 
     .unsaid-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--space-4);
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: var(--space-6);
     }
 
     .unsaid-card {
-      padding: var(--space-5) var(--space-6);
-      background: rgba(28, 26, 24, 0.6);
-      border: 1px solid var(--glass-border);
-      border-left: 3px solid var(--color-nayan);
-      border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-      transition: all var(--duration-fast) var(--ease-out);
+      padding: var(--space-6);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-left: 4px solid var(--color-nayan);
+      border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+      transition: all var(--duration-normal) var(--ease-out);
+      box-shadow: var(--shadow-sm);
     }
 
     .unsaid-card:hover {
-      background: rgba(245, 242, 237, 0.03);
+      border-color: var(--color-nayan);
       transform: translateX(4px);
+      box-shadow: var(--shadow-nayan);
     }
 
     .unsaid-topic {
-      font-family: Georgia, serif;
+      font-family: var(--font-display);
       font-size: var(--text-base);
-      font-style: italic;
-      color: var(--text-primary);
-      line-height: var(--leading-normal);
-      margin-bottom: var(--space-2);
+      font-weight: var(--font-medium);
+      color: var(--color-text-primary);
+      line-height: var(--leading-relaxed);
+      margin-bottom: var(--space-3);
     }
 
     .unsaid-meta {
       font-size: var(--text-xs);
-      color: var(--text-muted);
+      color: var(--color-text-muted);
     }
 
     .unsaid-prompt {
       font-size: var(--text-sm);
       color: var(--color-nayan);
-      margin-top: var(--space-3);
+      margin-top: var(--space-4);
       font-style: italic;
     }
 
@@ -3133,39 +3161,41 @@
        UNFINISHED STORIES - Open Arcs
        ============================================ */
     .stories-section {
-      margin-bottom: var(--space-12);
+      padding: var(--space-16) 0;
     }
 
     .stories-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: var(--space-4);
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: var(--space-6);
     }
 
     .story-arc-card {
-      padding: var(--space-5);
-      background: rgba(28, 26, 24, 0.6);
-      border: 1px solid var(--glass-border);
+      padding: var(--space-6);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
       border-radius: var(--radius-xl);
-      transition: all var(--duration-fast) var(--ease-out);
+      transition: all var(--duration-normal) var(--ease-out);
+      box-shadow: var(--shadow-sm);
     }
 
     .story-arc-card:hover {
-      border-color: var(--glass-border-hover);
-      transform: translateY(-2px);
+      border-color: var(--color-border-default);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
     }
 
     .story-arc-header {
       display: flex;
       align-items: flex-start;
       gap: var(--space-4);
-      margin-bottom: var(--space-3);
+      margin-bottom: var(--space-4);
     }
 
     .story-arc-progress {
       position: relative;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       flex-shrink: 0;
     }
 
@@ -3180,8 +3210,8 @@
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: var(--text-xs);
-      font-weight: var(--font-semibold);
-      color: var(--text-primary);
+      font-weight: var(--font-bold);
+      color: var(--color-text-primary);
     }
 
     .story-arc-info {
@@ -3190,23 +3220,23 @@
     }
 
     .story-arc-title {
-      font-family: Georgia, serif;
+      font-family: var(--font-display);
       font-size: var(--text-base);
-      font-style: italic;
-      color: var(--text-primary);
-      margin-bottom: 2px;
+      font-weight: var(--font-semibold);
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
     }
 
     .story-arc-started {
       font-size: var(--text-xs);
-      color: var(--text-muted);
+      color: var(--color-text-muted);
     }
 
     .story-arc-last {
       font-size: var(--text-sm);
-      color: var(--text-secondary);
-      margin-bottom: var(--space-3);
-      line-height: var(--leading-normal);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-4);
+      line-height: var(--leading-relaxed);
     }
 
     .story-arc-prompt {
@@ -3222,29 +3252,31 @@
     .chapters-section {
       padding: var(--space-16) 0;
       background: linear-gradient(180deg,
-        rgba(184, 149, 106, 0.03) 0%,
+        var(--color-nayan-subtle) 0%,
         transparent 50%,
-        rgba(74, 103, 65, 0.03) 100%);
+        var(--color-ferni-subtle) 100%);
     }
 
     .chapters-row {
       display: flex;
-      gap: var(--space-4);
+      gap: var(--space-6);
       align-items: stretch;
-      margin-top: var(--space-8);
+      margin-top: var(--space-10);
     }
 
     .chapter {
       flex: 1;
-      padding: var(--space-5);
-      background: var(--card-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-md);
+      padding: var(--space-6);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-xl);
       position: relative;
       transition: transform var(--duration-normal) var(--ease-spring),
-                  border-color var(--duration-fast) var(--ease-out);
+                  border-color var(--duration-fast) var(--ease-out),
+                  box-shadow var(--duration-normal) var(--ease-out);
       opacity: 0;
       transform: translateY(20px);
+      box-shadow: var(--shadow-sm);
     }
 
     .chapter.visible {
@@ -3253,15 +3285,17 @@
     }
 
     .chapter:hover {
-      transform: translateY(-2px);
-      border-color: var(--glass-border-hover);
+      transform: translateY(-4px);
+      border-color: var(--color-border-default);
+      box-shadow: var(--shadow-lg);
     }
 
     .chapter.current {
       border-color: var(--color-nayan);
       background: linear-gradient(135deg,
-        rgba(184, 149, 106, 0.08),
-        var(--card-bg));
+        var(--color-nayan-subtle),
+        var(--color-bg-elevated));
+      box-shadow: var(--shadow-nayan);
     }
 
     .chapter-marker {

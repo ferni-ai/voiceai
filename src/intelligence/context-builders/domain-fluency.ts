@@ -168,6 +168,58 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
     depth: 'expert',
     surfaceWhen: 'User expresses difficult emotions or mentions struggling',
   },
+  // === ORPHANED EMOTIONAL DOMAINS (wired Jan 2026) ===
+  {
+    domain: 'Envy & Comparison',
+    naturalExpression:
+      "Envy is just information about what you want - we can work with that without judgment",
+    conceptualTriggers: [
+      'jealous',
+      'envious',
+      'comparing myself',
+      'they have',
+      'not fair',
+      'why them',
+      'social media makes me feel',
+      'everyone else',
+    ],
+    depth: 'expert',
+    surfaceWhen: 'User mentions jealousy, comparison, or social media envy',
+  },
+  {
+    domain: 'Shame & Self-Worth',
+    naturalExpression:
+      "Shame is heavy - but it loses power when we name it. I can sit with that with you",
+    conceptualTriggers: [
+      'ashamed',
+      'embarrassed',
+      'humiliated',
+      "can't tell anyone",
+      'secret',
+      'what would people think',
+      'disgusted with myself',
+      'unworthy',
+    ],
+    depth: 'expert',
+    surfaceWhen: 'User hints at shame, secrets, or deep embarrassment',
+  },
+  {
+    domain: 'Resentment & Grudges',
+    naturalExpression:
+      "Resentment is like drinking poison and waiting for someone else to get sick - let's process it",
+    conceptualTriggers: [
+      'resent',
+      'grudge',
+      "can't forgive",
+      'still angry about',
+      'they did this to me',
+      'never apologized',
+      'unfair',
+      'bitter',
+    ],
+    depth: 'expert',
+    surfaceWhen: 'User mentions lingering anger or inability to let go',
+  },
   {
     domain: 'Decisions & Crossroads',
     naturalExpression:
@@ -218,6 +270,117 @@ const FERNI_DOMAIN_FLUENCIES: DomainFluency[] = [
     depth: 'expert',
     teamExpert: 'Nayan',
     surfaceWhen: 'User asks philosophical questions or seems to be searching for meaning',
+  },
+  // === MIDLIFE & LEGACY DOMAINS (wired Jan 2026) ===
+  {
+    domain: 'Midlife Reckoning',
+    naturalExpression:
+      "The second half of life has its own questions - different from youth, equally important",
+    conceptualTriggers: [
+      'midlife',
+      'turning 40',
+      'turning 50',
+      'half my life',
+      'is this it',
+      'second half',
+      'what have I done',
+    ],
+    depth: 'expert',
+    teamExpert: 'Nayan',
+    surfaceWhen: 'User mentions midlife, turning points, or life reassessment',
+  },
+  {
+    domain: 'Empty Nest & Next Chapter',
+    naturalExpression:
+      "When the kids leave or a chapter closes - the silence can be deafening. But it's also full of possibility",
+    conceptualTriggers: [
+      'empty nest',
+      'kids left',
+      'children moved out',
+      'house is quiet',
+      'what now',
+      'retirement',
+      'next chapter',
+    ],
+    depth: 'solid',
+    teamExpert: 'Nayan',
+    surfaceWhen: 'User mentions children leaving, retirement, or major life transitions',
+  },
+  {
+    domain: 'Legacy & What Matters',
+    naturalExpression:
+      "What do you want to leave behind? Not just things - but how you made people feel",
+    conceptualTriggers: [
+      'legacy',
+      'what matters',
+      'leave behind',
+      'remembered for',
+      "when I'm gone",
+      'my mark',
+    ],
+    depth: 'expert',
+    teamExpert: 'Nayan',
+    surfaceWhen: 'User thinks about legacy, mortality, or lasting impact',
+  },
+  // === IDENTITY TRANSITION DOMAINS (wired Jan 2026) ===
+  {
+    domain: 'Coming Out & Authenticity',
+    naturalExpression:
+      "Living authentically is one of the bravest things anyone can do - I'm here for all of it",
+    conceptualTriggers: [
+      'coming out',
+      'gay',
+      'lesbian',
+      'bisexual',
+      'trans',
+      'queer',
+      'sexuality',
+      'gender identity',
+      'closet',
+      'authentic self',
+      'hiding who I am',
+    ],
+    depth: 'expert',
+    surfaceWhen: 'User mentions LGBTQ+ topics, coming out, or identity authenticity',
+  },
+  {
+    domain: 'Faith Transitions',
+    naturalExpression:
+      "Faith changes are some of the deepest shifts a person can go through - no judgment here",
+    conceptualTriggers: [
+      'lost my faith',
+      'leaving church',
+      'religious doubt',
+      'deconstructing',
+      'dont believe anymore',
+      'questioning faith',
+      'spiritual crisis',
+      'ex-mormon',
+      'ex-catholic',
+      'agnostic',
+      'atheist now',
+    ],
+    depth: 'expert',
+    teamExpert: 'Nayan',
+    surfaceWhen: 'User mentions faith changes, religious doubt, or leaving religion',
+  },
+  {
+    domain: 'Blended Family Navigation',
+    naturalExpression:
+      "Blended families have their own beautiful complexity - I can help you navigate it",
+    conceptualTriggers: [
+      'stepchildren',
+      'stepparent',
+      'blended family',
+      'his kids',
+      'her kids',
+      'co-parenting',
+      'step mom',
+      'step dad',
+      'my partners kids',
+    ],
+    depth: 'solid',
+    surfaceWhen: 'User mentions stepfamily dynamics or blended family challenges',
   },
 
   // === PRACTICAL DOMAINS ===

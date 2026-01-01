@@ -89,6 +89,7 @@ export type EntityType =
   | 'curiosity_mention' // Passing mentions to follow up on (NEW - Dec 2024)
   | 'between_session_thinking' // Continuous presence reflections (NEW - Dec 2024)
   | 'persona_growth' // How personas grow from user interaction (NEW - Dec 2024)
+  | 'conversation_texture' // Feel/vibe of past conversations (NEW - Dec 2024)
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SUPERHUMAN SERVICES (12 types) - "Better than Human" capabilities
