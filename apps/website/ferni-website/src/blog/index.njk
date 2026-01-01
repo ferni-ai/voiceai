@@ -121,13 +121,72 @@ permalink: /blog/
     <div class="newsletter-card reveal">
       <h3 class="newsletter-card__title">Stay in the loop</h3>
       <p class="newsletter-card__subtitle">Get new articles and Ferni updates delivered to your inbox.</p>
-      <form class="newsletter-form" action="https://ferni.us11.list-manage.com/subscribe/post?u=52ffacbad9b81de1f66ebac7c&amp;id=dd755645d6&amp;f_id=00b2c7e3f0" method="POST" target="_blank">
-        <input type="email" name="EMAIL" placeholder="your@email.com" required class="newsletter-form__input">
-        <div aria-hidden="true" style="position: absolute; left: -5000px">
-          <input type="text" name="b_52ffacbad9b81de1f66ebac7c_dd755645d6" tabindex="-1" value="">
-        </div>
-        <button type="submit" class="newsletter-form__btn">Subscribe</button>
+      <form class="newsletter-form" id="newsletter-form">
+        <input type="email" name="email" placeholder="your@email.com" required class="newsletter-form__input" id="newsletter-email">
+        <button type="submit" class="newsletter-form__btn" id="newsletter-submit">Subscribe</button>
       </form>
+      <p class="newsletter-form__message" id="newsletter-message" style="display: none;"></p>
+      <p class="newsletter-form__footer">We respect your inbox. Unsubscribe anytime.</p>
     </div>
   </div>
 </section>
+
+<script>
+(function() {
+  const form = document.getElementById('newsletter-form');
+  const emailInput = document.getElementById('newsletter-email');
+  const submitBtn = document.getElementById('newsletter-submit');
+  const message = document.getElementById('newsletter-message');
+
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const email = emailInput.value.trim();
+    if (!email) return;
+
+    // Disable form while submitting
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Subscribing...';
+    message.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          source: 'newsletter'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Success - show message and hide form
+        form.style.display = 'none';
+        message.textContent = "You're in! Check your inbox for a welcome email. 🌿";
+        message.className = 'newsletter-form__message newsletter-form__message--success';
+        message.style.display = 'block';
+      } else {
+        // Error from API
+        message.textContent = data.error || "Something went wrong. Try again?";
+        message.className = 'newsletter-form__message newsletter-form__message--error';
+        message.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Subscribe';
+      }
+    } catch (error) {
+      // Network error
+      message.textContent = "Couldn't connect. Try again?";
+      message.className = 'newsletter-form__message newsletter-form__message--error';
+      message.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Subscribe';
+    }
+  });
+})();
+</script>

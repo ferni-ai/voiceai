@@ -67,7 +67,7 @@ function ensureFirebaseInitialized(): void {
 interface WaitlistSignup {
   email: string;
   phone?: string;
-  source: 'landing' | 'marketplace' | 'developer' | 'feature';
+  source: 'landing' | 'marketplace' | 'developer' | 'feature' | 'newsletter';
   featureId?: string;
   timestamp: Date;
   userAgent?: string;
@@ -77,9 +77,9 @@ interface WaitlistSignup {
   approvedBy?: string;
 }
 
-type WaitlistSource = 'landing' | 'marketplace' | 'developer' | 'feature';
+type WaitlistSource = 'landing' | 'marketplace' | 'developer' | 'feature' | 'newsletter';
 
-const VALID_SOURCES: WaitlistSource[] = ['landing', 'marketplace', 'developer', 'feature'];
+const VALID_SOURCES: WaitlistSource[] = ['landing', 'marketplace', 'developer', 'feature', 'newsletter'];
 
 // ============================================================================
 // HELPERS
@@ -284,6 +284,19 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
     void notifyAdminOfSignup(signup.email, source, signup.phone).catch((err) => {
       log.warn({ error: String(err) }, 'Failed to send admin notification');
     });
+
+    // For newsletter signups, send welcome email immediately (no approval needed)
+    if (source === 'newsletter') {
+      void sendNewsletterWelcomeEmail(signup.email).catch((err) => {
+        log.warn({ error: String(err) }, 'Failed to send newsletter welcome email');
+      });
+
+      sendJson(res, 200, {
+        success: true,
+        message: "You're subscribed! Check your inbox for a welcome email.",
+      });
+      return true;
+    }
 
     sendJson(res, 200, {
       success: true,
@@ -1220,6 +1233,126 @@ Just reply if you need anything. I'm here. 🌱`;
     }
   } catch (error) {
     log.warn({ error: String(error) }, 'Error sending welcome email');
+  }
+}
+
+/**
+ * Send newsletter subscription confirmation email
+ */
+async function sendNewsletterWelcomeEmail(email: string): Promise<void> {
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com';
+
+  if (!sendgridApiKey) {
+    log.debug('SendGrid not configured, skipping newsletter welcome email');
+    return;
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.8; color: #2C2520; background: #F5F1E8; }
+    .container { max-width: 560px; margin: 40px auto; padding: 20px; }
+    .card { background: #ffffff; border-radius: 16px; padding: 48px; box-shadow: 0 4px 24px rgba(74, 103, 65, 0.08); }
+    .logo { text-align: center; margin-bottom: 32px; }
+    .logo svg { width: 64px; height: 64px; }
+    h1 { font-size: 28px; color: #2C2520; margin: 0 0 8px; text-align: center; font-weight: 600; }
+    .subtitle { color: #6B5C4D; text-align: center; margin-bottom: 32px; font-size: 16px; }
+    p { color: #4a4540; margin: 16px 0; }
+    .what-to-expect { background: rgba(74, 103, 65, 0.05); border-radius: 12px; padding: 24px; margin: 24px 0; }
+    .what-to-expect h3 { color: #4a6741; margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+    .what-to-expect ul { margin: 0; padding-left: 20px; color: #4a4540; }
+    .what-to-expect li { margin: 8px 0; }
+    .cta { display: block; background: #3D5A45; color: #fff !important; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 16px; font-weight: 500; text-align: center; margin: 24px 0; }
+    .cta:hover { background: #4a6741; }
+    .footer { font-size: 13px; color: #9A8B7A; text-align: center; margin-top: 24px; border-top: 1px solid #E5DFD6; padding-top: 24px; }
+    .footer a { color: #4a6741; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+          <ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/>
+          <circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/>
+          <ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/>
+          <circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/>
+        </svg>
+      </div>
+      <h1>You're in.</h1>
+      <p class="subtitle">Thanks for joining our community.</p>
+
+      <div class="what-to-expect">
+        <h3>What we send:</h3>
+        <ul>
+          <li>New blog posts about AI coaching, personal growth, and building Ferni</li>
+          <li>Product updates when we ship something meaningful</li>
+          <li>Occasionally, something we think you'll find genuinely useful</li>
+        </ul>
+      </div>
+
+      <p>We respect your inbox. No spam, no daily newsletters, no stuff that wastes your time.</p>
+
+      <p>If you ever want to chat, just reply to any email. We read everything.</p>
+
+      <a href="https://ferni.ai/blog/" class="cta">Read the Blog</a>
+
+      <p class="footer">
+        The Ferni Team<br>
+        <a href="https://ferni.ai">ferni.ai</a> · Building AI that feels human
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `You're in.
+
+Thanks for joining our community.
+
+What we send:
+- New blog posts about AI coaching, personal growth, and building Ferni
+- Product updates when we ship something meaningful
+- Occasionally, something we think you'll find genuinely useful
+
+We respect your inbox. No spam, no daily newsletters, no stuff that wastes your time.
+
+If you ever want to chat, just reply to any email. We read everything.
+
+Read the blog: https://ferni.ai/blog/
+
+The Ferni Team
+ferni.ai - Building AI that feels human`;
+
+  try {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${sendgridApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email }] }],
+        from: { email: fromEmail, name: 'Ferni' },
+        subject: 'Welcome to Ferni',
+        content: [
+          { type: 'text/plain', value: text },
+          { type: 'text/html', value: html },
+        ],
+      }),
+    });
+
+    if (response.status === 202) {
+      log.info({ email: hashEmail(email) }, 'Newsletter welcome email sent');
+    } else {
+      log.warn({ status: response.status }, 'Failed to send newsletter welcome email');
+    }
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Error sending newsletter welcome email');
   }
 }
 
