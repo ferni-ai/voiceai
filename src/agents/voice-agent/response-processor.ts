@@ -352,6 +352,30 @@ export async function processResponse(
   }
 
   // ============================================================
+  // 4c. SEMANTIC INTELLIGENCE TRACKING (Better Than Human V3)
+  // Track agent advice for counterfactual memory - enables "last time
+  // you tried X, you said Y. Want to try something different?"
+  // ============================================================
+  if (sessionId && userData?.userId && ctx.rawText) {
+    try {
+      const { trackAdviceInResponse } = await import(
+        '../../services/superhuman/semantic-intelligence/advice-detector.js'
+      );
+      void trackAdviceInResponse(ctx.rawText, {
+        userId: userData.userId,
+        sessionId,
+        personaId: persona?.id || 'ferni',
+        topic: userData.lastTopic,
+        userSituation: userData.lastUserMessage?.slice(0, 200),
+        userEmotion: userData.lastEmotionAnalysis?.primary,
+      });
+      appliedFeatures.push('semantic_advice_tracking');
+    } catch {
+      // Non-fatal - semantic tracking is enhancement
+    }
+  }
+
+  // ============================================================
   // 5. SESAME-INSPIRED PROSODY ENHANCEMENT
   // Apply anticipatory prosody from partial transcript analysis
   // Adds micro-reactions, speed/volume, contextual pauses, disfluencies

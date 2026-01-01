@@ -191,6 +191,29 @@ async function loadValuesContext(userId: string): Promise<string | null> {
   }
 }
 
+async function loadSemanticIntelligenceContext(userId: string): Promise<string | null> {
+  try {
+    const { buildSemanticIntelligenceContext, formatSemanticIntelligenceContext } = await import(
+      '../../services/superhuman/semantic-intelligence/index.js'
+    );
+
+    // Build context with session start flag
+    const context = await buildSemanticIntelligenceContext(userId, {
+      isSessionStart: true,
+    });
+
+    const formatted = formatSemanticIntelligenceContext(context);
+
+    // Skip if no meaningful content
+    if (!formatted || formatted.length < 100) return null;
+
+    return formatted;
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Semantic intelligence loading failed (non-fatal)');
+    return null;
+  }
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -253,14 +276,16 @@ async function buildSuperhumanSessionPriming(
   const startTime = Date.now();
 
   // Load all superhuman context in parallel
-  const [commitments, dreams, milestones, capacity, seasonal, values] = await Promise.all([
-    loadActiveCommitments(userId),
-    loadTrackedDreams(userId),
-    loadUpcomingMilestones(userId),
-    loadCapacityStatus(userId),
-    loadSeasonalContext(userId),
-    loadValuesContext(userId),
-  ]);
+  const [commitments, dreams, milestones, capacity, seasonal, values, semanticIntelligence] =
+    await Promise.all([
+      loadActiveCommitments(userId),
+      loadTrackedDreams(userId),
+      loadUpcomingMilestones(userId),
+      loadCapacityStatus(userId),
+      loadSeasonalContext(userId),
+      loadValuesContext(userId),
+      loadSemanticIntelligenceContext(userId),
+    ]);
 
   const injections: ContextInjection[] = [];
 
@@ -273,6 +298,7 @@ async function buildSuperhumanSessionPriming(
   if (capacity) superhumanParts.push(capacity);
   if (seasonal) superhumanParts.push(seasonal);
   if (values) superhumanParts.push(values);
+  if (semanticIntelligence) superhumanParts.push(semanticIntelligence);
 
   if (superhumanParts.length > 0) {
     const priority = capacity?.includes('CRITICAL') ? 'high' : 'standard';
@@ -303,6 +329,7 @@ Use this knowledge NATURALLY - don't dump it all at once. Reference things when 
         hasDreams: !!dreams,
         hasMilestones: !!milestones,
         hasCapacityWarning: !!capacity,
+        hasSemanticIntelligence: !!semanticIntelligence,
         elapsed,
       },
       '🦸 Superhuman session priming complete'
