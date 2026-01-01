@@ -1,29 +1,111 @@
 /* =======================================================
    DARK MODE MASTER FILE
    =======================================================
-   
+
    Single source of truth for dark mode styles on the landing page.
-   Applied via @media (prefers-color-scheme: dark)
-   
+
+   Supports TWO activation methods:
+   1. @media (prefers-color-scheme: dark) - System preference
+   2. [data-theme="dark"] - Manual toggle via button
+
    Design Philosophy:
    - Warm, earthy dark palette (not cold/gray)
    - WCAG AA compliant contrast ratios
    - Consistent with Ferni brand identity
    - Apple-level polish and attention to detail
-   
+
    Color Palette (Dark Mode):
    - Background: #2c2520 (warm dark brown)
    - Elevated: #3a332e (slightly lighter)
    - Surface: #4a4038 (card surfaces)
    - Deep: #1a1614 (for dramatic sections)
-   
+
    Text Colors (all WCAG AA compliant on #2c2520):
    - Primary: #ffffff (12.1:1 contrast)
    - Secondary: #f0ebe4 (9.8:1 contrast)
    - Muted: #ddd6cc (7.5:1 contrast)
    - Dimmed: #c8bfb4 (5.9:1 contrast)
-   
+
    ======================================================= */
+
+/* =======================================================
+   MANUAL TOGGLE SUPPORT - [data-theme="dark"]
+   Duplicates all CSS variables for manual dark mode toggle
+   ======================================================= */
+
+[data-theme="dark"] {
+  /* ===== Surface Colors ===== */
+  --color-background: #2c2520;
+  --color-background-elevated: #3a332e;
+  --color-background-surface: #4a4038;
+  --color-background-deep: #1a1614;
+
+  /* ===== Legacy Variable Aliases (from story-brand.css) ===== */
+  --color-bg-primary: #2c2520;
+  --color-bg-secondary: #3a332e;
+  --color-paper-cream: #2c2520;
+  --color-sand: #3a332e;
+  --color-background-subtle: #3a332e;
+
+  /* ===== Text Colors - WCAG AA Compliant ===== */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #f0ebe4;
+  --color-text-muted: #ddd6cc;
+  --color-text-dimmed: #c8bfb4;
+
+  /* ===== Accent Colors - Uses Ferni textOnDark for contrast ===== */
+  --color-accent: var(--color-ferni-text, #a5c99a);
+  --color-accent-hover: #b8d8a8;
+  --color-accent-light: rgba(165, 201, 154, 0.2);
+  --color-highlight: #d4b275;
+  --color-highlight-glow: rgba(212, 178, 117, 0.3);
+
+  /* ===== Border Colors ===== */
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-medium: rgba(255, 255, 255, 0.15);
+  --color-border-strong: rgba(255, 255, 255, 0.25);
+
+  /* ===== Shadow System - Deeper for dark mode ===== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+  /* ===== Ferni Glow ===== */
+  --shadow-glow-ferni: 0 8px 32px rgba(90, 122, 82, 0.25);
+  --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.2);
+
+  /* ===== Glass Effect ===== */
+  --glass-bg: rgba(44, 37, 32, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Base body styles for manual toggle */
+[data-theme="dark"] body,
+[data-theme="dark"] {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+/* Default headings for manual toggle */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--color-text-primary);
+}
+
+/* Default links for manual toggle */
+[data-theme="dark"] a {
+  color: var(--color-highlight);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--color-accent-hover);
+}
 
 /* =======================================================
    PHASE 1: FOUNDATION - CSS Variables
@@ -1670,11 +1752,469 @@
     background: white !important;
     color: black !important;
   }
-  
+
   * {
     background: transparent !important;
     color: black !important;
     box-shadow: none !important;
   }
+}
+
+/* =======================================================
+   MANUAL TOGGLE COMPONENT OVERRIDES - [data-theme="dark"]
+   Critical sections for manual dark mode toggle support
+   ======================================================= */
+
+/* ----- Navigation ----- */
+[data-theme="dark"] .nav {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+[data-theme="dark"] .nav.is-scrolled {
+  background: rgba(44, 37, 32, 0.95);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .nav__logo-text {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .nav__link {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .nav__link:hover,
+[data-theme="dark"] .nav__link.is-active {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .nav__cta {
+  background: var(--color-accent);
+  color: white;
+}
+
+[data-theme="dark"] .nav__cta:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-glow-ferni);
+}
+
+[data-theme="dark"] .mobile-menu {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .mobile-menu__nav a {
+  color: var(--color-text-secondary);
+  border-bottom-color: var(--color-border-subtle);
+}
+
+/* ----- Hero Section ----- */
+[data-theme="dark"] .hero {
+  background: linear-gradient(
+    180deg,
+    var(--color-background) 0%,
+    var(--color-background-elevated) 100%
+  );
+}
+
+[data-theme="dark"] .hero__bg-gradient {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    rgba(90, 122, 82, 0.15),
+    transparent
+  );
+}
+
+[data-theme="dark"] .hero__bg-orb {
+  opacity: 0.25;
+}
+
+[data-theme="dark"] .hero__tagline {
+  color: var(--color-highlight);
+}
+
+[data-theme="dark"] .hero__headline {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .hero__headline-accent {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .hero__subhead {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .hero__badge {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .scroll-indicator {
+  color: var(--color-text-muted);
+}
+
+/* ----- Stats Bar ----- */
+[data-theme="dark"] .stats-bar {
+  background: var(--color-background-elevated);
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+[data-theme="dark"] .stat__value {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .stat__label {
+  color: var(--color-text-muted);
+}
+
+/* ----- Showcase Section ----- */
+[data-theme="dark"] .showcase {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .showcase__eyebrow {
+  color: var(--color-highlight);
+}
+
+[data-theme="dark"] .showcase__title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .showcase__description {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .showcase__feature svg {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .showcase__phone {
+  background: var(--color-background-deep);
+  border-color: var(--color-border-medium);
+  box-shadow: var(--shadow-xl);
+}
+
+[data-theme="dark"] .showcase__app {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .showcase__app-header {
+  background: var(--color-background-elevated);
+  border-bottom-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .showcase__app-name {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .showcase__app-bubble--user {
+  background: var(--color-accent);
+  color: white;
+}
+
+[data-theme="dark"] .showcase__app-bubble--ai {
+  background: var(--color-background-elevated);
+  color: var(--color-text-secondary);
+}
+
+/* ----- Section Headers (Universal) ----- */
+[data-theme="dark"] .section__eyebrow {
+  color: var(--color-highlight);
+}
+
+[data-theme="dark"] .section__title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .section__subtitle {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .section--alt {
+  background: var(--color-background-elevated);
+}
+
+/* ----- Team Cards ----- */
+[data-theme="dark"] .team-card {
+  background: var(--color-background-elevated);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .team-card:hover {
+  border-color: var(--color-border-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .team-card__name {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .team-card__role {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .team-card__quote {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .team-card__trait {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted);
+}
+
+/* ----- Use Cases ----- */
+[data-theme="dark"] .use-cases {
+  background: var(--color-background-elevated);
+}
+
+[data-theme="dark"] .use-case {
+  background: var(--color-background-surface);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .use-case:hover {
+  border-color: var(--color-border-medium);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .use-case__icon {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .use-case__title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .use-case__description {
+  color: var(--color-text-secondary);
+}
+
+/* ----- Footer ----- */
+[data-theme="dark"] .footer {
+  background: var(--color-background-deep);
+  border-top-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .footer__headline {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .footer__subline {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .footer__cta {
+  background: var(--color-accent);
+  color: white;
+}
+
+[data-theme="dark"] .footer__nav-title {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .footer__nav-group a {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .footer__nav-group a:hover {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .footer__logo-text {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .footer__legal {
+  color: var(--color-text-dimmed);
+  border-top-color: var(--color-border-subtle);
+}
+
+/* ----- Buttons (Global) ----- */
+[data-theme="dark"] .btn--primary {
+  background: var(--color-accent);
+  color: white;
+}
+
+[data-theme="dark"] .btn--primary:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-glow-ferni);
+}
+
+[data-theme="dark"] .btn--secondary {
+  background: var(--color-background-elevated);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-medium);
+}
+
+[data-theme="dark"] .btn--secondary:hover {
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-medium);
+}
+
+[data-theme="dark"] .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+}
+
+/* ----- Two-AM Section ----- */
+[data-theme="dark"] .two-am {
+  background: var(--color-background-deep);
+}
+
+[data-theme="dark"] .two-am__time {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .two-am__thought {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .two-am__quote {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .two-am__limit-who {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .two-am__limit-status {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .two-am__avatar-orb {
+  background: var(--color-accent);
+  box-shadow: var(--shadow-glow-ferni);
+  color: white;
+}
+
+[data-theme="dark"] .two-am__bubble {
+  background: var(--color-background-elevated);
+  border-color: var(--color-border-medium);
+}
+
+[data-theme="dark"] .two-am__ferni-says {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .two-am__ferni-sub {
+  color: var(--color-accent);
+}
+
+/* ----- Memory Section ----- */
+[data-theme="dark"] .memory-demo {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .memory-demo__card {
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border-subtle);
+}
+
+[data-theme="dark"] .memory-demo__date {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .memory-demo__text {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .memory-demo__card--ferni {
+  background: linear-gradient(
+    135deg,
+    rgba(90, 122, 82, 0.15) 0%,
+    var(--color-background-elevated) 100%
+  );
+  border-color: rgba(90, 122, 82, 0.3);
+}
+
+/* ----- Story Section ----- */
+[data-theme="dark"] .story {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .story__card {
+  background: var(--color-background-elevated);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .story__card-title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .story__card-text {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .story__card-highlight {
+  color: var(--color-accent);
+}
+
+/* ----- FAQ Section ----- */
+[data-theme="dark"] .faq,
+[data-theme="dark"] .section-faq {
+  background: var(--color-background);
+}
+
+[data-theme="dark"] .faq-item {
+  border-bottom-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .faq-item__question,
+[data-theme="dark"] .faq-question {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .faq-item[open] .faq-item__question {
+  color: var(--color-accent);
+}
+
+[data-theme="dark"] .faq-item__answer,
+[data-theme="dark"] .faq-answer {
+  color: var(--color-text-secondary);
+}
+
+/* ----- Final CTA ----- */
+[data-theme="dark"] .final-cta {
+  background: linear-gradient(
+    180deg,
+    var(--color-background) 0%,
+    var(--color-background-deep) 100%
+  );
+}
+
+[data-theme="dark"] .final-cta__avatar-orb {
+  background: var(--color-accent);
+  box-shadow: var(--shadow-glow-ferni);
+  color: white;
+}
+
+[data-theme="dark"] .final-cta__headline {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .final-cta__subhead {
+  color: var(--color-text-secondary);
+}
+
+/* ----- Focus States (Accessibility) ----- */
+[data-theme="dark"] *:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .btn:focus-visible {
+  outline: 2px solid var(--color-highlight);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-highlight-glow);
 }
 

@@ -1707,9 +1707,9 @@
       font-weight: var(--font-semibold);
       color: white;
       text-align: center;
-      padding: 8px;
+      padding: var(--space-2);
       z-index: 10;
-      box-shadow: 0 0 30px rgba(166, 122, 106, 0.5);
+      box-shadow: var(--shadow-maya);
     }
 
     .ripple-ring {
@@ -1737,16 +1737,16 @@
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
       border-radius: var(--radius-lg);
-      padding: 8px 12px;
+      padding: var(--space-2) var(--space-3);
       font-size: var(--text-xs);
       white-space: nowrap;
       transform: translate(-50%, -50%);
-      transition: all 0.3s var(--ease-out);
+      transition: all var(--duration-normal) var(--ease-out);
       cursor: default;
     }
 
     .ripple-node:hover {
-      background: rgba(166, 122, 106, 0.15);
+      background: var(--color-maya-subtle);
       border-color: var(--color-maya);
       transform: translate(-50%, -50%) scale(1.1);
     }

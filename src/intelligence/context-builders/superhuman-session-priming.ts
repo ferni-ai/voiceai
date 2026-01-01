@@ -193,9 +193,8 @@ async function loadValuesContext(userId: string): Promise<string | null> {
 
 async function loadSemanticIntelligenceContext(userId: string): Promise<string | null> {
   try {
-    const { buildSemanticIntelligenceContext, formatSemanticIntelligenceContext } = await import(
-      '../../services/superhuman/semantic-intelligence/index.js'
-    );
+    const { buildSemanticIntelligenceContext, formatSemanticIntelligenceContext } =
+      await import('../../services/superhuman/semantic-intelligence/index.js');
 
     // Build context with session start flag
     const context = await buildSemanticIntelligenceContext(userId, {

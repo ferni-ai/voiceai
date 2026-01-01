@@ -808,12 +808,12 @@
    MOBILE ADJUSTMENTS
    ============================================================================ */
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .demo-widget {
     bottom: 16px;
     right: 16px;
   }
-  
+
   .demo-widget__chat {
     position: fixed;
     bottom: 0;
@@ -824,12 +824,12 @@
     border-radius: 20px 20px 0 0;
     max-height: 70vh;
   }
-  
+
   .demo-widget__trigger {
     width: 56px;
     height: 56px;
   }
-  
+
   .demo-widget__peek {
     display: none;
   }

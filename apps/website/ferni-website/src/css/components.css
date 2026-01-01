@@ -507,7 +507,7 @@ a.card:hover h3 {
   margin-right: auto;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .garden__model {
     grid-template-columns: 1fr;
     max-width: 480px;
@@ -736,7 +736,7 @@ a.card:hover h3 {
   z-index: 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .garden__cards {
     grid-template-columns: 1fr;
     max-width: 420px;
@@ -1335,7 +1335,7 @@ a.card:hover h3 {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer__nav {
     grid-template-columns: 1fr;
     gap: clamp(32px, 5vw, 40px);
@@ -1382,7 +1382,7 @@ a.card:hover h3 {
   gap: 16px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer__bottom {
     flex-direction: column;
     text-align: center;
@@ -1395,7 +1395,7 @@ a.card:hover h3 {
   gap: clamp(12px, 2vw, 16px);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer__brand-mark {
     flex-direction: column;
     gap: 8px;
@@ -1723,7 +1723,7 @@ a.card:hover h3 {
 }
 
 /* Hide timeline on mobile - cards are full width */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .memory-story__journey::before {
     display: none;
   }
@@ -1810,7 +1810,7 @@ a.card:hover h3 {
   margin-bottom: clamp(24px, 3vw, 32px);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .memory-story__insight-grid {
     grid-template-columns: 1fr;
   }
@@ -2003,7 +2003,7 @@ a.card:hover h3 {
   }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 640px) {
   .memory-dashboard__stats {
     flex-wrap: wrap;
     gap: 16px;
@@ -2233,7 +2233,7 @@ a.card:hover h3 {
   border-top: 1px solid var(--color-border-subtle, rgba(44,37,32,0.06));
 }
 
-@media (max-width: 540px) {
+@media (max-width: 640px) {
   .memory-chart__insights {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -2296,7 +2296,7 @@ a.card:hover h3 {
   margin-bottom: clamp(24px, 4vw, 36px);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .memory-dashboard__patterns {
     grid-template-columns: repeat(2, 1fr);
   }

@@ -141,6 +141,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'voice-emotion',
     'advanced-voice-emotion',
     'voice-emotion-intelligence',
+    'emotional-contagion-timing', // Human-like absorb→process→reflect delay pattern
     'human-listening',
   ],
 

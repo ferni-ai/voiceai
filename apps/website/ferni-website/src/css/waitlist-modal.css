@@ -509,7 +509,7 @@
    RESPONSIVE
    ============================================ */
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .waitlist-modal {
     padding: var(--space-3, 0.75rem);
   }

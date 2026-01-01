@@ -286,15 +286,15 @@
 }
 
 /* Small mobile */
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .footer__hero {
     padding: clamp(36px, 6vw, 48px) 0;
   }
-  
+
   .footer__headline {
     font-size: clamp(1.5rem, 6vw, 1.875rem);
   }
-  
+
   .footer__cta {
     padding: 12px 24px;
     font-size: 0.9375rem;
@@ -398,7 +398,7 @@
   gap: var(--space-8, 32px);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .footer-links {
     grid-template-columns: 1fr;
     gap: var(--space-8, 32px);
@@ -593,7 +593,7 @@
 }
 
 /* Team avatars mobile responsiveness */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .footer-team__avatars {
     gap: clamp(12px, 4vw, 20px);
   }

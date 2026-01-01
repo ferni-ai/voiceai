@@ -1487,7 +1487,7 @@ button {
   height: 24px;
   stroke: var(--color-text-muted);
 }
-@media (max-width: 968px) {
+@media (max-width: 1024px) {
   .feature-block {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -2804,7 +2804,7 @@ button {
   background: var(--color-bg-secondary);
   color: var(--color-text);
 }
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .cookie-content {
     flex-direction: column;
     text-align: center;
@@ -2956,7 +2956,7 @@ button {
     font-size: 18px;
   }
 }
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .hero-buttons {
     flex-direction: column;
     width: 100%;
@@ -2986,7 +2986,7 @@ button {
     width: 100%;
   }
 }
-@media (max-width: 968px) {
+@media (max-width: 1024px) {
   .testimonials-grid {
     grid-template-columns: 1fr;
   }
@@ -3322,7 +3322,7 @@ button {
     max-width: 280px;
   }
 }
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .founders-grid {
     gap: var(--space-6);
   }

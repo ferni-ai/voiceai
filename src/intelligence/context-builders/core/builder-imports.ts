@@ -28,6 +28,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'voice-emotion': async () => import('../emotional/voice-emotion.js'),
   'advanced-voice-emotion': async () => import('../emotional/advanced-voice-emotion.js'),
   'voice-emotion-intelligence': async () => import('../emotional/voice-emotion-intelligence.js'),
+  'emotional-contagion-timing': async () => import('../emotional/emotional-contagion-timing.js'), // Human-like processing delay
   'human-listening': async () => import('../human-listening.js'),
 
   // MEMORY (in memory/)

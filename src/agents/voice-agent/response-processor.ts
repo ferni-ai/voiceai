@@ -358,9 +358,8 @@ export async function processResponse(
   // ============================================================
   if (sessionId && userData?.userId && ctx.rawText) {
     try {
-      const { trackAdviceInResponse } = await import(
-        '../../services/superhuman/semantic-intelligence/advice-detector.js'
-      );
+      const { trackAdviceInResponse } =
+        await import('../../services/superhuman/semantic-intelligence/advice-detector.js');
       void trackAdviceInResponse(ctx.rawText, {
         userId: userData.userId,
         sessionId,

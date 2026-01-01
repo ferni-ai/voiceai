@@ -5,6 +5,34 @@
    Import this file in every page via the head partial.
    ============================================================================ */
 
+/* ============================================================================
+   RESPONSIVE BREAKPOINTS - STANDARD VALUES
+   ============================================================================
+   Use these consistent breakpoint values for all media queries.
+   Aligned with Tailwind CSS for consistency with design system.
+
+   BREAKPOINTS:
+   --bp-sm:  640px   Small devices (large phones, portrait tablets)
+   --bp-md:  768px   Medium devices (tablets, small laptops)
+   --bp-lg:  1024px  Large devices (laptops, desktops)
+   --bp-xl:  1280px  Extra large devices (large desktops)
+   --bp-2xl: 1536px  2X large devices (wide screens)
+
+   USAGE EXAMPLES:
+   @media (max-width: 640px) { ... }   /* Small and below */
+   @media (max-width: 768px) { ... }   /* Medium and below */
+   @media (max-width: 1024px) { ... }  /* Large and below */
+   @media (min-width: 768px) { ... }   /* Medium and above */
+
+   MIGRATION FROM NON-STANDARD VALUES:
+   - 480px → 640px (consolidate very small phone styles)
+   - 600px → 640px (consolidate to sm breakpoint)
+   - 700px → 768px (consolidate to md breakpoint)
+   - 767px → 768px (fix off-by-one)
+   - 900px → 1024px (consolidate to lg breakpoint)
+   - 968px → 1024px (consolidate to lg breakpoint)
+   ============================================================================ */
+
 :root {
   /* =========================================================================
      COLORS - BACKGROUND
