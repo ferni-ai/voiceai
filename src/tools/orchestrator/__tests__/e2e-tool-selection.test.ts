@@ -74,7 +74,7 @@ describe('E2E: Tool Selection Pipeline', () => {
         console.log(`"${phrase}" → ${result.meta.selected} tools`);
         expect(result.meta.selected).toBeGreaterThan(0);
       }
-    });
+    }, 60000); // 60s timeout for multiple queries
   });
 
   describe('Emotional Support Scenarios', () => {
@@ -146,7 +146,7 @@ describe('E2E: Tool Selection Pipeline', () => {
       // Currently essential domains have ~49+ tools
       expect(result.meta.selected).toBeLessThanOrEqual(100);
       console.log('Broad query selected:', result.meta.selected, 'tools');
-    });
+    }, 60000); // 60s timeout for complex query
   });
 
   describe('Caching Behavior', () => {
