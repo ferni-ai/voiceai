@@ -8,6 +8,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import admin from 'firebase-admin';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -18,8 +19,41 @@ import {
   handleCorsPreflightIfNeeded,
   getUserId,
 } from './helpers.js';
+import {
+  generateAgentPage,
+  generatePreviewSnippet,
+  type AgentPageConfig,
+} from '../services/page-generator/index.js';
 
 const log = createLogger({ module: 'SitesRoutes' });
+
+// ============================================================================
+// FIREBASE INITIALIZATION
+// ============================================================================
+
+/**
+ * Ensure Firebase Admin is initialized before accessing Firestore
+ */
+function ensureFirebaseInitialized(): void {
+  if (admin.apps.length === 0) {
+    try {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+
+      if (projectId) {
+        admin.initializeApp({ projectId });
+        log.info({ projectId }, 'Firebase initialized for sites routes');
+      } else {
+        admin.initializeApp();
+        log.info('Firebase initialized with default credentials for sites routes');
+      }
+    } catch {
+      log.debug('Firebase already initialized elsewhere');
+    }
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -53,6 +87,15 @@ interface SubdomainCheckResponse {
   available: boolean;
   subdomain: string;
   suggestedAlternatives?: string[];
+}
+
+interface GenerateRequest {
+  config: AgentPageConfig;
+}
+
+interface GenerateAndDeployRequest {
+  config: AgentPageConfig;
+  subdomain?: string;
 }
 
 // ============================================================================
@@ -421,22 +464,252 @@ async function checkSubdomain(
 }
 
 // ============================================================================
+// PAGE GENERATION (NEW)
+// ============================================================================
+
+/**
+ * POST /api/sites/generate
+ * Generate an agent page without deploying it.
+ * Returns the complete HTML for preview or download.
+ */
+async function generatePage(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<boolean> {
+  const userId = getUserId(req, parsedUrl);
+
+  if (!userId) {
+    sendError(res, 'Unauthorized', 401);
+    return true;
+  }
+
+  try {
+    const body = await parseBody<GenerateRequest>(req);
+    const { config } = body;
+
+    if (!config) {
+      sendError(res, 'config is required', 400);
+      return true;
+    }
+
+    // Generate the page
+    const result = await generateAgentPage(config);
+
+    log.info(
+      { userId, agentId: config.agent.id, sizeKb: Math.round(result.size / 1024) },
+      'Page generated'
+    );
+
+    sendJSON(res, {
+      success: true,
+      html: result.html,
+      size: result.size,
+      generatedAt: result.generatedAt.toISOString(),
+    });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log.error({ error: message, userId }, 'Failed to generate page');
+    sendError(res, `Generation failed: ${message}`, 400);
+    return true;
+  }
+}
+
+/**
+ * POST /api/sites/generate-and-deploy
+ * Generate an agent page and deploy it in one step.
+ * Combines page generation with the existing deploy flow.
+ */
+async function generateAndDeployPage(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<boolean> {
+  const userId = getUserId(req, parsedUrl);
+
+  if (!userId) {
+    sendError(res, 'Unauthorized', 401);
+    return true;
+  }
+
+  try {
+    ensureFirebaseInitialized();
+    const body = await parseBody<GenerateAndDeployRequest>(req);
+    const { config, subdomain } = body;
+
+    if (!config) {
+      sendError(res, 'config is required', 400);
+      return true;
+    }
+
+    const db = getFirestore();
+
+    // Check subdomain availability if requested
+    if (subdomain) {
+      const existing = await db
+        .collection('deployed-sites')
+        .where('subdomain', '==', subdomain.toLowerCase())
+        .get();
+
+      if (!existing.empty) {
+        const existingSite = existing.docs[0];
+        if (existingSite.data().userId !== userId) {
+          sendJSON(
+            res,
+            {
+              error: 'Subdomain already taken',
+              suggestedAlternatives: generateAlternatives(subdomain),
+            },
+            409
+          );
+          return true;
+        }
+      }
+    }
+
+    // Generate the page
+    const generated = await generateAgentPage(config);
+
+    // Generate site ID
+    const siteId = `site_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Determine URL
+    const tier = subdomain ? 'premium' : 'free';
+    const url = subdomain
+      ? `https://${subdomain.toLowerCase()}.ferni.ai`
+      : `https://ferni.ai/sites/${siteId}`;
+
+    // Create site record with generated HTML
+    const site: Omit<DeployedSite, 'id'> = {
+      userId,
+      agentId: config.agent.id,
+      agentName: config.agent.name,
+      url,
+      subdomain: subdomain?.toLowerCase(),
+      tier,
+      status: 'active',
+      files: {
+        'index.html': generated.html,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      analytics: {
+        views: 0,
+        conversations: 0,
+      },
+    };
+
+    // Save to Firestore
+    await db.collection('deployed-sites').doc(siteId).set(cleanForFirestore(site));
+
+    log.info(
+      { userId, siteId, agentId: config.agent.id, subdomain, sizeKb: Math.round(generated.size / 1024) },
+      'Page generated and deployed'
+    );
+
+    sendJSON(
+      res,
+      {
+        success: true,
+        url,
+        siteId,
+        subdomain: subdomain?.toLowerCase(),
+        size: generated.size,
+      },
+      201
+    );
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log.error({ error: message, userId }, 'Failed to generate and deploy page');
+    sendError(res, `Deployment failed: ${message}`, 400);
+    return true;
+  }
+}
+
+/**
+ * POST /api/sites/preview
+ * Generate a preview snippet for live builder UI.
+ * Returns just CSS and avatar HTML, not full page.
+ */
+async function generatePreview(
+  req: IncomingMessage,
+  res: ServerResponse,
+  parsedUrl: URL
+): Promise<boolean> {
+  const userId = getUserId(req, parsedUrl);
+
+  if (!userId) {
+    sendError(res, 'Unauthorized', 401);
+    return true;
+  }
+
+  try {
+    const body = await parseBody<GenerateRequest>(req);
+    const { config } = body;
+
+    if (!config) {
+      sendError(res, 'config is required', 400);
+      return true;
+    }
+
+    // Generate preview snippet
+    const preview = await generatePreviewSnippet(config);
+
+    sendJSON(res, {
+      success: true,
+      css: preview.css,
+      avatarHtml: preview.avatarHtml,
+    });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    log.error({ error: message, userId }, 'Failed to generate preview');
+    sendError(res, `Preview failed: ${message}`, 400);
+    return true;
+  }
+}
+
+// ============================================================================
 // STATIC SITE SERVING
 // ============================================================================
 
 /**
- * Serve static site content for /sites/:id paths
+ * Serve static site content for /sites/:subdomain paths
  */
 async function serveStaticSite(
   res: ServerResponse,
-  siteId: string,
+  subdomainOrId: string,
   filePath: string
 ): Promise<boolean> {
   try {
+    ensureFirebaseInitialized();
     const db = getFirestore();
-    const siteDoc = await db.collection('deployed-sites').doc(siteId).get();
 
-    if (!siteDoc.exists) {
+    // First try to find by subdomain (URL path uses subdomain, not siteId)
+    let siteDoc;
+    let siteId = subdomainOrId;
+
+    const subdomainQuery = await db
+      .collection('deployed-sites')
+      .where('subdomain', '==', subdomainOrId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+
+    if (!subdomainQuery.empty) {
+      siteDoc = subdomainQuery.docs[0];
+      siteId = siteDoc.id;
+    } else {
+      // Fall back to direct ID lookup for backward compatibility
+      siteDoc = await db.collection('deployed-sites').doc(subdomainOrId).get();
+      if (!siteDoc.exists) {
+        siteDoc = null;
+      }
+    }
+
+    if (!siteDoc || !siteDoc.exists) {
       // Site not found - send 404 HTML
       res.writeHead(404, { 'Content-Type': 'text/html' });
       res.end(`<!DOCTYPE html>
@@ -506,7 +779,7 @@ async function serveStaticSite(
     res.end(content);
     return true;
   } catch (error) {
-    log.error({ error, siteId, filePath }, 'Failed to serve static site');
+    log.error({ error, subdomainOrId, filePath }, 'Failed to serve static site');
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Internal server error');
     return true;
@@ -526,6 +799,9 @@ export async function handleSitesRoutes(
   pathname: string,
   parsedUrl?: URL
 ): Promise<boolean> {
+  // Ensure Firebase is initialized before any Firestore operations
+  ensureFirebaseInitialized();
+
   // Handle /sites/:id paths for static site serving
   if (pathname.startsWith('/sites/') && !pathname.startsWith('/sites/api')) {
     const match = pathname.match(/^\/sites\/([^/]+)(\/.*)?$/);
@@ -557,6 +833,21 @@ export async function handleSitesRoutes(
   // Route: POST /api/sites/deploy
   if (pathname === '/api/sites/deploy' && req.method === 'POST') {
     return deploySite(req, res, url);
+  }
+
+  // Route: POST /api/sites/generate (generate page without deploying)
+  if (pathname === '/api/sites/generate' && req.method === 'POST') {
+    return generatePage(req, res, url);
+  }
+
+  // Route: POST /api/sites/generate-and-deploy (generate + deploy in one step)
+  if (pathname === '/api/sites/generate-and-deploy' && req.method === 'POST') {
+    return generateAndDeployPage(req, res, url);
+  }
+
+  // Route: POST /api/sites/preview (generate preview snippet for builder UI)
+  if (pathname === '/api/sites/preview' && req.method === 'POST') {
+    return generatePreview(req, res, url);
   }
 
   // Route: GET /api/sites/subdomains/check
