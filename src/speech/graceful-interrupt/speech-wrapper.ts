@@ -128,6 +128,17 @@ const PERSONA_RECOVERY_OPENINGS: Record<string, { hard: string[]; soft: string[]
       '<break time="240ms"/><volume ratio="0.82"/><speed ratio="0.92"/>',
     ],
   },
+  // Joel Dickson - Warm and measured, thoughtful pauses
+  'joel-dickson': {
+    hard: [
+      '<break time="450ms"/><volume ratio="0.70"/><speed ratio="0.84"/>',
+      '<break time="420ms"/><volume ratio="0.72"/><speed ratio="0.86"/>',
+    ],
+    soft: [
+      '<break time="300ms"/><volume ratio="0.76"/><speed ratio="0.88"/>',
+      '<break time="280ms"/><volume ratio="0.78"/><speed ratio="0.90"/>',
+    ],
+  },
 };
 
 /**

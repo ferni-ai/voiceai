@@ -63,6 +63,18 @@
         "destination": "/pages/console/index.html"
       },
       {
+        "source": "/personas",
+        "destination": "/pages/personas/index.html"
+      },
+      {
+        "source": "/personas/",
+        "destination": "/pages/personas/index.html"
+      },
+      {
+        "source": "/personas/create{,/**}",
+        "destination": "/pages/personas/create/index.html"
+      },
+      {
         "source": "**",
         "destination": "/404.html"
       }

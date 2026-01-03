@@ -15,6 +15,7 @@ import { apiGet, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { PERSONA_ICONS } from './icons/hub-icons.js';
 
 const log = createLogger('TeamObservationsPanel');
 
@@ -68,10 +69,11 @@ interface TeamObservationsData {
 // PERSONA CONFIG
 // ============================================================================
 
+// BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
 const DEFAULT_PERSONA = {
   name: 'Ferni',
   color: 'var(--persona-ferni-primary, #4a6741)',
-  icon: '🌿',
+  icon: PERSONA_ICONS.ferni,
 };
 
 const PERSONA_CONFIG: Record<string, typeof DEFAULT_PERSONA> = {
@@ -79,27 +81,27 @@ const PERSONA_CONFIG: Record<string, typeof DEFAULT_PERSONA> = {
   peter: {
     name: 'Peter',
     color: 'var(--persona-peter-primary, #3a6b73)',
-    icon: '📊',
+    icon: PERSONA_ICONS.peter,
   },
   maya: {
     name: 'Maya',
     color: 'var(--persona-maya-primary, #a67a6a)',
-    icon: '⚡',
+    icon: PERSONA_ICONS.maya,
   },
   jordan: {
     name: 'Jordan',
     color: 'var(--persona-jordan-primary, #c4856a)',
-    icon: '🎯',
+    icon: PERSONA_ICONS.jordan,
   },
   alex: {
     name: 'Alex',
     color: 'var(--persona-alex-primary, #5a6b8a)',
-    icon: '💬',
+    icon: PERSONA_ICONS.alex,
   },
   nayan: {
     name: 'Nayan',
     color: 'var(--persona-nayan-primary, #b8956a)',
-    icon: '🔮',
+    icon: PERSONA_ICONS.nayan,
   },
 };
 
@@ -536,7 +538,17 @@ function injectStyles(): void {
     }
 
     .team-obs-card__persona-icon {
-      font-size: 1rem;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--persona-color);
+    }
+
+    .team-obs-card__persona-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .team-obs-card__type {

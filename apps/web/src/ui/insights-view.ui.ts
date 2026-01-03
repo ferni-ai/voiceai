@@ -26,6 +26,7 @@ import {
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
+import { CHAPTER_ICONS } from './icons/hub-icons.js';
 
 const log = createLogger('InsightsView');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -83,35 +84,36 @@ export interface InsightData {
 // HUMANIZED COPY
 // ============================================================================
 
+// BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
 const DEFAULT_CHAPTER_COPY = {
-  icon: '🌱',
+  icon: CHAPTER_ICONS.growth,
   verb: 'growing through',
   encouragement: 'Something beautiful is taking shape.',
 };
 
 const CHAPTER_COPY: Record<string, typeof DEFAULT_CHAPTER_COPY> = {
   struggle: {
-    icon: '⛰️',
+    icon: CHAPTER_ICONS.struggle,
     verb: 'navigating',
     encouragement: "This is hard, and you're doing it anyway.",
   },
   growth: {
-    icon: '🌱',
+    icon: CHAPTER_ICONS.growth,
     verb: 'growing through',
     encouragement: 'Something beautiful is taking shape.',
   },
   triumph: {
-    icon: '✨',
+    icon: CHAPTER_ICONS.triumph,
     verb: 'celebrating',
     encouragement: 'You did it. Take a moment to feel this.',
   },
   transition: {
-    icon: '🌊',
+    icon: CHAPTER_ICONS.transition,
     verb: 'moving through',
     encouragement: 'Change is hard. You have what you need.',
   },
   discovery: {
-    icon: '💡',
+    icon: CHAPTER_ICONS.discovery,
     verb: 'discovering',
     encouragement: 'New understanding is emerging.',
   },

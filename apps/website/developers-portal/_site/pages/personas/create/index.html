@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Persona | Ferni Developers</title>
+  <meta name="description" content="Create a new AI persona for the marketplace">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d4a84a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 17 10 11 4 5'/><line x1='12' x2='20' y1='19' y2='19'/></svg>">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Create Persona | Ferni Developers">
+  <meta property="og:description" content="Create a new AI persona for the marketplace">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/pages/personas/create/">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Getting Started</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/examples/" >Examples</a></li>
+    </ul>
+    
+    <div class="nav-cta">
+      <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="/console/" class="btn btn-primary">Console</a>
+    </div>
+  </div>
+</nav>
+
+
+  <main>
+    
+<section class="hero" style="padding-bottom: var(--space-4);">
+  <div class="container">
+    <a href="/personas/" style="display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); text-decoration: none; margin-bottom: var(--space-4);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Personas
+    </a>
+    <h1>Create <span class="accent">Persona</span></h1>
+    <p class="hero-subtitle">
+      Build your AI persona step by step. Each section helps define how your persona thinks, speaks, and connects.
+    </p>
+  </div>
+</section>
+
+<!-- Authentication Gate -->
+<section id="auth-gate" class="section" style="padding-top: var(--space-8);">
+  <div class="container container-narrow">
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
+      <h2 style="margin-bottom: var(--space-4);">Sign in Required</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-6);">
+        Please sign in to create personas.
+      </p>
+      <a href="/console/" class="btn btn-primary">Go to Console</a>
+    </div>
+  </div>
+</section>
+
+<!-- Wizard (shown after auth) -->
+<section id="wizard-section" class="section" style="background: var(--bg-secondary); padding-top: var(--space-8); display: none;">
+  <div class="container">
+    <!-- Progress Steps -->
+    <div class="wizard-progress">
+      <div class="wizard-step active" data-step="1">
+        <div class="wizard-step-number">1</div>
+        <span>Identity</span>
+      </div>
+      <div class="wizard-step-connector"></div>
+      <div class="wizard-step" data-step="2">
+        <div class="wizard-step-number">2</div>
+        <span>Personality</span>
+      </div>
+      <div class="wizard-step-connector"></div>
+      <div class="wizard-step" data-step="3">
+        <div class="wizard-step-number">3</div>
+        <span>Voice</span>
+      </div>
+      <div class="wizard-step-connector"></div>
+      <div class="wizard-step" data-step="4">
+        <div class="wizard-step-number">4</div>
+        <span>Knowledge</span>
+      </div>
+      <div class="wizard-step-connector"></div>
+      <div class="wizard-step" data-step="5">
+        <div class="wizard-step-number">5</div>
+        <span>Behaviors</span>
+      </div>
+      <div class="wizard-step-connector"></div>
+      <div class="wizard-step" data-step="6">
+        <div class="wizard-step-number">6</div>
+        <span>Review</span>
+      </div>
+    </div>
+
+    <!-- Wizard Content -->
+    <div class="wizard-content">
+      <!-- Step 1: Identity -->
+      <div class="wizard-panel active" data-panel="1">
+        <div class="wizard-panel-header">
+          <h2>Define Your Persona's Identity</h2>
+          <p>Give your persona a name and describe who they are. This is how users will discover and connect with them.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-name">Persona Name <span class="required">*</span></label>
+          <input type="text" id="persona-name" placeholder="e.g., Dr. Sarah Chen" maxlength="50" required>
+          <span class="form-hint">2-50 characters. Choose a memorable, professional name.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-id">Persona ID <span class="required">*</span></label>
+          <input type="text" id="persona-id" placeholder="e.g., sarah-chen" pattern="[a-z0-9-]+" maxlength="30">
+          <span class="form-hint">Auto-generated from name. Lowercase letters, numbers, and hyphens only.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-tagline">Tagline <span class="required">*</span></label>
+          <input type="text" id="persona-tagline" placeholder="e.g., Your mindful meditation guide for daily wellness" maxlength="100" required>
+          <span class="form-hint">10-100 characters. A brief, compelling description shown in the marketplace.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-description">Full Description</label>
+          <textarea id="persona-description" rows="4" placeholder="Describe your persona's background, expertise, and how they help users..."></textarea>
+          <span class="form-hint">Optional but recommended. Helps users understand what makes your persona unique.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-aliases">Aliases</label>
+          <input type="text" id="persona-aliases" placeholder="e.g., Dr. Chen, Sarah, Doc (comma-separated)">
+          <span class="form-hint">Alternative names users might call your persona.</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Personality -->
+      <div class="wizard-panel" data-panel="2">
+        <div class="wizard-panel-header">
+          <h2>Shape Your Persona's Personality</h2>
+          <p>These sliders define how your persona communicates. Find the right balance for your use case.</p>
+        </div>
+
+        <div class="personality-sliders">
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="warmth-slider">Warmth</label>
+              <span class="slider-value" id="warmth-value">0.7</span>
+            </div>
+            <div class="slider-labels">
+              <span>Professional</span>
+              <span>Warm & Friendly</span>
+            </div>
+            <input type="range" id="warmth-slider" min="0" max="1" step="0.1" value="0.7">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="humor-slider">Humor Level</label>
+              <span class="slider-value" id="humor-value">0.4</span>
+            </div>
+            <div class="slider-labels">
+              <span>Serious</span>
+              <span>Playful</span>
+            </div>
+            <input type="range" id="humor-slider" min="0" max="1" step="0.1" value="0.4">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="directness-slider">Directness</label>
+              <span class="slider-value" id="directness-value">0.6</span>
+            </div>
+            <div class="slider-labels">
+              <span>Gentle & Diplomatic</span>
+              <span>Direct & Concise</span>
+            </div>
+            <input type="range" id="directness-slider" min="0" max="1" step="0.1" value="0.6">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <label for="formality-slider">Formality</label>
+              <span class="slider-value" id="formality-value">0.3</span>
+            </div>
+            <div class="slider-labels">
+              <span>Casual</span>
+              <span>Formal</span>
+            </div>
+            <input type="range" id="formality-slider" min="0" max="1" step="0.1" value="0.3">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-traits">Personality Traits <span class="required">*</span></label>
+          <div class="traits-input-container">
+            <input type="text" id="traits-input" placeholder="Type a trait and press Enter...">
+            <div id="traits-tags" class="tags-container"></div>
+          </div>
+          <span class="form-hint">At least 2 traits required. Examples: empathetic, curious, grounded, analytical, supportive</span>
+        </div>
+
+        <div class="preset-personalities">
+          <span style="font-size: var(--text-sm); color: var(--text-secondary); margin-right: var(--space-2);">Quick presets:</span>
+          <button type="button" class="preset-btn" data-preset="coach">Life Coach</button>
+          <button type="button" class="preset-btn" data-preset="analyst">Analyst</button>
+          <button type="button" class="preset-btn" data-preset="mentor">Mentor</button>
+          <button type="button" class="preset-btn" data-preset="therapist">Therapist</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Voice -->
+      <div class="wizard-panel" data-panel="3">
+        <div class="wizard-panel-header">
+          <h2>Choose Your Persona's Voice</h2>
+          <p>Select a voice that matches your persona's character. Preview each voice to find the perfect fit.</p>
+        </div>
+
+        <div class="voice-filters">
+          <div class="filter-group">
+            <label>Gender</label>
+            <div class="filter-buttons">
+              <button type="button" class="filter-btn active" data-gender="">All</button>
+              <button type="button" class="filter-btn" data-gender="female">Female</button>
+              <button type="button" class="filter-btn" data-gender="male">Male</button>
+              <button type="button" class="filter-btn" data-gender="neutral">Neutral</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>Category</label>
+            <select id="voice-category-filter">
+              <option value="">All Categories</option>
+              <option value="coaching">Coaching & Support</option>
+              <option value="productivity">Productivity & Business</option>
+              <option value="education">Education & Learning</option>
+              <option value="wellness">Wellness & Meditation</option>
+              <option value="professional">Professional Services</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="voices-grid" class="voices-grid">
+          <div style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+            Loading voices...
+          </div>
+        </div>
+
+        <div id="selected-voice-info" class="selected-voice-info" style="display: none;">
+          <div class="selected-voice-header">
+            <span>Selected Voice:</span>
+            <strong id="selected-voice-name"></strong>
+          </div>
+          <div id="voice-preview-player" class="voice-preview-player"></div>
+        </div>
+      </div>
+
+      <!-- Step 4: Knowledge -->
+      <div class="wizard-panel" data-panel="4">
+        <div class="wizard-panel-header">
+          <h2>Define Your Persona's Expertise</h2>
+          <p>What topics does your persona know about? This helps users find the right persona for their needs.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-category">Primary Category <span class="required">*</span></label>
+          <select id="persona-category" required>
+            <option value="">Select a category...</option>
+            <option value="life-coaching">Life Coaching</option>
+            <option value="wellness">Wellness & Health</option>
+            <option value="productivity">Productivity</option>
+            <option value="career">Career & Business</option>
+            <option value="education">Education & Learning</option>
+            <option value="finance">Finance & Investing</option>
+            <option value="relationships">Relationships</option>
+            <option value="creativity">Creativity & Arts</option>
+            <option value="fitness">Fitness & Sports</option>
+            <option value="technology">Technology</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-domains">Knowledge Domains <span class="required">*</span></label>
+          <div class="tags-input-container">
+            <input type="text" id="domains-input" placeholder="Type a domain and press Enter...">
+            <div id="domains-tags" class="tags-container"></div>
+          </div>
+          <span class="form-hint">At least 1 domain required. Examples: mindfulness, habit formation, stress management</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-expertise">Expertise Tags</label>
+          <div class="tags-input-container">
+            <input type="text" id="expertise-input" placeholder="Type an expertise tag and press Enter...">
+            <div id="expertise-tags" class="tags-container"></div>
+          </div>
+          <span class="form-hint">Help users find your persona. Examples: CBT, meditation, goal-setting, journaling</span>
+        </div>
+
+        <div class="form-group">
+          <label for="persona-out-of-scope">Out of Scope Topics</label>
+          <div class="tags-input-container">
+            <input type="text" id="out-of-scope-input" placeholder="Topics your persona should NOT discuss...">
+            <div id="out-of-scope-tags" class="tags-container"></div>
+          </div>
+          <span class="form-hint">Important: Define clear boundaries. Examples: medical-diagnosis, legal-advice, financial-planning</span>
+        </div>
+      </div>
+
+      <!-- Step 5: Behaviors -->
+      <div class="wizard-panel" data-panel="5">
+        <div class="wizard-panel-header">
+          <h2>Customize Conversation Behaviors</h2>
+          <p>Add natural conversation elements that make your persona feel more human and engaging.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="greetings-input">Greetings</label>
+          <textarea id="greetings-input" rows="3" placeholder="Enter greetings, one per line...
+e.g.,
+Hey there! How can I help you today?
+Good to see you! What's on your mind?
+Hi! I'm here whenever you're ready to talk."></textarea>
+          <span class="form-hint">Add 3+ greeting variations for natural conversation starts.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="backchannels-input">Backchannels</label>
+          <textarea id="backchannels-input" rows="3" placeholder="Enter backchannels, one per line...
+e.g.,
+Mm-hmm
+I see
+Right
+That makes sense
+Go on"></textarea>
+          <span class="form-hint">Short acknowledgments during user speech. Makes the persona feel present.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="thinking-input">Thinking Sounds</label>
+          <textarea id="thinking-input" rows="3" placeholder="Enter thinking sounds, one per line...
+e.g.,
+Hmm, let me think about that...
+That's interesting...
+Let me consider that for a moment..."></textarea>
+          <span class="form-hint">Natural pauses while the persona processes. Optional but adds authenticity.</span>
+        </div>
+      </div>
+
+      <!-- Step 6: Review -->
+      <div class="wizard-panel" data-panel="6">
+        <div class="wizard-panel-header">
+          <h2>Review Your Persona</h2>
+          <p>Here's a summary of your persona. Review everything before creating.</p>
+        </div>
+
+        <div id="review-summary" class="review-summary">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <div id="validation-results" class="validation-results" style="display: none;">
+          <div id="validation-errors" class="validation-errors"></div>
+          <div id="validation-warnings" class="validation-warnings"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Navigation -->
+    <div class="wizard-nav">
+      <button type="button" id="prev-btn" class="btn btn-secondary" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Previous
+      </button>
+      <div style="flex: 1;"></div>
+      <button type="button" id="save-draft-btn" class="btn btn-ghost">Save Draft</button>
+      <button type="button" id="next-btn" class="btn btn-primary">
+        Next
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+      <button type="button" id="create-btn" class="btn btn-primary" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 12l2 2 4-4"></path>
+        </svg>
+        Create Persona
+      </button>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Wizard Progress */
+  .wizard-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-12);
+    padding: 0 var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .wizard-step.active,
+  .wizard-step.completed {
+    opacity: 1;
+  }
+
+  .wizard-step-number {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    border: 2px solid var(--border-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .wizard-step.active .wizard-step-number {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+  }
+
+  .wizard-step.completed .wizard-step-number {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+  }
+
+  .wizard-step span {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .wizard-step-connector {
+    width: 40px;
+    height: 2px;
+    background: var(--border-medium);
+  }
+
+  /* Wizard Content */
+  .wizard-content {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-8);
+    margin-bottom: var(--space-6);
+  }
+
+  .wizard-panel {
+    display: none;
+  }
+
+  .wizard-panel.active {
+    display: block;
+  }
+
+  .wizard-panel-header {
+    margin-bottom: var(--space-8);
+  }
+
+  .wizard-panel-header h2 {
+    margin-bottom: var(--space-2);
+  }
+
+  .wizard-panel-header p {
+    color: var(--text-secondary);
+  }
+
+  /* Form Groups */
+  .form-group {
+    margin-bottom: var(--space-6);
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: var(--space-2);
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+
+  .form-hint {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+  }
+
+  .required {
+    color: var(--error);
+  }
+
+  /* Personality Sliders */
+  .personality-sliders {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+  }
+
+  @media (max-width: 768px) {
+    .personality-sliders {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .slider-group {
+    padding: var(--space-4);
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+  }
+
+  .slider-header label {
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+
+  .slider-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-bottom: var(--space-2);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: var(--border-medium);
+    border-radius: var(--radius-full);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-primary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+  }
+
+  /* Tags Input */
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+  }
+
+  .tag-remove {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .tag-remove:hover {
+    opacity: 1;
+  }
+
+  /* Preset Buttons */
+  .preset-personalities {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+  }
+
+  .preset-btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preset-btn:hover {
+    background: var(--accent-subtle);
+    border-color: var(--accent-primary);
+  }
+
+  /* Voice Selection */
+  .voice-filters {
+    display: flex;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .filter-group label {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .filter-buttons {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .filter-btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+  }
+
+  .voices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--space-2);
+  }
+
+  .voice-card {
+    padding: var(--space-4);
+    background: var(--bg-primary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .voice-card:hover {
+    border-color: var(--border-medium);
+  }
+
+  .voice-card.selected {
+    border-color: var(--accent-primary);
+    background: var(--accent-subtle);
+  }
+
+  .voice-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+
+  .voice-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .voice-card-name {
+    font-weight: 600;
+  }
+
+  .voice-card-desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+  }
+
+  .voice-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .voice-tag {
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+  }
+
+  .selected-voice-info {
+    margin-top: var(--space-6);
+    padding: var(--space-4);
+    background: var(--accent-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .selected-voice-header {
+    margin-bottom: var(--space-3);
+  }
+
+  /* Review Summary */
+  .review-summary {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  .review-section {
+    padding: var(--space-6);
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+  }
+
+  .review-section h4 {
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .review-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+  }
+
+  .review-label {
+    color: var(--text-secondary);
+  }
+
+  /* Validation Results */
+  .validation-results {
+    margin-top: var(--space-6);
+  }
+
+  .validation-errors,
+  .validation-warnings {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+  }
+
+  .validation-errors {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--error);
+  }
+
+  .validation-warnings {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid var(--warning);
+  }
+
+  /* Wizard Navigation */
+  .wizard-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+</style>
+
+<script src="/js/console-auth.js"></script>
+<script src="/js/persona-wizard.js"></script>
+<script src="/js/voice-preview.js"></script>
+
+  </main>
+
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/console/">Developer Console</a></li>
+          <li><a href="https://github.com/ferni-ai">GitHub</a></li>
+          <li><a href="https://discord.gg/ferni">Discord Community</a></li>
+          <li><a href="/changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2026 Ferni AI. All rights reserved.</p>
+      <p>API Status: <span style="color: var(--success);">●</span> Operational</p>
+    </div>
+  </div>
+</footer>
+
+
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="5"/>
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+    </svg>
+    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+
+  
+</body>
+</html>

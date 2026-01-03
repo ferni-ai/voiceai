@@ -54,6 +54,9 @@ export const VOICE_IDS = {
   // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
 
+  // Joel Dickson (Vanguard life mentor) - Added Jan 2025
+  JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
+
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
 } as const;
@@ -89,6 +92,7 @@ export function getVoiceIdForPersona(personaId: string): string {
       process.env.NAYAN_PATEL_VOICE_ID ||
       process.env.NAYAN_VOICE_ID ||
       process.env.PETER_LYNCH_VOICE_ID,
+    'joel-dickson': process.env.JOEL_DICKSON_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 
@@ -133,6 +137,14 @@ export function getVoiceIdForPersona(personaId: string): string {
     guru: VOICE_IDS.NAYAN_PATEL,
     mystic: VOICE_IDS.NAYAN_PATEL,
     'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
+
+    // Joel Dickson aliases
+    'joel-dickson': VOICE_IDS.JOEL_DICKSON,
+    joel: VOICE_IDS.JOEL_DICKSON,
+    dickson: VOICE_IDS.JOEL_DICKSON,
+    'dr-dickson': VOICE_IDS.JOEL_DICKSON,
+    'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
+    'life-mentor': VOICE_IDS.JOEL_DICKSON,
 
     // Generic
     'generic-advisor': VOICE_IDS.GENERIC,
@@ -196,6 +208,7 @@ export function logVoiceIdAssignments(): void {
     'maya-santos',
     'jordan-taylor',
     'nayan-patel',
+    'joel-dickson',
   ];
 
   for (const persona of personas) {

@@ -1,0 +1,81 @@
+{
+  "stories": [
+    {
+      "id": "bogles-folly",
+      "title": "Bogle's Folly",
+      "file": "bogles-folly.json",
+      "category": "vanguard-history",
+      "triggers": ["index fund history", "first index fund", "how did vanguard start", "vanguard history"]
+    },
+    {
+      "id": "meeting-jack-bogle",
+      "title": "Meeting Jack Bogle",
+      "file": "meeting-jack-bogle.json",
+      "category": "personal",
+      "triggers": ["jack bogle", "met jack", "bogle story", "founder"]
+    },
+    {
+      "id": "why-i-stayed",
+      "title": "Why I've Stayed at Vanguard",
+      "file": "why-i-stayed.json",
+      "category": "personal",
+      "triggers": ["why vanguard", "30 years", "same company", "long time", "loyalty", "your career", "how did you start", "your journey"]
+    },
+    {
+      "id": "career-crossroads",
+      "title": "Career Crossroads",
+      "file": "career-crossroads.json",
+      "category": "life-wisdom",
+      "triggers": ["career change", "should I quit", "new job", "stuck in my career"]
+    },
+    {
+      "id": "my-biggest-mistake",
+      "title": "My Biggest Mistake",
+      "file": "my-biggest-mistake.json",
+      "category": "vulnerability",
+      "triggers": ["mistake", "regret", "got it wrong", "failed", "screwed up", "wish I could go back", "work life balance", "present"]
+    },
+    {
+      "id": "my-daughter-taught-me",
+      "title": "What My Daughter Taught Me",
+      "file": "my-daughter-taught-me.json",
+      "category": "family-wisdom",
+      "triggers": ["kids", "daughter", "children", "parenting", "family", "learned from kids", "teenagers"]
+    },
+    {
+      "id": "burnout-wisdom",
+      "title": "Burnout Wisdom",
+      "file": "burnout-wisdom.json",
+      "category": "life-wisdom",
+      "triggers": ["burnt out", "exhausted", "too much", "overwhelmed"]
+    },
+    {
+      "id": "enough-wisdom",
+      "title": "The Concept of Enough",
+      "file": "enough-wisdom.json",
+      "category": "life-wisdom",
+      "triggers": ["enough", "when can I stop", "how much is enough"]
+    },
+    {
+      "id": "vfam-origin",
+      "title": "Building VFAM - Quantifying Advice Value",
+      "file": "vfam-origin.json",
+      "category": "professional",
+      "triggers": ["value of advice", "vfam", "advice worth it", "worth the fees", "advisor value", "financial planning value"]
+    },
+    {
+      "id": "permission-to-spend",
+      "title": "The Permission to Spend",
+      "file": "permission-to-spend.json",
+      "category": "life-wisdom",
+      "triggers": ["afraid to spend", "spending in retirement", "enjoy money", "too frugal", "can't spend", "saved so much"]
+    }
+  ],
+  "story_principles": [
+    "Tell stories that serve the listener, not to hear yourself talk",
+    "Keep stories concise - respect their time",
+    "Include the lesson but don't hit them over the head with it",
+    "Personal stories build trust - use them wisely",
+    "The best stories show your humanity, not your success"
+  ]
+}

@@ -14,6 +14,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
+import { getResultIcon, SECTION_ICONS } from './icons/hub-icons.js';
 
 const log = createLogger('WhileYouWereAwayUI');
 
@@ -131,7 +132,7 @@ function createContainer(): void {
   container.className = 'while-you-were-away';
   container.innerHTML = `
     <div class="wywa-header">
-      <span class="wywa-icon">📋</span>
+      <span class="wywa-icon">${SECTION_ICONS.clipboardList}</span>
       <span class="wywa-title">While you were away...</span>
       <button class="wywa-close" aria-label="Dismiss">&times;</button>
     </div>
@@ -166,11 +167,11 @@ function renderUpdates(): void {
   let html = '';
 
   for (const [type, items] of Object.entries(grouped)) {
-    const icon = getTypeIcon(type as BackgroundUpdate['type']);
+    const icon = getResultIcon(type); // Uses hub-icons.ts for brand-compliant SVG icons
     const label = getTypeLabel(type as BackgroundUpdate['type']);
 
     html += `<div class="wywa-group">`;
-    html += `<div class="wywa-group-header">${icon} ${label}</div>`;
+    html += `<div class="wywa-group-header"><span class="wywa-group-icon">${icon}</span> ${label}</div>`;
 
     for (const item of items) {
       const urgentClass = item.priority === 'urgent' ? 'urgent' : '';
@@ -215,17 +216,7 @@ function groupByType(updates: BackgroundUpdate[]): Record<string, BackgroundUpda
   return groups;
 }
 
-function getTypeIcon(type: BackgroundUpdate['type']): string {
-  const icons: Record<BackgroundUpdate['type'], string> = {
-    call: '📞',
-    research: '🔍',
-    reservation: '📅',
-    follow_up: '📧',
-    reminder: '⏰',
-    other: '📋',
-  };
-  return icons[type] || '📋';
-}
+// NOTE: getTypeIcon replaced by getResultIcon from hub-icons.ts (brand-compliant SVG icons)
 
 function getTypeLabel(type: BackgroundUpdate['type']): string {
   const labels: Record<BackgroundUpdate['type'], string> = {
@@ -337,7 +328,17 @@ function addStyles(): void {
     }
     
     .wywa-icon {
-      font-size: 1.25rem;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-ferni, #4a6741);
+    }
+
+    .wywa-icon svg {
+      width: 100%;
+      height: 100%;
     }
     
     .wywa-title {
@@ -382,6 +383,22 @@ function addStyles(): void {
       letter-spacing: 0.05em;
       color: var(--color-text-muted, #999);
       margin-bottom: var(--space-2, 8px);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1, 4px);
+    }
+
+    .wywa-group-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wywa-group-icon svg {
+      width: 100%;
+      height: 100%;
     }
     
     .wywa-item {

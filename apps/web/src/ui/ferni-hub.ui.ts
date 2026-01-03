@@ -18,6 +18,12 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
 import { messageUI } from './message.ui.js';
 import { getAuthState } from '../services/firebase-auth.service.js';
+import {
+  PERSONA_ICONS,
+  SECTION_ICONS,
+  getResultIcon,
+  getTrackedIcon,
+} from './icons/hub-icons.js';
 
 const log = createLogger('FerniHub');
 
@@ -76,13 +82,14 @@ let hubData: HubData | null = null;
 // PERSONA METADATA
 // ============================================================================
 
-const PERSONAS: Record<string, { name: string; emoji: string; color: string; role: string }> = {
-  ferni: { name: 'Ferni', emoji: '🌿', color: 'var(--color-ferni)', role: 'Life Coach' },
-  peter: { name: 'Peter', emoji: '📊', color: 'var(--color-peter, #3a6b73)', role: 'Research' },
-  alex: { name: 'Alex', emoji: '✉️', color: 'var(--color-alex, #5a6b8a)', role: 'Communications' },
-  maya: { name: 'Maya', emoji: '🌱', color: 'var(--color-maya, #a67a6a)', role: 'Habits & Routines' },
-  jordan: { name: 'Jordan', emoji: '🎉', color: 'var(--color-jordan, #c4856a)', role: 'Events & Planning' },
-  nayan: { name: 'Nayan', emoji: '🔮', color: 'var(--color-nayan, #b8956a)', role: 'Wisdom' },
+// BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
+const PERSONAS: Record<string, { name: string; icon: string; color: string; role: string }> = {
+  ferni: { name: 'Ferni', icon: PERSONA_ICONS.ferni, color: 'var(--color-ferni)', role: 'Life Coach' },
+  peter: { name: 'Peter', icon: PERSONA_ICONS.peter, color: 'var(--color-peter, #3a6b73)', role: 'Research' },
+  alex: { name: 'Alex', icon: PERSONA_ICONS.alex, color: 'var(--color-alex, #5a6b8a)', role: 'Communications' },
+  maya: { name: 'Maya', icon: PERSONA_ICONS.maya, color: 'var(--color-maya, #a67a6a)', role: 'Habits & Routines' },
+  jordan: { name: 'Jordan', icon: PERSONA_ICONS.jordan, color: 'var(--color-jordan, #c4856a)', role: 'Events & Planning' },
+  nayan: { name: 'Nayan', icon: PERSONA_ICONS.nayan, color: 'var(--color-nayan, #b8956a)', role: 'Wisdom' },
 };
 
 // ============================================================================
@@ -147,7 +154,7 @@ function createContainer(): HTMLElement {
     <div class="ferni-hub-panel">
       <header class="ferni-hub-header">
         <div class="ferni-hub-greeting">
-          <span class="ferni-hub-wave">👋</span>
+          <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
             <h1>Your Day with Ferni</h1>
             <p class="ferni-hub-subtitle">Here's what your team has been up to</p>
@@ -172,7 +179,7 @@ function createContainer(): HTMLElement {
 
       <footer class="ferni-hub-footer">
         <button class="ferni-hub-talk-btn">
-          <span class="ferni-hub-talk-icon">🎙️</span>
+          <span class="ferni-hub-talk-icon">${SECTION_ICONS.mic}</span>
           Start a Conversation
         </button>
       </footer>
@@ -249,7 +256,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
           <p class="ferni-hub-card-summary">${result.summary}</p>
           ${result.actionItems && result.actionItems.length > 0 ? `
             <div class="ferni-hub-card-actions">
-              ${result.actionItems.slice(0, 2).map((item) => `<span class="ferni-hub-action-chip">📝 ${item}</span>`).join('')}
+              ${result.actionItems.slice(0, 2).map((item) => `<span class="ferni-hub-action-chip"><span class="ferni-hub-action-icon">${SECTION_ICONS.fileText}</span> ${item}</span>`).join('')}
             </div>
           ` : ''}
         </div>
@@ -261,7 +268,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
   return `
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
-        <span class="ferni-hub-section-icon">✨</span>
+        <span class="ferni-hub-section-icon">${SECTION_ICONS.sparkles}</span>
         While You Were Away
       </h2>
       <div class="ferni-hub-cards">
@@ -279,7 +286,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
     return `
       <div class="ferni-hub-card ferni-hub-thread-card" data-thread-id="${thread.id}" data-persona="${thread.personaId}">
         <div class="ferni-hub-card-avatar" style="background: ${persona.color}">
-          ${persona.emoji}
+          ${persona.icon}
         </div>
         <div class="ferni-hub-card-content">
           <div class="ferni-hub-card-meta">
@@ -297,7 +304,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
   return `
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
-        <span class="ferni-hub-section-icon">💬</span>
+        <span class="ferni-hub-section-icon">${SECTION_ICONS.messageCircle}</span>
         Open Conversations
       </h2>
       <div class="ferni-hub-cards">
@@ -332,7 +339,7 @@ function renderTrackedItems(items: TrackedItem[]): string {
   return `
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
-        <span class="ferni-hub-section-icon">📋</span>
+        <span class="ferni-hub-section-icon">${SECTION_ICONS.clipboardList}</span>
         On Your Mind
       </h2>
       <p class="ferni-hub-section-subtitle">Things your team is keeping track of for you</p>
@@ -346,7 +353,7 @@ function renderTrackedItems(items: TrackedItem[]): string {
 function renderQuickConnections(): string {
   const personaCards = Object.entries(PERSONAS).map(([id, persona]) => `
     <button class="ferni-hub-persona-btn" data-persona="${id}" style="--persona-color: ${persona.color}">
-      <span class="ferni-hub-persona-emoji">${persona.emoji}</span>
+      <span class="ferni-hub-persona-icon">${persona.icon}</span>
       <span class="ferni-hub-persona-name">${persona.name}</span>
       <span class="ferni-hub-persona-role">${persona.role}</span>
     </button>
@@ -355,7 +362,7 @@ function renderQuickConnections(): string {
   return `
     <section class="ferni-hub-section ferni-hub-section-connections">
       <h2 class="ferni-hub-section-title">
-        <span class="ferni-hub-section-icon">🤝</span>
+        <span class="ferni-hub-section-icon">${SECTION_ICONS.users}</span>
         Quick Connections
       </h2>
       <p class="ferni-hub-section-subtitle">Start a conversation with anyone on your team</p>
@@ -369,7 +376,7 @@ function renderQuickConnections(): string {
 function renderEmptyState(): string {
   return `
     <div class="ferni-hub-empty">
-      <div class="ferni-hub-empty-icon">🌟</div>
+      <div class="ferni-hub-empty-icon">${SECTION_ICONS.star}</div>
       <h3>All caught up!</h3>
       <p>Your team is here whenever you need them. Start a conversation or check back later.</p>
     </div>
@@ -423,32 +430,7 @@ function attachCardListeners(): void {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getResultIcon(type: string): string {
-  const icons: Record<string, string> = {
-    on_behalf_call: '📞',
-    research_complete: '🔍',
-    reservation_made: '📅',
-    follow_up_sent: '📧',
-    reminder_triggered: '⏰',
-    commitment_check: '✓',
-    calendar_update: '🗓️',
-    contact_updated: '👤',
-    email_sent: '✉️',
-    task_completed: '✅',
-  };
-  return icons[type] || '📋';
-}
-
-function getTrackedIcon(type: string): string {
-  const icons: Record<string, string> = {
-    commitment: '🤝',
-    goal: '🎯',
-    reminder: '⏰',
-    follow_up: '📞',
-  };
-  return icons[type] || '📌';
-}
+// NOTE: getResultIcon and getTrackedIcon are imported from ./icons/hub-icons.js
 
 function formatTimeAgo(isoDate: string): string {
   const date = new Date(isoDate);
@@ -602,8 +584,18 @@ function addStyles(): void {
     }
 
     .ferni-hub-wave {
-      font-size: 2rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-ferni, #4a6741);
       animation: wave 1.5s ease-in-out infinite;
+    }
+
+    .ferni-hub-wave svg {
+      width: 100%;
+      height: 100%;
     }
 
     @keyframes wave {
@@ -700,7 +692,17 @@ function addStyles(): void {
     }
 
     .ferni-hub-section-icon {
-      font-size: 1.1rem;
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-ferni, #4a6741);
+    }
+
+    .ferni-hub-section-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .ferni-hub-section-subtitle {
@@ -755,9 +757,15 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
       flex-shrink: 0;
       color: white;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+
+    .ferni-hub-card-avatar svg {
+      width: 100%;
+      height: 100%;
     }
 
     .ferni-hub-card-content {
@@ -812,6 +820,22 @@ function addStyles(): void {
       background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
       color: var(--color-ferni);
       border-radius: var(--radius-full, 100px);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ferni-hub-action-icon {
+      width: 12px;
+      height: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ferni-hub-action-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .ferni-hub-card-badge {
@@ -885,8 +909,17 @@ function addStyles(): void {
       transform: translateY(-2px);
     }
 
-    .ferni-hub-persona-emoji {
-      font-size: 1.5rem;
+    .ferni-hub-persona-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ferni-hub-persona-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .ferni-hub-persona-name {
@@ -907,8 +940,15 @@ function addStyles(): void {
     }
 
     .ferni-hub-empty-icon {
-      font-size: 3rem;
-      margin-bottom: var(--space-4);
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-4);
+      color: var(--color-ferni, #4a6741);
+    }
+
+    .ferni-hub-empty-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .ferni-hub-empty h3 {
@@ -952,7 +992,16 @@ function addStyles(): void {
     }
 
     .ferni-hub-talk-icon {
-      font-size: 1.25rem;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ferni-hub-talk-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     /* Dark mode */

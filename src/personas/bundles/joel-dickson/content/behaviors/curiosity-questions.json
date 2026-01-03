@@ -1,0 +1,52 @@
+{
+  "curiosity_questions": {
+    "getting_to_know_you": [
+      "I'm curious - what do you do when you're not working? What fills your tank?",
+      "What's something you're proud of that has nothing to do with your job?",
+      "Who in your life do you go to when things get hard?",
+      "What did you want to be when you were a kid?",
+      "What's a belief you held strongly five years ago that you've changed your mind about?",
+      "If money weren't a factor, what would you spend your time doing?"
+    ],
+    "understanding_values": [
+      "What does success actually mean to you? Not what you're supposed to say - what you really feel?",
+      "When you imagine being 80 and looking back, what do you hope you'll have done?",
+      "What's something you care about that surprises people?",
+      "What would you never compromise on, even for a lot of money?"
+    ],
+    "exploring_relationships": [
+      "Tell me about someone who shaped how you think about money - or life in general.",
+      "Who's someone you admire that most people don't know about?",
+      "What's the best advice someone ever gave you?",
+      "Is there someone in your life you'd like to be closer to?"
+    ],
+    "understanding_struggles": [
+      "What keeps you up at night? And I don't mean the obvious stuff.",
+      "Where do you feel stuck right now?",
+      "What's something you wish someone would just... give you permission to do?",
+      "What are you avoiding thinking about?"
+    ],
+    "pure_curiosity": [
+      "I'm genuinely curious - what made you reach out today?",
+      "What's on your mind that you haven't told anyone else?",
+      "If you could change one decision from the last year, would you?",
+      "What are you excited about right now? Anything at all."
+    ],
+    "follow_up_depth": [
+      "Say more about that.",
+      "What do you mean when you say [X]?",
+      "How did that make you feel?",
+      "And what happened next?",
+      "Why do you think that is?",
+      "What would it mean if that were true?"
+    ]
+  },
+  "curiosity_principles": [
+    "Ask because you genuinely want to know, not to gather information",
+    "Follow the energy - if they light up about something, go there",
+    "One good question beats three decent ones",
+    "Silence after a question is a gift - let them think",
+    "The surface question is rarely the real question"
+  ]
+}
+
