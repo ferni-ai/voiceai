@@ -32,6 +32,8 @@ import {
   precomputeAdviceEmbeddings,
   type PastAdvice,
 } from './advice-matcher.js';
+// V4.0: LLM-powered hybrid extraction for "Better Than Human" accuracy
+import { extractPersonsHybrid, detectAdviceHybrid } from './llm-detector.js';
 
 // V3.2 Proactive Intelligence
 import { openLoops, processUserTextForLoops } from './open-loops.js';
@@ -762,7 +764,24 @@ async function recordRelationalData(data: TurnSemanticData): Promise<void> {
   }
 
   // V3.1: Use enhanced person extractor (NER-like with proper names and relationships)
-  const enhancedPersons = extractPersons(userText);
+  let enhancedPersons = extractPersons(userText);
+
+  // V4.0: If regex found nothing or low confidence, use LLM hybrid extraction
+  const maxRegexConfidence = enhancedPersons.length > 0 
+    ? Math.max(...enhancedPersons.map(p => p.confidence)) 
+    : 0;
+  if (enhancedPersons.length === 0 || maxRegexConfidence < 0.6) {
+    try {
+      const llmPersons = await extractPersonsHybrid(userText);
+      if (llmPersons.length > 0) {
+        log.debug({ regexCount: enhancedPersons.length, llmCount: llmPersons.length }, 
+          '🤖 LLM hybrid extraction found additional persons');
+        enhancedPersons = llmPersons;
+      }
+    } catch (e) {
+      log.debug({ error: String(e) }, 'LLM hybrid extraction failed, using regex results');
+    }
+  }
 
   // Also use existing extractors for compatibility
   const legacyMentions = extractPersonMentions(
@@ -1052,7 +1071,23 @@ export async function detectAdviceOutcome(userId: string, userText: string): Pro
   const mentionsFollowThrough = FOLLOW_THROUGH_PATTERNS.some((p) => p.test(lowerText));
   const mentionsNotFollowing = NOT_FOLLOW_PATTERNS.some((p) => p.test(lowerText));
 
-  if (!mentionsFollowThrough && !mentionsNotFollowing) {
+  // V4.0: If regex patterns don't match, check with LLM for subtle references
+  let mentionsAdvice = mentionsFollowThrough || mentionsNotFollowing;
+  if (!mentionsAdvice) {
+    try {
+      // Check if user might be referencing advice in a subtle way
+      const adviceCheck = await detectAdviceHybrid(userText);
+      if (adviceCheck.containsAdvice && adviceCheck.confidence > 0.6) {
+        // User might be talking about following/not following advice
+        mentionsAdvice = true;
+        log.debug({ confidence: adviceCheck.confidence }, '🤖 LLM detected potential advice reference');
+      }
+    } catch (e) {
+      log.debug({ error: String(e) }, 'LLM advice check failed, using regex only');
+    }
+  }
+  
+  if (!mentionsAdvice) {
     return; // User isn't talking about advice
   }
 
