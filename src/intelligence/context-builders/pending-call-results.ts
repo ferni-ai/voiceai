@@ -1,12 +1,12 @@
 /**
- * Pending Call Results Context Builder
+ * Pending Background Results Context Builder
  *
  * "BETTER THAN HUMAN" - When you reconnect, Ferni remembers what happened
  * while you were away and tells you like a friend would: "Oh! I called your
  * mom while you were gone - she said she loved hearing from you!"
  *
  * This builder:
- * 1. Checks for recent on-behalf call results the user hasn't heard about
+ * 1. Checks for recent background results (calls, research, reservations, etc.)
  * 2. Injects them into the agent's first turn context
  * 3. Marks them as delivered so they're not repeated
  *
@@ -15,11 +15,16 @@
  * - Email feels impersonal
  * - Ferni TELLING you feels like a real relationship
  * - "Better than human" - friends forget to follow up, Ferni doesn't
+ *
+ * EVOLUTION:
+ * - Originally just for calls (pending-call-results.ts)
+ * - Now unified to handle ALL background agent tasks
+ * - Uses unified-result-capture.ts for storage/retrieval
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'PendingCallResults' });
+const log = createLogger({ module: 'PendingBackgroundResults' });
 
 // ============================================================================
 // TYPES
@@ -208,6 +213,44 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
   void markCallResultsDelivered(userId, callIds);
 
   return lines.join('\n');
+}
+
+// ============================================================================
+// UNIFIED RESULTS (NEW - handles ALL background tasks)
+// ============================================================================
+
+/**
+ * Build context for ALL pending background results (not just calls).
+ * This is the "WHILE YOU WERE AWAY" moment that makes Ferni superhuman.
+ */
+export async function buildPendingBackgroundResultsContext(userId: string): Promise<string | null> {
+  try {
+    const { buildPendingResultsContext } = await import('../../services/background-agents/index.js');
+    return await buildPendingResultsContext(userId);
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Unified background results not available, falling back to calls only');
+    // Fall back to just call results
+    return buildPendingCallResultsContext(userId);
+  }
+}
+
+/**
+ * Combined context builder that gets BOTH legacy call results AND new unified results.
+ * Use this during the transition period to ensure nothing is missed.
+ */
+export async function buildAllPendingResultsContext(userId: string): Promise<string | null> {
+  const [callResults, unifiedResults] = await Promise.all([
+    buildPendingCallResultsContext(userId).catch(() => null),
+    buildPendingBackgroundResultsContext(userId).catch(() => null),
+  ]);
+
+  // If we have unified results, prefer those (they're more comprehensive)
+  if (unifiedResults) {
+    return unifiedResults;
+  }
+
+  // Otherwise fall back to call-only results
+  return callResults;
 }
 
 // ============================================================================

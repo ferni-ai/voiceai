@@ -380,6 +380,11 @@ export function handleDataMessage(message: DataMessage): void {
       handleOnBehalfCallComplete(message as OnBehalfCallCompleteEvent);
       break;
 
+    case 'background_result_complete':
+      // 📋 BACKGROUND TASK: Research, reservation, or other task completed
+      handleBackgroundResultComplete(message as BackgroundResultCompleteEvent);
+      break;
+
     default:
   }
 }
@@ -2285,6 +2290,121 @@ function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
       },
     })
   );
+}
+
+// ============================================================================
+// BACKGROUND RESULT COMPLETE HANDLER - Unified Background Task Results
+// ============================================================================
+
+/**
+ * Background result complete event from backend
+ * Sent when ANY background task completes (research, reservations, etc.)
+ */
+interface BackgroundResultCompleteEvent extends DataMessage {
+  type: 'background_result_complete';
+  resultId: string;
+  resultType: 'on_behalf_call' | 'research_complete' | 'reservation_made' | 'follow_up_sent' | 'reminder_triggered' | 'commitment_check' | 'calendar_update' | 'contact_updated' | 'email_sent' | 'task_completed';
+  summary: string;
+  status: 'success' | 'partial_success' | 'failed' | 'requires_action' | 'pending';
+  priority: 'urgent' | 'high' | 'normal' | 'low';
+  contactName?: string;
+  requiresCallback?: boolean;
+  actionItems?: string[];
+  timestamp: number;
+}
+
+/**
+ * Handle unified background result completion events.
+ *
+ * BETTER THAN HUMAN: When the team works in the background, this handler
+ * ensures users are notified with appropriate feedback and UI reactions.
+ *
+ * Covers:
+ * - Research tasks (Peter)
+ * - Reservations (Jordan)
+ * - Follow-ups (Alex)
+ * - Habit reminders (Maya)
+ * - And more...
+ */
+function handleBackgroundResultComplete(event: BackgroundResultCompleteEvent): void {
+  log.info('📋 BETTER THAN HUMAN: Background task complete!', {
+    resultType: event.resultType,
+    status: event.status,
+    priority: event.priority,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  // Get appropriate icon for result type
+  const icon = getResultTypeIcon(event.resultType);
+
+  // Handle based on status
+  if (event.status === 'success') {
+    // Task succeeded! Show happiness
+    playMicroExpression('delight_flash');
+    ferniExpressions.setExpression('pleased', 400, 2000);
+    soundUI.play('success');
+    messageUI.show(`${icon} ${event.summary}`, 'success', 5000);
+  } else if (event.status === 'partial_success') {
+    // Partially done - informative
+    playMicroExpression('noticing');
+    ferniExpressions.setExpression('contemplative', 400, 1800);
+    soundUI.play('message');
+    messageUI.show(`${icon} ${event.summary}`, 'info', 4000);
+  } else if (event.status === 'requires_action') {
+    // Needs user attention
+    playMicroExpression('concern_flash');
+    ferniExpressions.setExpression('curious', 400, 2000);
+    soundUI.play('notification');
+    messageUI.show(`${icon} ${event.summary}`, 'warning', 5000);
+  } else if (event.status === 'failed') {
+    // Task failed - apologetic
+    playMicroExpression('concern_flash');
+    ferniExpressions.setExpression('contemplative', 400, 2000);
+    messageUI.show(`${icon} ${event.summary}`, 'warning', 4000);
+  }
+
+  // Show callback notification if needed
+  if (event.requiresCallback && event.contactName) {
+    setTimeout(() => {
+      messageUI.show(`📅 ${event.contactName} wants you to follow up`, 'info', 4000);
+    }, 2000);
+  }
+
+  // Dispatch event for other UI components
+  window.dispatchEvent(
+    new CustomEvent('ferni:background-complete', {
+      detail: {
+        resultId: event.resultId,
+        resultType: event.resultType,
+        summary: event.summary,
+        status: event.status,
+        priority: event.priority,
+        contactName: event.contactName,
+        requiresCallback: event.requiresCallback,
+        actionItems: event.actionItems,
+      },
+    })
+  );
+}
+
+/**
+ * Get appropriate icon for result type
+ */
+function getResultTypeIcon(type: BackgroundResultCompleteEvent['resultType']): string {
+  const icons: Record<BackgroundResultCompleteEvent['resultType'], string> = {
+    on_behalf_call: '📞',
+    research_complete: '🔍',
+    reservation_made: '📅',
+    follow_up_sent: '📧',
+    reminder_triggered: '⏰',
+    commitment_check: '📋',
+    calendar_update: '🗓️',
+    contact_updated: '👤',
+    email_sent: '✉️',
+    task_completed: '✓',
+  };
+  return icons[type] || '📋';
 }
 
 // ============================================================================

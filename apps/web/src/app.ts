@@ -1682,6 +1682,13 @@ class VoiceAIApp {
     this.deferredInit('ProactiveMessagesUI', 500, async () => {
       initProactiveMessages();
     });
+    
+    // 📋 While You Were Away - Background agent results notification
+    this.deferredInit('WhileYouWereAwayUI', 600, async () => {
+      const { whileYouWereAwayUI } = await import('./ui/while-you-were-away.ui.js');
+      whileYouWereAwayUI.init();
+    });
+    
     // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 
     // 🌱 Progressive Relationship Features - All quick wins in one init

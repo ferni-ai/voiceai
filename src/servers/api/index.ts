@@ -91,6 +91,7 @@ import { handleObservabilityRoutes } from '../../api/observability-routes.js';
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
+import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
 import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
@@ -146,6 +147,7 @@ import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
 import { handleCrashReportRoutes } from '../../api/crash-report-routes.js';
 import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleLinkedInRoutes } from '../../api/linkedin-routes.js';
+import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
@@ -192,6 +194,11 @@ import { handleGamesRoutes } from '../../api/routes/games.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
+
+// Orphaned routes (previously not registered but frontend calls them)
+import { handleRitualsRoutes } from '../../api/routes/rituals.js';
+import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
+import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
@@ -750,6 +757,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Background results routes (While You Were Away)
+    if (pathname.startsWith('/api/background-results')) {
+      const handled = await handleBackgroundResultsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Feature flags routes
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
@@ -953,6 +966,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Sites routes (Agent Page Builder - generate and deploy landing pages)
+    if (pathname.startsWith('/api/sites') || pathname.startsWith('/sites/')) {
+      const handled = await handleSitesRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Cameo analytics routes
     if (pathname.startsWith('/api/cameo')) {
       const handled = await handleCameoAnalyticsRoutes(req, res, pathname);
@@ -962,6 +981,24 @@ const server = http.createServer(async (req, res) => {
     // Wellbeing routes
     if (pathname.startsWith('/api/wellbeing')) {
       const handled = await handleWellbeingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Rituals routes (daily rituals & streaks)
+    if (pathname.startsWith('/api/rituals')) {
+      const handled = await handleRitualsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Sky check routes (emotional weather tracking)
+    if (pathname.startsWith('/api/sky-check')) {
+      const handled = await handleSkyCheckRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Digital Twin profile routes
+    if (pathname.startsWith('/api/twin')) {
+      const handled = await handleTwinProfileRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -1316,7 +1353,7 @@ async function gracefulShutdown(): Promise<void> {
   // Stop proactive scheduler
   stopProactiveScheduler();
 
-  // Shutdown all services in parallel
+  // Shutdown all services in parallel (except persistence)
   try {
     await Promise.all([
       shutdownSpotify(),
@@ -1325,10 +1362,13 @@ async function gracefulShutdown(): Promise<void> {
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
-      shutdownPersistence(),
       shutdownApplePolling(),
     ]);
-    log.info('All services shutdown complete');
+    log.info('Services shutdown complete');
+
+    // Shutdown persistence LAST - allows other services to persist final state
+    await shutdownPersistence();
+    log.info('Persistence shutdown complete');
   } catch (err) {
     log.error({ error: (err as Error).message }, 'Error during shutdown');
   }

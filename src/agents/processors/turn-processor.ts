@@ -466,25 +466,26 @@ async function buildContextInjections(
     }
   }
 
-  // 2g. 📞 PENDING CALL RESULTS: What happened while the user was away
-  // "Better Than Human" - Ferni tells you about calls made on your behalf
+  // 2g. 📋 WHILE YOU WERE AWAY: What background tasks completed
+  // "Better Than Human" - Ferni tells you about everything that happened while you were away
+  // This includes: calls, research, reservations, follow-ups, and more!
   // Priority 90 = high - this is important news to share early in the greeting
   // Only on first turn to establish context
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
-      const { buildPendingCallResultsContext } =
+      const { buildAllPendingResultsContext } =
         await import('../../intelligence/context-builders/pending-call-results.js');
-      const pendingCallContext = await buildPendingCallResultsContext(services.userId);
-      if (pendingCallContext) {
+      const pendingResultsContext = await buildAllPendingResultsContext(services.userId);
+      if (pendingResultsContext) {
         injections.push({
-          category: 'pending_calls',
-          content: pendingCallContext,
+          category: 'pending_background_results',
+          content: pendingResultsContext,
           priority: 90, // High priority - tell them early
         });
-        diag.debug('📞 Pending call results context injected');
+        diag.debug('📋 While You Were Away context injected');
       }
     } catch (error) {
-      diag.debug('Pending call results context failed (non-blocking)', { error: String(error) });
+      diag.debug('Pending background results context failed (non-blocking)', { error: String(error) });
     }
   }
 

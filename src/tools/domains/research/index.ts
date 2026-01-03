@@ -326,6 +326,349 @@ function getSuperhumanToolDefinitions(): ToolDefinition[] {
       superhumanTools.getNextLesson,
       { tags: ['superhuman', 'learning', 'education', 'personalization'] }
     ),
+
+    // ============================================================================
+    // N=1 PERSONAL ANALYTICS (9 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'recordDecision',
+      'Record Decision',
+      'Record a decision you made. Peter will track patterns to show you when you make your best and worst decisions.',
+      superhumanTools.recordDecision,
+      { tags: ['superhuman', 'n1-analytics', 'decisions', 'patterns'] }
+    ),
+    wrapLegacyTool(
+      'recordDecisionOutcome',
+      'Record Decision Outcome',
+      'Record the outcome of a past decision. This helps Peter learn when you make your best decisions.',
+      superhumanTools.recordDecisionOutcome,
+      { tags: ['superhuman', 'n1-analytics', 'decisions', 'patterns'] }
+    ),
+    wrapLegacyTool(
+      'analyzeDecisionQuality',
+      'Analyze Decision Quality',
+      "Analyze patterns in your decision quality. Find out WHEN you make your best decisions - time of day, day of week, sleep levels. Something no human friend could track.",
+      superhumanTools.analyzeDecisionQuality,
+      { tags: ['superhuman', 'n1-analytics', 'decisions', 'patterns'] }
+    ),
+    wrapLegacyTool(
+      'recordSleepData',
+      'Record Sleep',
+      "Record your sleep data. Peter will correlate this with your spending, mood, productivity, and decisions to find YOUR patterns.",
+      superhumanTools.recordSleepData,
+      { tags: ['superhuman', 'n1-analytics', 'sleep', 'correlations'] }
+    ),
+    wrapLegacyTool(
+      'analyzeSleepCorrelations',
+      'Analyze Sleep Correlations',
+      "Analyze how your sleep correlates with spending, decisions, and productivity. Reveals patterns you'd never notice yourself.",
+      superhumanTools.analyzeSleepCorrelations,
+      { tags: ['superhuman', 'n1-analytics', 'sleep', 'correlations'] }
+    ),
+    wrapLegacyTool(
+      'recordEnergyLevel',
+      'Record Energy Level',
+      "Record your current energy level. Over time, Peter will learn to PREDICT your energy throughout the day.",
+      superhumanTools.recordEnergyLevel,
+      { tags: ['superhuman', 'n1-analytics', 'energy', 'prediction'] }
+    ),
+    wrapLegacyTool(
+      'predictEnergy',
+      'Predict Energy',
+      "Predict your energy levels for today based on your patterns. Know your peaks and valleys BEFORE they happen.",
+      superhumanTools.predictEnergy,
+      { tags: ['superhuman', 'n1-analytics', 'energy', 'prediction'] }
+    ),
+    wrapLegacyTool(
+      'analyzePeakPerformance',
+      'Analyze Peak Performance',
+      "Map YOUR personal peak performance times for creative work, analytical work, decisions, and communication. No generic advice - this is YOUR data.",
+      superhumanTools.analyzePeakPerformance,
+      { tags: ['superhuman', 'n1-analytics', 'performance', 'scheduling'] }
+    ),
+    wrapLegacyTool(
+      'calculateLifestyleImpact',
+      'Calculate Lifestyle Impact',
+      'Predict how a lifestyle change will ripple through your life. See the cascade effects BEFORE you make the change.',
+      superhumanTools.calculateLifestyleImpact,
+      { tags: ['superhuman', 'n1-analytics', 'lifestyle', 'prediction'] }
+    ),
+
+    // ============================================================================
+    // RESEARCH SYNTHESIS (5 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'scoreEvidenceQuality',
+      'Score Evidence Quality',
+      'Score the quality of evidence behind any claim. Separate fact from anecdote from opinion.',
+      superhumanTools.scoreEvidenceQuality,
+      { tags: ['superhuman', 'research', 'evidence', 'critical-thinking'] }
+    ),
+    wrapLegacyTool(
+      'synthesizeResearch',
+      'Synthesize Research',
+      'Synthesize research on any topic in seconds. Get the real consensus, not pop science headlines.',
+      superhumanTools.synthesizeResearch,
+      { tags: ['superhuman', 'research', 'synthesis', 'evidence'] }
+    ),
+    wrapLegacyTool(
+      'findCounterArguments',
+      'Find Counter Arguments',
+      'Find counter-arguments to any claim. Combat confirmation bias by seeing the other side.',
+      superhumanTools.findCounterArguments,
+      { tags: ['superhuman', 'research', 'critical-thinking', 'bias'] }
+    ),
+    wrapLegacyTool(
+      'verifyClaim',
+      'Verify Claim',
+      'Verify any claim against evidence. Get a truth rating from verified to false.',
+      superhumanTools.verifyClaim,
+      { tags: ['superhuman', 'research', 'fact-check', 'evidence'] }
+    ),
+    wrapLegacyTool(
+      'getBaseRate',
+      'Get Base Rate',
+      'Get the base rate for any situation. Combat probability blindness with real statistics.',
+      superhumanTools.getBaseRate,
+      { tags: ['superhuman', 'research', 'statistics', 'probability'] }
+    ),
+
+    // ============================================================================
+    // PREDICTIVE MODELING (7 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'recordGoalProgress',
+      'Record Goal Progress',
+      'Record progress on a goal for predictive modeling.',
+      superhumanTools.recordGoalProgress,
+      { tags: ['superhuman', 'predictive', 'goals', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'predictGoalSuccess',
+      'Predict Goal Success',
+      'Predict the probability of achieving a goal based on YOUR patterns and similar goals.',
+      superhumanTools.predictGoalSuccess,
+      { tags: ['superhuman', 'predictive', 'goals', 'probability'] }
+    ),
+    wrapLegacyTool(
+      'projectBehavioralTrajectory',
+      'Project Behavioral Trajectory',
+      'Project where you are heading based on current behaviors. See your future self.',
+      superhumanTools.projectBehavioralTrajectory,
+      { tags: ['superhuman', 'predictive', 'behavior', 'trajectory'] }
+    ),
+    wrapLegacyTool(
+      'recordHabit',
+      'Record Habit',
+      'Record a habit for survival analysis.',
+      superhumanTools.recordHabit,
+      { tags: ['superhuman', 'predictive', 'habits', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'analyzeHabitSurvival',
+      'Analyze Habit Survival',
+      'Predict habit survival probability based on YOUR history. Know which habits will stick.',
+      superhumanTools.analyzeHabitSurvival,
+      { tags: ['superhuman', 'predictive', 'habits', 'probability'] }
+    ),
+    wrapLegacyTool(
+      'analyzeCounterfactual',
+      'Analyze Counterfactual',
+      'Analyze what would have happened if you made a different choice. Learn from alternate timelines.',
+      superhumanTools.analyzeCounterfactual,
+      { tags: ['superhuman', 'predictive', 'counterfactual', 'analysis'] }
+    ),
+    wrapLegacyTool(
+      'predictLifeEventImpact',
+      'Predict Life Event Impact',
+      'Predict how a life event will impact your life across multiple dimensions.',
+      superhumanTools.predictLifeEventImpact,
+      { tags: ['superhuman', 'predictive', 'life-events', 'impact'] }
+    ),
+
+    // ============================================================================
+    // FINANCIAL RESEARCH (4 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'analyzeSECFiling',
+      'Analyze SEC Filing',
+      'Analyze SEC filings for any public company. Find what management is really saying.',
+      superhumanTools.analyzeSECFiling,
+      { tags: ['superhuman', 'financial-research', 'sec', 'analysis'] }
+    ),
+    wrapLegacyTool(
+      'trackInsiderTrading',
+      'Track Insider Trading',
+      'Track insider buying and selling patterns. See what executives are doing with their own money.',
+      superhumanTools.trackInsiderTrading,
+      { tags: ['superhuman', 'financial-research', 'insider', 'trading'] }
+    ),
+    wrapLegacyTool(
+      'analyzeOptionsFlow',
+      'Analyze Options Flow',
+      'Analyze institutional options flow. See where smart money is betting.',
+      superhumanTools.analyzeOptionsFlow,
+      { tags: ['superhuman', 'financial-research', 'options', 'institutional'] }
+    ),
+    wrapLegacyTool(
+      'bridgeMacroToPersonal',
+      'Bridge Macro to Personal',
+      'Connect macroeconomic events to YOUR personal finances. Make macro relevant.',
+      superhumanTools.bridgeMacroToPersonal,
+      { tags: ['superhuman', 'financial-research', 'macro', 'personal'] }
+    ),
+
+    // ============================================================================
+    // EXPERIMENTATION (9 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'designExperiment',
+      'Design Experiment',
+      'Design a personal A/B test with proper experimental methodology. Test if an intervention actually works for YOU.',
+      superhumanTools.designExperiment,
+      { tags: ['superhuman', 'experimentation', 'ab-test', 'scientific-method'] }
+    ),
+    wrapLegacyTool(
+      'recordExperimentData',
+      'Record Experiment Data',
+      'Record data for an ongoing experiment.',
+      superhumanTools.recordExperimentData,
+      { tags: ['superhuman', 'experimentation', 'data', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'analyzeExperiment',
+      'Analyze Experiment',
+      'Analyze experiment results with statistical rigor. Know if results are real or noise.',
+      superhumanTools.analyzeExperiment,
+      { tags: ['superhuman', 'experimentation', 'analysis', 'statistics'] }
+    ),
+    wrapLegacyTool(
+      'createBelief',
+      'Create Belief',
+      'Create a belief to track with Bayesian updating. Watch your confidence evolve with evidence.',
+      superhumanTools.createBelief,
+      { tags: ['superhuman', 'experimentation', 'bayesian', 'beliefs'] }
+    ),
+    wrapLegacyTool(
+      'updateBelief',
+      'Update Belief',
+      'Update a belief with new evidence using Bayesian reasoning.',
+      superhumanTools.updateBelief,
+      { tags: ['superhuman', 'experimentation', 'bayesian', 'beliefs'] }
+    ),
+    wrapLegacyTool(
+      'trackHypothesis',
+      'Track Hypothesis',
+      'Track a hypothesis about your life.',
+      superhumanTools.trackHypothesis,
+      { tags: ['superhuman', 'experimentation', 'hypothesis', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'updateHypothesis',
+      'Update Hypothesis',
+      'Update hypothesis status based on evidence.',
+      superhumanTools.updateHypothesis,
+      { tags: ['superhuman', 'experimentation', 'hypothesis', 'evidence'] }
+    ),
+    wrapLegacyTool(
+      'detectConfounds',
+      'Detect Confounds',
+      'Detect potential confounding variables in any correlation you notice.',
+      superhumanTools.detectConfounds,
+      { tags: ['superhuman', 'experimentation', 'confounds', 'causation'] }
+    ),
+    wrapLegacyTool(
+      'calculateEffectSize',
+      'Calculate Effect Size',
+      "Calculate effect size for any intervention. Know if a change is meaningful, not just statistically significant.",
+      superhumanTools.calculateEffectSize,
+      { tags: ['superhuman', 'experimentation', 'effect-size', 'statistics'] }
+    ),
+
+    // ============================================================================
+    // EXTERNAL DATA (5 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'getLocalEconomics',
+      'Get Local Economics',
+      'Get local economic indicators for your area. See how YOUR local economy is doing.',
+      superhumanTools.getLocalEconomics,
+      { tags: ['superhuman', 'external-data', 'economics', 'local'] }
+    ),
+    wrapLegacyTool(
+      'synthesizeIndustryTrends',
+      'Synthesize Industry Trends',
+      'Synthesize trends for any industry. Know where sectors are heading.',
+      superhumanTools.synthesizeIndustryTrends,
+      { tags: ['superhuman', 'external-data', 'industry', 'trends'] }
+    ),
+    wrapLegacyTool(
+      'analyzeNewsSentiment',
+      'Analyze News Sentiment',
+      'Analyze news sentiment for any topic. Cut through noise to see the real narrative.',
+      superhumanTools.analyzeNewsSentiment,
+      { tags: ['superhuman', 'external-data', 'news', 'sentiment'] }
+    ),
+    wrapLegacyTool(
+      'recordSpending',
+      'Record Spending',
+      'Record spending for personal inflation calculation.',
+      superhumanTools.recordSpending,
+      { tags: ['superhuman', 'external-data', 'spending', 'inflation'] }
+    ),
+    wrapLegacyTool(
+      'calculatePersonalInflation',
+      'Calculate Personal Inflation',
+      'Calculate YOUR personal inflation rate. See how inflation actually affects YOU.',
+      superhumanTools.calculatePersonalInflation,
+      { tags: ['superhuman', 'external-data', 'inflation', 'personal'] }
+    ),
+
+    // ============================================================================
+    // NETWORK ANALYTICS (6 tools)
+    // ============================================================================
+    wrapLegacyTool(
+      'trackRelationship',
+      'Track Relationship',
+      'Track a relationship to analyze patterns over time. Build your relationship map.',
+      superhumanTools.trackRelationship,
+      { tags: ['superhuman', 'network', 'relationships', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'logInteraction',
+      'Log Interaction',
+      'Log an interaction with someone in your network.',
+      superhumanTools.logInteraction,
+      { tags: ['superhuman', 'network', 'interactions', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'analyzeCommunicationPatterns',
+      'Analyze Communication Patterns',
+      'Analyze your communication patterns. See who you turn to for what.',
+      superhumanTools.analyzeCommunicationPatterns,
+      { tags: ['superhuman', 'network', 'communication', 'patterns'] }
+    ),
+    wrapLegacyTool(
+      'scoreRelationshipHealth',
+      'Score Relationship Health',
+      'Score the health of your relationships objectively. Catch declining relationships early.',
+      superhumanTools.scoreRelationshipHealth,
+      { tags: ['superhuman', 'network', 'relationships', 'health'] }
+    ),
+    wrapLegacyTool(
+      'mapInfluence',
+      'Map Influence',
+      'Map who influences your decisions in different areas. Understand your influence network.',
+      superhumanTools.mapInfluence,
+      { tags: ['superhuman', 'network', 'influence', 'decisions'] }
+    ),
+    wrapLegacyTool(
+      'analyzeNetworkGaps',
+      'Analyze Network Gaps',
+      'Analyze gaps in your network. Find what types of people you need but lack.',
+      superhumanTools.analyzeNetworkGaps,
+      { tags: ['superhuman', 'network', 'gaps', 'optimization'] }
+    ),
   ];
 }
 
@@ -457,6 +800,93 @@ function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// BACKGROUND RESEARCH TOOLS (Peter's "While You Were Away" Powers)
+// ============================================================================
+
+function getBackgroundResearchToolDefinitions(): ToolDefinition[] {
+  return [
+    {
+      id: 'backgroundResearch',
+      name: 'Background Research',
+      description:
+        'Start background research that continues even when the user disconnects. Perfect for: "Research NVDA while I\'m away", "Find out about X and let me know later", "Dig into this topic in the background". Results are delivered when the user reconnects.',
+      domain: 'research',
+      tags: ['background', 'async', 'research', 'while-you-were-away'],
+      create: (ctx: ToolContext) => {
+        return {
+          description:
+            'Start deep research in the background. Results are saved and delivered when the user returns. Use for research that takes time.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'What to research (stock symbol, topic, question, company)',
+              },
+              researchType: {
+                type: 'string',
+                enum: ['stock_analysis', 'fact_check', 'deep_dive', 'market_research', 'general'],
+                description: 'Type of research to perform',
+              },
+              depth: {
+                type: 'string',
+                enum: ['quick', 'standard', 'comprehensive'],
+                description: 'How deep to go (default: standard)',
+              },
+              urgency: {
+                type: 'string',
+                enum: ['when_ready', 'asap', 'next_session'],
+                description: 'When to deliver results (default: when_ready)',
+              },
+            },
+            required: ['query', 'researchType'],
+          },
+          execute: async ({
+            query,
+            researchType,
+            depth = 'standard',
+            urgency = 'when_ready',
+          }: {
+            query: string;
+            researchType: 'stock_analysis' | 'fact_check' | 'deep_dive' | 'market_research' | 'general';
+            depth?: 'quick' | 'standard' | 'comprehensive';
+            urgency?: 'when_ready' | 'asap' | 'next_session';
+          }) => {
+            try {
+              const { queueResearchTask } = await import(
+                '../../../services/background-agents/index.js'
+              );
+
+              const taskId = await queueResearchTask({
+                userId: ctx.userId || 'anonymous',
+                query,
+                type: researchType,
+                depth,
+                initiatedBy: 'peter',
+                sessionId: ctx.sessionId,
+                context: urgency !== 'when_ready' ? `Delivery: ${urgency}` : undefined,
+              });
+
+              return `**Background Research Started** 🔍
+
+I'm on it! I'll research "${query}" in the background.
+
+**Research Type:** ${researchType.replace(/_/g, ' ')}
+**Depth:** ${depth}
+**Task ID:** ${taskId.slice(0, 8)}...
+
+I'll keep working on this even if you disconnect. When you come back, I'll have findings ready to share!`;
+            } catch (error) {
+              return `I couldn't start the background research right now. Let me do this research in real-time instead...`;
+            }
+          },
+        };
+      },
+    },
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -468,6 +898,7 @@ const researchTools: ToolDefinition[] = [
   ...getPersistentQuantToolDefinitions(),
   ...getSuperhumanToolDefinitions(),
   ...getKnowledgeGraphToolDefinitions(),
+  ...getBackgroundResearchToolDefinitions(),
 ];
 
 // ============================================================================
