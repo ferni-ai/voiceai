@@ -36,11 +36,31 @@
     "trailingSlash": false,
     "rewrites": [
       {
-        "source": "/api/**",
+        "source": "/api/v1/**",
         "run": {
           "serviceId": "john-bogle-ui",
           "region": "us-central1"
         }
+      },
+      {
+        "source": "/api{,/**}",
+        "destination": "/pages/api/index.html"
+      },
+      {
+        "source": "/getting-started{,/**}",
+        "destination": "/pages/getting-started/index.html"
+      },
+      {
+        "source": "/sdk{,/**}",
+        "destination": "/pages/sdk/index.html"
+      },
+      {
+        "source": "/examples{,/**}",
+        "destination": "/pages/examples/index.html"
+      },
+      {
+        "source": "/console{,/**}",
+        "destination": "/pages/console/index.html"
       },
       {
         "source": "**",

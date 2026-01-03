@@ -207,30 +207,40 @@ export async function queryRelationshipInsights(
   query: 'positive_connections' | 'draining_relationships' | 'neglected_connections' | 'support_network'
 ): Promise<GeneratedInsight | null> {
   try {
-    const { relationshipGraph } = 
+    const { relationshipGraph } =
       await import('./semantic-intelligence/relationship-graph.js');
-    
-    const graph = await relationshipGraph.load(userId);
-    
-    if (!graph || !graph.people || graph.people.length === 0) {
+
+    // Use getAllPeople instead of non-existent load method
+    const people = await relationshipGraph.getAllPeople(userId);
+
+    if (!people || people.length === 0) {
       return null;
     }
-    
+
+    // Type for person nodes (matches PersonNode from relationship-graph)
+    type Person = {
+      name: string;
+      overallSentiment?: number;
+      mentionCount?: number;
+      lastMentioned?: Date;
+      topics?: string[];
+    };
+
     // Analyze based on query type
     let insight: GeneratedInsight | null = null;
-    
+
     switch (query) {
       case 'positive_connections': {
-        const positive = graph.people
-          .filter(p => p.overallSentiment && p.overallSentiment > 0.3)
-          .sort((a, b) => (b.overallSentiment || 0) - (a.overallSentiment || 0))
+        const positive = (people as Person[])
+          .filter((p: Person) => p.overallSentiment && p.overallSentiment > 0.3)
+          .sort((a: Person, b: Person) => (b.overallSentiment || 0) - (a.overallSentiment || 0))
           .slice(0, 3);
-        
+
         if (positive.length > 0) {
           insight = {
             id: `rel-${Date.now()}`,
             type: 'connection',
-            content: `When you talk about ${positive.map(p => p.name).join(', ')}, I notice a lighter energy in your voice. These connections seem to really nourish you.`,
+            content: `When you talk about ${positive.map((p: Person) => p.name).join(', ')}, I notice a lighter energy in your voice. These connections seem to really nourish you.`,
             confidence: 0.75,
             relevance: 0.7,
             surfaceWhen: 'emotional_moment',
@@ -240,13 +250,13 @@ export async function queryRelationshipInsights(
         }
         break;
       }
-      
+
       case 'draining_relationships': {
-        const draining = graph.people
-          .filter(p => p.overallSentiment && p.overallSentiment < -0.2 && p.mentionCount > 2)
-          .sort((a, b) => (a.overallSentiment || 0) - (b.overallSentiment || 0))
+        const draining = (people as Person[])
+          .filter((p: Person) => p.overallSentiment && p.overallSentiment < -0.2 && (p.mentionCount || 0) > 2)
+          .sort((a: Person, b: Person) => (a.overallSentiment || 0) - (b.overallSentiment || 0))
           .slice(0, 2);
-        
+
         if (draining.length > 0) {
           insight = {
             id: `rel-${Date.now()}`,
@@ -261,14 +271,15 @@ export async function queryRelationshipInsights(
         }
         break;
       }
-      
+
       case 'neglected_connections': {
         const now = Date.now();
-        const neglected = graph.people
-          .filter(p => p.lastMentioned && (now - p.lastMentioned) > 30 * 24 * 60 * 60 * 1000) // 30 days
-          .filter(p => p.overallSentiment && p.overallSentiment > 0)
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+        const neglected = (people as Person[])
+          .filter((p: Person) => p.lastMentioned && (now - p.lastMentioned.getTime()) > thirtyDaysMs) // 30 days
+          .filter((p: Person) => p.overallSentiment && p.overallSentiment > 0)
           .slice(0, 2);
-        
+
         if (neglected.length > 0) {
           insight = {
             id: `rel-${Date.now()}`,
@@ -282,20 +293,20 @@ export async function queryRelationshipInsights(
         }
         break;
       }
-      
+
       case 'support_network': {
-        const supporters = graph.people
-          .filter(p => p.overallSentiment && p.overallSentiment > 0.2)
-          .filter(p => p.topics && p.topics.some(t => 
+        const supporters = (people as Person[])
+          .filter((p: Person) => p.overallSentiment && p.overallSentiment > 0.2)
+          .filter((p: Person) => p.topics && p.topics.some((t: string) =>
             ['support', 'help', 'advice', 'care', 'listen'].some(k => t.toLowerCase().includes(k))
           ))
           .slice(0, 3);
-        
+
         if (supporters.length > 0) {
           insight = {
             id: `rel-${Date.now()}`,
             type: 'connection',
-            content: `Your support network includes ${supporters.map(p => p.name).join(', ')}. These are the people who've shown up for you.`,
+            content: `Your support network includes ${supporters.map((p: Person) => p.name).join(', ')}. These are the people who've shown up for you.`,
             confidence: 0.7,
             relevance: 0.65,
             surfaceWhen: 'emotional_moment',

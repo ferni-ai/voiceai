@@ -558,113 +558,13 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           }
         })(),
 
-        // Phase 6.5: 🔮 PROACTIVE INSIGHT GENERATION - Generate insights before user asks
-        // This is "Better Than Human" - seeing patterns and connections proactively
-        (async () => {
-          try {
-            const { generateProactiveInsights, queryRelationshipInsights } =
-              await import('../../services/superhuman/proactive-insight-generator.js');
-            
-            // Build user context from loaded profile
-            const profile = services.userProfile;
-            const recentTopics = profile?.recentTopics || [];
-            const emotionalTrend = profile?.emotionalTrend || 'unknown';
-            
-            // Get relationship insights
-            const relationshipInsight = await queryRelationshipInsights(userId, 'positive_connections');
-            
-            // Generate proactive insights
-            const result = await generateProactiveInsights(userId, {
-              recentTopics: recentTopics.slice(0, 5),
-              emotionalTrend,
-              openCommitments: profile?.openCommitments?.slice(0, 3),
-              growthAreas: profile?.growthAreas?.slice(0, 3),
-              recentChallenges: profile?.recentChallenges?.slice(0, 3),
-            });
-            
-            // Store insights for context builders to surface
-            const allInsights = [
-              ...result.insights,
-              ...(relationshipInsight ? [relationshipInsight] : []),
-            ];
-            
-            if (allInsights.length > 0) {
-              (globalThis as Record<string, unknown>)[`_proactiveInsights_${sessionId}`] = allInsights;
-              
-              diag.session('🔮 Proactive insights generated', {
-                userId,
-                insightCount: allInsights.length,
-                types: allInsights.map(i => i.type),
-                durationMs: result.durationMs,
-              });
-            }
-          } catch (insightErr) {
-            diag.debug('Proactive insight generation failed (non-fatal)', {
-              error: String(insightErr),
-            });
-          }
-        })(),
+        // Phase 6.5: 🔮 PROACTIVE INSIGHT GENERATION - Disabled until UserProfile types extended
+        // TODO: Re-enable when UserProfile includes recentTopics, emotionalTrend, openCommitments, etc.
+        Promise.resolve(),
 
-        // Phase 6.6: 🧠 PREDICTIVE EMOTIONAL STATE - Anticipate emotional needs before conversation
-        // This is "Better Than Human" - predicting how user feels before they say anything
-        (async () => {
-          try {
-            // Gather signals for prediction
-            const now = new Date();
-            const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
-            const hourOfDay = now.getHours();
-            const timeOfDay = hourOfDay < 12 ? 'morning' : hourOfDay < 17 ? 'afternoon' : 'evening';
-            
-            // Get temporal patterns if available
-            const { temporalPatterns, getPatternPrediction } = 
-              await import('../../services/superhuman/semantic-intelligence/temporal-patterns.js');
-            
-            const prediction = await getPatternPrediction(userId, {
-              dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                .indexOf(dayOfWeek) as 0|1|2|3|4|5|6,
-              hourOfDay,
-            });
-            
-            // Get recent emotional trajectory
-            const { emotionalTrajectories, getEmotionalContext } =
-              await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
-            
-            const emotionalContext = await getEmotionalContext(userId);
-            
-            // Build predictive context for system prompt injection
-            const predictiveEmotionalState = {
-              predictedMood: prediction?.mood || 'unknown',
-              predictedEnergy: prediction?.energy || 'moderate',
-              recentTrend: emotionalContext?.trajectory || 'stable',
-              timeContext: `${dayOfWeek} ${timeOfDay}`,
-              confidence: prediction?.confidence || 0,
-              // Suggestions for opening
-              suggestedApproach: 
-                prediction?.mood === 'stressed' ? 'gentle_check_in' :
-                prediction?.mood === 'positive' ? 'energetic_greeting' :
-                prediction?.energy === 'low' ? 'calm_supportive' :
-                'neutral_warm',
-            };
-            
-            // Store for context builders to use
-            (globalThis as Record<string, unknown>)[`_predictiveEmotional_${sessionId}`] = 
-              predictiveEmotionalState;
-            
-            if (prediction && prediction.confidence > 0.3) {
-              diag.session('🔮 Predictive emotional state prepared', {
-                userId,
-                predictedMood: predictiveEmotionalState.predictedMood,
-                predictedEnergy: predictiveEmotionalState.predictedEnergy,
-                suggestedApproach: predictiveEmotionalState.suggestedApproach,
-                confidence: predictiveEmotionalState.confidence.toFixed(2),
-              });
-            }
-          } catch (predictErr) {
-            diag.debug('Predictive emotional state failed (non-fatal)', {
-              error: String(predictErr),
-            });
-          }
-        })(),
+        // Phase 6.6: 🧠 PREDICTIVE EMOTIONAL STATE - Disabled until semantic-intelligence modules ready
+        // TODO: Re-enable when temporal-patterns.getPatternPrediction and emotional-trajectories.getEmotionalContext exist
+        Promise.resolve(),
 
         // Phase 7: Embedding Cache Precomputation - warm cache for fast semantic search
         (async () => {
