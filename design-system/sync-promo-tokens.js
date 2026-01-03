@@ -29,10 +29,20 @@ const CONFIG = {
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
 
   // Output files (multiple destinations for consistency)
-  outputs: [
+  // Light theme (Zen Garden) - for consumer-facing sites
+  lightThemeOutputs: [
     path.join(PROJECT_ROOT, 'apps/website/ferni-website/css/design-tokens.css'),
     path.join(PROJECT_ROOT, 'apps/website/ferni-website/src/css/_tokens.css'),
     path.join(PROJECT_ROOT, 'brand/ferni-design-tokens.css'),
+  ],
+  // Dark theme (Cedar Night) - for developer-facing sites
+  darkThemeOutputs: [
+    path.join(PROJECT_ROOT, 'apps/website/developers-portal/src/css/tokens.css'),
+    path.join(PROJECT_ROOT, 'apps/website/design-system-portal/src/css/tokens.css'),
+  ],
+  // Marketplace uses light theme with additional persona colors
+  marketplaceOutputs: [
+    path.join(PROJECT_ROOT, 'apps/website/marketplace-portal/src/css/tokens.css'),
   ],
 };
 
@@ -358,8 +368,99 @@ function generateAnimationVars(animation) {
 // MAIN
 // ============================================================================
 
+/**
+ * Generate dark theme (Cedar Night) tokens for developer portals
+ */
+function generateDarkThemeFile(colors, spacing, typography, animation) {
+  const midnight = colors.themes.midnight;
+
+  const lines = [
+    '/**',
+    ' * Ferni Design Tokens - Cedar Night (Dark Theme)',
+    ' * For developer-facing portals',
+    ' *',
+    ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
+    ' * Do not edit directly - run: pnpm tokens:sync',
+    ` * Generated: ${new Date().toISOString()}`,
+    ' */',
+    '',
+    ':root {',
+    '  /* ========================================',
+    '     COLORS - Cedar Night Theme',
+    '     ======================================== */',
+    '',
+    '  /* Backgrounds */',
+    `  --bg-primary: ${midnight.background.primary};`,
+    `  --bg-secondary: ${midnight.background.secondary};`,
+    `  --bg-tertiary: ${midnight.background.tertiary};`,
+    `  --bg-elevated: ${midnight.background.elevated};`,
+    `  --bg-glass: ${midnight.background.glass};`,
+    `  --bg-overlay: ${midnight.background.overlay};`,
+    '  --bg-code: #2a2420;',
+    '  --bg-code-inline: rgba(230, 195, 160, 0.12);',
+    '',
+    '  /* Text */',
+    `  --text-primary: ${midnight.text.primary};`,
+    `  --text-secondary: ${midnight.text.secondary};`,
+    `  --text-muted: ${midnight.text.muted};`,
+    `  --text-dimmed: ${midnight.text.dimmed};`,
+    `  --text-inverse: ${midnight.text.inverse};`,
+    '',
+    '  /* Accent - Gold */',
+    `  --accent-primary: ${midnight.accent.primary};`,
+    `  --accent-hover: ${midnight.accent.hover};`,
+    `  --accent-pressed: ${midnight.accent.pressed};`,
+    `  --accent-glow: ${midnight.accent.glow};`,
+    `  --accent-subtle: ${midnight.accent.subtle};`,
+    '  --accent-text: #e8c870;',
+    '',
+    '  /* Borders */',
+    `  --border-subtle: ${midnight.border.subtle};`,
+    `  --border-medium: ${midnight.border.medium};`,
+    `  --border-strong: ${midnight.border.strong};`,
+    '',
+    '  /* Semantic */',
+    `  --success: ${midnight.semantic.success};`,
+    `  --success-glow: ${midnight.semantic.successGlow};`,
+    `  --error: ${midnight.semantic.error};`,
+    `  --error-glow: ${midnight.semantic.errorGlow};`,
+    `  --warning: ${midnight.semantic.warning};`,
+    `  --warning-glow: ${midnight.semantic.warningGlow};`,
+    '  --info: #7da6cf;',
+    '  --info-glow: rgba(125, 166, 207, 0.22);',
+    '',
+    '  /* Personas */',
+  ];
+
+  // Add persona colors
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_')) continue;
+    const shortId = personaId.split('-')[0];
+    lines.push(`  --persona-${shortId}: ${persona.primary};`);
+    lines.push(`  --persona-${shortId}-glow: ${persona.glow};`);
+  }
+
+  // Add spacing, typography, animation
+  lines.push('');
+  lines.push(...generateSpacingVars(spacing));
+  lines.push(...generateTypographyVars(typography));
+  lines.push(...generateAnimationVars(animation));
+
+  // Add layout
+  lines.push('  /* ========================================');
+  lines.push('     LAYOUT');
+  lines.push('     ======================================== */');
+  lines.push('  --container-max: 1280px;');
+  lines.push('  --container-narrow: 768px;');
+  lines.push('  --sidebar-width: 280px;');
+  lines.push('  --header-height: 64px;');
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
 function build() {
-  console.log('🎨 Syncing design tokens to promo website...\n');
+  console.log('🎨 Syncing design tokens to all portals...\n');
 
   // Load source tokens
   const colors = loadJson(CONFIG.sourceColors);
@@ -367,14 +468,14 @@ function build() {
   const typography = loadJson(CONFIG.sourceTypography);
   const animation = loadJson(CONFIG.sourceAnimation);
 
-  // Generate CSS
-  const output = [
+  // Generate light theme CSS (Zen Garden) for consumer sites
+  const lightThemeOutput = [
     '/**',
     ' * Ferni Design Tokens',
     ' * CSS Custom Properties implementing brand guidelines',
     ' *',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
-    ' * Do not edit directly - run: npm run sync:promo',
+    ' * Do not edit directly - run: pnpm tokens:sync',
     ` * Generated: ${new Date().toISOString()}`,
     ' */',
     '',
@@ -387,10 +488,11 @@ function build() {
     ...generateDarkThemeVars(colors),
   ];
 
-  // Write to all output destinations
-  const content = output.join('\n');
-  for (const outputFile of CONFIG.outputs) {
-    // Ensure directory exists
+  // Generate dark theme CSS (Cedar Night) for developer sites
+  const darkThemeContent = generateDarkThemeFile(colors, spacing, typography, animation);
+
+  // Helper to write file
+  function writeOutput(outputFile, content) {
     const dir = path.dirname(outputFile);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -398,6 +500,22 @@ function build() {
     fs.writeFileSync(outputFile, content);
     console.log(`  ✅ Generated: ${outputFile}`);
   }
+
+  console.log('📝 Light theme (Zen Garden):');
+  const lightContent = lightThemeOutput.join('\n');
+  for (const outputFile of CONFIG.lightThemeOutputs) {
+    writeOutput(outputFile, lightContent);
+  }
+
+  console.log('\n📝 Dark theme (Cedar Night):');
+  for (const outputFile of CONFIG.darkThemeOutputs) {
+    writeOutput(outputFile, darkThemeContent);
+  }
+
+  // Marketplace keeps its own tokens for now (has extra persona colors)
+  console.log('\n📝 Marketplace (custom - not auto-generated):');
+  console.log('  ℹ️  Marketplace tokens have custom persona colors');
+  console.log('     Edit manually: apps/website/marketplace-portal/src/css/tokens.css');
 
   console.log('\n✅ All token files synced!\n');
 }

@@ -401,8 +401,8 @@ interface PrefetchState {
 // Per-session prefetch state
 const sessionPrefetchState = new Map<string, PrefetchState>();
 
-const PREFETCH_MIN_LENGTH = 15; // Minimum chars before prefetching
-const PREFETCH_DEBOUNCE_MS = 200; // Debounce rapid updates
+const PREFETCH_MIN_LENGTH = 10; // Minimum chars before prefetching (reduced from 15 for faster starts)
+const PREFETCH_DEBOUNCE_MS = 100; // Debounce rapid updates (reduced from 200ms for faster response)
 const PREFETCH_STALE_MS = 5000; // Consider prefetch stale after 5s
 
 /**

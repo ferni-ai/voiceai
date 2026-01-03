@@ -77,6 +77,61 @@ final class AuthService: NSObject, ObservableObject {
         logger.info("User signed out successfully")
     }
 
+    /// Delete the user's account and all associated data
+    /// This is required by App Store for apps with account creation
+    func deleteAccount() async {
+        logger.info("Deleting user account")
+        isLoading = true
+        errorMessage = nil
+
+        defer { isLoading = false }
+
+        guard let firebaseToken = await getFirebaseToken() else {
+            errorMessage = "Unable to authenticate. Please try again."
+            logger.error("Delete account failed: No Firebase token")
+            return
+        }
+
+        // Call backend API to delete account
+        guard let url = URL(string: "https://app.ferni.ai/api/account") else {
+            errorMessage = "Invalid server URL"
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Add required confirmation body
+        let body = ["confirmation": "DELETE_MY_ACCOUNT"]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 200 {
+                    logger.info("Account deleted successfully on server")
+                    // Sign out locally after successful server deletion
+                    await signOut()
+                } else {
+                    // Parse error message from response
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = json["message"] as? String {
+                        errorMessage = message
+                    } else {
+                        errorMessage = "Failed to delete account. Please try again."
+                    }
+                    logger.error("Delete account failed with status: \(httpResponse.statusCode)")
+                }
+            }
+        } catch {
+            errorMessage = "Network error. Please check your connection."
+            logger.error("Delete account network error: \(error.localizedDescription)")
+        }
+    }
+
     /// Get the current Firebase ID token for API authentication
     /// Returns nil if user is not signed in
     func getFirebaseToken() async -> String? {

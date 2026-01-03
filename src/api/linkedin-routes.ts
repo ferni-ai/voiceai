@@ -11,7 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { registerInterval } from '../utils/interval-manager.js';
+import { createOAuthStateManager } from '../utils/ddos-protection.js';
 import {
   getLinkedInAuthUrl,
   exchangeLinkedInCode,
@@ -27,23 +27,8 @@ import { requireAuth } from './auth-middleware.js';
 
 const log = createLogger({ module: 'api:linkedin' });
 
-// OAuth state storage (in production, use Redis with TTL)
-const oauthStates = new Map<string, { userId: string; timestamp: number }>();
-const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-// Clean up expired states periodically
-registerInterval(
-  'linkedin-oauth-cleanup',
-  () => {
-    const now = Date.now();
-    for (const [state, data] of oauthStates.entries()) {
-      if (now - data.timestamp > STATE_TTL_MS) {
-        oauthStates.delete(state);
-      }
-    }
-  },
-  60 * 1000
-);
+// Centralized OAuth state management with automatic cleanup and memory limits
+const oauthStates = createOAuthStateManager<{ userId: string }>(10 * 60 * 1000); // 10 minute expiry
 
 /**
  * Handle LinkedIn personal profile routes
@@ -76,9 +61,12 @@ export async function handleLinkedInRoutes(
       const auth = await requireAuth(req, res);
       if (!auth) return true;
 
-      // Generate state token for CSRF protection
-      const state = `lkdn_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-      oauthStates.set(state, { userId: auth.userId, timestamp: Date.now() });
+      // Generate state token for CSRF protection (uses centralized manager)
+      const state = oauthStates.create({ userId: auth.userId });
+      if (!state) {
+        sendError(res, 'Too many pending OAuth requests', 503);
+        return true;
+      }
 
       // Build callback URL
       const host = req.headers.host || 'app.ferni.ai';
@@ -116,8 +104,8 @@ export async function handleLinkedInRoutes(
         return true;
       }
 
-      // Validate state token
-      const savedState = oauthStates.get(state);
+      // Consume state token (one-time use)
+      const savedState = oauthStates.consume(state);
       if (!savedState) {
         log.warn({ state }, 'Invalid or expired state token');
         res.writeHead(302, { Location: '/settings?linkedin=error' });
@@ -125,7 +113,6 @@ export async function handleLinkedInRoutes(
         return true;
       }
 
-      oauthStates.delete(state);
       const { userId } = savedState;
 
       // Build redirect URI (must match what was used in /connect)

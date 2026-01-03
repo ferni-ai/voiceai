@@ -70,7 +70,13 @@ html[data-time="morning"] {
   --warmth-filter: sepia(2%) brightness(101%);
 }
 
-body {
+/*
+ * IMPORTANT: Do NOT apply filter directly to body!
+ * CSS filters on ancestors break position:fixed on descendants.
+ * The cookie banner and modals need position:fixed to work correctly.
+ * Instead, apply the filter to the main content wrapper.
+ */
+body > *:not(.cookie-banner):not(.cookie-settings-modal):not(#cookieBanner):not(#cookieSettingsModal) {
   filter: var(--warmth-filter);
 }
 

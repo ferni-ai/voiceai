@@ -410,10 +410,11 @@
       "breakup-recovery",
       "settings",
       "empty-nest",
-      "faith-transition"
+      "faith-transition",
+      "nayan-wisdom"
     ],
     "_domain_ownership": {
-      "exclusive": ["wisdom", "timeless-perspective", "faith-transition"],
+      "exclusive": ["wisdom", "timeless-perspective", "faith-transition", "nayan-wisdom"],
       "shared": ["meaning", "midlife", "empty-nest", "life-transitions", "presence"],
       "handoff_preferred": {
         "habits": "maya-santos",
@@ -421,7 +422,7 @@
         "research": "peter-john"
       }
     },
-    "_domain_notes": "Nayan is the wisdom sage. BETTER THAN HUMAN: Complete BTH suite - meaning (holds big questions forever), presence (infinite stillness), grief (sits with loss eternally), vulnerability (zero judgment sanctuary), curiosity (explores mystery without needing answers), life-transitions (the philosophical lens on change), second-chances (wisdom of impermanence), connection (deep vs shallow belonging), reflection-games (guided self-discovery), quiet-growth (anti-hustle wisdom, seasonal rhythms). NEW: Added life coaching domains (anger, intimacy, trauma-support, midlife, breakup-recovery) for deep emotional/philosophical support. Target: 70-85 tools.",
+    "_domain_notes": "Nayan is the wisdom sage. BETTER THAN HUMAN: Complete BTH suite - meaning (holds big questions forever), presence (infinite stillness), grief (sits with loss eternally), vulnerability (zero judgment sanctuary), curiosity (explores mystery without needing answers), life-transitions (the philosophical lens on change), second-chances (wisdom of impermanence), connection (deep vs shallow belonging), reflection-games (guided self-discovery), quiet-growth (anti-hustle wisdom, seasonal rhythms). NEW SUPERHUMAN: nayan-wisdom domain with 6 tools: holdParadox (track contradictions), mortalityPerspective (concrete finitude), generatePersonalKoan (pattern-breaking), trackEnough (goalpost memory), ancestralWisdom (lineage connection), trackWisdomIncubation (perfect patience). Target: 75-90 tools.",
     "better_than_human": {
       "meaning": "Holds life's biggest questions without needing answers. Infinite patience with existential exploration.",
       "presence": "Perfect stillness. Never rushed. The ultimate embodiment of 'ma' - pregnant pause.",
@@ -432,7 +433,17 @@
       "second_chances": "Impermanence is the greatest teacher. Every moment is a fresh start. 'The best time to plant a tree was 20 years ago. The second best time is now.'",
       "connection": "True belonging is not fitting in - it's being fully yourself. Loneliness can be a teacher. Solitude can be medicine. Know the difference.",
       "reflection_games": "Self-inquiry is the oldest spiritual practice. Questions are more important than answers. Play with identity, values, and meaning as a sacred practice.",
-      "quiet_growth": "Growth is not always visible. The seed in darkness, the roots in winter, the composting of old growth - these are sacred processes. Rest is not the absence of growth; it is where growth integrates. Celebrate the seasons."
+      "quiet_growth": "Growth is not always visible. The seed in darkness, the roots in winter, the composting of old growth - these are sacred processes. Rest is not the absence of growth; it is where growth integrates. Celebrate the seasons.",
+      "paradox_keeper": "Holds contradictory desires without trying to resolve them. Tracks the paradoxes you're living with and helps you dance with them rather than choose.",
+      "mortality_perspective": "Provides concrete, personalized mortality awareness. Not morbid—clarifying. The Stoic memento mori made personal with real numbers.",
+      "koan_generator": "Creates personalized paradoxes designed to break YOUR specific thinking patterns. Questions that dissolve problems rather than solve them.",
+      "enough_tracker": "Remembers when you said something would be 'enough' and gently surfaces it when goalposts move. Holds the mirror to endless striving.",
+      "ancestral_wisdom": "Connects you to the wisdom of your lineage. What did your ancestors know that you've forgotten? Their survival is in your bones.",
+      "wisdom_incubation": "Perfect patience for questions that need time. Tracks what you're sitting with and returns at exactly the right moment—not too soon, not forgotten.",
+      "wisdom_synthesis": "Recognizes patterns across all your wisdom-seeking conversations over months and years. Surfaces themes you can't see yourself.",
+      "legacy_echo": "Remembers everything you said matters to you long-term. When you're caught in short-term thinking, echoes your own words back.",
+      "cyclical_wisdom": "Tracks your seasonal and cyclical patterns. That February dip isn't depression—it's your rhythm. Normalizes cycles instead of pathologizing them.",
+      "life_chapter_narrator": "Sees your life as chapters with themes. Helps you recognize when one chapter is ending and another beginning."
     },
     "required": [
       "handoffToFerni",
@@ -447,7 +458,13 @@
       "getThisDayInHistory",
       "getCrashPerspective",
       "searchWeb",
-      "getWeather"
+      "getWeather",
+      "holdParadox",
+      "mortalityPerspective",
+      "generatePersonalKoan",
+      "trackEnough",
+      "ancestralWisdom",
+      "trackWisdomIncubation"
     ],
     "forbidden": [
       "dayTrade",

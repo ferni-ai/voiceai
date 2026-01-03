@@ -533,13 +533,30 @@ class ConnectionService {
 
     const url = `${API.TOKEN}?${params.toString()}`;
 
+    // 🔐 CRITICAL FIX: Include Firebase Auth Bearer token for user identification
+    // Without this, the server can't verify who you are and conversations
+    // get saved under anonymous device IDs instead of your profile!
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+
+    try {
+      const { getAuthToken } = await import('./firebase-auth.service.js');
+      const authToken = await getAuthToken();
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+        log.debug('Including Firebase auth token in token request');
+      }
+    } catch (authError) {
+      // Auth service not available or not signed in - continue without
+      log.debug('No Firebase auth token available:', authError);
+    }
+
     let response: Response;
     try {
       response = await fetch(url, {
         method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
+        headers,
         // iOS sometimes needs explicit cache control
         cache: 'no-cache',
       });

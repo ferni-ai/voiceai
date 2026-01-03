@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "johnb-2025"
+  },
+  "targets": {
+    "johnb-2025": {
+      "hosting": {
+        "ferni-design-system": [
+          "ferni-design-system"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

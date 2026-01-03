@@ -18,6 +18,7 @@ struct FerniVoiceApp: App {
     @StateObject private var relationshipService = RelationshipArcService.shared
     @StateObject private var authService = AuthService.shared
     @StateObject private var betterThanHuman = BetterThanHumanIntegration()
+    @StateObject private var deepLinkHandler = DeepLinkHandler.shared
     @State private var showSplash = true
 
     init() {
@@ -41,6 +42,7 @@ struct FerniVoiceApp: App {
                     .environmentObject(relationshipService)
                     .environmentObject(authService)
                     .environmentObject(betterThanHuman)
+                    .environmentObject(deepLinkHandler)
                     .preferredColorScheme(.dark)
                     .betterThanHumanEnabled(betterThanHuman)
 
@@ -53,7 +55,129 @@ struct FerniVoiceApp: App {
                     })
                 }
             }
+            // Handle deep links from widgets and external sources
+            .onOpenURL { url in
+                deepLinkHandler.handle(url, session: session, appState: appState)
+            }
+            // Handle Siri shortcuts and Spotlight
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                if let url = activity.webpageURL {
+                    deepLinkHandler.handle(url, session: session, appState: appState)
+                }
+            }
         }
+    }
+}
+
+// MARK: - Deep Link Handler
+/// Handles URL schemes from widgets, Siri shortcuts, and external links.
+/// URL Format: ferni://action (e.g., ferni://talk, ferni://checkin)
+
+@MainActor
+final class DeepLinkHandler: ObservableObject {
+    static let shared = DeepLinkHandler()
+
+    // MARK: - Published State
+
+    @Published var pendingAction: DeepLinkAction?
+    @Published var lastHandledURL: URL?
+
+    // MARK: - Deep Link Actions
+
+    enum DeepLinkAction: String {
+        case talk           // Start voice conversation
+        case checkin        // Mood check-in
+        case vent           // Quick vent session
+        case music          // Play calming music
+        case insight        // Show daily insight
+        case support        // Need immediate support
+        case morning        // Morning routine
+        case evening        // Evening reflection
+        case gratitude      // Gratitude moment
+        case settings       // Open settings
+    }
+
+    private init() {}
+
+    // MARK: - Handle URL
+
+    func handle(_ url: URL, session: IOSLiveKitSession, appState: AppState) {
+        guard url.scheme == "ferni" else { return }
+
+        lastHandledURL = url
+        let action = DeepLinkAction(rawValue: url.host ?? "")
+
+        switch action {
+        case .talk, .support:
+            // Start voice conversation immediately
+            startVoiceSession(session: session)
+
+        case .checkin:
+            // Show mood check-in (could show a sheet)
+            pendingAction = .checkin
+            startVoiceSession(session: session, withPrompt: "I'd like to check in.")
+
+        case .vent:
+            // Start vent session
+            startVoiceSession(session: session, withPrompt: "I need to vent.")
+
+        case .music:
+            // Trigger calming music
+            NotificationCenter.default.post(
+                name: Notification.Name("playMusic"),
+                object: nil,
+                userInfo: ["mood": "calming"]
+            )
+
+        case .insight:
+            // Show daily insight (handled by content view)
+            pendingAction = .insight
+
+        case .morning:
+            // Start morning routine
+            startVoiceSession(session: session, withPrompt: "Let's start my morning routine.")
+
+        case .evening:
+            // Start evening reflection
+            startVoiceSession(session: session, withPrompt: "I'd like to reflect on my day.")
+
+        case .gratitude:
+            // Start gratitude moment
+            startVoiceSession(session: session, withPrompt: "I want to practice gratitude.")
+
+        case .settings:
+            // Open settings
+            appState.showSettings = true
+
+        case .none:
+            // Unknown action, just open the app
+            break
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func startVoiceSession(session: IOSLiveKitSession, withPrompt prompt: String? = nil) {
+        // If already connected, just continue
+        guard session.state == .disconnected else { return }
+
+        // Connect to voice session
+        Task {
+            await session.connect()
+        }
+
+        // If there's a prompt, it will be handled by the session context
+        if let prompt = prompt {
+            NotificationCenter.default.post(
+                name: Notification.Name("setInitialPrompt"),
+                object: nil,
+                userInfo: ["prompt": prompt]
+            )
+        }
+    }
+
+    func clearPendingAction() {
+        pendingAction = nil
     }
 }
 

@@ -208,24 +208,24 @@ export async function initializeToolOrchestrator(): Promise<void> {
 
       // Step 3: Register domain loaders (does NOT load the actual modules!)
       // This is fast (~10ms) - it just registers the loader FUNCTIONS
-      await autoRegisterAllDomains();
-      log.info('📦 Domain loaders registered');
+    await autoRegisterAllDomains();
+    log.info('📦 Domain loaders registered');
 
       // Step 4: Initialize orchestrator
       // If manifest is available, this will skip expensive operations
-      await toolOrchestrator.initialize();
+    await toolOrchestrator.initialize();
       state.initialized = true;
 
-      log.info(
+    log.info(
         { elapsed: Date.now() - (state.initStartTime || 0), stats: toolOrchestrator.getStats() },
         '✅ Tool orchestrator ready for voice agent (global singleton)'
-      );
-    } catch (error) {
+    );
+  } catch (error) {
       // Reset state so retry is possible
       state.initializePromise = null;
-      log.error({ error }, '❌ Failed to initialize tool orchestrator');
-      throw error;
-    }
+    log.error({ error }, '❌ Failed to initialize tool orchestrator');
+    throw error;
+  }
   })();
 
   return state.initializePromise;

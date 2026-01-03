@@ -4,6 +4,8 @@ title: Example Agents
 description: Learn from real-world voice AI agents built with Ferni
 ---
 
+{% from "partials/icons.njk" import target, waves, lotus, leaf %}
+
 <section class="hero" style="padding-bottom: var(--space-12);">
   <div class="container">
     <div class="hero-eyebrow">Examples Gallery</div>
@@ -31,8 +33,8 @@ description: Learn from real-world voice AI agents built with Ferni
         <!-- Moxie -->
         <div class="card" style="padding: var(--space-8);">
           <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #FF6B9D 0%, #C06C84 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
-              🎯
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #FF6B9D 0%, #C06C84 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+              {{ target(32) }}
             </div>
             <div>
               <h3 style="margin: 0 0 var(--space-1) 0;">Moxie</h3>
@@ -78,8 +80,8 @@ description: Learn from real-world voice AI agents built with Ferni
         <!-- River -->
         <div class="card" style="padding: var(--space-8);">
           <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #6B8E9D 0%, #4A6F7C 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
-              🌊
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #6B8E9D 0%, #4A6F7C 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+              {{ waves(32) }}
             </div>
             <div>
               <h3 style="margin: 0 0 var(--space-1) 0;">River</h3>
@@ -125,8 +127,8 @@ description: Learn from real-world voice AI agents built with Ferni
         <!-- Zen -->
         <div class="card" style="padding: var(--space-8);">
           <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #9B8B6E 0%, #7A6F5D 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
-              🧘
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #9B8B6E 0%, #7A6F5D 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+              {{ lotus(32) }}
             </div>
             <div>
               <h3 style="margin: 0 0 var(--space-1) 0;">Zen</h3>
@@ -172,8 +174,8 @@ description: Learn from real-world voice AI agents built with Ferni
         <!-- Ferni (flagship) -->
         <div class="card" style="padding: var(--space-8); border: 2px solid var(--accent-primary);">
           <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
-            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent-primary) 0%, #3D5A45 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
-              🌿
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent-primary) 0%, #3D5A45 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: white;">
+              {{ leaf(32) }}
             </div>
             <div>
               <h3 style="margin: 0 0 var(--space-1) 0;">Ferni</h3>

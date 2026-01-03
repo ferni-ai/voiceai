@@ -664,6 +664,582 @@
         "name": "Name of the person",
         "team": "The sports team to add. Examples: 'Eagles', 'Lakers', 'Yankees', 'Manchester United'"
       }
+    },
+
+    "_comment_superhuman": "Peter's Superhuman Research Tools - 'Better than Human' quantitative analysis",
+
+    "recordDecision": {
+      "description": "Record a decision with full context (options, factors, emotional state) for pattern analysis. BETTER THAN HUMAN: Tracks every decision for objective quality analysis over time.",
+      "parameters": {
+        "context": "What decision are you facing? Examples: 'Should I take the job offer?', 'Buy vs lease car'",
+        "options": "Array of options you're considering. Examples: ['Accept offer', 'Decline', 'Negotiate']",
+        "factors": "Factors influencing the decision. Examples: ['salary', 'commute', 'growth']",
+        "emotionalState": "Your current emotional state. Examples: 'calm', 'anxious', 'excited'"
+      }
+    },
+    "recordDecisionOutcome": {
+      "description": "Record the outcome of a previous decision for learning analysis.",
+      "parameters": {
+        "decisionId": "ID of the decision to update",
+        "choiceMade": "Which option you chose",
+        "outcome": "What happened as a result",
+        "satisfaction": "1-10 satisfaction score"
+      }
+    },
+    "analyzeDecisionQuality": {
+      "description": "Analyze your decision patterns - what times/conditions lead to best outcomes."
+    },
+    "recordSleepData": {
+      "description": "Track sleep for correlation with decisions, energy, and performance. BETTER THAN HUMAN: Finds hidden patterns in YOUR data.",
+      "parameters": {
+        "hoursSlept": "Hours of sleep (e.g., 7.5)",
+        "quality": "Sleep quality 1-10",
+        "bedtime": "When you went to bed (e.g., '22:30')",
+        "wakeTime": "When you woke up (e.g., '06:00')"
+      }
+    },
+    "analyzeSleepCorrelations": {
+      "description": "Analyze how YOUR sleep affects decisions, energy, and mood. Uses YOUR historical data."
+    },
+    "recordEnergyLevel": {
+      "description": "Track energy throughout the day for peak performance analysis.",
+      "parameters": {
+        "level": "Energy level 1-10",
+        "time": "Time of day (e.g., '14:00')",
+        "factors": "What might have contributed (e.g., ['good sleep', 'light meal'])"
+      }
+    },
+    "predictEnergy": {
+      "description": "Predict your energy at a specific time based on YOUR patterns.",
+      "parameters": {
+        "targetTime": "Time to predict (e.g., '14:00')"
+      }
+    },
+    "analyzePeakPerformance": {
+      "description": "Identify YOUR peak performance times for creative, analytical, and decision-making work."
+    },
+    "calculateLifestyleImpact": {
+      "description": "Calculate how a specific lifestyle factor impacts YOUR outcomes.",
+      "parameters": {
+        "factor": "Factor to analyze. Examples: 'sleep', 'exercise', 'caffeine'"
+      }
+    },
+    "scoreEvidenceQuality": {
+      "description": "Evaluate evidence quality using scientific methodology. BETTER THAN HUMAN: Applies rigorous research standards.",
+      "parameters": {
+        "claim": "The claim being evaluated",
+        "source": "Source of the evidence",
+        "evidence": "The evidence itself"
+      }
+    },
+    "synthesizeResearch": {
+      "description": "Synthesize multiple research sources into coherent findings. Like having a research assistant.",
+      "parameters": {
+        "topic": "Topic to synthesize research on",
+        "sources": "Array of sources/studies to synthesize"
+      }
+    },
+    "findCounterArguments": {
+      "description": "Find legitimate counter-arguments to a claim. BETTER THAN HUMAN: No confirmation bias.",
+      "parameters": {
+        "claim": "The claim to find counter-arguments for"
+      }
+    },
+    "verifyClaim": {
+      "description": "Verify a health, financial, or factual claim against evidence.",
+      "parameters": {
+        "claim": "Claim to verify",
+        "domain": "Domain: 'health', 'finance', 'science', 'general'"
+      }
+    },
+    "getBaseRate": {
+      "description": "Get base rate statistics for a scenario. BETTER THAN HUMAN: Provides objective probabilities.",
+      "parameters": {
+        "scenario": "The scenario to get base rates for. Examples: 'startup success', 'marriage lasting'"
+      }
+    },
+    "recordGoalProgress": {
+      "description": "Track progress toward a goal for prediction modeling.",
+      "parameters": {
+        "goalId": "ID of the goal",
+        "progress": "Current progress (number)",
+        "notes": "Any notes about progress"
+      }
+    },
+    "predictGoalSuccess": {
+      "description": "Predict probability of achieving a goal based on YOUR historical patterns.",
+      "parameters": {
+        "goalId": "ID of the goal to analyze"
+      }
+    },
+    "projectBehavioralTrajectory": {
+      "description": "Project where a habit or behavior will lead over time.",
+      "parameters": {
+        "behavior": "The behavior to project",
+        "timeframe": "How far to project (e.g., '6 months')"
+      }
+    },
+    "recordHabit": {
+      "description": "Record habit completion for survival analysis.",
+      "parameters": {
+        "habitName": "Name of the habit",
+        "completed": "Did you complete it today?"
+      }
+    },
+    "analyzeHabitSurvival": {
+      "description": "Analyze which habits survive and why. BETTER THAN HUMAN: Statistical survival analysis on YOUR data.",
+      "parameters": {
+        "habitId": "ID of habit to analyze"
+      }
+    },
+    "analyzeCounterfactual": {
+      "description": "Analyze 'what if' scenarios based on your data. 'What if I had slept 8 hours instead of 6?'",
+      "parameters": {
+        "scenario": "The counterfactual scenario to analyze"
+      }
+    },
+    "predictLifeEventImpact": {
+      "description": "Predict how a life event will impact your patterns (job change, move, etc.).",
+      "parameters": {
+        "event": "The life event",
+        "domain": "What domain to predict impact on. Examples: 'productivity', 'relationships', 'finances'"
+      }
+    },
+    "analyzeSECFiling": {
+      "description": "Analyze SEC filings with institutional-grade research. BETTER THAN HUMAN: Reads full filings, extracts key insights.",
+      "parameters": {
+        "ticker": "Stock ticker symbol (e.g., 'AAPL')",
+        "filingType": "Type of filing. Options: '10-K', '10-Q', '8-K'"
+      }
+    },
+    "trackInsiderTrading": {
+      "description": "Track insider trading activity for a stock. See what executives are doing with their shares.",
+      "parameters": {
+        "ticker": "Stock ticker symbol"
+      }
+    },
+    "analyzeOptionsFlow": {
+      "description": "Analyze unusual options activity. See what institutional traders are betting on.",
+      "parameters": {
+        "ticker": "Stock ticker symbol"
+      }
+    },
+    "bridgeMacroToPersonal": {
+      "description": "Connect macro economic events to YOUR personal situation. BETTER THAN HUMAN: Personalized economic analysis.",
+      "parameters": {
+        "event": "Macro event (e.g., 'Fed raising rates')",
+        "context": "Your relevant personal context"
+      }
+    },
+    "designExperiment": {
+      "description": "Design a personal A/B test with proper methodology. Test what actually works for YOU.",
+      "parameters": {
+        "hypothesis": "What you want to test (e.g., 'Morning exercise improves my focus')",
+        "intervention": "What you'll change (e.g., '30 min morning workout')",
+        "metric": "How you'll measure (e.g., 'Focus score 1-10')",
+        "duration": "Days to run the experiment (7-90)"
+      }
+    },
+    "recordExperimentData": {
+      "description": "Record a data point for a running experiment.",
+      "parameters": {
+        "value": "Your measurement for today",
+        "condition": "Are you in 'control' or 'treatment' phase?",
+        "notes": "Optional notes"
+      }
+    },
+    "analyzeExperiment": {
+      "description": "Analyze your experiment results with statistical rigor."
+    },
+    "createBelief": {
+      "description": "Create a Bayesian belief to track and update with evidence.",
+      "parameters": {
+        "statement": "The belief statement (e.g., 'I am a morning person')",
+        "initialProbability": "Your initial confidence (1-99%)"
+      }
+    },
+    "updateBelief": {
+      "description": "Update a belief with new evidence using Bayesian reasoning.",
+      "parameters": {
+        "beliefKeyword": "Keyword to find the belief",
+        "evidence": "New evidence encountered",
+        "direction": "Does it 'support', 'oppose', or is it 'neutral'?",
+        "strength": "How strong: 'weak', 'moderate', 'strong'"
+      }
+    },
+    "trackHypothesis": {
+      "description": "Track a hypothesis about yourself for systematic testing.",
+      "parameters": {
+        "hypothesis": "Your hypothesis",
+        "domain": "Domain: 'health', 'productivity', 'relationships', 'finances', 'habits', 'career', 'other'"
+      }
+    },
+    "updateHypothesis": {
+      "description": "Update hypothesis status with evidence or conclusion.",
+      "parameters": {
+        "hypothesisKeyword": "Keyword to find the hypothesis",
+        "evidence": "New evidence gathered",
+        "newStatus": "Optional: 'testing', 'confirmed', 'refuted', 'inconclusive'"
+      }
+    },
+    "detectConfounds": {
+      "description": "Detect confounding variables in observed correlations. BETTER THAN HUMAN: Objective bias detection.",
+      "parameters": {
+        "observation": "The correlation you observed (e.g., 'When I exercise, I sleep better')",
+        "domain": "Domain: 'health', 'productivity', 'finances', 'relationships', 'habits'"
+      }
+    },
+    "calculateEffectSize": {
+      "description": "Calculate effect size for a before/after comparison. Know if a change actually matters.",
+      "parameters": {
+        "beforeValues": "Array of measurements before the change",
+        "afterValues": "Array of measurements after the change",
+        "context": "What change are you measuring?"
+      }
+    },
+    "getLocalEconomics": {
+      "description": "Get local economic indicators for your area.",
+      "parameters": {
+        "location": "Your location (city or zip)"
+      }
+    },
+    "synthesizeIndustryTrends": {
+      "description": "Synthesize trends in a specific industry.",
+      "parameters": {
+        "industry": "Industry to analyze (e.g., 'technology', 'healthcare')"
+      }
+    },
+    "analyzeNewsSentiment": {
+      "description": "Analyze sentiment in news about a topic or company.",
+      "parameters": {
+        "topic": "Topic or company to analyze"
+      }
+    },
+    "recordSpending": {
+      "description": "Record spending to calculate YOUR personal inflation rate.",
+      "parameters": {
+        "category": "Category: 'housing', 'food', 'transportation', 'healthcare', 'utilities', etc.",
+        "amount": "Amount spent",
+        "description": "Optional: What was it for?"
+      }
+    },
+    "calculatePersonalInflation": {
+      "description": "Calculate YOUR personal inflation rate vs official CPI. See how YOUR costs compare."
+    },
+    "trackRelationship": {
+      "description": "Track a relationship for network analysis.",
+      "parameters": {
+        "name": "Person's name",
+        "relationship": "Type: 'family', 'friend', 'colleague', 'mentor', 'mentee', 'partner', 'acquaintance'",
+        "energyImpact": "How they affect your energy: 'draining', 'neutral', 'energizing'",
+        "influenceDomains": "What areas do they influence? (e.g., ['career', 'health'])"
+      }
+    },
+    "logInteraction": {
+      "description": "Log an interaction for relationship health analysis.",
+      "parameters": {
+        "name": "Person's name",
+        "type": "Type: 'in_person', 'call', 'video', 'text', 'email', 'social'",
+        "quality": "Quality 1-10",
+        "topic": "What did you discuss?"
+      }
+    },
+    "analyzeCommunicationPatterns": {
+      "description": "Analyze your communication patterns. Who do you reach out to when stressed? Who energizes you?"
+    },
+    "scoreRelationshipHealth": {
+      "description": "Score the health of a specific relationship.",
+      "parameters": {
+        "name": "Person's name"
+      }
+    },
+    "mapInfluence": {
+      "description": "Map who influences you in different life domains."
+    },
+    "analyzeNetworkGaps": {
+      "description": "Identify gaps in your support network. Where do you need more support?"
+    },
+
+    "_comment_nayan_wisdom": "=== NAYAN'S SUPERHUMAN WISDOM TOOLS ===",
+
+    "holdParadox": {
+      "description": "Track contradictory desires or values without trying to resolve them. Nayan holds both truths indefinitely. Use when someone expresses wanting two things that seem to conflict. Remembers the paradox for future reference.",
+      "parameters": {
+        "desire1": "First desire or value they want. Example: 'stability', 'career success', 'independence'",
+        "desire2": "Contradictory desire or value. Example: 'adventure', 'family time', 'connection'",
+        "context": "What surfaced this paradox. Example: 'talking about job offer', 'discussing relationship'",
+        "howLongHeld": "How long they've felt this tension. Example: 'years', 'since the kids were born', 'always'"
+      }
+    },
+
+    "mortalityPerspective": {
+      "description": "Provide concrete mortality awareness for clarity. Not morbid—clarifying. The Stoic memento mori made personal. Use when someone is caught up in short-term concerns or needs perspective on what matters.",
+      "parameters": {
+        "currentConcern": "What they are worried about or focused on. Example: 'work deadline', 'relationship drama', 'financial stress'",
+        "timeframe": "Timeframe of concern. Options: 'this-week', 'this-month', 'this-year', 'unspecified'",
+        "ageIfKnown": "User's age if known for more accurate calculations"
+      }
+    },
+
+    "generatePersonalKoan": {
+      "description": "Generate a personalized paradox or koan designed to break specific thinking patterns. Questions that dissolve problems rather than solve them. Use when someone is stuck in overthinking or a mental loop.",
+      "parameters": {
+        "stuckPattern": "The thinking pattern or problem they are stuck in. Example: 'perfectionism', 'fear of failure', 'analysis paralysis'",
+        "whatTheyveTrieds": "What approaches they've already tried. Example: 'making lists', 'talking to friends', 'research'",
+        "emotionalTone": "Their emotional state. Options: 'anxious', 'frustrated', 'stuck', 'overthinking', 'fearful', 'neutral'"
+      }
+    },
+
+    "trackEnough": {
+      "description": "Record when someone declares something is 'enough' and surface it when goalposts move. Hold the mirror to endless striving. Use when someone states what would satisfy them, or to check past statements.",
+      "parameters": {
+        "domain": "What domain this 'enough' relates to. Options: 'money', 'career', 'achievement', 'possessions', 'status', 'relationship', 'other'",
+        "enoughStatement": "What they said would be enough. Example: '$100k salary', 'manager title', 'a loving relationship'",
+        "isRecording": "True to record new 'enough' statement, false to check past statements against current"
+      }
+    },
+
+    "ancestralWisdom": {
+      "description": "Help connect to the wisdom of ancestors and lineage. What did they know that we have forgotten? Use when someone faces a challenge their ancestors also faced, or needs to feel connected to something larger.",
+      "parameters": {
+        "currentChallenge": "What they are facing. Example: 'starting over', 'financial hardship', 'loss', 'major decision'",
+        "knownAncestorExperience": "Any known experiences of grandparents/ancestors. Example: 'grandmother survived the war', 'grandfather immigrated alone'",
+        "culturalBackground": "Cultural heritage if known. Example: 'Irish', 'Mexican', 'Chinese', 'mixed'"
+      }
+    },
+
+    "trackWisdomIncubation": {
+      "description": "Track things the user needs to 'sit with' and return to them at the right moment. Perfect patience for things that need time. Use when someone explicitly says they need time with a question, or to check on incubating items.",
+      "parameters": {
+        "question": "The question or decision they need to sit with. Example: 'whether to leave my job', 'how I feel about having kids', 'what I want from life'",
+        "suggestedDuration": "How long this might need. Options: 'days', 'weeks', 'months', 'until-ready'",
+        "checkIn": "True if checking on incubating items, false if recording new one"
+      }
+    },
+
+    "_comment_maya_coaching": "=== MAYA'S SUPERHUMAN COACHING TOOLS ===",
+
+    "trackHabitDNA": {
+      "description": "Build a complete genetic profile of a habit: what makes it live, what kills it, optimal conditions. Use whenever a habit event occurs (started, maintained, struggled, broke, restarted, mastered) or to retrieve habit history.",
+      "parameters": {
+        "habitName": "Name of the habit. Example: 'morning meditation', 'daily exercise', 'journaling'",
+        "event": "What happened. Options: 'started', 'maintained', 'struggled', 'broke', 'restarted', 'mastered'",
+        "context": "Context around this event. Example: 'traveling', 'stressful week', 'after promotion'",
+        "triggerOrBarrier": "What helped or hurt. Example: 'accountability partner', 'weekend', 'evening fatigue'",
+        "emotionalState": "How they were feeling. Example: 'motivated', 'stressed', 'depressed', 'energized'",
+        "timeOfDay": "When this happens. Example: 'morning', 'after lunch', 'before bed'",
+        "checkHistory": "True to retrieve full habit history instead of recording"
+      }
+    },
+
+    "mapFriction": {
+      "description": "Track exactly where, when, and why habits encounter friction. Build a map of willpower failure points. Use when they mention struggling with a habit.",
+      "parameters": {
+        "habitName": "Which habit encountered friction. Example: 'gym', 'reading', 'cooking at home'",
+        "frictionType": "Type of friction. Options: 'time', 'location', 'energy', 'social', 'emotional', 'environmental', 'other'",
+        "description": "What specifically caused the friction. Example: 'too tired after work', 'gym is too far', 'no healthy food in house'",
+        "intensity": "How much it derailed you. Options: 'minor', 'moderate', 'major'",
+        "viewMap": "True to view friction map instead of recording new point"
+      }
+    },
+
+    "assessTendency": {
+      "description": "Dynamically assess their Four Tendency (Upholder/Questioner/Obliger/Rebel) from behavior patterns. Use when you observe tendency signals or they want to see their profile.",
+      "parameters": {
+        "signal": "Behavioral signal observed. Options: 'followed-own-rule', 'followed-external-rule', 'broke-own-rule', 'broke-external-rule', 'needed-accountability', 'resisted-external-pressure', 'questioned-why', 'just-did-it'",
+        "context": "Context of the signal. Example: 'they mentioned needing a gym buddy', 'they broke their own deadline'",
+        "getProfile": "True to get current tendency profile"
+      }
+    },
+
+    "detectKeystone": {
+      "description": "Identify keystone habits that cascade into other positive behaviors. Find their highest-leverage habits. Use when they mention one habit affecting others.",
+      "parameters": {
+        "observation": "Observation about habit correlations. Example: 'when I exercise, I eat better', 'good sleep makes me more productive'",
+        "primaryHabit": "The habit that might be keystone. Example: 'exercise', 'making the bed', 'morning routine'",
+        "affectedHabits": "Habits that improve when primary habit happens. Example: ['eating healthy', 'drinking water', 'mood']",
+        "viewKeystones": "True to view identified keystone habits"
+      }
+    },
+
+    "trackIdentityShift": {
+      "description": "Track evolution of identity statements over time. 'I am someone who...' is the deepest form of habit change. Use when they express identity or to view their evolution.",
+      "parameters": {
+        "statement": "Identity statement. Example: 'I am someone who exercises', 'I am someone who saves money', 'I am a reader'",
+        "domain": "Life domain. Options: 'health', 'productivity', 'relationships', 'finances', 'creativity', 'learning', 'other'",
+        "confidence": "How true it feels. Options: 'aspiring' (want to be), 'emerging' (starting to feel true), 'established' (mostly true), 'core' (just who I am)",
+        "viewEvolution": "True to view identity evolution over time"
+      }
+    },
+
+    "analyzeSetbackPattern": {
+      "description": "Deep pattern analysis of setbacks across years. Find common threads in every time they've fallen off. Use when they have a setback or want to see patterns.",
+      "parameters": {
+        "habitName": "Which habit had a setback. Example: 'gym', 'meditation', 'no sugar'",
+        "whatHappened": "What caused the setback. Example: 'skipped one day and never went back', 'vacation threw me off'",
+        "whenItHappened": "Time context. Example: 'weekend', 'evening', 'stressful period', 'winter'",
+        "emotionalTrigger": "Emotional state before the setback. Example: 'stressed', 'bored', 'lonely', 'anxious'",
+        "viewPatterns": "True to analyze patterns across all setbacks"
+      }
+    },
+
+    "conductHabitAutopsy": {
+      "description": "Deep post-mortem analysis for habits that died. Learn from every failure to prevent future deaths. Use when a habit has completely stopped.",
+      "parameters": {
+        "habitName": "The habit that died. Example: 'daily running', 'journaling', 'no screens before bed'",
+        "howLongItLasted": "How long the habit survived. Example: '2 weeks', '3 months', 'almost a year'",
+        "causeOfDeath": "What killed it. Example: 'travel', 'injury', 'lost motivation', 'too ambitious'",
+        "lastRites": "When did you last do it. Example: 'last month', 'before the holidays', 'before I moved'",
+        "lessonsLearned": "What you learned. Example: 'started too big', 'needed accountability', 'wrong time of day'",
+        "willResurrect": "Do you want to try this habit again someday?",
+        "viewPastAutopsies": "True to view past autopsies"
+      }
+    },
+
+    "_comment_jordan_planning": "=== JORDAN'S SUPERHUMAN PLANNING TOOLS ===",
+
+    "recallEventPatterns": {
+      "description": "Perfect memory for patterns across ALL events - budget tendencies, guest dynamics, emotional patterns, vendor preferences. Use to learn from past events or record new patterns.",
+      "parameters": {
+        "eventType": "Type of event. Example: 'wedding', 'birthday', 'vacation', 'dinner party'",
+        "patternType": "Type of pattern. Options: 'budget', 'timing', 'guest_dynamics', 'emotional', 'vendor', 'all'",
+        "recordPattern": "New pattern to record: {eventName, pattern, lesson}"
+      }
+    },
+
+    "getGuestInsights": {
+      "description": "Permanent guest profiles - dietary needs, accessibility, attendance patterns, relationship dynamics. Never forget a guest's needs.",
+      "parameters": {
+        "guestName": "Name of guest to look up. Example: 'Aunt Martha', 'John Smith'",
+        "updateGuest": "Update profile: {name, dietary, accessibility, note, avoidSeatingWith}",
+        "listAll": "True to list all known guests"
+      }
+    },
+
+    "detectMilestones": {
+      "description": "Detect celebrations humans forget - work anniversaries, friendship milestones, quiet win streaks, approaching transitions.",
+      "parameters": {
+        "recordMilestone": "New milestone: {type, description, date, recurring}",
+        "getUpcoming": "True to get upcoming milestones"
+      }
+    },
+
+    "captureEventMeaning": {
+      "description": "Remember what events MEANT, not just logistics - the emotional journey, meaningful speeches, lessons learned.",
+      "parameters": {
+        "eventName": "Name of the event",
+        "meaning": "What this event meant. Example: 'First time dad was proud of me'",
+        "memorableMoment": "A moment that stood out",
+        "lessonLearned": "What you learned from this event",
+        "recallEvent": "True to recall meaning of past event"
+      }
+    },
+
+    "checkCelebrationHealth": {
+      "description": "Track celebration balance - are they celebrating enough? Too much? Always for others? Notice joy gaps.",
+      "parameters": {
+        "recordCelebration": "Record: {what, forWhom (self/other/both), size (micro/small/medium/large)}",
+        "getBalance": "True to get celebration balance report"
+      }
+    },
+
+    "anticipateTransition": {
+      "description": "See life transitions coming from conversation patterns - empty nest, retirement, career change. Suggest planning before they ask.",
+      "parameters": {
+        "recordSignal": "Record signal: {type, signal, strength (weak/moderate/strong)}",
+        "getAnticipated": "True to get anticipated transitions"
+      }
+    },
+
+    "checkPlanningReadiness": {
+      "description": "Cross-team readiness check before major planning - financial health, calendar capacity, energy levels, emotional readiness.",
+      "parameters": {
+        "eventType": "What are you planning? Example: 'wedding', 'vacation', 'big purchase'",
+        "budget": "Estimated budget",
+        "timeframe": "When is this happening?"
+      }
+    },
+
+    "_comment_peter_analytics": "=== PETER'S SUPERHUMAN ANALYTICS TOOLS ===",
+
+    "revealBlindSpot": {
+      "description": "Surface patterns they may be avoiding or not seeing. Hold up a mirror to what they can't see themselves.",
+      "parameters": {
+        "domain": "Life domain. Options: 'spending', 'habits', 'relationships', 'time', 'health', 'career', 'general'",
+        "observation": "What pattern you've noticed they're avoiding",
+        "recordNew": "True to record a new blind spot observation",
+        "viewBlindSpots": "True to view known blind spots"
+      }
+    },
+
+    "simulateCounterfactual": {
+      "description": "Explore 'what if' scenarios based on past decisions. Learn from alternate paths not taken.",
+      "parameters": {
+        "originalDecision": "The decision that was made. Example: 'took the safe job instead of startup'",
+        "alternativePath": "What they could have done instead. Example: 'joined the startup'",
+        "domain": "Life domain",
+        "outcome": "What likely would have happened",
+        "lesson": "What this teaches",
+        "viewCounterfactuals": "True to view past counterfactuals"
+      }
+    },
+
+    "predictPattern": {
+      "description": "Project where current patterns are heading. See the trajectory before it arrives.",
+      "parameters": {
+        "pattern": "The pattern being tracked. Example: 'spending on subscriptions'",
+        "domain": "Life domain",
+        "currentTrajectory": "Current direction. Options: 'improving', 'declining', 'stable', 'volatile'",
+        "prediction": "Where this is heading",
+        "timeframe": "How long until prediction",
+        "viewPredictions": "True to view past predictions"
+      }
+    },
+
+    "scoreDecision": {
+      "description": "Rate decision quality over time. Learn what kinds of decisions you make well (and poorly).",
+      "parameters": {
+        "decision": "The decision made. Example: 'bought the expensive car'",
+        "domain": "Life domain",
+        "outcome": "How it turned out. Options: 'great', 'good', 'neutral', 'poor', 'bad'",
+        "processQuality": "How decision was made. Options: 'thoughtful', 'rushed', 'emotional', 'analytical', 'gut'",
+        "lesson": "What you learned",
+        "viewScores": "True to view decision scores"
+      }
+    },
+
+    "findCorrelation": {
+      "description": "Discover correlations across different life domains that you couldn't see yourself.",
+      "parameters": {
+        "factor1": "First factor. Example: 'sleep quality', 'exercise frequency'",
+        "factor2": "Second factor. Example: 'productivity', 'mood'",
+        "relationship": "How they relate. Options: 'positive', 'negative', 'complex', 'unknown'",
+        "strength": "Strength. Options: 'weak', 'moderate', 'strong'",
+        "insight": "What this means",
+        "viewCorrelations": "True to view known correlations"
+      }
+    },
+
+    "detectAnomaly": {
+      "description": "Flag unusual patterns that break from normal behavior. Sometimes anomalies are warnings, sometimes opportunities.",
+      "parameters": {
+        "anomaly": "What unusual pattern was detected. Example: 'spending 3x normal on restaurants'",
+        "domain": "Life domain",
+        "severity": "How significant. Options: 'info', 'warning', 'alert'",
+        "interpretation": "What this might mean",
+        "viewAnomalies": "True to view detected anomalies"
+      }
+    },
+
+    "archiveInsight": {
+      "description": "Store important insights for future reference. Build a personal knowledge base of what you've learned about yourself.",
+      "parameters": {
+        "insight": "The insight to archive. Example: 'I make better decisions in the morning'",
+        "domain": "Life domain",
+        "source": "How discovered. Options: 'observation', 'analysis', 'experiment', 'reflection', 'conversation'",
+        "importance": "How important. Options: 'low', 'medium', 'high', 'critical'",
+        "viewInsights": "True to view archived insights"
+      }
     }
   }
 }

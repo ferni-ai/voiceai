@@ -1,10 +1,20 @@
 # Documentation State & Cleanup Plan
 
-> Last Updated: December 23, 2024
+> Last Updated: January 3, 2026
 
 ## Executive Summary
 
 The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This document tracks the documentation structure, cleanup progress, and maintenance guidelines.
+
+### January 2026 Consolidation Complete ✅
+
+**Phase 3 (Jan 3):** Major documentation cleanup
+- Created 8 new CLAUDE.md files for previously undocumented directories
+- Archived 7 completed audits to `docs/archive/completed-audits/`
+- Archived 4 completed plans to `docs/archive/completed-plans/`
+- Consolidated 9 duplicate docs (memory, intelligence) to `docs/archive/consolidated-docs/`
+- Updated root CLAUDE.md with fresh metrics and new file references
+- Total CLAUDE.md files: 38 (up from 11)
 
 ### December 2024 Consolidation Complete ✅
 
@@ -26,21 +36,21 @@ The Ferni AI codebase has **~380 markdown files** in `/docs` directory. This doc
 
 ## Current State (After Consolidation)
 
-### Documentation Volume (Updated Dec 23, 2024)
+### Documentation Volume (Updated Jan 3, 2026)
 
 | Category | Files | Notes |
 |----------|-------|-------|
 | **Root docs** | 9 | CLAUDE.md, README.md, ONBOARDING.md, etc. |
-| **CLAUDE.md files** | 11 | Root + 10 subdirectory contexts |
-| **docs/architecture/** | 60 | System design and ADRs |
-| **docs/audits/** | 50 | Active quality audits |
-| **docs/plans/** | 40 | Implementation plans |
+| **CLAUDE.md files** | 38 | Root + 37 subdirectory contexts |
+| **docs/architecture/** | 80 | System design and ADRs |
+| **docs/audits/** | 73 | Active quality audits |
+| **docs/plans/** | 44 | Implementation plans |
 | **docs/guides/** | 24 | How-to guides |
 | **docs/features/** | 19 | Feature specs |
 | **docs/research/** | 4 | Research and academic analysis |
 | **docs/refactoring/** | 7 | Refactoring guides |
 | **docs/status/** | 5 | Implementation status & health |
-| **docs/archive/** | 20 | Completed/outdated docs |
+| **docs/archive/** | 35+ | Completed/outdated/consolidated docs |
 | **design-system/docs/brand/** | 19 | All brand documentation (canonical) |
 | **brand/** | ~70 assets | Logos, icons, favicons (NO docs) |
 | **marketplace-agents/** | 70+ | Agent knowledge bases |

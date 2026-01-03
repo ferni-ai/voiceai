@@ -8,7 +8,9 @@ import SwiftUI
 struct AccountSection: View {
     @EnvironmentObject var authService: AuthService
     @State private var showSignOutConfirmation = false
+    @State private var showDeleteConfirmation = false
     @State private var showError = false
+    @State private var isDeletingAccount = false
 
     var body: some View {
         Section {
@@ -40,6 +42,18 @@ struct AccountSection: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(authService.errorMessage ?? "Please try again.")
+        }
+        .alert("Delete Account?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Permanently", role: .destructive) {
+                Task {
+                    isDeletingAccount = true
+                    await authService.deleteAccount()
+                    isDeletingAccount = false
+                }
+            }
+        } message: {
+            Text("This will permanently delete your account and all your data including conversation history, preferences, and memories. This action cannot be undone.")
         }
         .onChange(of: authService.errorMessage) { newValue in
             if newValue != nil {
@@ -120,6 +134,30 @@ struct AccountSection: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
+
+            Divider()
+                .padding(.vertical, 8)
+
+            // Delete account button (App Store requirement)
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                HStack {
+                    if isDeletingAccount {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .red))
+                            .scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red.opacity(0.7))
+                    }
+                    Text("Delete Account")
+                        .foregroundColor(.red.opacity(0.7))
+                    Spacer()
+                }
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(isDeletingAccount)
         }
     }
 

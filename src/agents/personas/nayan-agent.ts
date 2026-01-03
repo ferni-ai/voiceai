@@ -31,6 +31,9 @@ import {
 // Wisdom tools - Nayan's specialty (from domains)
 import { createWisdomTools } from '../../tools/domains/wisdom/wisdom.js';
 
+// Superhuman Wisdom Tools - Nayan's "Better Than Human" capabilities
+import { getToolDefinitions as getNayanWisdomTools } from '../../tools/domains/nayan-wisdom/index.js';
+
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';
 
@@ -92,6 +95,34 @@ function buildWisdomTools(): ToolSet {
     // Financial wisdom
     getCostImpact: wisdom.getCostImpact,
   } as ToolSet;
+}
+
+/**
+ * Build Nayan's Superhuman Wisdom tools.
+ * These are "Better Than Human" capabilities unique to Nayan:
+ * - holdParadox: Track contradictory desires without resolution
+ * - mortalityPerspective: Concrete mortality awareness for clarity
+ * - generatePersonalKoan: Personalized paradoxes to break patterns
+ * - trackEnough: Remember when "enough" was declared
+ * - ancestralWisdom: Connect to lineage wisdom
+ * - trackWisdomIncubation: Perfect patience for things ripening
+ */
+async function buildSuperhumanWisdomTools(userId: string): Promise<ToolSet> {
+  const toolDefs = await getNayanWisdomTools();
+  const ctx: ToolContext = {
+    agentId: 'nayan-patel',
+    agentDisplayName: 'Nayan',
+    userId,
+    services: minimalServices,
+  };
+
+  const tools: Record<string, unknown> = {};
+  for (const def of toolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  log.debug({ toolCount: Object.keys(tools).length }, 'Built Nayan superhuman wisdom tools');
+  return tools as ToolSet;
 }
 
 function buildHandoffTools(): ToolSet {
@@ -187,34 +218,46 @@ function buildHandoffTools(): ToolSet {
 export class NayanAgent extends PersonaVoiceAgent {
   private static systemPromptCache: string | null = null;
 
-  constructor(systemPrompt: string, options?: PersonaVoiceAgentOptions) {
+  constructor(systemPrompt: string, tools: ToolSet, options?: PersonaVoiceAgentOptions) {
+    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
+    super(systemPrompt, {
+      ...options,
+      tools,
+      skipGreeting: true, // Greeting handled by handoff-handler.ts
+    });
+
+    log.info({ totalTools: Object.keys(tools).length }, 'NayanAgent initialized');
+  }
+
+  static async create(chatCtx?: llm.ChatContext, userId?: string): Promise<NayanAgent> {
+    if (!NayanAgent.systemPromptCache) {
+      NayanAgent.systemPromptCache = await loadSystemPrompt('nayan-patel');
+    }
+
+    // Build all tools including superhuman wisdom tools
     const memoryTools = buildMemoryTools('nayan-patel');
     const wisdomTools = buildWisdomTools();
     const handoffTools = buildHandoffTools();
-
     const conversationTools = createConversationTools();
+
+    // Superhuman wisdom tools (Nayan's "Better Than Human" capabilities)
+    let superhumanWisdomTools: ToolSet = {} as ToolSet;
+    try {
+      superhumanWisdomTools = await buildSuperhumanWisdomTools(userId || 'anonymous');
+      log.info({ count: Object.keys(superhumanWisdomTools).length }, 'Loaded Nayan superhuman wisdom tools');
+    } catch (err) {
+      log.warn({ error: String(err) }, 'Failed to load superhuman wisdom tools (non-blocking)');
+    }
+
     const allTools = {
       ...memoryTools,
       ...wisdomTools,
+      ...superhumanWisdomTools,
       ...handoffTools,
       ...conversationTools,
     } as ToolSet;
 
-    // Pass tools to PersonaVoiceAgent (which passes to voice.Agent)
-    super(systemPrompt, {
-      ...options,
-      tools: allTools,
-      skipGreeting: true, // Greeting handled by handoff-handler.ts
-    });
-
-    log.info({ totalTools: Object.keys(allTools).length }, 'NayanAgent initialized');
-  }
-
-  static async create(chatCtx?: llm.ChatContext): Promise<NayanAgent> {
-    if (!NayanAgent.systemPromptCache) {
-      NayanAgent.systemPromptCache = await loadSystemPrompt('nayan-patel');
-    }
-    return new NayanAgent(NayanAgent.systemPromptCache, { chatCtx });
+    return new NayanAgent(NayanAgent.systemPromptCache, allTools, { chatCtx });
   }
 
   /**
@@ -230,6 +273,6 @@ export class NayanAgent extends PersonaVoiceAgent {
   }
 }
 
-export async function createNayanAgent(chatCtx?: llm.ChatContext): Promise<NayanAgent> {
-  return NayanAgent.create(chatCtx);
+export async function createNayanAgent(chatCtx?: llm.ChatContext, userId?: string): Promise<NayanAgent> {
+  return NayanAgent.create(chatCtx, userId);
 }

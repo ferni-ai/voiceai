@@ -724,10 +724,48 @@ export async function autoRegisterAllDomains(): Promise<void> {
       loader: async () =>
         import('../domains/settings/index.js').then(async (m) => m.getToolDefinitions()),
     },
+
+    // === NAYAN'S SUPERHUMAN WISDOM DOMAIN ===
+    {
+      name: 'nayan-wisdom' as ToolDomain,
+      loader: async () =>
+        import('../domains/nayan-wisdom/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === MAYA'S SUPERHUMAN COACHING DOMAIN ===
+    {
+      name: 'maya-coaching' as ToolDomain,
+      loader: async () =>
+        import('../domains/maya-coaching/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === ALEX'S SUPERHUMAN COMMUNICATION DOMAIN ===
+    {
+      name: 'superhuman-communication' as ToolDomain,
+      loader: async () =>
+        import('../domains/communication/superhuman-tools/llm-tools.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === JORDAN'S SUPERHUMAN PLANNING DOMAIN ===
+    {
+      name: 'jordan-planning' as ToolDomain,
+      loader: async () =>
+        import('../domains/jordan-planning/index.js').then(async (m) => m.getToolDefinitions()),
+    },
+
+    // === PETER'S SUPERHUMAN ANALYTICS DOMAIN ===
+    {
+      name: 'peter-analytics' as ToolDomain,
+      loader: async (): Promise<ToolDefinition[]> => {
+        const m = await import('../domains/peter-analytics/index.js');
+        return m.getToolDefinitions();
+      },
+    },
   ];
 
   for (const { name, loader } of domains) {
-    registerDomainLoader(name, loader);
+    // Cast loader to expected type - some domains return FunctionTool[] which is compatible at runtime
+    registerDomainLoader(name, loader as () => Promise<ToolDefinition[]>);
   }
 
   getLogger().info(

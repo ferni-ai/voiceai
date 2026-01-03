@@ -248,6 +248,15 @@ export {
   giftRecommendationTool,
 } from './recommendations.semantic.js';
 
+// Local Search (Yelp-powered business discovery)
+export {
+  localSearchTools,
+  searchLocalBusinessesTool,
+  findRestaurantsTool,
+  getBusinessReviewsTool,
+  lookupBusinessByPhoneTool,
+} from './local-search.semantic.js';
+
 // Smart Home (lights, thermostat, locks)
 export {
   smartHomeTools,
@@ -572,6 +581,7 @@ import { productivityTools } from './productivity.semantic.js';
 import { reminderSemanticTools } from './reminders.semantic.js';
 import { commitmentSemanticTools } from './commitments.semantic.js';
 import { recommendationsTools } from './recommendations.semantic.js';
+import { localSearchTools } from './local-search.semantic.js';
 import { smartHomeTools } from './smart-home.semantic.js';
 import { learningTools } from './learning.semantic.js';
 import { contactsTools } from './contacts.semantic.js';
@@ -665,6 +675,7 @@ export const allToolDefinitions: SemanticToolDefinition[] = [
 
   // Recommendations & Smart Home
   ...recommendationsTools, // 4 tools: books, podcasts, restaurants, gifts
+  ...localSearchTools, // 4 tools: search businesses, find restaurants, reviews, phone lookup (Yelp)
   ...smartHomeTools, // 4 tools: lights, thermostat, locks, devices
 
   // Phase 1 additions (High Impact)
@@ -755,6 +766,7 @@ export const toolsByCategory: Record<string, SemanticToolDefinition[]> = {
 
   // Recommendations & Smart Home
   recommendations: recommendationsTools,
+  'local-search': localSearchTools,
   'smart-home': smartHomeTools,
 
   // Phase 1 additions (High Impact)

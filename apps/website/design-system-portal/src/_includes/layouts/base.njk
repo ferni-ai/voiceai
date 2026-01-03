@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} | Ferni Design System</title>
+  <meta name="description" content="{{ description or 'Ferni Design System - Brand tokens, components, and patterns for building human-centered AI experiences' }}">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="{% if page.url == '/' %}active{% endif %}">Overview</a></li>
+            <li><a href="/colors/" class="{% if page.url == '/colors/' %}active{% endif %}">Colors</a></li>
+            <li><a href="/typography/" class="{% if page.url == '/typography/' %}active{% endif %}">Typography</a></li>
+            <li><a href="/spacing/" class="{% if page.url == '/spacing/' %}active{% endif %}">Spacing</a></li>
+            <li><a href="/animation/" class="{% if page.url == '/animation/' %}active{% endif %}">Animation</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="{% if page.url == '/personas/' %}active{% endif %}">Personas</a></li>
+            <li><a href="/capabilities/" class="{% if page.url == '/capabilities/' %}active{% endif %}">Capabilities</a></li>
+            <li><a href="/voice/" class="{% if page.url == '/voice/' %}active{% endif %}">Voice & Tone</a></li>
+            <li><a href="/icons/" class="{% if page.url == '/icons/' %}active{% endif %}">Icons</a></li>
+            <li><a href="/expressions/" class="{% if page.url == '/expressions/' %}active{% endif %}">Expressions</a></li>
+            <li><a href="/universe/" class="{% if page.url == '/universe/' %}active{% endif %}">Universe</a></li>
+            <li><a href="/visualizations/" class="{% if page.url == '/visualizations/' %}active{% endif %}">Visualizations</a></li>
+            <li><a href="/brand-kit/" class="{% if page.url == '/brand-kit/' %}active{% endif %}">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="{% if page.url == '/components/' %}active{% endif %}">Overview</a></li>
+            <li><a href="/components/avatar/" class="{% if page.url == '/components/avatar/' %}active{% endif %}">Avatar</a></li>
+            <li><a href="/components/buttons/" class="{% if page.url == '/components/buttons/' %}active{% endif %}">Buttons</a></li>
+            <li><a href="/components/cards/" class="{% if page.url == '/components/cards/' %}active{% endif %}">Cards</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      {{ content | safe }}
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+</body>
+</html>

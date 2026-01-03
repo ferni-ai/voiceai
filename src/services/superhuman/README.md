@@ -2,7 +2,7 @@
 
 > **"Your best friend forgets. We don't."**
 
-These 10 services give Ferni capabilities that no human friend can consistently provide. They represent our "Better than Human" brand promise.
+These 28 services give Ferni and the team capabilities that no human friend can consistently provide. They represent our "Better than Human" brand promise.
 
 ---
 
@@ -26,7 +26,7 @@ const prompt = formatSuperhumanContextForPrompt(context);
 
 ---
 
-## The 19 Capabilities
+## The 28 Capabilities
 
 ### Original 10 Services
 
@@ -726,6 +726,366 @@ const bthContext = await betterThanHumanIntegration.buildContext(userId);
 
 ---
 
+---
+
+## Jordan's Superhuman Planning Capabilities (January 2026)
+
+These 9 services give Jordan "Better than Human" event and life planning capabilities:
+
+| # | Service | What It Does | Human Limitation |
+|---|---------|--------------|------------------|
+| 20 | **Event Pattern Memory** | Remembers budget tendencies, guest dynamics, emotional patterns across ALL events | Planners forget past events |
+| 21 | **Guest Intelligence** | Permanent guest profiles - dietary needs, accessibility, attendance patterns | Can't track every guest |
+| 22 | **Proactive Milestone Detector** | Detects celebrations humans forget - anniversaries, quiet wins, life stages | Don't track objectively |
+| 23 | **Event Story Capture** | Remembers what events MEANT, not just logistics | Forget emotional significance |
+| 24 | **Anticipatory Planning** | Sees life transitions coming from conversation patterns | Can't predict transitions |
+| 25 | **Celebration Balance** | Tracks celebration density, fatigue, joy gaps | Can't track objectively |
+| 26 | **Planning Coordination** | Checks readiness across finances, calendar, energy | Don't coordinate domains |
+| 27 | **Seasonal Intelligence** | Knows cultural dates and personal rhythms | Can't track everything |
+| 28 | **Post-Event Learning** | Follows up to capture learnings, applies to future | No one follows up systematically |
+
+### 20. Event Pattern Memory
+
+**File:** `event-pattern-memory.ts`
+
+Remembers patterns across ALL events over years:
+- Budget tendencies (overruns, splurge categories)
+- Guest dynamics (chronic decliners, conflict pairs)
+- Emotional patterns (pre-event anxiety, post-event letdown)
+- Vendor preferences (loved vendors, vendors to avoid)
+
+```typescript
+import { eventPatternMemory } from './event-pattern-memory.js';
+
+// Record event outcome
+await eventPatternMemory.recordEventOutcome(userId, {
+  eventName: "Sarah's 40th Birthday",
+  eventType: 'birthday',
+  budget: 2000,
+  actualSpent: 2400,
+  categorySpending: { 
+    catering: { budgeted: 800, actual: 1100 },
+    venue: { budgeted: 500, actual: 400 },
+  },
+  guestOutcomes: [
+    { name: 'Mom', attended: true },
+    { name: 'Uncle Bob', attended: false, canceledLastMinute: true },
+  ],
+  reflections: {
+    whatWorked: ['Photo booth was a hit'],
+    whatWouldChange: ['Start earlier'],
+  },
+});
+
+// Get insights for future planning
+const insights = await eventPatternMemory.getEventPatternInsights(userId, 'birthday');
+// insights.budgetWarnings: ["You typically go 20% over budget on catering"]
+// insights.guestRecommendations: ["Uncle Bob cancels last-minute 60% of the time"]
+```
+
+**Firestore:** `bogle_users/{userId}/event_pattern_memory`
+
+---
+
+### 21. Guest Intelligence System
+
+**File:** `guest-intelligence.ts`
+
+Maintains permanent memory of guest profiles:
+- Dietary restrictions and allergies
+- Accessibility needs
+- Seating preferences and conflicts
+- Attendance patterns and reliability
+
+```typescript
+import { guestIntelligence } from './guest-intelligence.js';
+
+// Update guest profile
+await guestIntelligence.upsertGuestProfile(userId, 'Aunt Martha', {
+  dietary: { restrictions: ['vegetarian'], allergies: ['nuts'] },
+  accessibility: { mobilityNeeds: ['wheelchair access'] },
+  social: { triggers: ['politics'], strengths: ['great at toasts'] },
+});
+
+// Get dietary summary for event
+const dietary = await guestIntelligence.getGuestListDietary(userId, guestList);
+// dietary.vegetarian: ['Aunt Martha', 'Cousin Tim']
+// dietary.allergies: [{ guest: 'Aunt Martha', allergies: ['nuts'] }]
+
+// Predict attendance
+const prediction = await guestIntelligence.predictAttendance(userId, guestList);
+// prediction.expectedCount: { min: 35, max: 45, expected: 40 }
+// prediction.unlikely: [{ guest: 'Uncle Bob', rate: 0.3, reason: 'only attends 30%' }]
+```
+
+**Firestore:** `bogle_users/{userId}/guest_intelligence`
+
+---
+
+### 22. Proactive Milestone Detector
+
+**File:** `proactive-milestone-detector.ts`
+
+Detects celebrations humans forget to plan:
+- Relationship anniversaries
+- Career milestones (work anniversaries)
+- Life stage transitions approaching
+- Quiet wins (sobriety streaks, habit streaks)
+
+```typescript
+import { proactiveMilestoneDetector } from './proactive-milestone-detector.js';
+
+// Track an important date
+await proactiveMilestoneDetector.trackDate(userId, 'Wedding anniversary', '2018-06-15', 'anniversary');
+
+// Track a quiet win streak
+await proactiveMilestoneDetector.trackQuietWin(userId, 'Days sober', '2025-01-01');
+
+// Get upcoming milestones
+const milestones = await proactiveMilestoneDetector.detectUpcomingMilestones(userId, 60);
+// milestones: [
+//   { label: 'Wedding anniversary', daysAway: 14, anniversaryNumber: 7, celebrationSuggestion: '...' },
+//   { label: 'Days sober streak', daysAway: 5, anniversaryNumber: 100, celebrationSuggestion: '...' },
+// ]
+```
+
+**Firestore:** `bogle_users/{userId}/milestone_detector`
+
+---
+
+### 23. Event Story Capture
+
+**File:** `event-story-capture.ts`
+
+Captures the MEANING behind events, not just logistics:
+- Why this event mattered
+- The emotional journey (before, during, after)
+- Meaningful moments (speeches, connections)
+- Lessons learned
+
+```typescript
+import { eventStoryCapture } from './event-story-capture.js';
+
+// Start capturing a story
+const story = await eventStoryCapture.startStoryCapture(
+  userId, 
+  "Dad's 70th Birthday",
+  'birthday',
+  '2025-03-15'
+);
+
+// Add meaningful moment
+await eventStoryCapture.addMeaningfulMoment(userId, story.id, 'touching', 
+  "When all the grandkids sang to him and he cried"
+);
+
+// On anniversary, recall what it meant
+const recall = await eventStoryCapture.recallEventMeaning(userId, "Dad's 70th");
+// recall.summary: "The day the whole family came together for dad"
+// recall.keyMoments: ["When all the grandkids sang to him and he cried"]
+```
+
+**Firestore:** `bogle_users/{userId}/event_stories`
+
+---
+
+### 24. Anticipatory Planning Intelligence
+
+**File:** `anticipatory-planning.ts`
+
+Detects upcoming life transitions from conversation patterns:
+- Empty nest approaching
+- Retirement window
+- Career change signals
+- Relationship milestones
+
+```typescript
+import { anticipatoryPlanning } from './anticipatory-planning.js';
+
+// Detect signals from conversation
+const signals = anticipatoryPlanning.detectTransitionSignals(
+  "Our youngest is looking at colleges next year"
+);
+// signals: [{ transition: 'empty_nest', triggers: ['college'], weight: 0.6 }]
+
+// Get anticipated transitions
+const transitions = await anticipatoryPlanning.getAnticipatedTransitions(userId);
+// transitions: [{
+//   transition: 'empty_nest',
+//   confidence: 0.75,
+//   estimatedTimeframe: 'Near-term (1-3 months)',
+//   suggestedPlanning: ['Last child leaving home celebration', 'New chapter date night'],
+//   exploratoryQuestions: ['How are you feeling about the upcoming change?'],
+// }]
+```
+
+**Firestore:** `bogle_users/{userId}/anticipatory_planning`
+
+---
+
+### 25. Celebration Balance Tracker
+
+**File:** `celebration-balance.ts`
+
+Tracks celebration patterns objectively:
+- Celebration density (too sparse? too dense?)
+- Self vs. others focus
+- Joy gaps (too long since last celebration)
+- Celebration fatigue
+
+```typescript
+import { celebrationBalance } from './celebration-balance.js';
+
+// Record a celebration
+await celebrationBalance.recordCelebration(userId, 
+  "Friend's baby shower",
+  'for_others',
+  'medium',
+  'others',
+  { joyReceived: 8 }
+);
+
+// Check balance
+const balance = await celebrationBalance.getCelebrationBalance(userId);
+// balance.state: 'others_focused' | 'celebration_drought' | 'balanced' | 'celebration_fatigue'
+// balance.selfVsOthersRatio: 0.2 (mostly celebrating others)
+// balance.recommendations: ["You deserve celebration too!"]
+```
+
+**Firestore:** `bogle_users/{userId}/celebration_balance`
+
+---
+
+### 26. Planning Coordination
+
+**File:** `planning-coordination.ts`
+
+Checks readiness across all life domains before major planning:
+- Financial health (from Peter's domain)
+- Calendar capacity (from Alex's domain)
+- Energy levels (from Maya's domain)
+- Life stage fit
+
+```typescript
+import { planningCoordination } from './planning-coordination.js';
+
+// Check readiness for event
+const assessment = await planningCoordination.checkPlanningReadiness(
+  userId,
+  'wedding',
+  25000,
+  '2026-06-15'
+);
+// assessment.status: 'green' | 'yellow' | 'red'
+// assessment.overallScore: 85
+// assessment.financial: { canAfford: true, budgetHealth: 80 }
+// assessment.calendar: { calendarDensity: 'moderate', capacityScore: 70 }
+// assessment.energy: { burnoutRisk: 'low', currentEnergy: 75 }
+// assessment.actionItems: ['Block dedicated planning time']
+// assessment.summary: "Great timing! You're well-positioned..."
+```
+
+**Firestore:** `bogle_users/{userId}/planning_coordination`
+
+---
+
+### 27. Seasonal Planning Intelligence
+
+**File:** `seasonal-planning-intelligence.ts`
+
+Provides cultural and seasonal intelligence:
+- Cultural dates to avoid or embrace
+- Seasonal patterns (wedding season pricing, etc.)
+- User's personal seasonal rhythms
+- Optimal timing recommendations
+
+```typescript
+import { seasonalPlanningIntelligence } from './seasonal-planning-intelligence.js';
+
+// Get optimal timing
+const recommendations = await seasonalPlanningIntelligence.suggestOptimalTiming(
+  userId,
+  'wedding',
+  [5, 6, 9], // preferred months
+  [12] // avoid December
+);
+// recommendations: [
+//   { dateRange: { start: '2026-09-01', end: '2026-09-30' }, score: 85, 
+//     reasons: ['Off-peak wedding season - better pricing'],
+//     warnings: ['Labor Day weekend - some guests may travel'] },
+// ]
+
+// Check specific date
+const conflicts = await seasonalPlanningIntelligence.checkDateConflicts(userId, '2026-06-15');
+// conflicts.culturalConflicts: [{ name: 'Father\'s Day', advice: '...' }]
+// conflicts.recommendation: 'caution'
+```
+
+**Firestore:** `bogle_users/{userId}/seasonal_planning`
+
+---
+
+### 28. Post-Event Learning
+
+**File:** `post-event-learning.ts`
+
+Captures learnings after events and applies to future planning:
+- Automated follow-up at right times (1 day, 1 week, 1 month)
+- What worked vs. what to change
+- Budget and timing learnings
+- Wisdom accumulation
+
+```typescript
+import { postEventLearning } from './post-event-learning.js';
+
+// Schedule follow-ups
+await postEventLearning.scheduleEventFollowUps(userId, eventId, "Sarah's Wedding", eventDate, 'wedding');
+
+// Check for due follow-ups
+const due = await postEventLearning.getDueFollowUps(userId);
+// due: [{ eventName: "Sarah's Wedding", stage: 'one_week', questions: ['How do you feel now?', ...] }]
+
+// Get wisdom for future planning
+const wisdom = await postEventLearning.getApplicableLearnings(userId, 'wedding');
+// wisdom: [
+//   { sourceEvent: '3 past weddings', learning: 'Book photographer 8+ months ahead', category: 'timing' },
+// ]
+```
+
+**Firestore:** `bogle_users/{userId}/post_event_learning`
+
+---
+
+### Jordan's Tools
+
+These services are exposed through `superhuman-planning-tools.ts`:
+
+```typescript
+import { createSuperhumanPlanningTools } from '../tools/domains/life-planning/superhuman-planning-tools.js';
+
+const tools = createSuperhumanPlanningTools();
+// tools.getEventPatternInsights
+// tools.recordGuestConflict
+// tools.updateGuestProfile
+// tools.getGuestListDietary
+// tools.predictAttendance
+// tools.trackImportantDate
+// tools.trackQuietWin
+// tools.getUpcomingMilestones
+// tools.recordCelebration
+// tools.checkCelebrationBalance
+// tools.checkPlanningReadiness
+// tools.suggestOptimalTiming
+// tools.checkDateConflicts
+// tools.getEventWisdom
+// tools.checkEventFollowUps
+// tools.startEventStory
+// tools.recallEventMeaning
+// tools.getAnticipatedTransitions
+```
+
+---
+
 ## Brand Philosophy
 
 These services embody our "Better than Human" promise:
@@ -742,5 +1102,5 @@ Every capability should:
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*
 

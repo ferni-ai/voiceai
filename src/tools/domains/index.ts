@@ -311,6 +311,9 @@ export { getToolDefinitions as getSchedulingToolDefinitions } from './scheduling
 // Concierge domain - AI-powered outreach for hotels, restaurants, appointments, services
 export { getToolDefinitions as getConciergeToolDefinitions } from './concierge/index.js';
 
+// Local Search domain - Yelp-powered local business discovery (restaurants, services, reviews)
+export { getToolDefinitions as getLocalSearchToolDefinitions } from './local-search/index.js';
+
 // ============================================================================
 // "BETTER THAN HUMAN" CORE DOMAINS
 // ============================================================================
@@ -1026,6 +1029,13 @@ export const DOMAIN_METADATA = {
     description:
       'AI-powered outreach: hotel quotes, restaurant reservations, healthcare appointments, service provider quotes',
     icon: '🛎️',
+    status: 'active',
+  },
+  'local-search': {
+    name: 'Local Search',
+    description:
+      'Yelp-powered local business discovery: restaurants, reviews, ratings, hours, phone lookup',
+    icon: '📍',
     status: 'active',
   },
   // "Better Than Human" Core Domains

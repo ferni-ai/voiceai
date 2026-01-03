@@ -21,6 +21,7 @@ import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import type { UserData } from '../shared/types.js';
 
 const log = getLogger();
 
@@ -50,6 +51,10 @@ export interface PersonaAgent {
    * Only present when deferHandlers=true. Called automatically after greeting.
    */
   wireHandlers?: () => Promise<void>;
+  /**
+   * User data - needed for greeting awareness (so LLM knows what was said)
+   */
+  userData?: UserData;
 }
 
 export interface HandoffRequest {
@@ -200,6 +205,8 @@ export class AgentOrchestrator {
    *
    * ⚡ FAST-AGENT-JOIN: If handlers were deferred, wire them after greeting starts.
    * This reduces critical path by ~500ms (handlers wire in parallel with speech).
+   *
+   * FIX: Stores greeting text in userData so LLM knows what was said (greeting awareness).
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
@@ -218,6 +225,20 @@ export class AgentOrchestrator {
 
       // Generate context-aware, persona-specific greeting with SSML
       const greeting = generateWarmGreeting(agent.personaId, ctx);
+
+      // ================================================================
+      // GREETING AWARENESS: Store greeting so LLM knows what it said
+      // This prevents the LLM from repeating greetings or being confused
+      // The turn-handler injects this on turn 0 as system context
+      // ================================================================
+      if (agent.userData) {
+        agent.userData.greetingText = greeting;
+        agent.userData.greetingInjected = false;
+        log.info(
+          { personaId: agent.personaId, greetingPreview: greeting.slice(0, 50) },
+          '📝 Greeting stored for LLM awareness'
+        );
+      }
 
       // Speak via agent.say wrapper (uses coordinated speech)
       // FIX: Disable interruptions for initial greeting - iOS background noise was cutting it off

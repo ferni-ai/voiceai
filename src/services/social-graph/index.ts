@@ -903,6 +903,97 @@ export async function loadGraphFromFirestore(userId: string): Promise<void> {
   }
 }
 
+// ============================================================================
+// CACHE MANAGEMENT (for memory efficiency)
+// ============================================================================
+
+/**
+ * Get all people from the social graph
+ */
+export function getAllPeople(userId: string): Person[] {
+  const graph = userGraphs.get(userId);
+  if (!graph) return [];
+  return Array.from(graph.people.values());
+}
+
+/**
+ * Get all social insights
+ */
+export function getSocialInsights(userId: string): SocialInsight[] {
+  const graph = userGraphs.get(userId);
+  if (!graph) return [];
+  return generateSocialInsights(userId);
+}
+
+/**
+ * Clear all cached social graphs (for memory management)
+ * Call this on app shutdown or when memory pressure is high
+ */
+export function clearAllSocialGraphs(): void {
+  const count = userGraphs.size;
+  userGraphs.clear();
+  log.info({ count }, 'All social graphs cleared from memory');
+}
+
+/**
+ * Get count of cached graphs (for monitoring)
+ */
+export function getCachedGraphCount(): number {
+  return userGraphs.size;
+}
+
+/**
+ * Prune old mentions from a user's graph
+ * Keeps only mentions from last N days
+ */
+export function pruneMentions(userId: string, retentionDays = 90): number {
+  const graph = userGraphs.get(userId);
+  if (!graph) return 0;
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+  const cutoffTime = cutoffDate.getTime();
+
+  const originalCount = graph.mentions.length;
+  graph.mentions = graph.mentions.filter((m) => m.timestamp.getTime() > cutoffTime);
+
+  const pruned = originalCount - graph.mentions.length;
+  if (pruned > 0) {
+    log.debug({ userId, pruned, remaining: graph.mentions.length }, 'Pruned old mentions');
+  }
+
+  return pruned;
+}
+
+/**
+ * Cleanup graphs for inactive users (no mentions in last N days)
+ * Call this periodically to prevent memory growth
+ */
+export function cleanupInactiveGraphs(inactiveDays = 7): number {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
+  const cutoffTime = cutoffDate.getTime();
+
+  let cleaned = 0;
+  for (const [userId, graph] of userGraphs) {
+    // Check if last analysis is too old
+    if (graph.lastAnalysis.getTime() < cutoffTime) {
+      // Check if any recent mentions
+      const hasRecentMentions = graph.mentions.some((m) => m.timestamp.getTime() > cutoffTime);
+      if (!hasRecentMentions) {
+        userGraphs.delete(userId);
+        cleaned++;
+      }
+    }
+  }
+
+  if (cleaned > 0) {
+    log.info({ cleaned, remaining: userGraphs.size }, 'Cleaned up inactive social graphs');
+  }
+
+  return cleaned;
+}
+
 export default {
   recordMention,
   extractNames,
@@ -913,10 +1004,16 @@ export default {
   generateSocialInsights,
   generateSuperhumanMoment,
   getImportantPeople,
+  getAllPeople,
+  getSocialInsights,
   getPerson,
   confirmImportantPerson,
   getMentionFrequency,
   clearSocialGraph,
+  clearAllSocialGraphs,
+  getCachedGraphCount,
+  pruneMentions,
+  cleanupInactiveGraphs,
   getUserGraph,
   serializeGraph,
   persistGraphToFirestore,

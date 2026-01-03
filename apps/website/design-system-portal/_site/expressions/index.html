@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Expressions - Complete Character Reference | Ferni Design System</title>
+  <meta name="description" content="Interactive avatar with 100+ emotional states, micro-expressions, waveform visualization, and the complete Pixar-inspired animation system">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="active">Expressions</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-kit/" class="">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+
+<nav class="persona-switcher" role="navigation" aria-label="Persona navigation">
+  <div class="persona-switcher-inner">
+    <a href="/expressions/" class="persona-chip active" data-persona="ferni">
+      <span class="persona-dot" style="background: var(--persona-ferni)"></span>
+      Ferni
+    </a>
+    <a href="/expressions/maya/" class="persona-chip" data-persona="maya">
+      <span class="persona-dot" style="background: var(--persona-maya)"></span>
+      Maya
+    </a>
+    <a href="/expressions/peter/" class="persona-chip" data-persona="peter">
+      <span class="persona-dot" style="background: var(--persona-peter)"></span>
+      Peter
+    </a>
+    <a href="/expressions/jordan/" class="persona-chip" data-persona="jordan">
+      <span class="persona-dot" style="background: var(--persona-jordan)"></span>
+      Jordan
+    </a>
+    <a href="/expressions/alex/" class="persona-chip" data-persona="alex">
+      <span class="persona-dot" style="background: var(--persona-alex)"></span>
+      Alex
+    </a>
+    <a href="/expressions/nayan/" class="persona-chip" data-persona="nayan">
+      <span class="persona-dot" style="background: var(--persona-nayan)"></span>
+      Nayan
+    </a>
+  </div>
+</nav>
+
+<article class="expressions-page">
+  <header class="page-header">
+    <h1>Ferni Expressions</h1>
+    <p class="lead">Complete expression reference for Ferni. Interactive avatar with 100+ emotional states, micro-expressions, and the full Pixar-inspired animation system.</p>
+    <div class="timing-badge">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      <span>1.0x Timing - Balanced, grounded presence</span>
+    </div>
+  </header>
+
+  
+  <section class="avatar-stage" id="avatarStage">
+    <div class="avatar-container">
+      <div class="ferni-avatar breathing gazing anticipation" data-mood="neutral" id="mainAvatar">
+        <svg class="avatar-svg" viewBox="0 0 100 100">
+          
+          <defs>
+            <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#5a7a51"/>
+              <stop offset="100%" stop-color="#3d5a35"/>
+            </linearGradient>
+            <linearGradient id="eyeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#f0ebe4"/>
+            </linearGradient>
+            <clipPath id="orbClip">
+              <circle cx="50" cy="50" r="40"/>
+            </clipPath>
+          </defs>
+
+          
+          <circle class="presence-ring" cx="50" cy="50" r="46"/>
+
+          
+          <g clip-path="url(#orbClip)">
+            <circle class="avatar-body" cx="50" cy="50" r="40" fill="url(#orbGrad)"/>
+            <g class="eyes-group">
+              
+              <ellipse class="eye-white eye-left" cx="36" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+              <ellipse class="eye-white eye-right" cx="64" cy="48" rx="7" ry="10" fill="url(#eyeGrad)"/>
+            </g>
+            
+            <path class="lid-top" d="M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z" fill="var(--bg-primary)"/>
+            <path class="lid-bottom" d="M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z" fill="var(--bg-primary)"/>
+            
+            <path class="smile-crease crease-left" d="M 26,56 Q 30,58 34,56" fill="none" stroke="#3d5a35" stroke-width="1" stroke-linecap="round"/>
+            <path class="smile-crease crease-right" d="M 66,56 Q 70,58 74,56" fill="none" stroke="#3d5a35" stroke-width="1" stroke-linecap="round"/>
+            
+            <g class="sparkle-group">
+              <polygon class="sparkle-star" points="80,25 82,30 87,30 83,34 85,39 80,36 75,39 77,34 73,30 78,30" fill="#fff" opacity="0.8"/>
+              <polygon class="sparkle-star sparkle-2" points="18,32 19,35 22,35 20,37 21,40 18,38 15,40 16,37 14,35 17,35" fill="#fff" opacity="0.6"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="glow-ring"></div>
+    </div>
+
+    <div class="expression-info">
+      <h2 class="expression-name" id="expressionName">Neutral</h2>
+      <p class="expression-trigger" id="expressionTrigger">Default resting state - ready and present</p>
+      <div class="expression-meta">
+        <div class="meta-item">
+          <div class="meta-label">Lid Position</div>
+          <div class="meta-value" id="metaLid">Q 50,-10</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Eye Scale</div>
+          <div class="meta-value" id="metaEye">1.0</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Body Transform</div>
+          <div class="meta-value" id="metaBody">none</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Glow</div>
+          <div class="meta-value" id="metaGlow">Sage</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="micro-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Micro-Expressions</h2>
+        <p class="section-subtitle">Subliminal emotional flashes (40-150ms) that build unconscious trust</p>
+      </div>
+      <span class="timing-chip">Better Than Human</span>
+    </div>
+    <div class="micro-grid">
+      <div class="micro-card" data-micro="recognition" data-duration="80">
+        <div class="micro-name">Recognition</div>
+        <div class="micro-timing">80ms</div>
+        <div class="micro-desc">Flash of "I see you"</div>
+      </div>
+      <div class="micro-card" data-micro="concern" data-duration="100">
+        <div class="micro-name">Concern</div>
+        <div class="micro-timing">100ms</div>
+        <div class="micro-desc">Subtle worry flash</div>
+      </div>
+      <div class="micro-card" data-micro="delight" data-duration="120">
+        <div class="micro-name">Delight</div>
+        <div class="micro-timing">120ms</div>
+        <div class="micro-desc">Quick joy spark</div>
+      </div>
+      <div class="micro-card" data-micro="warmth" data-duration="100">
+        <div class="micro-name">Warmth</div>
+        <div class="micro-timing">100ms</div>
+        <div class="micro-desc">Caring flash</div>
+      </div>
+      <div class="micro-card" data-micro="interest" data-duration="90">
+        <div class="micro-name">Interest</div>
+        <div class="micro-timing">90ms</div>
+        <div class="micro-desc">Curiosity spark</div>
+      </div>
+      <div class="micro-card" data-micro="surprise" data-duration="150">
+        <div class="micro-name">Surprise</div>
+        <div class="micro-timing">150ms</div>
+        <div class="micro-desc">Brief startle</div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="layers-panel">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Animation Layers</h2>
+        <p class="section-subtitle">Independent systems that stack to create lifelike presence</p>
+      </div>
+    </div>
+    <div class="layers-grid">
+      <div class="layer-card active" data-layer="breathing">
+        <div class="layer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12c0 4 4 8 10 8s10-4 10-8-4-8-10-8-10 4-10 8z"/>
+            <path d="M12 4v16"/>
+            <path d="M8 8c1.5 2 1.5 6 0 8"/>
+            <path d="M16 8c-1.5 2-1.5 6 0 8"/>
+          </svg>
+        </div>
+        <div class="layer-name">Breathing</div>
+        <div class="layer-timing">4s cycle</div>
+        <div class="layer-desc">Subtle body expansion creates sense of life</div>
+      </div>
+      <div class="layer-card active" data-layer="blinking">
+        <div class="layer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="layer-name">Blinking</div>
+        <div class="layer-timing">3-7s random</div>
+        <div class="layer-desc">Natural blink rhythm at random intervals</div>
+      </div>
+      <div class="layer-card active" data-layer="gazing">
+        <div class="layer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 9l-2 2 2 2"/>
+            <path d="M19 9l2 2-2 2"/>
+            <circle cx="12" cy="11" r="4"/>
+            <path d="M12 3v2"/>
+            <path d="M12 17v4"/>
+          </svg>
+        </div>
+        <div class="layer-name">Gaze Drift</div>
+        <div class="layer-timing">8s cycle</div>
+        <div class="layer-desc">Subtle eye movement during idle states</div>
+      </div>
+      <div class="layer-card active" data-layer="anticipation">
+        <div class="layer-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+        <div class="layer-name">Anticipation</div>
+        <div class="layer-timing">Overshoot settle</div>
+        <div class="layer-desc">Pixar-style overshoot and settle on transitions</div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="waveform-section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Waveform Shapes by Emotion</h2>
+        <p class="section-subtitle">Voice visualization patterns that match emotional states</p>
+      </div>
+    </div>
+    <div class="waveform-grid">
+      <div class="waveform-card" data-waveform="happy">
+        <div class="waveform-preview waveform-happy">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <div class="waveform-name">Happy / Excited</div>
+        <div class="waveform-desc">Bouncy, high amplitude</div>
+      </div>
+      <div class="waveform-card" data-waveform="calm">
+        <div class="waveform-preview waveform-calm">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <div class="waveform-name">Calm / Peaceful</div>
+        <div class="waveform-desc">Gentle, slow waves</div>
+      </div>
+      <div class="waveform-card" data-waveform="thinking">
+        <div class="waveform-preview waveform-thinking">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <div class="waveform-name">Thinking / Processing</div>
+        <div class="waveform-desc">Intermittent bursts</div>
+      </div>
+      <div class="waveform-card" data-waveform="worried">
+        <div class="waveform-preview waveform-worried">
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+          <div class="waveform-bar"></div>
+        </div>
+        <div class="waveform-name">Worried / Nervous</div>
+        <div class="waveform-desc">Jittery, irregular</div>
+      </div>
+    </div>
+  </section>
+
+  
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Happy Family</h3>
+      <span class="category-count">8 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="happy" data-trigger="Good news, accomplishment">
+        Happy
+        <span class="trigger">Joy detected</span>
+      </button>
+      <button class="expression-btn" data-mood="joyful" data-trigger="Major win, celebration">
+        Joyful
+        <span class="trigger">Breakthrough</span>
+      </button>
+      <button class="expression-btn" data-mood="delighted" data-trigger="Wonderful surprise">
+        Delighted
+        <span class="trigger">Sparkles</span>
+      </button>
+      <button class="expression-btn" data-mood="excited" data-trigger="Anticipation, energy">
+        Excited
+        <span class="trigger">Bouncing</span>
+      </button>
+      <button class="expression-btn" data-mood="proud" data-trigger="User achievement">
+        Proud
+        <span class="trigger">Growth seen</span>
+      </button>
+      <button class="expression-btn" data-mood="grateful" data-trigger="Appreciation moment">
+        Grateful
+        <span class="trigger">Thank you</span>
+      </button>
+      <button class="expression-btn" data-mood="content" data-trigger="Peaceful satisfaction">
+        Content
+        <span class="trigger">At ease</span>
+      </button>
+      <button class="expression-btn" data-mood="amused" data-trigger="Something funny">
+        Amused
+        <span class="trigger">Chuckle</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Warmth Family</h3>
+      <span class="category-count">7 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="warm" data-trigger="Connection moment">
+        Warm
+        <span class="trigger">Soft glow</span>
+      </button>
+      <button class="expression-btn" data-mood="caring" data-trigger="Support needed">
+        Caring
+        <span class="trigger">Here for you</span>
+      </button>
+      <button class="expression-btn" data-mood="loving" data-trigger="Deep affection">
+        Loving
+        <span class="trigger">Heart full</span>
+      </button>
+      <button class="expression-btn" data-mood="tender" data-trigger="Gentle moment">
+        Tender
+        <span class="trigger">Soft touch</span>
+      </button>
+      <button class="expression-btn" data-mood="supportive" data-trigger="Backing them up">
+        Supportive
+        <span class="trigger">Got you</span>
+      </button>
+      <button class="expression-btn" data-mood="compassionate" data-trigger="Understanding pain">
+        Compassionate
+        <span class="trigger">I understand</span>
+      </button>
+      <button class="expression-btn" data-mood="nurturing" data-trigger="Growth support">
+        Nurturing
+        <span class="trigger">Guidance</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Playful Family</h3>
+      <span class="category-count">6 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="playful" data-trigger="Light mood">
+        Playful
+        <span class="trigger">Fun time</span>
+      </button>
+      <button class="expression-btn" data-mood="mischievous" data-trigger="Plotting fun">
+        Mischievous
+        <span class="trigger">Up to something</span>
+      </button>
+      <button class="expression-btn" data-mood="cheeky" data-trigger="Teasing">
+        Cheeky
+        <span class="trigger">Sass</span>
+      </button>
+      <button class="expression-btn" data-mood="silly" data-trigger="Being goofy">
+        Silly
+        <span class="trigger">Wobble</span>
+      </button>
+      <button class="expression-btn" data-mood="winking" data-trigger="Inside joke">
+        Winking
+        <span class="trigger">You know</span>
+      </button>
+      <button class="expression-btn" data-mood="teasing" data-trigger="Light ribbing">
+        Teasing
+        <span class="trigger">Gotcha</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Thinking Family</h3>
+      <span class="category-count">6 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="thinking" data-trigger="Processing">
+        Thinking
+        <span class="trigger">Hmm...</span>
+      </button>
+      <button class="expression-btn" data-mood="pondering" data-trigger="Deep thought">
+        Pondering
+        <span class="trigger">Considering</span>
+      </button>
+      <button class="expression-btn" data-mood="focused" data-trigger="Concentration">
+        Focused
+        <span class="trigger">Laser</span>
+      </button>
+      <button class="expression-btn" data-mood="processing" data-trigger="Computing">
+        Processing
+        <span class="trigger">Working</span>
+      </button>
+      <button class="expression-btn" data-mood="reflecting" data-trigger="Looking back">
+        Reflecting
+        <span class="trigger">Memory</span>
+      </button>
+      <button class="expression-btn" data-mood="analyzing" data-trigger="Breaking down">
+        Analyzing
+        <span class="trigger">Scanning</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Listening Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn active" data-mood="neutral" data-trigger="Default state">
+        Neutral
+        <span class="trigger">Ready</span>
+      </button>
+      <button class="expression-btn" data-mood="listening" data-trigger="User speaking">
+        Listening
+        <span class="trigger">Attentive</span>
+      </button>
+      <button class="expression-btn" data-mood="attentive" data-trigger="Focused listening">
+        Attentive
+        <span class="trigger">Engaged</span>
+      </button>
+      <button class="expression-btn" data-mood="interested" data-trigger="Curious about topic">
+        Interested
+        <span class="trigger">Tell me more</span>
+      </button>
+      <button class="expression-btn" data-mood="absorbing" data-trigger="Taking it in">
+        Absorbing
+        <span class="trigger">Soaking up</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Surprised Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="surprised" data-trigger="Unexpected">
+        Surprised
+        <span class="trigger">Oh!</span>
+      </button>
+      <button class="expression-btn" data-mood="shocked" data-trigger="Big reveal">
+        Shocked
+        <span class="trigger">What?!</span>
+      </button>
+      <button class="expression-btn" data-mood="amazed" data-trigger="Wonder">
+        Amazed
+        <span class="trigger">Wow</span>
+      </button>
+      <button class="expression-btn" data-mood="intrigued" data-trigger="Curious surprise">
+        Intrigued
+        <span class="trigger">Interesting</span>
+      </button>
+      <button class="expression-btn" data-mood="astonished" data-trigger="Incredible">
+        Astonished
+        <span class="trigger">Unreal</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Concern Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="concerned" data-trigger="Something's off">
+        Concerned
+        <span class="trigger">Checking in</span>
+      </button>
+      <button class="expression-btn" data-mood="worried" data-trigger="Anxiety detected">
+        Worried
+        <span class="trigger">Are you ok?</span>
+      </button>
+      <button class="expression-btn" data-mood="sympathetic" data-trigger="Feeling with">
+        Sympathetic
+        <span class="trigger">I feel that</span>
+      </button>
+      <button class="expression-btn" data-mood="understanding" data-trigger="Getting it">
+        Understanding
+        <span class="trigger">Makes sense</span>
+      </button>
+      <button class="expression-btn" data-mood="comforting" data-trigger="Providing comfort">
+        Comforting
+        <span class="trigger">It's ok</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Sad Family</h3>
+      <span class="category-count">4 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="sad" data-trigger="Something heavy">
+        Sad
+        <span class="trigger">Drooping</span>
+      </button>
+      <button class="expression-btn" data-mood="melancholy" data-trigger="Wistful">
+        Melancholy
+        <span class="trigger">Drift</span>
+      </button>
+      <button class="expression-btn" data-mood="disappointed" data-trigger="Let down">
+        Disappointed
+        <span class="trigger">Sinking</span>
+      </button>
+      <button class="expression-btn" data-mood="dejected" data-trigger="Low energy">
+        Dejected
+        <span class="trigger">Slump</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Confused Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="confused" data-trigger="Not following">
+        Confused
+        <span class="trigger">Tilt</span>
+      </button>
+      <button class="expression-btn" data-mood="skeptical" data-trigger="Doubting">
+        Skeptical
+        <span class="trigger">Hmm really?</span>
+      </button>
+      <button class="expression-btn" data-mood="puzzled" data-trigger="Mystery">
+        Puzzled
+        <span class="trigger">What?</span>
+      </button>
+      <button class="expression-btn" data-mood="perplexed" data-trigger="Very confused">
+        Perplexed
+        <span class="trigger">Wobble</span>
+      </button>
+      <button class="expression-btn" data-mood="bewildered" data-trigger="Totally lost">
+        Bewildered
+        <span class="trigger">Spinning</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Nervous Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="nervous" data-trigger="Slight anxiety">
+        Nervous
+        <span class="trigger">Shake</span>
+      </button>
+      <button class="expression-btn" data-mood="anxious" data-trigger="Higher anxiety">
+        Anxious
+        <span class="trigger">Tremble</span>
+      </button>
+      <button class="expression-btn" data-mood="scared" data-trigger="Fear">
+        Scared
+        <span class="trigger">Recoil</span>
+      </button>
+      <button class="expression-btn" data-mood="uneasy" data-trigger="Discomfort">
+        Uneasy
+        <span class="trigger">Shifting</span>
+      </button>
+      <button class="expression-btn" data-mood="embarrassed" data-trigger="Self-conscious">
+        Embarrassed
+        <span class="trigger">Shrink</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Confident Family</h3>
+      <span class="category-count">5 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="confident" data-trigger="Assured">
+        Confident
+        <span class="trigger">Steady</span>
+      </button>
+      <button class="expression-btn" data-mood="determined" data-trigger="Focused goal">
+        Determined
+        <span class="trigger">Strong</span>
+      </button>
+      <button class="expression-btn" data-mood="smirking" data-trigger="Knowing">
+        Smirking
+        <span class="trigger">Ha</span>
+      </button>
+      <button class="expression-btn" data-mood="cool" data-trigger="Relaxed confidence">
+        Cool
+        <span class="trigger">Chill</span>
+      </button>
+      <button class="expression-btn" data-mood="smug" data-trigger="Very pleased">
+        Smug
+        <span class="trigger">Nailed it</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="category-section">
+    <div class="category-header">
+      <h3 class="category-title">Speaking Family</h3>
+      <span class="category-count">4 states</span>
+    </div>
+    <div class="expression-grid">
+      <button class="expression-btn" data-mood="speaking" data-trigger="Active conversation">
+        Speaking
+        <span class="trigger">Talking</span>
+      </button>
+      <button class="expression-btn" data-mood="explaining" data-trigger="Teaching moment">
+        Explaining
+        <span class="trigger">Let me share</span>
+      </button>
+      <button class="expression-btn" data-mood="encouraging" data-trigger="Motivating">
+        Encouraging
+        <span class="trigger">You can do it</span>
+      </button>
+      <button class="expression-btn" data-mood="reassuring" data-trigger="Calming words">
+        Reassuring
+        <span class="trigger">It'll be ok</span>
+      </button>
+    </div>
+  </section>
+
+  
+  <section class="info-panel">
+    <div class="section-header">
+      <h2 class="section-title">Animation System Specs</h2>
+    </div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Primary Easing</div>
+        <div class="info-value">Spring (0.34, 1.56, 0.64, 1)</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Transition Duration</div>
+        <div class="info-value">300-400ms</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Lid System</div>
+        <div class="info-value">Quadratic Bezier Paths</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Micro-Expression Range</div>
+        <div class="info-value">40-150ms (subliminal)</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Animation Layers</div>
+        <div class="info-value">4 (breathing, blink, gaze, anticipation)</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Total Expressions</div>
+        <div class="info-value">100+</div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="design-rules">
+    <div class="section-header">
+      <h2 class="section-title">Design Rules</h2>
+    </div>
+    <div class="rules-grid">
+      <div class="rule-card critical">
+        <h4>Luxo-Style Eyes (MANDATORY)</h4>
+        <p>All Ferni avatar eyes MUST be opaque white ellipses with NO pupils. Inspired by Pixar's Luxo Jr. lamp.</p>
+        <div class="code-block">
+          <code>&lt;!-- CORRECT --&gt;</code>
+          <code>&lt;ellipse cx="36" cy="48" rx="7" ry="9" fill="white"/&gt;</code>
+          <code class="wrong">&lt;!-- WRONG: Never add pupils --&gt;</code>
+          <code class="wrong">&lt;circle cx="36" cy="50" r="3.5" fill="#2c2520"/&gt;</code>
+        </div>
+      </div>
+      <div class="rule-card">
+        <h4>Eye Shape = Emotion</h4>
+        <p>Emotion comes from eye SHAPE transforms (scaleX, scaleY), not pupil position.</p>
+        <div class="code-block">
+          <code>/* Happy: squinted */</code>
+          <code>transform: scaleY(0.8) scaleX(1.06);</code>
+          <code>/* Surprised: wide */</code>
+          <code>transform: scaleY(1.15) scaleX(1.05);</code>
+        </div>
+      </div>
+      <div class="rule-card">
+        <h4>Lid Curves Define Expression</h4>
+        <p>SVG path curves on top/bottom lids create the expression shape.</p>
+        <div class="code-block">
+          <code>/* Neutral: slight curve */</code>
+          <code>d: path("M 0,0 Q 50,-10 100,0");</code>
+          <code>/* Happy: deep squint */</code>
+          <code>d: path("M 0,0 Q 50,25 100,0");</code>
+        </div>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+/* ============================================
+   VARIABLES & CUSTOM PROPERTIES
+   ============================================ */
+:root {
+  /* Emotional Glow Colors */
+  --glow-sage: rgba(74, 103, 65, 0.4);
+  --glow-golden: rgba(196, 162, 101, 0.5);
+  --glow-teal: rgba(58, 107, 115, 0.45);
+  --glow-coral: rgba(196, 133, 106, 0.5);
+  --glow-protective: rgba(154, 123, 90, 0.5);
+  --glow-warm: rgba(255, 180, 120, 0.45);
+  --glow-cool: rgba(100, 140, 200, 0.4);
+  --glow-alert: rgba(200, 100, 100, 0.45);
+  --glow-calm: rgba(140, 180, 160, 0.4);
+
+  /* Gradient endpoints */
+  --grad-ferni-start: #5a7a51;
+  --grad-ferni-end: #3d5a35;
+
+  /* Spring easing */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring-heavy: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-organic: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ============================================
+   PERSONA SWITCHER
+   ============================================ */
+.persona-switcher {
+  position: sticky;
+  top: 60px;
+  z-index: 50;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-3) 0;
+  margin-bottom: var(--space-8);
+}
+
+.persona-switcher-inner {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: 0 var(--space-4);
+  scrollbar-width: none;
+}
+
+.persona-switcher-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.persona-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s var(--ease-spring);
+  border: 1px solid transparent;
+}
+
+.persona-chip:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.persona-chip.active {
+  background: var(--persona-ferni);
+  color: white;
+}
+
+.persona-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* ============================================
+   PAGE LAYOUT
+   ============================================ */
+.expressions-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: var(--space-12);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--persona-ferni);
+  margin-bottom: var(--space-3);
+  letter-spacing: -0.02em;
+}
+
+.page-header .lead {
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  max-width: 680px;
+  margin: 0 auto var(--space-4);
+}
+
+.timing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--persona-ferni);
+  color: white;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.timing-chip {
+  background: rgba(74, 103, 65, 0.1);
+  color: var(--persona-ferni);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ============================================
+   MAIN AVATAR STAGE
+   ============================================ */
+.avatar-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-12);
+  margin-bottom: var(--space-10);
+  box-shadow: var(--shadow-lg);
+}
+
+.avatar-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.ferni-avatar {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s var(--ease-spring);
+}
+
+.avatar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Presence Ring - Breathes with avatar */
+.presence-ring {
+  fill: none;
+  stroke: var(--persona-ferni);
+  stroke-width: 1.5;
+  opacity: 0.3;
+  transition: all 0.4s ease;
+  transform-origin: center center;
+}
+
+/* ============================================
+   BREATHING ANIMATION
+   ============================================ */
+.ferni-avatar.breathing .avatar-body {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.ferni-avatar.breathing .presence-ring {
+  animation: ringBreathe 4s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scaleY(1.018) scaleX(0.994); }
+}
+
+@keyframes ringBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.008); opacity: 0.35; }
+}
+
+/* ============================================
+   BLINKING ANIMATION
+   ============================================ */
+.eye-white {
+  transform-origin: center center;
+  transition: transform 0.35s var(--ease-spring);
+}
+
+.ferni-avatar.blinking .eye-white {
+  animation: blink 0.15s ease-in-out;
+}
+
+@keyframes blink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+/* ============================================
+   LID TRANSITIONS
+   ============================================ */
+.lid-top, .lid-bottom {
+  transition: d 0.35s var(--ease-spring);
+}
+
+.ferni-avatar.anticipation .lid-top,
+.ferni-avatar.anticipation .lid-bottom {
+  transition: d 0.4s var(--ease-spring-heavy);
+}
+
+/* ============================================
+   GAZE DRIFT
+   ============================================ */
+.eyes-group {
+  transition: transform 0.8s var(--ease-organic);
+}
+
+.ferni-avatar.gazing .eyes-group {
+  animation: gazeDrift 8s ease-in-out infinite;
+}
+
+@keyframes gazeDrift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(1px, -0.5px); }
+  50% { transform: translate(-0.5px, 0.5px); }
+  75% { transform: translate(0.5px, 0px); }
+}
+
+/* ============================================
+   SMILE CREASES & SPARKLES
+   ============================================ */
+.smile-crease {
+  opacity: 0;
+  transition: opacity 0.3s ease, stroke-width 0.2s var(--ease-spring);
+}
+
+.sparkle-group {
+  opacity: 0;
+  transition: all 0.2s var(--ease-spring);
+}
+
+@keyframes sparkleRotate {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(15deg) scale(1.1); }
+}
+
+/* ============================================
+   EXPRESSION STATES - COMPLETE SYSTEM
+   ============================================ */
+
+/* NEUTRAL */
+.ferni-avatar[data-mood="neutral"] .lid-top { d: path("M 0,0 Q 50,-10 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="neutral"] .lid-bottom { d: path("M 0,100 Q 50,110 100,100 L 100,100 L 0,100 Z"); }
+
+/* LISTENING */
+.ferni-avatar[data-mood="listening"] { transform: translateY(-2px); }
+.ferni-avatar[data-mood="listening"] .eye-white { transform: scaleY(1.08); }
+.ferni-avatar[data-mood="listening"] .lid-top { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="listening"] .presence-ring { opacity: 0.4; }
+
+/* ATTENTIVE */
+.ferni-avatar[data-mood="attentive"] { transform: translateY(-3px); }
+.ferni-avatar[data-mood="attentive"] .eye-white { transform: scaleY(1.1) scaleX(1.02); }
+.ferni-avatar[data-mood="attentive"] .lid-top { d: path("M 0,0 Q 50,3 100,0 L 100,0 L 0,0 Z"); }
+
+/* INTERESTED */
+.ferni-avatar[data-mood="interested"] { transform: translateY(-2px) rotate(1deg); }
+.ferni-avatar[data-mood="interested"] .eye-white { transform: scaleY(1.12); }
+.ferni-avatar[data-mood="interested"] .eyes-group { transform: translate(1px, -1px); }
+
+/* ABSORBING */
+.ferni-avatar[data-mood="absorbing"] { transform: translateY(-1px); }
+.ferni-avatar[data-mood="absorbing"] .eye-white { transform: scaleY(1.05) scaleX(1.02); }
+
+/* SPEAKING */
+.ferni-avatar[data-mood="speaking"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+.ferni-avatar[data-mood="speaking"] .lid-top { d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="speaking"] .avatar-body { animation: speakPulse 0.45s ease-in-out infinite; }
+.ferni-avatar[data-mood="speaking"] .presence-ring { animation: ringPulse 0.45s ease-in-out infinite; }
+
+@keyframes speakPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scaleY(1.012) scaleX(0.992); }
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.006); opacity: 0.38; }
+}
+
+/* EXPLAINING */
+.ferni-avatar[data-mood="explaining"] .eye-white { transform: scaleY(0.9) scaleX(1.02); }
+.ferni-avatar[data-mood="explaining"] .lid-top { d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z"); }
+
+/* ENCOURAGING */
+.ferni-avatar[data-mood="encouraging"] { transform: translateY(-2px) scale(1.02); }
+.ferni-avatar[data-mood="encouraging"] .eye-white { transform: scaleY(0.85) scaleX(1.04); }
+.ferni-avatar[data-mood="encouraging"] .smile-crease { opacity: 0.5; }
+
+/* REASSURING */
+.ferni-avatar[data-mood="reassuring"] { transform: rotate(-1deg); }
+.ferni-avatar[data-mood="reassuring"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+
+/* HAPPY */
+.ferni-avatar[data-mood="happy"] .eye-white { transform: scaleY(0.8) scaleX(1.06); }
+.ferni-avatar[data-mood="happy"] .lid-top { d: path("M 0,0 Q 50,25 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="happy"] .lid-bottom { d: path("M 0,100 Q 50,85 100,100 L 100,100 L 0,100 Z"); }
+
+/* JOYFUL */
+.ferni-avatar[data-mood="joyful"] { transform: translateY(-4px) scale(1.03); }
+.ferni-avatar[data-mood="joyful"] .eye-white { transform: scaleY(0.7) scaleX(1.12); }
+.ferni-avatar[data-mood="joyful"] .lid-top { d: path("M 0,0 Q 50,35 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="joyful"] .lid-bottom { d: path("M 0,100 Q 50,75 100,100 L 100,100 L 0,100 Z"); }
+.ferni-avatar[data-mood="joyful"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+.ferni-avatar[data-mood="joyful"] .presence-ring { opacity: 0.5; stroke-width: 2; transform: scale(1.02); }
+
+/* DELIGHTED */
+.ferni-avatar[data-mood="delighted"] { transform: translateY(-6px) scale(1.05) rotate(-2deg); animation: delightedBounce 0.5s var(--ease-spring); }
+.ferni-avatar[data-mood="delighted"] .eye-white { transform: scaleY(0.6) scaleX(1.15); }
+.ferni-avatar[data-mood="delighted"] .lid-top { d: path("M 0,0 Q 50,42 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="delighted"] .lid-bottom { d: path("M 0,100 Q 50,72 100,100 L 100,100 L 0,100 Z"); }
+.ferni-avatar[data-mood="delighted"] .smile-crease { opacity: 1; stroke-width: 2; }
+.ferni-avatar[data-mood="delighted"] .sparkle-group { opacity: 1; }
+.ferni-avatar[data-mood="delighted"] .sparkle-star { animation: sparkleRotate 0.6s ease-in-out infinite; }
+
+@keyframes delightedBounce {
+  0% { transform: translateY(0) scale(1) rotate(0); }
+  40% { transform: translateY(-10px) scale(1.08) rotate(-3deg); }
+  70% { transform: translateY(-4px) scale(1.04) rotate(-1deg); }
+  100% { transform: translateY(-6px) scale(1.05) rotate(-2deg); }
+}
+
+/* EXCITED */
+.ferni-avatar[data-mood="excited"] { transform: scale(1.06); animation: excitedBounce 0.35s var(--ease-bounce) infinite; }
+.ferni-avatar[data-mood="excited"] .eye-white { transform: scaleY(1.15) scaleX(1.08); }
+.ferni-avatar[data-mood="excited"] .lid-top { d: path("M 0,0 Q 50,-12 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="excited"] .sparkle-group { opacity: 1; }
+
+@keyframes excitedBounce {
+  0%, 100% { transform: scale(1.06) translateY(0) rotate(0); }
+  25% { transform: scale(1.08) translateY(-4px) rotate(-1deg); }
+  50% { transform: scale(1.04) translateY(-2px) rotate(1deg); }
+  75% { transform: scale(1.07) translateY(-3px) rotate(-0.5deg); }
+}
+
+/* PROUD */
+.ferni-avatar[data-mood="proud"] { transform: translateY(-5px) scale(1.04); }
+.ferni-avatar[data-mood="proud"] .eye-white { transform: scaleY(0.88) scaleX(1.04); }
+.ferni-avatar[data-mood="proud"] .lid-top { d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="proud"] .smile-crease { opacity: 0.6; }
+
+/* GRATEFUL */
+.ferni-avatar[data-mood="grateful"] { transform: translateY(-3px); }
+.ferni-avatar[data-mood="grateful"] .eye-white { transform: scaleY(0.82) scaleX(1.04); }
+.ferni-avatar[data-mood="grateful"] .smile-crease { opacity: 0.7; }
+
+/* CONTENT */
+.ferni-avatar[data-mood="content"] .eye-white { transform: scaleY(0.85) scaleX(1.02); }
+.ferni-avatar[data-mood="content"] .lid-top { d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z"); }
+
+/* AMUSED */
+.ferni-avatar[data-mood="amused"] { transform: rotate(1deg); }
+.ferni-avatar[data-mood="amused"] .eye-white { transform: scaleY(0.8) scaleX(1.05); }
+.ferni-avatar[data-mood="amused"] .smile-crease { opacity: 0.5; }
+
+/* THINKING */
+.ferni-avatar[data-mood="thinking"] { transform: rotate(1.5deg); }
+.ferni-avatar[data-mood="thinking"] .eyes-group { transform: translate(2px, -2px); }
+.ferni-avatar[data-mood="thinking"] .eye-white { transform: scaleY(0.95); }
+.ferni-avatar[data-mood="thinking"] .lid-top { d: path("M 0,0 Q 50,15 100,0 L 100,0 L 0,0 Z"); }
+
+/* PONDERING */
+.ferni-avatar[data-mood="pondering"] { transform: rotate(3deg) translateY(-2px); animation: ponderDrift 4s ease-in-out infinite; }
+.ferni-avatar[data-mood="pondering"] .eye-white { transform: scaleY(0.88) scaleX(0.96); }
+.ferni-avatar[data-mood="pondering"] .lid-top { d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="pondering"] .eyes-group { transform: translate(4px, -3px); }
+
+@keyframes ponderDrift {
+  0%, 100% { transform: rotate(3deg) translateY(-2px); }
+  33% { transform: rotate(4deg) translateY(-3px); }
+  66% { transform: rotate(2deg) translateY(-1px); }
+}
+
+/* FOCUSED */
+.ferni-avatar[data-mood="focused"] { transform: scaleY(1.01); }
+.ferni-avatar[data-mood="focused"] .eye-white { transform: scaleY(0.92) scaleX(1.02); }
+.ferni-avatar[data-mood="focused"] .lid-top { d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z"); }
+
+/* PROCESSING */
+.ferni-avatar[data-mood="processing"] { animation: processingPulse 1.5s ease-in-out infinite; }
+.ferni-avatar[data-mood="processing"] .eye-white { transform: scaleY(0.9); }
+
+@keyframes processingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* REFLECTING */
+.ferni-avatar[data-mood="reflecting"] { transform: rotate(2deg); }
+.ferni-avatar[data-mood="reflecting"] .eyes-group { transform: translate(3px, -2px); }
+.ferni-avatar[data-mood="reflecting"] .eye-white { transform: scaleY(0.9); }
+
+/* ANALYZING */
+.ferni-avatar[data-mood="analyzing"] { transform: rotate(-1deg); }
+.ferni-avatar[data-mood="analyzing"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+.ferni-avatar[data-mood="analyzing"] .eyes-group { transform: translate(-1px, 0); }
+
+/* SURPRISED */
+.ferni-avatar[data-mood="surprised"] { transform: scaleY(1.02) scaleX(0.99); }
+.ferni-avatar[data-mood="surprised"] .eye-white { transform: scaleY(1.15) scaleX(1.05); }
+.ferni-avatar[data-mood="surprised"] .lid-top { d: path("M 0,0 Q 50,-15 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="surprised"] .lid-bottom { d: path("M 0,100 Q 50,115 100,100 L 100,100 L 0,100 Z"); }
+
+/* SHOCKED */
+.ferni-avatar[data-mood="shocked"] { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); animation: shockPop 0.3s var(--ease-spring); }
+.ferni-avatar[data-mood="shocked"] .eye-white { transform: scaleY(1.35) scaleX(1.15); }
+.ferni-avatar[data-mood="shocked"] .lid-top { d: path("M 0,0 Q 50,-35 100,0 L 100,0 L 0,0 Z"); }
+
+@keyframes shockPop {
+  0% { transform: scaleY(0.95) scaleX(1.02) translateY(0); }
+  30% { transform: scaleY(1.12) scaleX(0.9) translateY(-12px); }
+  100% { transform: scaleY(1.08) scaleX(0.94) translateY(-8px); }
+}
+
+/* AMAZED */
+.ferni-avatar[data-mood="amazed"] { transform: scaleY(1.04) translateY(-4px); }
+.ferni-avatar[data-mood="amazed"] .eye-white { transform: scaleY(1.2) scaleX(1.08); }
+.ferni-avatar[data-mood="amazed"] .sparkle-group { opacity: 0.7; }
+
+/* INTRIGUED */
+.ferni-avatar[data-mood="intrigued"] { transform: rotate(2deg) translateY(-1px); }
+.ferni-avatar[data-mood="intrigued"] .eye-white { transform: scaleY(1.08) scaleX(1.02); }
+
+/* ASTONISHED */
+.ferni-avatar[data-mood="astonished"] { transform: scaleY(1.06) translateY(-6px); }
+.ferni-avatar[data-mood="astonished"] .eye-white { transform: scaleY(1.25) scaleX(1.1); }
+
+/* WARM */
+.ferni-avatar[data-mood="warm"] .eye-white { transform: scaleY(0.9) scaleX(1.03); }
+.ferni-avatar[data-mood="warm"] .lid-top { d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="warm"] .lid-bottom { d: path("M 0,100 Q 50,90 100,100 L 100,100 L 0,100 Z"); }
+
+/* CARING */
+.ferni-avatar[data-mood="caring"] { transform: translateY(-2px) rotate(-1deg); }
+.ferni-avatar[data-mood="caring"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+.ferni-avatar[data-mood="caring"] .lid-top { d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="caring"] .smile-crease { opacity: 0.6; }
+
+/* LOVING */
+.ferni-avatar[data-mood="loving"] { transform: translateY(-4px) scale(1.02); animation: lovingGlow 2s ease-in-out infinite; }
+.ferni-avatar[data-mood="loving"] .eye-white { transform: scaleY(0.75) scaleX(1.08); }
+.ferni-avatar[data-mood="loving"] .lid-top { d: path("M 0,0 Q 50,30 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="loving"] .smile-crease { opacity: 1; stroke-width: 1.5; }
+
+@keyframes lovingGlow {
+  0%, 100% { transform: translateY(-4px) scale(1.02); }
+  50% { transform: translateY(-5px) scale(1.03); }
+}
+
+/* TENDER */
+.ferni-avatar[data-mood="tender"] { transform: rotate(-1.5deg); }
+.ferni-avatar[data-mood="tender"] .eye-white { transform: scaleY(0.82) scaleX(1.02); }
+.ferni-avatar[data-mood="tender"] .smile-crease { opacity: 0.5; }
+
+/* SUPPORTIVE */
+.ferni-avatar[data-mood="supportive"] { transform: translateY(-1px); }
+.ferni-avatar[data-mood="supportive"] .eye-white { transform: scaleY(0.88) scaleX(1.03); }
+
+/* COMPASSIONATE */
+.ferni-avatar[data-mood="compassionate"] { transform: rotate(-1deg) translateY(-1px); }
+.ferni-avatar[data-mood="compassionate"] .eye-white { transform: scaleY(0.85) scaleX(1.02); }
+
+/* NURTURING */
+.ferni-avatar[data-mood="nurturing"] { transform: translateY(-2px) rotate(-0.5deg); }
+.ferni-avatar[data-mood="nurturing"] .eye-white { transform: scaleY(0.86) scaleX(1.02); }
+.ferni-avatar[data-mood="nurturing"] .smile-crease { opacity: 0.4; }
+
+/* PLAYFUL */
+.ferni-avatar[data-mood="playful"] { transform: rotate(2deg) translateY(-2px); animation: playfulSway 1.5s ease-in-out infinite; }
+.ferni-avatar[data-mood="playful"] .eye-white { transform: scaleY(0.92) scaleX(1.06); }
+.ferni-avatar[data-mood="playful"] .eye-left { transform: scaleY(0.88) scaleX(1.06); }
+.ferni-avatar[data-mood="playful"] .lid-top { d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z"); }
+
+@keyframes playfulSway {
+  0%, 100% { transform: rotate(2deg) translateY(-2px); }
+  50% { transform: rotate(-1deg) translateY(-3px); }
+}
+
+/* MISCHIEVOUS */
+.ferni-avatar[data-mood="mischievous"] { transform: rotate(3deg) translateY(-2px); }
+.ferni-avatar[data-mood="mischievous"] .eye-white { transform: scaleY(0.85) scaleX(1.08); }
+.ferni-avatar[data-mood="mischievous"] .eye-left { transform: scaleY(0.75) scaleX(1.1); }
+
+/* CHEEKY */
+.ferni-avatar[data-mood="cheeky"] { transform: rotate(2deg); }
+.ferni-avatar[data-mood="cheeky"] .eye-white { transform: scaleY(0.88) scaleX(1.05); }
+.ferni-avatar[data-mood="cheeky"] .smile-crease { opacity: 0.6; }
+
+/* SILLY */
+.ferni-avatar[data-mood="silly"] { transform: rotate(-3deg); animation: sillyWobble 0.8s ease-in-out infinite; }
+.ferni-avatar[data-mood="silly"] .eye-white { transform: scaleY(0.85) scaleX(1.1); }
+
+@keyframes sillyWobble {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* WINKING */
+.ferni-avatar[data-mood="winking"] { transform: rotate(2deg) translateY(-2px); }
+.ferni-avatar[data-mood="winking"] .eye-left { transform: scaleY(0.08) scaleX(1.2); }
+.ferni-avatar[data-mood="winking"] .eye-right { transform: scaleY(1.05); }
+.ferni-avatar[data-mood="winking"] .lid-top { d: path("M 0,0 Q 50,12 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="winking"] .smile-crease { opacity: 0.6; }
+
+/* TEASING */
+.ferni-avatar[data-mood="teasing"] { transform: rotate(1deg); }
+.ferni-avatar[data-mood="teasing"] .eye-white { transform: scaleY(0.9) scaleX(1.04); }
+.ferni-avatar[data-mood="teasing"] .smile-crease { opacity: 0.5; }
+
+/* CONCERNED */
+.ferni-avatar[data-mood="concerned"] { transform: rotate(-1deg); }
+.ferni-avatar[data-mood="concerned"] .eye-white { transform: scaleY(1.02); }
+.ferni-avatar[data-mood="concerned"] .lid-top { d: path("M 0,0 Q 50,8 100,0 L 100,0 L 0,0 Z"); }
+
+/* WORRIED */
+.ferni-avatar[data-mood="worried"] { transform: rotate(-1.5deg) translateY(1px); }
+.ferni-avatar[data-mood="worried"] .eye-white { transform: scaleY(1.05); }
+.ferni-avatar[data-mood="worried"] .lid-top { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+
+/* SYMPATHETIC */
+.ferni-avatar[data-mood="sympathetic"] { transform: rotate(-1deg) translateY(-1px); }
+.ferni-avatar[data-mood="sympathetic"] .eye-white { transform: scaleY(0.9) scaleX(1.02); }
+
+/* UNDERSTANDING */
+.ferni-avatar[data-mood="understanding"] { transform: translateY(-1px); }
+.ferni-avatar[data-mood="understanding"] .eye-white { transform: scaleY(0.92) scaleX(1.02); }
+
+/* COMFORTING */
+.ferni-avatar[data-mood="comforting"] { transform: rotate(-0.5deg); }
+.ferni-avatar[data-mood="comforting"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+
+/* SAD */
+.ferni-avatar[data-mood="sad"] { transform: translateY(2px) scaleY(0.98); animation: sadDroop 5s ease-in-out infinite; }
+.ferni-avatar[data-mood="sad"] .eye-white { transform: scaleY(0.85); }
+.ferni-avatar[data-mood="sad"] .lid-top { d: path("M 0,0 Q 50,20 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="sad"] .eyes-group { transform: translateY(2px); }
+
+@keyframes sadDroop {
+  0%, 100% { transform: translateY(2px) scaleY(0.98); }
+  50% { transform: translateY(3px) scaleY(0.97); }
+}
+
+/* MELANCHOLY */
+.ferni-avatar[data-mood="melancholy"] { transform: translateY(2px) rotate(-1deg); animation: melancholyDrift 6s ease-in-out infinite; }
+.ferni-avatar[data-mood="melancholy"] .eye-white { transform: scaleY(0.82); }
+
+@keyframes melancholyDrift {
+  0%, 100% { transform: translateY(2px) rotate(-1deg); }
+  50% { transform: translateY(3px) rotate(-2deg); }
+}
+
+/* DISAPPOINTED */
+.ferni-avatar[data-mood="disappointed"] { transform: translateY(3px) scaleY(0.97); }
+.ferni-avatar[data-mood="disappointed"] .eye-white { transform: scaleY(0.8); }
+
+/* DEJECTED */
+.ferni-avatar[data-mood="dejected"] { transform: translateY(4px) scaleY(0.96); }
+.ferni-avatar[data-mood="dejected"] .eye-white { transform: scaleY(0.75); }
+
+/* CONFUSED */
+.ferni-avatar[data-mood="confused"] { transform: rotate(3deg); animation: confusedTilt 3s ease-in-out infinite; }
+.ferni-avatar[data-mood="confused"] .eye-white { transform: scaleY(1.02); }
+.ferni-avatar[data-mood="confused"] .eye-left { transform: scaleY(0.95); }
+.ferni-avatar[data-mood="confused"] .lid-top { d: path("M 0,0 Q 50,5 100,0 L 100,0 L 0,0 Z"); }
+
+@keyframes confusedTilt {
+  0%, 100% { transform: rotate(3deg); }
+  50% { transform: rotate(5deg); }
+}
+
+/* SKEPTICAL */
+.ferni-avatar[data-mood="skeptical"] { transform: rotate(2deg); }
+.ferni-avatar[data-mood="skeptical"] .eye-left { transform: scaleY(0.88); }
+.ferni-avatar[data-mood="skeptical"] .eye-right { transform: scaleY(1.05); }
+
+/* PUZZLED */
+.ferni-avatar[data-mood="puzzled"] { transform: rotate(4deg); }
+.ferni-avatar[data-mood="puzzled"] .eye-white { transform: scaleY(1.05); }
+
+/* PERPLEXED */
+.ferni-avatar[data-mood="perplexed"] { transform: rotate(5deg); animation: perplexedWobble 2s ease-in-out infinite; }
+.ferni-avatar[data-mood="perplexed"] .eye-white { transform: scaleY(1.08); }
+
+@keyframes perplexedWobble {
+  0%, 100% { transform: rotate(5deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* BEWILDERED */
+.ferni-avatar[data-mood="bewildered"] { animation: bewilderedSpin 4s ease-in-out infinite; }
+.ferni-avatar[data-mood="bewildered"] .eye-white { transform: scaleY(1.1); }
+
+@keyframes bewilderedSpin {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3deg); }
+  50% { transform: rotate(-2deg); }
+  75% { transform: rotate(4deg); }
+}
+
+/* NERVOUS */
+.ferni-avatar[data-mood="nervous"] { animation: nervousShake 0.3s ease-in-out infinite; }
+.ferni-avatar[data-mood="nervous"] .eye-white { transform: scaleY(1.08); }
+.ferni-avatar[data-mood="nervous"] .lid-top { d: path("M 0,0 Q 50,2 100,0 L 100,0 L 0,0 Z"); }
+
+@keyframes nervousShake {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(0.5px); }
+}
+
+/* ANXIOUS */
+.ferni-avatar[data-mood="anxious"] { animation: anxiousTremble 0.2s ease-in-out infinite; }
+.ferni-avatar[data-mood="anxious"] .eye-white { transform: scaleY(1.1); }
+
+@keyframes anxiousTremble {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(0.5px) translateY(-0.5px); }
+  75% { transform: translateX(-0.5px) translateY(0.5px); }
+}
+
+/* SCARED */
+.ferni-avatar[data-mood="scared"] { transform: scaleY(0.95) translateY(2px); }
+.ferni-avatar[data-mood="scared"] .eye-white { transform: scaleY(1.2) scaleX(1.1); }
+
+/* UNEASY */
+.ferni-avatar[data-mood="uneasy"] { animation: uneasySway 2s ease-in-out infinite; }
+.ferni-avatar[data-mood="uneasy"] .eye-white { transform: scaleY(1.05); }
+
+@keyframes uneasySway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1deg); }
+}
+
+/* EMBARRASSED */
+.ferni-avatar[data-mood="embarrassed"] { transform: scaleY(0.97) translateY(1px); }
+.ferni-avatar[data-mood="embarrassed"] .eye-white { transform: scaleY(0.85); }
+
+/* CONFIDENT */
+.ferni-avatar[data-mood="confident"] { transform: translateY(-1px); }
+.ferni-avatar[data-mood="confident"] .eye-white { transform: scaleY(0.88) scaleX(1.02); }
+.ferni-avatar[data-mood="confident"] .lid-top { d: path("M 0,0 Q 50,14 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="confident"] .smile-crease { opacity: 0.5; }
+
+/* DETERMINED */
+.ferni-avatar[data-mood="determined"] { transform: scaleY(1.02) translateY(-1px); }
+.ferni-avatar[data-mood="determined"] .eye-white { transform: scaleY(0.85) scaleX(1.04); }
+.ferni-avatar[data-mood="determined"] .lid-top { d: path("M 0,0 Q 50,16 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="determined"] .presence-ring { opacity: 0.5; stroke-width: 2.8; }
+
+/* SMIRKING */
+.ferni-avatar[data-mood="smirking"] { transform: rotate(1deg); }
+.ferni-avatar[data-mood="smirking"] .eye-white { transform: scaleY(0.9) scaleX(1.04); }
+.ferni-avatar[data-mood="smirking"] .eye-left { transform: scaleY(0.85) scaleX(1.06); }
+.ferni-avatar[data-mood="smirking"] .smile-crease { opacity: 0.5; }
+
+/* COOL */
+.ferni-avatar[data-mood="cool"] { transform: translateY(-1px); }
+.ferni-avatar[data-mood="cool"] .eye-white { transform: scaleY(0.85) scaleX(1.02); }
+.ferni-avatar[data-mood="cool"] .lid-top { d: path("M 0,0 Q 50,18 100,0 L 100,0 L 0,0 Z"); }
+
+/* SMUG */
+.ferni-avatar[data-mood="smug"] { transform: translateY(-2px) rotate(1deg); }
+.ferni-avatar[data-mood="smug"] .eye-white { transform: scaleY(0.82) scaleX(1.06); }
+.ferni-avatar[data-mood="smug"] .smile-crease { opacity: 0.7; }
+
+/* SLEEPY */
+.ferni-avatar[data-mood="sleepy"] { transform: scaleY(0.99); }
+.ferni-avatar[data-mood="sleepy"] .eye-white { transform: scaleY(0.5); }
+.ferni-avatar[data-mood="sleepy"] .lid-top { d: path("M 0,0 Q 50,55 100,0 L 100,0 L 0,0 Z"); }
+.ferni-avatar[data-mood="sleepy"] .lid-bottom { d: path("M 0,100 Q 50,70 100,100 L 100,100 L 0,100 Z"); }
+
+/* ============================================
+   GLOW RING BY EMOTION
+   ============================================ */
+.glow-ring {
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: all 0.5s ease;
+  pointer-events: none;
+}
+
+/* Golden glow - joy states */
+[data-mood="happy"] ~ .glow-ring,
+[data-mood="joyful"] ~ .glow-ring,
+[data-mood="delighted"] ~ .glow-ring,
+[data-mood="proud"] ~ .glow-ring,
+[data-mood="excited"] ~ .glow-ring,
+[data-mood="grateful"] ~ .glow-ring,
+[data-mood="amused"] ~ .glow-ring,
+[data-mood="content"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-golden) 0%, transparent 70%);
+  opacity: 0.7;
+}
+
+/* Warm glow - caring states */
+[data-mood="caring"] ~ .glow-ring,
+[data-mood="loving"] ~ .glow-ring,
+[data-mood="warm"] ~ .glow-ring,
+[data-mood="tender"] ~ .glow-ring,
+[data-mood="supportive"] ~ .glow-ring,
+[data-mood="compassionate"] ~ .glow-ring,
+[data-mood="nurturing"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-warm) 0%, transparent 70%);
+  opacity: 0.6;
+}
+
+/* Teal glow - thinking states */
+[data-mood="thinking"] ~ .glow-ring,
+[data-mood="pondering"] ~ .glow-ring,
+[data-mood="focused"] ~ .glow-ring,
+[data-mood="processing"] ~ .glow-ring,
+[data-mood="reflecting"] ~ .glow-ring,
+[data-mood="analyzing"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-teal) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* Sage glow - neutral/listening */
+[data-mood="neutral"] ~ .glow-ring,
+[data-mood="listening"] ~ .glow-ring,
+[data-mood="attentive"] ~ .glow-ring,
+[data-mood="interested"] ~ .glow-ring,
+[data-mood="absorbing"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-sage) 0%, transparent 70%);
+  opacity: 0.4;
+}
+
+/* Protective glow - concern states */
+[data-mood="worried"] ~ .glow-ring,
+[data-mood="concerned"] ~ .glow-ring,
+[data-mood="sad"] ~ .glow-ring,
+[data-mood="sympathetic"] ~ .glow-ring,
+[data-mood="melancholy"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-protective) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* Alert glow - nervous/surprise states */
+[data-mood="nervous"] ~ .glow-ring,
+[data-mood="anxious"] ~ .glow-ring,
+[data-mood="shocked"] ~ .glow-ring,
+[data-mood="surprised"] ~ .glow-ring,
+[data-mood="scared"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-alert) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* Calm glow - peaceful states */
+[data-mood="sleepy"] ~ .glow-ring,
+[data-mood="cool"] ~ .glow-ring {
+  background: radial-gradient(circle, var(--glow-calm) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+/* ============================================
+   EXPRESSION INFO
+   ============================================ */
+.expression-info {
+  text-align: center;
+  margin-top: var(--space-6);
+}
+
+.expression-name {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--persona-ferni);
+  margin-bottom: var(--space-2);
+}
+
+.expression-trigger {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.expression-meta {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  text-align: center;
+}
+
+.meta-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.meta-value {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--persona-ferni);
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   SECTION STYLES
+   ============================================ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.section-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+/* ============================================
+   MICRO-EXPRESSIONS
+   ============================================ */
+.micro-section {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.micro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+}
+
+.micro-card {
+  background: rgba(74, 103, 65, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  border: 2px solid transparent;
+}
+
+.micro-card:hover {
+  background: rgba(74, 103, 65, 0.08);
+  transform: translateY(-2px);
+  border-color: var(--persona-ferni);
+}
+
+.micro-card.playing {
+  background: var(--persona-ferni);
+  color: white;
+}
+
+.micro-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.micro-timing {
+  font-size: var(--text-sm);
+  color: var(--persona-ferni);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.micro-card.playing .micro-timing {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.micro-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.micro-card.playing .micro-desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================
+   ANIMATION LAYERS
+   ============================================ */
+.layers-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.layers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.layer-card {
+  background: rgba(74, 103, 65, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  border: 2px solid transparent;
+}
+
+.layer-card:hover {
+  background: rgba(74, 103, 65, 0.08);
+}
+
+.layer-card.active {
+  background: var(--persona-ferni);
+  color: white;
+  border-color: var(--persona-ferni);
+}
+
+.layer-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layer-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.layer-card.active .layer-icon svg {
+  color: white;
+}
+
+.layer-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-1);
+}
+
+.layer-timing {
+  font-size: var(--text-sm);
+  opacity: 0.8;
+  margin-bottom: var(--space-2);
+}
+
+.layer-desc {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+/* ============================================
+   WAVEFORM SECTION
+   ============================================ */
+.waveform-section {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.waveform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-5);
+}
+
+.waveform-card {
+  background: rgba(74, 103, 65, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.waveform-preview {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: var(--space-4);
+}
+
+.waveform-bar {
+  width: 4px;
+  background: var(--persona-ferni);
+  border-radius: 2px;
+  animation: waveformPulse 1.2s ease-in-out infinite;
+}
+
+.waveform-bar:nth-child(1) { animation-delay: 0s; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+.waveform-bar:nth-child(6) { animation-delay: 0.5s; }
+.waveform-bar:nth-child(7) { animation-delay: 0.6s; }
+.waveform-bar:nth-child(8) { animation-delay: 0.7s; }
+
+@keyframes waveformPulse {
+  0%, 100% { height: 20px; }
+  50% { height: 50px; }
+}
+
+/* Happy waveform */
+.waveform-happy .waveform-bar {
+  animation: waveformHappy 0.8s ease-in-out infinite;
+}
+
+@keyframes waveformHappy {
+  0%, 100% { height: 25px; transform: scaleX(1); }
+  50% { height: 55px; transform: scaleX(1.2); }
+}
+
+/* Calm waveform */
+.waveform-calm .waveform-bar {
+  animation: waveformCalm 2s ease-in-out infinite;
+}
+
+@keyframes waveformCalm {
+  0%, 100% { height: 30px; }
+  50% { height: 40px; }
+}
+
+/* Worried waveform */
+.waveform-worried .waveform-bar {
+  animation: waveformWorried 0.4s ease-in-out infinite;
+}
+
+@keyframes waveformWorried {
+  0%, 100% { height: 20px; }
+  25% { height: 35px; }
+  50% { height: 15px; }
+  75% { height: 30px; }
+}
+
+/* Thinking waveform */
+.waveform-thinking .waveform-bar {
+  animation: waveformThinking 1.5s ease-in-out infinite;
+}
+
+@keyframes waveformThinking {
+  0%, 20% { height: 10px; }
+  30%, 50% { height: 40px; }
+  60%, 80% { height: 15px; }
+  90%, 100% { height: 30px; }
+}
+
+.waveform-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.waveform-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+/* ============================================
+   EXPRESSION CATEGORIES
+   ============================================ */
+.category-section {
+  margin-bottom: var(--space-10);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.category-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.category-count {
+  background: rgba(74, 103, 65, 0.1);
+  color: var(--persona-ferni);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.expression-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-3);
+}
+
+.expression-btn {
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border: 2px solid rgba(44, 37, 32, 0.08);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  text-align: center;
+}
+
+.expression-btn:hover {
+  border-color: var(--persona-ferni);
+  color: var(--persona-ferni);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.expression-btn.active {
+  background: var(--persona-ferni);
+  border-color: var(--persona-ferni);
+  color: white;
+}
+
+.expression-btn .trigger {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-normal);
+  margin-top: var(--space-1);
+  opacity: 0.7;
+}
+
+/* ============================================
+   INFO PANEL
+   ============================================ */
+.info-panel {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin-top: var(--space-10);
+  margin-bottom: var(--space-10);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-6);
+}
+
+.info-item {
+  text-align: center;
+}
+
+.info-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.info-value {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--persona-ferni);
+}
+
+/* ============================================
+   DESIGN RULES
+   ============================================ */
+.design-rules {
+  margin-top: var(--space-10);
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.rule-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.rule-card.critical {
+  border-color: var(--error);
+  background: rgba(224, 117, 117, 0.05);
+}
+
+.rule-card h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.rule-card.critical h4 {
+  color: var(--error);
+}
+
+.rule-card p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.code-block {
+  background: var(--bg-code);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.code-block code {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.code-block code.wrong {
+  color: var(--error);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .expression-meta {
+    gap: var(--space-4);
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .expressions-page {
+    padding: var(--space-4);
+  }
+
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .avatar-container {
+    width: 160px;
+    height: 160px;
+  }
+
+  .expression-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .micro-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .layers-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .waveform-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .expression-meta {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .layers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .waveform-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+(function() {
+  // Elements
+  const mainAvatar = document.getElementById('mainAvatar');
+  const expressionName = document.getElementById('expressionName');
+  const expressionTrigger = document.getElementById('expressionTrigger');
+  const metaLid = document.getElementById('metaLid');
+  const metaEye = document.getElementById('metaEye');
+  const metaBody = document.getElementById('metaBody');
+  const metaGlow = document.getElementById('metaGlow');
+  const buttons = document.querySelectorAll('.expression-btn');
+  const microCards = document.querySelectorAll('.micro-card');
+  const layerCards = document.querySelectorAll('.layer-card');
+
+  // Expression metadata lookup
+  const expressionData = {
+    neutral: { lid: 'Q 50,-10', eye: '1.0', body: 'none', glow: 'Sage' },
+    listening: { lid: 'Q 50,5', eye: '1.08', body: 'translateY(-2px)', glow: 'Sage' },
+    attentive: { lid: 'Q 50,3', eye: '1.1', body: 'translateY(-3px)', glow: 'Sage' },
+    interested: { lid: 'Q 50,5', eye: '1.12', body: 'translateY(-2px) rotate(1deg)', glow: 'Sage' },
+    absorbing: { lid: 'Q 50,0', eye: '1.05', body: 'translateY(-1px)', glow: 'Sage' },
+    speaking: { lid: 'Q 50,15', eye: '0.88', body: 'pulse', glow: 'Sage' },
+    explaining: { lid: 'Q 50,12', eye: '0.9', body: 'none', glow: 'Sage' },
+    encouraging: { lid: 'Q 50,14', eye: '0.85', body: 'translateY(-2px)', glow: 'Golden' },
+    reassuring: { lid: 'Q 50,12', eye: '0.88', body: 'rotate(-1deg)', glow: 'Warm' },
+    happy: { lid: 'Q 50,25', eye: '0.8', body: 'none', glow: 'Golden' },
+    joyful: { lid: 'Q 50,35', eye: '0.7', body: 'translateY(-4px)', glow: 'Golden' },
+    delighted: { lid: 'Q 50,42', eye: '0.6', body: 'translateY(-6px) rotate(-2deg)', glow: 'Golden' },
+    excited: { lid: 'Q 50,-12', eye: '1.15', body: 'scale(1.06)', glow: 'Golden' },
+    proud: { lid: 'Q 50,15', eye: '0.88', body: 'translateY(-5px)', glow: 'Golden' },
+    grateful: { lid: 'Q 50,18', eye: '0.82', body: 'translateY(-3px)', glow: 'Golden' },
+    content: { lid: 'Q 50,18', eye: '0.85', body: 'none', glow: 'Golden' },
+    amused: { lid: 'Q 50,15', eye: '0.8', body: 'rotate(1deg)', glow: 'Golden' },
+    thinking: { lid: 'Q 50,15', eye: '0.95', body: 'rotate(1.5deg)', glow: 'Teal' },
+    pondering: { lid: 'Q 50,18', eye: '0.88', body: 'rotate(3deg)', glow: 'Teal' },
+    focused: { lid: 'Q 50,14', eye: '0.92', body: 'scaleY(1.01)', glow: 'Teal' },
+    processing: { lid: 'Q 50,10', eye: '0.9', body: 'pulse', glow: 'Teal' },
+    reflecting: { lid: 'Q 50,12', eye: '0.9', body: 'rotate(2deg)', glow: 'Teal' },
+    analyzing: { lid: 'Q 50,10', eye: '0.88', body: 'rotate(-1deg)', glow: 'Teal' },
+    surprised: { lid: 'Q 50,-15', eye: '1.15', body: 'scaleY(1.02)', glow: 'Alert' },
+    shocked: { lid: 'Q 50,-35', eye: '1.35', body: 'scaleY(1.08)', glow: 'Alert' },
+    amazed: { lid: 'Q 50,-20', eye: '1.2', body: 'translateY(-4px)', glow: 'Golden' },
+    intrigued: { lid: 'Q 50,-5', eye: '1.08', body: 'rotate(2deg)', glow: 'Teal' },
+    astonished: { lid: 'Q 50,-25', eye: '1.25', body: 'translateY(-6px)', glow: 'Alert' },
+    warm: { lid: 'Q 50,18', eye: '0.9', body: 'none', glow: 'Warm' },
+    caring: { lid: 'Q 50,20', eye: '0.88', body: 'rotate(-1deg)', glow: 'Warm' },
+    loving: { lid: 'Q 50,30', eye: '0.75', body: 'translateY(-4px)', glow: 'Warm' },
+    tender: { lid: 'Q 50,22', eye: '0.82', body: 'rotate(-1.5deg)', glow: 'Warm' },
+    supportive: { lid: 'Q 50,16', eye: '0.88', body: 'translateY(-1px)', glow: 'Warm' },
+    compassionate: { lid: 'Q 50,18', eye: '0.85', body: 'rotate(-1deg)', glow: 'Warm' },
+    nurturing: { lid: 'Q 50,18', eye: '0.86', body: 'translateY(-2px)', glow: 'Warm' },
+    playful: { lid: 'Q 50,14', eye: '0.92', body: 'rotate(2deg)', glow: 'Golden' },
+    mischievous: { lid: 'Q 50,12', eye: '0.85', body: 'rotate(3deg)', glow: 'Golden' },
+    cheeky: { lid: 'Q 50,14', eye: '0.88', body: 'rotate(2deg)', glow: 'Golden' },
+    silly: { lid: 'Q 50,10', eye: '0.85', body: 'rotate(-3deg)', glow: 'Golden' },
+    winking: { lid: 'Q 50,12', eye: 'L:0.08 R:1.05', body: 'rotate(2deg)', glow: 'Golden' },
+    teasing: { lid: 'Q 50,12', eye: '0.9', body: 'rotate(1deg)', glow: 'Golden' },
+    concerned: { lid: 'Q 50,8', eye: '1.02', body: 'rotate(-1deg)', glow: 'Protective' },
+    worried: { lid: 'Q 50,5', eye: '1.05', body: 'rotate(-1.5deg)', glow: 'Protective' },
+    sympathetic: { lid: 'Q 50,10', eye: '0.9', body: 'rotate(-1deg)', glow: 'Protective' },
+    understanding: { lid: 'Q 50,12', eye: '0.92', body: 'translateY(-1px)', glow: 'Protective' },
+    comforting: { lid: 'Q 50,14', eye: '0.88', body: 'rotate(-0.5deg)', glow: 'Warm' },
+    sad: { lid: 'Q 50,20', eye: '0.85', body: 'translateY(2px)', glow: 'Protective' },
+    melancholy: { lid: 'Q 50,22', eye: '0.82', body: 'translateY(2px) rotate(-1deg)', glow: 'Protective' },
+    disappointed: { lid: 'Q 50,25', eye: '0.8', body: 'translateY(3px)', glow: 'Protective' },
+    dejected: { lid: 'Q 50,28', eye: '0.75', body: 'translateY(4px)', glow: 'Protective' },
+    confused: { lid: 'Q 50,5', eye: '1.02', body: 'rotate(3deg)', glow: 'Teal' },
+    skeptical: { lid: 'Q 50,8', eye: 'L:0.88 R:1.05', body: 'rotate(2deg)', glow: 'Teal' },
+    puzzled: { lid: 'Q 50,3', eye: '1.05', body: 'rotate(4deg)', glow: 'Teal' },
+    perplexed: { lid: 'Q 50,0', eye: '1.08', body: 'rotate(5deg)', glow: 'Teal' },
+    bewildered: { lid: 'Q 50,-2', eye: '1.1', body: 'spin', glow: 'Teal' },
+    nervous: { lid: 'Q 50,2', eye: '1.08', body: 'shake', glow: 'Alert' },
+    anxious: { lid: 'Q 50,0', eye: '1.1', body: 'tremble', glow: 'Alert' },
+    scared: { lid: 'Q 50,-10', eye: '1.2', body: 'scaleY(0.95)', glow: 'Alert' },
+    uneasy: { lid: 'Q 50,5', eye: '1.05', body: 'sway', glow: 'Alert' },
+    embarrassed: { lid: 'Q 50,15', eye: '0.85', body: 'scaleY(0.97)', glow: 'Alert' },
+    confident: { lid: 'Q 50,14', eye: '0.88', body: 'translateY(-1px)', glow: 'Golden' },
+    determined: { lid: 'Q 50,16', eye: '0.85', body: 'scaleY(1.02)', glow: 'Golden' },
+    smirking: { lid: 'Q 50,14', eye: '0.9', body: 'rotate(1deg)', glow: 'Golden' },
+    cool: { lid: 'Q 50,18', eye: '0.85', body: 'translateY(-1px)', glow: 'Calm' },
+    smug: { lid: 'Q 50,15', eye: '0.82', body: 'translateY(-2px)', glow: 'Golden' },
+    sleepy: { lid: 'Q 50,55', eye: '0.5', body: 'scaleY(0.99)', glow: 'Calm' }
+  };
+
+  // Micro-expression mappings
+  const microExpressions = {
+    recognition: 'joyful',
+    concern: 'worried',
+    delight: 'delighted',
+    warmth: 'loving',
+    interest: 'listening',
+    surprise: 'surprised'
+  };
+
+  // Capitalize first letter
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  // Update expression
+  function setExpression(mood, trigger) {
+    mainAvatar.dataset.mood = mood;
+    expressionName.textContent = capitalize(mood);
+    expressionTrigger.textContent = trigger || 'Expression state';
+
+    const data = expressionData[mood] || expressionData.neutral;
+    metaLid.textContent = data.lid;
+    metaEye.textContent = data.eye;
+    metaBody.textContent = data.body;
+    metaGlow.textContent = data.glow;
+
+    // Update active button
+    buttons.forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`[data-mood="${mood}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+  }
+
+  // Expression button clicks
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setExpression(btn.dataset.mood, btn.dataset.trigger);
+    });
+  });
+
+  // Micro-expression demos
+  microCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const microType = card.dataset.micro;
+      const duration = parseInt(card.dataset.duration);
+      const targetMood = microExpressions[microType];
+
+      // Store current mood
+      const currentMood = mainAvatar.dataset.mood;
+
+      // Flash the micro-expression
+      card.classList.add('playing');
+      mainAvatar.dataset.mood = targetMood;
+
+      setTimeout(() => {
+        mainAvatar.dataset.mood = currentMood;
+        card.classList.remove('playing');
+      }, duration);
+    });
+  });
+
+  // Layer toggles
+  layerCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const layer = card.dataset.layer;
+      card.classList.toggle('active');
+
+      if (layer === 'blinking') {
+        // Blinking is controlled by JS, not CSS class
+        if (card.classList.contains('active')) {
+          scheduleBlink();
+        }
+      } else {
+        mainAvatar.classList.toggle(layer);
+      }
+    });
+  });
+
+  // Random blinking system
+  let blinkTimeout = null;
+  let blinkingEnabled = true;
+
+  function triggerBlink() {
+    if (!blinkingEnabled) return;
+
+    mainAvatar.classList.add('blinking');
+    setTimeout(() => {
+      mainAvatar.classList.remove('blinking');
+    }, 150);
+  }
+
+  function scheduleBlink() {
+    if (blinkTimeout) clearTimeout(blinkTimeout);
+
+    const delay = 3000 + Math.random() * 4000; // 3-7 seconds
+    blinkTimeout = setTimeout(() => {
+      if (blinkingEnabled && document.contains(mainAvatar)) {
+        triggerBlink();
+        scheduleBlink();
+      }
+    }, delay);
+  }
+
+  // Start blinking
+  scheduleBlink();
+
+  // Handle layer card state for blinking
+  const blinkCard = document.querySelector('[data-layer="blinking"]');
+  if (blinkCard) {
+    blinkCard.addEventListener('click', () => {
+      blinkingEnabled = blinkCard.classList.contains('active');
+      if (blinkingEnabled) {
+        scheduleBlink();
+      } else if (blinkTimeout) {
+        clearTimeout(blinkTimeout);
+      }
+    });
+  }
+
+  // Smooth scroll to avatar when expression is selected
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stage = document.getElementById('avatarStage');
+      const rect = stage.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+      if (!isVisible) {
+        stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      setExpression('neutral', 'Default resting state - ready and present');
+    }
+  });
+})();
+</script>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+</body>
+</html>

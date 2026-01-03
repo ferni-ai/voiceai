@@ -171,6 +171,9 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       },
       // ⚡ FAST-AGENT-JOIN: Wire handlers after greeting (when deferred)
       wireHandlers: agentSetup.wireHandlers,
+      // GREETING AWARENESS: Expose userData so orchestrator can store greeting text
+      // This allows the turn-handler to inject what was said on turn 0
+      userData,
     };
 
     // Start the session in the room

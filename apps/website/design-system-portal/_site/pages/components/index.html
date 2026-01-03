@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Components | Ferni Design System</title>
+  <meta name="description" content="Reusable UI components built with Ferni design tokens">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">🌿</span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<h1>Components</h1>
+<p class="lead">Pre-built, accessible components that embody Ferni's design philosophy. Every component is designed to make AI feel more human.</p>
+
+<section class="section">
+  <h2>Core Components</h2>
+
+  <div class="component-grid">
+    <a href="/components/avatar/" class="component-card">
+      <div class="component-preview avatar-preview">
+        <div class="avatar-demo">🌿</div>
+      </div>
+      <h3>Avatar</h3>
+      <p>Expressive persona avatars with emotion states and animations</p>
+    </a>
+
+    <a href="/components/buttons/" class="component-card">
+      <div class="component-preview button-preview">
+        <button class="btn-demo">Button</button>
+      </div>
+      <h3>Buttons</h3>
+      <p>Primary, secondary, and ghost button variants</p>
+    </a>
+
+    <a href="/components/cards/" class="component-card">
+      <div class="component-preview card-preview">
+        <div class="card-demo"></div>
+      </div>
+      <h3>Cards</h3>
+      <p>Content containers with elevation and persona accents</p>
+    </a>
+
+    <div class="component-card coming-soon">
+      <div class="component-preview glass-preview">
+        <div class="glass-demo"></div>
+      </div>
+      <h3>Glass Surfaces</h3>
+      <p>Frosted glass effects for overlays and modals</p>
+      <span class="badge">Coming Soon</span>
+    </div>
+
+    <div class="component-card coming-soon">
+      <div class="component-preview toast-preview">
+        <div class="toast-demo">Toast</div>
+      </div>
+      <h3>Toast</h3>
+      <p>Non-intrusive feedback notifications</p>
+      <span class="badge">Coming Soon</span>
+    </div>
+
+    <div class="component-card coming-soon">
+      <div class="component-preview input-preview">
+        <div class="input-demo"></div>
+      </div>
+      <h3>Inputs</h3>
+      <p>Text fields, selects, and form controls</p>
+      <span class="badge">Coming Soon</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Design Principles</h2>
+
+  <div class="principles">
+    <div class="principle">
+      <h4>Accessible by Default</h4>
+      <p>WCAG 2.1 AA compliant. Keyboard navigable. Screen reader friendly.</p>
+    </div>
+    <div class="principle">
+      <h4>Token-Based</h4>
+      <p>All styling uses design tokens. Theme changes propagate automatically.</p>
+    </div>
+    <div class="principle">
+      <h4>Motion-Aware</h4>
+      <p>Respects reduced motion preferences. Animations enhance, never distract.</p>
+    </div>
+    <div class="principle">
+      <h4>Persona-Ready</h4>
+      <p>Components support persona theming through CSS custom properties.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.component-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--duration-normal) var(--ease-ease-out);
+  display: block;
+  position: relative;
+}
+
+.component-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.component-card.coming-soon {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.component-card .badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+}
+
+.component-preview {
+  height: 120px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-demo {
+  width: 64px;
+  height: 64px;
+  background: var(--persona-ferni);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.btn-demo {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+}
+
+.card-demo {
+  width: 80%;
+  height: 60%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.glass-demo {
+  width: 80%;
+  height: 60%;
+  background: var(--bg-glass);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.toast-demo {
+  background: var(--bg-elevated);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border-left: 3px solid var(--success);
+}
+
+.input-demo {
+  width: 80%;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+}
+
+.component-card h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.component-card p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.principle {
+  background: var(--bg-secondary);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+}
+
+.principle h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.principle p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+</style>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+</body>
+</html>

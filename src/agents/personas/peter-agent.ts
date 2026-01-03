@@ -32,6 +32,9 @@ import {
 import { createResearchTools, createInsightsAnalysisTools } from '../../tools/domains/agent.js';
 import { createMarketDataTools } from '../../tools/domains/finance/market-data.js';
 
+// Superhuman tools - Peter's "Better than Human" capabilities
+import { superhumanTools } from '../../tools/domains/research/superhuman-tools/index.js';
+
 // Conversation tools - wrap up, end conversation, graceful exit (from domains)
 import { createConversationTools } from '../../tools/domains/conversation/index.js';
 
@@ -76,7 +79,7 @@ function buildMemoryTools(agentId: string): ToolSet {
 
 /**
  * Build research/analysis tools - Peter's specialty.
- * Stock research, market data, and pattern analysis.
+ * Stock research, market data, pattern analysis, and superhuman capabilities.
  */
 function buildResearchTools(): ToolSet {
   const research = createResearchTools();
@@ -101,6 +104,8 @@ function buildResearchTools(): ToolSet {
     findCorrelation: insights.findCorrelation,
     projectTrends: insights.projectTrends,
     findTheLever: insights.findTheLever,
+    // Superhuman tools (52 tools for "Better than Human" capabilities)
+    ...superhumanTools,
   } as ToolSet;
 }
 

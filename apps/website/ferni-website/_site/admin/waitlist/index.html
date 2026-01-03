@@ -1,17 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Waitlist Admin | Ferni</title>
-  <meta name="robots" content="noindex, nofollow">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="icon" href="/images/favicon.png" type="image/png">
-
-  <style>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Waitlist Admin | Ferni</title><meta name="robots" content="noindex, nofollow"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet"><link rel="icon" href="/images/favicon.png" type="image/png"> <style>
     :root {
       --color-bg: #faf8f5;
       --color-bg-card: #ffffff;
@@ -387,93 +374,7 @@
     [hidden] {
       display: none !important;
     }
-  </style>
-</head>
-<body>
-  <div class="admin-container">
-
-    <div class="login-container" id="loginContainer">
-      <h2>Waitlist Admin</h2>
-      <p>Enter admin credentials to continue</p>
-      <form class="login-form" id="loginForm">
-        <input type="password" id="adminPassword" placeholder="Admin password" autocomplete="current-password" required>
-        <p class="login-error" id="loginError">Invalid password</p>
-        <button type="submit" class="btn btn--primary" style="width: 100%;">Sign In</button>
-      </form>
-    </div>
-
-    <div id="dashboard" hidden>
-
-      <header class="admin-header">
-        <h1>Waitlist Dashboard</h1>
-        <div class="admin-actions">
-          <button class="btn btn--secondary" id="refreshBtn">Refresh</button>
-          <button class="btn btn--primary" id="exportBtn">Export CSV</button>
-        </div>
-      </header>
-
-      <div class="stats-grid" id="statsGrid">
-        <div class="stat-card">
-          <div class="stat-value" id="totalSignups">-</div>
-          <div class="stat-label">Total Signups</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="pendingCount" style="color: #e65100;">-</div>
-          <div class="stat-label">⏳ Pending Approval</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="approvedCount" style="color: #2e7d32;">-</div>
-          <div class="stat-label">✅ Approved</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="withPhoneCount" style="color: var(--color-accent);">-</div>
-          <div class="stat-label">📱 With Phone</div>
-        </div>
-      </div>
-
-      <div class="table-container">
-        <div class="table-header">
-          <h2>Recent Signups</h2>
-          <select class="source-filter" id="sourceFilter">
-            <option value="">All Sources</option>
-            <option value="landing">Landing Page</option>
-            <option value="marketplace">Marketplace</option>
-            <option value="developer">Developer</option>
-            <option value="feature">Feature</option>
-          </select>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th>Source</th>
-              <th>Signed Up</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="signupsBody">
-            <tr id="loadingRow">
-              <td colspan="6" class="loading">Loading...</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="pagination">
-          <span class="pagination-info" id="paginationInfo">Showing 0 of 0</span>
-          <div class="pagination-buttons">
-            <button id="prevBtn" disabled>Previous</button>
-            <button id="nextBtn">Next</button>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
+  </style> </head><body><div class="admin-container"><div class="login-container" id="loginContainer"><h2>Waitlist Admin</h2><p>Enter admin credentials to continue</p><form class="login-form" id="loginForm"><input type="password" id="adminPassword" placeholder="Admin password" autocomplete="current-password" required><p class="login-error" id="loginError">Invalid password</p><button type="submit" class="btn btn--primary" style="width: 100%;">Sign In</button></form></div><div id="dashboard" hidden><header class="admin-header"><h1>Waitlist Dashboard</h1><div class="admin-actions"><button class="btn btn--secondary" id="refreshBtn">Refresh</button><button class="btn btn--primary" id="exportBtn">Export CSV</button></div></header><div class="stats-grid" id="statsGrid"><div class="stat-card"><div class="stat-value" id="totalSignups">-</div><div class="stat-label">Total Signups</div></div><div class="stat-card"><div class="stat-value" id="pendingCount" style="color: #e65100;">-</div><div class="stat-label">⏳ Pending Approval</div></div><div class="stat-card"><div class="stat-value" id="approvedCount" style="color: #2e7d32;">-</div><div class="stat-label">✅ Approved</div></div><div class="stat-card"><div class="stat-value" id="withPhoneCount" style="color: var(--color-accent);">-</div><div class="stat-label">📱 With Phone</div></div></div><div class="table-container"><div class="table-header"><h2>Recent Signups</h2><select class="source-filter" id="sourceFilter"><option value="">All Sources</option><option value="landing">Landing Page</option><option value="marketplace">Marketplace</option><option value="developer">Developer</option><option value="feature">Feature</option></select></div><table><thead><tr><th>Email</th><th>Phone</th><th>Status</th><th>Source</th><th>Signed Up</th><th>Actions</th></tr></thead><tbody id="signupsBody"><tr id="loadingRow"><td colspan="6" class="loading">Loading...</td></tr></tbody></table><div class="pagination"><span class="pagination-info" id="paginationInfo">Showing 0 of 0</span><div class="pagination-buttons"><button id="prevBtn" disabled>Previous</button><button id="nextBtn">Next</button></div></div></div></div></div> <script>
     (function() {
       'use strict';
 
@@ -797,6 +698,4 @@
       }
 
     })();
-  </script>
-</body>
-</html>
+  </script> </body></html> 

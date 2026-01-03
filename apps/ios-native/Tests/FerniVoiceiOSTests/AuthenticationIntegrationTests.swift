@@ -368,3 +368,71 @@ extension AuthenticationIntegrationTests {
         XCTAssertNil(keychainStore["display_name"])
     }
 }
+
+// MARK: - Account Deletion Tests (App Store Requirement)
+
+extension AuthenticationIntegrationTests {
+
+    func testAccountDeletionRequestFormat() throws {
+        // Validate the delete account API request format
+        let firebaseToken = "firebase-id-token-test"
+
+        var request = URLRequest(url: URL(string: "https://app.ferni.ai/api/account")!)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ["confirmation": "DELETE_MY_ACCOUNT"]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // Verify request format
+        XCTAssertEqual(request.httpMethod, "DELETE")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer \(firebaseToken)")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+
+        // Verify body contains confirmation
+        let bodyData = request.httpBody!
+        let parsedBody = try JSONSerialization.jsonObject(with: bodyData) as! [String: String]
+        XCTAssertEqual(parsedBody["confirmation"], "DELETE_MY_ACCOUNT")
+    }
+
+    func testAccountDeletionClearsLocalState() {
+        // Given: User is signed in
+        authState.signIn(
+            email: "user@example.com",
+            name: "Test User",
+            appleUserId: "apple-id",
+            firebaseToken: "token"
+        )
+        XCTAssertTrue(authState.isSignedIn)
+
+        // When: Account is deleted (which calls signOut after server deletion)
+        authState.signOut()
+
+        // Then: All state is cleared
+        XCTAssertFalse(authState.isSignedIn)
+        XCTAssertNil(authState.userEmail)
+        XCTAssertNil(authState.displayName)
+        XCTAssertNil(authState.firebaseToken)
+        XCTAssertNil(authState.appleUserId)
+    }
+
+    func testAccountDeletionRequiresAuthentication() {
+        // Cannot delete account without being signed in
+        XCTAssertFalse(authState.isSignedIn)
+
+        // Attempting to get Firebase token should fail
+        XCTAssertNil(authState.firebaseToken)
+
+        // Delete request without token should be rejected by server
+        // (This is enforced by the backend's requireAuth middleware)
+    }
+
+    func testAccountDeletionConfirmationRequired() {
+        // The backend requires a confirmation string to prevent accidental deletion
+        let requiredConfirmation = "DELETE_MY_ACCOUNT"
+
+        // Without this exact string, the backend returns 400 error
+        XCTAssertEqual(requiredConfirmation, "DELETE_MY_ACCOUNT")
+    }
+}

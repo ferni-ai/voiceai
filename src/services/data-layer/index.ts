@@ -171,6 +171,72 @@ export type {
 
 import type { UnifiedUserContext, ContextSummary, SemanticUserContext } from './types.js';
 
+// ============================================================================
+// INTELLIGENT DATA LOADING (NEW)
+// ============================================================================
+
+// Re-export intelligent loader
+export {
+  IntelligentDataLoader,
+  getIntelligentLoader,
+  cleanupLoader,
+  cleanupAllLoaders,
+  DOMAIN_CONFIG,
+} from './intelligent-loader.js';
+export type { DataDomain, LoaderStats } from './intelligent-loader.js';
+
+// Re-export fast session initialization
+export {
+  fastSessionStart,
+  fastSessionEnd,
+  loadUserProfileFast,
+  waitForBackgroundTasks,
+} from './fast-session-init.js';
+export type { FastSessionResult, SessionEndResult } from './fast-session-init.js';
+
+// Re-export profile pruning
+export {
+  pruneProfile,
+  pruneAllProfiles,
+  pruneProfileOnSessionEnd,
+  DEFAULT_PRUNING_CONFIG,
+} from './profile-pruning.js';
+export type { PruningConfig, PruningResult } from './profile-pruning.js';
+
+// Re-export memory cache manager
+export {
+  ManagedCache,
+  registerCache,
+  getCache,
+  unregisterCache,
+  startCacheCleanup,
+  stopCacheCleanup,
+  clearAllCaches,
+  getAllCacheStats,
+  getTotalCacheMemory,
+  clearUserCaches,
+  createUserCache,
+  createSessionCache,
+  createTempCache,
+} from './memory-cache-manager.js';
+export type { CacheConfig, CacheStats } from './memory-cache-manager.js';
+
+// Re-export TTL cleanup
+export { runTTLCleanup, scheduledTTLCleanup, getTTLStatistics } from './ttl-cleanup.js';
+
+// Re-export Firestore pagination utilities
+export {
+  paginatedQuery,
+  safeQueryAll,
+  safeCount,
+  recentItemsQuery,
+  activeItemsQuery,
+  batchDelete,
+  batchUpdate,
+  SAFE_LIMITS,
+} from './firestore-pagination.js';
+export type { PaginationOptions, PaginatedResult, SafeQueryOptions } from './firestore-pagination.js';
+
 /**
  * Index entry for semantic search
  */

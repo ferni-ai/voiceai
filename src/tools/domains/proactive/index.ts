@@ -639,6 +639,58 @@ import { getAgentToUserOutreachDefinitions } from './outreach/index.js';
 export * from './coaching/index.js';
 
 // ============================================================================
+// BACKGROUND CALL - "While You Were Away"
+// ============================================================================
+
+const backgroundCallDef: ToolDefinition = {
+  id: 'backgroundCall',
+  name: 'Background Call',
+  description:
+    'Make a phone call on the user\'s behalf in the background. Perfect for: "Call my mom while I\'m away", "Check on that appointment", "Make a call for me".',
+  domain: 'proactive',
+  tags: ['background', 'async', 'calls', 'while-you-were-away', 'ferni-specialty'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('backgroundCall'),
+      parameters: z.object({
+        contactName: z.string().describe('Name of the person to call'),
+        contactPhone: z.string().optional().describe('Phone number if known'),
+        objective: z.string().describe('What the call should accomplish'),
+        context: z.string().optional().describe('Background context for the call'),
+        script: z.string().optional().describe('Specific talking points or script'),
+      }),
+      execute: async ({ contactName, contactPhone, objective, context, script }) => {
+        const userId = ctx.userId || 'anonymous';
+        log.info({ userId, contactName, objective }, 'Queueing background call');
+
+        try {
+          const { queueCall } = await import(
+            '../../../services/background-agents/executors/call-executor.js'
+          );
+
+          const taskId = await queueCall({
+            userId,
+            sessionId: ctx.sessionId,
+            contactName,
+            contactPhone,
+            objective,
+            context,
+            script,
+            initiatedBy: 'ferni',
+          });
+
+          return `**Call Scheduled** 📞\n\nI'll call ${contactName} on your behalf.\n\n**Objective:** ${objective}\n${context ? `**Context:** ${context}\n` : ''}**Task ID:** ${taskId.slice(0, 8)}...\n\nI'll keep working on this even if you disconnect. When I'm done, I'll tell you exactly what happened! 💚`;
+        } catch (error) {
+          log.error({ error: String(error) }, 'Failed to queue call');
+          return `I couldn't schedule that call right now. Want me to help you prepare talking points so you can make the call yourself?`;
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -661,6 +713,9 @@ const proactiveTools: ToolDefinition[] = [
   // Proactive Message Generation
   generateProactiveMessageDef,
   scheduleFollowUpDef,
+
+  // Background Call - "While You Were Away"
+  backgroundCallDef,
 
   // Agent-to-User Outreach (reminders, calls, texts TO the user)
   ...getAgentToUserOutreachDefinitions(),

@@ -167,7 +167,7 @@ const tiers = {
 ## Response Helpers
 
 ```typescript
-import { sendJSON, sendError, sendJSONCached } from './helpers.js';
+import { sendJSON, sendError, sendJSONCached, sendApiError } from './helpers.js';
 
 // Success response
 sendJSON(res, { data: result });
@@ -176,11 +176,76 @@ sendJSON(res, { created: true }, 201);
 // Cached response (1 hour)
 sendJSONCached(res, data, 3600);
 
-// Error response
+// Simple error response
 sendError(res, 'Invalid input', 400);
 sendError(res, 'Not found', 404);
 sendError(res, 'Server error', 500);
+
+// Structured error with code (for programmatic handling)
+sendApiError(res, {
+  status: 400,
+  message: "Couldn't validate email",
+  code: 'VALIDATION_ERROR',
+  details: { field: 'email' }
+});
 ```
+
+---
+
+## Error Handling
+
+### Standard Error Format
+
+All error responses follow this format:
+
+```json
+{ "error": "Human-friendly error message" }
+```
+
+For structured errors (when clients need to programmatically handle specific errors):
+
+```json
+{
+  "error": "Human-friendly message",
+  "code": "VALIDATION_ERROR",
+  "details": { "field": "email" }
+}
+```
+
+### Error Message Constants
+
+Use predefined error messages for consistent, human-friendly errors:
+
+```typescript
+import { API_ERRORS } from './error-messages.js';
+
+// ✅ Use predefined constants
+sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
+sendError(res, API_ERRORS.NOT_FOUND, 404);
+sendError(res, API_ERRORS.OPERATION_FAILED, 500);
+
+// ❌ Avoid inline technical messages
+sendError(res, 'userId required', 401);  // Too technical
+```
+
+### Error Response Rules
+
+| Rule | Example |
+|------|---------|
+| Use `sendError()` helper | `sendError(res, message, 400)` |
+| Use `API_ERRORS` constants | `API_ERRORS.USER_ID_REQUIRED` |
+| 5xx errors hide details | Message replaced with "Internal server error" in prod |
+| Human-friendly language | "Couldn't find that" not "404 Not Found" |
+| Never expose stack traces | Logged server-side, not returned to client |
+
+### Available Error Constants
+
+See `error-messages.ts` for all constants:
+- `API_ERRORS.USER_ID_REQUIRED` - Auth required
+- `API_ERRORS.AUTH_REQUIRED` - Sign in needed
+- `API_ERRORS.NOT_FOUND` - Resource not found
+- `API_ERRORS.INTERNAL_ERROR` - Generic server error
+- `API_ERRORS.OPERATION_FAILED` - Action failed
 
 ---
 
@@ -239,4 +304,4 @@ pnpm vitest run src/api/__tests__/calendar-routes.test.ts
 
 ---
 
-*Last updated: December 2024*
+*Last updated: January 2026*

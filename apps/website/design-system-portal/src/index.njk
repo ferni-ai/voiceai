@@ -1,0 +1,149 @@
+---
+layout: layouts/base.njk
+title: Overview
+description: Ferni Design System - Brand tokens, components, and patterns for building human-centered AI experiences
+---
+
+<h1>Ferni Design System</h1>
+<p class="lead">
+  A comprehensive design system for building human-centered AI experiences.
+  Every token, component, and pattern is designed to make AI feel more human.
+</p>
+
+<section class="section">
+  <h2>Philosophy</h2>
+  <p>
+    <strong>We believe in making AI human, and the decisions we make will reflect that.</strong>
+  </p>
+  <p>
+    The Ferni Design System embodies this philosophy through warm colors, organic animations,
+    and thoughtful interactions that create genuine connections between people and AI.
+  </p>
+</section>
+
+<section class="section">
+  <h2>Themes</h2>
+  <p>Two carefully crafted themes for different contexts:</p>
+
+  <div class="swatch-grid">
+    <div class="swatch">
+      <div class="swatch-color" style="background: #584840;">
+        <span>#584840</span>
+      </div>
+      <div class="swatch-info">
+        <div class="swatch-name">Cedar Night (Midnight)</div>
+        <div class="swatch-var">Developer-focused, dark theme</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: #faf8f5; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: #2c2520;">#faf8f5</span>
+      </div>
+      <div class="swatch-info">
+        <div class="swatch-name">Zen Garden (Light)</div>
+        <div class="swatch-var">Consumer-focused, light theme</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Quick Start</h2>
+  <p>Include the design tokens in your project:</p>
+
+  <pre><code>&lt;!-- CSS Variables --&gt;
+&lt;link rel="stylesheet" href="https://design.ferni.ai/tokens.css"&gt;
+
+&lt;!-- Or import in your CSS --&gt;
+@import url('https://design.ferni.ai/tokens.css');</code></pre>
+
+  <p>Then use the CSS variables in your styles:</p>
+
+  <pre><code>.my-component {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--duration-normal) var(--ease-out);
+}</code></pre>
+</section>
+
+<section class="section">
+  <h2>Core Personas</h2>
+  <p>Six AI personas, each with their own color identity:</p>
+
+  <div class="persona-grid">
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-ferni);">F</div>
+      <div class="persona-name">Ferni</div>
+      <div class="persona-role">Chief of Staff & Coordinator</div>
+      <div class="persona-vars">--persona-ferni: #4a6741</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-peter);">P</div>
+      <div class="persona-name">Peter</div>
+      <div class="persona-role">Research & Strategy</div>
+      <div class="persona-vars">--persona-peter: #3a6b73</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-maya);">M</div>
+      <div class="persona-name">Maya</div>
+      <div class="persona-role">Coaching & Habits</div>
+      <div class="persona-vars">--persona-maya: #a67a6a</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-alex);">A</div>
+      <div class="persona-name">Alex</div>
+      <div class="persona-role">Communication & Writing</div>
+      <div class="persona-vars">--persona-alex: #5a6b8a</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-jordan);">J</div>
+      <div class="persona-name">Jordan</div>
+      <div class="persona-role">Planning & Goals</div>
+      <div class="persona-vars">--persona-jordan: #c4856a</div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-avatar" style="background: var(--persona-nayan);">N</div>
+      <div class="persona-name">Nayan</div>
+      <div class="persona-role">Wisdom & Reflection</div>
+      <div class="persona-vars">--persona-nayan: #b8956a</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Key Principles</h2>
+
+  <div class="demo-container">
+    <div class="card" style="max-width: 300px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Human First</h4>
+        <p style="margin-bottom: 0;">Every design decision prioritizes the human experience. Warmth over efficiency.</p>
+      </div>
+    </div>
+    <div class="card" style="max-width: 300px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Organic Motion</h4>
+        <p style="margin-bottom: 0;">Animations follow natural rhythms. Spring physics, breath-like pulsing, gentle easing.</p>
+      </div>
+    </div>
+    <div class="card" style="max-width: 300px;">
+      <div class="card__body">
+        <h4 style="margin-top: 0;">Accessible by Default</h4>
+        <p style="margin-bottom: 0;">WCAG 2.1 AA compliant. Every color pairing is tested for contrast.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Resources</h2>
+  <ul>
+    <li><a href="/colors/">Color Tokens</a> - Full color palette with light and dark variants</li>
+    <li><a href="/typography/">Typography</a> - Font families, sizes, and scale</li>
+    <li><a href="/spacing/">Spacing</a> - Consistent spacing scale</li>
+    <li><a href="/animation/">Animation</a> - Easing functions and durations</li>
+    <li><a href="/personas/">Personas</a> - Complete persona color system</li>
+  </ul>
+</section>

@@ -21,3 +21,27 @@ export {
   type ReservationRequest,
   type ReservationResult,
 } from './reservation-executor.js';
+
+// Habit reminder executor (Maya's domain)
+export {
+  executeHabitReminder,
+  queueHabitReminder,
+  type HabitReminderRequest,
+  type HabitReminderResult,
+} from './habit-reminder-executor.js';
+
+// Follow-up executor (Alex's domain)
+export {
+  executeFollowup,
+  queueFollowup,
+  type FollowupRequest,
+  type FollowupResult,
+} from './followup-executor.js';
+
+// Call executor (Ferni's domain)
+export {
+  executeCall,
+  queueCall,
+  type CallRequest,
+  type CallResult,
+} from './call-executor.js';

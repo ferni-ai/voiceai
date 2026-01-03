@@ -288,6 +288,60 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// BACKGROUND FOLLOW-UP - "While You Were Away"
+// ============================================================================
+
+const backgroundFollowUpDef: ToolDefinition = {
+  id: 'backgroundFollowUp',
+  name: 'Background Follow-Up',
+  description:
+    'Send a follow-up message in the background, even when the user disconnects. Perfect for: "Send a thank you note to Sarah", "Follow up with the recruiter", "Send that email while I\'m busy".',
+  domain: 'communication',
+  tags: ['background', 'async', 'email', 'follow-up', 'while-you-were-away', 'alex-specialty'],
+
+  create: (ctx: ToolContext) => {
+    return llm.tool({
+      description: getToolDescription('backgroundFollowUp'),
+      parameters: z.object({
+        recipientName: z.string().describe('Name of the person to follow up with'),
+        recipientEmail: z.string().optional().describe('Email address if known'),
+        subject: z.string().describe('Subject line for the message'),
+        message: z.string().describe('The follow-up message content'),
+        context: z.string().optional().describe('Context about why this follow-up is needed'),
+        channel: z.enum(['email', 'sms', 'both']).default('email').describe('How to send'),
+      }),
+      execute: async ({ recipientName, recipientEmail, subject, message, context, channel }) => {
+        const userId = ctx.userId || 'anonymous';
+        log.info({ userId, recipientName, channel }, 'Queueing background follow-up');
+
+        try {
+          const { queueFollowup } = await import(
+            '../../../services/background-agents/executors/followup-executor.js'
+          );
+
+          const taskId = await queueFollowup({
+            userId,
+            sessionId: ctx.sessionId,
+            recipientName,
+            recipientEmail,
+            subject,
+            message,
+            channel,
+            context,
+            initiatedBy: 'alex',
+          });
+
+          return `**Follow-Up Scheduled** 📧\n\nI'll send this follow-up to ${recipientName} in the background.\n\n**Subject:** ${subject}\n**Channel:** ${channel}\n**Task ID:** ${taskId.slice(0, 8)}...\n\nI'll keep working on this even if you disconnect. I'll let you know once it's sent! ✉️`;
+        } catch (error) {
+          log.error({ error: String(error) }, 'Failed to queue follow-up');
+          return `I couldn't schedule that follow-up right now. Want me to help you draft it and you can send it manually?`;
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -309,6 +363,9 @@ const communicationTools: ToolDefinition[] = [
 
   // "Sleep on it" validation (distinct)
   ...getMessageValidationToolDefinitions(),
+
+  // Background follow-up (while you were away)
+  backgroundFollowUpDef,
 ];
 
 // ============================================================================

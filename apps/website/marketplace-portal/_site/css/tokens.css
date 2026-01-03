@@ -1,6 +1,9 @@
 /**
  * Ferni Marketplace Portal - Design Tokens
  * Theme: Zen Garden (Light) - Warm, inviting for consumers
+ *
+ * AUTO-GENERATED - Do not edit directly
+ * Run: pnpm tokens:sync
  */
 
 :root {
@@ -281,4 +284,4 @@ h6 {
 }
 
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');

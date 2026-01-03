@@ -584,27 +584,54 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
   };
 
-  // SLOW PATH: Full orchestrator with semantic matching (for initial agent)
-  const loadHandoffToolsOnly = async (): Promise<Record<string, unknown>> => {
+  // FALLBACK PATH: Load essential tools when full orchestrator times out
+  // BUG FIX: Previously only loaded handoff tools, missing music/weather/etc!
+  const loadEssentialToolsFallback = async (): Promise<Record<string, unknown>> => {
     // This is the fallback when full tool loading times out
-    // Just return handoff tools so the agent can at least hand off to someone else
+    // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
     try {
       const { buildHandoffTools } = await import('../../tools/handoff/handoff-factory.js');
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-      const { tools: handoffTools, toolCount } = await buildHandoffTools({
+      
+      // 1. Build handoff tools (critical for team switching)
+      const { tools: handoffTools, toolCount: handoffCount } = await buildHandoffTools({
         currentAgentId: persona.id,
         userProfile: services.userProfile,
         subscriptionTier,
         services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
       });
+
+      // 2. Load essential domain tools (music, weather, etc.)
+      // These are pre-loaded at worker startup, so this is fast
+      let essentialTools: Record<string, unknown> = {};
+      try {
+        const { loadEssentialDomains } = await import('../../tools/dynamic-loader/index.js');
+        essentialTools = await loadEssentialDomains(userId || 'anonymous', services);
+        log.info(
+          { personaId: persona.id, essentialToolCount: Object.keys(essentialTools).length },
+          '🎵 Essential domain tools loaded (music, weather, memory, etc.)'
+        );
+      } catch (essentialErr) {
+        log.warn(
+          { error: String(essentialErr) },
+          '⚠️ Failed to load essential tools - only handoffs available'
+        );
+      }
+
+      const allTools = { ...handoffTools, ...essentialTools };
       log.info(
-        { personaId: persona.id, handoffToolCount: toolCount },
-        '🔄 Handoff tools loaded as timeout fallback'
+        { 
+          personaId: persona.id, 
+          handoffCount, 
+          essentialCount: Object.keys(essentialTools).length,
+          totalCount: Object.keys(allTools).length 
+        },
+        '🔄 Essential tools loaded as timeout fallback (handoff + essential domains)'
       );
-      return handoffTools;
+      return allTools;
     } catch (err) {
-      log.error({ personaId: persona.id, error: String(err) }, '❌ Failed to load handoff tools');
+      log.error({ personaId: persona.id, error: String(err) }, '❌ Failed to load essential tools');
       return {};
     }
   };
@@ -663,7 +690,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         
         if (fastResult === null || Object.keys(fastResult).length === 0) {
           log.error({ personaId: persona.id }, '❌ Fast path returned no tools - falling back');
-          return await loadHandoffToolsOnly();
+          return await loadEssentialToolsFallback();
         }
         
         return fastResult;
@@ -685,13 +712,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
         ),
       ]);
 
-      // If timeout won, STILL load handoff tools - they're critical for peer-to-peer handoffs!
+      // If timeout won, STILL load essential tools so agent can function!
+      // BUG FIX: Previously only loaded handoff tools, missing music/weather/etc
       if (result === null) {
         log.warn(
           { personaId: persona.id },
-          '🔄 Full tool loading timed out - loading essential handoff tools'
+          '🔄 Full tool loading timed out - loading essential tools fallback'
         );
-        return await loadHandoffToolsOnly();
+        return await loadEssentialToolsFallback();
       }
 
       // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
@@ -724,10 +752,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
     } catch (toolErr) {
       log.warn(
         { error: String(toolErr), personaId: persona.id },
-        '⚠️ Failed to load tools - falling back to handoff tools only'
+        '⚠️ Failed to load tools - falling back to essential tools'
       );
-      // Even on error, try to load handoff tools
-      return await loadHandoffToolsOnly();
+      // Even on error, try to load essential tools
+      return await loadEssentialToolsFallback();
     }
   })();
 

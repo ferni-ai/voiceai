@@ -1,0 +1,2069 @@
+---
+layout: layouts/base.njk
+title: Visualizations
+description: What Ferni Sees When It Looks At Your Life - Premium data visualization system
+permalink: /visualizations/
+---
+
+<div class="viz-ambient-bg" aria-hidden="true">
+  <div class="viz-orb viz-orb-ferni"></div>
+  <div class="viz-orb viz-orb-nayan"></div>
+  <div class="viz-orb viz-orb-peter"></div>
+</div>
+
+<article class="visualizations-page">
+  <!-- Hero Section - The Promise -->
+  <header class="viz-hero">
+    <div class="viz-hero-badge">
+      <span class="viz-hero-badge-dot"></span>
+      What Ferni Sees When It Looks At Your Life
+    </div>
+    <h1 class="viz-hero-title">The Patterns You<br><span class="viz-hero-highlight">Couldn't See</span></h1>
+    <p class="viz-hero-subtitle">
+      Your best friend forgets what you said last Tuesday. Ferni remembers every conversation, every goal, every quiet moment of doubt—and transforms it into insight you can actually use. This is what it looks like when someone finally sees the whole picture.
+    </p>
+    <div class="viz-hero-stats">
+      <div class="viz-hero-stat">
+        <div class="viz-hero-stat-value">∞</div>
+        <div class="viz-hero-stat-label">Moments Remembered</div>
+      </div>
+      <div class="viz-hero-stat">
+        <div class="viz-hero-stat-value">6</div>
+        <div class="viz-hero-stat-label">Perspectives on You</div>
+      </div>
+      <div class="viz-hero-stat">
+        <div class="viz-hero-stat-value">24/7</div>
+        <div class="viz-hero-stat-label">Always Watching Over</div>
+      </div>
+    </div>
+    <p class="viz-hero-whisper">"Friends forget. Ferni doesn't."</p>
+  </header>
+
+  <!-- Section Navigation -->
+  <nav class="viz-section-nav">
+    <div class="viz-section-nav-inner">
+      <a href="#rings" class="viz-nav-link active">
+        <svg class="viz-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/>
+        </svg>
+        Your Growth
+      </a>
+      <a href="#projections" class="viz-nav-link">
+        <svg class="viz-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/>
+        </svg>
+        Your Future
+      </a>
+      <a href="#glass" class="viz-nav-link">
+        <svg class="viz-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Your Whole Self
+      </a>
+      <a href="#pulse" class="viz-nav-link">
+        <svg class="viz-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/>
+        </svg>
+        Right Now
+      </a>
+      <a href="#calendar" class="viz-nav-link">
+        <svg class="viz-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Your Year
+      </a>
+    </div>
+  </nav>
+
+  <main class="viz-main">
+    <!-- SECTION: Your Growth - Activity Rings -->
+    <section id="rings" class="viz-section">
+      <div class="rings-stage">
+        <div class="rings-container">
+          <div class="rings-ambient-glow"></div>
+          <div class="rings-main">
+            <svg class="rings-svg" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="moveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--persona-ferni)"/>
+                  <stop offset="100%" stop-color="#5a7a51"/>
+                </linearGradient>
+                <linearGradient id="wisdomGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--persona-nayan)"/>
+                  <stop offset="100%" stop-color="#c9a67a"/>
+                </linearGradient>
+                <linearGradient id="balanceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="var(--persona-peter)"/>
+                  <stop offset="100%" stop-color="#4a7b83"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Growth Ring (Outer) - Ferni green -->
+              <circle class="ring-bg" cx="50" cy="50" r="44" stroke="url(#moveGrad)" stroke-width="8"/>
+              <circle class="ring-glow animate" cx="50" cy="50" r="44" stroke="url(#moveGrad)" stroke-width="10" style="--progress: 85;" pathLength="100"/>
+              <circle class="ring-progress animate" cx="50" cy="50" r="44" stroke="url(#moveGrad)" stroke-width="8" style="--progress: 85;" pathLength="100"/>
+
+              <!-- Wisdom Ring (Middle) - Nayan gold -->
+              <circle class="ring-bg" cx="50" cy="50" r="33" stroke="url(#wisdomGrad)" stroke-width="8"/>
+              <circle class="ring-glow animate" cx="50" cy="50" r="33" stroke="url(#wisdomGrad)" stroke-width="10" style="--progress: 72;" pathLength="100"/>
+              <circle class="ring-progress animate" cx="50" cy="50" r="33" stroke="url(#wisdomGrad)" stroke-width="8" style="--progress: 72;" pathLength="100"/>
+
+              <!-- Balance Ring (Inner) - Peter teal -->
+              <circle class="ring-bg" cx="50" cy="50" r="22" stroke="url(#balanceGrad)" stroke-width="8"/>
+              <circle class="ring-glow animate" cx="50" cy="50" r="22" stroke="url(#balanceGrad)" stroke-width="10" style="--progress: 92;" pathLength="100"/>
+              <circle class="ring-progress animate" cx="50" cy="50" r="22" stroke="url(#balanceGrad)" stroke-width="8" style="--progress: 92;" pathLength="100"/>
+            </svg>
+
+            <div class="rings-center">
+              <div class="rings-center-value">47</div>
+              <div class="rings-center-label">day streak</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Story cards - the narrative -->
+        <div class="rings-stories">
+          <div class="ring-story">
+            <div class="ring-story-ring complete" style="color: var(--persona-ferni);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="ring-story-content">
+              <div class="ring-story-title">Morning Stretches</div>
+              <div class="ring-story-meta">
+                <span class="ring-story-highlight" style="color: var(--persona-ferni);">Done today</span> — 47 days straight. Your longest streak ever. Maya noticed this matters more for your back than any gym visit.
+              </div>
+            </div>
+          </div>
+
+          <div class="ring-story">
+            <div class="ring-story-ring" style="color: var(--persona-nayan);"></div>
+            <div class="ring-story-content">
+              <div class="ring-story-title">Learning Time</div>
+              <div class="ring-story-meta">
+                <span class="ring-story-highlight" style="color: var(--persona-nayan);">43 minutes</span> — Spanish practice and reading. 72% of your goal. Nayan sees you becoming fluent by summer at this pace.
+              </div>
+            </div>
+          </div>
+
+          <div class="ring-story">
+            <div class="ring-story-ring complete" style="color: var(--persona-peter);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+            <div class="ring-story-content">
+              <div class="ring-story-title">Screen-Free Presence</div>
+              <div class="ring-story-meta">
+                <span class="ring-story-highlight" style="color: var(--persona-peter);">11 hours today</span> — That dinner with Sarah counted. Peter noticed your conversations go deeper when phones are away.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating insight whisper -->
+      <div class="insight-whisper">
+        <div class="insight-whisper-avatar maya">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+          </svg>
+        </div>
+        <p class="insight-whisper-text">
+          <strong>Maya noticed:</strong> Your stretching consistency is 3× higher before checking email. Tomorrow morning?
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION: Your Future - Monte Carlo Projections -->
+    <section id="projections" class="viz-section">
+      <header class="viz-section-header">
+        <p class="viz-section-overline">Nayan is thinking about your dreams</p>
+        <h2 class="viz-section-title">The Futures Worth Working For</h2>
+        <p class="viz-section-description">
+          You've mentioned wanting a home on the coast someday. You've talked about your daughter's college. You've dreamed about a sabbatical year in Portugal. Nayan ran 10,000 simulations—not to predict the future, but to show you which dreams are closer than you think.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Any Advisor Could Be</div>
+          <div class="bth-callout-text">
+            Financial advisors give you a single number and hope you don't ask questions. Nayan shows you the full range—the cautious path, the likely path, the path where everything goes right. Honest uncertainty builds trust. And hope.
+          </div>
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <div class="viz-card-header">
+          <div>
+            <h3 class="viz-card-title">The Path to That Coastal Home</h3>
+            <p class="viz-card-subtitle">Your dream, projected across 10,000 possible futures</p>
+          </div>
+          <span class="viz-card-badge nayan">Nayan's View</span>
+        </div>
+
+        <div class="projection-container">
+          <svg class="projection-svg" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--persona-nayan)"/>
+                <stop offset="100%" stop-color="var(--persona-maya)"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Grid lines -->
+            <g stroke="var(--border-subtle)" stroke-width="1" opacity="0.3">
+              <line x1="60" y1="50" x2="60" y2="300"/>
+              <line x1="60" y1="300" x2="760" y2="300"/>
+              <line x1="60" y1="237.5" x2="760" y2="237.5" stroke-dasharray="4 4"/>
+              <line x1="60" y1="175" x2="760" y2="175" stroke-dasharray="4 4"/>
+              <line x1="60" y1="112.5" x2="760" y2="112.5" stroke-dasharray="4 4"/>
+              <line x1="60" y1="50" x2="760" y2="50" stroke-dasharray="4 4"/>
+            </g>
+
+            <!-- Y-axis labels -->
+            <text x="50" y="305" fill="var(--text-muted)" text-anchor="end" font-size="11">$0</text>
+            <text x="50" y="242" fill="var(--text-muted)" text-anchor="end" font-size="11">$500K</text>
+            <text x="50" y="180" fill="var(--text-muted)" text-anchor="end" font-size="11">$1M</text>
+            <text x="50" y="117" fill="var(--text-muted)" text-anchor="end" font-size="11">$1.5M</text>
+            <text x="50" y="55" fill="var(--text-muted)" text-anchor="end" font-size="11">$2M</text>
+
+            <!-- X-axis labels -->
+            <text x="60" y="320" fill="var(--text-muted)" font-size="11">2020</text>
+            <text x="235" y="320" fill="var(--text-muted)" font-size="11" text-anchor="middle">2025</text>
+            <text x="410" y="320" fill="var(--text-muted)" font-size="11" text-anchor="middle">2030</text>
+            <text x="585" y="320" fill="var(--text-muted)" font-size="11" text-anchor="middle">2035</text>
+            <text x="760" y="320" fill="var(--text-muted)" font-size="11" text-anchor="end">2040</text>
+
+            <!-- Today marker -->
+            <line class="today-marker" x1="410" y1="40" x2="410" y2="300" stroke="var(--text-muted)" stroke-dasharray="4 4"/>
+            <text x="410" y="32" fill="var(--text-secondary)" text-anchor="middle" font-size="11" font-weight="500">Today</text>
+
+            <!-- 95% Confidence Band -->
+            <path class="confidence-band" fill="rgba(184, 149, 106, 0.1)"
+                  d="M410,200 Q510,175 600,120 Q700,55 760,25
+                     L760,290 Q700,270 600,250 Q510,230 410,200 Z"/>
+
+            <!-- 75% Confidence Band -->
+            <path class="confidence-band" fill="rgba(184, 149, 106, 0.2)"
+                  d="M410,200 Q510,170 600,135 Q700,85 760,50
+                     L760,265 Q700,245 600,220 Q510,210 410,200 Z"/>
+
+            <!-- 50% Confidence Band -->
+            <path class="confidence-band" fill="rgba(184, 149, 106, 0.35)"
+                  d="M410,200 Q510,165 600,150 Q700,115 760,80
+                     L760,235 Q700,215 600,195 Q510,195 410,200 Z"/>
+
+            <!-- Historical line -->
+            <path class="projection-line historical" stroke="url(#lineGrad)" stroke-width="3" fill="none"
+                  d="M60,290 Q120,285 180,275 Q250,258 320,235 Q365,218 410,200"/>
+
+            <!-- Forecast line (median) -->
+            <path class="projection-line forecast" stroke="url(#lineGrad)" stroke-width="3" fill="none" stroke-dasharray="8 4" opacity="0.75"
+                  d="M410,200 Q510,170 600,145 Q700,115 760,90"/>
+
+            <!-- Current value dot -->
+            <circle cx="410" cy="200" r="6" fill="var(--persona-nayan)" style="filter: drop-shadow(0 0 10px var(--persona-nayan));"/>
+          </svg>
+        </div>
+
+        <div class="projection-legend">
+          <div class="projection-legend-item">
+            <div class="legend-line" style="background: linear-gradient(90deg, var(--persona-nayan), var(--persona-maya));"></div>
+            <span>Historical</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-line dashed" style="background: linear-gradient(90deg, var(--persona-nayan), var(--persona-maya));"></div>
+            <span>Median Forecast</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-band" style="background: rgba(184, 149, 106, 0.35);"></div>
+            <span>50% Confidence</span>
+          </div>
+          <div class="projection-legend-item">
+            <div class="legend-band" style="background: rgba(184, 149, 106, 0.1);"></div>
+            <span>95% Confidence</span>
+          </div>
+        </div>
+
+        <div class="scenario-cards">
+          <div class="scenario-card pessimistic">
+            <div class="scenario-label">If Life Gets Hard</div>
+            <div class="scenario-value">2031</div>
+            <div class="scenario-change">Still reachable in 6 years</div>
+          </div>
+          <div class="scenario-card expected">
+            <div class="scenario-label">Most Likely Path</div>
+            <div class="scenario-value">2029</div>
+            <div class="scenario-change">Coastal home in 4 years</div>
+          </div>
+          <div class="scenario-card optimistic">
+            <div class="scenario-label">If Things Go Well</div>
+            <div class="scenario-value">2027</div>
+            <div class="scenario-change">Could be watching sunsets in 2 years</div>
+          </div>
+        </div>
+
+        <div class="insight-card nayan">
+          <div class="insight-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M2 12c.6-.5 1.2-1 2.5-1 2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2c1.3 0 1.9-.5 2.5-1"/>
+              <path d="M2 17c.6-.5 1.2-1 2.5-1 2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2c1.3 0 1.9-.5 2.5-1"/>
+              <path d="M2 7c.6-.5 1.2-1 2.5-1 2.5 0 2.5 2 5 2s2.5-2 5-2 2.5 2 5 2c1.3 0 1.9-.5 2.5-1"/>
+            </svg>
+          </div>
+          <div class="insight-card-content">
+            <div class="insight-card-title">Nayan noticed something</div>
+            <div class="insight-card-text">If you shifted $300/month from that streaming service bundle to your coast fund, the "most likely" path moves up 8 months. That's 8 more months of sunsets. Worth considering?</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Your Whole Self - Glass Dashboard -->
+    <section id="glass" class="viz-section">
+      <header class="viz-section-header">
+        <p class="viz-section-overline">Ferni sees the whole picture</p>
+        <h2 class="viz-section-title">More Than Money Could Measure</h2>
+        <p class="viz-section-description">
+          Your bank shows you a balance. Your fitness app shows you steps. Your calendar shows you meetings. Ferni sees how they all connect—the full picture of a life being lived. Because you're not just a number. You're a whole person.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Any Single App Could Be</div>
+          <div class="bth-callout-text">
+            Spreadsheets fragment your life into silos. Ferni weaves them together—seeing that your sleep dropped when work stress rose, that your savings rate correlates with family dinners. The whole you, finally visible.
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-dashboard">
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Quality Time</span>
+            <span class="glass-card-badge positive">+23%</span>
+          </div>
+          <div class="glass-card-value">14.2 hrs</div>
+          <div class="glass-card-subtitle">Screen-free with Sarah this week</div>
+          <div class="glass-sparkline">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="var(--persona-ferni)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        points="0,35 15,30 25,32 40,20 55,25 70,15 85,18 100,10"/>
+              <path fill="url(#sparkGrad1)" opacity="0.2"
+                    d="M0,35 15,30 25,32 40,20 55,25 70,15 85,18 100,10 100,40 0,40 Z"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Energy Score</span>
+            <span class="glass-card-badge positive">↑ trending</span>
+          </div>
+          <div class="glass-card-value">8.1</div>
+          <div class="glass-card-subtitle">Your highest since March</div>
+          <div class="glass-sparkline">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="var(--persona-nayan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        points="0,30 15,28 30,32 45,25 60,20 75,18 90,15 100,12"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Purpose Score</span>
+            <span class="glass-card-badge neutral">steady</span>
+          </div>
+          <div class="glass-card-value">7.4</div>
+          <div class="glass-card-subtitle">Work feels meaningful lately</div>
+          <div class="glass-sparkline">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="var(--persona-peter)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        points="0,22 20,20 40,22 60,18 80,20 100,19"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <span class="glass-card-title">Runway to Freedom</span>
+          </div>
+          <div class="glass-card-value">8.4 mo</div>
+          <div class="glass-card-subtitle">Could take a breath if needed</div>
+          <div class="glass-sparkline">
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+              <polyline fill="none" stroke="var(--persona-alex)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        points="0,35 20,30 40,28 60,22 80,18 100,15"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-card ferni">
+        <div class="insight-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+          </svg>
+        </div>
+        <div class="insight-card-content">
+          <div class="insight-card-title">Ferni connected some dots</div>
+          <div class="insight-card-text">Your energy score jumped 2 points the week you started morning stretches. Your quality time with Sarah increased after you hit that savings milestone. These things aren't separate—they're feeding each other.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Right Now - Real-Time Pulse -->
+    <section id="pulse" class="viz-section">
+      <header class="viz-section-header">
+        <p class="viz-section-overline">Alex is watching your bandwidth</p>
+        <h2 class="viz-section-title">What's Happening Right Now</h2>
+        <p class="viz-section-description">
+          This moment matters. Not your five-year plan, not last week's regrets—right now. Alex watches your real-time state so you can stay present while knowing someone's got your back.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Your Own Awareness</div>
+          <div class="bth-callout-text">
+            You often don't notice you're depleted until you snap at someone. Alex sees the signs earlier—the shorter replies, the longer pauses, the skipped lunch—and gently intervenes before you need to recover from yourself.
+          </div>
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <div class="viz-card-header">
+          <div>
+            <h3 class="viz-card-title">Your State Right Now</h3>
+            <p class="viz-card-subtitle">Real-time awareness, so you don't have to be</p>
+          </div>
+          <span class="viz-card-badge alex">Alex's View</span>
+        </div>
+
+        <div class="pulse-grid">
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--persona-ferni)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+              </svg>
+            </div>
+            <div class="pulse-label">Focus Mode</div>
+            <div class="pulse-trend up">Deep work for 47 min</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator warning"></div>
+            <div class="pulse-value">3</div>
+            <div class="pulse-label">Awaiting Reply</div>
+            <div class="pulse-trend down">Mom texted 2 hrs ago</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">7.2</div>
+            <div class="pulse-label">Energy Now</div>
+            <div class="pulse-trend up">Riding post-lunch dip well</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">2</div>
+            <div class="pulse-label">Meetings Left</div>
+            <div class="pulse-trend up">Clear after 4pm</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--persona-ferni)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+            <div class="pulse-label">Mood Trend</div>
+            <div class="pulse-trend up">Rising since morning</div>
+          </div>
+          <div class="pulse-card">
+            <div class="pulse-indicator healthy"></div>
+            <div class="pulse-value">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--persona-ferni)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div class="pulse-label">Boundaries</div>
+            <div class="pulse-trend up">Holding well today</div>
+          </div>
+        </div>
+
+        <div class="insight-card alex">
+          <div class="insight-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="insight-card-content">
+            <div class="insight-card-title">Alex noticed something</div>
+            <div class="insight-card-text">You usually reply to Mom within 30 minutes. It's been 2 hours—just wanted to flag it. No pressure, but she might be wondering if you're okay.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: Your Year - 365 Days of Becoming -->
+    <section id="calendar" class="viz-section">
+      <header class="viz-section-header">
+        <p class="viz-section-overline">Jordan remembers every milestone</p>
+        <h2 class="viz-section-title">The Story of Your Year</h2>
+        <p class="viz-section-description">
+          Every bright square is a day you showed up. The clusters tell stories—the February slump when work was brutal, the April resurgence when you found your stride, the summer streak that changed everything. Jordan sees the narrative in your noise.
+        </p>
+      </header>
+
+      <div class="bth-callout">
+        <div class="bth-callout-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="bth-callout-content">
+          <div class="bth-callout-title">Better Than Memory Could Be</div>
+          <div class="bth-callout-text">
+            Friends see isolated moments. Jordan sees the arc—the slow build, the setbacks that preceded breakthroughs, the seasonal rhythms you didn't know you had. This isn't tracking. It's remembering who you've been becoming.
+          </div>
+        </div>
+      </div>
+
+      <div class="viz-card">
+        <div class="viz-card-header">
+          <div>
+            <h3 class="viz-card-title">365 Days of Becoming</h3>
+            <p class="viz-card-subtitle">Each square is a day you showed up for yourself. Jordan sees the arc.</p>
+          </div>
+          <span class="viz-card-badge jordan">Jordan's View</span>
+        </div>
+
+        <div class="becoming-container">
+          <div class="becoming-calendar">
+            <div class="calendar-months">
+              <span class="calendar-month">Jan</span>
+              <span class="calendar-month">Feb</span>
+              <span class="calendar-month">Mar</span>
+              <span class="calendar-month">Apr</span>
+              <span class="calendar-month">May</span>
+              <span class="calendar-month">Jun</span>
+              <span class="calendar-month">Jul</span>
+              <span class="calendar-month">Aug</span>
+              <span class="calendar-month">Sep</span>
+              <span class="calendar-month">Oct</span>
+              <span class="calendar-month">Nov</span>
+              <span class="calendar-month">Dec</span>
+            </div>
+            <div class="calendar-body">
+              <div class="calendar-days">
+                <span class="calendar-day">Mon</span>
+                <span class="calendar-day"></span>
+                <span class="calendar-day">Wed</span>
+                <span class="calendar-day"></span>
+                <span class="calendar-day">Fri</span>
+                <span class="calendar-day"></span>
+                <span class="calendar-day"></span>
+              </div>
+              <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar cells generated by JavaScript -->
+              </div>
+            </div>
+            <div class="calendar-footer">
+              <div class="calendar-legend">
+                <span>Less</span>
+                <div class="calendar-legend-cells">
+                  <div class="calendar-cell level-0"></div>
+                  <div class="calendar-cell level-1"></div>
+                  <div class="calendar-cell level-2"></div>
+                  <div class="calendar-cell level-3"></div>
+                  <div class="calendar-cell level-4"></div>
+                </div>
+                <span>More</span>
+              </div>
+              <div class="rhythm-legend">
+                <div class="rhythm-item">
+                  <span class="rhythm-dot milestone"></span>
+                  <span>Milestone</span>
+                </div>
+                <div class="rhythm-item">
+                  <span class="rhythm-dot recovery"></span>
+                  <span>Recovery</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="becoming-stats">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <div>
+                  <div class="stat-value">247</div>
+                  <div class="stat-label">Days Active</div>
+                </div>
+                <span class="stat-trend up">+12%</span>
+              </div>
+              <div class="stat-breakdown">
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Streaks</span>
+                  <div class="breakdown-bar-bg">
+                    <div class="breakdown-bar" style="width: 85%;"></div>
+                  </div>
+                  <span class="breakdown-value">47</span>
+                </div>
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Milestones</span>
+                  <div class="breakdown-bar-bg">
+                    <div class="breakdown-bar" style="width: 65%;"></div>
+                  </div>
+                  <span class="breakdown-value">12</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card pattern-card">
+              <div class="pattern-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+                </svg>
+                Pattern Discovered
+              </div>
+              <div class="pattern-description">
+                Your energy peaks every third week, then dips for recovery. Jordan noticed you're in a high-energy week now.
+              </div>
+              <div class="pattern-visual">
+                <div class="pattern-week high">↑</div>
+                <div class="pattern-week high">↑</div>
+                <div class="pattern-week recovery">↓</div>
+                <div class="pattern-week high">↑</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="insight-card jordan">
+          <div class="insight-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </div>
+          <div class="insight-card-content">
+            <div class="insight-card-title">Jordan connected the dots</div>
+            <div class="insight-card-text">That February slump? It started 3 days after you stopped your morning stretches. The April resurgence? Exactly when you picked them back up. Your body remembers even when your mind doesn't.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Insight Banner -->
+    <div class="final-insight">
+      <p class="final-insight-text">
+        "This is what it looks like when someone finally sees the whole picture—not fragments, not snapshots, but the continuous story of who you're becoming. Because you deserve to be seen. Really seen."
+      </p>
+    </div>
+  </main>
+</article>
+
+<style>
+/* ============================================
+   VISUALIZATION PAGE STYLES
+   Premium data visualization with Ferni warmth
+   ============================================ */
+
+/* Ambient Background Orbs */
+.viz-ambient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.viz-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: viz-float 20s ease-in-out infinite;
+}
+
+.viz-orb-ferni {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(74, 103, 65, 0.5) 0%, transparent 70%);
+  top: 40%;
+  right: -150px;
+  animation-delay: -7s;
+}
+
+.viz-orb-nayan {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(184, 149, 106, 0.4) 0%, transparent 70%);
+  top: -200px;
+  left: -200px;
+}
+
+.viz-orb-peter {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(58, 107, 115, 0.4) 0%, transparent 70%);
+  bottom: 10%;
+  left: 20%;
+  animation-delay: -14s;
+}
+
+@keyframes viz-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+.visualizations-page {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero Section */
+.viz-hero {
+  text-align: center;
+  padding: var(--space-16) var(--space-6) var(--space-12);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.viz-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.viz-hero-badge-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--persona-ferni);
+  border-radius: 50%;
+  animation: viz-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 12px var(--persona-ferni);
+}
+
+@keyframes viz-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.viz-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: var(--space-6);
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--persona-ferni) 50%, var(--persona-nayan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.viz-hero-highlight {
+  background: linear-gradient(135deg, var(--persona-ferni) 0%, var(--persona-nayan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.viz-hero-subtitle {
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-10);
+}
+
+.viz-hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+
+.viz-hero-stat {
+  text-align: center;
+}
+
+.viz-hero-stat-value {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  background: linear-gradient(135deg, var(--persona-ferni) 0%, var(--persona-peter) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.viz-hero-stat-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: var(--space-1);
+}
+
+.viz-hero-whisper {
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* Section Navigation */
+.viz-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-2) var(--space-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.viz-section-nav::-webkit-scrollbar { display: none; }
+.viz-section-nav { scrollbar-width: none; }
+
+.viz-section-nav-inner {
+  display: flex;
+  gap: var(--space-1);
+  max-width: 1200px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.viz-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-lg);
+  white-space: nowrap;
+  transition: all 0.2s var(--ease-out);
+  border: 1px solid transparent;
+}
+
+.viz-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border-color: var(--border-subtle);
+}
+
+.viz-nav-link.active {
+  color: var(--text-inverse);
+  background: var(--persona-ferni);
+  border-color: var(--persona-ferni);
+  box-shadow: 0 2px 8px rgba(74, 103, 65, 0.3);
+}
+
+.viz-nav-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Main Content */
+.viz-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+.viz-section {
+  margin-bottom: var(--space-20);
+  scroll-margin-top: 80px;
+}
+
+.viz-section-header {
+  margin-bottom: var(--space-8);
+}
+
+.viz-section-overline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--persona-nayan);
+  margin-bottom: var(--space-2);
+}
+
+.viz-section-overline::before {
+  content: '';
+  width: 20px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--persona-nayan), var(--persona-maya));
+  border-radius: 1px;
+}
+
+.viz-section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: var(--space-3);
+}
+
+.viz-section-description {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+  max-width: 640px;
+  line-height: 1.7;
+}
+
+/* BTH Callout */
+.bth-callout {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: rgba(74, 103, 65, 0.08);
+  border: 1px solid rgba(74, 103, 65, 0.2);
+  border-left: 3px solid var(--persona-ferni);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  margin: var(--space-8) 0;
+}
+
+.bth-callout-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--persona-ferni);
+  border-radius: 50%;
+  color: white;
+}
+
+.bth-callout-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--persona-ferni);
+  margin-bottom: var(--space-1);
+}
+
+.bth-callout-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Cards */
+.viz-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-out);
+}
+
+.viz-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--persona-ferni), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.viz-card:hover::before { opacity: 1; }
+.viz-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.viz-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.viz-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.viz-card-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.viz-card-badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+}
+
+.viz-card-badge.nayan { background: linear-gradient(135deg, var(--persona-nayan), #c9a67a); }
+.viz-card-badge.ferni { background: linear-gradient(135deg, var(--persona-ferni), #5a7a51); }
+.viz-card-badge.alex { background: linear-gradient(135deg, var(--persona-alex), #6a7b9a); }
+.viz-card-badge.jordan { background: linear-gradient(135deg, var(--persona-jordan), #d4957a); }
+
+/* Activity Rings */
+.rings-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) 0;
+}
+
+@media (min-width: 1024px) {
+  .rings-stage {
+    flex-direction: row;
+    justify-content: center;
+    gap: var(--space-20);
+  }
+}
+
+.rings-container {
+  position: relative;
+}
+
+.rings-ambient-glow {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: ambient-pulse 8s ease-in-out infinite;
+}
+
+@keyframes ambient-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+}
+
+.rings-main {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+
+@media (min-width: 640px) {
+  .rings-main { width: 320px; height: 320px; }
+}
+
+.rings-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.ring-bg {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.15;
+}
+
+.ring-progress {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 0 100;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.ring-progress.animate {
+  animation: ring-draw 2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.ring-glow {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: blur(6px);
+  stroke-dasharray: 0 100;
+}
+
+.ring-glow.animate {
+  animation: ring-glow-draw 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes ring-draw {
+  0% { stroke-dasharray: 0 100; }
+  100% { stroke-dasharray: var(--progress) 100; }
+}
+
+@keyframes ring-glow-draw {
+  0% { stroke-dasharray: 0 100; opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { stroke-dasharray: var(--progress) 100; opacity: 0.3; }
+}
+
+.rings-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.rings-center-value {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--persona-ferni), var(--persona-nayan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0;
+  animation: value-reveal 1s var(--ease-out) 1.5s forwards;
+}
+
+@keyframes value-reveal {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.rings-center-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-top: var(--space-2);
+  opacity: 0;
+  animation: label-fade 0.8s var(--ease-out) 2s forwards;
+}
+
+@keyframes label-fade { to { opacity: 1; } }
+
+/* Ring Stories */
+.rings-stories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 420px;
+  width: 100%;
+}
+
+.ring-story {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: story-enter 0.6s var(--ease-out) forwards;
+}
+
+.ring-story:nth-child(1) { animation-delay: 2.4s; }
+.ring-story:nth-child(2) { animation-delay: 2.6s; }
+.ring-story:nth-child(3) { animation-delay: 2.8s; }
+.ring-story:last-child { border-bottom: none; }
+
+@keyframes story-enter {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ring-story-ring {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-story-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  opacity: 0.3;
+}
+
+.ring-story-ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  animation: ring-spin 3s linear infinite;
+}
+
+.ring-story-ring.complete::after {
+  border-color: currentColor;
+  animation: none;
+}
+
+@keyframes ring-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ring-story-title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-1);
+}
+
+.ring-story-meta {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.ring-story-highlight {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Insight Whisper */
+.insight-whisper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 480px;
+  margin: var(--space-8) auto 0;
+  padding: var(--space-4) var(--space-6);
+  background: linear-gradient(135deg, rgba(166, 122, 106, 0.1), rgba(74, 103, 65, 0.1));
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(166, 122, 106, 0.2);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: whisper-enter 0.6s var(--ease-out) 3.2s forwards;
+}
+
+@keyframes whisper-enter {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.insight-whisper-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.insight-whisper-avatar.maya {
+  background: linear-gradient(135deg, var(--persona-maya), #b68a7a);
+}
+
+.insight-whisper-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.insight-whisper-text strong {
+  color: var(--persona-maya);
+}
+
+/* Projection Chart */
+.projection-container {
+  position: relative;
+  height: 380px;
+  margin: var(--space-6) 0;
+}
+
+.projection-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.confidence-band {
+  transition: opacity 0.3s;
+}
+
+.projection-svg:hover .confidence-band {
+  opacity: 0.85;
+}
+
+.projection-legend {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-6);
+}
+
+.projection-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.legend-line {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legend-line.dashed {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--persona-nayan) 0px,
+    var(--persona-nayan) 6px,
+    transparent 6px,
+    transparent 10px
+  );
+}
+
+.legend-band {
+  width: 24px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* Scenario Cards */
+.scenario-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.scenario-card {
+  padding: var(--space-6);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-spring), border-color 0.2s;
+}
+
+.scenario-card:hover {
+  border-color: var(--persona-ferni);
+  transform: translateY(-2px);
+}
+
+.scenario-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.scenario-card.pessimistic::before { background: linear-gradient(90deg, var(--persona-jordan), var(--persona-maya)); }
+.scenario-card.expected::before { background: linear-gradient(90deg, var(--persona-nayan), var(--persona-maya)); }
+.scenario-card.optimistic::before { background: linear-gradient(90deg, var(--persona-ferni), var(--persona-peter)); }
+
+.scenario-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-2);
+}
+
+.scenario-value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.scenario-card.pessimistic .scenario-value { color: var(--persona-jordan); }
+.scenario-card.expected .scenario-value { color: var(--persona-nayan); }
+.scenario-card.optimistic .scenario-value { color: var(--persona-ferni); }
+
+.scenario-change {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* Insight Cards */
+.insight-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-8);
+  border: 1px solid;
+}
+
+.insight-card.nayan {
+  background: rgba(184, 149, 106, 0.08);
+  border-color: rgba(184, 149, 106, 0.2);
+}
+
+.insight-card.ferni {
+  background: rgba(74, 103, 65, 0.08);
+  border-color: rgba(74, 103, 65, 0.2);
+}
+
+.insight-card.alex {
+  background: rgba(90, 107, 138, 0.08);
+  border-color: rgba(90, 107, 138, 0.2);
+}
+
+.insight-card.jordan {
+  background: rgba(196, 133, 106, 0.08);
+  border-color: rgba(196, 133, 106, 0.2);
+}
+
+.insight-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+}
+
+.insight-card.nayan .insight-card-icon { background: var(--persona-nayan); }
+.insight-card.ferni .insight-card-icon { background: var(--persona-ferni); }
+.insight-card.alex .insight-card-icon { background: var(--persona-alex); }
+.insight-card.jordan .insight-card-icon { background: var(--persona-jordan); }
+
+.insight-card-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.insight-card.nayan .insight-card-title { color: var(--persona-nayan); }
+.insight-card.ferni .insight-card-title { color: var(--persona-ferni); }
+.insight-card.alex .insight-card-title { color: var(--persona-alex); }
+.insight-card.jordan .insight-card-title { color: var(--persona-jordan); }
+
+.insight-card-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Glass Dashboard */
+.glass-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-6);
+}
+
+.glass-card {
+  padding: var(--space-6);
+  background: var(--bg-elevated);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(74, 103, 65, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.glass-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.glass-card-title {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.glass-card-badge {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.glass-card-badge.positive {
+  background: rgba(74, 103, 65, 0.15);
+  color: var(--persona-ferni);
+}
+
+.glass-card-badge.neutral {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.glass-card-value {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+}
+
+.glass-card-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.glass-sparkline {
+  height: 40px;
+  margin-top: var(--space-4);
+}
+
+.glass-sparkline svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Pulse Grid */
+.pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+}
+
+.pulse-card {
+  padding: var(--space-6);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+  position: relative;
+  transition: transform 0.3s var(--ease-spring), border-color 0.2s;
+}
+
+.pulse-card:hover {
+  border-color: var(--border-default);
+  transform: translateY(-2px);
+}
+
+.pulse-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  animation: pulse-beat 2s ease-in-out infinite;
+}
+
+.pulse-indicator.healthy {
+  background: var(--persona-ferni);
+  box-shadow: 0 0 12px var(--persona-ferni);
+}
+
+.pulse-indicator.warning {
+  background: var(--persona-nayan);
+  box-shadow: 0 0 12px var(--persona-nayan);
+}
+
+@keyframes pulse-beat {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.pulse-value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+}
+
+.pulse-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pulse-trend {
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+}
+
+.pulse-trend.up { color: var(--persona-ferni); }
+.pulse-trend.down { color: var(--persona-jordan); }
+
+/* 365 Days Calendar */
+.becoming-container {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-6);
+}
+
+@media (max-width: 1024px) {
+  .becoming-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.becoming-calendar {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-months {
+  display: flex;
+  margin-left: 32px;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.calendar-month {
+  flex: 1;
+  text-align: left;
+}
+
+.calendar-body {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.calendar-days {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  padding-right: var(--space-2);
+}
+
+.calendar-day {
+  height: 11px;
+  line-height: 11px;
+  text-align: right;
+  width: 24px;
+}
+
+.calendar-grid {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.calendar-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring), box-shadow 0.15s;
+}
+
+.calendar-cell:hover {
+  transform: scale(1.5);
+  box-shadow: 0 0 12px currentColor;
+  z-index: 10;
+}
+
+.calendar-cell.level-0 { background: rgba(74, 103, 65, 0.06); }
+.calendar-cell.level-1 { background: rgba(74, 103, 65, 0.2); }
+.calendar-cell.level-2 { background: rgba(74, 103, 65, 0.4); }
+.calendar-cell.level-3 { background: rgba(74, 103, 65, 0.65); }
+.calendar-cell.level-4 {
+  background: var(--persona-ferni);
+  box-shadow: 0 0 6px rgba(74, 103, 65, 0.4);
+}
+
+.calendar-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.calendar-legend-cells {
+  display: flex;
+  gap: 2px;
+}
+
+.calendar-legend-cells .calendar-cell {
+  width: 10px;
+  height: 10px;
+}
+
+.calendar-legend-cells .calendar-cell:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.rhythm-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.rhythm-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.rhythm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.rhythm-dot.milestone { background: var(--persona-jordan); }
+.rhythm-dot.recovery { background: var(--persona-nayan); }
+
+/* Stat Cards */
+.becoming-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stat-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--persona-ferni), var(--persona-peter));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-top: var(--space-1);
+}
+
+.stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.stat-trend.up {
+  background: rgba(74, 103, 65, 0.15);
+  color: var(--persona-ferni);
+}
+
+.stat-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.breakdown-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.breakdown-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: rgba(74, 103, 65, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.breakdown-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--persona-ferni), var(--persona-peter));
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--ease-out);
+}
+
+.breakdown-value {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Pattern Card */
+.pattern-card {
+  background: linear-gradient(135deg, rgba(184, 149, 106, 0.1), rgba(74, 103, 65, 0.1));
+  border-color: rgba(184, 149, 106, 0.2);
+}
+
+.pattern-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--persona-nayan);
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pattern-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.pattern-visual {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(184, 149, 106, 0.15);
+}
+
+.pattern-week {
+  flex: 1;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pattern-week.high {
+  background: rgba(74, 103, 65, 0.3);
+  color: var(--persona-ferni);
+}
+
+.pattern-week.recovery {
+  background: rgba(184, 149, 106, 0.2);
+  color: var(--persona-nayan);
+}
+
+/* Final Insight Banner */
+.final-insight {
+  text-align: center;
+  padding: var(--space-12) var(--space-6);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-xl);
+  margin: var(--space-8) 0;
+}
+
+.final-insight-text {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-style: italic;
+  color: var(--text-primary);
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .viz-hero { padding: var(--space-10) var(--space-4); }
+  .viz-hero-stats { gap: var(--space-6); }
+  .viz-main { padding: var(--space-6) var(--space-4); }
+  .viz-card { padding: var(--space-5); }
+  .rings-main { width: 240px; height: 240px; }
+  .rings-center-value { font-size: 2.5rem; }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .viz-orb,
+  .ring-progress,
+  .ring-glow,
+  .ring-story,
+  .insight-whisper,
+  .rings-center-value,
+  .rings-center-label,
+  .pulse-indicator {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+</style>
+
+<script>
+// Generate calendar grid
+const calendarGrid = document.getElementById('calendarGrid');
+if (calendarGrid) {
+  // 52 weeks × 7 days
+  for (let week = 0; week < 52; week++) {
+    for (let day = 0; day < 7; day++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar-cell';
+
+      // Randomize levels with some patterns
+      const weekProgress = week / 52;
+      let level;
+
+      // February slump (weeks 5-8)
+      if (week >= 5 && week <= 8) {
+        level = Math.random() < 0.6 ? 0 : Math.floor(Math.random() * 2);
+      }
+      // April resurgence (weeks 14-17)
+      else if (week >= 14 && week <= 17) {
+        level = Math.floor(Math.random() * 2) + 2;
+      }
+      // Summer streak (weeks 22-35)
+      else if (week >= 22 && week <= 35) {
+        level = Math.floor(Math.random() * 2) + 3;
+      }
+      // Default random
+      else {
+        level = Math.floor(Math.random() * 5);
+      }
+
+      cell.classList.add(`level-${level}`);
+      calendarGrid.appendChild(cell);
+    }
+  }
+}
+
+// Section navigation highlighting
+const sections = document.querySelectorAll('.viz-section');
+const navLinks = document.querySelectorAll('.viz-nav-link');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+      });
+    }
+  });
+}, { rootMargin: '-50% 0px -50% 0px' });
+
+sections.forEach(section => observer.observe(section));
+</script>

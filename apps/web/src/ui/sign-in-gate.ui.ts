@@ -78,11 +78,11 @@ const STYLES = `
 }
 
 .sign-in-gate-logo {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   margin: 0 auto var(--space-lg, 1.618rem);
-  border-radius: 50%;
-  background: var(--color-bg-secondary, #1a1a2e);
+  border-radius: var(--radius-xl, 18px);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,9 +91,10 @@ const STYLES = `
 }
 
 .sign-in-gate-logo img {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg, 12px);
+  object-fit: cover;
 }
 
 .sign-in-gate-title {
@@ -520,17 +521,17 @@ function createOverlay(): HTMLElement {
   const content = document.createElement('div');
   content.className = 'sign-in-gate-content';
 
-  // Logo
+  // Logo - Ferni Avatar
   const logoDiv = document.createElement('div');
   logoDiv.className = 'sign-in-gate-logo';
   const logoImg = document.createElement('img');
-  logoImg.src = '/logos/ferni-avatar.webp';
+  logoImg.src = '/ferni-avatar.svg';
   logoImg.alt = 'Ferni';
-  logoImg.width = 60;
-  logoImg.height = 60;
+  logoImg.width = 100;
+  logoImg.height = 100;
   logoImg.onerror = () => {
-    logoImg.style.display = 'none';
-    logoDiv.textContent = 'F';
+    // Fallback to design-system path
+    logoImg.src = '/design-system/assets/logos/personas/ferni-avatar.svg';
   };
   logoDiv.appendChild(logoImg);
 

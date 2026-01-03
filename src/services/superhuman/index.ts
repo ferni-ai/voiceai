@@ -237,6 +237,17 @@ import {
   type SemanticIntelligenceContext,
 } from './semantic-intelligence/index.js';
 
+// V4 Jordan's Superhuman Planning imports
+import { buildEventPatternContext } from './event-pattern-memory.js';
+import { buildGuestIntelligenceContext } from './guest-intelligence.js';
+import { buildMilestoneDetectorContext } from './proactive-milestone-detector.js';
+import { buildEventStoryContext } from './event-story-capture.js';
+import { buildAnticipatoryPlanningContext } from './anticipatory-planning.js';
+import { buildCelebrationBalanceContext } from './celebration-balance.js';
+import { buildPlanningCoordinationContext } from './planning-coordination.js';
+import { buildSeasonalPlanningContext } from './seasonal-planning-intelligence.js';
+import { buildPostEventLearningContext } from './post-event-learning.js';
+
 export interface SuperhumanContext {
   // Original 10 capabilities
   commitments: string;
@@ -783,3 +794,163 @@ export {
   type GrowthFingerprint as SemanticGrowthFingerprint,
   type SemanticThread,
 } from './semantic-intelligence/index.js';
+
+// ============================================================================
+// V4 JORDAN'S SUPERHUMAN PLANNING (January 2026)
+// ============================================================================
+
+// Event Pattern Memory - Perfect recall across all events
+export {
+  eventPatternMemory,
+  recordEventOutcome as recordEventPatternOutcome,
+  recordGuestConflict,
+  recordRegrettedOmission,
+  recordVendorExperience,
+  getEventPatternInsights,
+  buildEventPatternContext,
+  type BudgetPattern,
+  type GuestDynamics,
+  type EmotionalPattern,
+  type VendorPreference,
+  type EventOutcome,
+  type EventPatternProfile,
+} from './event-pattern-memory.js';
+
+// Guest Intelligence - Permanent guest profiles
+export {
+  guestIntelligence,
+  getGuestProfile,
+  upsertGuestProfile,
+  recordGuestDietary,
+  recordGuestAccessibility,
+  recordGuestRelationship,
+  upsertGuestGroup,
+  getSeatingRecommendations,
+  getGuestListDietary,
+  predictAttendance,
+  getGuestListSummary,
+  buildGuestIntelligenceContext,
+  type GuestProfile,
+  type GuestRelationship,
+  type GuestGroup,
+  type SeatingRecommendation,
+  type GuestIntelligenceProfile,
+} from './guest-intelligence.js';
+
+// Proactive Milestone Detector - Detect celebrations humans forget
+export {
+  proactiveMilestoneDetector,
+  trackDate,
+  trackQuietWin,
+  resetQuietWin,
+  recordLifeStageSignal,
+  detectUpcomingMilestones,
+  getMilestonesToCelebrate,
+  acknowledgeMilestone as acknowledgeDetectedMilestone,
+  getLifeStageInsights,
+  buildMilestoneDetectorContext,
+  type MilestoneType as DetectorMilestoneType,
+  type MilestoneSignificance,
+  type TrackedDate,
+  type DetectedMilestone,
+  type LifeStageSignal,
+  type MilestoneDetectorProfile,
+} from './proactive-milestone-detector.js';
+
+// Event Story Capture - Remember what events MEANT
+export {
+  eventStoryCapture,
+  startStoryCapture,
+  updateEventStory,
+  addMeaningfulMoment,
+  addGratitudeNote,
+  getStoryCapturePrompts,
+  getEventStory,
+  findEventStory,
+  getAllEventStories,
+  recallEventMeaning,
+  buildEventStoryContext,
+  getStoriesWithUpcomingAnniversaries,
+  type EventStory,
+  type StoryCapturePrompts,
+  type EventStoryProfile,
+} from './event-story-capture.js';
+
+// Anticipatory Planning - See life transitions coming
+export {
+  anticipatoryPlanning,
+  detectTransitionSignals,
+  recordTransitionSignal,
+  updateDemographics,
+  getAnticipatedTransitions,
+  markTransitionSurfaced,
+  buildAnticipatoryPlanningContext,
+  type LifeTransition,
+  type TransitionSignal,
+  type TransitionPrediction,
+  type AnticipatedMilestone,
+  type AnticipatoryPlanningProfile,
+} from './anticipatory-planning.js';
+
+// Celebration Balance - Track joy objectively
+export {
+  celebrationBalance,
+  recordCelebration as recordCelebrationEvent,
+  getCelebrationBalance,
+  getCelebrationSuggestions,
+  shouldPromptForCelebration,
+  buildCelebrationBalanceContext,
+  type CelebrationType,
+  type CelebrationSize,
+  type RecordedCelebration,
+  type CelebrationBalance,
+  type CelebrationBalanceProfile,
+} from './celebration-balance.js';
+
+// Planning Coordination - Cross-domain readiness checks
+export {
+  planningCoordination,
+  checkPlanningReadiness,
+  quickReadinessCheck,
+  checkGoalAlignment,
+  buildPlanningCoordinationContext,
+  type FinancialReadiness,
+  type CalendarCapacity,
+  type EnergyAlignment,
+  type LifeStageContext,
+  type PlanningReadinessAssessment,
+  type PlanningCoordinationProfile,
+} from './planning-coordination.js';
+
+// Seasonal Planning Intelligence - Cultural dates and optimal timing
+export {
+  seasonalPlanningIntelligence,
+  getRelevantCulturalDates,
+  getSeasonalPatterns as getSeasonalPlanningPatterns,
+  updateCulturalBackgrounds,
+  updatePersonalPatterns,
+  recordEventOutcome as recordSeasonalEventOutcome,
+  suggestOptimalTiming,
+  checkDateConflicts,
+  buildSeasonalPlanningContext,
+  type CulturalDate,
+  type SeasonalPattern as SeasonalPlanningPattern,
+  type PersonalSeasonalPattern,
+  type TimingRecommendation as SeasonalTimingRecommendation,
+  type SeasonalPlanningProfile,
+} from './seasonal-planning-intelligence.js';
+
+// Post-Event Learning - Follow up and learn
+export {
+  postEventLearning,
+  scheduleEventFollowUps,
+  getDueFollowUps,
+  recordLearning,
+  getApplicableLearnings,
+  getLearningSummary,
+  buildPostEventLearningContext,
+  type EventLearning,
+  type FollowUpPrompt,
+  type AppliedWisdom,
+  type PostEventLearningProfile,
+} from './post-event-learning.js';

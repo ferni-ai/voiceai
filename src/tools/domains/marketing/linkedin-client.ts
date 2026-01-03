@@ -173,7 +173,8 @@ export class LinkedInClient {
     const clientId = process.env.LINKEDIN_CLIENT_ID;
     const redirectUri =
       process.env.LINKEDIN_CALLBACK_URL || 'https://app.ferni.ai/api/marketing/linkedin/callback';
-    const scope = 'r_liteprofile r_emailaddress w_member_social';
+    // Use OpenID Connect scopes (newer LinkedIn API)
+    const scope = 'openid profile email w_member_social';
 
     const params = new URLSearchParams({
       response_type: 'code',

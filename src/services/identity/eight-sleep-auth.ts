@@ -14,6 +14,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { createOAuthStateManager } from '../../utils/ddos-protection.js';
 import type {
   EightSleepTokens,
   EightSleepTokenResponse,
@@ -79,8 +80,8 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 const userTokens = new Map<string, EightSleepTokens>();
 const loadedTokenUsers = new Set<string>();
 
-// OAuth state storage (for CSRF protection)
-const oauthStates = new Map<string, { userId: string; expiresAt: number }>();
+// Centralized OAuth state management with automatic cleanup and memory limits
+const oauthStates = createOAuthStateManager<{ userId: string }>(10 * 60 * 1000); // 10 minute expiry
 
 // Failed token tracking
 const failedTokenCache = new Map<string, number>();
@@ -215,18 +216,10 @@ export function getAuthorizationUrl(userId: string): EightSleepResult<{ url: str
     return { success: false, error: 'Eight Sleep client ID not configured' };
   }
 
-  // Generate state for CSRF protection
-  const state = crypto.randomUUID();
-  oauthStates.set(cleanForFirestore(state), {
-    userId,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-  });
-
-  // Clean up old states
-  for (const [key, value] of oauthStates.entries()) {
-    if (Date.now() > value.expiresAt) {
-      oauthStates.delete(key);
-    }
+  // Generate state for CSRF protection (uses centralized manager with automatic cleanup)
+  const state = oauthStates.create({ userId });
+  if (!state) {
+    return { success: false, error: 'Too many pending OAuth requests' };
   }
 
   const params = new URLSearchParams({
@@ -244,23 +237,17 @@ export function getAuthorizationUrl(userId: string): EightSleepResult<{ url: str
 }
 
 /**
- * Validate OAuth state and get associated user
+ * Validate OAuth state and get associated user (one-time use)
  */
 export function validateOAuthState(state: string): string | null {
-  const stateData = oauthStates.get(state);
+  // Consume state (one-time use) - returns null if invalid or expired
+  const stateData = oauthStates.consume(state);
 
   if (!stateData) {
-    log.warn({ state }, 'Unknown OAuth state');
+    log.warn({ state }, 'Unknown or expired OAuth state');
     return null;
   }
 
-  if (Date.now() > stateData.expiresAt) {
-    oauthStates.delete(state);
-    log.warn({ state }, 'OAuth state expired');
-    return null;
-  }
-
-  oauthStates.delete(state);
   return stateData.userId;
 }
 

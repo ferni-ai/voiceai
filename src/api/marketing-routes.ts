@@ -11,11 +11,12 @@ import { TwitterClient } from '../tools/domains/marketing/twitter-client.js';
 import { LinkedInClient } from '../tools/domains/marketing/linkedin-client.js';
 import { MarketingStorage } from '../tools/domains/marketing/storage.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { createOAuthStateManager } from '../utils/ddos-protection.js';
 
 const log = getLogger();
 
-// In-memory state for OAuth flows (use Redis in production)
-const oauthStates = new Map<string, { userId: string; platform: string; timestamp: number }>();
+// Centralized OAuth state management with automatic cleanup and memory limits
+const oauthStates = createOAuthStateManager<{ userId: string; platform: string }>(10 * 60 * 1000); // 10 minute expiry
 
 /**
  * Handle marketing-related API routes
@@ -47,16 +48,12 @@ export async function handleMarketingRoutes(
       return true;
     }
 
-    // Generate state for CSRF protection
-    const state = `tw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    oauthStates.set(state, { userId, platform: 'twitter', timestamp: Date.now() });
-
-    // Clean up old states (older than 10 minutes)
-    const tenMinutesAgo = Date.now() - 600000;
-    for (const [key, value] of oauthStates.entries()) {
-      if (value.timestamp < tenMinutesAgo) {
-        oauthStates.delete(key);
-      }
+    // Generate state for CSRF protection (uses centralized manager with automatic cleanup)
+    const state = oauthStates.create({ userId, platform: 'twitter' });
+    if (!state) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Too many pending OAuth requests' }));
+      return true;
     }
 
     const authUrl = TwitterClient.getAuthorizationUrl(state);
@@ -75,14 +72,13 @@ export async function handleMarketingRoutes(
       return true;
     }
 
-    const savedState = oauthStates.get(state);
+    // Consume state (one-time use) and validate platform
+    const savedState = oauthStates.consume(state);
     if (!savedState || savedState.platform !== 'twitter') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid state' }));
+      res.end(JSON.stringify({ error: 'Invalid or expired state' }));
       return true;
     }
-
-    oauthStates.delete(state);
 
     try {
       const tokens = await TwitterClient.exchangeCodeForTokens(code, 'challenge');
@@ -128,8 +124,12 @@ export async function handleMarketingRoutes(
       return true;
     }
 
-    const state = `li_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    oauthStates.set(state, { userId, platform: 'linkedin', timestamp: Date.now() });
+    const state = oauthStates.create({ userId, platform: 'linkedin' });
+    if (!state) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Too many pending OAuth requests' }));
+      return true;
+    }
 
     const authUrl = LinkedInClient.getAuthorizationUrl(state);
     res.writeHead(302, { Location: authUrl });
@@ -147,14 +147,13 @@ export async function handleMarketingRoutes(
       return true;
     }
 
-    const savedState = oauthStates.get(state);
+    // Consume state (one-time use) and validate platform
+    const savedState = oauthStates.consume(state);
     if (!savedState || savedState.platform !== 'linkedin') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid state' }));
+      res.end(JSON.stringify({ error: 'Invalid or expired state' }));
       return true;
     }
-
-    oauthStates.delete(state);
 
     try {
       const tokens = await LinkedInClient.exchangeCodeForTokens(code);

@@ -10,6 +10,11 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import {
+  getAllowedOrigins,
+  isOriginAllowed,
+  getCorsOrigin,
+} from '../servers/shared/cors.js';
 
 const log = createLogger({ module: 'SecurityHeaders' });
 
@@ -144,70 +149,49 @@ export function getAPISecurityHeaders(): Record<string, string> {
 }
 
 // ============================================================================
-// CORS VALIDATION
+// CORS VALIDATION (delegates to shared/cors.ts)
 // ============================================================================
 
 /**
  * Validate and return CORS headers.
- * In production, requires ALLOWED_ORIGINS to be set (no wildcard).
+ * Delegates to the shared CORS module which has comprehensive origin validation.
  *
  * @param origin - The request Origin header
  * @returns CORS headers object
- * @throws Error if production and ALLOWED_ORIGINS not configured
  */
 export function getCorsHeaders(origin?: string): Record<string, string> {
-  const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
-
-  // Production validation
-  if (isProduction()) {
-    if (!allowedOriginsEnv || allowedOriginsEnv === '*') {
-      log.error(
-        'SECURITY: ALLOWED_ORIGINS must be set to specific origins in production (not wildcard)'
-      );
-      // In production, refuse to use wildcard - return restrictive headers
-      return {
-        'Access-Control-Allow-Origin': '', // Empty = no CORS
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers':
-          'Content-Type, X-User-Id, Authorization, X-API-Key, X-Request-Id',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Max-Age': '86400',
-      };
-    }
-  }
-
-  // Parse allowed origins
-  const allowedOrigins =
-    allowedOriginsEnv && allowedOriginsEnv !== '*'
-      ? allowedOriginsEnv.split(',').map((o) => o.trim())
-      : null;
+  // Use the shared CORS module's origin validation
+  const allowedOrigins = getAllowedOrigins();
 
   // Determine which origin to allow
-  let allowOrigin = '*';
+  let allowOrigin = '';
 
-  if (allowedOrigins && origin) {
-    // Check if request origin is in allowed list
-    if (allowedOrigins.includes(origin)) {
+  if (origin) {
+    if (isOriginAllowed(origin, allowedOrigins)) {
       allowOrigin = origin;
     } else {
-      // Origin not allowed - log and reject
-      log.warn({ origin, allowed: allowedOrigins }, 'CORS: Origin not in allowed list');
-      allowOrigin = '';
+      // Origin not allowed - log in production
+      if (isProduction()) {
+        log.warn({ origin, allowed: allowedOrigins.slice(0, 5) }, 'CORS: Origin not in allowed list');
+      }
     }
-  } else if (allowedOrigins && !origin) {
-    // No origin header but we have restrictions - use first allowed
-    allowOrigin = allowedOrigins[0];
+  } else if (!isProduction()) {
+    // No origin header in development - allow (same-origin requests)
+    allowOrigin = '*';
   }
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers':
-      'Content-Type, X-User-Id, Authorization, X-API-Key, X-Request-Id',
+      'Content-Type, X-User-Id, Authorization, X-API-Key, X-Request-Id, X-Admin-Key',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
   };
 }
+
+// Re-export shared CORS utilities for convenience
+export { isOriginAllowed, getAllowedOrigins, getCorsOrigin };
 
 /**
  * Get all headers for an API response (security + CORS).

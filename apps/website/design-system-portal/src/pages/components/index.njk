@@ -1,0 +1,390 @@
+---
+layout: layouts/base.njk
+title: Components
+description: Reusable UI components built with Ferni design tokens
+permalink: /components/
+---
+
+<article class="components-page">
+  <header class="page-header">
+    <h1>Components</h1>
+    <p class="lead">Pre-built, accessible components that embody Ferni's design philosophy. Every component is designed to make AI feel more human.</p>
+  </header>
+
+  <section class="section">
+    <h2>Core Components</h2>
+
+    <div class="component-grid">
+      <a href="/components/avatar/" class="component-card">
+        <div class="component-preview avatar-preview">
+          <div class="avatar-demo">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4c-4 4-8 8-8 14a8 8 0 1016 0c0-6-4-10-8-14z"/>
+              <path d="M16 12v6"/>
+              <path d="M13 15l3 3 3-3"/>
+            </svg>
+          </div>
+        </div>
+        <h3>Avatar</h3>
+        <p>Expressive persona avatars with emotion states and animations</p>
+      </a>
+
+      <a href="/components/buttons/" class="component-card">
+        <div class="component-preview button-preview">
+          <button class="btn-demo">Button</button>
+        </div>
+        <h3>Buttons</h3>
+        <p>Primary, secondary, and ghost button variants</p>
+      </a>
+
+      <a href="/components/cards/" class="component-card">
+        <div class="component-preview card-preview">
+          <div class="card-demo"></div>
+        </div>
+        <h3>Cards</h3>
+        <p>Content containers with elevation and persona accents</p>
+      </a>
+
+      <div class="component-card coming-soon">
+        <div class="component-preview glass-preview">
+          <div class="glass-demo"></div>
+        </div>
+        <h3>Glass Surfaces</h3>
+        <p>Frosted glass effects for overlays and modals</p>
+        <span class="badge">Coming Soon</span>
+      </div>
+
+      <div class="component-card coming-soon">
+        <div class="component-preview toast-preview">
+          <div class="toast-demo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>Toast</span>
+          </div>
+        </div>
+        <h3>Toast</h3>
+        <p>Non-intrusive feedback notifications</p>
+        <span class="badge">Coming Soon</span>
+      </div>
+
+      <div class="component-card coming-soon">
+        <div class="component-preview input-preview">
+          <div class="input-demo"></div>
+        </div>
+        <h3>Inputs</h3>
+        <p>Text fields, selects, and form controls</p>
+        <span class="badge">Coming Soon</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Design Principles</h2>
+
+    <div class="principles">
+      <div class="principle">
+        <div class="principle-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <h4>Accessible by Default</h4>
+        <p>WCAG 2.1 AA compliant. Keyboard navigable. Screen reader friendly.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M9 21V9"/>
+          </svg>
+        </div>
+        <h4>Token-Based</h4>
+        <p>All styling uses design tokens. Theme changes propagate automatically.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/>
+            <path d="M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <h4>Motion-Aware</h4>
+        <p>Respects reduced motion preferences. Animations enhance, never distract.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="5"/>
+            <path d="M3 21v-2a7 7 0 0114 0v2"/>
+          </svg>
+        </div>
+        <h4>Persona-Ready</h4>
+        <p>Components support persona theming through CSS custom properties.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Usage Guidelines</h2>
+    <div class="guidelines-grid">
+      <div class="guideline-card">
+        <h4>Consistency</h4>
+        <p>Use components as designed. Avoid overriding styles unless absolutely necessary.</p>
+      </div>
+      <div class="guideline-card">
+        <h4>Composition</h4>
+        <p>Build complex interfaces by composing simple components together.</p>
+      </div>
+      <div class="guideline-card">
+        <h4>Responsiveness</h4>
+        <p>All components are built mobile-first and adapt to different screen sizes.</p>
+      </div>
+      <div class="guideline-card">
+        <h4>Performance</h4>
+        <p>Components are optimized for render performance and minimal bundle size.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.components-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.component-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.component-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--duration-normal) var(--ease-ease-out);
+  display: block;
+  position: relative;
+}
+
+.component-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.component-card.coming-soon {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.component-card .badge {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.component-preview {
+  height: 140px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-demo {
+  width: 72px;
+  height: 72px;
+  background: var(--persona-ferni);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-inverse);
+}
+
+.btn-demo {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border: none;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.btn-demo:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.card-demo {
+  width: 80%;
+  height: 70%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+}
+
+.glass-demo {
+  width: 80%;
+  height: 70%;
+  background: var(--bg-glass);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+}
+
+.toast-demo {
+  background: var(--bg-elevated);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  border-left: 3px solid var(--success);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-primary);
+}
+
+.toast-demo svg {
+  color: var(--success);
+}
+
+.input-demo {
+  width: 80%;
+  height: 44px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+}
+
+.component-card h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.component-card p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.principle {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease-ease-out);
+}
+
+.principle:hover {
+  border-color: var(--accent-primary);
+}
+
+.principle-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  color: var(--accent-primary);
+}
+
+.principle h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.principle p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+}
+
+.guideline-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.guideline-card h4 {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.guideline-card p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+@media (max-width: 768px) {
+  .component-grid,
+  .principles,
+  .guidelines-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+}
+</style>

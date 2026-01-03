@@ -33,6 +33,22 @@ import {
   markHealthServerReady,
   type ReadinessState,
 } from './worker-readiness.js';
+/**
+ * Set CORS headers for internal monitoring API endpoints.
+ *
+ * NOTE: For user-facing APIs, use src/servers/shared/cors.ts which has
+ * proper origin validation and security checks.
+ *
+ * These endpoints (metrics, diagnostics, cache stats) use permissive CORS because:
+ * 1. Protected by network-level access (GCE firewall)
+ * 2. Used by internal dashboards and CLI tools from various origins
+ * 3. All data is read-only metrics (no mutations)
+ */
+function setMonitoringCorsHeaders(res: ServerResponse): void {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
 
 // Debug flag for startup logging
 const DEBUG_STARTUP =
@@ -110,10 +126,7 @@ async function initWebSocketServer(httpServer: Server) {
 async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<void> {
   const broadcast = await getCognitiveBroadcast();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!broadcast) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -161,10 +174,7 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
 async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
   const sdm = await getSessionDataManager();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!sdm) {
     res.writeHead(503, { 'Content-Type': 'application/json' });
@@ -195,10 +205,7 @@ async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
  * Handle memory monitoring API requests
  */
 async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getMemoryMonitor } = await import('../../services/memory/memory-monitor.js');
@@ -261,9 +268,7 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
  * Handle watchdog API requests (container self-monitoring)
  */
 async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getHealthData } = await import('../../services/deployment/container-watchdog.js');
@@ -288,9 +293,7 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
  * Handle crash analytics API requests
  */
 async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getCrashHistory } = await import('./shutdown-handler.js');
@@ -368,9 +371,7 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
  * Handle session metrics API requests
  */
 async function handleSessionMetricsAPI(url: string, res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { getSessionMetricsSummary, getRawSessionMetrics } = await import('./session-metrics.js');
@@ -402,9 +403,7 @@ async function handleSessionMetricsAPI(url: string, res: ServerResponse): Promis
  * Handle diagnostics API request - full pipeline breakdown
  */
 async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   try {
     // Import performance modules
@@ -601,7 +600,7 @@ async function handleDiagnosticsAPI(url: string, res: ServerResponse): Promise<v
  * Handle warmup API request - keeps worker hot for faster connections
  */
 async function handleWarmupAPI(res: ServerResponse): Promise<void> {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setMonitoringCorsHeaders(res);
 
   try {
     const { warmupWorker } = await import('./session-metrics.js');
@@ -644,10 +643,7 @@ async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
 async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void> {
   const metrics = await getPersistenceMetrics();
 
-  // CORS headers for dashboard
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setMonitoringCorsHeaders(res);
 
   if (!metrics) {
     res.writeHead(503, { 'Content-Type': 'application/json' });

@@ -1143,6 +1143,20 @@ async function processFinalTranscript(
   }
 
   // ===============================================
+  // 🔴 CRITICAL FIX: Record user turn for memory persistence
+  // This was MISSING - causing all user speech to be lost!
+  // Without this, learning engine gets no data, summaries are empty,
+  // and Ferni never remembers what users say.
+  // ===============================================
+  if (services && typeof services.addTurn === 'function' && event.transcript) {
+    services.addTurn('user', event.transcript);
+    diag.debug('📝 User turn recorded for memory', {
+      preview: event.transcript.slice(0, 50),
+      sessionId,
+    });
+  }
+
+  // ===============================================
   // 🎯 SEMANTIC ROUTING (Pre-LLM Tool Execution)
   // Route high-confidence tool requests BEFORE Gemini processes
   // This bypasses the LLM entirely for deterministic tool calls

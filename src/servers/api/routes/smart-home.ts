@@ -12,6 +12,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getFirestore } from 'firebase-admin/firestore';
+import { verifyFirebaseToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'smart-home-routes' });
@@ -749,11 +750,30 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
 
     const token = authHeader?.replace('Bearer ', '') || authToken;
 
-    // In production, verify the Firebase ID token
-    // For now, we'll do a basic check that the token exists
-    // TODO: Implement full Firebase token verification
-    if (!token || token.length < 10) {
-      sendError(res, 401, 'Invalid authentication token');
+    // Verify the Firebase ID token
+    if (!token) {
+      sendError(res, 401, 'Missing authentication token');
+      return;
+    }
+
+    try {
+      const verifiedToken = await verifyFirebaseToken(token);
+      if (!verifiedToken) {
+        sendError(res, 401, 'Invalid authentication token');
+        return;
+      }
+      // Optionally verify userId matches token UID for extra security
+      if (verifiedToken.uid !== userId) {
+        log.warn(
+          { tokenUid: verifiedToken.uid, requestUserId: userId },
+          'SECURITY: HomeKit sync userId mismatch'
+        );
+        sendError(res, 403, 'User ID mismatch');
+        return;
+      }
+    } catch (err) {
+      log.error({ error: String(err) }, 'Firebase token verification failed');
+      sendError(res, 401, 'Authentication failed');
       return;
     }
 

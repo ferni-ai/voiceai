@@ -456,13 +456,141 @@ This checks:
 
 ---
 
-## Future Enhancements
+## 🚀 Intelligent Data Loading (NEW - Jan 2026)
 
-1. **Real-time sync** - WebSocket updates when stores change
-2. **Smart decay** - Automatically reduce indexed data importance over time
-3. **Cross-user patterns** - Aggregate insights (privacy-preserving)
-4. **Proactive surfacing** - Use indexed data to suggest topics
+The data layer now includes intelligent, lazy-loading capabilities that dramatically improve session startup time and memory efficiency.
+
+### Key Components
+
+| Module | Purpose |
+|--------|---------|
+| `intelligent-loader.ts` | Lazy-loads data domains on-demand |
+| `fast-session-init.ts` | Fast session startup (100ms vs 500ms+) |
+| `profile-pruning.ts` | Trims unbounded arrays in profiles |
+| `memory-cache-manager.ts` | LRU caching with TTL eviction |
+| `firestore-pagination.ts` | Safe paginated Firestore queries |
+
+### Usage: Fast Session Init
+
+```typescript
+import { fastSessionStart, fastSessionEnd } from '../data-layer/index.js';
+
+// At session start - only loads profile synchronously
+const { profile, isReturningUser } = await fastSessionStart(userId, sessionId, {
+  userName: 'John',
+  personaId: 'ferni',
+});
+
+// At session end - prunes profile, clears caches
+await fastSessionEnd(userId, sessionId);
+```
+
+### Usage: Intelligent Loader
+
+```typescript
+import { getIntelligentLoader } from '../data-layer/index.js';
+
+const loader = getIntelligentLoader(userId, sessionId);
+
+// Initialize (loads critical domains, starts background for others)
+await loader.initializeSession();
+
+// Get specific domain (loads on-demand if not cached)
+const habits = await loader.getDomain('habits');
+
+// Predictive loading from message
+const preloaded = await loader.preloadFromMessage("help me with my morning routine");
+// Returns: ['habits', 'tasks'] - domains now loading in background
+```
+
+### Usage: Profile Pruning
+
+```typescript
+import { pruneProfile, pruneProfileOnSessionEnd } from '../data-layer/index.js';
+
+// Manual pruning with custom config
+const { profile, result } = pruneProfile(userProfile, {
+  maxEmotionalPatterns: 100,
+  maxKeyMoments: 50,
+  conversationSummaryRetentionDays: 180,
+});
+
+// Auto-prune at session end
+await pruneProfileOnSessionEnd(userId);
+```
+
+### Usage: Memory Cache Manager
+
+```typescript
+import { createUserCache, clearUserCaches, startCacheCleanup } from '../data-layer/index.js';
+
+// Create a managed cache
+const cache = createUserCache<MyData>('my-feature', {
+  maxUsers: 500,
+  ttlMs: 5 * 60 * 1000, // 5 minutes
+});
+
+// Use it
+cache.set(userId, data);
+const data = cache.get(userId);
+
+// Clear for a specific user (at session end)
+clearUserCaches(userId);
+
+// Start periodic cleanup
+startCacheCleanup(60_000); // Every minute
+```
+
+### Usage: Safe Firestore Queries
+
+```typescript
+import { safeQueryAll, SAFE_LIMITS, recentItemsQuery } from '../data-layer/index.js';
+
+// Safe query with pagination (never loads unbounded data)
+const items = await safeQueryAll(collection, {
+  maxItems: SAFE_LIMITS.habits,
+  dateField: 'createdAt',
+  recentDays: 30,
+});
+
+// Query recent items only
+const query = recentItemsQuery(collection, 'createdAt', 30, 50);
+const snapshot = await query.get();
+```
+
+### Data Domains
+
+The intelligent loader organizes data into domains:
+
+| Domain | Priority | Trigger Keywords |
+|--------|----------|------------------|
+| `profile` | critical | name, profile, settings |
+| `habits` | on-demand | habit, routine, morning, streak |
+| `tasks` | on-demand | task, todo, remind, deadline |
+| `finance` | on-demand | money, budget, saving, spend |
+| `calendar` | on-demand | calendar, meeting, schedule |
+| `social` | on-demand | friend, family, mom, dad |
+| `health` | on-demand | health, medication, sleep |
+| `insights` | background | team, insight, pattern |
+
+### Session Startup Comparison
+
+| Approach | Time | What's Loaded |
+|----------|------|---------------|
+| OLD (waterfall) | ~500-800ms | profile → context → intelligence → insights → social |
+| NEW (parallel) | ~100-200ms | profile only (rest in background) |
 
 ---
 
-_Last updated: December 2024_
+## Future Enhancements
+
+1. ~~**Lazy loading** - Load data domains on-demand~~ ✅ DONE (Jan 2026)
+2. ~~**Profile pruning** - Trim unbounded arrays~~ ✅ DONE (Jan 2026)
+3. ~~**Cache management** - LRU eviction with TTL~~ ✅ DONE (Jan 2026)
+4. **Real-time sync** - WebSocket updates when stores change
+5. **Smart decay** - Automatically reduce indexed data importance over time
+6. **Cross-user patterns** - Aggregate insights (privacy-preserving)
+
+---
+
+_Last updated: January 2026_

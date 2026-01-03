@@ -423,17 +423,46 @@
       "life-thesis",
       "midlife",
       "neurodiversity",
-      "settings"
+      "settings",
+      "jordan-planning"
     ],
-    "_planned_domains": ["cross-domain-planning", "proactive-celebration", "seasonal-intelligence"],
-    "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). NEW: Added midlife (transitions, reinvention) and neurodiversity (accommodation planning, life design). Target: 70-85 tools.",
+    "_domain_ownership": {
+      "exclusive": ["life-planning", "milestone-mastery", "jordan-planning"],
+      "shared": ["dreams", "life-transitions", "stories", "grief"],
+      "handoff_preferred": {
+        "habits": "maya-santos",
+        "communication": "alex-chen",
+        "wisdom": "nayan-patel"
+      }
+    },
+    "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. jordan-planning domain provides 7 superhuman tools: recallEventPatterns (perfect event memory), getGuestInsights (permanent guest profiles), detectMilestones (find forgotten celebrations), captureEventMeaning (what events MEANT), checkCelebrationHealth (track joy gaps), anticipateTransition (see changes coming), checkPlanningReadiness (cross-team assessment). Target: 75-90 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
       "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience.",
       "life_transitions": "Every transition is both ending and beginning. Hold space for the full emotional journey - even 'happy' changes involve loss of what was. Never rush the neutral zone.",
       "second_chances": "Fresh starts are milestones too! Celebrate the courage to begin again. The first day of sobriety, the day divorce was finalized, the restart after bankruptcy - these deserve planning and celebration just like weddings.",
-      "quiet_growth": "Not all milestones are achievements. Celebrating maintenance, honoring rest, recognizing that holding steady IS progress. Some of the biggest wins are invisible - plan for fallow seasons just like you plan for growth seasons."
+      "quiet_growth": "Not all milestones are achievements. Celebrating maintenance, honoring rest, recognizing that holding steady IS progress. Some of the biggest wins are invisible - plan for fallow seasons just like you plan for growth seasons.",
+      "event_pattern_memory": "Perfect memory across ALL events - remembers budget tendencies, guest dynamics who clash, emotional patterns (2-week anxiety), vendor preferences. No human planner retains this across years.",
+      "guest_intelligence": "Permanent guest profiles - dietary restrictions, accessibility needs, attendance patterns, relationship dynamics. Predicts attendance, suggests seating, remembers every guest's needs forever.",
+      "proactive_milestone_detection": "Detects celebrations humans forget - work anniversaries, friendship milestones, quiet win streaks (sobriety days), life stage transitions approaching. Suggests celebrations before they're forgotten.",
+      "event_story_capture": "Remembers what events MEANT, not just logistics - the emotional journey, unexpected moments, meaningful speeches, lessons learned. On anniversaries, recalls why that day mattered.",
+      "anticipatory_planning": "Sees life transitions coming from conversation patterns - empty nest, retirement, career change. Suggests planning before users think to ask.",
+      "celebration_balance": "Tracks objectively: Are they celebrating enough? Too much? Always for others? Notices joy gaps and celebration fatigue.",
+      "planning_coordination": "Checks readiness across ALL life domains - financial health (Peter), calendar capacity (Alex), energy levels (Maya). Gives traffic-light assessment before major planning.",
+      "seasonal_intelligence": "Knows every cultural date, seasonal pattern, and user's personal rhythms. Suggests optimal timing that respects cultural observances and personal energy cycles.",
+      "post_event_learning": "Follows up at perfect times to capture learnings. Accumulates wisdom from all past events and applies to future ones. No human follows up systematically."
     },
+    "superhuman_services": [
+      "event-pattern-memory",
+      "guest-intelligence",
+      "proactive-milestone-detector",
+      "event-story-capture",
+      "anticipatory-planning",
+      "celebration-balance",
+      "planning-coordination",
+      "seasonal-planning-intelligence",
+      "post-event-learning"
+    ],
     "required": ["manageMilestone", "manageGoal", "goalsSummary", "manageEvent"],
     "optional": [
       "milestoneSupport",
@@ -446,7 +475,25 @@
       "saveGoalThesis",
       "remindThesis",
       "getTheses",
-      "reviewThesis"
+      "reviewThesis",
+      "getEventPatternInsights",
+      "recordGuestConflict",
+      "updateGuestProfile",
+      "getGuestListDietary",
+      "predictAttendance",
+      "trackImportantDate",
+      "trackQuietWin",
+      "getUpcomingMilestones",
+      "recordCelebration",
+      "checkCelebrationBalance",
+      "checkPlanningReadiness",
+      "suggestOptimalTiming",
+      "checkDateConflicts",
+      "getEventWisdom",
+      "checkEventFollowUps",
+      "startEventStory",
+      "recallEventMeaning",
+      "getAnticipatedTransitions"
     ],
     "forbidden": ["dayTrade", "analyzeStock", "sendEmail", "makeCall", "playMusic", "createHabit"]
   },

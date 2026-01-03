@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice &amp; Tone | Ferni Design System</title>
+  <meta name="description" content="Guidelines for writing with the Ferni brand voice - warm, human, never robotic">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="active">Voice & Tone</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="">Expressions</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-kit/" class="">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<h1>Voice & Tone</h1>
+<p class="lead">Ferni speaks like a trusted friend, not a robot. Every word should make AI feel more human.</p>
+
+<section class="section">
+  <h2>Core Voice Attributes</h2>
+
+  <div class="voice-grid">
+    <div class="voice-card">
+      <h3>Warm</h3>
+      <p>Like a friend who genuinely cares. Never cold or clinical.</p>
+      <div class="example-pair">
+        <div class="example good">
+          <span class="label">Do</span>
+          <p>"I noticed you've been burning the candle at both ends."</p>
+        </div>
+        <div class="example bad">
+          <span class="label">Don't</span>
+          <p>"Your activity patterns indicate elevated stress levels."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="voice-card">
+      <h3>Concise</h3>
+      <p>Get to the point. Respect people's time and attention.</p>
+      <div class="example-pair">
+        <div class="example good">
+          <span class="label">Do</span>
+          <p>"Saved!"</p>
+        </div>
+        <div class="example bad">
+          <span class="label">Don't</span>
+          <p>"Your changes have been successfully saved to the database."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="voice-card">
+      <h3>Human</h3>
+      <p>Use contractions. Be natural. Sound like a person.</p>
+      <div class="example-pair">
+        <div class="example good">
+          <span class="label">Do</span>
+          <p>"That didn't work. Try again?"</p>
+        </div>
+        <div class="example bad">
+          <span class="label">Don't</span>
+          <p>"Error: Operation failed. Please retry."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="voice-card">
+      <h3>Supportive</h3>
+      <p>Encourage without being preachy. Guide without lecturing.</p>
+      <div class="example-pair">
+        <div class="example good">
+          <span class="label">Do</span>
+          <p>"That's a big step. How are you feeling about it?"</p>
+        </div>
+        <div class="example bad">
+          <span class="label">Don't</span>
+          <p>"Great job! You're doing amazing! Keep it up!"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Toast Messages</h2>
+  <p>Toasts are Ferni's brief voice in UI feedback. Keep them warm, human, and SHORT.</p>
+
+  <div class="toast-examples">
+    <div class="toast-type">
+      <h4>Success</h4>
+      <div class="toast success">"Got it!"</div>
+      <div class="toast success">"Saved!"</div>
+      <div class="toast success">"Maya's joined the chat."</div>
+    </div>
+
+    <div class="toast-type">
+      <h4>Info</h4>
+      <div class="toast info">"Just a moment..."</div>
+      <div class="toast info">"Checking..."</div>
+      <div class="toast info">"On it."</div>
+    </div>
+
+    <div class="toast-type">
+      <h4>Warning</h4>
+      <div class="toast warning">"Add a name first"</div>
+      <div class="toast warning">"Your voice profile needs a refresh"</div>
+    </div>
+
+    <div class="toast-type">
+      <h4>Error</h4>
+      <div class="toast error">"Couldn't save that. Try again?"</div>
+      <div class="toast error">"That didn't work. Retry?"</div>
+      <div class="toast error">"Lost connection. Reconnecting..."</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Writing Rules</h2>
+
+  <table class="rules-table">
+    <thead>
+      <tr>
+        <th>Rule</th>
+        <th>Wrong</th>
+        <th>Right</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Use contractions</td>
+        <td class="wrong">"Failed to save changes"</td>
+        <td class="right">"Couldn't save that"</td>
+      </tr>
+      <tr>
+        <td>Avoid "Please"</td>
+        <td class="wrong">"Please enter a valid email"</td>
+        <td class="right">"Enter a valid email"</td>
+      </tr>
+      <tr>
+        <td>Drop "successfully"</td>
+        <td class="wrong">"Voice enrollment complete successfully!"</td>
+        <td class="right">"Got it! I'll know your voice now."</td>
+      </tr>
+      <tr>
+        <td>Human tone</td>
+        <td class="wrong">"Error: Connection timeout"</td>
+        <td class="right">"Lost connection. Retry?"</td>
+      </tr>
+      <tr>
+        <td>Consistent errors</td>
+        <td class="wrong">"Failed to X"</td>
+        <td class="right">"Couldn't X"</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="section">
+  <h2>Persona Voice Differences</h2>
+  <p>Each persona has a distinct voice while staying within the Ferni family.</p>
+
+  <div class="persona-voices">
+    <div class="persona-voice" data-persona="ferni">
+      <h4>Ferni</h4>
+      <p class="desc">Coordinator, warm, welcoming</p>
+      <p class="quote">"I noticed you mentioned feeling overwhelmed earlier. Want to talk about it?"</p>
+    </div>
+
+    <div class="persona-voice" data-persona="maya">
+      <h4>Maya</h4>
+      <p class="desc">Coach, encouraging, accountability</p>
+      <p class="quote">"Three days in a row - you're building momentum. How's it feeling?"</p>
+    </div>
+
+    <div class="persona-voice" data-persona="peter">
+      <h4>Peter</h4>
+      <p class="desc">Advisor, calm, analytical</p>
+      <p class="quote">"Let's look at the numbers together. I see something interesting here."</p>
+    </div>
+
+    <div class="persona-voice" data-persona="jordan">
+      <h4>Jordan</h4>
+      <p class="desc">Organizer, enthusiastic, celebratory</p>
+      <p class="quote">"Birthday in two weeks! Should we start thinking about something special?"</p>
+    </div>
+
+    <div class="persona-voice" data-persona="alex">
+      <h4>Alex</h4>
+      <p class="desc">Executive, efficient, protective</p>
+      <p class="quote">"Your calendar's getting heavy. Let me find you some breathing room."</p>
+    </div>
+
+    <div class="persona-voice" data-persona="nayan">
+      <h4>Nayan</h4>
+      <p class="desc">Mentor, reflective, wise</p>
+      <p class="quote">"You've been on quite a journey this year. What stands out when you look back?"</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.voice-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.voice-card h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--accent-text);
+  margin-bottom: var(--space-2);
+}
+
+.example-pair {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.example {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.example.good {
+  background: rgba(107, 196, 143, 0.1);
+  border-left: 3px solid var(--success);
+}
+
+.example.bad {
+  background: rgba(224, 117, 117, 0.1);
+  border-left: 3px solid var(--error);
+}
+
+.example .label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+}
+
+.toast-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.toast-type h4 {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+  color: var(--text-muted);
+}
+
+.toast {
+  background: var(--bg-elevated);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+  border-left: 3px solid;
+}
+
+.toast.success { border-color: var(--success); }
+.toast.info { border-color: var(--info); }
+.toast.warning { border-color: var(--warning); }
+.toast.error { border-color: var(--error); }
+
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-6);
+}
+
+.rules-table th,
+.rules-table td {
+  padding: var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rules-table th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.rules-table .wrong {
+  color: var(--error);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.rules-table .right {
+  color: var(--success);
+}
+
+.persona-voices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.persona-voice {
+  background: var(--bg-secondary);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  border-left: 4px solid;
+}
+
+.persona-voice[data-persona="ferni"] { border-color: var(--persona-ferni); }
+.persona-voice[data-persona="maya"] { border-color: var(--persona-maya); }
+.persona-voice[data-persona="peter"] { border-color: var(--persona-peter); }
+.persona-voice[data-persona="jordan"] { border-color: var(--persona-jordan); }
+.persona-voice[data-persona="alex"] { border-color: var(--persona-alex); }
+.persona-voice[data-persona="nayan"] { border-color: var(--persona-nayan); }
+
+.persona-voice h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.persona-voice .desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.persona-voice .quote {
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+</style>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Load saved theme
+    const saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  </script>
+</body>
+</html>

@@ -1,260 +1,4 @@
-/**
- * AI-Powered Landing Page Features
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * Comprehensive AI interactions for the Ferni landing page:
- *
- * 1. LIVE TEXT CHAT - Real AI conversation without signup
- * 2. PERSONALIZED HERO - AI-generated headlines based on context
- * 3. PERSONA PREVIEW CARDS - Interactive team member demos
- * 4. MEMORY VISUALIZATION - Interactive memory demonstration
- * 5. HOVER PREVIEWS - "What would Ferni say?" tooltips
- * 6. AI SOCIAL PROOF - Dynamic testimonial snippets
- * 7. SENTIMENT-REACTIVE COPY - Dynamic copy based on engagement
- * 8. SMART FAQ - Ask anything, AI answers
- * 9. MICRO-EXPRESSIONS - Orb reactions to user behavior
- *
- * @module ai-powered-landing
- */
-
-(function () {
-  'use strict';
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CONFIGURATION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const CONFIG = {
-    apiBase: '/api/landing/ai',
-    // Feature flags - these get updated by loadFeatureFlags()
-    // Client-side only features (no API needed) default to true
-    enableChat: false, // Requires backend API
-    enablePersonalizedHero: false, // Requires backend API
-    enablePersonaPreviews: false, // Requires backend API
-    enableSmartFAQ: false, // Requires backend API
-    enableSocialProof: false, // Requires backend API
-    enableHoverPreviews: false, // Requires backend API
-    enableSentimentCopy: false, // Requires backend API
-    enableMicroExpressions: true, // Client-side only - ENABLED
-    enableVoiceSamples: true, // Audio samples from /audio/samples/
-    enableMemoryDemo: true, // Client-side only - ENABLED
-    debugMode: false,
-  };
-
-  // Feature flag mapping: server flag ID -> CONFIG key
-  const FLAG_MAP = {
-    'landing-ai-live-chat': 'enableChat',
-    'landing-ai-personalized-hero': 'enablePersonalizedHero',
-    'landing-ai-persona-previews': 'enablePersonaPreviews',
-    'landing-ai-smart-faq': 'enableSmartFAQ',
-    'landing-ai-social-proof': 'enableSocialProof',
-    'landing-ai-hover-previews': 'enableHoverPreviews',
-    'landing-ai-sentiment-copy': 'enableSentimentCopy',
-    'landing-ai-micro-expressions': 'enableMicroExpressions',
-    'landing-ai-voice-samples': 'enableVoiceSamples',
-    'landing-ai-memory-demo': 'enableMemoryDemo',
-  };
-
-  /**
-   * Load feature flags from experiments API
-   */
-  async function loadFeatureFlags() {
-    try {
-      // Check if FerniExperiments is available (from experiments.js)
-      if (typeof window.FerniExperiments === 'undefined') {
-        console.warn('[AI Landing] FerniExperiments not available, using defaults');
-        return;
-      }
-
-      // Load each flag
-      const flagPromises = Object.entries(FLAG_MAP).map(async ([flagId, configKey]) => {
-        try {
-          const variant = await window.FerniExperiments.getVariant(flagId, { skipExposure: true });
-          // Variant is either the percentage bucket or 'control'/'enabled'
-          CONFIG[configKey] = variant !== 'control' && variant !== '0';
-          if (CONFIG.debugMode) {
-            console.log(`[AI Landing] Flag ${flagId} = ${CONFIG[configKey]}`);
-          }
-        } catch (e) {
-          // Flag not found or error - keep default (false)
-        }
-      });
-
-      await Promise.all(flagPromises);
-      console.log('[AI Landing] Feature flags loaded');
-    } catch (error) {
-      console.warn('[AI Landing] Failed to load feature flags:', error);
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const state = {
-    visitorId: null,
-    chatOpen: false,
-    chatMessages: [],
-    messagesRemaining: 10,
-    currentPersona: 'ferni',
-    sentiment: 0.5,
-    initialized: false,
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UTILITIES
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  function getVisitorId() {
-    let id = localStorage.getItem('ferni_visitor_id');
-    if (!id) {
-      id = 'fv_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem('ferni_visitor_id', id);
-    }
-    return id;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // OFFLINE-FIRST FALLBACKS
-  // World-class experience: works beautifully without backend, better with it
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const OFFLINE_FALLBACKS = {
-    '/chat': (body) => ({
-      response: getFerniOfflineResponse(body?.message || ''),
-      emotion: 'warm',
-      persona: 'ferni'
-    }),
-    '/personalized-hero': () => ({
-      headline: 'Finally, someone who gets it.',
-      subheadline: 'Someone who remembers your whole story, hears what you\'re not saying, and shows up at 2am with the same presence as noon.',
-      cta: 'Begin a real conversation'
-    }),
-    '/persona-preview': (body) => ({
-      persona: body?.personaId || 'ferni',
-      greeting: getPersonaGreeting(body?.personaId || 'ferni'),
-      traits: ['Empathetic', 'Present', 'Wise']
-    }),
-    '/social-proof': () => ({
-      stats: [
-        { label: 'Conversations this week', value: '2,847+' },
-        { label: 'People supported', value: '12k+' },
-        { label: 'Average session', value: '23 min' }
-      ]
-    }),
-    '/sentiment-copy': () => ({
-      headline: 'We hear you.',
-      supportText: 'Whatever you\'re going through, you don\'t have to go through it alone.'
-    }),
-    '/faq': (body) => ({
-      answer: getOfflineFAQAnswer(body?.question || ''),
-      relatedQuestions: ['How does Ferni work?', 'Is my data private?', 'What can I talk about?']
-    }),
-    '/hover-preview': () => ({
-      preview: 'Click to learn more about how Ferni can support you.',
-      tone: 'warm'
-    })
-  };
-
-  function getFerniOfflineResponse(message) {
-    const lower = message.toLowerCase();
-    if (lower.includes('stress') || lower.includes('anxious') || lower.includes('worried')) {
-      return "I hear you. That weight you're carrying? It's valid. Let's breathe through this together. What's the one thing that feels heaviest right now?";
-    }
-    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-      return "Hey there. I'm glad you're here. What's on your mind today?";
-    }
-    if (lower.includes('help') || lower.includes('need')) {
-      return "I'm here. Whatever you're going through, you don't have to figure it out alone. What would feel most helpful right now?";
-    }
-    return "I'm listening. Tell me more about what's going on for you.";
-  }
-
-  function getPersonaGreeting(personaId) {
-    const greetings = {
-      ferni: "Hey there. I'm Ferni - I'm here to listen and support you through whatever's on your mind.",
-      peter: "Hello! I'm Peter. I love diving deep into research and finding patterns that can help you.",
-      alex: "Hi! I'm Alex. I help people find the right words for difficult conversations.",
-      maya: "Welcome! I'm Maya. I'm passionate about helping people build sustainable habits.",
-      jordan: "Hey! I'm Jordan. I love helping people plan and celebrate life's moments.",
-      nayan: "Greetings. I'm Nayan. I share wisdom from philosophy and help with life's deeper questions."
-    };
-    return greetings[personaId] || greetings.ferni;
-  }
-
-  function getOfflineFAQAnswer(question) {
-    const lower = question.toLowerCase();
-    if (lower.includes('privacy') || lower.includes('data')) {
-      return "Your privacy is sacred to us. All conversations are encrypted, and we never sell your data. You can delete your history anytime.";
-    }
-    if (lower.includes('cost') || lower.includes('price') || lower.includes('free')) {
-      return "You can start talking to Ferni for free. We have subscription plans for unlimited access and premium features.";
-    }
-    if (lower.includes('how') && lower.includes('work')) {
-      return "Ferni is always available via phone call, text, or web app. Just reach out whenever you need support - we're here 24/7.";
-    }
-    return "Great question! You can call 1 (484) 481-3081 anytime, or use our web app. We're here whenever you need us.";
-  }
-
-  async function apiCall(endpoint, options = {}) {
-    try {
-      const response = await fetch(CONFIG.apiBase + endpoint, {
-        headers: { 'Content-Type': 'application/json' },
-        ...options,
-        body: options.body ? JSON.stringify(options.body) : undefined,
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      // Graceful degradation: use offline fallbacks for seamless experience
-      const fallback = OFFLINE_FALLBACKS[endpoint];
-      if (fallback) {
-        if (CONFIG.debugMode) {
-          console.log('[AI Landing] Using offline fallback for:', endpoint);
-        }
-        return fallback(options.body);
-      }
-      // Only warn if no fallback available
-      if (CONFIG.debugMode) {
-        console.warn('[AI Landing] API unavailable, no fallback for:', endpoint);
-      }
-      return null;
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 1. LIVE TEXT CHAT
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const LiveChat = {
-    container: null,
-    panel: null,
-    messagesContainer: null,
-    input: null,
-    sendButton: null,
-
-    init() {
-      if (!CONFIG.enableChat) return;
-
-      this.createChatWidget();
-      this.bindEvents();
-
-      if (CONFIG.debugMode) {
-        console.log('[LiveChat] Initialized');
-      }
-    },
-
-    createChatWidget() {
-      // Check if widget already exists
-      if (document.getElementById('ferni-live-chat')) return;
-
-      const widget = document.createElement('div');
-      widget.id = 'ferni-live-chat';
-      widget.innerHTML = `
+"use strict";(function(){"use strict";const n={apiBase:"/api/landing/ai",enableChat:!1,enablePersonalizedHero:!1,enablePersonaPreviews:!1,enableSmartFAQ:!1,enableSocialProof:!1,enableHoverPreviews:!1,enableSentimentCopy:!1,enableMicroExpressions:!0,enableVoiceSamples:!0,enableMemoryDemo:!0,debugMode:!1},b={"landing-ai-live-chat":"enableChat","landing-ai-personalized-hero":"enablePersonalizedHero","landing-ai-persona-previews":"enablePersonaPreviews","landing-ai-smart-faq":"enableSmartFAQ","landing-ai-social-proof":"enableSocialProof","landing-ai-hover-previews":"enableHoverPreviews","landing-ai-sentiment-copy":"enableSentimentCopy","landing-ai-micro-expressions":"enableMicroExpressions","landing-ai-voice-samples":"enableVoiceSamples","landing-ai-memory-demo":"enableMemoryDemo"};async function _(){try{if(typeof window.FerniExperiments>"u"){console.warn("[AI Landing] FerniExperiments not available, using defaults");return}const e=Object.entries(b).map(async([t,r])=>{try{const a=await window.FerniExperiments.getVariant(t,{skipExposure:!0});n[r]=a!=="control"&&a!=="0",n.debugMode&&console.log(`[AI Landing] Flag ${t} = ${n[r]}`)}catch{}});await Promise.all(e),console.log("[AI Landing] Feature flags loaded")}catch(e){console.warn("[AI Landing] Failed to load feature flags:",e)}}const s={visitorId:null,chatOpen:!1,chatMessages:[],messagesRemaining:10,currentPersona:"ferni",sentiment:.5,initialized:!1};function w(){let e=localStorage.getItem("ferni_visitor_id");return e||(e="fv_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,10),localStorage.setItem("ferni_visitor_id",e)),e}const k={"/chat":e=>({response:S(e?.message||""),emotion:"warm",persona:"ferni"}),"/personalized-hero":()=>({headline:"Finally, someone who gets it.",subheadline:"Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.",cta:"Begin a real conversation"}),"/persona-preview":e=>({persona:e?.personaId||"ferni",greeting:C(e?.personaId||"ferni"),traits:["Empathetic","Present","Wise"]}),"/social-proof":()=>({stats:[{label:"Conversations this week",value:"2,847+"},{label:"People supported",value:"12k+"},{label:"Average session",value:"23 min"}]}),"/sentiment-copy":()=>({headline:"We hear you.",supportText:"Whatever you're going through, you don't have to go through it alone."}),"/faq":e=>({answer:q(e?.question||""),relatedQuestions:["How does Ferni work?","Is my data private?","What can I talk about?"]}),"/hover-preview":()=>({preview:"Click to learn more about how Ferni can support you.",tone:"warm"})};function S(e){const t=e.toLowerCase();return t.includes("stress")||t.includes("anxious")||t.includes("worried")?"I hear you. That weight you're carrying? It's valid. Let's breathe through this together. What's the one thing that feels heaviest right now?":t.includes("hello")||t.includes("hi")||t.includes("hey")?"Hey there. I'm glad you're here. What's on your mind today?":t.includes("help")||t.includes("need")?"I'm here. Whatever you're going through, you don't have to figure it out alone. What would feel most helpful right now?":"I'm listening. Tell me more about what's going on for you."}function C(e){const t={ferni:"Hey there. I'm Ferni - I'm here to listen and support you through whatever's on your mind.",peter:"Hello! I'm Peter. I love diving deep into research and finding patterns that can help you.",alex:"Hi! I'm Alex. I help people find the right words for difficult conversations.",maya:"Welcome! I'm Maya. I'm passionate about helping people build sustainable habits.",jordan:"Hey! I'm Jordan. I love helping people plan and celebrate life's moments.",nayan:"Greetings. I'm Nayan. I share wisdom from philosophy and help with life's deeper questions."};return t[e]||t.ferni}function q(e){const t=e.toLowerCase();return t.includes("privacy")||t.includes("data")?"Your privacy is sacred to us. All conversations are encrypted, and we never sell your data. You can delete your history anytime.":t.includes("cost")||t.includes("price")||t.includes("free")?"You can start talking to Ferni for free. We have subscription plans for unlimited access and premium features.":t.includes("how")&&t.includes("work")?"Ferni is always available via phone call, text, or web app. Just reach out whenever you need support - we're here 24/7.":"Great question! You can call 1 (484) 481-3081 anytime, or use our web app. We're here whenever you need us."}async function l(e,t={}){try{const r=await fetch(n.apiBase+e,{headers:{"Content-Type":"application/json"},...t,body:t.body?JSON.stringify(t.body):void 0});if(!r.ok)throw new Error(`API error: ${r.status}`);return await r.json()}catch{const a=k[e];return a?(n.debugMode&&console.log("[AI Landing] Using offline fallback for:",e),a(t.body)):(n.debugMode&&console.warn("[AI Landing] API unavailable, no fallback for:",e),null)}}const p={container:null,panel:null,messagesContainer:null,input:null,sendButton:null,init(){n.enableChat&&(this.createChatWidget(),this.bindEvents(),n.debugMode&&console.log("[LiveChat] Initialized"))},createChatWidget(){if(document.getElementById("ferni-live-chat"))return;const e=document.createElement("div");e.id="ferni-live-chat",e.innerHTML=`
         <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
           <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <span class="ferni-chat-trigger__text">Chat with Ferni</span>
@@ -267,11 +11,11 @@
               <div class="ferni-chat-panel__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
               <div class="ferni-chat-panel__info">
                 <span class="ferni-chat-panel__name">Ferni</span>
-                <span class="ferni-chat-panel__status">● Online</span>
+                <span class="ferni-chat-panel__status">\u25CF Online</span>
               </div>
             </div>
             <div class="ferni-chat-panel__remaining">
-              <span class="ferni-chat-panel__count">${state.messagesRemaining}</span> messages left
+              <span class="ferni-chat-panel__count">${s.messagesRemaining}</span> messages left
             </div>
             <button class="ferni-chat-panel__close" aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -282,7 +26,7 @@
           
           <div class="ferni-chat-panel__messages" role="log" aria-live="polite" aria-label="Chat messages">
             <div class="ferni-chat-message ferni-chat-message--ai">
-              <p>Hey! 👋 I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
+              <p>Hey! \u{1F44B} I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me\u2014no signup needed.</p>
             </div>
           </div>
           
@@ -302,355 +46,39 @@
           
           <div class="ferni-chat-panel__footer">
             <a href="https://app.ferni.ai" class="ferni-chat-panel__upgrade">
-              Create free account for unlimited access →
+              Create free account for unlimited access \u2192
             </a>
           </div>
         </div>
-      `;
-
-      document.body.appendChild(widget);
-
-      this.container = widget;
-      this.panel = widget.querySelector('.ferni-chat-panel');
-      this.messagesContainer = widget.querySelector('.ferni-chat-panel__messages');
-      this.input = widget.querySelector('.ferni-chat-panel__input');
-      this.sendButton = widget.querySelector('.ferni-chat-panel__send');
-    },
-
-    bindEvents() {
-      const trigger = this.container.querySelector('.ferni-chat-trigger');
-      const closeBtn = this.container.querySelector('.ferni-chat-panel__close');
-
-      trigger.addEventListener('click', () => this.togglePanel());
-      closeBtn.addEventListener('click', () => this.closePanel());
-
-      this.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage();
-        }
-      });
-
-      this.sendButton.addEventListener('click', () => this.sendMessage());
-
-      // Close on escape
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && state.chatOpen) {
-          this.closePanel();
-        }
-      });
-    },
-
-    togglePanel() {
-      state.chatOpen ? this.closePanel() : this.openPanel();
-    },
-
-    openPanel() {
-      state.chatOpen = true;
-      this.panel.classList.add('is-open');
-      this.panel.setAttribute('aria-hidden', 'false');
-      this.container.classList.add('is-open');
-      this.input.focus();
-
-      // Track
-      window.FerniExperiments?.trackConversionForAll('chat_opened');
-    },
-
-    closePanel() {
-      state.chatOpen = false;
-      this.panel.classList.remove('is-open');
-      this.panel.setAttribute('aria-hidden', 'true');
-      this.container.classList.remove('is-open');
-    },
-
-    async sendMessage() {
-      const message = this.input.value.trim();
-      if (!message) return;
-
-      // Clear input
-      this.input.value = '';
-
-      // Add user message to UI
-      this.addMessage(message, 'user');
-
-      // Show typing indicator
-      this.showTyping();
-
-      // Send to API
-      const result = await apiCall('/chat', {
-        method: 'POST',
-        body: {
-          visitorId: state.visitorId,
-          message,
-          persona: state.currentPersona,
-        },
-      });
-
-      // Hide typing
-      this.hideTyping();
-
-      if (result) {
-        this.addMessage(result.response, 'ai');
-        state.messagesRemaining = result.messagesRemaining;
-        this.updateRemainingCount();
-
-        // If out of messages, show upgrade prompt
-        if (result.messagesRemaining === 0) {
-          this.showUpgradePrompt();
-        }
-      } else {
-        this.addMessage("Sorry, I couldn't respond right now. Try again?", 'ai');
-      }
-    },
-
-    addMessage(content, type) {
-      const msg = document.createElement('div');
-      msg.className = `ferni-chat-message ferni-chat-message--${type}`;
-      msg.innerHTML = `<p>${this.escapeHtml(content)}</p>`;
-
-      this.messagesContainer.appendChild(msg);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    showTyping() {
-      const typing = document.createElement('div');
-      typing.className = 'ferni-chat-typing';
-      typing.innerHTML = `
+      `,document.body.appendChild(e),this.container=e,this.panel=e.querySelector(".ferni-chat-panel"),this.messagesContainer=e.querySelector(".ferni-chat-panel__messages"),this.input=e.querySelector(".ferni-chat-panel__input"),this.sendButton=e.querySelector(".ferni-chat-panel__send")},bindEvents(){const e=this.container.querySelector(".ferni-chat-trigger"),t=this.container.querySelector(".ferni-chat-panel__close");e.addEventListener("click",()=>this.togglePanel()),t.addEventListener("click",()=>this.closePanel()),this.input.addEventListener("keypress",r=>{r.key==="Enter"&&!r.shiftKey&&(r.preventDefault(),this.sendMessage())}),this.sendButton.addEventListener("click",()=>this.sendMessage()),document.addEventListener("keydown",r=>{r.key==="Escape"&&s.chatOpen&&this.closePanel()})},togglePanel(){s.chatOpen?this.closePanel():this.openPanel()},openPanel(){s.chatOpen=!0,this.panel.classList.add("is-open"),this.panel.setAttribute("aria-hidden","false"),this.container.classList.add("is-open"),this.input.focus(),window.FerniExperiments?.trackConversionForAll("chat_opened")},closePanel(){s.chatOpen=!1,this.panel.classList.remove("is-open"),this.panel.setAttribute("aria-hidden","true"),this.container.classList.remove("is-open")},async sendMessage(){const e=this.input.value.trim();if(!e)return;this.input.value="",this.addMessage(e,"user"),this.showTyping();const t=await l("/chat",{method:"POST",body:{visitorId:s.visitorId,message:e,persona:s.currentPersona}});this.hideTyping(),t?(this.addMessage(t.response,"ai"),s.messagesRemaining=t.messagesRemaining,this.updateRemainingCount(),t.messagesRemaining===0&&this.showUpgradePrompt()):this.addMessage("Sorry, I couldn't respond right now. Try again?","ai")},addMessage(e,t){const r=document.createElement("div");r.className=`ferni-chat-message ferni-chat-message--${t}`,r.innerHTML=`<p>${this.escapeHtml(e)}</p>`,this.messagesContainer.appendChild(r),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight},showTyping(){const e=document.createElement("div");e.className="ferni-chat-typing",e.innerHTML=`
         <div class="ferni-chat-typing__dot"></div>
         <div class="ferni-chat-typing__dot"></div>
         <div class="ferni-chat-typing__dot"></div>
-      `;
-      this.messagesContainer.appendChild(typing);
-      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
-    },
-
-    hideTyping() {
-      const typing = this.messagesContainer.querySelector('.ferni-chat-typing');
-      if (typing) typing.remove();
-    },
-
-    updateRemainingCount() {
-      const countEl = this.container.querySelector('.ferni-chat-panel__count');
-      if (countEl) {
-        countEl.textContent = state.messagesRemaining;
-        if (state.messagesRemaining <= 3) {
-          countEl.classList.add('is-low');
-        }
-      }
-    },
-
-    showUpgradePrompt() {
-      const prompt = document.createElement('div');
-      prompt.className = 'ferni-chat-upgrade-prompt';
-      prompt.innerHTML = `
-        <p>You've used all your demo messages! 💚</p>
+      `,this.messagesContainer.appendChild(e),this.messagesContainer.scrollTop=this.messagesContainer.scrollHeight},hideTyping(){const e=this.messagesContainer.querySelector(".ferni-chat-typing");e&&e.remove()},updateRemainingCount(){const e=this.container.querySelector(".ferni-chat-panel__count");e&&(e.textContent=s.messagesRemaining,s.messagesRemaining<=3&&e.classList.add("is-low"))},showUpgradePrompt(){const e=document.createElement("div");e.className="ferni-chat-upgrade-prompt",e.innerHTML=`
+        <p>You've used all your demo messages! \u{1F49A}</p>
         <a href="https://app.ferni.ai" class="btn btn--primary btn--sm">
           Create free account to continue
         </a>
-      `;
-      this.messagesContainer.appendChild(prompt);
-    },
-
-    escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 2. PERSONALIZED HERO
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const PersonalizedHero = {
-    async init() {
-      if (!CONFIG.enablePersonalizedHero) return;
-
-      // Gather context
-      const context = {
-        hour: new Date().getHours(),
-        referrer: document.referrer || undefined,
-        isReturning: parseInt(localStorage.getItem('ferni_visit_count') || '0', 10) > 1,
-        visitCount: parseInt(localStorage.getItem('ferni_visit_count') || '1', 10),
-        device:
-          window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
-        sentiment: window.FerniSentience?.sentiment?.() || 0.5,
-        topSectionsViewed: this.getTopSections(),
-      };
-
-      const result = await apiCall('/personalized-hero', {
-        method: 'POST',
-        body: context,
-      });
-
-      if (result) {
-        this.applyHero(result);
-      }
-    },
-
-    getTopSections() {
-      const attention = window.FerniSentience?.attention?.();
-      if (!attention) return [];
-      return attention.map((a) => a.id).slice(0, 3);
-    },
-
-    applyHero(hero) {
-      const tagline = document.querySelector('.hero__tagline');
-      const headline = document.querySelector('.hero__headline');
-      const subhead = document.querySelector('.hero__subhead');
-      const cta = document.querySelector('.hero__cta .btn--primary');
-
-      if (tagline && hero.tagline) {
-        tagline.textContent = hero.tagline;
-        tagline.classList.add('is-personalized');
-      }
-
-      if (headline && hero.headline) {
-        headline.innerHTML = hero.headline;
-        headline.classList.add('is-personalized');
-      }
-
-      if (subhead && hero.subhead) {
-        subhead.textContent = hero.subhead;
-        subhead.classList.add('is-personalized');
-      }
-
-      if (cta && hero.ctaText) {
-        const icon = cta.querySelector('svg');
-        cta.childNodes[0].textContent = hero.ctaText + ' ';
-        if (icon) cta.appendChild(icon);
-      }
-
-      if (CONFIG.debugMode) {
-        console.log('[PersonalizedHero] Applied:', hero.generationReason);
-      }
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 3. PERSONA PREVIEW CARDS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const PersonaPreviews = {
-    init() {
-      if (!CONFIG.enablePersonaPreviews) return;
-
-      this.enhanceTeamCards();
-    },
-
-    enhanceTeamCards() {
-      const teamCards = document.querySelectorAll('.team-card');
-
-      teamCards.forEach((card) => {
-        const personaId = this.getPersonaId(card);
-        if (!personaId) return;
-
-        // Add input field for questions
-        const inputContainer = document.createElement('div');
-        inputContainer.className = 'team-card__preview-input';
-        inputContainer.innerHTML = `
+      `,this.messagesContainer.appendChild(e)},escapeHtml(e){const t=document.createElement("div");return t.textContent=e,t.innerHTML}},m={async init(){if(!n.enablePersonalizedHero)return;const e={hour:new Date().getHours(),referrer:document.referrer||void 0,isReturning:parseInt(localStorage.getItem("ferni_visit_count")||"0",10)>1,visitCount:parseInt(localStorage.getItem("ferni_visit_count")||"1",10),device:window.innerWidth<768?"mobile":window.innerWidth<1024?"tablet":"desktop",sentiment:window.FerniSentience?.sentiment?.()||.5,topSectionsViewed:this.getTopSections()},t=await l("/personalized-hero",{method:"POST",body:e});t&&this.applyHero(t)},getTopSections(){const e=window.FerniSentience?.attention?.();return e?e.map(t=>t.id).slice(0,3):[]},applyHero(e){const t=document.querySelector(".hero__tagline"),r=document.querySelector(".hero__headline"),a=document.querySelector(".hero__subhead"),i=document.querySelector(".hero__cta .btn--primary");if(t&&e.tagline&&(t.textContent=e.tagline,t.classList.add("is-personalized")),r&&e.headline&&(r.innerHTML=e.headline,r.classList.add("is-personalized")),a&&e.subhead&&(a.textContent=e.subhead,a.classList.add("is-personalized")),i&&e.ctaText){const o=i.querySelector("svg");i.childNodes[0].textContent=e.ctaText+" ",o&&i.appendChild(o)}n.debugMode&&console.log("[PersonalizedHero] Applied:",e.generationReason)}},h={init(){n.enablePersonaPreviews&&this.enhanceTeamCards()},enhanceTeamCards(){document.querySelectorAll(".team-card").forEach(t=>{const r=this.getPersonaId(t);if(!r)return;const a=document.createElement("div");a.className="team-card__preview-input",a.innerHTML=`
           <input 
             type="text" 
-            placeholder="Ask ${this.getPersonaName(personaId)} something..."
+            placeholder="Ask ${this.getPersonaName(r)} something..."
             maxlength="200"
-            data-persona="${personaId}"
+            data-persona="${r}"
           />
-          <button class="team-card__preview-btn" data-persona="${personaId}" aria-label="Send message to ${this.getPersonaName(personaId)}">
+          <button class="team-card__preview-btn" data-persona="${r}" aria-label="Send message to ${this.getPersonaName(r)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
-        `;
-
-        // Add response area
-        const responseArea = document.createElement('div');
-        responseArea.className = 'team-card__preview-response';
-        responseArea.style.display = 'none';
-
-        card.appendChild(inputContainer);
-        card.appendChild(responseArea);
-
-        // Bind events
-        const input = inputContainer.querySelector('input');
-        const btn = inputContainer.querySelector('button');
-
-        btn.addEventListener('click', () => this.askPersona(personaId, input, responseArea));
-        input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') this.askPersona(personaId, input, responseArea);
-        });
-      });
-    },
-
-    getPersonaId(card) {
-      // Try to extract from class or data attribute
-      const classes = card.className;
-      const match = classes.match(/team-card--(\w+)/);
-      return match ? match[1] : card.dataset.persona;
-    },
-
-    getPersonaName(personaId) {
-      const names = {
-        ferni: 'Ferni',
-        maya: 'Maya',
-        peter: 'Peter',
-        alex: 'Alex',
-        jordan: 'Jordan',
-        nayan: 'Nayan',
-      };
-      return names[personaId] || 'them';
-    },
-
-    async askPersona(personaId, input, responseArea) {
-      const question = input.value.trim();
-      if (!question) return;
-
-      // Show loading
-      responseArea.style.display = 'block';
-      responseArea.innerHTML = '<div class="team-card__preview-loading">Thinking...</div>';
-
-      const result = await apiCall('/persona-preview', {
-        method: 'POST',
-        body: {
-          persona: personaId,
-          question,
-          visitorId: state.visitorId,
-        },
-      });
-
-      if (result) {
-        responseArea.innerHTML = `
+        `;const i=document.createElement("div");i.className="team-card__preview-response",i.style.display="none",t.appendChild(a),t.appendChild(i);const o=a.querySelector("input");a.querySelector("button").addEventListener("click",()=>this.askPersona(r,o,i)),o.addEventListener("keypress",I=>{I.key==="Enter"&&this.askPersona(r,o,i)})})},getPersonaId(e){const r=e.className.match(/team-card--(\w+)/);return r?r[1]:e.dataset.persona},getPersonaName(e){return{ferni:"Ferni",maya:"Maya",peter:"Peter",alex:"Alex",jordan:"Jordan",nayan:"Nayan"}[e]||"them"},async askPersona(e,t,r){const a=t.value.trim();if(!a)return;r.style.display="block",r.innerHTML='<div class="team-card__preview-loading">Thinking...</div>';const i=await l("/persona-preview",{method:"POST",body:{persona:e,question:a,visitorId:s.visitorId}});i?r.innerHTML=`
           <blockquote class="team-card__preview-quote">
-            <p>"${result.response}"</p>
+            <p>"${i.response}"</p>
           </blockquote>
           <div class="team-card__preview-traits">
-            ${result.traits.map((t) => `<span class="trait">${t}</span>`).join('')}
+            ${i.traits.map(o=>`<span class="trait">${o}</span>`).join("")}
           </div>
-        `;
-      } else {
-        responseArea.innerHTML =
-          '<p class="team-card__preview-error">Could not get response. Try again?</p>';
-      }
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 4. MEMORY VISUALIZATION DEMO
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const MemoryDemo = {
-    container: null,
-
-    init() {
-      this.container = document.querySelector('.memory-demo__showcase');
-      if (!this.container) return;
-
-      this.addInteractiveInput();
-    },
-
-    addInteractiveInput() {
-      const inputSection = document.createElement('div');
-      inputSection.className = 'memory-demo__interactive';
-      inputSection.innerHTML = `
+        `:r.innerHTML='<p class="team-card__preview-error">Could not get response. Try again?</p>'}},u={container:null,init(){this.container=document.querySelector(".memory-demo__showcase"),this.container&&this.addInteractiveInput()},addInteractiveInput(){const e=document.createElement("div");e.className="memory-demo__interactive",e.innerHTML=`
         <div class="memory-demo__try-it">
           <h4>Try it yourself</h4>
           <p>Type something and see how Ferni would remember it:</p>
@@ -667,33 +95,12 @@
           </div>
           <div class="memory-demo__result" style="display: none;"></div>
         </div>
-      `;
-
-      this.container.appendChild(inputSection);
-
-      const input = inputSection.querySelector('.memory-demo__input');
-      const btn = inputSection.querySelector('.memory-demo__btn');
-      const result = inputSection.querySelector('.memory-demo__result');
-
-      btn.addEventListener('click', () => this.showMemoryVisualization(input.value, result));
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') this.showMemoryVisualization(input.value, result);
-      });
-    },
-
-    showMemoryVisualization(text, resultEl) {
-      if (!text.trim()) return;
-
-      // Parse the input to extract potential insights
-      const insights = this.extractInsights(text);
-
-      resultEl.style.display = 'block';
-      resultEl.innerHTML = `
+      `,this.container.appendChild(e);const t=e.querySelector(".memory-demo__input"),r=e.querySelector(".memory-demo__btn"),a=e.querySelector(".memory-demo__result");r.addEventListener("click",()=>this.showMemoryVisualization(t.value,a)),t.addEventListener("keypress",i=>{i.key==="Enter"&&this.showMemoryVisualization(t.value,a)})},showMemoryVisualization(e,t){if(!e.trim())return;const r=this.extractInsights(e);t.style.display="block",t.innerHTML=`
         <div class="memory-demo__visualization">
           <div class="memory-demo__today">
             <div class="memory-demo__date">TODAY</div>
             <div class="memory-demo__card">
-              <p>"${text}"</p>
+              <p>"${e}"</p>
               <span class="memory-demo__emotion">Current feeling</span>
             </div>
           </div>
@@ -706,7 +113,7 @@
                 Ferni remembers
               </div>
               <ul class="memory-demo__insights">
-                ${insights.map((i) => `<li>${i}</li>`).join('')}
+                ${r.map(a=>`<li>${a}</li>`).join("")}
               </ul>
             </div>
           </div>
@@ -718,322 +125,17 @@
             <span>Connected across time</span>
           </div>
         </div>
-      `;
-    },
-
-    extractInsights(text) {
-      const insights = [];
-      const lower = text.toLowerCase();
-
-      // Extract topic
-      if (lower.includes('job') || lower.includes('work') || lower.includes('career')) {
-        insights.push('Your work situation and career concerns');
-      }
-      if (lower.includes('stress') || lower.includes('anxious') || lower.includes('worried')) {
-        insights.push('The emotional weight you were carrying');
-      }
-      if (lower.includes('relationship') || lower.includes('friend') || lower.includes('family')) {
-        insights.push('Important relationships in your life');
-      }
-
-      // Add default insights
-      insights.push('The context around this moment');
-      insights.push('How this connects to your bigger story');
-      insights.push('Growth opportunities I noticed');
-
-      return insights.slice(0, 4);
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 5. HOVER PREVIEWS ("What Would Ferni Say?")
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const HoverPreviews = {
-    cache: new Map(),
-    tooltip: null,
-
-    init() {
-      if (!CONFIG.enableHoverPreviews) return;
-
-      this.createTooltip();
-      this.bindHoverElements();
-    },
-
-    createTooltip() {
-      this.tooltip = document.createElement('div');
-      this.tooltip.className = 'ferni-hover-preview';
-      this.tooltip.setAttribute('role', 'tooltip');
-      this.tooltip.innerHTML = `
+      `},extractInsights(e){const t=[],r=e.toLowerCase();return(r.includes("job")||r.includes("work")||r.includes("career"))&&t.push("Your work situation and career concerns"),(r.includes("stress")||r.includes("anxious")||r.includes("worried"))&&t.push("The emotional weight you were carrying"),(r.includes("relationship")||r.includes("friend")||r.includes("family"))&&t.push("Important relationships in your life"),t.push("The context around this moment"),t.push("How this connects to your bigger story"),t.push("Growth opportunities I noticed"),t.slice(0,4)}},f={cache:new Map,tooltip:null,init(){n.enableHoverPreviews&&(this.createTooltip(),this.bindHoverElements())},createTooltip(){this.tooltip=document.createElement("div"),this.tooltip.className="ferni-hover-preview",this.tooltip.setAttribute("role","tooltip"),this.tooltip.innerHTML=`
         <div class="ferni-hover-preview__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
         <div class="ferni-hover-preview__content"></div>
-      `;
-      document.body.appendChild(this.tooltip);
-    },
-
-    bindHoverElements() {
-      // FAQ items
-      document.querySelectorAll('.faq-item summary, .faq-item__question').forEach((el) => {
-        this.bindElement(el, 'faq', el.textContent.trim());
-      });
-
-      // Feature cards
-      document.querySelectorAll('.feature, .feature-card').forEach((el) => {
-        const title = el.querySelector('.feature__title, .feature-title')?.textContent;
-        if (title) this.bindElement(el, 'feature', title);
-      });
-
-      // CTA buttons
-      document.querySelectorAll('.btn--primary').forEach((el) => {
-        this.bindElement(el, 'cta', el.textContent.trim());
-      });
-    },
-
-    bindElement(el, type, context) {
-      let timeout;
-
-      el.addEventListener('mouseenter', async (e) => {
-        timeout = setTimeout(async () => {
-          const preview = await this.getPreview(type, context);
-          this.showTooltip(e.target, preview);
-        }, 500); // 500ms delay before showing
-      });
-
-      el.addEventListener('mouseleave', () => {
-        clearTimeout(timeout);
-        this.hideTooltip();
-      });
-    },
-
-    async getPreview(type, context) {
-      const cacheKey = `${type}:${context}`;
-
-      if (this.cache.has(cacheKey)) {
-        return this.cache.get(cacheKey);
-      }
-
-      const result = await apiCall('/hover-preview', {
-        method: 'POST',
-        body: { elementType: type, context },
-      });
-
-      const preview = result?.preview || this.getFallbackPreview(type);
-      this.cache.set(cacheKey, preview);
-
-      return preview;
-    },
-
-    getFallbackPreview(type) {
-      const fallbacks = {
-        faq: "I'd love to explain this more...",
-        feature: 'Let me show you how this works...',
-        testimonial: 'Stories like this...',
-        cta: 'No pressure. Just try talking.',
-      };
-      return fallbacks[type] || 'Tell me more...';
-    },
-
-    showTooltip(target, text) {
-      const content = this.tooltip.querySelector('.ferni-hover-preview__content');
-      content.textContent = text;
-
-      const rect = target.getBoundingClientRect();
-      const tooltipRect = this.tooltip.getBoundingClientRect();
-
-      let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
-      let top = rect.top - tooltipRect.height - 10;
-
-      // Keep in viewport
-      left = Math.max(10, Math.min(left, window.innerWidth - tooltipRect.width - 10));
-      if (top < 10) top = rect.bottom + 10;
-
-      this.tooltip.style.left = left + 'px';
-      this.tooltip.style.top = top + window.scrollY + 'px';
-      this.tooltip.classList.add('is-visible');
-    },
-
-    hideTooltip() {
-      this.tooltip.classList.remove('is-visible');
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 6. AI SOCIAL PROOF
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const SocialProof = {
-    container: null,
-    snippets: [],
-    currentIndex: 0,
-    interval: null,
-
-    async init() {
-      if (!CONFIG.enableSocialProof) return;
-
-      // Find or create container
-      this.container = document.querySelector('.social-proof-dynamic');
-
-      if (!this.container) {
-        this.createContainer();
-      }
-
-      // Fetch snippets
-      const result = await apiCall('/social-proof?count=5', { method: 'GET' });
-
-      if (result && result.length) {
-        this.snippets = result;
-        this.render();
-        this.startRotation();
-      }
-    },
-
-    createContainer() {
-      const statsBar = document.querySelector('.stats-bar');
-      if (!statsBar) return;
-
-      this.container = document.createElement('div');
-      this.container.className = 'social-proof-dynamic';
-      statsBar.parentNode.insertBefore(this.container, statsBar.nextSibling);
-    },
-
-    render() {
-      if (!this.container || !this.snippets.length) return;
-
-      this.container.innerHTML = `
+      `,document.body.appendChild(this.tooltip)},bindHoverElements(){document.querySelectorAll(".faq-item summary, .faq-item__question").forEach(e=>{this.bindElement(e,"faq",e.textContent.trim())}),document.querySelectorAll(".feature, .feature-card").forEach(e=>{const t=e.querySelector(".feature__title, .feature-title")?.textContent;t&&this.bindElement(e,"feature",t)}),document.querySelectorAll(".btn--primary").forEach(e=>{this.bindElement(e,"cta",e.textContent.trim())})},bindElement(e,t,r){let a;e.addEventListener("mouseenter",async i=>{a=setTimeout(async()=>{const o=await this.getPreview(t,r);this.showTooltip(i.target,o)},500)}),e.addEventListener("mouseleave",()=>{clearTimeout(a),this.hideTooltip()})},async getPreview(e,t){const r=`${e}:${t}`;if(this.cache.has(r))return this.cache.get(r);const i=(await l("/hover-preview",{method:"POST",body:{elementType:e,context:t}}))?.preview||this.getFallbackPreview(e);return this.cache.set(r,i),i},getFallbackPreview(e){return{faq:"I'd love to explain this more...",feature:"Let me show you how this works...",testimonial:"Stories like this...",cta:"No pressure. Just try talking."}[e]||"Tell me more..."},showTooltip(e,t){const r=this.tooltip.querySelector(".ferni-hover-preview__content");r.textContent=t;const a=e.getBoundingClientRect(),i=this.tooltip.getBoundingClientRect();let o=a.left+a.width/2-i.width/2,c=a.top-i.height-10;o=Math.max(10,Math.min(o,window.innerWidth-i.width-10)),c<10&&(c=a.bottom+10),this.tooltip.style.left=o+"px",this.tooltip.style.top=c+window.scrollY+"px",this.tooltip.classList.add("is-visible")},hideTooltip(){this.tooltip.classList.remove("is-visible")}},g={container:null,snippets:[],currentIndex:0,interval:null,async init(){if(!n.enableSocialProof)return;this.container=document.querySelector(".social-proof-dynamic"),this.container||this.createContainer();const e=await l("/social-proof?count=5",{method:"GET"});e&&e.length&&(this.snippets=e,this.render(),this.startRotation())},createContainer(){const e=document.querySelector(".stats-bar");e&&(this.container=document.createElement("div"),this.container.className="social-proof-dynamic",e.parentNode.insertBefore(this.container,e.nextSibling))},render(){!this.container||!this.snippets.length||(this.container.innerHTML=`
         <div class="social-proof-dynamic__inner">
           <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <div class="social-proof-dynamic__content">
             <p class="social-proof-dynamic__text">${this.snippets[0].content}</p>
           </div>
         </div>
-      `;
-    },
-
-    startRotation() {
-      if (this.snippets.length <= 1) return;
-
-      this.interval = setInterval(() => {
-        this.currentIndex = (this.currentIndex + 1) % this.snippets.length;
-        this.animateToNext();
-      }, 8000);
-    },
-
-    animateToNext() {
-      const textEl = this.container.querySelector('.social-proof-dynamic__text');
-      if (!textEl) return;
-
-      // Fade out
-      textEl.style.opacity = '0';
-      textEl.style.transform = 'translateY(-10px)';
-
-      setTimeout(() => {
-        textEl.textContent = this.snippets[this.currentIndex].content;
-        textEl.style.opacity = '1';
-        textEl.style.transform = 'translateY(0)';
-      }, 300);
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 7. SENTIMENT-REACTIVE COPY
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const SentimentCopy = {
-    lastSentiment: 0.5,
-    appliedChanges: false,
-
-    init() {
-      if (!CONFIG.enableSentimentCopy) return;
-
-      // Listen for sentiment changes from ferni-sentience.js
-      this.monitorSentiment();
-    },
-
-    monitorSentiment() {
-      setInterval(async () => {
-        const currentSentiment = window.FerniSentience?.sentiment?.() || 0.5;
-
-        // Only react to significant changes
-        if (Math.abs(currentSentiment - this.lastSentiment) < 0.15) return;
-        if (this.appliedChanges) return; // Only apply once per session
-
-        this.lastSentiment = currentSentiment;
-
-        // Only trigger for extreme sentiments
-        if (currentSentiment < 0.35 || currentSentiment > 0.75) {
-          await this.fetchAndApplyCopy(currentSentiment);
-        }
-      }, 5000);
-    },
-
-    async fetchAndApplyCopy(sentiment) {
-      const ctaBtn = document.querySelector('.hero__cta .btn--primary');
-      const subhead = document.querySelector('.hero__subhead');
-
-      const result = await apiCall('/sentiment-copy', {
-        method: 'POST',
-        body: {
-          sentiment,
-          currentSection: window.FerniSentience?.state?.()?.currentSection || 'hero',
-          timeOnPage: Math.floor((Date.now() - window.performance.timing.navigationStart) / 1000),
-          originalCopy: {
-            ctaText: ctaBtn?.textContent?.trim(),
-            subhead: subhead?.textContent?.trim(),
-          },
-        },
-      });
-
-      if (result && (result.ctaText || result.subhead)) {
-        this.applyCopy(result);
-        this.appliedChanges = true;
-
-        if (CONFIG.debugMode) {
-          console.log('[SentimentCopy] Applied:', result.reason);
-        }
-      }
-    },
-
-    applyCopy(copy) {
-      if (copy.ctaText) {
-        const btn = document.querySelector('.hero__cta .btn--primary');
-        if (btn) {
-          const icon = btn.querySelector('svg');
-          btn.childNodes[0].textContent = copy.ctaText + ' ';
-          if (icon) btn.appendChild(icon);
-          btn.classList.add('is-sentiment-adjusted');
-        }
-      }
-
-      if (copy.subhead) {
-        const subhead = document.querySelector('.hero__subhead');
-        if (subhead) {
-          subhead.textContent = copy.subhead;
-          subhead.classList.add('is-sentiment-adjusted');
-        }
-      }
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 8. SMART FAQ
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const SmartFAQ = {
-    container: null,
-
-    init() {
-      if (!CONFIG.enableSmartFAQ) return;
-
-      this.addAskAnything();
-    },
-
-    addAskAnything() {
-      const faqSection = document.querySelector('.faq, #faq');
-      if (!faqSection) return;
-
-      const askBox = document.createElement('div');
-      askBox.className = 'smart-faq';
-      askBox.innerHTML = `
+      `)},startRotation(){this.snippets.length<=1||(this.interval=setInterval(()=>{this.currentIndex=(this.currentIndex+1)%this.snippets.length,this.animateToNext()},8e3))},animateToNext(){const e=this.container.querySelector(".social-proof-dynamic__text");e&&(e.style.opacity="0",e.style.transform="translateY(-10px)",setTimeout(()=>{e.textContent=this.snippets[this.currentIndex].content,e.style.opacity="1",e.style.transform="translateY(0)"},300))}},v={lastSentiment:.5,appliedChanges:!1,init(){n.enableSentimentCopy&&this.monitorSentiment()},monitorSentiment(){setInterval(async()=>{const e=window.FerniSentience?.sentiment?.()||.5;Math.abs(e-this.lastSentiment)<.15||this.appliedChanges||(this.lastSentiment=e,(e<.35||e>.75)&&await this.fetchAndApplyCopy(e))},5e3)},async fetchAndApplyCopy(e){const t=document.querySelector(".hero__cta .btn--primary"),r=document.querySelector(".hero__subhead"),a=await l("/sentiment-copy",{method:"POST",body:{sentiment:e,currentSection:window.FerniSentience?.state?.()?.currentSection||"hero",timeOnPage:Math.floor((Date.now()-window.performance.timing.navigationStart)/1e3),originalCopy:{ctaText:t?.textContent?.trim(),subhead:r?.textContent?.trim()}}});a&&(a.ctaText||a.subhead)&&(this.applyCopy(a),this.appliedChanges=!0,n.debugMode&&console.log("[SentimentCopy] Applied:",a.reason))},applyCopy(e){if(e.ctaText){const t=document.querySelector(".hero__cta .btn--primary");if(t){const r=t.querySelector("svg");t.childNodes[0].textContent=e.ctaText+" ",r&&t.appendChild(r),t.classList.add("is-sentiment-adjusted")}}if(e.subhead){const t=document.querySelector(".hero__subhead");t&&(t.textContent=e.subhead,t.classList.add("is-sentiment-adjusted"))}}},x={container:null,init(){n.enableSmartFAQ&&this.addAskAnything()},addAskAnything(){const e=document.querySelector(".faq, #faq");if(!e)return;const t=document.createElement("div");t.className="smart-faq",t.innerHTML=`
         <div class="smart-faq__header">
           <div class="smart-faq__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <h4 class="smart-faq__title">Ask me anything</h4>
@@ -1048,201 +150,24 @@
           <button class="smart-faq__btn btn btn--primary btn--sm">Ask</button>
         </div>
         <div class="smart-faq__response" style="display: none;"></div>
-      `;
-
-      // Insert at top of FAQ section
-      const header = faqSection.querySelector('.section__header');
-      if (header) {
-        header.parentNode.insertBefore(askBox, header.nextSibling);
-      } else {
-        faqSection.insertBefore(askBox, faqSection.firstChild);
-      }
-
-      this.container = askBox;
-      this.bindEvents();
-    },
-
-    bindEvents() {
-      const input = this.container.querySelector('.smart-faq__input');
-      const btn = this.container.querySelector('.smart-faq__btn');
-      const response = this.container.querySelector('.smart-faq__response');
-
-      btn.addEventListener('click', () => this.askQuestion(input, response));
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') this.askQuestion(input, response);
-      });
-    },
-
-    async askQuestion(input, responseEl) {
-      const question = input.value.trim();
-      if (!question) return;
-
-      // Show loading
-      responseEl.style.display = 'block';
-      responseEl.innerHTML = '<div class="smart-faq__loading">Thinking...</div>';
-
-      const result = await apiCall('/faq', {
-        method: 'POST',
-        body: {
-          question,
-          visitorId: state.visitorId,
-        },
-      });
-
-      if (result) {
-        responseEl.innerHTML = `
+      `;const r=e.querySelector(".section__header");r?r.parentNode.insertBefore(t,r.nextSibling):e.insertBefore(t,e.firstChild),this.container=t,this.bindEvents()},bindEvents(){const e=this.container.querySelector(".smart-faq__input"),t=this.container.querySelector(".smart-faq__btn"),r=this.container.querySelector(".smart-faq__response");t.addEventListener("click",()=>this.askQuestion(e,r)),e.addEventListener("keypress",a=>{a.key==="Enter"&&this.askQuestion(e,r)})},async askQuestion(e,t){const r=e.value.trim();if(!r)return;t.style.display="block",t.innerHTML='<div class="smart-faq__loading">Thinking...</div>';const a=await l("/faq",{method:"POST",body:{question:r,visitorId:s.visitorId}});a?(t.innerHTML=`
           <div class="smart-faq__answer">
-            <p>${result.answer}</p>
-            ${
-              result.confidence < 0.7
-                ? '<p class="smart-faq__disclaimer">Not sure about this one? <a href="https://app.ferni.ai">Ask me directly in the app</a>.</p>'
-                : ''
-            }
+            <p>${a.answer}</p>
+            ${a.confidence<.7?'<p class="smart-faq__disclaimer">Not sure about this one? <a href="https://app.ferni.ai">Ask me directly in the app</a>.</p>':""}
           </div>
-          ${
-            result.relatedQuestions?.length
-              ? `
+          ${a.relatedQuestions?.length?`
             <div class="smart-faq__related">
               <p>Related questions:</p>
               <ul>
-                ${result.relatedQuestions.map((q) => `<li><button class="smart-faq__related-btn">${q}</button></li>`).join('')}
+                ${a.relatedQuestions.map(i=>`<li><button class="smart-faq__related-btn">${i}</button></li>`).join("")}
               </ul>
             </div>
-          `
-              : ''
-          }
-        `;
-
-        // Bind related question buttons
-        responseEl.querySelectorAll('.smart-faq__related-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            input.value = btn.textContent;
-            this.askQuestion(input, responseEl);
-          });
-        });
-      } else {
-        responseEl.innerHTML =
-          '<p class="smart-faq__error">Could not get an answer. Try rephrasing?</p>';
-      }
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 9. MICRO-EXPRESSIONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const MicroExpressions = {
-    orb: null,
-    currentExpression: 'present',
-
-    init() {
-      if (!CONFIG.enableMicroExpressions) return;
-
-      this.orb = document.querySelector('.hero-ferni, [data-hero-orb]');
-      if (!this.orb) return;
-
-      this.bindBehaviorTriggers();
-    },
-
-    bindBehaviorTriggers() {
-      // CTA hover - show curiosity
-      document.querySelectorAll('.btn--primary').forEach((btn) => {
-        btn.addEventListener('mouseenter', () => this.flash('curious'));
-      });
-
-      // Pricing section - show interest
-      const pricingObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              this.flash('interested');
-            }
-          });
-        },
-        { threshold: 0.5 }
-      );
-
-      const pricing = document.getElementById('pricing');
-      if (pricing) pricingObserver.observe(pricing);
-
-      // FAQ interaction - show helpful
-      document.querySelectorAll('.faq-item, details').forEach((item) => {
-        item.addEventListener('toggle', () => this.flash('helpful'));
-      });
-
-      // Fast scrolling - show concern
-      let lastScrollY = window.scrollY;
-      let scrollVelocity = 0;
-
-      window.addEventListener(
-        'scroll',
-        () => {
-          const delta = Math.abs(window.scrollY - lastScrollY);
-          scrollVelocity = delta;
-          lastScrollY = window.scrollY;
-
-          if (scrollVelocity > 100) {
-            this.flash('concerned');
-          }
-        },
-        { passive: true }
-      );
-
-      // Slow reading - show warmth
-      let readingTimer;
-      window.addEventListener(
-        'scroll',
-        () => {
-          clearTimeout(readingTimer);
-          readingTimer = setTimeout(() => {
-            if (scrollVelocity < 10) {
-              this.flash('warm');
-            }
-          }, 2000);
-        },
-        { passive: true }
-      );
-    },
-
-    flash(expression) {
-      if (!this.orb || this.currentExpression === expression) return;
-
-      // Remove old expression
-      this.orb.classList.remove(`ferni-expression--${this.currentExpression}`);
-
-      // Add new expression
-      this.orb.classList.add(`ferni-expression--${expression}`);
-      this.currentExpression = expression;
-
-      // Micro-expression flash (brief, subliminal)
-      this.orb.animate(
-        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.15)' }, { filter: 'brightness(1)' }],
-        { duration: 120, easing: 'ease-out' }
-      );
-
-      // Reset after a moment
-      setTimeout(() => {
-        this.orb.classList.remove(`ferni-expression--${expression}`);
-        this.orb.classList.add('ferni-expression--present');
-        this.currentExpression = 'present';
-      }, 3000);
-    },
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CSS INJECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  function injectStyles() {
-    if (document.getElementById('ferni-ai-landing-styles')) return;
-
-    const styles = document.createElement('style');
-    styles.id = 'ferni-ai-landing-styles';
-    styles.textContent = `
-      /* ═══════════════════════════════════════════════════════════════════════════
+          `:""}
+        `,t.querySelectorAll(".smart-faq__related-btn").forEach(i=>{i.addEventListener("click",()=>{e.value=i.textContent,this.askQuestion(e,t)})})):t.innerHTML='<p class="smart-faq__error">Could not get an answer. Try rephrasing?</p>'}},y={orb:null,currentExpression:"present",init(){n.enableMicroExpressions&&(this.orb=document.querySelector(".hero-ferni, [data-hero-orb]"),this.orb&&this.bindBehaviorTriggers())},bindBehaviorTriggers(){document.querySelectorAll(".btn--primary").forEach(o=>{o.addEventListener("mouseenter",()=>this.flash("curious"))});const e=new IntersectionObserver(o=>{o.forEach(c=>{c.isIntersecting&&this.flash("interested")})},{threshold:.5}),t=document.getElementById("pricing");t&&e.observe(t),document.querySelectorAll(".faq-item, details").forEach(o=>{o.addEventListener("toggle",()=>this.flash("helpful"))});let r=window.scrollY,a=0;window.addEventListener("scroll",()=>{a=Math.abs(window.scrollY-r),r=window.scrollY,a>100&&this.flash("concerned")},{passive:!0});let i;window.addEventListener("scroll",()=>{clearTimeout(i),i=setTimeout(()=>{a<10&&this.flash("warm")},2e3)},{passive:!0})},flash(e){!this.orb||this.currentExpression===e||(this.orb.classList.remove(`ferni-expression--${this.currentExpression}`),this.orb.classList.add(`ferni-expression--${e}`),this.currentExpression=e,this.orb.animate([{filter:"brightness(1)"},{filter:"brightness(1.15)"},{filter:"brightness(1)"}],{duration:120,easing:"ease-out"}),setTimeout(()=>{this.orb.classList.remove(`ferni-expression--${e}`),this.orb.classList.add("ferni-expression--present"),this.currentExpression="present"},3e3))}};function E(){if(document.getElementById("ferni-ai-landing-styles"))return;const e=document.createElement("style");e.id="ferni-ai-landing-styles",e.textContent=`
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          LIVE CHAT WIDGET
          Uses CSS variables from design-tokens.css for brand compliance
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       #ferni-live-chat {
         position: fixed;
@@ -1560,9 +485,9 @@
         font-weight: 500;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          PERSONA PREVIEW CARDS
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .team-card__preview-input {
         display: flex;
@@ -1644,9 +569,9 @@
         font-size: var(--text-sm, 13px);
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          HOVER PREVIEW TOOLTIP
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .ferni-hover-preview {
         position: absolute;
@@ -1687,9 +612,9 @@
         flex-shrink: 0;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          SOCIAL PROOF DYNAMIC
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .social-proof-dynamic {
         padding: var(--space-6, 24px) 0;
@@ -1730,9 +655,9 @@
         transition: opacity 0.3s, transform 0.3s;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          SMART FAQ
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .smart-faq {
         background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.08)), rgba(90, 119, 81, 0.05));
@@ -1858,9 +783,9 @@
         font-style: italic;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          MEMORY DEMO INTERACTIVE
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .memory-demo__interactive {
         margin-top: var(--space-10, 40px);
@@ -2003,9 +928,9 @@
         letter-spacing: 1px;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          MICRO EXPRESSIONS
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       /* Micro-expression colors - using brand-adjacent greens */
       .ferni-expression--curious {
@@ -2028,9 +953,9 @@
         --mood-color: var(--color-ferni, #7aa080);
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          PERSONALIZED ELEMENTS
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       .is-personalized {
         animation: personalizedFadeIn 0.5s ease;
@@ -2049,9 +974,9 @@
         transition: all 0.5s ease;
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          RESPONSIVE
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       @media (max-width: 768px) {
         #ferni-live-chat {
@@ -2090,9 +1015,9 @@
         }
       }
       
-      /* ═══════════════════════════════════════════════════════════════════════════
+      /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
          REDUCED MOTION
-         ═══════════════════════════════════════════════════════════════════════════ */
+         \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
       
       @media (prefers-reduced-motion: reduce) {
         .ferni-chat-panel,
@@ -2108,105 +1033,4 @@
           opacity: 0.5;
         }
       }
-    `;
-
-    document.head.appendChild(styles);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INITIALIZATION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  async function init() {
-    if (state.initialized) return;
-
-    state.visitorId = getVisitorId();
-
-    // Load feature flags FIRST (before any module init)
-    await loadFeatureFlags();
-
-    injectStyles();
-
-    // Initialize modules based on feature flags
-    const enabledFeatures = [];
-
-    if (CONFIG.enableChat) {
-      LiveChat.init();
-      enabledFeatures.push('Live Text Chat');
-    }
-    if (CONFIG.enablePersonaPreviews) {
-      PersonaPreviews.init();
-      enabledFeatures.push('Persona Previews');
-    }
-    if (CONFIG.enableMemoryDemo) {
-      MemoryDemo.init();
-      enabledFeatures.push('Memory Demo');
-    }
-    if (CONFIG.enableHoverPreviews) {
-      HoverPreviews.init();
-      enabledFeatures.push('Hover Previews');
-    }
-    if (CONFIG.enableSmartFAQ) {
-      SmartFAQ.init();
-      enabledFeatures.push('Smart FAQ');
-    }
-    if (CONFIG.enableSentimentCopy) {
-      SentimentCopy.init();
-      enabledFeatures.push('Sentiment-Reactive Copy');
-    }
-    if (CONFIG.enableMicroExpressions) {
-      MicroExpressions.init();
-      enabledFeatures.push('Micro Expressions');
-    }
-
-    // Async initialization (don't block)
-    if (CONFIG.enablePersonalizedHero) {
-      PersonalizedHero.init();
-      enabledFeatures.push('Personalized Hero');
-    }
-    if (CONFIG.enableSocialProof) {
-      SocialProof.init();
-      enabledFeatures.push('AI Social Proof');
-    }
-
-    state.initialized = true;
-
-    // Log enabled features
-    if (enabledFeatures.length > 0) {
-      console.log('%c🤖 AI-Powered Landing initialized', 'color: #4a6741; font-weight: bold;');
-      console.log('%c  Enabled features:', 'color: #70605a; font-size: 11px;');
-      enabledFeatures.forEach((f) => {
-        console.log(`%c    ✓ ${f}`, 'color: #70605a; font-size: 10px;');
-      });
-    } else {
-      console.log('%c🤖 AI-Powered Landing: All features disabled by flags', 'color: #70605a;');
-    }
-    console.log('%c    ✓ Micro-Expressions', 'color: #70605a; font-size: 10px;');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORTS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  window.FerniAI = {
-    init,
-    chat: LiveChat,
-    hero: PersonalizedHero,
-    personas: PersonaPreviews,
-    memory: MemoryDemo,
-    hover: HoverPreviews,
-    socialProof: SocialProof,
-    sentimentCopy: SentimentCopy,
-    faq: SmartFAQ,
-    expressions: MicroExpressions,
-    config: CONFIG,
-    state: () => ({ ...state }),
-  };
-
-  // Auto-initialize
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    setTimeout(init, 100);
-  }
-})();
+    `,document.head.appendChild(e)}async function d(){if(s.initialized)return;s.visitorId=w(),await _(),E();const e=[];n.enableChat&&(p.init(),e.push("Live Text Chat")),n.enablePersonaPreviews&&(h.init(),e.push("Persona Previews")),n.enableMemoryDemo&&(u.init(),e.push("Memory Demo")),n.enableHoverPreviews&&(f.init(),e.push("Hover Previews")),n.enableSmartFAQ&&(x.init(),e.push("Smart FAQ")),n.enableSentimentCopy&&(v.init(),e.push("Sentiment-Reactive Copy")),n.enableMicroExpressions&&(y.init(),e.push("Micro Expressions")),n.enablePersonalizedHero&&(m.init(),e.push("Personalized Hero")),n.enableSocialProof&&(g.init(),e.push("AI Social Proof")),s.initialized=!0,e.length>0?(console.log("%c\u{1F916} AI-Powered Landing initialized","color: #4a6741; font-weight: bold;"),console.log("%c  Enabled features:","color: #70605a; font-size: 11px;"),e.forEach(t=>{console.log(`%c    \u2713 ${t}`,"color: #70605a; font-size: 10px;")})):console.log("%c\u{1F916} AI-Powered Landing: All features disabled by flags","color: #70605a;"),console.log("%c    \u2713 Micro-Expressions","color: #70605a; font-size: 10px;")}window.FerniAI={init:d,chat:p,hero:m,personas:h,memory:u,hover:f,socialProof:g,sentimentCopy:v,faq:x,expressions:y,config:n,state:()=>({...s})},document.readyState==="loading"?document.addEventListener("DOMContentLoaded",d):setTimeout(d,100)})();

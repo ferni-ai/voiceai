@@ -540,8 +540,8 @@ export class HandoffCoordinator {
             name: 'queue-async-welcome',
             execute: async () => {
               // Queue the welcome to run AFTER transaction completes
-              // Use setImmediate to ensure it runs after handoff_complete is sent
-              setImmediate(() => {
+              // Use setTimeout(0) to ensure it runs after handoff_complete is sent
+              setTimeout(() => {
                 log.info({ traceId, target: canonicalId }, '🎭 FAST MODE: Async welcome starting');
                 this.onAfterVoiceSwitch!(canonicalId, banterContext).catch((err) => {
                   log.warn(
@@ -549,7 +549,7 @@ export class HandoffCoordinator {
                     '⚠️ Async welcome failed (non-critical)'
                   );
                 });
-              });
+              }, 0);
             },
             rollback: async () => {
               // Can't cancel queued async - it's fire-and-forget

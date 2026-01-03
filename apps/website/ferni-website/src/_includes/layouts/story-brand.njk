@@ -25,7 +25,7 @@
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
   <link rel="stylesheet" href="/css/tokens.css?v=20251231">
-  <link rel="stylesheet" href="/css/story-brand.css?v=20251224">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
   <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224">
@@ -33,7 +33,7 @@
   <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251224">
   <link rel="stylesheet" href="/css/dark-mode.css?v=20251224">
   <link rel="stylesheet" href="/css/pixar-animations.css?v=20251231">
-  <link rel="stylesheet" href="/css/better-than-human.css?v=20251231">
+  <link rel="stylesheet" href="/css/better-than-human.css?v=20260103">
   <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
   <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
   <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
@@ -387,7 +387,9 @@
     // ========== COOKIE CONSENT ==========
     window.handleCookies = function(accepted) {
       localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
-      document.getElementById('cookieBanner').classList.add('is-hidden');
+      var banner = document.getElementById('cookieBanner');
+      banner.classList.remove('is-visible');
+      banner.classList.add('is-hidden');
       
       if (accepted && typeof gtag === 'function') {
         gtag('consent', 'update', {

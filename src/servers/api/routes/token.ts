@@ -46,7 +46,7 @@ function prewarmLLMContentForPersona(personaId: string, userId?: string): void {
   // Fire-and-forget - don't await, just log success/failure
   prewarmContent(contexts)
     .then(() => log.debug({ personaId, types: contentTypes.length }, '🔥 LLM cache pre-warmed'))
-    .catch((err) => log.debug({ error: String(err) }, 'LLM pre-warm failed (non-fatal)'));
+    .catch((err) => log.warn({ error: String(err) }, 'LLM pre-warm failed (non-fatal)'));
 }
 
 /**

@@ -211,6 +211,19 @@ async function buildNayanWisdomInsightsContext(
       briefingLines.push('\n' + superhumanContext);
     }
 
+    // Get Nayan's superhuman wisdom context (paradoxes, enough, incubation, patterns)
+    try {
+      const { buildNayanWisdomContext } = await import(
+        '../../../../services/superhuman/nayan-wisdom-services.js'
+      );
+      const nayanWisdomContext = await buildNayanWisdomContext(userId);
+      if (nayanWisdomContext && nayanWisdomContext.length > 50) {
+        briefingLines.push('\n' + nayanWisdomContext);
+      }
+    } catch (err) {
+      log.debug({ error: String(err) }, 'Failed to load Nayan wisdom context (non-blocking)');
+    }
+
     // 🤝 TEAM HUDDLE: Record Nayan's observations for cross-persona intelligence
     try {
       const { nayan: nayanObserver, recordConcern } =

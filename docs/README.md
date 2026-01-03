@@ -38,9 +38,9 @@ docs/
 │   ├── SYSTEM-HEALTH-REPORT.md   # System health tracking
 │   └── TECH-DEBT.md             # Auto-generated tech debt report
 │
-├── architecture/          # System design (60 docs + 5 ADRs)
-├── audits/                # Quality audits (50 active)
-├── plans/                 # Implementation plans (40 docs)
+├── architecture/          # System design (80 docs + ADRs)
+├── audits/                # Quality audits (73 active)
+├── plans/                 # Implementation plans (44 docs)
 ├── features/              # Feature specs (19 docs)
 ├── guides/                # How-to guides (24 docs)
 ├── deployment/            # Deploy guides (12 docs)
@@ -51,7 +51,7 @@ docs/
 ├── refactoring/           # Refactoring guides (7 docs)
 ├── strategy/              # Business & launch docs (3 docs)
 ├── marketplace/           # Marketplace docs (3 docs)
-└── archive/               # 📦 Completed/outdated docs (20 docs)
+└── archive/               # 📦 Completed/outdated/consolidated docs (35+)
 
 brand/                     # Brand ASSETS (logos, icons)
 design-system/docs/brand/       # Brand DOCUMENTATION

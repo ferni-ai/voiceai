@@ -4468,7 +4468,7 @@ html {
 }
 
 .cookie-banner.is-visible {
-  transform: translateY(0);
+  transform: translateY(0) !important;
 }
 
 .cookie-banner.is-hidden {

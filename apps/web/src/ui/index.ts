@@ -613,6 +613,13 @@ export {
   refresh as refreshTeamObservations,
 } from './team-observations-panel.ui.js';
 
+// Agent Page Builder - Self-serve landing page creation
+export {
+  pageBuilder,
+  showPageBuilder,
+} from './agent-page-builder.ui.js';
+export type { PageBuilderCallbacks } from './agent-page-builder.ui.js';
+
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';
 export type { ControlCallbacks } from './controls.ui.js';

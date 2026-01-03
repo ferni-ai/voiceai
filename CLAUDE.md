@@ -1308,9 +1308,42 @@ git commit --no-verify -m "EMERGENCY: ..."
 
 ## Subdirectory CLAUDE.md Files
 
-- `src/tools/CLAUDE.md` - How to create tools
-- `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module structure
-- `src/personas/CLAUDE.md` - How to create personas
-- `src/intelligence/context-builders/CLAUDE.md` - Context builder patterns
+**Core Modules:**
+- `src/agents/CLAUDE.md` - Voice agent development
+- `src/conversation/CLAUDE.md` - Humanization subsystem (26K+ lines)
+- `src/audio/CLAUDE.md` - DJ Booth, music player, preference learning
+- `src/tasks/CLAUDE.md` - Task system, emotion-aware execution
+- `src/servers/CLAUDE.md` - Token server, OAuth, API routes
+
+**Domain Modules:**
+- `src/tools/CLAUDE.md` - How to create tools (109 domains)
+- `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module
+- `src/personas/CLAUDE.md` - How to create personas (6 AI team members)
+- `src/intelligence/CLAUDE.md` - Context builder patterns
+- `src/intelligence/context-builders/CLAUDE.md` - Builder implementation
+
+**Infrastructure:**
+- `src/services/CLAUDE.md` - Services layer patterns
+- `src/memory/CLAUDE.md` - Memory and persistence
+- `src/personality/CLAUDE.md` - Personality emergence, timing intelligence
+- `src/context/CLAUDE.md` - ContextManager, session context
+- `src/handoff/CLAUDE.md` - Persona transitions, cameo system
+- `src/marketplace/CLAUDE.md` - Tool registry, sandboxed execution
+
+**Frontend/Brand:**
 - `apps/web/CLAUDE.md` - Frontend/design system rules
 - `brand/CLAUDE.md` - Brand library rules (LUXO-STYLE EYES: opaque white, NO pupils)
+
+---
+
+## Documentation Stats (January 2026)
+
+| Category | Count |
+|----------|-------|
+| CLAUDE.md files | 38 |
+| Architecture docs | 80 |
+| Audit docs | 73 |
+| Plan docs | 44 |
+| Tool domains | 109 |
+| AI personas | 6 |
+| Superhuman services | 19 |

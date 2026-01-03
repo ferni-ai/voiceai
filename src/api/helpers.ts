@@ -387,9 +387,26 @@ export function sendJSONEdgeCached(
 /**
  * Send error response with security headers.
  *
+ * Standard error response format: `{ "error": "message" }`
+ *
+ * For 5xx errors in production, the message is replaced with a generic
+ * "Internal server error" to avoid leaking implementation details.
+ *
  * @param res - Server response
- * @param message - Error message
+ * @param message - Error message (use API_ERRORS constants for user-facing messages)
  * @param status - HTTP status code (default 500)
+ *
+ * @example
+ * ```typescript
+ * // Use predefined error messages
+ * sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
+ * sendError(res, API_ERRORS.NOT_FOUND, 404);
+ *
+ * // Custom error message
+ * sendError(res, "Couldn't process that request", 400);
+ * ```
+ *
+ * @see API_ERRORS in error-messages.ts for human-friendly error constants
  */
 export function sendError(res: ServerResponse, message: string, status = 500): void {
   // In production, avoid exposing internal error details
@@ -400,6 +417,59 @@ export function sendError(res: ServerResponse, message: string, status = 500): v
     ...getSecureResponseHeaders(),
   });
   res.end(JSON.stringify({ error: safeMessage }));
+}
+
+/**
+ * Standard API error response interface.
+ */
+export interface ApiErrorResponse {
+  error: string;
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Send a structured API error response with optional code and details.
+ *
+ * Use this for APIs that need more structured error information,
+ * such as when clients need to programmatically handle specific errors.
+ *
+ * @param res - Server response
+ * @param options - Error options
+ *
+ * @example
+ * ```typescript
+ * sendApiError(res, {
+ *   status: 400,
+ *   message: "Couldn't validate email",
+ *   code: 'VALIDATION_ERROR',
+ *   details: { field: 'email', reason: 'Invalid format' }
+ * });
+ * ```
+ */
+export function sendApiError(
+  res: ServerResponse,
+  options: {
+    status: number;
+    message: string;
+    code?: string;
+    details?: Record<string, unknown>;
+  }
+): void {
+  const { status, message, code, details } = options;
+
+  // In production, sanitize 5xx error messages
+  const safeMessage = isProduction() && status >= 500 ? 'Internal server error' : message;
+
+  const body: ApiErrorResponse = { error: safeMessage };
+  if (code) body.code = code;
+  if (details && !isProduction()) body.details = details;
+
+  res.writeHead(status, {
+    'Content-Type': 'application/json',
+    ...getSecureResponseHeaders(),
+  });
+  res.end(JSON.stringify(body));
 }
 
 /**

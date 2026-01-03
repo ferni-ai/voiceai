@@ -460,9 +460,12 @@ export async function captureCallResult(
     // 8. Create follow-up actions
     await createFollowUpActions(request.userId, callId, outcome, request);
 
+    // 9. Store in unified background results (for "While You Were Away")
+    await storeInUnifiedResults(request, outcome, callId);
+
     log.info(
       { callId, userId: request.userId },
-      'Call result captured successfully (push + email + calendar)'
+      'Call result captured successfully (push + email + calendar + unified)'
     );
   } catch (error) {
     log.error({ error: String(error), callId }, 'Failed to capture call result');
@@ -821,6 +824,84 @@ async function getUserEmail(userId: string): Promise<string | null> {
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to get user email');
     return null;
+  }
+}
+
+// ============================================================================
+// UNIFIED RESULTS INTEGRATION
+// ============================================================================
+
+/**
+ * Store call result in the unified background results system.
+ * This enables the "While You Were Away" feature to include call results
+ * alongside other background task results.
+ */
+async function storeInUnifiedResults(
+  request: OnBehalfCallRequest,
+  outcome: CallOutcome,
+  callId: string
+): Promise<void> {
+  try {
+    const { captureBackgroundResult } = await import('../background-agents/unified-result-capture.js');
+
+    const contactName = request.resolvedContact?.name || request.contactQuery;
+
+    // Build human-readable summary
+    let summary: string;
+    if (outcome.objectiveAchieved) {
+      summary = `Called ${contactName} - ${outcome.outcome}`;
+    } else if (outcome.status === 'voicemail') {
+      summary = `Left voicemail for ${contactName}`;
+    } else if (outcome.status === 'no_answer') {
+      summary = `Tried calling ${contactName} - no answer`;
+    } else if (outcome.status === 'busy') {
+      summary = `Tried calling ${contactName} - line busy`;
+    } else {
+      summary = `Call to ${contactName}: ${outcome.outcome}`;
+    }
+
+    // Determine priority
+    const priority = outcome.callbackRequired
+      ? 'high'
+      : outcome.objectiveAchieved
+        ? 'normal'
+        : 'normal';
+
+    // Map outcome status to unified status
+    const status = outcome.objectiveAchieved
+      ? 'success'
+      : outcome.status === 'voicemail'
+        ? 'partial_success'
+        : outcome.status === 'failed'
+          ? 'failed'
+          : 'partial_success';
+
+    await captureBackgroundResult({
+      userId: request.userId,
+      type: 'on_behalf_call',
+      status,
+      summary,
+      priority,
+      initiatedBy: 'ferni',  // Calls are typically initiated by Ferni
+      sessionId: request.originalSessionId,
+      contactName,
+      contactId: request.resolvedContact?.id,
+      details: outcome.transcriptSummary,
+      actionItems: outcome.actionItems,
+      requiresCallback: outcome.callbackRequired || false,
+      callbackTime: outcome.callbackTime,
+      relatedTaskId: callId,
+      specificData: {
+        callId,
+        phoneNumber: request.resolvedContact?.phone,
+        status: outcome.status,
+      },
+    });
+
+    log.debug({ callId }, 'Call result stored in unified background results');
+  } catch (error) {
+    // Don't fail the whole capture if unified storage fails
+    log.debug({ error: String(error), callId }, 'Could not store in unified results (non-blocking)');
   }
 }
 

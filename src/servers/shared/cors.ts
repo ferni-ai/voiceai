@@ -1,10 +1,19 @@
 /**
- * CORS configuration and handling for servers
+ * CORS Configuration (SINGLE SOURCE OF TRUTH)
+ *
+ * This module is the centralized CORS configuration for all Ferni servers.
+ *
+ * Usage:
+ * - API routes: Use via src/api/security-headers.ts → getCorsHeaders()
+ * - Route handlers: Use handleCorsPreflightRequest() and setCorsHeaders()
+ * - Custom origins: Set ALLOWED_ORIGINS env var (comma-separated)
  *
  * Security best practices:
  * - Strict origin validation (no wildcards in production)
  * - Credentials require explicit origin match
  * - Limited allowed headers and methods
+ *
+ * @module servers/shared/cors
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';

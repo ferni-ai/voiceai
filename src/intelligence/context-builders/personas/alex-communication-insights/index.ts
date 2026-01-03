@@ -39,6 +39,10 @@ import { detectProactiveTriggers } from './triggers.js';
 import { identifyCoachingOpportunities } from './coaching.js';
 import { gatherTeamInsights } from './team-insights.js';
 import { formatBriefingForInjection } from './formatting.js';
+import {
+  buildAlexSuperhumanContext,
+  processTranscriptForSuperhuman,
+} from './superhuman-context.js';
 import type {
   CommunicationBriefing,
   UserStateSnapshot,
@@ -287,6 +291,25 @@ async function buildAlexCommunicationInsightsContext(
     });
     if (superhumanContext) {
       formattedSections.push('\n' + superhumanContext);
+    }
+
+    // 🦸 BETTER THAN HUMAN: Add superhuman communication intelligence
+    // This gives Alex 10 capabilities no human friend can match
+    const superhumanCommContext = await buildAlexSuperhumanContext(userId, {
+      transcript: input.userText,
+      topics: input.analysis?.topics?.detected,
+      mentionedPerson: personMatch?.[1],
+      emotion: input.analysis?.emotion?.primary,
+    });
+    if (superhumanCommContext.contextString) {
+      formattedSections.push('\n' + superhumanCommContext.contextString);
+    }
+
+    // Process transcript for real-time pattern detection
+    if (input.userText) {
+      void processTranscriptForSuperhuman(userId, input.userText, {
+        currentTopic: input.analysis?.topics?.detected?.[0],
+      });
     }
 
     // 🤝 TEAM HUDDLE: Record Alex's observations for cross-persona intelligence

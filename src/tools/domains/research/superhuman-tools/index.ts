@@ -4,6 +4,15 @@
  * These tools leverage Peter's expanded data model to provide insights
  * that go beyond what any human advisor could offer.
  *
+ * CATEGORIES:
+ * 1. N=1 Personal Analytics - Decision quality, sleep correlation, energy prediction
+ * 2. Research Synthesis - Evidence scoring, paper synthesis, counter-arguments
+ * 3. Predictive Modeling - Goal prediction, trajectory modeling, habit survival
+ * 4. Financial Research - SEC analysis, insider tracking, options flow, macro bridge
+ * 5. Experimentation - A/B testing, Bayesian updating, hypothesis tracking
+ * 6. External Data - Local economics, industry trends, news sentiment
+ * 7. Network Analytics - Communication patterns, relationship health, influence mapping
+ *
  * @module tools/domains/research/superhuman-tools
  */
 
@@ -20,6 +29,16 @@ import type {
   RiskEvent,
   KnowledgeGap,
 } from '../user-data/types.js';
+
+// Import new superhuman tool categories
+import { n1AnalyticsTools } from './n1-analytics.js';
+import { researchSynthesisTools } from './research-synthesis.js';
+import { predictiveModelingTools } from './predictive-modeling.js';
+import { financialResearchTools } from './financial-research.js';
+import { experimentationTools } from './experimentation.js';
+import { externalDataTools } from './external-data.js';
+import { networkAnalyticsTools } from './network-analytics.js';
+import { getUserIdFromContext } from './firestore-persistence.js';
 
 const log = getLogger();
 
@@ -574,31 +593,11 @@ export const getNextLesson = llm.tool({
 });
 
 // ============================================================================
-// HELPER
-// ============================================================================
-
-function getUserIdFromContext(ctx: unknown): string | null {
-  if (!ctx || typeof ctx !== 'object') return null;
-
-  if ('userId' in ctx && typeof (ctx as Record<string, unknown>).userId === 'string') {
-    return (ctx as Record<string, unknown>).userId as string;
-  }
-
-  if ('room' in ctx && typeof ctx === 'object') {
-    const room = (ctx as Record<string, unknown>).room;
-    if (room && typeof room === 'object' && 'name' in room) {
-      return String((room as Record<string, unknown>).name);
-    }
-  }
-
-  return null;
-}
-
-// ============================================================================
 // EXPORT ALL TOOLS
 // ============================================================================
 
-export const superhumanTools = {
+// Original tools (maintained for backwards compatibility)
+export const originalSuperhumanTools = {
   saveInvestmentThesis,
   remindThesis,
   createFinancialGoal,
@@ -607,5 +606,46 @@ export const superhumanTools = {
   recordLifeEvent,
   getNextLesson,
 };
+
+// All superhuman tools combined
+export const superhumanTools = {
+  // Original tools
+  ...originalSuperhumanTools,
+  
+  // N=1 Personal Analytics
+  ...n1AnalyticsTools,
+  
+  // Research Synthesis
+  ...researchSynthesisTools,
+  
+  // Predictive Modeling
+  ...predictiveModelingTools,
+  
+  // Financial Research
+  ...financialResearchTools,
+  
+  // Experimentation Framework
+  ...experimentationTools,
+  
+  // External Data Integration
+  ...externalDataTools,
+  
+  // Network Analytics
+  ...networkAnalyticsTools,
+};
+
+// Export individual categories for selective import
+export {
+  n1AnalyticsTools,
+  researchSynthesisTools,
+  predictiveModelingTools,
+  financialResearchTools,
+  experimentationTools,
+  externalDataTools,
+  networkAnalyticsTools,
+};
+
+// Re-export types
+export * from './types.js';
 
 export default superhumanTools;
