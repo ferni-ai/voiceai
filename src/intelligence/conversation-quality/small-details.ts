@@ -61,6 +61,8 @@ const FAMILY_PATTERNS = [
   /my (?:wife|husband|spouse|partner|son|daughter|mother|father|brother|sister|mom|dad|kid|child|grandma|grandpa|grandmother|grandfather|aunt|uncle|cousin|niece|nephew),?\s+([A-Z][a-z]+)/gi,
   // "Sarah, my sister" (case-insensitive for relation word)
   /([A-Z][a-z]+),?\s+my\s+(?:wife|husband|son|daughter|mother|father|brother|sister)/gi,
+  // Complex relationship: "Sarah, my boss's wife's sister" or "John, my friend's brother"
+  /([A-Z][a-z]+),?\s+my\s+(?:\w+'s\s+)+(?:wife|husband|son|daughter|mother|father|brother|sister|friend|cousin)/gi,
 ];
 
 /** Professional/Social relationship patterns */
@@ -82,6 +84,10 @@ const ACTION_NAME_PATTERNS = [
   /(?:talked|spoke|chatted|speaking|talking)\s+(?:to|with)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
   // "meeting/lunch/dinner/coffee with [Name]"
   /(?:meeting|lunch|dinner|coffee|drinks|appointment)\s+with\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
+  // "remember [Name]" patterns
+  /(?:remember|know|recall|forgot|forgetting)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
+  // "about/with [Name]" patterns (drama with Susan, issues with Mark)
+  /(?:drama|issues?|problems?|conflicts?|fight|argument)\s+with\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
 ];
 
 /** Place patterns */
@@ -196,6 +202,46 @@ const NOT_NAMES = new Set([
   'Mister',
   'Doctor',
   'Professor',
+  // Pronouns and common words that get capitalized
+  'It',
+  'Its',
+  'This',
+  'That',
+  'These',
+  'Those',
+  'We',
+  'They',
+  'She',
+  'He',
+  'You',
+  'Your',
+  'My',
+  'Our',
+  'Their',
+  'What',
+  'When',
+  'Where',
+  'Which',
+  'Who',
+  'How',
+  'Why',
+  // More common sentence starters
+  'However',
+  'Although',
+  'Even',
+  'Still',
+  'Yet',
+  'Also',
+  'Both',
+  'Each',
+  'Every',
+  'Some',
+  'Any',
+  'Most',
+  'Many',
+  'Few',
+  'All',
+  'None',
 ]);
 
 /** Names that are also common words - whitelist these */

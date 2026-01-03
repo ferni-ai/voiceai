@@ -154,8 +154,12 @@ export async function handleGetThreads(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  const userId = requireUserId(req, res, parsedUrl);
-  if (!userId) return;
+  // Get userId from query param (like background-results API)
+  const userId = parsedUrl.searchParams.get('userId');
+  if (!userId) {
+    sendError(res, { code: 'MISSING_USER_ID', message: 'userId is required' }, 400);
+    return;
+  }
 
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 5, 20);

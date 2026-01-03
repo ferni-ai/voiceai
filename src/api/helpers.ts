@@ -532,6 +532,11 @@ export type RouteHandler = (
 export const parseRequestBody = parseBody;
 
 /**
+ * Alias for parseBody - used for reading request body
+ */
+export const readBody = parseBody;
+
+/**
  * Alias for sendJSON - used in some route handlers
  */
 export const sendSuccess = sendJSON;

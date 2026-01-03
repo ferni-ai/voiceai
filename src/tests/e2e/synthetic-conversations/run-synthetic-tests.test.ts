@@ -212,20 +212,35 @@ function getSampleConversations(): SyntheticConversation[] {
 
 // Names that should NOT be extracted (relationship words, persona names, etc.)
 const INVALID_EXPECTED_NAMES = new Set([
+  // Relationship words
   'dad',
   'mom',
   'mother',
   'father',
   'sister',
   'brother',
+  'aunt',
+  'uncle',
+  // Persona names (should NOT be captured)
   'ferni',
   'maya',
   'peter',
   'alex',
   'jordan',
   'nayan',
-  'mrs. gable', // In assistant turn
-  'mittens', // In assistant turn
+  // Names that appear in assistant turns (not user turns)
+  'mrs. gable',
+  'mittens',
+  // Complex/vague references from LLM expectations
+  'the smiths',
+  'them',
+  'they',
+  'it',
+  // Title-only captures
+  'mr.',
+  'mrs.',
+  'ms.',
+  'dr.',
 ]);
 
 async function validateNameCapture(
