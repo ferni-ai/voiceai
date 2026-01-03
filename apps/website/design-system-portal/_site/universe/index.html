@@ -116,6 +116,12 @@
 
   
   <aside class="toc-sidebar" id="tocSidebar">
+    <a href="/" class="back-to-home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      Back to Design System
+    </a>
     <div class="toc-title">Contents</div>
     <nav class="toc-nav">
       <ul class="toc-list">
@@ -1095,6 +1101,40 @@
   .toc-sidebar {
     transform: translateX(0);
   }
+}
+
+/* Back to Design System Link */
+.back-to-home {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3);
+  margin-bottom: var(--space-6);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  transition: all 0.2s ease;
+}
+
+.back-to-home:hover {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.back-to-home svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.back-to-home:hover svg {
+  transform: translateX(-2px);
+  opacity: 1;
 }
 
 .toc-title {

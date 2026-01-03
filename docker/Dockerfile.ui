@@ -105,11 +105,14 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY apps/web/ ./
 
+# Cache bust (2026-01-03): Force rebuild after cache corruption
+ARG CACHE_BUST=1
+
 # Create placeholder for symlinked brand directory (symlink points outside context)
 # The symlink apps/web/public/design-system/brand -> ../../../../design-system/docs/brand
 # won't work in Docker, so we create an empty directory
-RUN rm -f public/design-system/brand 2>/dev/null || true && \
-    mkdir -p public/design-system/brand
+# Use rm -rf to handle both file and directory cases, avoiding cache conflicts
+RUN rm -rf public/design-system/brand 2>/dev/null ; mkdir -p public/design-system/brand
 
 # Set env var for Vite build (bakes into the bundle)
 ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
