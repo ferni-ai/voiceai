@@ -375,6 +375,11 @@ export function handleDataMessage(message: DataMessage): void {
       handleSemanticRouting(message as SemanticRoutingEvent);
       break;
 
+    case 'on_behalf_call_complete':
+      // 📞 ON-BEHALF CALL: Call completed, show result to user
+      handleOnBehalfCallComplete(message as OnBehalfCallCompleteEvent);
+      break;
+
     default:
   }
 }
@@ -2179,6 +2184,107 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
     // Dispatch disconnect event - the app.ts will handle the actual disconnect
     window.dispatchEvent(new CustomEvent('ferni:conversation-end-disconnect'));
   }, delay);
+}
+
+// ============================================================================
+// ON-BEHALF CALL COMPLETE HANDLER - Call Result Notification
+// ============================================================================
+
+/**
+ * On-behalf call complete event from backend
+ * Sent when an on-behalf call (calling someone on behalf of the user) completes.
+ */
+interface OnBehalfCallCompleteEvent extends DataMessage {
+  type: 'on_behalf_call_complete';
+  callId: string;
+  contactName: string;
+  status: 'completed' | 'voicemail' | 'no_answer' | 'busy' | 'failed';
+  objectiveAchieved: boolean;
+  outcome: string;
+  callbackRequired: boolean;
+  actionItems?: string[];
+  timestamp: number;
+}
+
+/**
+ * Handle on-behalf call completion events.
+ *
+ * BETTER THAN HUMAN: When Ferni makes a call on your behalf and returns,
+ * it should feel like a friend coming back with news. The avatar should
+ * show appropriate emotion based on the outcome.
+ *
+ * This is triggered when:
+ * 1. Ferni calls mom to say good morning → comes back with "She loved it!"
+ * 2. Ferni calls the doctor → comes back with "Rescheduled for Thursday"
+ * 3. Ferni calls a restaurant → comes back with "Got you a 7pm reservation"
+ */
+function handleOnBehalfCallComplete(event: OnBehalfCallCompleteEvent): void {
+  log.info('📞 BETTER THAN HUMAN: On-behalf call complete!', {
+    contactName: event.contactName,
+    status: event.status,
+    objectiveAchieved: event.objectiveAchieved,
+  });
+
+  const { playMicroExpression } = ferni;
+
+  // Show different expressions based on outcome
+  if (event.objectiveAchieved) {
+    // Success! Show delight
+    playMicroExpression('delight_flash');
+    ferniExpressions.setExpression('pleased', 400, 2500);
+
+    // Celebratory sound
+    soundUI.play('success');
+
+    // Show warm message
+    messageUI.show(`✓ ${event.outcome}`, 'success', 5000);
+  } else if (event.status === 'voicemail') {
+    // Left voicemail - not ideal but okay
+    playMicroExpression('noticing');
+    ferniExpressions.setExpression('contemplative', 400, 2000);
+
+    // Informational sound
+    soundUI.play('message');
+
+    // Show status
+    messageUI.show(`📞 Left voicemail for ${event.contactName}`, 'info', 4000);
+  } else if (event.status === 'no_answer' || event.status === 'busy') {
+    // Couldn't reach them - slight concern, offer to retry
+    playMicroExpression('concern_flash');
+    ferniExpressions.setExpression('curious', 400, 2000);
+
+    // Show retry option
+    messageUI.show(`📞 Couldn't reach ${event.contactName}. Want me to try again later?`, 'warning', 5000);
+  } else if (event.status === 'failed') {
+    // Call failed - apologetic
+    playMicroExpression('concern_flash');
+    ferniExpressions.setExpression('contemplative', 400, 2500);
+
+    // Show apology
+    messageUI.show(`Sorry, the call to ${event.contactName} didn't go through`, 'warning', 4000);
+  }
+
+  // If callback is required, show a more prominent notification
+  if (event.callbackRequired) {
+    setTimeout(() => {
+      messageUI.show(`📅 ${event.contactName} wants you to call back`, 'info', 4000);
+    }, 2000);
+  }
+
+  // Dispatch event for other UI components (e.g., call history)
+  window.dispatchEvent(
+    new CustomEvent('ferni:call-complete', {
+      detail: {
+        callId: event.callId,
+        contactName: event.contactName,
+        status: event.status,
+        outcome: event.outcome,
+        objectiveAchieved: event.objectiveAchieved,
+        callbackRequired: event.callbackRequired,
+        actionItems: event.actionItems,
+      },
+    })
+  );
 }
 
 // ============================================================================
