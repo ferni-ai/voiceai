@@ -368,11 +368,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       // Set up outbound call context for the context builder to pick up
       // The outbound-call-context builder will inject call purpose, script, compliance, etc.
+      // CRITICAL: Store with BOTH roomName and sessionId since context builder uses sessionId
       try {
         const { setOutboundCallContext } =
           await import('../intelligence/context-builders/outbound-call-context.js');
-        const roomName = ctx.job.room?.name || `call-${metadata.callId}`;
-        setOutboundCallContext(roomName, {
+        const roomNameForContext = ctx.job.room?.name || `call-${metadata.callId}`;
+        const outboundContext = {
           callId: metadata.callId as string,
           recipientName:
             ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
@@ -389,9 +390,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           informationToGather: (metadata.informationToGather as string[]) || [],
           userName: (metadata.userName as string) || 'the user',
           originalSessionId: (metadata.originalSessionId as string) || '',
-        });
+        };
+        // Store with roomName (for legacy lookups)
+        setOutboundCallContext(roomNameForContext, outboundContext);
+        // Also store with sessionId (for context builder lookups)
+        setOutboundCallContext(sessionId, outboundContext);
         process.stderr.write(
-          `[voice-agent-entry] 📞 Outbound call context set for room: ${roomName}\n`
+          `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
         );
       } catch (error) {
         process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);

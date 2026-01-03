@@ -22,6 +22,7 @@ import {
   type WebhookPlatform,
 } from '../../../services/webhooks/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { handleTwilioCallStatus } from './twilio-call-status.js';
 
 const log = createLogger({ module: 'webhook-routes' });
 
@@ -111,6 +112,16 @@ export async function handleWebhookRoutes(
     res.writeHead(204);
     res.end();
     return true;
+  }
+
+  // ============================================================================
+  // TWILIO CALL STATUS WEBHOOK (for on-behalf calls)
+  // POST /api/webhooks/call-status
+  // ============================================================================
+  if (pathname === '/api/webhooks/call-status' && req.method === 'POST') {
+    log.info('Received Twilio call status webhook');
+    const handled = await handleTwilioCallStatus(req, res);
+    if (handled) return true;
   }
 
   // ============================================================================

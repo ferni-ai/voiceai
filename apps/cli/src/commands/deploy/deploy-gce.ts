@@ -241,6 +241,9 @@ function getSecrets(): Record<string, string> {
     'post-tts-amplitude-jitter',
     'post-tts-noise-floor',
     'post-tts-micro-pitch',
+    // SIP trunk for outbound conversational calls
+    'sip-trunk-id',
+    'sip-domain',
   ];
 
   const secrets: Record<string, string> = {};
