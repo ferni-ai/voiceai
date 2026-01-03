@@ -169,7 +169,8 @@ async function makeConversationalCall(
     if (isConversationalCallingConfigured()) {
       log.info({ contact: request.contactName }, 'Using conversational call service');
 
-      const result = await makeCall({
+      // Result type varies by implementation - handle gracefully
+      const result = (await makeCall({
         userId: request.userId,
         contactName: request.contactName,
         contactPhone: request.contactPhone,
@@ -177,13 +178,24 @@ async function makeConversationalCall(
         context: request.context,
         script: request.script,
         maxDuration: request.maxDuration,
-      });
+      })) as {
+        success: boolean;
+        callId?: string;
+        status?: string;
+        outcome?: string;
+        summary?: string;
+        objectiveAchieved?: boolean;
+        callbackRequired?: boolean;
+        callbackTime?: string;
+        actionItems?: string[];
+        duration?: number;
+      };
 
       return {
         success: result.success,
         callId: result.callId || callId,
         contactName: request.contactName,
-        status: result.status || (result.success ? 'completed' : 'failed'),
+        status: (result.status as CallResult['status']) || (result.success ? 'completed' : 'failed'),
         outcome: result.outcome || result.summary || 'Call completed',
         objectiveAchieved: result.objectiveAchieved ?? result.success,
         callbackRequired: result.callbackRequired ?? false,

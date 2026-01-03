@@ -124,7 +124,8 @@ export type ToolDomain =
   | 'maya-coaching' // Maya's superhuman coaching: habit DNA, friction mapping, tendencies, keystones, identity shifts
   | 'superhuman-communication' // Alex's 10 superhuman communication capabilities
   | 'jordan-planning' // Jordan's superhuman planning: event patterns, guest intelligence, milestone detection
-  | 'peter-analytics'; // Peter's superhuman analytics: blind spots, counterfactuals, pattern predictions
+  | 'peter-analytics' // Peter's superhuman analytics: blind spots, counterfactuals, pattern predictions
+  | 'local-search'; // Local search: nearby restaurants, services, places
 
 /**
  * All available tool domains
@@ -239,6 +240,8 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'jordan-planning',
   // Peter's Superhuman Analytics
   'peter-analytics',
+  // Local Search
+  'local-search',
 ] as const;
 
 // ============================================================================
@@ -367,6 +370,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'superhuman-communication': 'communication', // Alex's 10 superhuman communication capabilities
   'jordan-planning': 'lifestyle', // Jordan's superhuman planning tools
   'peter-analytics': 'information', // Peter's superhuman analytics tools
+  'local-search': 'information', // Local search for nearby restaurants, services, places
 };
 
 // ============================================================================

@@ -63,6 +63,8 @@ const FAMILY_PATTERNS = [
   /([A-Z][a-z]+),?\s+my\s+(?:wife|husband|son|daughter|mother|father|brother|sister)/gi,
   // Complex relationship: "Sarah, my boss's wife's sister" or "John, my friend's brother"
   /([A-Z][a-z]+),?\s+my\s+(?:\w+'s\s+)+(?:wife|husband|son|daughter|mother|father|brother|sister|friend|cousin)/gi,
+  // "Aunt/Uncle [Name]" pattern (title-style family)
+  /(?:Aunt|Uncle|Grandma|Grandpa|Cousin)\s+([A-Z][a-z]+)/gi,
 ];
 
 /** Professional/Social relationship patterns */
@@ -88,6 +90,18 @@ const ACTION_NAME_PATTERNS = [
   /(?:remember|know|recall|forgot|forgetting)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
   // "about/with [Name]" patterns (drama with Susan, issues with Mark)
   /(?:drama|issues?|problems?|conflicts?|fight|argument)\s+with\s+([A-Z][a-z]+)(?:\s|,|\.|\!|\?|$)/gi,
+  // Promise patterns: "promised Sarah that", "told John I would"
+  /(?:promised|told|asked|reminded)\s+([A-Z][a-z]+)\s+(?:that|i|to|about)/gi,
+  // "apologize to [Name]"
+  /(?:apologize|apologizing|apologized)\s+to\s+([A-Z][a-z]+)/gi,
+  // "[Name] + verb" patterns: "Sarah called", "Mark said"
+  /([A-Z][a-z]+)\s+(?:just\s+)?(?:called|said|told|asked|mentioned|texted|emailed|messaged)/gi,
+  // "mentioned [Name]" patterns
+  /(?:mentioned|know|met|saw|heard\s+(?:from|about))\s+([A-Z][a-z]+)/gi,
+  // "visiting [Name]" patterns
+  /(?:visit|visiting|see|seeing|meeting)\s+([A-Z][a-z]+)/gi,
+  // General "with [Name]" pattern in meeting/discussion context
+  /(?:with|from)\s+([A-Z][a-z]+)\s+(?:to|about|regarding|for|on)/gi,
 ];
 
 /** Place patterns */
@@ -242,6 +256,31 @@ const NOT_NAMES = new Set([
   'Few',
   'All',
   'None',
+  // Common verbs/words that start sentences
+  'Was',
+  'Were',
+  'Is',
+  'Are',
+  'Has',
+  'Had',
+  'Have',
+  'Been',
+  'Being',
+  'Can',
+  'Could',
+  'Would',
+  'Should',
+  'Will',  // Note: Will as a name is in whitelist, which takes priority
+  'Did',
+  'Does',
+  'Do',
+  'Let',
+  'Get',
+  'Got',
+  'Saw',
+  'See',
+  'Said',
+  'Says',
 ]);
 
 /** Names that are also common words - whitelist these */

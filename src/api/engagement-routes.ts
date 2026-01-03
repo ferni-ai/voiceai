@@ -52,6 +52,7 @@ import { handleWearableRoutes } from './routes/wearable.js';
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/conversations',
+  '/api/commitments', // Better Than Human - track commitments
   '/api/analytics',
   '/api/predictions',
   '/api/rituals',

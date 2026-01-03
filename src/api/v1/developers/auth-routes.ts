@@ -189,7 +189,8 @@ async function linkFirebaseToPublisher(
   if (!emailSnapshot.empty) {
     // Link Firebase UID to existing publisher
     const doc = emailSnapshot.docs[0];
-    await doc.ref.set({ firebaseUid }, { merge: true });
+    // Use set with merge to update existing document
+    await (db.collection('publishers').doc(doc.id) as unknown as { set: (data: Record<string, unknown>, options: { merge: boolean }) => Promise<void> }).set({ firebaseUid }, { merge: true });
 
     const data = doc.data();
     if (!data) throw new Error('Publisher data missing');

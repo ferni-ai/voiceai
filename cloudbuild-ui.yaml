@@ -25,6 +25,7 @@ steps:
       - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'
       - '--build-arg=VITE_ADMIN_API_KEY=$$ADMIN_API_KEY'
       - '--build-arg=PROJECT_ID=$PROJECT_ID'
+      - '--build-arg=BUILD_TIMESTAMP=$BUILD_ID'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'

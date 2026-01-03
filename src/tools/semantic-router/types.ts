@@ -243,7 +243,9 @@ export type ToolCategory =
   // System
   | 'utility'
   | 'settings'
-  | 'communication';
+  | 'communication'
+  // Local search
+  | 'local-search';
 
 // ============================================================================
 // ROUTING RESULTS

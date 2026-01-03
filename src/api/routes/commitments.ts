@@ -27,7 +27,7 @@ export async function handleGetCommitments(
   // Get userId from query param (like background-results API)
   const userId = parsedUrl.searchParams.get('userId');
   if (!userId) {
-    sendError(res, { code: 'MISSING_USER_ID', message: 'userId is required' }, 400);
+    sendError(res, 'userId is required', 400);
     return;
   }
 
@@ -53,9 +53,7 @@ export async function handleGetCommitments(
     }
 
     // Sort by createdAt descending (most recent first)
-    commitments.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    commitments.sort((a, b) => b.createdAt - a.createdAt);
 
     // Limit results
     commitments = commitments.slice(0, limit);
@@ -65,13 +63,12 @@ export async function handleGetCommitments(
       id: c.id,
       type: c.type,
       description: c.summary,
-      context: c.context,
+      topic: c.topic,
       dueDate: c.targetDate,
-      personaId: c.detectedBy,
       status: c.status,
       createdAt: c.createdAt,
-      completedAt: c.completedAt,
-      celebrationCount: c.celebrationCount || 0,
+      lastMentioned: c.lastMentioned,
+      followUpCount: c.followUpCount,
     }));
 
     sendJSON(res, {
@@ -82,7 +79,7 @@ export async function handleGetCommitments(
     });
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get commitments');
-    sendError(res, { code: 'COMMITMENTS_FETCH_FAILED', message: 'Failed to fetch commitments' }, 500);
+    sendError(res, 'Failed to fetch commitments', 500);
   }
 }
 
@@ -101,9 +98,9 @@ export async function handleUpdateCommitment(
 
   try {
     const body = await readBody<{
-      status?: 'pending' | 'completed' | 'cancelled';
+      status?: 'active' | 'completed' | 'deferred' | 'abandoned' | 'unclear';
       notes?: string;
-    }>(req, res);
+    }>(req);
 
     if (!body) return;
 
@@ -116,7 +113,7 @@ export async function handleUpdateCommitment(
     const commitment = commitments.find((c) => c.id === commitmentId);
 
     if (!commitment) {
-      sendError(res, { code: 'NOT_FOUND', message: 'Commitment not found' }, 404);
+      sendError(res, 'Commitment not found', 404);
       return;
     }
 
@@ -130,7 +127,7 @@ export async function handleUpdateCommitment(
     });
   } catch (err) {
     log.error({ error: err, userId, commitmentId }, 'Failed to update commitment');
-    sendError(res, { code: 'COMMITMENT_UPDATE_FAILED', message: 'Failed to update commitment' }, 500);
+    sendError(res, 'Failed to update commitment', 500);
   }
 }
 

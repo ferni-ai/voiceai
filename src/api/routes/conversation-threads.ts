@@ -54,13 +54,13 @@ function getThreadsForUser(userId: string): ConversationThread[] {
 function saveThread(thread: ConversationThread): void {
   const threads = threadStore.get(thread.userId) || [];
   const existingIndex = threads.findIndex((t) => t.id === thread.id);
-  
+
   if (existingIndex >= 0) {
     threads[existingIndex] = thread;
   } else {
     threads.push(thread);
   }
-  
+
   threadStore.set(thread.userId, threads);
 }
 
@@ -77,38 +77,35 @@ async function extractThreadsFromHistory(userId: string): Promise<ConversationTh
     const historyService = getConversationHistoryService();
     const history = await historyService.getHistory(userId, 50);
 
-    if (!history?.messages?.length) {
+    if (!history?.sessions?.length) {
       return [];
     }
 
-    // Group messages by topic/theme
-    // For now, extract recent distinct topics from the conversation
+    // Group sessions by topic/theme
     const threads: ConversationThread[] = [];
     const seenTopics = new Set<string>();
 
-    // Get the last few conversations and extract topics
-    const recentMessages = history.messages.slice(-20);
-    
-    for (const msg of recentMessages) {
-      if (msg.role === 'user' && msg.content && msg.content.length > 20) {
-        // Simple topic extraction - take first 50 chars as topic preview
-        const topic = extractTopic(msg.content);
-        
-        if (!seenTopics.has(topic)) {
+    // Get the recent sessions and extract topics
+    const recentSessions = history.sessions.slice(-10);
+
+    for (const session of recentSessions) {
+      // Extract topics from session
+      for (const topic of session.topicsDiscussed || []) {
+        if (!seenTopics.has(topic) && topic.length > 3) {
           seenTopics.add(topic);
-          
+
           threads.push({
             id: `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             userId,
             topic,
-            lastMessage: msg.content.slice(0, 100) + (msg.content.length > 100 ? '...' : ''),
-            personaId: msg.personaId || 'ferni',
-            personaName: getPersonaName(msg.personaId || 'ferni'),
+            lastMessage: session.highlights?.[0] || topic,
+            personaId: session.personaId || 'ferni',
+            personaName: getPersonaName(session.personaId || 'ferni'),
             status: 'open',
             priority: 'normal',
-            createdAt: msg.timestamp || new Date().toISOString(),
-            updatedAt: msg.timestamp || new Date().toISOString(),
-            messageCount: 1,
+            createdAt: session.date || new Date().toISOString(),
+            updatedAt: session.date || new Date().toISOString(),
+            messageCount: session.messageCount || 1,
           });
         }
       }
@@ -119,18 +116,6 @@ async function extractThreadsFromHistory(userId: string): Promise<ConversationTh
     log.debug({ error: String(error) }, 'Could not extract threads from history');
     return [];
   }
-}
-
-function extractTopic(content: string): string {
-  // Simple topic extraction - can be enhanced with NLP
-  const cleaned = content
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  // Take first meaningful phrase
-  const words = cleaned.split(' ').filter((w) => w.length > 2);
-  return words.slice(0, 5).join(' ');
 }
 
 function getPersonaName(personaId: string): string {
@@ -157,7 +142,7 @@ export async function handleGetThreads(
   // Get userId from query param (like background-results API)
   const userId = parsedUrl.searchParams.get('userId');
   if (!userId) {
-    sendError(res, { code: 'MISSING_USER_ID', message: 'userId is required' }, 400);
+    sendError(res, 'userId is required', 400);
     return;
   }
 
@@ -183,7 +168,7 @@ export async function handleGetThreads(
     }
 
     // Sort by updatedAt descending
-    threads.sort((a, b) => 
+    threads.sort((a, b) =>
       new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
 
@@ -197,7 +182,7 @@ export async function handleGetThreads(
     });
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get conversation threads');
-    sendError(res, { code: 'THREADS_FETCH_FAILED', message: 'Failed to fetch threads' }, 500);
+    sendError(res, 'Failed to fetch threads', 500);
   }
 }
 
@@ -221,10 +206,10 @@ export async function handleCreateThread(
       status?: 'open' | 'resolved' | 'paused';
       priority?: 'high' | 'normal' | 'low';
       emotionalContext?: string;
-    }>(req, res);
+    }>(req);
 
     if (!body || !body.topic) {
-      sendError(res, { code: 'INVALID_REQUEST', message: 'Topic is required' }, 400);
+      sendError(res, 'Topic is required', 400);
       return;
     }
 
@@ -251,7 +236,7 @@ export async function handleCreateThread(
     });
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to create thread');
-    sendError(res, { code: 'THREAD_CREATE_FAILED', message: 'Failed to create thread' }, 500);
+    sendError(res, 'Failed to create thread', 500);
   }
 }
 
@@ -272,7 +257,7 @@ export async function handleUpdateThread(
     const body = await readBody<{
       status?: 'open' | 'resolved' | 'paused';
       lastMessage?: string;
-    }>(req, res);
+    }>(req);
 
     if (!body) return;
 
@@ -280,7 +265,7 @@ export async function handleUpdateThread(
     const thread = threads.find((t) => t.id === threadId);
 
     if (!thread) {
-      sendError(res, { code: 'NOT_FOUND', message: 'Thread not found' }, 404);
+      sendError(res, 'Thread not found', 404);
       return;
     }
 
@@ -301,7 +286,7 @@ export async function handleUpdateThread(
     });
   } catch (err) {
     log.error({ error: err, userId, threadId }, 'Failed to update thread');
-    sendError(res, { code: 'THREAD_UPDATE_FAILED', message: 'Failed to update thread' }, 500);
+    sendError(res, 'Failed to update thread', 500);
   }
 }
 
