@@ -466,6 +466,28 @@ async function buildContextInjections(
     }
   }
 
+  // 2g. 📞 PENDING CALL RESULTS: What happened while the user was away
+  // "Better Than Human" - Ferni tells you about calls made on your behalf
+  // Priority 90 = high - this is important news to share early in the greeting
+  // Only on first turn to establish context
+  if (services.userId && (userData.turnCount || 0) === 0) {
+    try {
+      const { buildPendingCallResultsContext } =
+        await import('../../intelligence/context-builders/pending-call-results.js');
+      const pendingCallContext = await buildPendingCallResultsContext(services.userId);
+      if (pendingCallContext) {
+        injections.push({
+          category: 'pending_calls',
+          content: pendingCallContext,
+          priority: 90, // High priority - tell them early
+        });
+        diag.debug('📞 Pending call results context injected');
+      }
+    } catch (error) {
+      diag.debug('Pending call results context failed (non-blocking)', { error: String(error) });
+    }
+  }
+
   // ============================================================================
   // TIERED CONTEXT BUILDERS (LATENCY OPTIMIZED - Dec 2024)
   // ============================================================================
