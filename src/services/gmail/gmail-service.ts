@@ -559,6 +559,391 @@ function formatTimeAgo(date: Date): string {
   return date.toLocaleDateString();
 }
 
+// ============================================================================
+// EMAIL COMPOSE & SEND (Alex's "Better than Human" capability)
+// ============================================================================
+
+export interface ComposeEmailOptions {
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  bodyType?: 'text' | 'html';
+  /** Reply to existing thread */
+  threadId?: string;
+  /** Original message ID for In-Reply-To header */
+  inReplyTo?: string;
+}
+
+export interface DraftResult {
+  id: string;
+  threadId: string;
+  message: {
+    id: string;
+    labelIds: string[];
+  };
+}
+
+export interface SendResult {
+  success: boolean;
+  messageId?: string;
+  threadId?: string;
+  error?: string;
+}
+
+/**
+ * Create raw email message in RFC 2822 format
+ */
+function createRawEmail(
+  from: string,
+  options: ComposeEmailOptions
+): string {
+  const { to, cc, bcc, subject, body, bodyType = 'text', inReplyTo, threadId } = options;
+
+  const boundary = `boundary_${Date.now()}`;
+  const contentType = bodyType === 'html' ? 'text/html' : 'text/plain';
+
+  let message = '';
+
+  // Headers
+  message += `From: ${from}\r\n`;
+  message += `To: ${to.join(', ')}\r\n`;
+  if (cc && cc.length > 0) {
+    message += `Cc: ${cc.join(', ')}\r\n`;
+  }
+  if (bcc && bcc.length > 0) {
+    message += `Bcc: ${bcc.join(', ')}\r\n`;
+  }
+  message += `Subject: ${subject}\r\n`;
+  message += `MIME-Version: 1.0\r\n`;
+  message += `Content-Type: ${contentType}; charset=utf-8\r\n`;
+
+  // Threading headers
+  if (inReplyTo) {
+    message += `In-Reply-To: ${inReplyTo}\r\n`;
+    message += `References: ${inReplyTo}\r\n`;
+  }
+
+  message += `\r\n`;
+  message += body;
+
+  // Base64 URL encode
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Get user's email address for From header
+ */
+async function getUserEmailAddress(accessToken: string): Promise<string | null> {
+  try {
+    const profile = await gmailRequest<{
+      emailAddress: string;
+    }>(accessToken, '/profile');
+
+    return profile.emailAddress;
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to get user email address');
+    return null;
+  }
+}
+
+/**
+ * Create a draft email
+ *
+ * "Better than Human" - Draft emails for user review before sending
+ */
+export async function createDraft(
+  userId: string,
+  options: ComposeEmailOptions
+): Promise<DraftResult | null> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    log.warn({ userId }, 'No Gmail access token for drafts');
+    return null;
+  }
+
+  try {
+    const fromEmail = await getUserEmailAddress(accessToken);
+    if (!fromEmail) {
+      log.error({ userId }, 'Could not determine user email address');
+      return null;
+    }
+
+    const raw = createRawEmail(fromEmail, options);
+
+    const draft = await gmailRequest<DraftResult>(accessToken, '/drafts', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: {
+          raw,
+          threadId: options.threadId,
+        },
+      }),
+    });
+
+    log.info({ userId, draftId: draft.id, to: options.to }, 'Created email draft');
+    return draft;
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to create draft');
+    return null;
+  }
+}
+
+/**
+ * Send an email directly
+ *
+ * "Better than Human" - Send emails on behalf of user (with consent)
+ */
+export async function sendEmail(
+  userId: string,
+  options: ComposeEmailOptions
+): Promise<SendResult> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const fromEmail = await getUserEmailAddress(accessToken);
+    if (!fromEmail) {
+      return { success: false, error: 'Could not determine sender address' };
+    }
+
+    const raw = createRawEmail(fromEmail, options);
+
+    const result = await gmailRequest<{
+      id: string;
+      threadId: string;
+      labelIds: string[];
+    }>(accessToken, '/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        raw,
+        threadId: options.threadId,
+      }),
+    });
+
+    log.info({ userId, messageId: result.id, to: options.to }, 'Email sent');
+
+    return {
+      success: true,
+      messageId: result.id,
+      threadId: result.threadId,
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to send email');
+    return { success: false, error: 'Send failed' };
+  }
+}
+
+/**
+ * Reply to an existing thread
+ *
+ * "Better than Human" - Contextual replies that maintain conversation threads
+ */
+export async function replyToThread(
+  userId: string,
+  threadId: string,
+  body: string,
+  options: {
+    bodyType?: 'text' | 'html';
+    cc?: string[];
+  } = {}
+): Promise<SendResult> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    // Get the thread to find recipients and subject
+    const thread = await getEmailThread(userId, threadId);
+    if (!thread || thread.messages.length === 0) {
+      return { success: false, error: 'Thread not found' };
+    }
+
+    const lastMessage = thread.messages[thread.messages.length - 1];
+    const subject = thread.subject.startsWith('Re:')
+      ? thread.subject
+      : `Re: ${thread.subject}`;
+
+    // Reply to sender of last message
+    const to = [lastMessage.fromEmail];
+
+    return sendEmail(userId, {
+      to,
+      cc: options.cc,
+      subject,
+      body,
+      bodyType: options.bodyType,
+      threadId,
+      inReplyTo: lastMessage.id,
+    });
+  } catch (error) {
+    log.error({ error: String(error), userId, threadId }, 'Failed to reply to thread');
+    return { success: false, error: 'Reply failed' };
+  }
+}
+
+/**
+ * Update a draft and optionally send it
+ */
+export async function updateDraft(
+  userId: string,
+  draftId: string,
+  options: ComposeEmailOptions,
+  sendNow = false
+): Promise<SendResult> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const fromEmail = await getUserEmailAddress(accessToken);
+    if (!fromEmail) {
+      return { success: false, error: 'Could not determine sender address' };
+    }
+
+    const raw = createRawEmail(fromEmail, options);
+
+    // Update the draft
+    await gmailRequest<DraftResult>(accessToken, `/drafts/${draftId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        message: {
+          raw,
+          threadId: options.threadId,
+        },
+      }),
+    });
+
+    if (sendNow) {
+      // Send the draft
+      const result = await gmailRequest<{
+        id: string;
+        threadId: string;
+        labelIds: string[];
+      }>(accessToken, `/drafts/${draftId}/send`, {
+        method: 'POST',
+      });
+
+      log.info({ userId, messageId: result.id }, 'Draft sent');
+
+      return {
+        success: true,
+        messageId: result.id,
+        threadId: result.threadId,
+      };
+    }
+
+    return { success: true, messageId: draftId };
+  } catch (error) {
+    log.error({ error: String(error), userId, draftId }, 'Failed to update draft');
+    return { success: false, error: 'Update failed' };
+  }
+}
+
+/**
+ * Delete a draft
+ */
+export async function deleteDraft(userId: string, draftId: string): Promise<boolean> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) return false;
+
+  try {
+    await gmailRequest(accessToken, `/drafts/${draftId}`, {
+      method: 'DELETE',
+    });
+    log.info({ userId, draftId }, 'Draft deleted');
+    return true;
+  } catch (error) {
+    log.error({ error: String(error), userId, draftId }, 'Failed to delete draft');
+    return false;
+  }
+}
+
+/**
+ * List user's drafts
+ */
+export async function listDrafts(
+  userId: string,
+  maxResults = 10
+): Promise<DraftResult[]> {
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) return [];
+
+  try {
+    const result = await gmailRequest<{
+      drafts?: DraftResult[];
+    }>(accessToken, `/drafts?maxResults=${maxResults}`);
+
+    return result.drafts || [];
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Failed to list drafts');
+    return [];
+  }
+}
+
+// ============================================================================
+// SUPERHUMAN EMAIL ASSISTANCE
+// ============================================================================
+
+export interface EmailSuggestion {
+  type: 'reply' | 'followup' | 'action';
+  email: EmailSummary;
+  suggestion: string;
+  urgency: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Generate email suggestions for Alex
+ *
+ * "Better than Human" - Proactive email management
+ */
+export async function generateEmailSuggestions(
+  userId: string
+): Promise<EmailSuggestion[]> {
+  const [triage, stats] = await Promise.all([
+    triageUnreadEmails(userId),
+    getInboxStats(userId),
+  ]);
+
+  if (!triage || !stats) return [];
+
+  const suggestions: EmailSuggestion[] = [];
+
+  // Urgent emails need immediate attention
+  for (const email of triage.urgent.slice(0, 3)) {
+    suggestions.push({
+      type: 'reply',
+      email,
+      suggestion: `${email.from} sent something important. Want me to draft a quick reply?`,
+      urgency: 'high',
+    });
+  }
+
+  // Emails needing response
+  for (const email of triage.needsResponse.slice(0, 2)) {
+    suggestions.push({
+      type: 'reply',
+      email,
+      suggestion: `${email.from} is waiting for your response about "${email.subject.slice(0, 30)}..."`,
+      urgency: 'medium',
+    });
+  }
+
+  // Follow-up suggestions for old threads
+  // (Would need to analyze sent mail for pending follow-ups)
+
+  return suggestions;
+}
+
 export default {
   isGmailConfigured,
   getInboxMessages,
@@ -570,4 +955,12 @@ export default {
   triageUnreadEmails,
   formatEmailForSpeech,
   formatInboxSummaryForSpeech,
+  // Send capabilities
+  createDraft,
+  sendEmail,
+  replyToThread,
+  updateDraft,
+  deleteDraft,
+  listDrafts,
+  generateEmailSuggestions,
 };
