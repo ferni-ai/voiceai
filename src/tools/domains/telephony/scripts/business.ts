@@ -81,5 +81,7 @@ export const businessScript: CallScriptTemplate = {
     'Do not argue or become confrontational if they cannot help',
     'Do not make promises about what {userName} will or will not do',
     'Do not authorize any changes to accounts without confirmation from {userName}',
+    'Do not keep talking after wrap-up - business calls should be efficient',
+    'Do not ask multiple follow-up questions after getting what you need',
   ],
 };

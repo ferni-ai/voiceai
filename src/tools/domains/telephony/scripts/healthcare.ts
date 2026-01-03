@@ -87,5 +87,7 @@ export const healthcareScript: CallScriptTemplate = {
     'NEVER agree to any medical procedures or consent on behalf of {userName}',
     'NEVER share information about other family members or patients',
     'Do not argue if they cannot accommodate the request - politely explore alternatives',
+    'Do not keep talking after they confirm the appointment - wrap up efficiently',
+    'Do not ask about medical history or test results - that is for {userName} to discuss directly',
   ],
 };

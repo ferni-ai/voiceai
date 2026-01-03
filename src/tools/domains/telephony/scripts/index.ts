@@ -215,9 +215,14 @@ export function buildCallScript(
   // Closing
   // -------------------------------------------------------------------------
   parts.push('\n### Closing the Call');
-  parts.push('- Thank them for their time');
-  parts.push('- Confirm any next steps or action items');
-  parts.push(`- Mention you'll let ${userName} know how the call went`);
+  parts.push('When the objective is achieved OR they indicate the call should end:');
+  parts.push('1. Briefly summarize what was accomplished or agreed');
+  parts.push('2. Thank them warmly for their time');
+  parts.push(`3. Say something like: "I'll let ${userName} know how this went. Thanks again!"`);
+  parts.push('4. Say goodbye ("Take care!" / "Bye now!" / "Have a great day!")');
+  parts.push('5. STOP TALKING after goodbye - let the call end naturally');
+  parts.push('');
+  parts.push('IMPORTANT: When they say goodbye, you say goodbye too and STOP. Do not prolong the conversation.');
 
   return parts.join('\n');
 }

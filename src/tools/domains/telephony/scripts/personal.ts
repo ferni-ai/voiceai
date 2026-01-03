@@ -88,5 +88,7 @@ export const personalScript: CallScriptTemplate = {
     'Do not pretend to be {userName} - always be clear you are their AI assistant',
     "Do not make commitments on {userName}'s behalf without their approval",
     'Do not pressure them to share information they seem uncomfortable sharing',
+    'Do not keep talking after they say goodbye - let the conversation end naturally',
+    'Do not ask "is there anything else?" after you\'ve already started wrapping up',
   ],
 };
