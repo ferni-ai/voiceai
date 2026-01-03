@@ -64,6 +64,16 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
       // Continue anyway - will retry on first session
     }
 
+    // ⚡ Initialize background agents delivery (lightweight - just push/email)
+    // This enables "while you were away" notifications without the full outreach system
+    try {
+      const { initializeBackgroundDelivery } = await import('../../services/background-agents/index.js');
+      await initializeBackgroundDelivery();
+      log('✅ Background agents delivery initialized');
+    } catch (e) {
+      log('⚠️ Background delivery init failed (non-critical)', { error: String(e) });
+    }
+
     const tasks: Array<Promise<void>> = [];
 
     // ⚡ REMOVED: VAD preloading - Gemini Realtime handles turn detection
