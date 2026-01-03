@@ -170,14 +170,16 @@ async function makeConversationalCall(
       log.info({ contact: request.contactName }, 'Using conversational call service');
 
       // Result type varies by implementation - handle gracefully
+      // Map CallRequest to ConversationalCallRequest format
       const result = (await makeCall({
         userId: request.userId,
-        contactName: request.contactName,
-        contactPhone: request.contactPhone,
-        objective: request.objective,
-        context: request.context,
-        script: request.script,
-        maxDuration: request.maxDuration,
+        phone: request.contactPhone || '',
+        recipientName: request.contactName,
+        purpose: request.objective,
+        context: request.context || request.script
+          ? { message: request.context, script: request.script }
+          : undefined,
+        timeoutSeconds: request.maxDuration,
       })) as {
         success: boolean;
         callId?: string;

@@ -99,7 +99,7 @@ export async function handleUpdateCommitment(
   try {
     const body = await readBody<{
       status?: 'active' | 'completed' | 'deferred' | 'abandoned' | 'unclear';
-      notes?: string;
+      reaction?: 'appreciated' | 'annoyed' | 'neutral';
     }>(req);
 
     if (!body) return;
@@ -118,7 +118,7 @@ export async function handleUpdateCommitment(
     }
 
     if (body.status) {
-      await updateCommitmentStatus(userId, commitmentId, body.status, body.notes);
+      await updateCommitmentStatus(userId, commitmentId, body.status, body.reaction);
     }
 
     sendJSON(res, {
