@@ -102,6 +102,10 @@ import { clearNamedInterval } from '../../utils/interval-manager.js';
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
+// 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction at session end
+import { LLMSignalExtractor } from '../../memory/llm-signal-extractor.js';
+import { callLLM } from '../../services/llm-utils.js';
+
 // ============================================================================
 // CLEANUP TIMEOUT PROTECTION
 // ============================================================================
@@ -714,6 +718,95 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
             await import('../../personas/bundles/ferni/personality-resonance-store.js');
           await flushResonanceProfile(userId);
           diag.session('🎭 Personality resonance profile persisted');
+        })()
+      : Promise.resolve(),
+
+    // 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction from full conversation
+    // This is the "Better Than Human" memory that captures nuanced signals
+    // that regex patterns miss (values, dreams, fears, growth markers, etc.)
+    userId
+      ? (async () => {
+          try {
+            // Get conversation history for deep analysis
+            const { getRealtimeMemory } = await import('../../memory/realtime-memory.js');
+            const realtimeMemory = getRealtimeMemory();
+            const conversationId = `session-${sessionId}`;
+            const history = realtimeMemory.getConversationHistory(userId, conversationId);
+            
+            // Only run if we have meaningful conversation (5+ turns)
+            if (!history || history.length < 5) {
+              diag.session('🧠 Skipping deep signal extraction (not enough turns)', { 
+                turns: history?.length || 0 
+              });
+              return;
+            }
+            
+            // Convert to expected format
+            const turns = history.map(turn => ({
+              role: turn.role as 'user' | 'assistant',
+              content: turn.content,
+              timestamp: turn.timestamp ? new Date(turn.timestamp) : new Date(),
+            }));
+            
+            // Create extractor with LLM enabled
+            const extractor = new LLMSignalExtractor({
+              useLLM: true,
+              maxTranscriptLength: 8000,
+              llmCall: async (prompt: string) => {
+                const result = await callLLM(prompt, { maxTokens: 2000, temperature: 0.3 });
+                return result || '';
+              },
+            });
+            
+            // Extract deep signals
+            const signals = await extractor.extractSignals(turns, {
+              userId,
+              sessionId,
+              personaId: sessionPersona?.id || 'ferni',
+            });
+            
+            // Count extracted signals
+            const signalCount = 
+              signals.importantDates.length +
+              signals.values.length +
+              signals.dreams.length +
+              signals.fears.length +
+              signals.growthMarkers.length +
+              signals.challenges.length +
+              signals.comfortPatterns.length +
+              signals.stressTriggers.length +
+              signals.insideJokes.length +
+              signals.avoidances.length;
+            
+            if (signalCount > 0) {
+              // Persist to user memory via unified memory service
+              const unifiedMemory = getUnifiedMemoryService();
+              const currentMemory = await unifiedMemory.getMemory(userId);
+              const mergedMemory = extractor.mergeWithExisting(currentMemory || {}, signals);
+              
+              // Save enhanced memory
+              await unifiedMemory.saveMemory(userId, mergedMemory);
+              
+              diag.session('🧠 Deep signal extraction complete', {
+                userId,
+                signalCount,
+                dates: signals.importantDates.length,
+                values: signals.values.length,
+                dreams: signals.dreams.length,
+                fears: signals.fears.length,
+                growth: signals.growthMarkers.length,
+                challenges: signals.challenges.length,
+                comfort: signals.comfortPatterns.length,
+                stress: signals.stressTriggers.length,
+                jokes: signals.insideJokes.length,
+                avoidances: signals.avoidances.length,
+              });
+            }
+          } catch (deepExtractErr) {
+            diag.warn('Deep signal extraction failed (non-fatal)', { 
+              error: String(deepExtractErr) 
+            });
+          }
         })()
       : Promise.resolve(),
 

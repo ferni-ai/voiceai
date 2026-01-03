@@ -62,6 +62,7 @@ const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
     'https://api.cartesia.ai',
     'https://api.openai.com',
     'https://cdn.jsdelivr.net',
+    'https://fonts.gstatic.com', // Required for service worker font caching
   ],
   'media-src': ["'self'", 'blob:', 'https:'],
   'object-src': ["'none'"],
