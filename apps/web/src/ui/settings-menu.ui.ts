@@ -103,7 +103,9 @@ export interface SettingsMenuUICallbacks {
   onContactsClick?: () => void;
   onGiftsClick?: () => void;
   onJournalClick?: () => void;
+  onHubClick?: () => void;
   onLinkedInClick?: () => void;
+  onPageBuilderClick?: () => void;
   onClose?: () => void;
   // Warm menu callbacks
   onTogetherSessionsClick?: () => void;
@@ -205,6 +207,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   download:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 21h8"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/></svg>',
+  // Your Day / Hub
+  hub: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M12 6v1"/><path d="M18 12h-1"/><path d="M12 18v-1"/><path d="M6 12h1"/></svg>',
   // Contacts & Gifts
   contacts:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h4"/><circle cx="12" cy="18" r="1"/></svg>',
@@ -247,6 +251,10 @@ const ICONS = {
   // Digital Twin / Journal
   journal:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>',
+
+  // Agent Page Builder
+  pageBuilder:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>',
 
   // New icons for restructured menu
   phone:
@@ -748,6 +756,7 @@ class SettingsMenuUI {
                   t('menu.sections.understandingYou'),
                   expandedSections.has('understandingYou'),
                   `
+            ${this.renderMenuItemWithBadge('hub', ICONS.hub, 'Your Day with Ferni', t('common.new'))}
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory') || 'Your Story')}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear') || 'Your Year with Ferni', t('common.new'))}
             ${this.renderMenuItemWithBadge('future-insights', ICONS.sparkles, t('menu.items.whatIllKnow'), t('common.new'))}
@@ -775,6 +784,7 @@ class SettingsMenuUI {
             ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
             ${this.renderMenuItem('video-call-settings', ICONS.video, t('menu.items.videoSessions'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
+            ${this.renderMenuItemWithBadge('page-builder', ICONS.pageBuilder, 'Create Agent Page', t('common.new'))}
             ${this.renderMenuItem('together-sessions', ICONS.users, t('menu.items.togetherSessions'))}
           `
                 )
@@ -1029,6 +1039,7 @@ class SettingsMenuUI {
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
+      'page-builder': { icon: ICONS.pageBuilder, label: 'Create Agent Page' },
       journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
@@ -1356,8 +1367,14 @@ class SettingsMenuUI {
       case 'discover-agents':
         this.callbacks.onDiscoverAgentsClick?.();
         break;
+      case 'page-builder':
+        this.callbacks.onPageBuilderClick?.();
+        break;
       case 'journal':
         this.callbacks.onJournalClick?.();
+        break;
+      case 'hub':
+        this.callbacks.onHubClick?.();
         break;
       case 'connections':
         this.callbacks.onConnectionsClick?.();

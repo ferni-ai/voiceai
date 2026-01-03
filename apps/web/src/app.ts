@@ -1689,6 +1689,12 @@ class VoiceAIApp {
       whileYouWereAwayUI.init();
     });
     
+    // 🏠 Ferni Hub - Your Day with Ferni (non-voice UI for background results)
+    this.deferredInit('FerniHubUI', 700, async () => {
+      const { ferniHubUI } = await import('./ui/ferni-hub.ui.js');
+      ferniHubUI.init();
+    });
+    
     // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 
     // 🌱 Progressive Relationship Features - All quick wins in one init
@@ -1885,7 +1891,26 @@ class VoiceAIApp {
           void openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
+        onPageBuilderClick: () => {
+          // Lazy-load the page builder
+          void import('./ui/agent-page-builder.ui.js').then(({ showPageBuilder }) => {
+            showPageBuilder({
+              onClose: () => {
+                /* Settings menu closes automatically */
+              },
+              onDeployed: (url: string) => {
+                toast.success(`Deployed! ${url}`);
+              },
+            });
+          });
+        },
         onJournalClick: () => void openChronicle(),
+        onHubClick: () => {
+          // Open Ferni Hub - "Your Day with Ferni"
+          void import('./ui/ferni-hub.ui.js').then(({ show }) => {
+            void show();
+          });
+        },
         onConnectionsClick: () => void showIntegrationsSettings(),
         onContactsClick: () => void openYourPeople(),
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
