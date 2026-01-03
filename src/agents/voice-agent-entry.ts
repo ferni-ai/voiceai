@@ -328,9 +328,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Parse metadata for persona ID
     let metadata: Record<string, unknown> = {};
+
+    // DEBUG: Log raw job metadata to trace persona_id flow
+    process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`);
+    process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`);
+
     if (ctx.job.metadata) {
       try {
         metadata = JSON.parse(ctx.job.metadata);
+        process.stderr.write(`[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`);
       } catch (e) {
         process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
       }

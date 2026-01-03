@@ -61,6 +61,7 @@ const DEFAULT_CSP_DIRECTIVES: Record<string, string[]> = {
     'https://api.stripe.com',
     'https://api.cartesia.ai',
     'https://api.openai.com',
+    'https://cdn.jsdelivr.net',
   ],
   'media-src': ["'self'", 'blob:', 'https:'],
   'object-src': ["'none'"],

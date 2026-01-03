@@ -252,6 +252,12 @@ export {
 } from './ddos-protection.js';
 
 // ============================================================================
+// TEXT UTILITIES
+// ============================================================================
+
+export { stripSSML, containsSSML, normalizeForComparison, looksLikeName } from './text-utils.js';
+
+// ============================================================================
 // DEFAULT EXPORTS
 // ============================================================================
 
@@ -261,3 +267,4 @@ export { default as rateLimiterUtils } from './rate-limiter.js';
 export { default as circuitBreakerUtils } from './circuit-breaker.js';
 export { default as sessionRegistryUtils } from './session-registry.js';
 export { default as cognitiveMetricsUtils } from './cognitive-metrics.js';
+export { default as textUtils } from './text-utils.js';

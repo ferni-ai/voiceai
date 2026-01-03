@@ -604,7 +604,13 @@ async function generateAndDeployPage(
     await db.collection('deployed-sites').doc(siteId).set(cleanForFirestore(site));
 
     log.info(
-      { userId, siteId, agentId: config.agent.id, subdomain, sizeKb: Math.round(generated.size / 1024) },
+      {
+        userId,
+        siteId,
+        agentId: config.agent.id,
+        subdomain,
+        sizeKb: Math.round(generated.size / 1024),
+      },
       'Page generated and deployed'
     );
 

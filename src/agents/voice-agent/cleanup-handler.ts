@@ -96,6 +96,9 @@ import { resilienceMetrics } from '../../services/observability/resilience-metri
 // Session Lifecycle Hooks - presence clearing, affinity updates, outreach suppression
 import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
 
+// Interval Manager - for session heartbeat cleanup
+import { clearNamedInterval } from '../../utils/interval-manager.js';
+
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
@@ -292,6 +295,9 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   if (cameoUnlockHandler) cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
   if (cameoCleanup) cameoCleanup();
   if (stopPeriodicSync) stopPeriodicSync();
+
+  // Clear session heartbeat interval
+  clearNamedInterval(`session-heartbeat-${sessionId}`);
 
   // Clear action history (for honesty guardrail - prevents memory bloat)
   clearSessionHistory(sessionId);

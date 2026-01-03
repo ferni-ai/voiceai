@@ -32,6 +32,8 @@ import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js'
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
 import { handleConversationsRoutes } from './routes/conversations.js';
+import { handleConversationThreadsRoutes } from './routes/conversation-threads.js';
+import { handleCommitmentsRoutes } from './routes/commitments.js';
 import { handleDataRoutes } from './routes/data.js';
 import { handleGamesRoutes } from './routes/games.js';
 import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
@@ -127,6 +129,16 @@ export async function handleEngagementRoutes(
 
   // Conversations
   if (await handleConversationsRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Conversation Threads (Better Than Human - track ongoing topics)
+  if (await handleConversationThreadsRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Commitments (Better Than Human - never forget what you said you'd do)
+  if (await handleCommitmentsRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

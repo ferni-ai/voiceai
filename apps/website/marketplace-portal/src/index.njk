@@ -65,9 +65,30 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
     
     <div class="preview-grid">
       <!-- ADHD Coach -->
-      <div class="preview-card" style="--persona-color: var(--persona-eli);">
-        <div class="preview-avatar">
-          <span>E</span>
+      <a href="/pages/persona/eli/" class="preview-card" style="--persona-color: var(--persona-eli-primary); --persona-secondary: var(--persona-eli-secondary); --persona-glow: var(--persona-eli-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="neutral">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="eliGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-eli-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-eli-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#eliGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="eli" aria-label="Listen to Eli's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Eli</h3>
@@ -75,12 +96,33 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">Turns overwhelming days into manageable moments. No judgment, just practical strategies that actually work.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
-      
+      </a>
+
       <!-- Sobriety Coach -->
-      <div class="preview-card" style="--persona-color: var(--persona-marcus);">
-        <div class="preview-avatar">
-          <span>M</span>
+      <a href="/pages/persona/marcus/" class="preview-card" style="--persona-color: var(--persona-marcus-primary); --persona-secondary: var(--persona-marcus-secondary); --persona-glow: var(--persona-marcus-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="caring">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="marcusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-marcus-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-marcus-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#marcusGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="marcus" aria-label="Listen to Marcus's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Marcus</h3>
@@ -88,12 +130,33 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">24/7 support for your recovery journey. Here for the hard moments, celebrating the small wins.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
-      
+      </a>
+
       <!-- Sleep Coach -->
-      <div class="preview-card" style="--persona-color: var(--persona-kenji);">
-        <div class="preview-avatar">
-          <span>K</span>
+      <a href="/pages/persona/kenji/" class="preview-card" style="--persona-color: var(--persona-kenji-primary); --persona-secondary: var(--persona-kenji-secondary); --persona-glow: var(--persona-kenji-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="thinking">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="kenjiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-kenji-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-kenji-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#kenjiGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="kenji" aria-label="Listen to Kenji's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Kenji</h3>
@@ -101,12 +164,33 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">Understands why your mind races at 2am. Gentle guidance back to restful nights.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
-      
+      </a>
+
       <!-- Parenting Coach -->
-      <div class="preview-card" style="--persona-color: var(--persona-carmen);">
-        <div class="preview-avatar">
-          <span>C</span>
+      <a href="/pages/persona/carmen/" class="preview-card" style="--persona-color: var(--persona-carmen-primary); --persona-secondary: var(--persona-carmen-secondary); --persona-glow: var(--persona-carmen-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="happy">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="carmenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-carmen-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-carmen-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#carmenGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="carmen" aria-label="Listen to Carmen's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Carmen</h3>
@@ -114,12 +198,33 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">Because parents need someone too. Practical wisdom for the beautiful chaos of raising tiny humans.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
-      
+      </a>
+
       <!-- Grief Support -->
-      <div class="preview-card" style="--persona-color: var(--persona-amara);">
-        <div class="preview-avatar">
-          <span>A</span>
+      <a href="/pages/persona/amara/" class="preview-card" style="--persona-color: var(--persona-amara-primary); --persona-secondary: var(--persona-amara-secondary); --persona-glow: var(--persona-amara-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="caring">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="amaraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-amara-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-amara-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#amaraGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="amara" aria-label="Listen to Amara's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Amara</h3>
@@ -127,12 +232,33 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">Holds space for loss without rushing healing. Your grief is valid. Your pace is right.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
-      
+      </a>
+
       <!-- Creative Coach -->
-      <div class="preview-card" style="--persona-color: var(--persona-sasha);">
-        <div class="preview-avatar">
-          <span>S</span>
+      <a href="/pages/persona/sasha/" class="preview-card" style="--persona-color: var(--persona-sasha-primary); --persona-secondary: var(--persona-sasha-secondary); --persona-glow: var(--persona-sasha-glow);">
+        <div class="preview-avatar-container">
+          <div class="avatar-orb breathing gazing" data-mood="happy">
+            <div class="avatar-glow"></div>
+            <svg viewBox="0 0 100 100" class="avatar-svg">
+              <defs>
+                <linearGradient id="sashaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color: var(--persona-sasha-primary)"/>
+                  <stop offset="100%" style="stop-color: var(--persona-sasha-secondary)"/>
+                </linearGradient>
+              </defs>
+              <circle class="presence-ring" cx="50" cy="50" r="46"/>
+              <g class="avatar-body">
+                <circle cx="50" cy="50" r="40" fill="url(#sashaGrad)"/>
+                <g class="eyes-group">
+                  <ellipse class="eye-white" cx="36" cy="48" rx="6" ry="8" fill="white"/>
+                  <ellipse class="eye-white" cx="64" cy="48" rx="6" ry="8" fill="white"/>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <button class="voice-sample-btn" data-persona="sasha" aria-label="Listen to Sasha's voice">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
         </div>
         <div class="preview-content">
           <h3>Sasha</h3>
@@ -140,7 +266,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <p class="preview-desc">Helps you past the blank page. Sparks ideas, unblocks creativity, champions your artistic voice.</p>
           <div class="preview-badge">Coming Q1 2026</div>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 </section>
@@ -429,6 +555,9 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   transition: all var(--duration-slow) var(--ease-out);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .preview-card:hover {
@@ -437,22 +566,168 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   border-color: var(--persona-color, var(--accent-primary));
 }
 
-.preview-avatar {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--persona-color), color-mix(in srgb, var(--persona-color) 80%, black));
-  border-radius: var(--radius-lg);
+/* ========================================
+   LUXO-STYLE ANIMATED AVATARS
+   ======================================== */
+
+.preview-avatar-container {
+  position: relative;
+  width: 64px;
+  height: 64px;
   flex-shrink: 0;
 }
 
-.preview-avatar span {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 700;
+.avatar-orb {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.avatar-orb svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* LUXO STYLE: Eyes are solid white ellipses - NO pupils! */
+.avatar-orb .eye-white {
+  fill: white;
+  transform-origin: center center;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Presence Ring */
+.avatar-orb .presence-ring {
+  fill: none;
+  stroke: var(--persona-color);
+  stroke-width: 1.5;
+  opacity: 0.4;
+  transition: all 0.4s ease;
+  transform-origin: center center;
+}
+
+/* Avatar Glow */
+.avatar-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--persona-glow) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.preview-card:hover .avatar-glow {
+  opacity: 0.8;
+}
+
+/* BREATHING - Makes avatars feel alive */
+.avatar-orb.breathing .avatar-body {
+  animation: avatarBreathe 4s ease-in-out infinite;
+}
+
+.avatar-orb.breathing .presence-ring {
+  animation: ringBreathe 4s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+
+@keyframes avatarBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scaleY(1.02) scaleX(0.995); }
+}
+
+@keyframes ringBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.01); opacity: 0.5; }
+}
+
+/* BLINKING - Natural eye blinks */
+.avatar-orb.blinking .eye-white {
+  animation: eyeBlink 0.15s ease-in-out;
+}
+
+@keyframes eyeBlink {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+/* GAZE DRIFT - Subtle idle eye movement */
+.avatar-orb.gazing .eyes-group {
+  animation: gazeDrift 8s ease-in-out infinite;
+}
+
+@keyframes gazeDrift {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(0.5px, -0.3px); }
+  50% { transform: translate(-0.3px, 0.3px); }
+  75% { transform: translate(0.3px, 0px); }
+}
+
+/* Expression States */
+.avatar-orb[data-mood="neutral"] .eye-white { transform: scaleY(1); }
+.avatar-orb[data-mood="listening"] .eye-white { transform: scaleY(1.08); }
+.avatar-orb[data-mood="happy"] .eye-white { transform: scaleY(0.75) scaleX(1.06); }
+.avatar-orb[data-mood="thinking"] .eye-white { transform: scaleY(0.92); }
+.avatar-orb[data-mood="surprised"] .eye-white { transform: scaleY(1.2) scaleX(1.05); }
+.avatar-orb[data-mood="caring"] .eye-white { transform: scaleY(0.85) scaleX(1.02); }
+
+.avatar-orb[data-mood="thinking"] .eyes-group { transform: translate(2px, -1px); }
+
+/* Hover expression change */
+.preview-card:hover .avatar-orb[data-mood] .eye-white {
+  transform: scaleY(0.75) scaleX(1.06); /* Happy on hover */
+}
+
+/* Voice Sample Button */
+.voice-sample-btn {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--persona-color);
   color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.voice-sample-btn svg {
+  width: 10px;
+  height: 10px;
+  margin-left: 1px;
+}
+
+.voice-sample-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px var(--persona-glow);
+}
+
+.voice-sample-btn:active {
+  transform: scale(0.95);
+}
+
+.voice-sample-btn.playing {
+  background: var(--persona-secondary);
+}
+
+.voice-sample-btn.playing svg {
+  display: none;
+}
+
+.voice-sample-btn.playing::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 2px;
 }
 
 .preview-content {
@@ -674,3 +949,130 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
   }
 }
 </style>
+
+<script>
+// Card click navigation - ensures anchor links work properly
+(function initCardNavigation() {
+  const cards = document.querySelectorAll('a.preview-card');
+  cards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Don't navigate if clicking on the voice button
+      if (e.target.closest('.voice-sample-btn')) {
+        return;
+      }
+      // Navigate to the href
+      window.location.href = card.href;
+    });
+  });
+})();
+
+// Random blinking for avatars - makes them feel alive
+(function initAvatarAnimations() {
+  const avatars = document.querySelectorAll('.avatar-orb');
+
+  function triggerBlink(avatar) {
+    avatar.classList.add('blinking');
+    setTimeout(() => avatar.classList.remove('blinking'), 150);
+  }
+
+  function scheduleRandomBlinks() {
+    avatars.forEach((avatar, index) => {
+      // Stagger initial blinks
+      setTimeout(() => {
+        triggerBlink(avatar);
+        // Schedule recurring blinks at random intervals (2-6 seconds)
+        setInterval(() => {
+          triggerBlink(avatar);
+        }, 2000 + Math.random() * 4000);
+      }, index * 500 + Math.random() * 1000);
+    });
+  }
+
+  // Start after a short delay
+  setTimeout(scheduleRandomBlinks, 1000);
+})();
+
+// Voice sample playback
+(function initVoiceSamples() {
+  const buttons = document.querySelectorAll('.voice-sample-btn');
+  let currentAudio = null;
+  let currentButton = null;
+
+  // Placeholder voice samples - replace with actual URLs when available
+  const voiceSamples = {
+    eli: null,
+    marcus: null,
+    kenji: null,
+    carmen: null,
+    amara: null,
+    sasha: null
+  };
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const persona = btn.dataset.persona;
+      const sampleUrl = voiceSamples[persona];
+
+      // Stop current audio if playing
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        if (currentButton) {
+          currentButton.classList.remove('playing');
+        }
+      }
+
+      if (!sampleUrl) {
+        // Show coming soon tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'voice-tooltip';
+        tooltip.textContent = 'Voice sample coming soon!';
+        tooltip.style.cssText = `
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--text-primary);
+          color: var(--bg-primary);
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          white-space: nowrap;
+          z-index: 100;
+          animation: tooltipFade 2s forwards;
+        `;
+        btn.parentElement.appendChild(tooltip);
+        setTimeout(() => tooltip.remove(), 2000);
+        return;
+      }
+
+      // Play the audio
+      currentAudio = new Audio(sampleUrl);
+      currentButton = btn;
+      btn.classList.add('playing');
+
+      currentAudio.play();
+      currentAudio.onended = () => {
+        btn.classList.remove('playing');
+        currentAudio = null;
+        currentButton = null;
+      };
+    });
+  });
+
+  // Add tooltip animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes tooltipFade {
+      0% { opacity: 0; transform: translateX(-50%) translateY(5px); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+</script>

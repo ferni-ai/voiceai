@@ -10,11 +10,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  getAllowedOrigins,
-  isOriginAllowed,
-  getCorsOrigin,
-} from '../servers/shared/cors.js';
+import { getAllowedOrigins, isOriginAllowed, getCorsOrigin } from '../servers/shared/cors.js';
 
 const log = createLogger({ module: 'SecurityHeaders' });
 
@@ -172,7 +168,10 @@ export function getCorsHeaders(origin?: string): Record<string, string> {
     } else {
       // Origin not allowed - log in production
       if (isProduction()) {
-        log.warn({ origin, allowed: allowedOrigins.slice(0, 5) }, 'CORS: Origin not in allowed list');
+        log.warn(
+          { origin, allowed: allowedOrigins.slice(0, 5) },
+          'CORS: Origin not in allowed list'
+        );
       }
     }
   } else if (!isProduction()) {

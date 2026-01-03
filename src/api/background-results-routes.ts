@@ -50,9 +50,8 @@ export async function handleBackgroundResultsRoutes(
 
       log.info({ userId, limit }, 'Fetching pending background results');
 
-      const { getPendingResults, buildPendingResultsContext } = await import(
-        '../services/background-agents/unified-result-capture.js'
-      );
+      const { getPendingResults, buildPendingResultsContext } =
+        await import('../services/background-agents/unified-result-capture.js');
 
       const results = await getPendingResults(userId, { limit });
       const contextMessage = await buildPendingResultsContext(userId);
@@ -81,9 +80,8 @@ export async function handleBackgroundResultsRoutes(
 
       log.info({ userId: body.userId, resultIds: body.resultIds }, 'Marking results as delivered');
 
-      const { markResultsDelivered } = await import(
-        '../services/background-agents/unified-result-capture.js'
-      );
+      const { markResultsDelivered } =
+        await import('../services/background-agents/unified-result-capture.js');
 
       await markResultsDelivered(body.userId, body.resultIds, body.deliveryMethod);
 
@@ -107,9 +105,8 @@ export async function handleBackgroundResultsRoutes(
 
       log.info({ userId, limit, type }, 'Fetching background results history');
 
-      const { getResultHistory } = await import(
-        '../services/background-agents/unified-result-capture.js'
-      );
+      const { getResultHistory } =
+        await import('../services/background-agents/unified-result-capture.js');
 
       const results = await getResultHistory(userId, limit, type);
 

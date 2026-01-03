@@ -12,6 +12,12 @@ export type { AnyRecord, Pattern, UIMemory, Weather } from './types.js';
 // Conversation routes
 export { handleConversationsRoutes, handleGetConversations } from './conversations.js';
 
+// Conversation threads routes (Better Than Human - track ongoing topics)
+export { handleConversationThreadsRoutes } from './conversation-threads.js';
+
+// Commitments routes (Better Than Human - never forget what you said you'd do)
+export { handleCommitmentsRoutes } from './commitments.js';
+
 // Analytics routes
 export { handleAnalyticsRoutes, handleGetUserAnalytics } from './analytics.js';
 

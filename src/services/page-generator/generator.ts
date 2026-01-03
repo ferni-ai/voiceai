@@ -95,11 +95,12 @@ function getTokenEndpoint(config: AgentPageConfig): string {
     case 'development':
       return 'http://localhost:3001/token';
     case 'production':
-      return 'https://ferni.ai/token';
+      // Use relative URL - works on any host (Cloud Run, ferni.ai, etc.)
+      return '/token';
     case 'custom':
       throw new Error('Custom environment requires explicit tokenEndpoint');
     default:
-      return 'https://ferni.ai/token';
+      return '/token';
   }
 }
 

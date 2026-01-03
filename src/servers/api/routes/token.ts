@@ -647,12 +647,13 @@ export async function handleTokenRoutes(
           city: geoData.city,
           regionCode: geoData.regionCode,
         };
+        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
         await getAgentDispatch().createDispatch(room, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
-        log.info({ agent: AGENT_NAME, room }, 'Dispatched agent');
+        log.info({ agent: AGENT_NAME, room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
       } catch (dispatchErr) {
-        log.debug({ note: (dispatchErr as Error).message }, 'Agent dispatch note');
+        log.error({ error: (dispatchErr as Error).message, room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });

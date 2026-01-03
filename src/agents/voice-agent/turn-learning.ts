@@ -387,6 +387,13 @@ async function detectAndRecordCorrections(ctx: LearningContext): Promise<void> {
     /\b(let\s+me\s+clarify)\b/i,
     /\b(what\s+i\s+(meant|mean)\s+was)\b/i,
     /\b(to\s+be\s+clear)\b/i,
+    // Self-correction patterns
+    /\b(no,?\s+wait)\b/i,
+    /\b(wait,?\s+(no|actually|it's))\b/i,
+    /\b(oops|sorry),?\s+(i\s+meant|it's|that's)/i,
+    /\b(scratch\s+that)\b/i,
+    /\b(or\s+rather)\b/i,
+    /\b(i\s+mean,?\s+(?!like))/i, // "I mean..." but not "I mean like..."
   ];
 
   // Check if any correction pattern matches

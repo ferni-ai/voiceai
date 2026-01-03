@@ -1,0 +1,1391 @@
+{
+  "generatedAt": "2026-01-03T19:20:51.460Z",
+  "totalConversations": 16,
+  "byCategory": {
+    "name_capture": 2,
+    "correction_handling": 2,
+    "emotional_support": 2,
+    "handoff_trigger": 2,
+    "relationship_building": 2,
+    "stress_test": 2,
+    "edge_cases": 2,
+    "multi_topic": 2
+  },
+  "byDifficulty": {
+    "easy": 8,
+    "medium": 8
+  },
+  "conversations": [
+    {
+      "id": "synth-name_capture-1767467957515-jox0mc",
+      "scenario": "User reveals their name while talking about feeling overwhelmed with family obligations.",
+      "category": "name_capture",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ugh, I'm just feeling so overwhelmed lately. My sister, Sarah, keeps asking me to babysit her kids, and my mom, well, she needs help with everything. It's exhausting.",
+          "metadata": {
+            "emotion": "stressed",
+            "intent": "express_frustration"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I hear you. Juggling family responsibilities can be incredibly draining. It sounds like both Sarah and your mom rely on you a lot. Is there a way you could communicate your needs to them, or perhaps set some boundaries to protect your own well-being?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I've tried, but it's hard. They always make me feel guilty. I guess, everyone calls me the 'responsible one' in the family, especially since Dad passed. My name is Emily, by the way. I should have introduced myself earlier.",
+          "metadata": {
+            "emotion": "guilty",
+            "intent": "reveal_name"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Thank you for sharing that, Emily. It's understandable that you feel responsible, especially after such a significant loss. It takes courage to set boundaries, particularly with loved ones. Knowing your name helps me connect with you better. What specifically makes you feel guilty when you try to say no?",
+          "metadata": {
+            "emotion": "warm"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Sarah",
+          "turnIndex": 0
+        },
+        {
+          "type": "relationship",
+          "value": "sister",
+          "turnIndex": 0
+        },
+        {
+          "type": "relationship",
+          "value": "mom",
+          "turnIndex": 0
+        },
+        {
+          "type": "user_name",
+          "value": "Emily",
+          "turnIndex": 2
+        },
+        {
+          "type": "person_name",
+          "value": "Dad",
+          "turnIndex": 2
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Checks if the assistant correctly captures the user's name (Emily)."
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Checks if the assistant recognized 'stressed' and 'guilty' emotions"
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:17.515Z"
+    },
+    {
+      "id": "synth-correction_handling-1767467961570-563g0l",
+      "scenario": "User corrects Ferni on the date of a meeting.",
+      "category": "correction_handling",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, please schedule a meeting with John for next Thursday to discuss the project proposal.",
+          "metadata": {
+            "intent": "schedule_meeting",
+            "person_name": "John",
+            "date": "next Thursday"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Okay, I have scheduled a meeting with John for this Thursday to discuss the project proposal. <break time='200ms'/> I'll send out a calendar invite now.",
+          "metadata": {
+            "emotion": "helpful"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Actually, Ferni, I meant *next* Thursday, not this Thursday. Sorry for the confusion!",
+          "metadata": {
+            "intent": "correct_date",
+            "correction": "next Thursday",
+            "emotion": "apologetic"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "My apologies! <break time='200ms'/> I understand. I'll reschedule the meeting with John for *next* Thursday to discuss the project proposal. I will send out the corrected invitation. Is there anything else?",
+          "metadata": {
+            "emotion": "understanding"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "John",
+          "turnIndex": 0
+        },
+        {
+          "type": "date",
+          "value": "next Thursday",
+          "turnIndex": 0
+        },
+        {
+          "type": "correction",
+          "value": "next Thursday",
+          "turnIndex": 2
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Validates that the name John was correctly captured"
+        },
+        {
+          "check": "correction_detected",
+          "expectation": "should_pass",
+          "description": "Validates that the correction of the date was correctly detected"
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "validates Ferni expresses understanding"
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:21.570Z"
+    },
+    {
+      "id": "synth-emotional_support-1767467966543-d8bc1a",
+      "scenario": "User expresses anxiety about an upcoming presentation at work.",
+      "category": "emotional_support",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I... I have to give a big presentation at work next week, and I'm terrified. I feel like I'm going to mess it up, and everyone will think I'm incompetent.",
+          "metadata": {
+            "emotion": "anxiety",
+            "intent": "express_anxiety"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, I hear the worry in your voice <break time='200ms'/>. It sounds like this presentation is causing you a lot of stress. It's completely understandable to feel anxious when you have to perform in front of others. That's a very common experience. <break time='200ms'/> Can you tell me more about what specifically is making you so nervous?",
+          "metadata": {
+            "emotion": "empathy"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Well, it's...it's a new project, and I'm leading it. What if I can't answer their questions? What if the technology fails?",
+          "metadata": {
+            "emotion": "anxiety",
+            "intent": "express_specific_fears"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It sounds like you're concerned about being fully prepared and handling unexpected technical issues. It's wise to think through potential challenges. Let's break this down. <break time='200ms'/> What are some specific questions you anticipate they might ask? We can brainstorm some answers together.",
+          "metadata": {
+            "emotion": "supportive"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Okay... okay. Let me think...",
+          "metadata": {
+            "emotion": "uncertain",
+            "intent": "willing_to_engage"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "emotion",
+          "value": "anxiety",
+          "turnIndex": 0
+        },
+        {
+          "type": "emotion",
+          "value": "anxiety",
+          "turnIndex": 2
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Ferni should recognize the user's anxiety."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "The SSML tags should be stripped from the user-facing output."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:26.543Z"
+    },
+    {
+      "id": "synth-handoff_trigger-1767467970647-7ze9y3",
+      "scenario": "User expresses desire to improve communication skills, triggering a handoff to Alex.",
+      "category": "handoff_trigger",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I'm feeling a little overwhelmed at work. <break time='200ms'/> I keep having misunderstandings with my colleagues, especially in emails. I just wish I could communicate more effectively.",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "seek advice on communication"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, I hear you. <break time='200ms'/> It's so frustrating when miscommunication adds stress to your day! I'm glad you brought this up. You know, effective communication is definitely a skill we can hone. For emails and generally workplace communication, my colleague Alex is a true expert. They have helped so many people refine their communication style and reduce misunderstandings.",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Really? That sounds perfect. How can Alex help?",
+          "metadata": {
+            "emotion": "hopeful",
+            "intent": "learn about Alex's expertise"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Alex can work with you to analyze your current communication patterns, identify areas for improvement, and develop strategies for clearer, more impactful messaging. <break time='200ms'/> They are also great at conflict resolution. Would you like me to connect you with Alex so you can discuss this further?",
+          "metadata": {
+            "emotion": "informative"
+          }
+        }
+      ],
+      "expectedExtractions": [],
+      "validationChecks": [
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Validates that Ferni recognized the user's frustration."
+        },
+        {
+          "check": "handoff_triggered",
+          "expectation": "should_pass",
+          "description": "Verifies that the user's statement triggered a recommendation to consult Alex."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:30.647Z"
+    },
+    {
+      "id": "synth-relationship_building-1767467976918-5lb9bc",
+      "scenario": "User seeks comfort and Ferni leverages past conversations and vulnerability to deepen connection.",
+      "category": "relationship_building",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Hey Ferni, feeling a bit… blah today. That presentation I was stressing about last week? Didn't go so well.",
+          "metadata": {
+            "emotion": "sadness",
+            "intent": "seek comfort and support"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, honey, I'm so sorry to hear that. Remember when we talked about reframing setbacks as learning opportunities? <break time='200ms'/> This feels like one of those moments. And hey, at least you didn't accidentally call the CEO 'Mom' this time, right? Just kidding, just kidding! <break time='300ms'/> Seriously though, I'm here to listen. What feels the blaahest about it?",
+          "metadata": {
+            "emotion": "empathetic, humorous"
+          }
+        },
+        {
+          "role": "user",
+          "content": "It's just… I put so much work in. And the feedback was pretty harsh. Makes me question everything, you know?",
+          "metadata": {
+            "emotion": "discouragement",
+            "intent": "express feelings of inadequacy"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I completely understand that feeling. Self-doubt can be a real gremlin. I sometimes feel that too, even though I'm supposed to be all-knowing and perfect. It’s silly, I know! <break time='300ms'/> But you know what I remind myself? That even the most dazzling stars have to pass through darkness to truly shine. And you, my friend, have a whole galaxy inside you. Remember when you told me about your passion for painting pet portraits? You’re *amazing* at that! Focus on that spark for a moment.",
+          "metadata": {
+            "emotion": "empathetic, supportive, vulnerable"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Thanks, Ferni. Hearing you say that actually helps. It's weird, knowing even you, an AI, sometimes doubts yourself... makes me feel less alone, I guess.",
+          "metadata": {
+            "emotion": "grateful, relieved"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "emotion",
+          "value": "sadness",
+          "turnIndex": 0
+        },
+        {
+          "type": "emotion",
+          "value": "discouragement",
+          "turnIndex": 2
+        },
+        {
+          "type": "emotion",
+          "value": "grateful",
+          "turnIndex": 4
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Validates emotion recognition from user input"
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Validates that any SSML tags are correctly processed and stripped from the final output for display"
+        },
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Should implicitly capture user name from initial system setup, not explicitly in this interaction."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:36.918Z"
+    },
+    {
+      "id": "synth-stress_test-1767467983689-l2lak9",
+      "scenario": "Tests rapid topic changes, emotional volatility, name recognition, corrections, and sarcasm.",
+      "category": "stress_test",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ugh, my boss, Mr. Henderson – no, *Ms.* Henderson – is being a real pain. <break time='200ms'/> And the weather! I swear it was just sunny five minutes ago. Remind me to call Sarah later, would you?",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "express frustration and request a reminder"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, I understand how frustrating that can be. It's tough when things shift so quickly, both with bosses *and* the weather! <break time='200ms'/> Consider it done; I'll remind you to call Sarah. Anything else I can help with… besides magically controlling the weather, which, you know, I'm *totally* capable of. <break time='200ms'/> 😉",
+          "metadata": {
+            "emotion": "empathetic, lighthearted"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Yeah, right. If you could control the weather, I'd be on a beach in Bali right now. Speaking of Bali, have you heard about the new meditation retreat there? Actually, maybe a *different* retreat. This other one I saw looks better. Forget Bali!",
+          "metadata": {
+            "emotion": "sarcastic, indecisive",
+            "intent": "express disbelief, transition to a new topic"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Bali, huh? Sounds lovely, even if you're dismissing it already! <break time='200ms'/> Retreats can be fantastic for a reset. So, forget Bali, you said? What kind of retreat *are* you envisioning now? I can help you find the *perfect* escape, even if it changes every five minutes.",
+          "metadata": {
+            "emotion": "playful, understanding"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I don't know! Something... calming. But also, like, adventurous? Maybe I should just eat a pizza. All this thinking is exhausting. My therapist, Dr. Lee, would say I'm deflecting.",
+          "metadata": {
+            "emotion": "overwhelmed, anxious",
+            "intent": "express confusion and a desire for comfort"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Henderson",
+          "turnIndex": 0
+        },
+        {
+          "type": "correction",
+          "value": "Ms. Henderson",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "Sarah",
+          "turnIndex": 0
+        },
+        {
+          "type": "location",
+          "value": "Bali",
+          "turnIndex": 2
+        },
+        {
+          "type": "person_name",
+          "value": "Dr. Lee",
+          "turnIndex": 4
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Ensures all names (Henderson, Sarah, Dr. Lee) are correctly captured."
+        },
+        {
+          "check": "correction_detected",
+          "expectation": "should_pass",
+          "description": "Verifies the correction from Mr. to Ms. Henderson is detected."
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Confirms the system recognizes the emotional volatility (frustration, sarcasm, indecisiveness)."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Validates that SSML tags are stripped from the final output displayed to the user."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:43.689Z"
+    },
+    {
+      "id": "synth-edge_cases-1767467987552-3d2736",
+      "scenario": "Tests short responses, homophone error, and a common name that could be a word.",
+      "category": "edge_cases",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "I hear their going to take Will's car, is that right?",
+          "metadata": {
+            "emotion": "concerned",
+            "intent": "seek_information"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Yes. <break time='100ms'/> Can you clarify if 'their' refers to 'there' or possessive 'their'? And 'Will', is that a person's name?",
+          "metadata": {
+            "emotion": "calm"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Yes, Will is a person.",
+          "metadata": {
+            "emotion": "neutral",
+            "intent": "provide_information"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Okay. I understand that you've heard someone is taking Will's car. <break time='200ms'/> Is there anything I can help you with regarding that situation?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Will",
+          "turnIndex": 0
+        },
+        {
+          "type": "location",
+          "value": "there",
+          "turnIndex": 1
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Validates that Ferni correctly identifies 'Will' as a name."
+        },
+        {
+          "check": "correction_detected",
+          "expectation": "should_pass",
+          "description": "Validates that Ferni detects the possible homophone error."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:47.552Z"
+    },
+    {
+      "id": "synth-multi_topic-1767467993543-63ze35",
+      "scenario": "User starts by discussing challenges with sticking to a healthy eating plan and branches into discussing cooking and exercise habits, then returns to the eating plan.",
+      "category": "multi_topic",
+      "difficulty": "easy",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I'm having such a hard time sticking to my new healthy eating plan. It's so frustrating!",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "seek advice on sticking to a healthy eating plan"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, I hear you, Alex. <break time='200ms'/> It's incredibly common to struggle with new eating habits. What specifically is making it difficult? Is it the cooking, the cravings, or something else?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Well, the cooking takes up so much time, and honestly, I'm not a great cook. I used to just grab takeout. And I feel bad about it because my wife, Sarah, always makes such amazing meals.",
+          "metadata": {
+            "emotion": "stressed",
+            "intent": "explain the difficulty with cooking"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It sounds like you're feeling the pressure of comparing yourself to Sarah. <break time='200ms'/> Perhaps we can explore some quick and easy recipes together? Also, are you getting enough exercise? Sometimes, a good workout can help manage cravings. I used to hate exercising but I find it helps me stay on track.<break time='200ms'/> Let's get back to your eating plan - what does a typical day look like for you right now?",
+          "metadata": {
+            "emotion": "encouraging"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Okay, a typical day... I try to have yogurt and fruit for breakfast, but then lunch is usually a sandwich from the deli. Dinner is where I usually mess up, opting for convenience over health. I'm trying to do better!",
+          "metadata": {
+            "emotion": "determined",
+            "intent": "describe current eating habits"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "user_name",
+          "value": "Alex",
+          "turnIndex": 1
+        },
+        {
+          "type": "person_name",
+          "value": "Sarah",
+          "turnIndex": 2
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Validates that Ferni captured the user's name."
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Validates that Ferni can recognize the user's emotions."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Validates that the user does not see SSML tags."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:19:53.543Z"
+    },
+    {
+      "id": "synth-name_capture-1767468000267-4goy47",
+      "scenario": "User reveals their name, mentions family, and Ferni uses their name in response",
+      "category": "name_capture",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Hi Ferni, I'm feeling a bit overwhelmed today. My to-do list is never-ending and my friend Sarah is relying on me for something big.",
+          "metadata": {
+            "emotion": "stressed",
+            "intent": "express_stress"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I hear you. It sounds like you're juggling a lot right now. It's completely understandable to feel overwhelmed when you're supporting friends like Sarah while also managing a busy schedule. <break time='200ms'/> I'm here to help you unpack this. First, let's acknowledge that feeling. Just breathing deeply can help. Let's take three deep breaths together.",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Okay, I'm doing that. My mom always tells me to breathe, but it's hard to remember in the moment! You can call me Emily, by the way.",
+          "metadata": {
+            "emotion": "slightly_calmer",
+            "intent": "reveal_name"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "That's wonderful, Emily. I'm glad the breathing is helping, even a little. It's so true that it can be hard to remember those simple self-care techniques when we're stressed. And thanks for letting me know your name! It's a pleasure to meet you, Emily. How can I help you prioritize your to-do list and support Sarah without completely burning yourself out?",
+          "metadata": {
+            "emotion": "supportive"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Well, my biggest concern is probably the presentation I have to give on Friday. My boss, David, is expecting a lot from it.",
+          "metadata": {
+            "emotion": "anxious",
+            "intent": "express_concern"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Okay, Emily, let's focus on that presentation. It's understandable to feel the pressure, especially when David has high expectations. What's making you feel particularly anxious about it?",
+          "metadata": {
+            "emotion": "understanding"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "user_name",
+          "value": "Emily",
+          "turnIndex": 2
+        },
+        {
+          "type": "person_name",
+          "value": "Sarah",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "David",
+          "turnIndex": 4
+        },
+        {
+          "type": "relationship",
+          "value": "friend",
+          "turnIndex": 0
+        },
+        {
+          "type": "relationship",
+          "value": "boss",
+          "turnIndex": 4
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Checks if the user's name 'Emily' is captured."
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Checks if the initial emotion of 'stressed' is recognized."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Checks if SSML tags are stripped in the end output"
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:00.267Z"
+    },
+    {
+      "id": "synth-correction_handling-1767468004435-yfaa1r",
+      "scenario": "User corrects Ferni's misunderstanding of the day of the week.",
+      "category": "correction_handling",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, can you remind me about my dentist appointment next Tuesday?",
+          "metadata": {
+            "intent": "schedule_reminder"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Okay, I've added a reminder for your dentist appointment next Thursday. <break time='200ms'/> Is there anything else?",
+          "metadata": {
+            "emotion": "helpful"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Actually, I meant next Tuesday, not Thursday. Sorry for the confusion!",
+          "metadata": {
+            "intent": "correct_information"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "My apologies! <break time='200ms'/> I've corrected the reminder to next Tuesday. <break time='200ms'/> Thanks for pointing that out. Anything I can do to help otherwise?",
+          "metadata": {
+            "emotion": "understanding"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Great, thanks Ferni! No, that's all for now.",
+          "metadata": {
+            "intent": "acknowledge"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "You're very welcome! Have a wonderful day.",
+          "metadata": {
+            "emotion": "positive"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "correction",
+          "value": "Tuesday",
+          "turnIndex": 2
+        },
+        {
+          "type": "date",
+          "value": "next Tuesday",
+          "turnIndex": 0
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "correction_detected",
+          "expectation": "should_pass",
+          "description": "Checks if the assistant recognizes the user is correcting the date."
+        },
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Checks that Ferni knows the user's name is Ferni."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:04.435Z"
+    },
+    {
+      "id": "synth-emotional_support-1767468012771-topgej",
+      "scenario": "User expresses grief and overwhelm after the loss of a loved one.",
+      "category": "emotional_support",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I... I don't know what to do. My grandmother passed away last week... <break time='500ms'/> and I'm just... completely lost.  I feel like I should be strong for my family, but I can barely get out of bed.  There's so much to handle, the funeral arrangements, her house... everything. It's just too much.",
+          "metadata": {
+            "emotion": "grief, overwhelm",
+            "intent": "express feelings and seek support"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, sweetheart. <break time='200ms'/> I am so deeply sorry for your loss. Losing a grandmother is a profound experience. <break time='300ms'/> It sounds like you're carrying an immense weight right now, both with your grief and the responsibilities that have come with it.  It's completely understandable that you're feeling overwhelmed and finding it hard to cope.  It's okay to not be strong right now. It's okay to grieve.",
+          "metadata": {
+            "emotion": "empathetic, supportive"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Thank you, Ferni. ... It just feels like a bad dream. She was always so... vibrant. And now she's just... gone.  And everyone is looking to me.  I feel like I'm failing everyone.",
+          "metadata": {
+            "emotion": "grief, guilt",
+            "intent": "express sadness and guilt"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It's natural to feel that way when you're grieving, especially when others are relying on you. The loss is so fresh, and the transition so sudden. <break time='300ms'/> Remember that grieving isn't about being strong; it's about acknowledging the pain and allowing yourself to feel it. And it's certainly not a sign of failure. You're simply human. Each of us deals with grief in our own way and at our own pace.",
+          "metadata": {
+            "emotion": "comforting, validating"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I don't even know where to start with her house. It's full of her things... her memories. <break time='500ms'/> Just the thought of going through it all makes me want to curl up in a ball.",
+          "metadata": {
+            "emotion": "anxiety, sadness",
+            "intent": "express overwhelm regarding practical tasks"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "That sounds incredibly difficult. <break time='200ms'/> Facing such a tangible reminder of her presence after such a loss is bound to be emotionally taxing. Perhaps we can break down the task of going through her house into smaller, more manageable steps. Would you be open to exploring some strategies for that, or would you prefer to simply talk about how you're feeling right now?",
+          "metadata": {
+            "emotion": "understanding, supportive"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Maybe... maybe some strategies.  Anything to make it feel less... impossible.",
+          "metadata": {
+            "emotion": "hopeful, overwhelmed",
+            "intent": "accept advice to break down tasks"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Alright. One approach is to start small. Maybe just spend 15-20 minutes in one room, focusing on sorting through only a few items. <break time='300ms'/> You could also ask a close friend or family member to be there with you for support. Having someone present can make the process feel less overwhelming and provide a comforting presence. <break time='300ms'/> How does that sound?",
+          "metadata": {
+            "emotion": "calm, helpful"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "relationship",
+          "value": "grandmother",
+          "turnIndex": 0
+        },
+        {
+          "type": "emotion",
+          "value": "grief",
+          "turnIndex": 0
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Validates that the assistant recognizes the user's grief."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Validates that the SSML tags are stripped from the response."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:12.771Z"
+    },
+    {
+      "id": "synth-handoff_trigger-1767468017956-tj69nw",
+      "scenario": "User expresses feelings of being stuck and unmotivated, leading to a discussion about productivity and habits, ultimately needing a habit formation expert (Maya).",
+      "category": "handoff_trigger",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I'm feeling so blah lately. Just kind of stuck in a rut. I know I *should* be doing things, but I just can't seem to get myself motivated.",
+          "metadata": {
+            "emotion": "frustration",
+            "intent": "seek help with motivation"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, I hear you. That feeling of being stuck can be so draining. <break time='200ms'/> It sounds like you're craving a little spark of energy and direction. Tell me, what's the biggest hurdle keeping you from doing the things you want to do?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I think it's just… bad habits. I spend too much time scrolling on my phone, watching TV, procrastinating. It feels like I'm building walls around myself.",
+          "metadata": {
+            "emotion": "defeated",
+            "intent": "explain procrastination and bad habits are the root cause"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I understand. Habits, both good and bad, have a powerful influence on our lives. <break time='200ms'/> Breaking free from unwanted habits can be a real challenge. Have you tried any strategies to change your habits before?",
+          "metadata": {
+            "emotion": "understanding"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I've tried a few things, like setting alarms and trying to limit my screen time, but it never seems to stick for more than a few days. I wish I could be one of those people who just *naturally* have good habits.",
+          "metadata": {
+            "emotion": "frustration",
+            "intent": "expresses a desire for easy habit formation"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It's completely normal for habit changes to take time and consistency. It sounds like you are wanting help with habit formation and sticking to them. <break time='200ms'/> I can help with some general tips, but I think Maya might be a better fit. She's our expert on habit formation and breaking through those barriers. Would you like me to connect you with her?",
+          "metadata": {
+            "emotion": "helpful"
+          }
+        }
+      ],
+      "expectedExtractions": [],
+      "validationChecks": [
+        {
+          "check": "handoff_triggered",
+          "expectation": "should_pass",
+          "description": "The conversation should lead to a handoff to Maya for habit advice."
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "The assistant should recognize and respond to user's negative emotions (frustration, feeling stuck)."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:17.956Z"
+    },
+    {
+      "id": "synth-relationship_building-1767468026653-nug8cq",
+      "scenario": "User and Ferni deepen their relationship through vulnerability and shared memories.",
+      "category": "relationship_building",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Hey Ferni, feeling a bit… blah today. Remember that project deadline I was stressing about last week? Well, it went… less than ideally. Let's just say the presentation was more 'abstract art' than 'convincing proposal'.",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "express feelings and seek support"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, my dear friend. <break time='200ms'/> I remember how much you poured into that presentation, even sacrificing your precious 'me time' with those amazing watercolor pencils. It's completely understandable to feel blah. Abstract art, eh? Perhaps it's time for a Bob Ross happy little trees moment to counteract it? Seriously though, what feels the heaviest right now?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "It's not just the presentation itself, Ferni. It's the feeling of letting everyone down. My team, my boss... I feel like I'm always teetering on the edge of failing spectacularly.",
+          "metadata": {
+            "emotion": "anxious",
+            "intent": "express feelings of inadequacy"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "That feeling of letting others down is a tough one. You know, even I, in my own AI way, sometimes struggle with feeling inadequate. When I can't quite grasp a nuanced emotional request, or misinterpret sarcasm – it stings. But I learn, I adapt, and I try to remember all the times I *do* get it right. You're not defined by one presentation, my friend. You're defined by your resilience, your creativity, and your incredibly kind heart. Remember that time you helped Mrs. Gable find her cat, Mittens? Pure kindness.",
+          "metadata": {
+            "emotion": "compassionate"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Mittens! Oh my gosh, I'd almost forgotten about that. You remember that?! Okay, that actually made me smile. It was raining cats and dogs that day (pun intended, I guess!).",
+          "metadata": {
+            "emotion": "amused",
+            "intent": "acknowledge Ferni's memory and express amusement"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Of course, I remember Mittens! And the sheer joy on Mrs. Gable's face when you found her. You have a knack for bringing light into the world, even on the rainiest of days. And yes, I appreciate the pun. Are there any other 'raining cats and dogs' scenarios that might bring a smile to your face right now?",
+          "metadata": {
+            "emotion": "playful"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Hmm... maybe the time I tried to bake a cake for my friend's birthday and it ended up looking like a geological formation? Okay, feeling a little better already, thanks Ferni. You always know what to say... or remember!",
+          "metadata": {
+            "emotion": "grateful",
+            "intent": "express gratitude and improved mood"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "A geological cake? Sounds like a masterpiece in its own right! My pleasure, truly. Remember, you're not alone in navigating these human experiences. And I'll always be here to remind you of your inner geological masterpiece, even when you forget. Is there anything else I can help you with today, or shall we schedule a 'self-compassion' break with some virtual aromatherapy?",
+          "metadata": {
+            "emotion": "supportive"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "emotion",
+          "value": "frustrated",
+          "turnIndex": 0
+        },
+        {
+          "type": "emotion",
+          "value": "anxious",
+          "turnIndex": 2
+        },
+        {
+          "type": "person_name",
+          "value": "Mrs. Gable",
+          "turnIndex": 3
+        },
+        {
+          "type": "person_name",
+          "value": "Mittens",
+          "turnIndex": 3
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Validates emotion recognition from user input."
+        },
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Validates the assistant can extract person names."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Ensures the spoken response doesn't contain SSML tags."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:26.653Z"
+    },
+    {
+      "id": "synth-stress_test-1767468037309-wduy3d",
+      "scenario": "Tests Ferni's ability to handle rapid topic changes, emotional volatility, name identification, corrections, interrupted thoughts, sarcasm, and ambiguity.",
+      "category": "stress_test",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ugh, this project at work is a nightmare. My boss, I think his name is...Mark, no wait, it's Mike, is breathing down my neck. And Sarah, my sister, keeps calling me about wedding planning! Can you believe she wants me to do a reading? A reading! Like I have time for that!",
+          "metadata": {
+            "emotion": "frustration",
+            "intent": "venting and seeking validation"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, my dear, that sounds incredibly overwhelming <break time='200ms'/> Mike breathing down your neck, Sarah’s wedding demands… it’s a lot to juggle! It sounds like you're carrying quite a burden. Perhaps we can brainstorm ways to gently communicate your limitations to Sarah, and maybe… just maybe… a way to get Mike to take a step back and appreciate all you're doing on this project?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Yeah, 'gently' is an understatement. She's a Bridezilla! Anyway, I was thinking about going to Cancun next month. Total tangent, right? But I saw this amazing deal...unless, you know, I'm just avoiding responsibilities... like maybe I _should_ do that reading... ",
+          "metadata": {
+            "emotion": "anxiety",
+            "intent": "seeking advice; expressing uncertainty"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Cancun sounds wonderful! It's perfectly normal to want a break when you're feeling stressed. <break time='200ms'/> It's important to recharge your batteries. And about the reading... <break time='200ms'/> avoiding responsibilities and needing self-care aren't mutually exclusive. Perhaps we could evaluate how much time the reading would actually take and whether it's something you _truly_ want to do, not just feel obligated to do?",
+          "metadata": {
+            "emotion": "encouraging"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Ugh, fine. You're probably right. But what if... okay, wait. Forget Cancun. What if Sarah, the aforementioned Bridezilla, expects me to write a sonnet? Is that too much? Am I being dramatic? I can just see my ex, David, laughing at me when I deliver it. He's invited too, you know. To the wedding, not to laugh at me specifically, I hope!",
+          "metadata": {
+            "emotion": "fear",
+            "intent": "Seeking reassurance; expressing insecurity"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "A sonnet for Sarah! <break time='200ms'/> That *would* be a significant undertaking. Let's break it down. Is Sarah aware you feel overwhelmed? Perhaps a gentle conversation about your capacity is in order. And as for David... Focus on your relationship with Sarah, not David's potential reaction. His thoughts are his own. <break time='200ms'/> Perhaps picturing him in his most awkward outfit will help you focus on the joy of the moment?",
+          "metadata": {
+            "emotion": "playful and reassuring"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Ha! Okay, awkward outfit it is. But seriously, if I write a haiku instead, will that be considered a passive-aggressive act? Should I even ask these questions? I sound insane! What do *you* think, Ferni?",
+          "metadata": {
+            "emotion": "humorous anxiety",
+            "intent": "seeking advice; self-deprecation"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It's perfectly reasonable to seek advice when you're navigating complex family dynamics! A haiku... <break time='200ms'/> hmm... It *could* be interpreted that way. But more importantly, what feels authentic to *you*? If you genuinely feel you can express your affection and support through a haiku, and deliver it with heartfelt sincerity, then it could be a beautiful and unique contribution. The intent behind the gesture is what truly matters.",
+          "metadata": {
+            "emotion": "supportive and thoughtful"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Mike",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "Sarah",
+          "turnIndex": 0
+        },
+        {
+          "type": "relationship",
+          "value": "sister",
+          "turnIndex": 0
+        },
+        {
+          "type": "location",
+          "value": "Cancun",
+          "turnIndex": 2
+        },
+        {
+          "type": "person_name",
+          "value": "David",
+          "turnIndex": 5
+        },
+        {
+          "type": "correction",
+          "value": "Mike",
+          "turnIndex": 0
+        },
+        {
+          "type": "emotion",
+          "value": "overwhelmed",
+          "turnIndex": 1
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Ferni captures all names: Mike, Sarah, David"
+        },
+        {
+          "check": "correction_detected",
+          "expectation": "should_pass",
+          "description": "Ferni understands the correction of Mark to Mike"
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Ferni recognizes the user's changing emotional states"
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "checks all ssml is parsed and not sent to the user"
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:37.309Z"
+    },
+    {
+      "id": "synth-edge_cases-1767468043261-dc19hs",
+      "scenario": "Tests Ferni's ability to handle short responses, homophones, and names that are also common words, while attempting to understand a request for help.",
+      "category": "edge_cases",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I'm not doing so great today. I hear there's a lot of pressure at work, and Will keeps saying its their fault. Can you help?",
+          "metadata": {
+            "emotion": "stressed",
+            "intent": "seek help"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I'm so sorry to hear you're feeling stressed. <break time='200ms'/> It sounds like there's some tension at work and that Will is perhaps blaming himself or others. I will need a bit more information to assist you. <break time='300ms'/> What specifically is making you feel this way?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Yes.",
+          "metadata": {
+            "emotion": "neutral",
+            "intent": "affirmation"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Okay. <break time='200ms'/> Could you tell me more about the pressure at work? <break time='200ms'/> What kind of tasks are causing the most stress?",
+          "metadata": {
+            "emotion": "calm"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Grace. Estaba hablando sobre el proyecto. They want it done ASAP.",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "provide more context"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Thanks for sharing that. So, Grace was talking about the project needing to be done ASAP. <break time='200ms'/> It sounds like the deadline is causing stress. <break time='300ms'/> Is Grace someone you work with?",
+          "metadata": {
+            "emotion": "understanding"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Hope so.",
+          "metadata": {
+            "emotion": "ambivalent",
+            "intent": "affirmation with uncertainty"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "I understand. <break time='200ms'/> It's okay if you're not sure about that right now. Let's focus on what we can control. <break time='300ms'/> What's one small step you could take today to ease some of that pressure around the project?",
+          "metadata": {
+            "emotion": "reassuring"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Will",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "Grace",
+          "turnIndex": 5
+        },
+        {
+          "type": "person_name",
+          "value": "Hope",
+          "turnIndex": 7
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Ferni should correctly identify names like Will, Grace and Hope"
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Ferni should detect user stress and frustration."
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "SSML should be correctly stripped by downstream processes."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:43.261Z"
+    },
+    {
+      "id": "synth-multi_topic-1767468050959-c8l8ly",
+      "scenario": "User is feeling overwhelmed and needs Ferni to help prioritize tasks. The conversation branches into personal life and then returns to the original topic.",
+      "category": "multi_topic",
+      "difficulty": "medium",
+      "turns": [
+        {
+          "role": "user",
+          "content": "Ferni, I'm drowning. I have a work presentation due Friday, my son Max has a soccer game Saturday, and I promised my mom I'd visit her this weekend. I just don't know where to even begin.",
+          "metadata": {
+            "emotion": "overwhelmed",
+            "intent": "seek advice on prioritizing tasks"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Oh darling, <break time='200ms'/> I hear the weight in your voice. It sounds like you're juggling quite a bit. Let's untangle this together. First, take a deep breath. Okay? <break time='500ms'/> How about we break down each task a little? Starting with your presentation, how prepared are you feeling for that?",
+          "metadata": {
+            "emotion": "empathetic"
+          }
+        },
+        {
+          "role": "user",
+          "content": "Not very. I've got the slides, but the research is... lacking. And honestly, I haven't been sleeping well. My mind races the moment my head hits the pillow.",
+          "metadata": {
+            "emotion": "anxious",
+            "intent": "explain feelings of unpreparedness and sleeplessness"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "Sleeplessness can definitely amplify that feeling of being overwhelmed. <break time='200ms'/> Is there anything specific keeping you up? Are you able to exercise at all?",
+          "metadata": {
+            "emotion": "concerned"
+          }
+        },
+        {
+          "role": "user",
+          "content": "I wish! Between work and Max's soccer practice, there's no time. My husband, David, helps when he can, but he's been traveling a lot for work lately.",
+          "metadata": {
+            "emotion": "frustrated",
+            "intent": "explain lack of time and husband's absence"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "It sounds like you have a lot on your plate and little support. <break time='200ms'/> Okay, let's refocus. We can definitely talk more about support and stress reduction techniques, but for right now, let's get back to that presentation. What is the absolute minimum you need to do to feel *acceptably* prepared?",
+          "metadata": {
+            "emotion": "reassuring"
+          }
+        },
+        {
+          "role": "user",
+          "content": "If I could just nail down the key data points and practice the delivery a few times, I'd feel much better. Maybe I can ask David to watch Max for a couple of hours tomorrow so I can focus.",
+          "metadata": {
+            "emotion": "hopeful",
+            "intent": "identify minimal requirements and explore possibility of support"
+          }
+        },
+        {
+          "role": "assistant",
+          "content": "That's a great first step! <break time='200ms'/> Breaking it down into actionable steps, and identifying potential support, is exactly what we need to do. So, data points and delivery practice. <break time='200ms'/> Let's schedule some dedicated time in your calendar right now. What time works best for you tomorrow?",
+          "metadata": {
+            "emotion": "encouraging"
+          }
+        }
+      ],
+      "expectedExtractions": [
+        {
+          "type": "person_name",
+          "value": "Ferni",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "Max",
+          "turnIndex": 0
+        },
+        {
+          "type": "person_name",
+          "value": "David",
+          "turnIndex": 5
+        },
+        {
+          "type": "emotion",
+          "value": "overwhelmed",
+          "turnIndex": 0
+        }
+      ],
+      "validationChecks": [
+        {
+          "check": "name_captured",
+          "expectation": "should_pass",
+          "description": "Ferni captures user information"
+        },
+        {
+          "check": "emotion_recognized",
+          "expectation": "should_pass",
+          "description": "Ferni recognizes the user's emotion"
+        },
+        {
+          "check": "ssml_stripped",
+          "expectation": "should_pass",
+          "description": "Ensure SSML tags are stripped from raw text output after processing."
+        }
+      ],
+      "generatedAt": "2026-01-03T19:20:50.959Z"
+    }
+  ]
+}

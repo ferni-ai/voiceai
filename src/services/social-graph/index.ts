@@ -225,7 +225,8 @@ export function extractNames(text: string): Array<{ name: string; context: strin
     let match;
     while ((match = pattern.exec(text)) !== null) {
       const name = match[match.length - 1] || match[1];
-      if (name && name.length > 1 && !isCommonWord(name)) {
+      // ISSUE-006 FIX: Use stricter name validation to filter speech recognition errors
+      if (name && isLikelyRealName(name)) {
         // Get surrounding context
         const start = Math.max(0, match.index - 30);
         const end = Math.min(text.length, match.index + match[0].length + 30);
@@ -263,42 +264,202 @@ export function extractNames(text: string): Array<{ name: string; context: strin
 }
 
 function isCommonWord(word: string): boolean {
+  // Comprehensive list of words that should NOT be treated as names
+  // Includes common words, speech recognition errors, and filler words
   const commonWords = new Set([
+    // Pronouns
     'i',
     'me',
     'my',
+    'mine',
+    'myself',
     'you',
     'your',
+    'yours',
+    'yourself',
+    'he',
+    'him',
+    'his',
+    'she',
+    'her',
+    'hers',
     'we',
+    'us',
+    'our',
+    'ours',
     'they',
     'them',
+    'their',
+    'theirs',
     'it',
+    'its',
+    // Demonstratives
     'this',
     'that',
+    'these',
+    'those',
+    // Articles
     'the',
     'a',
     'an',
+    // Conjunctions
     'and',
     'or',
     'but',
     'so',
+    'yet',
+    'for',
+    'nor',
+    // Common adverbs
     'just',
     'really',
     'very',
+    'quite',
+    'always',
+    'never',
+    'often',
+    'sometimes',
+    'usually',
+    'actually',
+    'basically',
+    'literally',
+    'probably',
+    'maybe',
+    'perhaps',
+    // Time words
     'today',
     'yesterday',
     'tomorrow',
-    'here',
-    'there',
     'now',
     'then',
+    'soon',
+    'later',
+    'always',
+    'never',
+    // Place words
+    'here',
+    'there',
+    'where',
+    'somewhere',
+    'anywhere',
+    'everywhere',
+    'nowhere',
+    // Question words
     'what',
     'when',
     'where',
     'why',
     'how',
+    'which',
+    'who',
+    'whom',
+    'whose',
+    // COMMON SPEECH RECOGNITION ERRORS (ISSUE-006 fix)
+    'bought',
+    'brought',
+    'thought',
+    'got',
+    'going',
+    'gonna',
+    'wanna',
+    'gotta',
+    'kinda',
+    'sorta',
+    'hear',
+    'heard',
+    // Common verbs often misrecognized as names
+    'said',
+    'says',
+    'told',
+    'asked',
+    'called',
+    'went',
+    'came',
+    'made',
+    'took',
+    'gave',
+    'had',
+    'has',
+    'have',
+    'been',
+    'being',
+    'was',
+    'were',
+    'are',
+    'is',
+    'will',
+    'would',
+    'could',
+    'should',
+    'might',
+    'must',
+    'shall',
+    'can',
+    'may',
+    // Interjections
+    'oh',
+    'ah',
+    'um',
+    'uh',
+    'hmm',
+    'wow',
+    'ooh',
+    'oops',
+    'yeah',
+    'yep',
+    'nope',
+    'okay',
+    'ok',
+    'well',
+    'like',
+    // Generic nouns
+    'thing',
+    'things',
+    'stuff',
+    'something',
+    'nothing',
+    'everything',
+    'someone',
+    'anyone',
+    'everyone',
+    'nobody',
+    'somebody',
+    'anybody',
+    'everybody',
+    'people',
+    'person',
+    'way',
+    'time',
+    'day',
+    'week',
+    'month',
+    'year',
   ]);
   return commonWords.has(word.toLowerCase());
+}
+
+/**
+ * Additional validation for potential names
+ * Catches edge cases that isCommonWord might miss
+ */
+function isLikelyRealName(word: string): boolean {
+  if (!word || word.length < 2) return false;
+
+  // Must start with a letter
+  if (!/^[A-Za-z]/.test(word)) return false;
+
+  // Names are typically 2-15 characters
+  if (word.length > 15) return false;
+
+  // Reject if all lowercase (names typically have first letter capitalized in proper context)
+  // But allow this since transcription might lowercase everything
+
+  // Reject if it looks like a verb ending (-ing, -ed, -tion)
+  if (/(?:ing|ed|tion|ness|ment|able|ible|ous|ive|ful|less)$/i.test(word)) {
+    return false;
+  }
+
+  return !isCommonWord(word);
 }
 
 // ============================================================================

@@ -364,7 +364,7 @@ console.log('Agent is ready to talk!');</code></pre>
   "handoff": {
     "transition": {
       "style": "warm",         // warm | standard | dramatic | subtle
-      "emoji": "🎯",           // Empty string = auto-derive
+      "emoji": "",             // Empty string = auto-derive
       "sound": "connect",      // Transition sound effect
       "delay_multiplier": 1.0
     },
@@ -580,10 +580,10 @@ npm run persona:build my-coach</code></pre>
 PERSONA_ID=my-coach npm run dev
 
 # Output:
-# 🎙️  Voice agent running on http://localhost:8080
-# 📡 WebSocket server ready
-# 🤖 Loaded persona: my-coach (Luna)
-# ✨ Ready to chat!
+# Voice agent running on http://localhost:8080
+# WebSocket server ready
+# Loaded persona: my-coach (Luna)
+# Ready to chat!
 
 # Test specific features
 npm run test -- --grep "my-coach"

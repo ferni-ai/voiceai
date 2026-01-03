@@ -8,7 +8,10 @@
  */
 
 // Route handlers
-export { handleBackgroundResultsRoutes, isBackgroundResultsRoute } from './background-results-routes.js';
+export {
+  handleBackgroundResultsRoutes,
+  isBackgroundResultsRoute,
+} from './background-results-routes.js';
 export { handleBrandRoutes } from './brand-routes.js';
 export { handleMemoryRoutes } from './memory-routes.js';
 export { handleCameoAnalyticsRoutes } from './cameo-analytics-routes.js';

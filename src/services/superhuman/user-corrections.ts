@@ -39,7 +39,7 @@ export interface CorrectionPattern {
 // ============================================================================
 
 const CORRECTION_PATTERNS = [
-  // Direct corrections
+  // Direct corrections (at start of message)
   /^no,?\s*(actually|that's not right|that's wrong|i meant)/i,
   /^actually,?\s/i,
   /^that's not (right|correct|what i said|what i meant)/i,
@@ -59,6 +59,22 @@ const CORRECTION_PATTERNS = [
   // Name/fact corrections
   /^(his|her|their|my) name is (actually|really)?/i,
   /^(i'm|we're|it's) (actually|really)/i,
+
+  // Self-correction mid-sentence patterns (can appear anywhere)
+  /no,?\s*wait/i,
+  /wait,?\s*(no|actually|it's)/i,
+  /(oops|sorry),?\s*(i\s*meant|it's|that's)/i,
+  /scratch\s+that/i,
+  /or\s+rather/i,
+  /i\s+mean,/i,
+
+  // Mid-sentence corrections with "Actually" (for topic/choice corrections)
+  /\.\s*actually,?\s+(maybe|i|it's|that's)/i,
+  /\?\s*actually,?\s+(maybe|i|it's|that's)/i,
+
+  // "No, [correction]" mid-sentence
+  /[–—-]\s*no,?\s*\*/i, // handles "– no, *Ms.*"
+  /[–—-]\s*no,?\s+\w+/i, // handles "- no, Ms."
 ];
 
 // ============================================================================

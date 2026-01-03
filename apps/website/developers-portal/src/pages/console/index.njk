@@ -14,9 +14,12 @@ description: Manage your API keys and monitor usage
   </div>
 </section>
 
-<!-- Authentication Gate (placeholder - requires real auth implementation) -->
-<section class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
+<!-- Authentication Gate -->
+<section id="auth-gate" class="section" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
   <div class="container container-narrow">
+    <!-- Error message container -->
+    <div id="auth-error" style="display: none; background: var(--error); color: white; padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-6); text-align: center;"></div>
+
     <div style="background: var(--bg-elevated); border: 1px solid var(--border-medium); border-radius: var(--radius-2xl); padding: var(--space-12); text-align: center;">
       <div style="width: 64px; height: 64px; background: var(--accent-subtle); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-6); color: var(--accent-primary);">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -29,43 +32,52 @@ description: Manage your API keys and monitor usage
         Authenticate to view your API keys, usage statistics, and published agents.
       </p>
       <div style="display: flex; flex-direction: column; gap: var(--space-4); max-width: 320px; margin: 0 auto;">
-        <button class="btn btn-primary" style="width: 100%;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
-            <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+        <button id="google-signin-btn" class="btn btn-primary" style="width: 100%;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
           Sign in with Google
         </button>
-        <button class="btn btn-secondary" style="width: 100%;">
+        <button id="github-signin-btn" class="btn btn-secondary" style="width: 100%;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
           </svg>
           Sign in with GitHub
         </button>
-        <button class="btn btn-ghost" style="width: 100%;">
-          Create Account
-        </button>
       </div>
       <p style="color: var(--text-muted); font-size: var(--text-sm); margin-top: var(--space-8);">
-        Don't have an account? <a href="#" style="color: var(--accent-text);">Sign up for free</a>
+        New to Ferni? Sign in to create your developer account automatically.
       </p>
     </div>
   </div>
 </section>
 
-<!-- Dashboard Preview (what authenticated users would see) -->
-<section class="section" style="background: var(--bg-secondary); padding-top: var(--space-16);">
+<!-- Dashboard (shown after authentication) -->
+<section id="dashboard" class="section" style="background: var(--bg-secondary); padding-top: var(--space-16); display: none;">
   <div class="container container-narrow">
-    <div style="text-align: center; margin-bottom: var(--space-12);">
-      <h2 style="margin-bottom: var(--space-4);">Dashboard Preview</h2>
-      <p style="color: var(--text-secondary);">Here's what you'll see once authenticated</p>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-12);">
+      <div>
+        <h2 style="margin-bottom: var(--space-2);">Welcome back</h2>
+        <p id="user-email" style="color: var(--text-secondary); margin: 0;"></p>
+      </div>
+      <button id="signout-btn" class="btn btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Sign out
+      </button>
     </div>
 
     <!-- API Keys Section -->
     <div style="margin-bottom: var(--space-12);">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
         <h3>API Keys</h3>
-        <button class="btn btn-primary">
+        <button id="create-key-btn" class="btn btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -74,261 +86,10 @@ description: Manage your API keys and monitor usage
         </button>
       </div>
 
-      <!-- Production Key -->
-      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6); margin-bottom: var(--space-4);">
-        <div style="display: flex; align-items: start; justify-content: space-between; margin-bottom: var(--space-4);">
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-              <h4 style="margin: 0;">Production Key</h4>
-              <span style="background: var(--success); color: var(--bg-code); font-size: var(--text-xs); font-weight: 600; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">ACTIVE</span>
-            </div>
-            <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-3);">
-              pk_live_7a8f9d2c1b4e6g3h5i9j0k2l4m6n8p0
-            </div>
-            <div style="display: flex; gap: var(--space-4); font-size: var(--text-xs); color: var(--text-muted);">
-              <span>Created: Dec 1, 2024</span>
-              <span>Last used: 2 hours ago</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: var(--space-2); margin-left: var(--space-4);">
-            <button class="btn btn-ghost" style="padding: var(--space-2);" title="Copy to clipboard">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-            <button class="btn btn-ghost" style="padding: var(--space-2);" title="Regenerate key">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-              </svg>
-            </button>
-            <button class="btn btn-ghost" style="padding: var(--space-2); color: var(--error);" title="Revoke key">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Test Key -->
-      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6);">
-        <div style="display: flex; align-items: start; justify-content: space-between;">
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-              <h4 style="margin: 0;">Test Key</h4>
-              <span style="background: var(--accent-subtle); color: var(--accent-text); font-size: var(--text-xs); font-weight: 600; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">TEST</span>
-            </div>
-            <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-3);">
-              pk_test_3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t
-            </div>
-            <div style="display: flex; gap: var(--space-4); font-size: var(--text-xs); color: var(--text-muted);">
-              <span>Created: Dec 1, 2024</span>
-              <span>Last used: 3 days ago</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: var(--space-2); margin-left: var(--space-4);">
-            <button class="btn btn-ghost" style="padding: var(--space-2);" title="Copy to clipboard">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-            <button class="btn btn-ghost" style="padding: var(--space-2);" title="Regenerate key">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-              </svg>
-            </button>
-            <button class="btn btn-ghost" style="padding: var(--space-2); color: var(--error);" title="Revoke key">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Usage Statistics -->
-    <div style="margin-bottom: var(--space-12);">
-      <h3 style="margin-bottom: var(--space-6);">Usage Statistics</h3>
-
-      <div class="stats-bar" style="margin: 0;">
-        <div class="stat">
-          <div class="stat-value">12.4K</div>
-          <div class="stat-label">API Calls</div>
-          <div style="font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-1);">This month</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">87.6K</div>
-          <div class="stat-label">Quota Remaining</div>
-          <div style="font-size: var(--text-xs); color: var(--success); margin-top: var(--space-1);">87% left</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">248ms</div>
-          <div class="stat-label">Avg Response</div>
-          <div style="font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-1);">Last 7 days</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">99.8%</div>
-          <div class="stat-label">Uptime</div>
-          <div style="font-size: var(--text-xs); color: var(--success); margin-top: var(--space-1);">Last 30 days</div>
-        </div>
-      </div>
-
-      <!-- Popular Endpoints Chart Placeholder -->
-      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6); margin-top: var(--space-6);">
-        <h4 style="margin-bottom: var(--space-6);">Popular Endpoints</h4>
-        <div style="display: flex; flex-direction: column; gap: var(--space-4);">
-          <div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-sm);">
-              <span style="font-family: var(--font-mono); color: var(--text-secondary);">POST /api/v1/agents</span>
-              <span style="color: var(--text-muted);">5,234 calls</span>
-            </div>
-            <div style="background: var(--bg-code); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
-              <div style="background: var(--accent-primary); width: 85%; height: 100%;"></div>
-            </div>
-          </div>
-          <div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-sm);">
-              <span style="font-family: var(--font-mono); color: var(--text-secondary);">GET /api/v1/personas</span>
-              <span style="color: var(--text-muted);">3,891 calls</span>
-            </div>
-            <div style="background: var(--bg-code); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
-              <div style="background: var(--accent-primary); width: 63%; height: 100%;"></div>
-            </div>
-          </div>
-          <div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-sm);">
-              <span style="font-family: var(--font-mono); color: var(--text-secondary);">POST /api/v1/chat</span>
-              <span style="color: var(--text-muted);">2,457 calls</span>
-            </div>
-            <div style="background: var(--bg-code); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
-              <div style="background: var(--accent-primary); width: 40%; height: 100%;"></div>
-            </div>
-          </div>
-          <div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-2); font-size: var(--text-sm);">
-              <span style="font-family: var(--font-mono); color: var(--text-secondary);">GET /api/v1/voice/models</span>
-              <span style="color: var(--text-muted);">1,012 calls</span>
-            </div>
-            <div style="background: var(--bg-code); height: 8px; border-radius: var(--radius-full); overflow: hidden;">
-              <div style="background: var(--accent-primary); width: 16%; height: 100%;"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Published Agents -->
-    <div style="margin-bottom: var(--space-12);">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
-        <h3>Published Agents</h3>
-        <button class="btn btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="12" y1="18" x2="12" y2="12"></line>
-            <line x1="9" y1="15" x2="15" y2="15"></line>
-          </svg>
-          Submit New Agent
-        </button>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
-        <!-- Approved Agent -->
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6);">
-          <div style="display: flex; align-items: start; justify-content: space-between;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
-                <h4 style="margin: 0;">Luna - Life Coach</h4>
-                <span style="background: var(--success); color: var(--bg-code); font-size: var(--text-xs); font-weight: 600; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">APPROVED</span>
-              </div>
-              <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-3);">
-                A warm and insightful life coach that helps users set goals and build positive habits.
-              </p>
-              <div style="display: flex; gap: var(--space-6); font-size: var(--text-xs); color: var(--text-muted);">
-                <span>Published: Nov 28, 2024</span>
-                <span>Downloads: 1,247</span>
-                <span>Rating: 4.8/5</span>
-              </div>
-            </div>
-            <div style="display: flex; gap: var(--space-2); margin-left: var(--space-4);">
-              <a href="#" class="btn btn-ghost" style="padding: var(--space-2);">
-                View Analytics
-              </a>
-              <button class="btn btn-ghost" style="padding: var(--space-2);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pending Agent -->
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6);">
-          <div style="display: flex; align-items: start; justify-content: space-between;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
-                <h4 style="margin: 0;">Max - Financial Advisor</h4>
-                <span style="background: var(--warning); color: var(--bg-code); font-size: var(--text-xs); font-weight: 600; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">PENDING</span>
-              </div>
-              <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-3);">
-                Expert financial guidance for budgeting, investing, and retirement planning.
-              </p>
-              <div style="display: flex; gap: var(--space-6); font-size: var(--text-xs); color: var(--text-muted);">
-                <span>Submitted: Dec 12, 2024</span>
-                <span>Status: Under review</span>
-              </div>
-            </div>
-            <div style="display: flex; gap: var(--space-2); margin-left: var(--space-4);">
-              <button class="btn btn-ghost" style="padding: var(--space-2);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- In Development -->
-        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-6); opacity: 0.7;">
-          <div style="display: flex; align-items: start; justify-content: space-between;">
-            <div style="flex: 1;">
-              <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2);">
-                <h4 style="margin: 0;">Zen - Meditation Guide</h4>
-                <span style="background: var(--bg-glass); color: var(--text-muted); font-size: var(--text-xs); font-weight: 600; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);">DRAFT</span>
-              </div>
-              <p style="color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-3);">
-                Guided meditation and mindfulness exercises for stress relief and focus.
-              </p>
-              <div style="display: flex; gap: var(--space-6); font-size: var(--text-xs); color: var(--text-muted);">
-                <span>Last updated: Dec 10, 2024</span>
-                <span>Status: In development</span>
-              </div>
-            </div>
-            <div style="display: flex; gap: var(--space-2); margin-left: var(--space-4);">
-              <button class="btn btn-ghost" style="padding: var(--space-2);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-              <button class="btn btn-ghost" style="padding: var(--space-2); color: var(--error);">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
+      <!-- Dynamic API keys list -->
+      <div id="api-keys-list">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: var(--space-8); text-align: center;">
+          <div style="color: var(--text-muted);">Loading your API keys...</div>
         </div>
       </div>
     </div>
@@ -431,3 +192,107 @@ description: Manage your API keys and monitor usage
 
   </div>
 </section>
+
+<!-- New Key Modal (hidden by default) -->
+<div id="new-key-modal" class="modal-overlay" style="display: none;">
+  <div class="modal">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6);">
+      <h3 style="margin: 0;">Your New API Key</h3>
+      <button id="close-modal-btn" class="btn btn-ghost" style="padding: var(--space-2);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div style="background: var(--warning); color: var(--bg-code); padding: var(--space-4); border-radius: var(--radius-lg); margin-bottom: var(--space-6);">
+      <strong>Important:</strong> Copy this key now. You won't be able to see it again!
+    </div>
+    <div id="new-key-display" class="new-key-display">
+      <!-- Key will be inserted here -->
+    </div>
+    <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+      <button id="copy-new-key-btn" class="btn btn-primary" style="flex: 1;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        Copy to Clipboard
+      </button>
+      <button id="done-btn" class="btn btn-secondary">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Styles for console -->
+<style>
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+  .modal {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-8);
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+  .new-key-display {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--bg-code);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    word-break: break-all;
+    user-select: all;
+  }
+  .api-key-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+  .api-key-card:last-child {
+    margin-bottom: 0;
+  }
+  .key-badge {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+  .key-badge.live {
+    background: var(--success);
+    color: var(--bg-code);
+  }
+  .key-badge.test {
+    background: var(--accent-subtle);
+    color: var(--accent-text);
+  }
+  .key-actions {
+    display: flex;
+    gap: var(--space-2);
+  }
+  .no-keys-message {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    text-align: center;
+    color: var(--text-muted);
+  }
+</style>
+
+<!-- Console Auth Script -->
+<script src="/js/console-auth.js"></script>

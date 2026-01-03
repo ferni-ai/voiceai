@@ -18,6 +18,7 @@
 import type { SpeechCharacteristics } from '../personas/types.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { stripSSML } from '../utils/text-utils.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../memory/rust-accelerator.js';
 
@@ -281,37 +282,52 @@ export async function createSessionServices(
       setTimeout(() => {
         try {
           loadIntelligenceFromProfile(validatedUserId, userProfile!);
-          getLogger().debug({ userId: validatedUserId }, '🧠 Intelligence state loaded (background)');
+          getLogger().debug(
+            { userId: validatedUserId },
+            '🧠 Intelligence state loaded (background)'
+          );
         } catch {
           // Non-critical
         }
       }, 0);
 
       // Enrich with realtime memory context (background)
-      realtimeMemory.getLastConversationContext(validatedUserId)
+      realtimeMemory
+        .getLastConversationContext(validatedUserId)
         .then((lastContext) => {
           if (lastContext && userProfile && !userProfile.lastConversationSummary) {
-            const summary = lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
+            const summary =
+              lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
             if (summary) userProfile.lastConversationSummary = summary;
           }
         })
-        .catch(() => { /* Non-critical */ });
+        .catch(() => {
+          /* Non-critical */
+        });
 
       // Load cross-persona insights (background)
-      loadCrossPersonaInsights(validatedUserId).catch(() => { /* Non-critical */ });
+      loadCrossPersonaInsights(validatedUserId).catch(() => {
+        /* Non-critical */
+      });
 
       // Load social graph (background)
       import('./social-graph/index.js')
-        .then(({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
-        .catch(() => { /* Non-critical */ });
+        .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
+        .catch(() => {
+          /* Non-critical */
+        });
 
       // Initialize trust persistence (background)
-      onSessionStartUnified(validatedUserId, sessionId).catch(() => { /* Non-critical */ });
+      onSessionStartUnified(validatedUserId, sessionId).catch(() => {
+        /* Non-critical */
+      });
 
       // Pre-warm embeddings (background)
       import('../agents/shared/performance/session-optimizations.js')
-        .then(({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
-        .catch(() => { /* Non-critical */ });
+        .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
+        .catch(() => {
+          /* Non-critical */
+        });
     }
   } else if (userId) {
     getLogger().warn(
@@ -909,10 +925,13 @@ export async function createSessionServices(
       // This happens in the background (fire-and-forget) to avoid blocking
       if (validatedUserId && realtimeConversationId) {
         const now = turn.timestamp || new Date();
+        // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
+        // Raw SSML tags like <break time="200ms"/> should not appear in memory
+        const cleanContent = role === 'assistant' ? stripSSML(content) : content;
         realtimeMemory
           .persistTurn(validatedUserId, realtimeConversationId, {
             role,
-            content,
+            content: cleanContent,
             timestamp: now,
             metadata: durationMs ? { durationMs } : undefined,
           })

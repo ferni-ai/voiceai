@@ -18,7 +18,7 @@
     <ul class="nav-links">
       <li><a href="/" {% if page.url == '/' %}class="active"{% endif %}>Browse</a></li>
       <li><a href="/categories/" {% if '/categories/' in page.url %}class="active"{% endif %}>Categories</a></li>
-      <li><a href="/my-team/" {% if '/my-team/' in page.url %}class="active"{% endif %}>My Team</a></li>
+      <li><a href="{{ site.appUrl }}" class="nav-cta-link">My Team</a></li>
     </ul>
     
     <div class="nav-cta">

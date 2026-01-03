@@ -107,6 +107,9 @@ import { getContextCarrier } from '../../tools/context-carrier.js';
 // Session Lifecycle Hooks - presence tracking, correction context, outreach suppression
 import { sessionLifecycle } from '../../services/session/session-lifecycle-hooks.js';
 
+// Interval Manager - for session heartbeat
+import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
+
 // Session State Management (Single Source of Truth)
 import { createSessionStateManager, type SessionStateManager } from '../session/session-state.js';
 import { createUserDataProxy } from '../session/user-data-proxy.js';
@@ -954,6 +957,24 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   if (userId) {
     stopSync = startPeriodicSync(sessionId, userId);
     diag.session('🔄 Periodic deep understanding sync started', { sessionId, userId });
+  }
+
+  // ================================================================
+  // START SESSION HEARTBEAT
+  // Keeps user presence alive for outreach suppression (every 45 seconds)
+  // ================================================================
+  if (userId) {
+    const heartbeatIntervalName = `session-heartbeat-${sessionId}`;
+    registerInterval(
+      heartbeatIntervalName,
+      () => {
+        sessionLifecycle.onHeartbeat(userId, sessionId, sessionPersona.id).catch((err) => {
+          diag.debug('Session heartbeat failed (non-critical)', { error: String(err) });
+        });
+      },
+      45_000 // 45 seconds
+    );
+    diag.session('💓 Session heartbeat started', { sessionId, userId });
   }
 
   logger.info(
