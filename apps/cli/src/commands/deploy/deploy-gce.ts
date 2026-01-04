@@ -244,6 +244,8 @@ function getSecrets(): Record<string, string> {
     // SIP trunk for outbound conversational calls
     'sip-trunk-id',
     'sip-domain',
+    // Gemini API configuration
+    'use-vertex-ai',
   ];
 
   const secrets: Record<string, string> = {};

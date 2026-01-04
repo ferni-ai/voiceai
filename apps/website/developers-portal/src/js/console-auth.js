@@ -104,8 +104,16 @@ async function signInWithGitHub() {
     await window.signInWithPopup(firebaseAuth, provider);
     // Auth state change will handle the rest
   } catch (error) {
-    console.error('GitHub sign-in error:', error);
-    if (error.code !== 'auth/popup-closed-by-user') {
+    console.error('GitHub sign-in error:', error.code, error.message);
+    if (error.code === 'auth/popup-closed-by-user') {
+      // User cancelled - no error message needed
+      return;
+    }
+    if (error.code === 'auth/operation-not-allowed') {
+      showAuthError('GitHub sign-in is not enabled. Please use Google sign-in for now.');
+    } else if (error.code === 'auth/account-exists-with-different-credential') {
+      showAuthError('An account already exists with this email. Try signing in with Google.');
+    } else {
       showAuthError('Failed to sign in with GitHub. Please try again.');
     }
   }
