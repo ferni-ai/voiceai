@@ -1,0 +1,1019 @@
+---
+layout: layouts/base.njk
+title: Glass Surfaces Component
+description: Frosted glass effects for overlays, modals, and layered interfaces
+permalink: /components/glass/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Glass Surfaces</span>
+    </nav>
+    <h1>Glass Surfaces</h1>
+    <p class="lead">Frosted glass effects that create depth and visual hierarchy while maintaining context awareness. Inspired by iOS and macOS design language.</p>
+  </header>
+
+  <section class="section">
+    <h2>Blur Intensities</h2>
+
+    <div class="demo-block">
+      <h3>Subtle Blur</h3>
+      <p class="demo-description">Light frosting for elevated surfaces that need to stay connected to content beneath.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-subtle">
+          <span>Subtle blur (8px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-subtle {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-subtle));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Medium Blur</h3>
+      <p class="demo-description">Standard frosting for modals, dropdowns, and floating panels.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-medium">
+          <span>Medium blur (16px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-medium {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Heavy Blur</h3>
+      <p class="demo-description">Strong frosting for full-screen overlays and critical modals.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-heavy">
+          <span>Heavy blur (24px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-heavy {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona-Tinted Glass</h2>
+    <p>Glass surfaces can carry subtle persona tints for brand reinforcement without overwhelming the interface.</p>
+
+    <div class="demo-block">
+      <h3>Persona Variants</h3>
+      <p class="demo-description">Each persona has a subtle tint that can be applied to glass surfaces.</p>
+      <div class="demo-area glass-demo-area-grid">
+        <div class="glass-backdrop-full">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-persona glass-ferni">
+          <span class="persona-name">Ferni</span>
+        </div>
+        <div class="glass-surface glass-persona glass-maya">
+          <span class="persona-name">Maya</span>
+        </div>
+        <div class="glass-surface glass-persona glass-peter">
+          <span class="persona-name">Peter</span>
+        </div>
+        <div class="glass-surface glass-persona glass-alex">
+          <span class="persona-name">Alex</span>
+        </div>
+        <div class="glass-surface glass-persona glass-jordan">
+          <span class="persona-name">Jordan</span>
+        </div>
+        <div class="glass-surface glass-persona glass-nayan">
+          <span class="persona-name">Nayan</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-ferni {
+  background: rgba(var(--persona-ferni-rgb), 0.1);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid rgba(var(--persona-ferni-rgb), 0.2);
+}
+
+.glass-maya {
+  background: rgba(var(--persona-maya-rgb), 0.1);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid rgba(var(--persona-maya-rgb), 0.2);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Modal Overlay</h2>
+
+    <div class="demo-block">
+      <h3>Glass Modal</h3>
+      <p class="demo-description">Full modal implementation with glass backdrop and surface.</p>
+      <div class="demo-area modal-demo-area">
+        <button class="btn btn-primary" id="open-modal">Open Modal</button>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="modal-backdrop"&gt;
+  &lt;div class="modal-surface"&gt;
+    &lt;h2&gt;Modal Title&lt;/h2&gt;
+    &lt;p&gt;Modal content goes here...&lt;/p&gt;
+    &lt;button class="btn btn-primary"&gt;Confirm&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-surface {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 480px;
+  box-shadow: var(--shadow-xl);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Floating Panels</h2>
+
+    <div class="demo-block">
+      <h3>Dropdown Panel</h3>
+      <p class="demo-description">Glass dropdown for menus and contextual actions.</p>
+      <div class="demo-area panel-demo-area">
+        <div class="panel-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="dropdown-panel">
+          <div class="dropdown-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>Profile</span>
+          </div>
+          <div class="dropdown-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Settings</span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item dropdown-item-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>Sign out</span>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.dropdown-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-ease-out);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Card with Glass</h2>
+
+    <div class="demo-block">
+      <h3>Glassmorphic Card</h3>
+      <p class="demo-description">Cards that use glass effects for a premium, layered feel.</p>
+      <div class="demo-area card-demo-area">
+        <div class="glass-backdrop-large">
+          <div class="backdrop-gradient"></div>
+        </div>
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <div class="avatar avatar-ferni avatar-md">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4c-4 4-8 8-8 14a8 8 0 1016 0c0-6-4-10-8-14z"/>
+              </svg>
+            </div>
+            <div class="glass-card-title">
+              <h4>Daily Check-in</h4>
+              <span class="glass-card-subtitle">with Ferni</span>
+            </div>
+          </div>
+          <p class="glass-card-content">How are you feeling today? I noticed you've been working hard lately.</p>
+          <div class="glass-card-actions">
+            <button class="btn btn-glass">Later</button>
+            <button class="btn btn-primary">Start</button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Custom Properties</h2>
+
+    <div class="properties-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>--glass-blur-subtle</code></td>
+            <td>8px</td>
+            <td>Light frosting, elevated surfaces</td>
+          </tr>
+          <tr>
+            <td><code>--glass-blur-medium</code></td>
+            <td>16px</td>
+            <td>Standard modals, dropdowns</td>
+          </tr>
+          <tr>
+            <td><code>--glass-blur-heavy</code></td>
+            <td>24px</td>
+            <td>Full overlays, critical modals</td>
+          </tr>
+          <tr>
+            <td><code>--bg-glass</code></td>
+            <td>rgba(255, 255, 255, 0.7)</td>
+            <td>Glass surface background</td>
+          </tr>
+          <tr>
+            <td><code>--border-glass</code></td>
+            <td>rgba(255, 255, 255, 0.3)</td>
+            <td>Glass surface border</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Browser Support</h2>
+
+    <div class="support-grid">
+      <div class="support-item supported">
+        <h4>Chrome / Edge</h4>
+        <span class="support-badge">Full Support</span>
+        <p>backdrop-filter with -webkit- prefix</p>
+      </div>
+      <div class="support-item supported">
+        <h4>Safari</h4>
+        <span class="support-badge">Full Support</span>
+        <p>Native backdrop-filter support</p>
+      </div>
+      <div class="support-item supported">
+        <h4>Firefox</h4>
+        <span class="support-badge">Full Support</span>
+        <p>backdrop-filter since v103</p>
+      </div>
+      <div class="support-item partial">
+        <h4>Older Browsers</h4>
+        <span class="support-badge">Graceful Fallback</span>
+        <p>Solid background color used</p>
+      </div>
+    </div>
+
+    <div class="code-block standalone">
+      <pre><code>/* Fallback for browsers without backdrop-filter */
+.glass-surface {
+  background: var(--bg-elevated); /* Fallback */
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-surface {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--glass-blur-medium));
+    -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>Contrast Ratio</h4>
+        <p>Text on glass surfaces maintains WCAG 2.1 AA contrast (4.5:1 for body, 3:1 for large text).</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Motion Sensitivity</h4>
+        <p>Glass effects are static and don't cause motion sensitivity issues.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Reduced Transparency</h4>
+        <p>Honor <code>prefers-reduced-transparency</code> by increasing opacity or using solid backgrounds.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Visibility</h4>
+        <p>Focus rings remain clearly visible against glass backgrounds with sufficient contrast.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="demo-modal" style="display: none;">
+  <div class="modal-surface">
+    <h2>Glass Modal</h2>
+    <p>This modal uses a frosted glass surface with a blurred backdrop, creating depth while maintaining context awareness.</p>
+    <div class="modal-actions">
+      <button class="btn btn-glass" id="close-modal">Cancel</button>
+      <button class="btn btn-primary" id="confirm-modal">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-block {
+  margin-top: var(--space-8);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.demo-block h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-5) var(--space-6) 0;
+}
+
+.demo-description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-6) var(--space-4);
+}
+
+.demo-area {
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-block {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.code-block.standalone {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-6);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Glass Demo Area */
+.glass-demo-area {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-pattern {
+  position: absolute;
+  inset: -20px;
+  background:
+    linear-gradient(135deg, var(--persona-ferni) 0%, transparent 50%),
+    linear-gradient(225deg, var(--persona-maya) 0%, transparent 50%),
+    linear-gradient(315deg, var(--persona-alex) 0%, transparent 50%),
+    linear-gradient(45deg, var(--persona-jordan) 0%, transparent 50%);
+  opacity: 0.8;
+}
+
+.glass-surface {
+  position: relative;
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  min-width: 200px;
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-medium {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-heavy {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Persona Glass Grid */
+.glass-demo-area-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  min-height: 280px;
+  padding: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop-full {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.glass-persona {
+  padding: var(--space-4);
+  min-width: auto;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-ferni {
+  background: rgba(74, 103, 65, 0.15);
+  border: 1px solid rgba(74, 103, 65, 0.25);
+}
+
+.glass-maya {
+  background: rgba(180, 83, 9, 0.15);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+}
+
+.glass-peter {
+  background: rgba(30, 58, 138, 0.15);
+  border: 1px solid rgba(30, 58, 138, 0.25);
+}
+
+.glass-alex {
+  background: rgba(109, 40, 217, 0.15);
+  border: 1px solid rgba(109, 40, 217, 0.25);
+}
+
+.glass-jordan {
+  background: rgba(219, 39, 119, 0.15);
+  border: 1px solid rgba(219, 39, 119, 0.25);
+}
+
+.glass-nayan {
+  background: rgba(20, 83, 45, 0.15);
+  border: 1px solid rgba(20, 83, 45, 0.25);
+}
+
+.persona-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Modal Demo */
+.modal-demo-area {
+  min-height: 100px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modal-backdrop-in 0.2s ease-out;
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-surface {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 400px;
+  width: calc(100% - var(--space-8));
+  box-shadow: var(--shadow-xl);
+  animation: modal-surface-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-surface-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-surface h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+}
+
+.modal-surface p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-5);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* Panel Demo */
+.panel-demo-area {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.panel-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dropdown-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-ease-out);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item svg {
+  color: var(--text-muted);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-2) 0;
+}
+
+.dropdown-item-danger {
+  color: var(--error);
+}
+
+.dropdown-item-danger svg {
+  color: var(--error);
+}
+
+/* Card Demo */
+.card-demo-area {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop-large {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-gradient {
+  position: absolute;
+  inset: -50px;
+  background: linear-gradient(135deg,
+    var(--persona-ferni) 0%,
+    var(--persona-maya) 50%,
+    var(--persona-alex) 100%);
+  opacity: 0.6;
+}
+
+.glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  max-width: 320px;
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.avatar-ferni {
+  background: var(--persona-ferni);
+}
+
+.avatar-md {
+  width: 48px;
+  height: 48px;
+}
+
+.glass-card-title h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+.glass-card-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.glass-card-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+.glass-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Properties Table */
+.properties-table {
+  margin-top: var(--space-6);
+  overflow-x: auto;
+}
+
+.properties-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.properties-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.properties-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.properties-table code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Support Grid */
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.support-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.support-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.support-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.support-item.supported .support-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.support-item.partial .support-badge {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--warning);
+}
+
+.support-item p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Accessibility Guidelines */
+.a11y-guidelines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.a11y-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.a11y-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.a11y-item p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.a11y-item code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .glass-demo-area-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const openBtn = document.getElementById('open-modal');
+  const closeBtn = document.getElementById('close-modal');
+  const confirmBtn = document.getElementById('confirm-modal');
+  const modal = document.getElementById('demo-modal');
+
+  if (openBtn && modal) {
+    openBtn.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    confirmBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
