@@ -227,52 +227,27 @@ description: Build your own AI coaches, create specialized personas, and reach p
   </div>
 </section>
 
-<!-- Notify Section -->
+<!-- CTA Section -->
 <section class="section section--notify">
   <div class="container container-narrow">
     <div class="notify-card">
       <div class="notify-icon">{{ rocket(40) }}</div>
       <h2>Start building today</h2>
-      <p>Join our developer community. Get API access, documentation, and support to build your first AI coach.</p>
-      
-      <form class="notify-form" id="notify-form">
-        <input type="email" name="email" placeholder="your@email.com" required class="notify-input">
-        <button type="submit" class="notify-btn">
-          Get Started
+      <p>Create your first AI persona in minutes using our visual wizard. No code required to get started.</p>
+
+      <div style="display: flex; gap: var(--space-4); justify-content: center; flex-wrap: wrap; margin-bottom: var(--space-6);">
+        <a href="/personas/create/" class="notify-btn">
+          Create Your First Persona
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
-        </button>
-      </form>
-      <script>
-        document.getElementById('notify-form').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const email = e.target.email.value;
-          const btn = e.target.querySelector('button');
-          btn.disabled = true;
-          btn.innerHTML = 'Sending...';
-          try {
-            const res = await fetch('https://app.ferni.ai/api/waitlist', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, source: 'developer' })
-            });
-            const data = await res.json();
-            if (data.success) {
-              btn.innerHTML = '✓ You\'re on the list!';
-              btn.style.background = 'var(--success)';
-            } else {
-              throw new Error(data.error);
-            }
-          } catch (err) {
-            btn.innerHTML = 'Try again';
-            btn.disabled = false;
-            alert('Something went wrong. Please try again.');
-          }
-        });
-      </script>
-      
-      <p class="notify-note">No spam, just developer updates and resources. Unsubscribe anytime.</p>
+        </a>
+        <a href="/console/" class="btn btn-secondary" style="padding: var(--space-4) var(--space-6); border-radius: var(--radius-full);">
+          Open Console
+        </a>
+      </div>
+
+      <p class="notify-note">Sign in with Google or GitHub to access your developer dashboard.</p>
     </div>
   </div>
 </section>

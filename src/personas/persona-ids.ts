@@ -49,6 +49,8 @@ export const CANONICAL_IDS = {
   BUDGETER: 'maya-santos',
   PLANNER: 'jordan-taylor',
   SAGE: 'nayan-patel',
+  // Standalone personas (not part of Ferni team)
+  JOEL_DICKSON: 'joel-dickson',
 } as const;
 
 export type CanonicalPersonaId = (typeof CANONICAL_IDS)[keyof typeof CANONICAL_IDS];
@@ -75,6 +77,7 @@ export const CANONICAL_TO_FRONTEND: Record<CanonicalPersonaId, CanonicalPersonaI
   'maya-santos': 'maya-santos',
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
 };
 
 /**
@@ -89,6 +92,7 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
   'maya-santos': 'maya-santos',
   'jordan-taylor': 'jordan-taylor',
   'nayan-patel': 'nayan-patel',
+  'joel-dickson': 'joel-dickson',
 };
 
 /**
@@ -164,6 +168,14 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   wisdom: 'nayan-patel',
   'lifetime-advisor': 'nayan-patel',
   'spiritual-guide': 'nayan-patel',
+
+  // Joel Dickson (Vanguard Life Mentor - Standalone)
+  'joel-dickson': 'joel-dickson',
+  joel: 'joel-dickson',
+  dickson: 'joel-dickson',
+  'dr-dickson': 'joel-dickson',
+  'vanguard-mentor': 'joel-dickson',
+  'life-mentor': 'joel-dickson',
 };
 
 // ============================================================================
@@ -235,6 +247,7 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'maya-santos': 'Maya',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
+  'joel-dickson': 'Joel',
 };
 
 export function getDisplayName(id: string): string {

@@ -72,6 +72,118 @@
 <section class="section" style="padding-top: var(--space-8);">
   <div class="container container-narrow">
     
+    <!-- Two Paths -->
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-6); margin-bottom: var(--space-12);">
+      <h3 style="margin-bottom: var(--space-4);">Choose Your Path</h3>
+      <div class="grid grid-2" style="gap: var(--space-4);">
+        <a href="#console-wizard" class="card" style="padding: var(--space-4); border: 2px solid var(--accent-primary);">
+          <h4 style="margin-bottom: var(--space-2);">Visual Wizard (Recommended)</h4>
+          <p style="font-size: var(--text-sm); margin: 0; color: var(--text-secondary);">Create personas through our guided console - no code required</p>
+        </a>
+        <a href="#cli-setup" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Developer CLI</h4>
+          <p style="font-size: var(--text-sm); margin: 0; color: var(--text-secondary);">Full control with command-line tools and SDK</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- Console Wizard Path -->
+    <div id="console-wizard" style="margin-bottom: var(--space-16);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6);">
+        <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code); font-size: var(--text-lg);">✨</div>
+        <div>
+          <h2 style="margin: 0;">Create with Visual Wizard</h2>
+          <p style="color: var(--text-secondary); margin: 0;">The fastest way to create and publish a persona</p>
+        </div>
+      </div>
+
+      <!-- Step 1: Sign In -->
+      <div style="margin-bottom: var(--space-8);">
+        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">1</div>
+          <h3 style="margin: 0;">Sign In to Console</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Go to the <a href="/console/">Developer Console</a> and sign in with Google or GitHub. This creates your developer account automatically.
+        </p>
+      </div>
+
+      <!-- Step 2: Create Persona -->
+      <div style="margin-bottom: var(--space-8);">
+        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">2</div>
+          <h3 style="margin: 0;">Start Persona Wizard</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Go to <a href="/personas/create/">Create Persona</a> and follow the 6-step wizard:
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3);">
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">1. Identity</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Name & tagline</div>
+          </div>
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">2. Personality</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Traits & style</div>
+          </div>
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">3. Voice</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Pick & preview</div>
+          </div>
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">4. Knowledge</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Expertise tags</div>
+          </div>
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">5. Behaviors</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Greetings</div>
+          </div>
+          <div style="background: var(--bg-code); padding: var(--space-3); border-radius: var(--radius-md); text-align: center;">
+            <div style="font-weight: 700;">6. Review</div>
+            <div style="font-size: var(--text-sm); color: var(--text-secondary);">Submit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Preview Voice -->
+      <div style="margin-bottom: var(--space-8);">
+        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">3</div>
+          <h3 style="margin: 0;">Choose a Voice</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Browse our curated library of Cartesia voices. Click any voice to hear a preview with your custom greeting text.
+        </p>
+      </div>
+
+      <!-- Step 4: Submit -->
+      <div style="margin-bottom: var(--space-8);">
+        <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+          <div style="width: 40px; height: 40px; background: var(--success); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">4</div>
+          <h3 style="margin: 0;">Submit for Review</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          The wizard validates your persona automatically. Fix any errors, then submit for marketplace review. Approval typically takes 2-5 business days.
+        </p>
+        <a href="/personas/create/" class="btn btn-primary">Create Your First Persona →</a>
+      </div>
+    </div>
+
+    <div style="border-top: 1px solid var(--border-subtle); margin-bottom: var(--space-12); padding-top: var(--space-12);">
+      <div style="text-align: center; color: var(--text-muted); font-size: var(--text-sm); margin-bottom: var(--space-8);">— OR —</div>
+    </div>
+
+    <!-- CLI Path -->
+    <div id="cli-setup">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6);">
+        <div style="width: 48px; height: 48px; background: var(--bg-elevated); border: 2px solid var(--border-subtle); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--text-primary); font-size: var(--text-lg);">⌘</div>
+        <div>
+          <h2 style="margin: 0;">Developer CLI Setup</h2>
+          <p style="color: var(--text-secondary); margin: 0;">Full control with TypeScript SDK and CLI tools</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Prerequisites -->
     <div style="margin-bottom: var(--space-12);">
       <h2 style="margin-bottom: var(--space-4);">Prerequisites</h2>
@@ -275,6 +387,14 @@ PERSONA_ID=my-coach npm run dev
     <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-8);">
       <h2 style="margin-bottom: var(--space-4);">Next Steps</h2>
       <div class="grid grid-2" style="gap: var(--space-4);">
+        <a href="/personas/create/" class="card" style="padding: var(--space-4); border: 2px solid var(--accent-primary);">
+          <h4 style="margin-bottom: var(--space-2);">Create a Persona</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Use the visual wizard to create your first agent</p>
+        </a>
+        <a href="/console/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Developer Console</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Manage API keys and personas</p>
+        </a>
         <a href="/api/" class="card" style="padding: var(--space-4);">
           <h4 style="margin-bottom: var(--space-2);">API Reference</h4>
           <p style="font-size: var(--text-sm); margin: 0;">Learn about all available endpoints</p>
@@ -287,9 +407,9 @@ PERSONA_ID=my-coach npm run dev
           <h4 style="margin-bottom: var(--space-2);">Example Agents</h4>
           <p style="font-size: var(--text-sm); margin: 0;">See real-world implementations</p>
         </a>
-        <a href="https://marketplace.ferni.ai" class="card" style="padding: var(--space-4);">
-          <h4 style="margin-bottom: var(--space-2);">Publish to Marketplace</h4>
-          <p style="font-size: var(--text-sm); margin: 0;">Share your agent with the world</p>
+        <a href="/personas/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">My Personas</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">View and manage your created personas</p>
         </a>
       </div>
     </div>

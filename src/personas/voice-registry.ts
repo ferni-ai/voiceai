@@ -56,6 +56,8 @@ const FALLBACK_VOICE_IDS: Record<string, string> = {
   'jordan-taylor': getVoiceIdForPersona('jordan-taylor'),
   'nayan-patel': getVoiceIdForPersona('nayan-patel'),
   'generic-advisor': getVoiceIdForPersona('generic-advisor'),
+  // Standalone personas
+  'joel-dickson': getVoiceIdForPersona('joel-dickson'),
 };
 
 // Default fallback voice (Ferni)
