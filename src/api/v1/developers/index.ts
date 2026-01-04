@@ -6,8 +6,6 @@
  * - /api/v1/developers/keys/* - API key management
  * - /api/v1/developers/personas/* - Persona creation/management
  * - /api/v1/developers/voices/* - Voice preview/selection
- *
- * Future routes:
  * - /api/v1/developers/analytics/* - Usage statistics
  */
 
@@ -16,6 +14,7 @@ import { handleDeveloperAuthRoutes } from './auth-routes.js';
 import { handleDeveloperKeysRoutes } from './keys-routes.js';
 import { handleDeveloperPersonasRoutes } from './personas-routes.js';
 import { handleDeveloperVoicesRoutes } from './voice-routes.js';
+import { handleDeveloperAnalyticsRoutes } from './analytics-routes.js';
 
 /**
  * Main handler for all developer console routes
@@ -44,6 +43,10 @@ export async function handleDeveloperRoutes(
   }
 
   if (await handleDeveloperVoicesRoutes(req, res, pathname)) {
+    return true;
+  }
+
+  if (await handleDeveloperAnalyticsRoutes(req, res, pathname)) {
     return true;
   }
 

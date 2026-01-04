@@ -78,6 +78,7 @@
       <div class="grid grid-2" style="gap: var(--space-2);">
         <a href="#authentication" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Authentication</a>
         <a href="#developer" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Developer API</a>
+        <a href="#analytics" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Analytics API</a>
         <a href="#publisher" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Publisher API</a>
         <a href="#browse" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Browse API</a>
         <a href="#install" style="color: var(--text-secondary); text-decoration: none; padding: var(--space-2);">→ Install API</a>
@@ -567,6 +568,152 @@ x-publisher-name: Acme Corp</code></pre>
         <p style="color: var(--text-secondary); margin-top: var(--space-4); font-size: var(--text-sm);">
           Rejected personas can be edited and resubmitted. Published personas appear in the marketplace.
         </p>
+      </div>
+
+      <!-- Analytics -->
+      <div id="analytics" style="margin-bottom: var(--space-10);">
+        <h3 style="margin-bottom: var(--space-6);">Analytics</h3>
+
+        <!-- Overview -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/overview</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get summary statistics with comparison to previous period.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Query Parameters</h4>
+          <ul style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            <li><code>period</code> - Time period: day, week, month, or year (default: week)</li>
+          </ul>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "overview": {
+    "totalApiCalls": 12500,
+    "totalApiCallsChange": 15,
+    "uniqueUsers": 340,
+    "uniqueUsersChange": 8,
+    "activePersonas": 5,
+    "activePersonasChange": 0,
+    "errorRate": 0.5,
+    "errorRateChange": -12,
+    "avgResponseTime": 245,
+    "avgResponseTimeChange": -5
+  }
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Usage Over Time -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/usage</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get API call volume over time for charting.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "usage": [
+    { "date": "2026-01-01", "apiCalls": 1850, "uniqueUsers": 42, "errors": 5 },
+    { "date": "2026-01-02", "apiCalls": 2100, "uniqueUsers": 48, "errors": 3 }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Persona Usage -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/personas</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get per-persona usage breakdown.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "personas": [
+    {
+      "personaId": "persona_abc123",
+      "personaName": "Luna the Coach",
+      "totalCalls": 5200,
+      "avgSessionDuration": 180000,
+      "uniqueUsers": 150
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Errors -->
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <span style="display: inline-block; padding: var(--space-1) var(--space-3); background: var(--accent-primary); color: var(--bg-code); font-weight: 700; border-radius: var(--radius-md); font-size: var(--text-sm);">GET</span>
+            <code style="color: var(--text-primary); font-size: var(--text-lg);">/api/v1/developers/analytics/errors</code>
+          </div>
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+            Get error breakdown by type.
+          </p>
+          <h4 style="margin-bottom: var(--space-3);">Response</h4>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "errors": [
+    {
+      "code": "RATE_LIMIT_EXCEEDED",
+      "message": "API rate limit exceeded",
+      "count": 23,
+      "lastOccurred": "2026-01-03T15:30:00Z"
+    }
+  ]
+}</code></pre>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
