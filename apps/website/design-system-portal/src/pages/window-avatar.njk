@@ -1,0 +1,878 @@
+---
+layout: layouts/base.njk
+title: Window Avatar
+permalink: /window-avatar/
+---
+
+<div class="page-header">
+  <h1>Window Avatar</h1>
+  <p class="lead">Animation and shape parameters for Ferni's signature window avatar system. The window creates the illusion of Ferni peeking through the interface.</p>
+</div>
+
+<section class="section" id="concept">
+  <h2>The Window Concept</h2>
+  <div class="concept-demo">
+    <div class="window-avatar-demo">
+      <div class="avatar-face">
+        <div class="lid top"></div>
+        <div class="eye-area"></div>
+        <div class="lid bottom"></div>
+      </div>
+    </div>
+    <div class="concept-explanation">
+      <p>The avatar appears to peek through a "window" in the UI. The top and bottom lids act as masks that reveal different amounts of the face, creating expressions without changing the eyes themselves.</p>
+      <ul>
+        <li><strong>Top lid:</strong> Controls brow/forehead visibility</li>
+        <li><strong>Bottom lid:</strong> Creates mouth/speaking effect</li>
+        <li><strong>Cutoff:</strong> How much of the face is visible</li>
+        <li><strong>Curve:</strong> Shape of the mask edge</li>
+        <li><strong>Asymmetry:</strong> Left-right difference for expressiveness</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="expressions">
+  <h2>Expression Presets</h2>
+
+  <div class="expressions-grid">
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="neutral">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.12; --curve: 0"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.12; --curve: 0"></div>
+        </div>
+      </div>
+      <h4>Neutral</h4>
+      <div class="expression-values">
+        <span>Top: 0.12, 0°</span>
+        <span>Bottom: 0.12, 0°</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="surprised">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.06; --curve: 0.1"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.18; --curve: 0"></div>
+        </div>
+      </div>
+      <h4>Surprised</h4>
+      <div class="expression-values">
+        <span>Top: 0.06, +0.1</span>
+        <span>Bottom: 0.18, 0°</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="sleepy">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.22; --curve: -0.15"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.10; --curve: 0.15"></div>
+        </div>
+      </div>
+      <h4>Sleepy</h4>
+      <div class="expression-values">
+        <span>Top: 0.22, -0.15</span>
+        <span>Bottom: 0.10, +0.15</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="happy">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.14; --curve: 0.08"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.14; --curve: -0.20"></div>
+        </div>
+      </div>
+      <h4>Happy</h4>
+      <div class="expression-values">
+        <span>Top: 0.14, +0.08</span>
+        <span>Bottom: 0.14, -0.20</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="thinking">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.14; --curve: 0; --asymmetry: 0.08"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.11; --curve: 0.05; --asymmetry: 0.08"></div>
+        </div>
+      </div>
+      <h4>Thinking</h4>
+      <div class="expression-values">
+        <span>Top: 0.14, 0°</span>
+        <span>Bottom: 0.11, +0.05, asym: 0.08</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="curious">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.10; --curve: 0.05; --asymmetry: 0.15"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.13; --curve: 0; --asymmetry: 0.12"></div>
+        </div>
+      </div>
+      <h4>Curious</h4>
+      <div class="expression-values">
+        <span>Top: 0.10, +0.05, asym: 0.15</span>
+        <span>Bottom: 0.13, 0°, asym: 0.12</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="empathetic">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.13; --curve: 0.05; --asymmetry: 0.08"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.12; --curve: -0.10; --asymmetry: 0.05"></div>
+        </div>
+      </div>
+      <h4>Empathetic</h4>
+      <div class="expression-values">
+        <span>Top: 0.13, +0.05, asym: 0.08</span>
+        <span>Bottom: 0.12, -0.10</span>
+      </div>
+    </div>
+
+    <div class="expression-card">
+      <div class="expression-preview" data-expression="listening">
+        <div class="mini-avatar">
+          <div class="lid top" style="--cutoff: 0.11; --curve: 0.03"></div>
+          <div class="eye"></div>
+          <div class="lid bottom" style="--cutoff: 0.12; --curve: -0.05"></div>
+        </div>
+      </div>
+      <h4>Listening</h4>
+      <div class="expression-values">
+        <span>Top: 0.11, +0.03</span>
+        <span>Bottom: 0.12, -0.05</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="speaking">
+  <h2>Speaking Animation</h2>
+  <p>The bottom lid opens based on voice volume, creating natural lip sync.</p>
+
+  <div class="speaking-demo">
+    <div class="speaking-avatar">
+      <div class="lid top"></div>
+      <div class="eye"></div>
+      <div class="lid bottom speaking"></div>
+    </div>
+    <div class="speaking-specs">
+      <h4>Bottom Lid Speaking</h4>
+      <ul>
+        <li><strong>Min cutoff:</strong> 0.10 (barely open)</li>
+        <li><strong>Max cutoff:</strong> 0.35 (fully open)</li>
+        <li><strong>Volume scale:</strong> 0.25 (sensitivity)</li>
+      </ul>
+      <h4>Smoothing</h4>
+      <ul>
+        <li><strong>Attack:</strong> 0.25 (fast response)</li>
+        <li><strong>Release:</strong> 0.12 (slow decay)</li>
+      </ul>
+      <h4>Spring Physics</h4>
+      <ul>
+        <li><strong>Stiffness:</strong> 400</li>
+        <li><strong>Damping:</strong> 25</li>
+        <li><strong>Mass:</strong> 1</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="phonemes">
+  <h2>Phoneme Shapes</h2>
+  <p>Mouth shapes for different speech sounds.</p>
+
+  <div class="phoneme-grid">
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0; --width: 1; --round: 0"></div>
+      <span class="phoneme-name">Rest</span>
+      <span class="phoneme-example">—</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.9; --width: 1.2; --round: 0.3"></div>
+      <span class="phoneme-name">A</span>
+      <span class="phoneme-example">ah, father</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.5; --width: 1.3; --round: 0.2"></div>
+      <span class="phoneme-name">E</span>
+      <span class="phoneme-example">eh, bed</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.3; --width: 1.4; --round: 0.1"></div>
+      <span class="phoneme-name">I</span>
+      <span class="phoneme-example">ee, see</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.7; --width: 0.8; --round: 0.8"></div>
+      <span class="phoneme-name">O</span>
+      <span class="phoneme-example">oh, go</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.4; --width: 0.6; --round: 0.9"></div>
+      <span class="phoneme-name">U</span>
+      <span class="phoneme-example">oo, blue</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0; --width: 1; --round: 0"></div>
+      <span class="phoneme-name">M/B/P</span>
+      <span class="phoneme-example">closed</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.15; --width: 1.1; --round: 0.1"></div>
+      <span class="phoneme-name">F/V</span>
+      <span class="phoneme-example">f, v</span>
+    </div>
+    <div class="phoneme-card">
+      <div class="phoneme-visual" style="--open: 0.3; --width: 0.7; --round: 0.7"></div>
+      <span class="phoneme-name">W/R</span>
+      <span class="phoneme-example">w, r</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="animation-timing">
+  <h2>Animation Timing</h2>
+
+  <div class="timing-grid">
+    <div class="timing-card">
+      <h4>Mouth</h4>
+      <ul>
+        <li><strong>Idle:</strong> 200ms</li>
+        <li><strong>Speaking:</strong> 60ms</li>
+        <li><strong>Transition:</strong> 300ms</li>
+      </ul>
+    </div>
+    <div class="timing-card">
+      <h4>Brow</h4>
+      <ul>
+        <li><strong>Raise:</strong> 250ms</li>
+        <li><strong>Lower:</strong> 400ms</li>
+        <li><strong>Transition:</strong> 350ms</li>
+      </ul>
+    </div>
+    <div class="timing-card">
+      <h4>Expression</h4>
+      <ul>
+        <li><strong>Micro-expression:</strong> 80ms</li>
+        <li><strong>Transition:</strong> 300ms</li>
+        <li><strong>Hold:</strong> 500ms</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="state-transitions">
+  <h2>State Transitions</h2>
+
+  <div class="state-grid">
+    <div class="state-card">
+      <div class="state-avatar connecting-state"></div>
+      <h4>Connecting</h4>
+      <p>pulse animation</p>
+    </div>
+    <div class="state-card">
+      <div class="state-avatar thinking-state"></div>
+      <h4>Thinking</h4>
+      <p>contemplative-drift</p>
+    </div>
+    <div class="state-card">
+      <div class="state-avatar listening-state"></div>
+      <h4>Listening</h4>
+      <p>attentive-lean</p>
+    </div>
+    <div class="state-card">
+      <div class="state-avatar speaking-state"></div>
+      <h4>Speaking</h4>
+      <p>voice-reactive</p>
+    </div>
+    <div class="state-card">
+      <div class="state-avatar farewell-state"></div>
+      <h4>Farewell</h4>
+      <p>gentle-close</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="scale">
+  <h2>Scale Variants</h2>
+  <p>Avatar size affects window visibility and expression range.</p>
+
+  <div class="scale-demo">
+    <div class="scale-variant tiny">
+      <div class="scale-avatar"></div>
+      <span class="size">24-32px</span>
+      <span class="name">Tiny</span>
+      <p>Eyes only - favicon, badge</p>
+    </div>
+    <div class="scale-variant small">
+      <div class="scale-avatar"></div>
+      <span class="size">40-64px</span>
+      <span class="name">Small</span>
+      <p>Minimal expression - nav, lists</p>
+    </div>
+    <div class="scale-variant medium">
+      <div class="scale-avatar"></div>
+      <span class="size">80-120px</span>
+      <span class="name">Medium</span>
+      <p>Full expression - main avatar</p>
+    </div>
+    <div class="scale-variant large">
+      <div class="scale-avatar"></div>
+      <span class="size">160-240px</span>
+      <span class="name">Large</span>
+      <p>Maximum detail - hero, onboarding</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="notification-badge">
+  <h2>Notification Badge</h2>
+
+  <div class="badge-demo">
+    <div class="badge-example">
+      <div class="badge-avatar">
+        <div class="badge dot"></div>
+      </div>
+      <span>Dot</span>
+      <code>8px, no count</code>
+    </div>
+    <div class="badge-example">
+      <div class="badge-avatar">
+        <div class="badge small">3</div>
+      </div>
+      <span>Small</span>
+      <code>16px, 1-2 digits</code>
+    </div>
+    <div class="badge-example">
+      <div class="badge-avatar">
+        <div class="badge default">12</div>
+      </div>
+      <span>Default</span>
+      <code>20px, standard</code>
+    </div>
+  </div>
+
+  <h3>Badge Variants</h3>
+  <div class="badge-variants">
+    <div class="badge-variant">
+      <div class="badge default">5</div>
+      <span>Default</span>
+      <p>Urgent notifications</p>
+    </div>
+    <div class="badge-variant">
+      <div class="badge subtle">5</div>
+      <span>Subtle</span>
+      <p>Non-urgent counts</p>
+    </div>
+    <div class="badge-variant">
+      <div class="badge success">✓</div>
+      <span>Success</span>
+      <p>Completed tasks</p>
+    </div>
+    <div class="badge-variant">
+      <div class="badge persona">5</div>
+      <span>Persona</span>
+      <p>Persona-specific</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.concept-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.window-avatar-demo {
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-face {
+  width: 120px;
+  height: 120px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.lid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-primary);
+  transition: all 0.3s ease;
+}
+
+.lid.top {
+  top: 0;
+  height: 25%;
+  border-radius: 0 0 50% 50%;
+}
+
+.lid.bottom {
+  bottom: 0;
+  height: 25%;
+  border-radius: 50% 50% 0 0;
+}
+
+.eye-area {
+  position: absolute;
+  top: 35%;
+  left: 25%;
+  right: 25%;
+  height: 30%;
+  display: flex;
+  justify-content: space-between;
+}
+
+.concept-explanation ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+
+.concept-explanation li {
+  padding: var(--space-2) 0;
+}
+
+.expressions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.expression-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.expression-preview {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+.mini-avatar {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.mini-avatar .lid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--glass-subtle-background);
+}
+
+.mini-avatar .lid.top {
+  top: 0;
+  height: calc(var(--cutoff, 0.12) * 100%);
+}
+
+.mini-avatar .lid.bottom {
+  bottom: 0;
+  height: calc(var(--cutoff, 0.12) * 100%);
+}
+
+.mini-avatar .eye {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.expression-card h4 {
+  margin: 0 0 var(--space-2);
+}
+
+.expression-values {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.speaking-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.speaking-avatar {
+  width: 100px;
+  height: 100px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.speaking-avatar .lid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--glass-subtle-background);
+}
+
+.speaking-avatar .lid.top {
+  top: 0;
+  height: 12%;
+}
+
+.speaking-avatar .lid.bottom {
+  bottom: 0;
+  height: 12%;
+  animation: speak 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes speak {
+  0% { height: 10%; }
+  100% { height: 30%; }
+}
+
+.speaking-avatar .eye {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+}
+
+.speaking-specs h4 {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--color-accent);
+}
+
+.speaking-specs h4:first-child {
+  margin-top: 0;
+}
+
+.speaking-specs ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.phoneme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+}
+
+.phoneme-card {
+  padding: var(--space-3);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.phoneme-visual {
+  width: 40px;
+  height: calc(20px * var(--open, 0.5));
+  min-height: 4px;
+  margin: 0 auto var(--space-2);
+  background: var(--color-accent);
+  border-radius: calc(var(--round, 0.5) * 20px);
+  transform: scaleX(var(--width, 1));
+}
+
+.phoneme-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.phoneme-example {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.timing-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.timing-card h4 {
+  margin: 0 0 var(--space-3);
+  color: var(--color-accent);
+}
+
+.timing-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.state-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.state-avatar {
+  width: 50px;
+  height: 50px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  margin: 0 auto var(--space-3);
+}
+
+.connecting-state {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.thinking-state {
+  animation: drift 3s ease-in-out infinite;
+}
+
+.listening-state {
+  animation: lean 2s ease-in-out infinite;
+}
+
+.speaking-state {
+  animation: speak-state 0.3s ease-in-out infinite alternate;
+}
+
+.farewell-state {
+  animation: close 3s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+@keyframes lean {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes speak-state {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(1.05); }
+}
+
+@keyframes close {
+  0%, 70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.5; transform: scale(0.95); }
+}
+
+.state-card h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.state-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.scale-demo {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  align-items: end;
+}
+
+.scale-variant {
+  text-align: center;
+}
+
+.scale-avatar {
+  background: var(--color-accent);
+  border-radius: 50%;
+  margin: 0 auto var(--space-3);
+}
+
+.tiny .scale-avatar { width: 28px; height: 28px; }
+.small .scale-avatar { width: 52px; height: 52px; }
+.medium .scale-avatar { width: 100px; height: 100px; }
+.large .scale-avatar { width: 160px; height: 160px; }
+
+.scale-variant .size {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.scale-variant .name {
+  display: block;
+  font-weight: 600;
+  margin: var(--space-2) 0;
+}
+
+.scale-variant p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.badge-demo {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: var(--space-6) 0;
+}
+
+.badge-example {
+  text-align: center;
+}
+
+.badge-avatar {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  position: relative;
+  margin: 0 auto var(--space-3);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-destructive);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.badge.dot {
+  width: 8px;
+  height: 8px;
+}
+
+.badge.small {
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  padding: 0 4px;
+}
+
+.badge.default {
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  padding: 0 6px;
+}
+
+.badge-example span {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-1);
+}
+
+.badge-example code {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.badge-variants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.badge-variant {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.badge-variant .badge {
+  position: static;
+  margin: 0 auto var(--space-3);
+}
+
+.badge-variant .badge.subtle {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-medium);
+}
+
+.badge-variant .badge.success {
+  background: var(--color-semantic-success);
+}
+
+.badge-variant .badge.persona {
+  background: var(--color-accent);
+}
+
+.badge-variant span {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-1);
+}
+
+.badge-variant p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+</style>

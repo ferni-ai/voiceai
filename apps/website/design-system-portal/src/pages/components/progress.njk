@@ -1,0 +1,1057 @@
+---
+layout: layouts/base.njk
+title: Progress
+description: Progress indicators, spinners, and loading states
+permalink: /components/progress/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <h1>Progress</h1>
+    <p class="lead">Visual indicators for loading states, task progress, and ongoing operations. Keep users informed about what's happening.</p>
+  </header>
+
+  <section class="section">
+    <h2>Interactive Demo</h2>
+    <p>Drag the slider to see progress bar animation.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview progress-demo">
+        <div class="progress-group" style="width: 100%; max-width: 400px;">
+          <div class="progress-label">
+            <span id="progress-status">Loading...</span>
+            <span id="progress-percent">50%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-interactive" style="width: 50%"></div>
+          </div>
+          <input type="range" min="0" max="100" value="50" id="progress-slider" class="progress-slider">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Linear Progress Bar</h2>
+    <p>Show determinate progress for tasks with known completion percentage.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview progress-demo">
+        <div class="progress-group">
+          <div class="progress-label">
+            <span>Uploading...</span>
+            <span>25%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 25%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <div class="progress-label">
+            <span>Processing...</span>
+            <span>60%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 60%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <div class="progress-label">
+            <span>Almost done!</span>
+            <span>90%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 90%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="progress-bar"&gt;
+  &lt;div class="progress-fill" style="width: 60%"&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Indeterminate Progress</h2>
+    <p>For operations with unknown duration.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview progress-demo">
+        <div class="progress-group">
+          <span class="progress-label-single">Loading...</span>
+          <div class="progress-bar">
+            <div class="progress-fill progress-indeterminate"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="progress-bar"&gt;
+  &lt;div class="progress-fill progress-indeterminate"&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Size Variants</h2>
+    <p>Different sizes for various contexts.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview progress-demo">
+        <div class="progress-group">
+          <span class="progress-label-single">Slim</span>
+          <div class="progress-bar progress-bar-sm">
+            <div class="progress-fill" style="width: 70%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <span class="progress-label-single">Default</span>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 70%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <span class="progress-label-single">Large</span>
+          <div class="progress-bar progress-bar-lg">
+            <div class="progress-fill" style="width: 70%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="progress-bar progress-bar-sm"&gt;...&lt;/div&gt;
+&lt;div class="progress-bar"&gt;...&lt;/div&gt;
+&lt;div class="progress-bar progress-bar-lg"&gt;...&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona Colors</h2>
+    <p>Use persona accent colors for branded progress indicators.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview progress-demo">
+        <div class="progress-group">
+          <span class="progress-label-single">Ferni</span>
+          <div class="progress-bar">
+            <div class="progress-fill progress-ferni" style="width: 80%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <span class="progress-label-single">Maya</span>
+          <div class="progress-bar">
+            <div class="progress-fill progress-maya" style="width: 65%"></div>
+          </div>
+        </div>
+        <div class="progress-group">
+          <span class="progress-label-single">Jordan</span>
+          <div class="progress-bar">
+            <div class="progress-fill progress-jordan" style="width: 45%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="progress-fill progress-ferni" style="width: 80%"&gt;&lt;/div&gt;
+&lt;div class="progress-fill progress-maya" style="width: 65%"&gt;&lt;/div&gt;
+&lt;div class="progress-fill progress-jordan" style="width: 45%"&gt;&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Circular Spinner</h2>
+    <p>Classic loading spinner for async operations.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview spinner-demo">
+        <div class="spinner-group">
+          <div class="spinner spinner-sm"></div>
+          <span>Small</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner"></div>
+          <span>Default</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-lg"></div>
+          <span>Large</span>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="spinner spinner-sm"&gt;&lt;/div&gt;
+&lt;div class="spinner"&gt;&lt;/div&gt;
+&lt;div class="spinner spinner-lg"&gt;&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona Spinners</h2>
+    <p>Spinners with persona accent colors.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview spinner-demo">
+        <div class="spinner-group">
+          <div class="spinner spinner-ferni"></div>
+          <span>Ferni</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-maya"></div>
+          <span>Maya</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-alex"></div>
+          <span>Alex</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-jordan"></div>
+          <span>Jordan</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-peter"></div>
+          <span>Peter</span>
+        </div>
+        <div class="spinner-group">
+          <div class="spinner spinner-nayan"></div>
+          <span>Nayan</span>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="spinner spinner-ferni"&gt;&lt;/div&gt;
+&lt;div class="spinner spinner-maya"&gt;&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Pulse Loader</h2>
+    <p>Gentle pulsing animation for background loading.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview">
+        <div class="pulse-loader">
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+          <div class="pulse-dot"></div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="pulse-loader"&gt;
+  &lt;div class="pulse-dot"&gt;&lt;/div&gt;
+  &lt;div class="pulse-dot"&gt;&lt;/div&gt;
+  &lt;div class="pulse-dot"&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Button Loading States</h2>
+    <p>Inline loading indicators for buttons.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview" style="gap: var(--space-4);">
+        <button class="btn btn-primary btn-loading">
+          <div class="spinner spinner-sm spinner-white"></div>
+          <span>Saving...</span>
+        </button>
+        <button class="btn btn-secondary btn-loading">
+          <div class="spinner spinner-sm"></div>
+          <span>Loading...</span>
+        </button>
+        <button class="btn btn-ghost btn-loading">
+          <div class="spinner spinner-sm"></div>
+          <span>Processing...</span>
+        </button>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;button class="btn btn-primary btn-loading"&gt;
+  &lt;div class="spinner spinner-sm spinner-white"&gt;&lt;/div&gt;
+  &lt;span&gt;Saving...&lt;/span&gt;
+&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Skeleton Loading</h2>
+    <p>Placeholder content while data loads.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview skeleton-demo">
+        <div class="skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-content">
+            <div class="skeleton-line skeleton-line-title"></div>
+            <div class="skeleton-line skeleton-line-short"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line skeleton-line-medium"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="skeleton-card"&gt;
+  &lt;div class="skeleton-avatar"&gt;&lt;/div&gt;
+  &lt;div class="skeleton-content"&gt;
+    &lt;div class="skeleton-line skeleton-line-title"&gt;&lt;/div&gt;
+    &lt;div class="skeleton-line"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Step Progress</h2>
+    <p>Multi-step process indicator.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview">
+        <div class="step-progress">
+          <div class="step completed">
+            <div class="step-indicator">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <span class="step-label">Account</span>
+          </div>
+          <div class="step-connector completed"></div>
+          <div class="step active">
+            <div class="step-indicator">2</div>
+            <span class="step-label">Profile</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step">
+            <div class="step-indicator">3</div>
+            <span class="step-label">Preferences</span>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step">
+            <div class="step-indicator">4</div>
+            <span class="step-label">Complete</span>
+          </div>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;div class="step-progress"&gt;
+  &lt;div class="step completed"&gt;
+    &lt;div class="step-indicator"&gt;✓&lt;/div&gt;
+    &lt;span class="step-label"&gt;Account&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class="step-connector completed"&gt;&lt;/div&gt;
+  &lt;div class="step active"&gt;
+    &lt;div class="step-indicator"&gt;2&lt;/div&gt;
+    &lt;span class="step-label"&gt;Profile&lt;/span&gt;
+  &lt;/div&gt;
+  ...
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+    <div class="demo-code">
+      <pre><code>/* Linear Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-sm { height: 4px; }
+.progress-bar-lg { height: 12px; }
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-ease-out);
+}
+
+/* Indeterminate Animation */
+.progress-indeterminate {
+  width: 30% !important;
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Persona Colors */
+.progress-ferni { background: var(--persona-ferni); }
+.progress-maya { background: var(--persona-maya); }
+.progress-jordan { background: var(--persona-jordan); }
+
+/* Spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+.spinner-lg { width: 40px; height: 40px; border-width: 4px; }
+
+.spinner-white { border-color: rgba(255,255,255,0.3); border-top-color: white; }
+.spinner-ferni { border-top-color: var(--persona-ferni); }
+.spinner-maya { border-top-color: var(--persona-maya); }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse Loader */
+.pulse-loader {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+.pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* Skeleton */
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Step Progress */
+.step-progress {
+  display: flex;
+  align-items: center;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step-indicator {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-medium);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--bg-primary);
+}
+
+.step.active .step-indicator {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.step.completed .step-indicator {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle);
+  margin: 0 var(--space-2);
+}
+
+.step-connector.completed {
+  background: var(--accent-primary);
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+    <ul class="guidelines-list">
+      <li><strong>ARIA roles</strong>: Use <code>role="progressbar"</code> with <code>aria-valuenow</code>, <code>aria-valuemin</code>, <code>aria-valuemax</code></li>
+      <li><strong>Live regions</strong>: Announce progress updates with <code>aria-live="polite"</code></li>
+      <li><strong>Reduced motion</strong>: Respect <code>prefers-reduced-motion</code> - use opacity changes instead of animation</li>
+      <li><strong>Focus management</strong>: Don't trap focus during loading states</li>
+      <li><strong>Text alternatives</strong>: Provide status text for screen readers, not just visual indicators</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Usage Guidelines</h2>
+    <div class="guidelines-grid">
+      <div class="guideline do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>Use determinate progress when completion is known</li>
+          <li>Show estimated time for long operations</li>
+          <li>Allow cancellation when possible</li>
+          <li>Use skeleton loaders for content-heavy pages</li>
+        </ul>
+      </div>
+      <div class="guideline dont">
+        <h4>✗ Don't</h4>
+        <ul>
+          <li>Use progress bars for instant operations</li>
+          <li>Show multiple spinners simultaneously</li>
+          <li>Block the entire UI during loading</li>
+          <li>Use animation-heavy loaders on low-end devices</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-container {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-top: var(--space-6);
+}
+
+.demo-preview {
+  padding: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  background: var(--bg-secondary);
+  min-height: 120px;
+}
+
+.demo-code {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.demo-code pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+}
+
+.demo-code code {
+  color: var(--text-primary);
+}
+
+/* Progress Demo */
+.progress-demo {
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+}
+
+.progress-group {
+  width: 100%;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.progress-label-single {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-sm { height: 4px; }
+.progress-bar-lg { height: 12px; }
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-ease-out);
+}
+
+/* Indeterminate */
+.progress-indeterminate {
+  width: 30% !important;
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Persona Colors */
+.progress-ferni { background: var(--persona-ferni); }
+.progress-maya { background: var(--persona-maya); }
+.progress-jordan { background: var(--persona-jordan); }
+
+/* Spinner */
+.spinner-demo {
+  gap: var(--space-8);
+}
+
+.spinner-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm { width: 16px; height: 16px; border-width: 2px; }
+.spinner-lg { width: 40px; height: 40px; border-width: 4px; }
+
+.spinner-white {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+}
+
+.spinner-ferni { border-top-color: var(--persona-ferni); }
+.spinner-maya { border-top-color: var(--persona-maya); }
+.spinner-alex { border-top-color: var(--persona-alex); }
+.spinner-jordan { border-top-color: var(--persona-jordan); }
+.spinner-peter { border-top-color: var(--persona-peter); }
+.spinner-nayan { border-top-color: var(--persona-nayan); }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse Loader */
+.pulse-loader {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+.pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Button Loading */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.btn-loading {
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Skeleton */
+.skeleton-demo {
+  width: 100%;
+  max-width: 400px;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-secondary) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-line-title {
+  width: 60%;
+  height: 16px;
+}
+
+.skeleton-line-short {
+  width: 40%;
+}
+
+.skeleton-line-medium {
+  width: 80%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Step Progress */
+.step-progress {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 500px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.step-indicator {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border-medium);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.step.active .step-indicator {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.step.completed .step-indicator {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.step-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.step.active .step-label {
+  color: var(--accent-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle);
+  margin: 16px var(--space-2) 0;
+  min-width: 40px;
+}
+
+.step-connector.completed {
+  background: var(--accent-primary);
+}
+
+/* Guidelines */
+.guidelines-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-6);
+}
+
+.guidelines-list li {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.guidelines-list li:last-child {
+  border-bottom: none;
+}
+
+.guidelines-list code {
+  background: var(--bg-secondary);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.guideline {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.guideline h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.guideline.do h4 { color: var(--success); }
+.guideline.dont h4 { color: var(--error); }
+
+.guideline ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guideline li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .pulse-dot,
+  .skeleton-line,
+  .skeleton-avatar,
+  .progress-indeterminate {
+    animation: none;
+  }
+
+  .spinner {
+    border-top-color: var(--accent-primary);
+    opacity: 0.7;
+  }
+
+  .pulse-dot {
+    opacity: 0.6;
+  }
+}
+
+/* Interactive Slider */
+.progress-slider {
+  width: 100%;
+  margin-top: var(--space-4);
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-ease-out);
+}
+
+.progress-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.progress-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .demo-preview {
+    padding: var(--space-6);
+  }
+
+  .step-progress {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .step-connector {
+    display: none;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var slider = document.getElementById('progress-slider');
+  var progressFill = document.getElementById('progress-interactive');
+  var progressPercent = document.getElementById('progress-percent');
+  var progressStatus = document.getElementById('progress-status');
+
+  if (slider && progressFill && progressPercent && progressStatus) {
+    slider.addEventListener('input', function() {
+      var value = this.value;
+      progressFill.style.width = value + '%';
+      progressPercent.textContent = value + '%';
+
+      // Update status text based on value
+      if (value == 0) {
+        progressStatus.textContent = 'Not started';
+      } else if (value < 30) {
+        progressStatus.textContent = 'Starting...';
+      } else if (value < 60) {
+        progressStatus.textContent = 'In progress...';
+      } else if (value < 90) {
+        progressStatus.textContent = 'Almost there...';
+      } else if (value < 100) {
+        progressStatus.textContent = 'Finishing up...';
+      } else {
+        progressStatus.textContent = 'Complete!';
+      }
+    });
+  }
+});
+</script>

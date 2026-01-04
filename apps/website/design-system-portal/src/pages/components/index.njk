@@ -12,7 +12,8 @@ permalink: /components/
   </header>
 
   <section class="section">
-    <h2>Core Components</h2>
+    <h2>All Components</h2>
+    <p class="component-count">13 components available</p>
 
     <div class="component-grid">
       <a href="/components/avatar/" class="component-card">
@@ -27,6 +28,16 @@ permalink: /components/
         </div>
         <h3>Avatar</h3>
         <p>Expressive persona avatars with emotion states and animations</p>
+      </a>
+
+      <a href="/components/badge/" class="component-card">
+        <div class="component-preview badge-preview">
+          <span class="badge-demo-success">Active</span>
+          <span class="badge-demo-warning">Pending</span>
+          <span class="badge-demo-info">New</span>
+        </div>
+        <h3>Badge</h3>
+        <p>Status indicators, labels, and notification badges</p>
       </a>
 
       <a href="/components/buttons/" class="component-card">
@@ -45,12 +56,69 @@ permalink: /components/
         <p>Content containers with elevation and persona accents</p>
       </a>
 
+      <a href="/components/dropdown/" class="component-card">
+        <div class="component-preview dropdown-preview">
+          <div class="dropdown-demo">
+            <span>Menu</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+        <h3>Dropdown</h3>
+        <p>Menu dropdowns and selection lists</p>
+      </a>
+
       <a href="/components/glass/" class="component-card">
         <div class="component-preview glass-preview">
           <div class="glass-demo"></div>
         </div>
         <h3>Glass Surfaces</h3>
         <p>Frosted glass effects for overlays and modals</p>
+      </a>
+
+      <a href="/components/inputs/" class="component-card">
+        <div class="component-preview input-preview">
+          <div class="input-demo"></div>
+        </div>
+        <h3>Inputs</h3>
+        <p>Text fields, selects, and form controls</p>
+      </a>
+
+      <a href="/components/modal/" class="component-card">
+        <div class="component-preview modal-preview">
+          <div class="modal-demo">
+            <div class="modal-demo-header"></div>
+            <div class="modal-demo-body"></div>
+          </div>
+        </div>
+        <h3>Modal</h3>
+        <p>Dialog windows for focused interactions</p>
+      </a>
+
+      <a href="/components/progress/" class="component-card">
+        <div class="component-preview progress-preview">
+          <div class="progress-demo">
+            <div class="progress-bar-demo">
+              <div class="progress-fill-demo"></div>
+            </div>
+            <div class="spinner-demo-small"></div>
+          </div>
+        </div>
+        <h3>Progress</h3>
+        <p>Progress bars, spinners, and loading states</p>
+      </a>
+
+      <a href="/components/tabs/" class="component-card">
+        <div class="component-preview tabs-preview">
+          <div class="tabs-demo">
+            <span class="tab-demo active">Tab 1</span>
+            <span class="tab-demo">Tab 2</span>
+            <span class="tab-demo">Tab 3</span>
+          </div>
+        </div>
+        <h3>Tabs</h3>
+        <p>Tabbed navigation for content sections</p>
       </a>
 
       <a href="/components/toast/" class="component-card">
@@ -66,12 +134,15 @@ permalink: /components/
         <p>Non-intrusive feedback notifications</p>
       </a>
 
-      <a href="/components/inputs/" class="component-card">
-        <div class="component-preview input-preview">
-          <div class="input-demo"></div>
+      <a href="/components/tooltip/" class="component-card">
+        <div class="component-preview tooltip-preview">
+          <div class="tooltip-demo-wrapper">
+            <div class="tooltip-demo-trigger">Hover</div>
+            <div class="tooltip-demo-popup">Tooltip</div>
+          </div>
         </div>
-        <h3>Inputs</h3>
-        <p>Text fields, selects, and form controls</p>
+        <h3>Tooltip</h3>
+        <p>Contextual hints and information popups</p>
       </a>
     </div>
   </section>
@@ -288,6 +359,161 @@ permalink: /components/
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-medium);
+}
+
+/* Badge Preview */
+.badge-preview {
+  gap: var(--space-2);
+}
+
+.badge-demo-success,
+.badge-demo-warning,
+.badge-demo-info {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+}
+
+.badge-demo-success {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.badge-demo-warning {
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
+  color: #92400e;
+}
+
+.badge-demo-info {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+/* Dropdown Preview */
+.dropdown-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* Modal Preview */
+.modal-demo {
+  width: 80%;
+  height: 70%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.modal-demo-header {
+  height: 24px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-demo-body {
+  padding: var(--space-3);
+}
+
+/* Progress Preview */
+.progress-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: 80%;
+}
+
+.progress-bar-demo {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-fill-demo {
+  width: 65%;
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+}
+
+.spinner-demo-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Tabs Preview */
+.tabs-demo {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.tab-demo {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+}
+
+.tab-demo.active {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Tooltip Preview */
+.tooltip-demo-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tooltip-demo-trigger {
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.tooltip-demo-popup {
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+/* Component count */
+.component-count {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: calc(var(--space-2) * -1);
 }
 
 .component-card h3 {

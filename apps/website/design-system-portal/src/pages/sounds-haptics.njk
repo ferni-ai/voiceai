@@ -1,0 +1,1247 @@
+---
+layout: layouts/base.njk
+title: Sounds & Haptics
+description: Multi-sensory design - Audio and touch feedback that feels human
+permalink: /sounds-haptics/
+---
+
+<article class="sensory-page">
+  <header class="page-header">
+    <h1>Sounds & Haptics</h1>
+    <p class="lead">Ferni communicates through multiple senses. Audio and haptic feedback should feel organic, warm, and intentional—never clinical or mechanical.</p>
+  </header>
+
+  <!-- Philosophy Section -->
+  <section class="section">
+    <h2>Philosophy</h2>
+    <div class="philosophy-cards">
+      <div class="philosophy-card">
+        <div class="philosophy-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/>
+            <circle cx="6" cy="18" r="3"/>
+            <circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <h3>Sound</h3>
+        <p>Every sound should feel like it belongs in nature—warm chimes, soft tones, organic textures. Never harsh, never robotic.</p>
+      </div>
+      <div class="philosophy-card">
+        <div class="philosophy-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+          </svg>
+        </div>
+        <h3>Haptics</h3>
+        <p>Touch feedback that feels like communication—breathing rhythms, heartbeats, gentle acknowledgments. Felt, not noticed.</p>
+      </div>
+      <div class="philosophy-card">
+        <div class="philosophy-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <h3>Timing</h3>
+        <p>Synchronize with user actions. Immediate for confirmations, gentle delays for emotional moments. Never jarring.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sound Categories -->
+  <section class="section" id="sounds">
+    <h2>Sound Library</h2>
+    <p>All sounds are designed to feel warm and organic. Each category serves a specific emotional purpose.</p>
+
+    <!-- System Sounds -->
+    <div class="sound-category">
+      <h3>System Sounds</h3>
+      <p class="category-desc">Core application feedback—connection, thinking, session state.</p>
+
+      <div class="sound-grid">
+        <div class="sound-card">
+          <div class="sound-header">
+            <span class="sound-name">startup</span>
+            <span class="sound-duration">2000ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-tag">preload</span>
+            <span class="sound-volume">-6dB</span>
+          </div>
+          <p class="sound-desc">Warm welcome when app launches. Sets the emotional tone.</p>
+          <button class="sound-play" data-sound="startup">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Preview
+          </button>
+        </div>
+
+        <div class="sound-card">
+          <div class="sound-header">
+            <span class="sound-name">connectionSuccess</span>
+            <span class="sound-duration">1200ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-tag">preload</span>
+            <span class="sound-volume">-6dB</span>
+          </div>
+          <p class="sound-desc">Voice connection established. Relief and readiness.</p>
+          <button class="sound-play" data-sound="connectionSuccess">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Preview
+          </button>
+        </div>
+
+        <div class="sound-card">
+          <div class="sound-header">
+            <span class="sound-name">connectionLost</span>
+            <span class="sound-duration">1500ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-tag">preload</span>
+            <span class="sound-volume">-9dB</span>
+          </div>
+          <p class="sound-desc">Connection dropped. Concern but not alarm.</p>
+          <button class="sound-play" data-sound="connectionLost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Preview
+          </button>
+        </div>
+
+        <div class="sound-card">
+          <div class="sound-header">
+            <span class="sound-name">thinking</span>
+            <span class="sound-duration">3000ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-tag loop">loop</span>
+            <span class="sound-volume">-18dB</span>
+          </div>
+          <p class="sound-desc">Ambient thinking sound. Subtle presence while processing.</p>
+          <button class="sound-play" data-sound="thinking">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Preview
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Celebration Sounds -->
+    <div class="sound-category">
+      <h3>Celebration Sounds</h3>
+      <p class="category-desc">Moments of joy and achievement—scaled to the win.</p>
+
+      <div class="sound-grid">
+        <div class="sound-card celebration">
+          <div class="sound-header">
+            <span class="sound-name">small</span>
+            <span class="sound-duration">1800ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-volume">-3dB</span>
+          </div>
+          <p class="sound-desc">Quick win. Task complete, small milestone.</p>
+        </div>
+
+        <div class="sound-card celebration">
+          <div class="sound-header">
+            <span class="sound-name">big</span>
+            <span class="sound-duration">2500ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-volume">0dB</span>
+          </div>
+          <p class="sound-desc">Major achievement. Goal reached, breakthrough moment.</p>
+        </div>
+
+        <div class="sound-card celebration">
+          <div class="sound-header">
+            <span class="sound-name">milestone</span>
+            <span class="sound-duration">3000ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-volume">-3dB</span>
+          </div>
+          <p class="sound-desc">Life milestone. Rare, meaningful, memorable.</p>
+        </div>
+
+        <div class="sound-card celebration">
+          <div class="sound-header">
+            <span class="sound-name">streak</span>
+            <span class="sound-duration">2000ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-volume">-6dB</span>
+          </div>
+          <p class="sound-desc">Consistency win. 7-day streak, 30-day streak.</p>
+        </div>
+
+        <div class="sound-card celebration">
+          <div class="sound-header">
+            <span class="sound-name">teamUnlock</span>
+            <span class="sound-duration">2500ms</span>
+          </div>
+          <div class="sound-meta">
+            <span class="sound-volume">-3dB</span>
+          </div>
+          <p class="sound-desc">New team member unlocked. Arrival, potential, excitement.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona Handoff Sounds -->
+    <div class="sound-category">
+      <h3>Persona Handoff Sounds</h3>
+      <p class="category-desc">Each persona has a unique audio signature for transitions.</p>
+
+      <div class="persona-sound-grid">
+        <div class="persona-sound-card" data-persona="ferni">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Ferni</span>
+            <span class="persona-duration">1500ms</span>
+          </div>
+          <p class="persona-character">Warm, grounding, like coming home</p>
+        </div>
+
+        <div class="persona-sound-card" data-persona="maya">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="6"/>
+              <circle cx="12" cy="12" r="2"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Maya</span>
+            <span class="persona-duration">1300ms</span>
+          </div>
+          <p class="persona-character">Steady, rhythmic, focused energy</p>
+        </div>
+
+        <div class="persona-sound-card" data-persona="peter">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"/>
+              <path d="M18 17V9"/>
+              <path d="M13 17V5"/>
+              <path d="M8 17v-3"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Peter</span>
+            <span class="persona-duration">1200ms</span>
+          </div>
+          <p class="persona-character">Quick, curious, analytical sparkle</p>
+        </div>
+
+        <div class="persona-sound-card" data-persona="alex">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Alex</span>
+            <span class="persona-duration">1400ms</span>
+          </div>
+          <p class="persona-character">Clear, empathetic, smooth flow</p>
+        </div>
+
+        <div class="persona-sound-card" data-persona="jordan">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Jordan</span>
+            <span class="persona-duration">1500ms</span>
+          </div>
+          <p class="persona-character">Joyful, bouncy, celebration energy</p>
+        </div>
+
+        <div class="persona-sound-card" data-persona="nayan">
+          <div class="persona-avatar">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </div>
+          <div class="persona-sound-info">
+            <span class="persona-name">Nayan</span>
+            <span class="persona-duration">2000ms</span>
+          </div>
+          <p class="persona-character">Deep, resonant, philosophical space</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ambient Sounds -->
+    <div class="sound-category">
+      <h3>Ambient Sounds</h3>
+      <p class="category-desc">Background textures for extended sessions. User-controlled, very quiet.</p>
+
+      <div class="ambient-grid">
+        <div class="ambient-card">
+          <div class="ambient-visual zen-garden"></div>
+          <div class="ambient-info">
+            <h4>Zen Garden</h4>
+            <span class="ambient-duration">3 min loop</span>
+            <span class="ambient-volume">-24dB</span>
+          </div>
+        </div>
+        <div class="ambient-card">
+          <div class="ambient-visual cozy-interior"></div>
+          <div class="ambient-info">
+            <h4>Cozy Interior</h4>
+            <span class="ambient-duration">3 min loop</span>
+            <span class="ambient-volume">-24dB</span>
+          </div>
+        </div>
+        <div class="ambient-card">
+          <div class="ambient-visual focused-calm"></div>
+          <div class="ambient-info">
+            <h4>Focused Calm</h4>
+            <span class="ambient-duration">2 min loop</span>
+            <span class="ambient-volume">-30dB</span>
+          </div>
+        </div>
+        <div class="ambient-card">
+          <div class="ambient-visual night-mode"></div>
+          <div class="ambient-info">
+            <h4>Night Mode</h4>
+            <span class="ambient-duration">5 min loop</span>
+            <span class="ambient-volume">-36dB</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Haptics Section -->
+  <section class="section" id="haptics">
+    <h2>Haptic Patterns</h2>
+    <p>Haptics are not decoration—they're communication. Every vibration should feel intentional and human.</p>
+
+    <!-- Intensity Scale -->
+    <div class="haptic-subsection">
+      <h3>Intensity Scale</h3>
+      <div class="intensity-scale">
+        <div class="intensity-level">
+          <div class="intensity-bar" style="--intensity: 20%;"></div>
+          <span class="intensity-name">Whisper</span>
+          <span class="intensity-value">Level 1</span>
+          <span class="intensity-use">Subtle acknowledgment</span>
+        </div>
+        <div class="intensity-level">
+          <div class="intensity-bar" style="--intensity: 40%;"></div>
+          <span class="intensity-name">Soft</span>
+          <span class="intensity-value">Level 2</span>
+          <span class="intensity-use">Default interactions</span>
+        </div>
+        <div class="intensity-level">
+          <div class="intensity-bar" style="--intensity: 60%;"></div>
+          <span class="intensity-name">Medium</span>
+          <span class="intensity-value">Level 3</span>
+          <span class="intensity-use">Confirmations</span>
+        </div>
+        <div class="intensity-level">
+          <div class="intensity-bar" style="--intensity: 80%;"></div>
+          <span class="intensity-name">Strong</span>
+          <span class="intensity-value">Level 4</span>
+          <span class="intensity-use">Important moments</span>
+        </div>
+        <div class="intensity-level">
+          <div class="intensity-bar" style="--intensity: 100%;"></div>
+          <span class="intensity-name">Emphasis</span>
+          <span class="intensity-value">Level 5</span>
+          <span class="intensity-use">Celebrations only</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Organic Patterns -->
+    <div class="haptic-subsection">
+      <h3>Organic Patterns</h3>
+      <p>Ferni's signature haptics—breathing, pulsing, living.</p>
+
+      <div class="haptic-pattern-grid">
+        <div class="haptic-pattern-card">
+          <div class="pattern-waveform ferni-breath">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+              <path d="M0,25 Q25,10 50,25 T100,25 T150,25 T200,25" fill="none" stroke="var(--color-ferni)" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Ferni Breath</h4>
+          <div class="pattern-meta">
+            <span>300ms</span>
+            <span>Intensity 2</span>
+            <span>Sine curve</span>
+          </div>
+          <p>Core breathing pattern. Warm, grounding, nurturing.</p>
+          <code class="pattern-use">Connection established, presence confirmation</code>
+        </div>
+
+        <div class="haptic-pattern-card">
+          <div class="pattern-waveform warm-pulse">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+              <path d="M0,40 Q50,10 100,25 Q150,40 200,40" fill="none" stroke="var(--color-maya)" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Warm Pulse</h4>
+          <div class="pattern-meta">
+            <span>250ms</span>
+            <span>Intensity 3</span>
+            <span>Ease-in-out</span>
+          </div>
+          <p>Gentle warmth pulse. Emotional acknowledgment.</p>
+          <code class="pattern-use">Empathy moment, understanding</code>
+        </div>
+
+        <div class="haptic-pattern-card">
+          <div class="pattern-waveform heartbeat">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+              <path d="M0,25 L20,25 L30,10 L40,40 L50,25 L80,25 L90,15 L100,35 L110,25 L200,25" fill="none" stroke="var(--color-jordan)" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Heartbeat</h4>
+          <div class="pattern-meta">
+            <span>800ms</span>
+            <span>Intensity 3, 2.5</span>
+            <span>Double-beat</span>
+          </div>
+          <p>Connection and love. Deep milestone moments.</p>
+          <code class="pattern-use">Deep connection, milestone</code>
+        </div>
+
+        <div class="haptic-pattern-card">
+          <div class="pattern-waveform slow-breath">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+              <path d="M0,40 Q100,5 200,40" fill="none" stroke="var(--color-nayan)" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Slow Breath</h4>
+          <div class="pattern-meta">
+            <span>500ms</span>
+            <span>Intensity 2</span>
+            <span>Sine curve</span>
+          </div>
+          <p>Extended breath. Calm, wisdom, contemplation.</p>
+          <code class="pattern-use">Sage persona, reflection</code>
+        </div>
+
+        <div class="haptic-pattern-card">
+          <div class="pattern-waveform quick-breath">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none">
+              <path d="M0,40 Q30,10 60,25 Q90,35 120,40 L200,40" fill="none" stroke="var(--color-peter)" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Quick Breath</h4>
+          <div class="pattern-meta">
+            <span>200ms</span>
+            <span>Intensity 2</span>
+            <span>Ease-out</span>
+          </div>
+          <p>Short energetic breath. Curiosity, discovery.</p>
+          <code class="pattern-use">Researcher energy, eureka</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona Haptic Signatures -->
+    <div class="haptic-subsection">
+      <h3>Persona Signatures</h3>
+      <p>Each persona has a unique haptic fingerprint reflecting their personality.</p>
+
+      <div class="persona-haptic-grid">
+        <div class="persona-haptic-card" data-persona="ferni">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Ferni</h4>
+          </div>
+          <p class="persona-haptic-desc">Warm, grounding, nurturing—life coach energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">ferniBreath, 300ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Acknowledgment</span>
+              <span class="action-pattern">doubleTap, 40ms gap</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Insight</span>
+              <span class="action-pattern">heartbeat, 300ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="persona-haptic-card" data-persona="maya">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Maya</h4>
+          </div>
+          <p class="persona-haptic-desc">Steady, rhythmic, reliable—architect energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">steadyRhythm, 300ms interval</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Task Complete</span>
+              <span class="action-pattern">click, 20ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Progress</span>
+              <span class="action-pattern">ramp, 400ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="persona-haptic-card" data-persona="peter">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Peter</h4>
+          </div>
+          <p class="persona-haptic-desc">Curious, energetic, quick—researcher energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">quickBreath, 200ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Discovery</span>
+              <span class="action-pattern">burst, 300ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Eureka</span>
+              <span class="action-pattern">bigWin, 350ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="persona-haptic-card" data-persona="alex">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Alex</h4>
+          </div>
+          <p class="persona-haptic-desc">Clear, empathetic, smooth—communicator energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">smoothBreath, 350ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Empathy</span>
+              <span class="action-pattern">warmPulse, 250ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Clarity</span>
+              <span class="action-pattern">doubleTap, 35ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="persona-haptic-card" data-persona="jordan">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Jordan</h4>
+          </div>
+          <p class="persona-haptic-desc">Joyful, bouncy, celebratory—event planner energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">bouncyPulse, 250ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Excitement</span>
+              <span class="action-pattern">sparkle, 350ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Celebration</span>
+              <span class="action-pattern">bigWin, 500ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="persona-haptic-card" data-persona="nayan">
+          <div class="persona-haptic-header">
+            <span class="persona-dot"></span>
+            <h4>Nayan</h4>
+          </div>
+          <p class="persona-haptic-desc">Deep, integrative, philosophical—wisdom energy</p>
+          <div class="haptic-actions">
+            <div class="haptic-action">
+              <span class="action-name">Speaking</span>
+              <span class="action-pattern">deepBreath, 600ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Contemplation</span>
+              <span class="action-pattern">slowBreath, 800ms</span>
+            </div>
+            <div class="haptic-action">
+              <span class="action-name">Integration</span>
+              <span class="action-pattern">heartbeat, 600ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Emotional Haptics -->
+    <div class="haptic-subsection">
+      <h3>Emotional Haptics</h3>
+      <p>Haptic responses to detected emotional states. Making the invisible visible through touch.</p>
+
+      <div class="emotional-haptic-grid">
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon empathy">💛</div>
+          <h4>Empathy</h4>
+          <p>Like a gentle hand on shoulder</p>
+          <code>warmPulse, 300ms, intensity 3</code>
+        </div>
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon encouragement">💪</div>
+          <h4>Encouragement</h4>
+          <p>Supportive energy</p>
+          <code>quickBreath, 200ms, intensity 2</code>
+        </div>
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon understanding">🤝</div>
+          <h4>Understanding</h4>
+          <p>I get it</p>
+          <code>heartbeat, 500ms, intensity 2</code>
+        </div>
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon concern">🌿</div>
+          <h4>Concern</h4>
+          <p>Calming presence</p>
+          <code>slowBreath, 400ms, intensity 2</code>
+        </div>
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon celebration">🎉</div>
+          <h4>Celebration</h4>
+          <p>Pure joy</p>
+          <code>bigWin, 400ms, intensity 3</code>
+        </div>
+        <div class="emotional-haptic-card">
+          <div class="emotion-icon curiosity">✨</div>
+          <h4>Curiosity</h4>
+          <p>Tell me more</p>
+          <code>quickBreath, 180ms, intensity 2</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accessibility Section -->
+  <section class="section" id="accessibility">
+    <h2>Accessibility</h2>
+    <p>Sensory feedback must respect user preferences and never be the only feedback channel.</p>
+
+    <div class="accessibility-rules">
+      <div class="rule-card">
+        <h4>System Preferences</h4>
+        <ul>
+          <li>Always check <code>isReduceMotionEnabled</code></li>
+          <li>Always check <code>isHapticsEnabled</code></li>
+          <li>Reduce intensity 50% in low power mode</li>
+        </ul>
+      </div>
+      <div class="rule-card">
+        <h4>Fallbacks</h4>
+        <ul>
+          <li>Haptics disabled → Visual + audio feedback only</li>
+          <li>Audio disabled → Visual + haptic feedback</li>
+          <li>Always provide visual confirmation</li>
+        </ul>
+      </div>
+      <div class="rule-card">
+        <h4>Principles</h4>
+        <ul>
+          <li>Never make haptics the only feedback</li>
+          <li>Always pair with visual or audio</li>
+          <li>Provide option to disable all haptics</li>
+          <li>Test on real devices, not simulators</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Implementation -->
+  <section class="section" id="implementation">
+    <h2>Implementation</h2>
+
+    <h3>iOS (Swift)</h3>
+    <pre><code class="language-swift">// Ferni Breath Pattern
+let generator = UIImpactFeedbackGenerator(style: .medium)
+generator.prepare()
+
+func playFerniBreath() {
+    let pattern: [Double] = [0.2, 0.4, 0.6, 0.8, 1.0, 0.8, 0.6, 0.4, 0.2, 0]
+    for (index, intensity) in pattern.enumerated() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.03) {
+            generator.impactOccurred(intensity: CGFloat(intensity))
+        }
+    }
+}</code></pre>
+
+    <h3>Android (Kotlin)</h3>
+    <pre><code class="language-kotlin">// Ferni Breath Pattern
+fun playFerniBreath(vibrator: Vibrator) {
+    val timings = longArrayOf(0, 30, 30, 30, 30, 30, 30, 30, 30, 30)
+    val amplitudes = intArrayOf(0, 51, 102, 153, 204, 255, 204, 153, 102, 51)
+    val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
+    vibrator.vibrate(effect)
+}</code></pre>
+
+    <h3>Web (Limited Support)</h3>
+    <pre><code class="language-javascript">// Web haptics have limited support
+// Use visual pulse as fallback
+function playFerniBreath() {
+    if ('vibrate' in navigator) {
+        navigator.vibrate([30, 30, 30, 30, 30, 30, 30, 30, 30, 30]);
+    }
+    // Always show visual feedback
+    element.classList.add('pulse-animation');
+}</code></pre>
+  </section>
+</article>
+
+<style>
+/* Sounds & Haptics Page Styles */
+.sensory-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Philosophy Cards */
+.philosophy-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.philosophy-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+}
+
+.philosophy-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  color: var(--text-inverse);
+}
+
+.philosophy-card h3 {
+  margin-bottom: var(--space-2);
+}
+
+/* Sound Category */
+.sound-category {
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.sound-category:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sound-category h3 {
+  margin-bottom: var(--space-2);
+}
+
+.category-desc {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.sound-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.sound-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.sound-card.celebration {
+  border-left: 3px solid var(--color-jordan);
+}
+
+.sound-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.sound-name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sound-duration {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.sound-meta {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.sound-tag {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.sound-tag.loop {
+  background: var(--color-peter);
+}
+
+.sound-volume {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.sound-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.sound-play {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sound-play:hover {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border-color: var(--accent-primary);
+}
+
+/* Persona Sound Grid */
+.persona-sound-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.persona-sound-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.persona-sound-card[data-persona="ferni"] { border-left: 3px solid var(--color-ferni); }
+.persona-sound-card[data-persona="maya"] { border-left: 3px solid var(--color-maya); }
+.persona-sound-card[data-persona="peter"] { border-left: 3px solid var(--color-peter); }
+.persona-sound-card[data-persona="alex"] { border-left: 3px solid var(--color-alex); }
+.persona-sound-card[data-persona="jordan"] { border-left: 3px solid var(--color-jordan); }
+.persona-sound-card[data-persona="nayan"] { border-left: 3px solid var(--color-nayan); }
+
+.persona-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.persona-sound-card[data-persona="ferni"] .persona-avatar { color: var(--color-ferni); }
+.persona-sound-card[data-persona="maya"] .persona-avatar { color: var(--color-maya); }
+.persona-sound-card[data-persona="peter"] .persona-avatar { color: var(--color-peter); }
+.persona-sound-card[data-persona="alex"] .persona-avatar { color: var(--color-alex); }
+.persona-sound-card[data-persona="jordan"] .persona-avatar { color: var(--color-jordan); }
+.persona-sound-card[data-persona="nayan"] .persona-avatar { color: var(--color-nayan); }
+
+.persona-sound-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.persona-name {
+  font-weight: 600;
+}
+
+.persona-duration {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.persona-character {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  grid-column: 2;
+}
+
+/* Ambient Grid */
+.ambient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.ambient-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.ambient-visual {
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+}
+
+.ambient-visual.zen-garden {
+  background: linear-gradient(135deg, #4a6741 0%, #5a8a62 50%, #3a5a4a 100%);
+}
+
+.ambient-visual.cozy-interior {
+  background: linear-gradient(135deg, #a67a6a 0%, #c4a080 50%, #8a6a5a 100%);
+}
+
+.ambient-visual.focused-calm {
+  background: linear-gradient(135deg, #5a6b8a 0%, #7a8ba0 50%, #4a5a7a 100%);
+}
+
+.ambient-visual.night-mode {
+  background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 50%, #16213e 100%);
+}
+
+.ambient-info {
+  padding: var(--space-4);
+}
+
+.ambient-info h4 {
+  margin-bottom: var(--space-2);
+}
+
+.ambient-duration,
+.ambient-volume {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-right: var(--space-3);
+}
+
+/* Haptics Section */
+.haptic-subsection {
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.haptic-subsection:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Intensity Scale */
+.intensity-scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.intensity-level {
+  display: grid;
+  grid-template-columns: 120px 80px 1fr;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+
+.intensity-bar {
+  height: 8px;
+  background: linear-gradient(90deg, var(--accent-primary) var(--intensity), var(--bg-subtle) var(--intensity));
+  border-radius: var(--radius-full);
+}
+
+.intensity-name {
+  font-weight: 600;
+}
+
+.intensity-value {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.intensity-use {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Haptic Pattern Grid */
+.haptic-pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.haptic-pattern-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.pattern-waveform {
+  height: 50px;
+  margin-bottom: var(--space-4);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+}
+
+.pattern-waveform svg {
+  width: 100%;
+  height: 100%;
+}
+
+.haptic-pattern-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.pattern-meta {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.pattern-use {
+  display: block;
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* Persona Haptic Grid */
+.persona-haptic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.persona-haptic-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.persona-haptic-card[data-persona="ferni"] { border-top: 3px solid var(--color-ferni); }
+.persona-haptic-card[data-persona="maya"] { border-top: 3px solid var(--color-maya); }
+.persona-haptic-card[data-persona="peter"] { border-top: 3px solid var(--color-peter); }
+.persona-haptic-card[data-persona="alex"] { border-top: 3px solid var(--color-alex); }
+.persona-haptic-card[data-persona="jordan"] { border-top: 3px solid var(--color-jordan); }
+.persona-haptic-card[data-persona="nayan"] { border-top: 3px solid var(--color-nayan); }
+
+.persona-haptic-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.persona-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+}
+
+.persona-haptic-card[data-persona="ferni"] .persona-dot { background: var(--color-ferni); }
+.persona-haptic-card[data-persona="maya"] .persona-dot { background: var(--color-maya); }
+.persona-haptic-card[data-persona="peter"] .persona-dot { background: var(--color-peter); }
+.persona-haptic-card[data-persona="alex"] .persona-dot { background: var(--color-alex); }
+.persona-haptic-card[data-persona="jordan"] .persona-dot { background: var(--color-jordan); }
+.persona-haptic-card[data-persona="nayan"] .persona-dot { background: var(--color-nayan); }
+
+.persona-haptic-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.haptic-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.haptic-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.action-name {
+  color: var(--text-secondary);
+}
+
+.action-pattern {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Emotional Haptic Grid */
+.emotional-haptic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.emotional-haptic-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  border: 1px solid var(--border-subtle);
+}
+
+.emotion-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-3);
+}
+
+.emotional-haptic-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.emotional-haptic-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.emotional-haptic-card code {
+  font-size: var(--text-xs);
+  display: block;
+}
+
+/* Accessibility Rules */
+.accessibility-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.rule-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.rule-card h4 {
+  margin-bottom: var(--space-3);
+}
+
+.rule-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.rule-card li {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rule-card li:last-child {
+  border-bottom: none;
+}
+
+.rule-card code {
+  font-size: var(--text-xs);
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .intensity-level {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .persona-sound-card {
+    grid-template-columns: 1fr;
+  }
+
+  .persona-character {
+    grid-column: 1;
+  }
+}
+</style>

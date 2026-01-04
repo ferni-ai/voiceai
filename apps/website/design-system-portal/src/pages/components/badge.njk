@@ -1,0 +1,809 @@
+---
+layout: layouts/base.njk
+title: Badge
+description: Status indicators, labels, and notification badges
+permalink: /components/badge/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <h1>Badge</h1>
+    <p class="lead">Compact visual indicators for status, categories, counts, and labels. Badges draw attention to important information.</p>
+  </header>
+
+  <section class="section">
+    <h2>Status Badges</h2>
+    <p>Use semantic colors to communicate status at a glance.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <span class="badge badge-success">Active</span>
+        <span class="badge badge-warning">Pending</span>
+        <span class="badge badge-error">Offline</span>
+        <span class="badge badge-info">New</span>
+        <span class="badge badge-neutral">Draft</span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-success"&gt;Active&lt;/span&gt;
+&lt;span class="badge badge-warning"&gt;Pending&lt;/span&gt;
+&lt;span class="badge badge-error"&gt;Offline&lt;/span&gt;
+&lt;span class="badge badge-info"&gt;New&lt;/span&gt;
+&lt;span class="badge badge-neutral"&gt;Draft&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona Badges</h2>
+    <p>Use persona colors for team member identification.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <span class="badge badge-persona-ferni">Ferni</span>
+        <span class="badge badge-persona-maya">Maya</span>
+        <span class="badge badge-persona-alex">Alex</span>
+        <span class="badge badge-persona-jordan">Jordan</span>
+        <span class="badge badge-persona-peter">Peter</span>
+        <span class="badge badge-persona-nayan">Nayan</span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-persona-ferni"&gt;Ferni&lt;/span&gt;
+&lt;span class="badge badge-persona-maya"&gt;Maya&lt;/span&gt;
+&lt;span class="badge badge-persona-alex"&gt;Alex&lt;/span&gt;
+&lt;span class="badge badge-persona-jordan"&gt;Jordan&lt;/span&gt;
+&lt;span class="badge badge-persona-peter"&gt;Peter&lt;/span&gt;
+&lt;span class="badge badge-persona-nayan"&gt;Nayan&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Size Variants</h2>
+    <p>Badges come in three sizes to fit different contexts.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo badge-demo-sizes">
+        <div class="badge-size-group">
+          <span class="badge badge-sm badge-info">Small</span>
+          <span class="label">Small - metadata, tables</span>
+        </div>
+        <div class="badge-size-group">
+          <span class="badge badge-info">Default</span>
+          <span class="label">Default - most uses</span>
+        </div>
+        <div class="badge-size-group">
+          <span class="badge badge-lg badge-info">Large</span>
+          <span class="label">Large - emphasis</span>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-sm badge-info"&gt;Small&lt;/span&gt;
+&lt;span class="badge badge-info"&gt;Default&lt;/span&gt;
+&lt;span class="badge badge-lg badge-info"&gt;Large&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Pill Badges</h2>
+    <p>Fully rounded badges for softer appearance.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <span class="badge badge-pill badge-success">Completed</span>
+        <span class="badge badge-pill badge-warning">In Progress</span>
+        <span class="badge badge-pill badge-neutral">Not Started</span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-pill badge-success"&gt;Completed&lt;/span&gt;
+&lt;span class="badge badge-pill badge-warning"&gt;In Progress&lt;/span&gt;
+&lt;span class="badge badge-pill badge-neutral"&gt;Not Started&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Outlined Badges</h2>
+    <p>Subtle variant with border instead of fill.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <span class="badge badge-outline badge-success">Active</span>
+        <span class="badge badge-outline badge-warning">Pending</span>
+        <span class="badge badge-outline badge-error">Error</span>
+        <span class="badge badge-outline badge-info">Info</span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-outline badge-success"&gt;Active&lt;/span&gt;
+&lt;span class="badge badge-outline badge-warning"&gt;Pending&lt;/span&gt;
+&lt;span class="badge badge-outline badge-error"&gt;Error&lt;/span&gt;
+&lt;span class="badge badge-outline badge-info"&gt;Info&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Badges with Icons</h2>
+    <p>Add icons for additional visual context.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <span class="badge badge-success">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Verified
+        </span>
+        <span class="badge badge-warning">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Attention
+        </span>
+        <span class="badge badge-error">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Blocked
+        </span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-success"&gt;
+  &lt;svg&gt;...check icon...&lt;/svg&gt;
+  Verified
+&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Notification Dots</h2>
+    <p>Small indicator dots for notification counts or presence.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="badge-dot badge-dot-error"></span>
+          </button>
+          <span class="label">Unread</span>
+        </div>
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="badge-dot badge-dot-success"></span>
+          </button>
+          <span class="label">Online</span>
+        </div>
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span class="badge-dot badge-dot-warning"></span>
+          </button>
+          <span class="label">Pending</span>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;button class="icon-btn"&gt;
+  &lt;svg&gt;...icon...&lt;/svg&gt;
+  &lt;span class="badge-dot badge-dot-error"&gt;&lt;/span&gt;
+&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Count Badges</h2>
+    <p>Display numeric counts, useful for notifications and totals.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo">
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span class="badge-count">3</span>
+          </button>
+          <span class="label">Messages</span>
+        </div>
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="badge-count">12</span>
+          </button>
+          <span class="label">Notifications</span>
+        </div>
+        <div class="notification-example">
+          <button class="demo-icon-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <span class="badge-count">99+</span>
+          </button>
+          <span class="label">Cart</span>
+        </div>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;button class="icon-btn"&gt;
+  &lt;svg&gt;...icon...&lt;/svg&gt;
+  &lt;span class="badge-count"&gt;12&lt;/span&gt;
+&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Removable Tags</h2>
+    <p>Interactive badges that can be dismissed.</p>
+
+    <div class="demo-container">
+      <div class="demo-preview badge-demo" id="removable-demo">
+        <span class="badge badge-tag" data-tag="productivity">
+          Productivity
+          <button class="badge-remove" aria-label="Remove Productivity tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </span>
+        <span class="badge badge-tag" data-tag="wellness">
+          Wellness
+          <button class="badge-remove" aria-label="Remove Wellness tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </span>
+        <span class="badge badge-tag" data-tag="focus">
+          Focus
+          <button class="badge-remove" aria-label="Remove Focus tag">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </span>
+      </div>
+      <div class="demo-code">
+        <pre><code>&lt;span class="badge badge-tag"&gt;
+  Productivity
+  &lt;button class="badge-remove" aria-label="Remove tag"&gt;
+    &lt;svg&gt;...x icon...&lt;/svg&gt;
+  &lt;/button&gt;
+&lt;/span&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+    <div class="demo-code">
+      <pre><code>/* Base Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* Status Colors */
+.badge-success {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: var(--warning-subtle);
+  color: var(--warning-text);
+}
+
+.badge-error {
+  background: var(--error-subtle);
+  color: var(--error);
+}
+
+.badge-info {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.badge-neutral {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+/* Persona Colors */
+.badge-persona-ferni { background: var(--persona-ferni-subtle); color: var(--persona-ferni); }
+.badge-persona-maya { background: var(--persona-maya-subtle); color: var(--persona-maya); }
+.badge-persona-alex { background: var(--persona-alex-subtle); color: var(--persona-alex); }
+.badge-persona-jordan { background: var(--persona-jordan-subtle); color: var(--persona-jordan); }
+.badge-persona-peter { background: var(--persona-peter-subtle); color: var(--persona-peter); }
+.badge-persona-nayan { background: var(--persona-nayan-subtle); color: var(--persona-nayan); }
+
+/* Sizes */
+.badge-sm {
+  padding: 2px var(--space-1);
+  font-size: var(--text-2xs);
+}
+
+.badge-lg {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Variants */
+.badge-pill {
+  border-radius: var(--radius-full);
+}
+
+.badge-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* Notification Dot */
+.badge-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-primary);
+}
+
+.badge-dot-success { background: var(--success); }
+.badge-dot-warning { background: var(--warning); }
+.badge-dot-error { background: var(--error); }
+
+/* Count Badge */
+.badge-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--space-1);
+  background: var(--error);
+  color: white;
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Removable Tag */
+.badge-tag {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.badge-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-left: var(--space-1);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.badge-remove:hover {
+  color: var(--error);
+  background: var(--error-subtle);
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+    <ul class="guidelines-list">
+      <li><strong>Color alone</strong>: Don't rely solely on color - include text or icons for meaning</li>
+      <li><strong>Contrast</strong>: All badge text meets WCAG AA contrast requirements</li>
+      <li><strong>Interactive badges</strong>: Use <code>button</code> elements with proper <code>aria-label</code></li>
+      <li><strong>Screen readers</strong>: Notification counts should announce context ("12 notifications")</li>
+      <li><strong>Removable tags</strong>: Remove buttons need clear aria-label stating what will be removed</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Usage Guidelines</h2>
+    <div class="guidelines-grid">
+      <div class="guideline do">
+        <h4>✓ Do</h4>
+        <ul>
+          <li>Keep badge text short (1-2 words)</li>
+          <li>Use semantic colors for status</li>
+          <li>Include icons for quick recognition</li>
+          <li>Position notification badges consistently</li>
+        </ul>
+      </div>
+      <div class="guideline dont">
+        <h4>✗ Don't</h4>
+        <ul>
+          <li>Use badges for long text content</li>
+          <li>Overload interfaces with too many badges</li>
+          <li>Use similar colors for different meanings</li>
+          <li>Place badges where they obstruct content</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-container {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-top: var(--space-6);
+}
+
+.demo-preview {
+  padding: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  background: var(--bg-secondary);
+  min-height: 100px;
+}
+
+.demo-code {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.demo-code pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-x: auto;
+}
+
+.demo-code code {
+  color: var(--text-primary);
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.badge svg {
+  flex-shrink: 0;
+}
+
+.badge-success {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.badge-warning {
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
+  color: #92400e;
+}
+
+.badge-error {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+.badge-info {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.badge-neutral {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+/* Persona Badges */
+.badge-persona-ferni {
+  background: color-mix(in srgb, var(--persona-ferni) 15%, transparent);
+  color: var(--persona-ferni);
+}
+
+.badge-persona-maya {
+  background: color-mix(in srgb, var(--persona-maya) 15%, transparent);
+  color: var(--persona-maya);
+}
+
+.badge-persona-alex {
+  background: color-mix(in srgb, var(--persona-alex) 15%, transparent);
+  color: var(--persona-alex);
+}
+
+.badge-persona-jordan {
+  background: color-mix(in srgb, var(--persona-jordan) 15%, transparent);
+  color: var(--persona-jordan);
+}
+
+.badge-persona-peter {
+  background: color-mix(in srgb, var(--persona-peter) 15%, transparent);
+  color: var(--persona-peter);
+}
+
+.badge-persona-nayan {
+  background: color-mix(in srgb, var(--persona-nayan) 15%, transparent);
+  color: var(--persona-nayan);
+}
+
+/* Sizes */
+.badge-sm {
+  padding: 2px var(--space-1);
+  font-size: 10px;
+}
+
+.badge-lg {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.badge-demo-sizes {
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.badge-size-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.badge-size-group .label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* Variants */
+.badge-pill {
+  border-radius: var(--radius-full);
+}
+
+.badge-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* Notification Examples */
+.notification-example {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notification-example .label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.demo-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.demo-icon-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Notification Dot */
+.badge-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-elevated);
+}
+
+.badge-dot-success { background: var(--success); }
+.badge-dot-warning { background: var(--warning); }
+.badge-dot-error { background: var(--error); }
+
+/* Count Badge */
+.badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--error);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Removable Tag */
+.badge-tag {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding-right: var(--space-1);
+}
+
+.badge-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin-left: 2px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.badge-remove:hover {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+}
+
+/* Guidelines */
+.guidelines-list {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-6);
+}
+
+.guidelines-list li {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.guidelines-list li:last-child {
+  border-bottom: none;
+}
+
+.guidelines-list code {
+  background: var(--bg-secondary);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.guidelines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.guideline {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.guideline h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.guideline.do h4 { color: var(--success); }
+.guideline.dont h4 { color: var(--error); }
+
+.guideline ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guideline li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .demo-preview {
+    padding: var(--space-6);
+  }
+
+  .badge-demo-sizes {
+    align-items: flex-start;
+  }
+}
+</style>
+
+<script>
+// Removable tags functionality
+document.querySelectorAll('.badge-remove').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const badge = this.closest('.badge-tag');
+    if (badge) {
+      badge.style.opacity = '0';
+      badge.style.transform = 'scale(0.8)';
+      setTimeout(() => badge.remove(), 150);
+    }
+  });
+});
+</script>

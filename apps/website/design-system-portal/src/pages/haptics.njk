@@ -1,0 +1,767 @@
+---
+layout: layouts/base.njk
+title: Haptics
+permalink: /haptics/
+---
+
+<div class="page-header">
+  <h1>Haptics</h1>
+  <p class="lead">Meaningful touch feedback for emotional connection. Every vibration communicates.</p>
+</div>
+
+<section class="doc-section">
+  <h2>Philosophy</h2>
+  <blockquote class="philosophy-quote">
+    "Haptics are not decoration—they're communication. Every vibration should feel intentional and human."
+  </blockquote>
+
+  <div class="principles-grid">
+    <div class="principle-card">
+      <h4>Meaningful, Not Decorative</h4>
+      <p>Every haptic should communicate something specific</p>
+    </div>
+    <div class="principle-card">
+      <h4>Warm, Not Clinical</h4>
+      <p>Organic patterns over mechanical buzzes</p>
+    </div>
+    <div class="principle-card">
+      <h4>Subtle by Default</h4>
+      <p>Reserve intensity for important moments</p>
+    </div>
+    <div class="principle-card">
+      <h4>Persona-Aware</h4>
+      <p>Haptics reflect each character's personality</p>
+    </div>
+    <div class="principle-card">
+      <h4>Respectful</h4>
+      <p>Honor system settings and user preferences</p>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Intensity Levels</h2>
+  <p>Standard 1-5 scale mapped to platform APIs.</p>
+
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Level</th>
+        <th>Name</th>
+        <th>iOS API</th>
+        <th>Android API</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="token-value">1</span></td>
+        <td>Whisper</td>
+        <td><code>UIImpactFeedbackGenerator.light * 0.5</code></td>
+        <td><code>EFFECT_TICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">2</span></td>
+        <td>Soft</td>
+        <td><code>UIImpactFeedbackGenerator.light</code></td>
+        <td><code>EFFECT_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">3</span></td>
+        <td>Medium</td>
+        <td><code>UIImpactFeedbackGenerator.medium</code></td>
+        <td><code>EFFECT_HEAVY_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">4</span></td>
+        <td>Strong</td>
+        <td><code>UIImpactFeedbackGenerator.heavy</code></td>
+        <td><code>EFFECT_DOUBLE_CLICK</code></td>
+      </tr>
+      <tr>
+        <td><span class="token-value">5</span></td>
+        <td>Emphasis</td>
+        <td><code>UINotificationFeedbackGenerator.success</code></td>
+        <td><code>VIBRATE(100)</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="doc-section">
+  <h2>Base Patterns</h2>
+  <p>Fundamental haptic building blocks for common interactions.</p>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>tap</h4>
+        <span class="pattern-duration">10ms</span>
+      </div>
+      <p class="pattern-description">Single crisp tap - basic interaction feedback</p>
+      <div class="pattern-waveform" data-waveform="1,0"></div>
+      <code class="use-case">Button press, selection</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>softTap</h4>
+        <span class="pattern-duration">8ms</span>
+      </div>
+      <p class="pattern-description">Gentler tap - subtle acknowledgment</p>
+      <div class="pattern-waveform" data-waveform="0.5,0"></div>
+      <code class="use-case">Toggle off, dismiss</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>doubleTap</h4>
+        <span class="pattern-duration">40ms</span>
+      </div>
+      <p class="pattern-description">Two quick taps - confirmation</p>
+      <div class="pattern-waveform" data-waveform="1,0,0,1,0"></div>
+      <code class="use-case">Selection confirmed, got it</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>bump</h4>
+        <span class="pattern-duration">20ms</span>
+      </div>
+      <p class="pattern-description">Weighted tap - physical feedback</p>
+      <div class="pattern-waveform" data-waveform="0.3,1,0.5,0"></div>
+      <code class="use-case">Toggle on, snap to position</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>click</h4>
+        <span class="pattern-duration">15ms</span>
+      </div>
+      <p class="pattern-description">Mechanical click - task complete</p>
+      <div class="pattern-waveform" data-waveform="1,0.2,0"></div>
+      <code class="use-case">Checkbox, item complete</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Organic Patterns</h2>
+  <p>Ferni's signature haptics - organic, human, breathing. These patterns feel alive.</p>
+
+  <div class="pattern-grid organic">
+    <div class="pattern-card featured">
+      <div class="pattern-header">
+        <h4>ferniBreath</h4>
+        <span class="pattern-duration">300ms</span>
+      </div>
+      <p class="pattern-description">Core Ferni breathing pattern - warm, grounding</p>
+      <div class="pattern-waveform organic" data-waveform="0.2,0.4,0.6,0.8,1,0.8,0.6,0.4,0.2,0" data-curve="sine"></div>
+      <code class="use-case">Connection established, presence confirmation</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>warmPulse</h4>
+        <span class="pattern-duration">250ms</span>
+      </div>
+      <p class="pattern-description">Gentle warmth pulse - emotional acknowledgment</p>
+      <div class="pattern-waveform organic" data-waveform="0.3,0.6,1,0.6,0.3,0"></div>
+      <code class="use-case">Empathy moment, understanding</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>heartbeat</h4>
+        <span class="pattern-duration">800ms</span>
+      </div>
+      <p class="pattern-description">Double-beat pulse - connection/love</p>
+      <div class="pattern-waveform organic" data-waveform="0.6,1,0,0,0.5,0.8,0,0,0"></div>
+      <code class="use-case">Deep connection, milestone</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>slowBreath</h4>
+        <span class="pattern-duration">500ms</span>
+      </div>
+      <p class="pattern-description">Extended breath - calm, wisdom</p>
+      <div class="pattern-waveform organic" data-waveform="0.1,0.2,0.3,0.5,0.7,0.9,1,0.9,0.7,0.5,0.3,0.2,0.1,0"></div>
+      <code class="use-case">Sage persona, contemplation</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>quickBreath</h4>
+        <span class="pattern-duration">200ms</span>
+      </div>
+      <p class="pattern-description">Short energetic breath - curiosity</p>
+      <div class="pattern-waveform organic" data-waveform="0.4,0.8,1,0.6,0.3,0"></div>
+      <code class="use-case">Researcher energy, discovery</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Celebration Patterns</h2>
+  <p>Positive feedback for wins and achievements.</p>
+
+  <div class="pattern-grid celebration">
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>smallWin</h4>
+        <span class="pattern-duration">200ms</span>
+      </div>
+      <p class="pattern-description">Quick sparkle - small achievement</p>
+      <code class="use-case">Task complete, streak continued</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>bigWin</h4>
+        <span class="pattern-duration">400ms</span>
+      </div>
+      <p class="pattern-description">Celebration burst - major achievement</p>
+      <code class="use-case">Milestone reached, level up</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>teamUnlock</h4>
+        <span class="pattern-duration">600ms</span>
+      </div>
+      <p class="pattern-description">Arrival pattern - new team member unlocked</p>
+      <code class="use-case">Team member unlock celebration</code>
+    </div>
+
+    <div class="pattern-card">
+      <div class="pattern-header">
+        <h4>streakAchieved</h4>
+        <span class="pattern-duration">500ms</span>
+      </div>
+      <p class="pattern-description">Rhythmic celebration - streak milestone</p>
+      <code class="use-case">7-day streak, 30-day streak</code>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Persona Haptic Signatures</h2>
+  <p>Each persona has a unique haptic signature reflecting their personality.</p>
+
+  <div class="persona-haptics-grid">
+    <div class="persona-haptic-card" style="--persona-color: var(--color-ferni)">
+      <div class="persona-header">
+        <span class="persona-avatar">F</span>
+        <h4>Ferni</h4>
+      </div>
+      <p class="persona-energy">Warm, grounding, nurturing - life coach energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">ferniBreath</span>
+        <span class="signature-duration">300ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Speaking:</strong> ferniBreath</li>
+        <li><strong>Acknowledgment:</strong> doubleTap</li>
+        <li><strong>Insight:</strong> heartbeat</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-peter)">
+      <div class="persona-header">
+        <span class="persona-avatar">P</span>
+        <h4>Peter</h4>
+      </div>
+      <p class="persona-energy">Curious, energetic, quick - researcher energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">quickBreath</span>
+        <span class="signature-duration">200ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Discovery:</strong> burst</li>
+        <li><strong>Thinking:</strong> rhythm</li>
+        <li><strong>Eureka:</strong> bigWin</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-alex)">
+      <div class="persona-header">
+        <span class="persona-avatar">A</span>
+        <h4>Alex</h4>
+      </div>
+      <p class="persona-energy">Clear, empathetic, smooth - communicator energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">warmPulse</span>
+        <span class="signature-duration">250ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Guidance:</strong> leadTap</li>
+        <li><strong>Empathy:</strong> warmPulse</li>
+        <li><strong>Clarity:</strong> doubleTap</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-maya)">
+      <div class="persona-header">
+        <span class="persona-avatar">M</span>
+        <h4>Maya</h4>
+      </div>
+      <p class="persona-energy">Steady, rhythmic, reliable - architect energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">steadyRhythm</span>
+        <span class="signature-duration">300ms interval</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Task Complete:</strong> click</li>
+        <li><strong>Habit Check:</strong> firmTap</li>
+        <li><strong>Progress:</strong> ramp</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-jordan)">
+      <div class="persona-header">
+        <span class="persona-avatar">J</span>
+        <h4>Jordan</h4>
+      </div>
+      <p class="persona-energy">Joyful, bouncy, celebratory - event planner energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">bounce</span>
+        <span class="signature-duration">250ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Excitement:</strong> sparkle</li>
+        <li><strong>Countdown:</strong> tick</li>
+        <li><strong>Celebration:</strong> bigWin</li>
+      </ul>
+    </div>
+
+    <div class="persona-haptic-card" style="--persona-color: var(--color-nayan)">
+      <div class="persona-header">
+        <span class="persona-avatar">N</span>
+        <h4>Nayan</h4>
+      </div>
+      <p class="persona-energy">Deep, integrative, philosophical - wisdom energy</p>
+      <div class="haptic-signature">
+        <span class="signature-name">deepBreath</span>
+        <span class="signature-duration">600ms</span>
+      </div>
+      <ul class="haptic-behaviors">
+        <li><strong>Contemplation:</strong> slowBreath</li>
+        <li><strong>Integration:</strong> heartbeat</li>
+        <li><strong>Insight:</strong> warmPulse</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Emotional Haptics</h2>
+  <p>Haptic responses to detected emotional states.</p>
+
+  <div class="emotional-haptics-grid">
+    <div class="emotion-card">
+      <h4>Empathy</h4>
+      <p class="emotion-character">"Like a gentle hand on shoulder"</p>
+      <span class="emotion-pattern">warmPulse @ 300ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Encouragement</h4>
+      <p class="emotion-character">"Supportive energy"</p>
+      <span class="emotion-pattern">quickBreath @ 200ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Understanding</h4>
+      <p class="emotion-character">"I get it"</p>
+      <span class="emotion-pattern">heartbeat @ 500ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Concern</h4>
+      <p class="emotion-character">"Calming presence"</p>
+      <span class="emotion-pattern">slowBreath @ 400ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Celebration</h4>
+      <p class="emotion-character">"Pure joy"</p>
+      <span class="emotion-pattern">bigWin @ 400ms</span>
+    </div>
+    <div class="emotion-card">
+      <h4>Curiosity</h4>
+      <p class="emotion-character">"Tell me more"</p>
+      <span class="emotion-pattern">quickBreath @ 180ms</span>
+    </div>
+  </div>
+</section>
+
+<section class="doc-section">
+  <h2>Ritual Haptics</h2>
+  <p>Haptics for brand ritual moments that create memorable experiences.</p>
+
+  <table class="token-table">
+    <thead>
+      <tr>
+        <th>Ritual</th>
+        <th>Duration</th>
+        <th>Character</th>
+        <th>Sequence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>welcomeBack</strong></td>
+        <td>600ms</td>
+        <td>"Welcome home"</td>
+        <td><code>ferniBreath → pause:200 → doubleTap</code></td>
+      </tr>
+      <tr>
+        <td><strong>firstConversation</strong></td>
+        <td>800ms</td>
+        <td>"Nice to meet you"</td>
+        <td><code>slowBreath → pause:300 → warmPulse</code></td>
+      </tr>
+      <tr>
+        <td><strong>sessionEnd</strong></td>
+        <td>400ms</td>
+        <td>"Until next time"</td>
+        <td><code>ferniBreath → softTap</code></td>
+      </tr>
+      <tr>
+        <td><strong>handoff</strong></td>
+        <td>500ms</td>
+        <td>"Smooth transition"</td>
+        <td><code>softFade → pause:200 → personaSignature</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="doc-section">
+  <h2>Accessibility</h2>
+  <div class="accessibility-callout">
+    <h4>Always Check System Settings</h4>
+    <code>UIAccessibility.isReduceMotionEnabled</code> and <code>isHapticsEnabled</code>
+  </div>
+
+  <div class="accessibility-grid">
+    <div class="a11y-card">
+      <h4>Reduced Motion</h4>
+      <p>Use single tap instead of patterns</p>
+    </div>
+    <div class="a11y-card">
+      <h4>Haptics Disabled</h4>
+      <p>Rely on visual/audio feedback only</p>
+    </div>
+    <div class="a11y-card">
+      <h4>Low Power Mode</h4>
+      <p>Reduce intensity by 50%</p>
+    </div>
+  </div>
+
+  <h4>Principles</h4>
+  <ul>
+    <li>Never make haptics the only feedback channel</li>
+    <li>Always pair with visual or audio feedback</li>
+    <li>Provide option to disable all haptics</li>
+    <li>Test with real devices, not simulators</li>
+  </ul>
+</section>
+
+<section class="doc-section">
+  <h2>Platform Implementation</h2>
+
+  <div class="platform-grid">
+    <div class="platform-card ios">
+      <h4>iOS</h4>
+      <code class="api">UIImpactFeedbackGenerator<br>UINotificationFeedbackGenerator<br>UISelectionFeedbackGenerator</code>
+      <p>Call <code>prepare()</code> before expected haptic to reduce latency. Use Core Haptics for complex waveforms.</p>
+    </div>
+
+    <div class="platform-card android">
+      <h4>Android</h4>
+      <code class="api">VibrationEffect<br>HapticFeedbackConstants</code>
+      <p>Min SDK 26. Use <code>VibrationEffect.createWaveform()</code> for complex patterns.</p>
+    </div>
+
+    <div class="platform-card web">
+      <h4>Web</h4>
+      <code class="api">Navigator.vibrate()</code>
+      <p>Limited support. Use visual pulse animations as fallback. Check <code>navigator.vibrate</code> availability.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+.principles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.principle-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.principle-card h4 {
+  color: var(--color-ferni);
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.pattern-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.pattern-card.featured {
+  border-color: var(--color-ferni);
+  background: linear-gradient(to bottom right, var(--color-surface), rgba(74, 103, 65, 0.05));
+}
+
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pattern-header h4 {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.pattern-duration {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-background);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.pattern-description {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.pattern-waveform {
+  height: 24px;
+  background: linear-gradient(90deg, var(--color-ferni) 0%, transparent 100%);
+  border-radius: 4px;
+  margin: 0.75rem 0;
+  opacity: 0.3;
+}
+
+.pattern-waveform.organic {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--color-ferni) 20%,
+    var(--color-ferni) 50%,
+    var(--color-ferni) 80%,
+    transparent 100%
+  );
+}
+
+.use-case {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
+}
+
+.persona-haptics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.persona-haptic-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  border-left: 4px solid var(--persona-color, var(--color-ferni));
+}
+
+.persona-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.persona-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--persona-color, var(--color-ferni));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.persona-header h4 {
+  margin: 0;
+}
+
+.persona-energy {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+  margin: 0 0 1rem;
+}
+
+.haptic-signature {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-background);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.signature-name {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--persona-color, var(--color-ferni));
+}
+
+.signature-duration {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.haptic-behaviors {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.haptic-behaviors li {
+  padding: 0.25rem 0;
+  color: var(--color-text-secondary);
+}
+
+.emotional-haptics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.emotion-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.emotion-card h4 {
+  margin: 0 0 0.5rem;
+  color: var(--color-ferni);
+}
+
+.emotion-character {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
+.emotion-pattern {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--color-background);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.accessibility-callout {
+  background: var(--color-background);
+  border: 1px solid var(--color-ferni);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.accessibility-callout h4 {
+  margin: 0 0 0.5rem;
+  color: var(--color-ferni);
+}
+
+.accessibility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.a11y-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.a11y-card h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.a11y-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.platform-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.platform-card h4 {
+  margin: 0 0 0.75rem;
+}
+
+.platform-card .api {
+  display: block;
+  background: var(--color-background);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.platform-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+</style>

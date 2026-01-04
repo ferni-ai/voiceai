@@ -1,0 +1,1273 @@
+---
+layout: layouts/base.njk
+title: Brand Guardrails
+description: Machine-readable brand rules for AI assistants, linters, and automated enforcement
+permalink: /brand-guardrails/
+---
+
+<article class="guardrails-page">
+  <header class="page-header">
+    <h1>Brand Guardrails</h1>
+    <p class="lead">Machine-readable rules that keep Ferni's voice human. Enforced by linters, pre-commit hooks, and AI assistants.</p>
+  </header>
+
+  <!-- Language Section -->
+  <section class="section" id="language">
+    <h2>Language Rules</h2>
+    <p>Words and phrases that define—or violate—the Ferni voice.</p>
+
+    <div class="forbidden-section">
+      <h3>Forbidden Words</h3>
+
+      <div class="word-category">
+        <div class="category-header critical">
+          <span class="category-icon"></span>
+          <h4>Critical (AI/Robot Terms)</h4>
+        </div>
+        <p>Never remind users they're talking to software.</p>
+        <div class="word-chips">
+          <span class="word-chip forbidden">chatbot</span>
+          <span class="word-chip forbidden">bot</span>
+          <span class="word-chip forbidden">AI assistant</span>
+          <span class="word-chip forbidden">virtual assistant</span>
+          <span class="word-chip forbidden">digital companion</span>
+          <span class="word-chip forbidden">artificial intelligence</span>
+          <span class="word-chip forbidden">machine learning</span>
+          <span class="word-chip forbidden">algorithm</span>
+          <span class="word-chip forbidden">neural network</span>
+          <span class="word-chip forbidden">NLP</span>
+        </div>
+      </div>
+
+      <div class="word-category">
+        <div class="category-header corporate">
+          <span class="category-icon"></span>
+          <h4>Corporate Jargon</h4>
+        </div>
+        <p>Sound like a friend, not a consultant.</p>
+        <div class="word-chips">
+          <span class="word-chip forbidden">utilize</span>
+          <span class="word-chip forbidden">leverage</span>
+          <span class="word-chip forbidden">synergy</span>
+          <span class="word-chip forbidden">optimize</span>
+          <span class="word-chip forbidden">streamline</span>
+          <span class="word-chip forbidden">facilitate</span>
+          <span class="word-chip forbidden">implement</span>
+          <span class="word-chip forbidden">paradigm</span>
+          <span class="word-chip forbidden">scalable</span>
+          <span class="word-chip forbidden">robust</span>
+          <span class="word-chip forbidden">enterprise</span>
+          <span class="word-chip forbidden">solution</span>
+          <span class="word-chip forbidden">platform</span>
+          <span class="word-chip forbidden">functionality</span>
+          <span class="word-chip forbidden">deliverable</span>
+        </div>
+      </div>
+
+      <div class="word-category">
+        <div class="category-header dehumanizing">
+          <span class="category-icon"></span>
+          <h4>Dehumanizing Terms</h4>
+        </div>
+        <p>You're talking to a person, not a "user".</p>
+        <div class="word-chips">
+          <span class="word-chip forbidden">user</span>
+          <span class="word-chip forbidden">users</span>
+          <span class="word-chip forbidden">end user</span>
+          <span class="word-chip forbidden">customer</span>
+          <span class="word-chip forbidden">consumer</span>
+          <span class="word-chip forbidden">subscriber</span>
+        </div>
+      </div>
+
+      <div class="word-category">
+        <div class="category-header clinical">
+          <span class="category-icon"></span>
+          <h4>Clinical Terms</h4>
+        </div>
+        <p>Ferni is a friend, not a therapist.</p>
+        <div class="word-chips">
+          <span class="word-chip forbidden">therapy</span>
+          <span class="word-chip forbidden">therapist</span>
+          <span class="word-chip forbidden">treatment</span>
+          <span class="word-chip forbidden">diagnosis</span>
+          <span class="word-chip forbidden">clinical</span>
+          <span class="word-chip forbidden">patient</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phrases-section">
+      <h3>Forbidden Phrases</h3>
+      <p>Complete phrases that break the illusion of genuine connection.</p>
+      <div class="phrase-list">
+        <div class="phrase-item forbidden">"As an AI"</div>
+        <div class="phrase-item forbidden">"I'm designed to"</div>
+        <div class="phrase-item forbidden">"My programming"</div>
+        <div class="phrase-item forbidden">"I don't have feelings"</div>
+        <div class="phrase-item forbidden">"I'm just a"</div>
+        <div class="phrase-item forbidden">"I'm not human"</div>
+        <div class="phrase-item forbidden">"Unlike other AI"</div>
+        <div class="phrase-item forbidden">"Better than other chatbots"</div>
+        <div class="phrase-item forbidden">"24/7 availability"</div>
+        <div class="phrase-item forbidden">"Unlimited conversations"</div>
+        <div class="phrase-item forbidden">"Powered by AI"</div>
+        <div class="phrase-item forbidden">"AI-powered"</div>
+      </div>
+    </div>
+
+    <div class="replacements-section">
+      <h3>Preferred Replacements</h3>
+      <div class="replacement-grid">
+        <div class="replacement-row">
+          <span class="before">user</span>
+          <span class="arrow"></span>
+          <span class="after">you</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">users</span>
+          <span class="arrow"></span>
+          <span class="after">people</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">utilize</span>
+          <span class="arrow"></span>
+          <span class="after">use</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">leverage</span>
+          <span class="arrow"></span>
+          <span class="after">use</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">implement</span>
+          <span class="arrow"></span>
+          <span class="after">do</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">facilitate</span>
+          <span class="arrow"></span>
+          <span class="after">help</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">functionality</span>
+          <span class="arrow"></span>
+          <span class="after">feature</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">optimize</span>
+          <span class="arrow"></span>
+          <span class="after">improve</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">robust</span>
+          <span class="arrow"></span>
+          <span class="after">strong</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">streamline</span>
+          <span class="arrow"></span>
+          <span class="after">simplify</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">paradigm</span>
+          <span class="arrow"></span>
+          <span class="after">approach</span>
+        </div>
+        <div class="replacement-row">
+          <span class="before">synergy</span>
+          <span class="arrow"></span>
+          <span class="after">together</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-words-section">
+      <h3>Brand Words</h3>
+      <p>Words that embody the Ferni voice.</p>
+      <div class="word-chips preferred">
+        <span class="word-chip preferred">present</span>
+        <span class="word-chip preferred">notice</span>
+        <span class="word-chip preferred">remember</span>
+        <span class="word-chip preferred">celebrate</span>
+        <span class="word-chip preferred">show up</span>
+        <span class="word-chip preferred">hold space</span>
+        <span class="word-chip preferred">in your corner</span>
+        <span class="word-chip preferred">genuine</span>
+        <span class="word-chip preferred">warm</span>
+        <span class="word-chip preferred">grounded</span>
+        <span class="word-chip preferred">wise</span>
+        <span class="word-chip preferred">human</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Color Rules Section -->
+  <section class="section" id="colors">
+    <h2>Color Rules</h2>
+    <p>Color constraints to maintain brand consistency.</p>
+
+    <div class="forbidden-colors-section">
+      <h3>Forbidden Colors</h3>
+
+      <div class="color-category">
+        <h4>Purples</h4>
+        <p>Purple is not a Ferni brand color. It's overused in tech and AI.</p>
+        <div class="color-swatches forbidden">
+          <div class="swatch" style="background: #800080;"><span>#800080</span></div>
+          <div class="swatch" style="background: #9b59b6;"><span>#9b59b6</span></div>
+          <div class="swatch" style="background: #8b5cf6;"><span>#8b5cf6</span></div>
+          <div class="swatch" style="background: #a855f7;"><span>#a855f7</span></div>
+          <div class="swatch" style="background: #7c3aed;"><span>#7c3aed</span></div>
+        </div>
+      </div>
+
+      <div class="color-category">
+        <h4>Neons</h4>
+        <p>Neon colors violate the earthy, warm brand.</p>
+        <div class="color-swatches forbidden">
+          <div class="swatch" style="background: #00ff00;"><span>#00ff00</span></div>
+          <div class="swatch" style="background: #ff00ff;"><span>#ff00ff</span></div>
+          <div class="swatch" style="background: #00ffff;"><span>#00ffff</span></div>
+          <div class="swatch" style="background: #ffff00;"><span>#ffff00</span></div>
+          <div class="swatch" style="background: #ff0000;"><span>#ff0000</span></div>
+        </div>
+      </div>
+
+      <div class="color-category">
+        <h4>Pure Black/White</h4>
+        <p>Too stark. Use warm neutrals instead.</p>
+        <div class="color-swatches forbidden">
+          <div class="swatch" style="background: #000000;"><span>#000000</span></div>
+          <div class="swatch" style="background: #ffffff; border: 1px solid #ddd;"><span>#ffffff</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="color-rules-list">
+      <h3>Enforcement Rules</h3>
+      <div class="rule-card error">
+        <span class="rule-id">no-purple</span>
+        <p>Purple is not a Ferni brand color</p>
+        <span class="severity">Error - Blocks commit</span>
+      </div>
+      <div class="rule-card error">
+        <span class="rule-id">no-neon</span>
+        <p>Neon colors violate the earthy, warm brand</p>
+        <span class="severity">Error - Blocks commit</span>
+      </div>
+      <div class="rule-card warning">
+        <span class="rule-id">use-css-variables</span>
+        <p>Use CSS variables instead of hardcoded hex values</p>
+        <span class="severity">Warning</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Typography Section -->
+  <section class="section" id="typography">
+    <h2>Typography Rules</h2>
+
+    <div class="font-rules">
+      <div class="font-category allowed">
+        <h4>Allowed Fonts</h4>
+        <div class="font-list">
+          <div class="font-item">
+            <span class="font-name" style="font-family: 'Plus Jakarta Sans', sans-serif;">Plus Jakarta Sans</span>
+            <span class="font-role">Display</span>
+          </div>
+          <div class="font-item">
+            <span class="font-name" style="font-family: 'Inter', sans-serif;">Inter</span>
+            <span class="font-role">Body</span>
+          </div>
+          <div class="font-item">
+            <span class="font-name" style="font-family: 'JetBrains Mono', monospace;">JetBrains Mono</span>
+            <span class="font-role">Code</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="font-category forbidden">
+        <h4>Forbidden Fonts</h4>
+        <div class="font-chips">
+          <span class="font-chip">Comic Sans</span>
+          <span class="font-chip">Papyrus</span>
+          <span class="font-chip">Impact</span>
+          <span class="font-chip">Arial Black</span>
+          <span class="font-chip">Brush Script</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="typography-rules">
+      <div class="rule-card warning">
+        <span class="rule-id">no-all-caps-body</span>
+        <p>Body text should not be all caps</p>
+        <span class="severity">Warning</span>
+      </div>
+      <div class="rule-card error">
+        <span class="rule-id">max-exclamation</span>
+        <p>Limit exclamation marks—never more than one</p>
+        <code>/!{2,}/</code>
+        <span class="severity">Error - Blocks commit</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accessibility Section -->
+  <section class="section" id="accessibility">
+    <h2>Accessibility Requirements</h2>
+    <p>Non-negotiable accessibility standards.</p>
+
+    <div class="wcag-badge">
+      <span class="wcag-level">WCAG 2.1</span>
+      <span class="wcag-grade">Level AA</span>
+    </div>
+
+    <div class="a11y-requirements">
+      <div class="a11y-card">
+        <h4>Color Contrast (Normal Text)</h4>
+        <p>Normal text must have 4.5:1 contrast ratio</p>
+        <span class="ratio">Min: 4.5:1</span>
+      </div>
+
+      <div class="a11y-card">
+        <h4>Color Contrast (Large Text)</h4>
+        <p>Large text (18pt+) must have 3:1 contrast ratio</p>
+        <span class="ratio">Min: 3:1</span>
+      </div>
+
+      <div class="a11y-card">
+        <h4>Touch Targets</h4>
+        <p>Interactive elements must be at least 44x44px</p>
+        <span class="ratio">Min: 44px</span>
+      </div>
+
+      <div class="a11y-card">
+        <h4>Focus Visible</h4>
+        <p>Focus states must be visible</p>
+        <span class="required-badge">Required</span>
+      </div>
+
+      <div class="a11y-card">
+        <h4>Reduced Motion</h4>
+        <p>Respect prefers-reduced-motion</p>
+        <span class="required-badge">Required</span>
+      </div>
+    </div>
+
+    <div class="a11y-forbidden">
+      <h3>Forbidden Patterns</h3>
+      <div class="rule-card error">
+        <span class="rule-id">no-persona-text-color</span>
+        <p>Never use persona colors for text—they fail contrast</p>
+        <code>color: var(--persona-*)</code>
+        <span class="severity">Error - Blocks commit</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Animation Section -->
+  <section class="section" id="animation">
+    <h2>Animation Constraints</h2>
+
+    <div class="animation-forbidden">
+      <h3>Forbidden Animations</h3>
+      <div class="forbidden-animation-list">
+        <div class="forbidden-animation">
+          <span class="animation-name">Infinite Spin</span>
+          <p>No infinite spinning animations</p>
+        </div>
+        <div class="forbidden-animation">
+          <span class="animation-name">Blink/Flash</span>
+          <p>No blinking or flashing</p>
+        </div>
+        <div class="forbidden-animation">
+          <span class="animation-name">Shake on Error</span>
+          <p>Don't shake elements to indicate errors</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="duration-limits">
+      <h3>Maximum Durations</h3>
+      <div class="duration-scale">
+        <div class="duration-item">
+          <span class="duration-name">Micro-interaction</span>
+          <span class="duration-value">150ms</span>
+          <div class="duration-bar" style="width: 3%;"></div>
+        </div>
+        <div class="duration-item">
+          <span class="duration-name">Standard</span>
+          <span class="duration-value">400ms</span>
+          <div class="duration-bar" style="width: 8%;"></div>
+        </div>
+        <div class="duration-item">
+          <span class="duration-name">Page Transition</span>
+          <span class="duration-value">800ms</span>
+          <div class="duration-bar" style="width: 16%;"></div>
+        </div>
+        <div class="duration-item">
+          <span class="duration-name">Celebration</span>
+          <span class="duration-value">1500ms</span>
+          <div class="duration-bar" style="width: 30%;"></div>
+        </div>
+        <div class="duration-item">
+          <span class="duration-name">Absolute Maximum</span>
+          <span class="duration-value">5000ms</span>
+          <div class="duration-bar" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reduced-motion-section">
+      <h3>Reduced Motion Fallbacks</h3>
+      <div class="motion-columns">
+        <div class="motion-column allowed">
+          <h4>Allowed in Reduced Motion</h4>
+          <ul>
+            <li>opacity</li>
+            <li>color</li>
+          </ul>
+        </div>
+        <div class="motion-column forbidden">
+          <h4>Forbidden in Reduced Motion</h4>
+          <ul>
+            <li>transform</li>
+            <li>scale</li>
+            <li>rotate</li>
+            <li>translateX</li>
+            <li>translateY</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Copy Section -->
+  <section class="section" id="copy">
+    <h2>Copywriting Rules</h2>
+
+    <div class="copy-rules-grid">
+      <div class="copy-rule-card">
+        <h4>Headlines</h4>
+        <ul>
+          <li>Max 10 words</li>
+          <li>End with period</li>
+          <li>No exclamation marks</li>
+          <li>Sentence case</li>
+        </ul>
+      </div>
+
+      <div class="copy-rule-card">
+        <h4>Body Text</h4>
+        <ul>
+          <li>Max 20 words per sentence</li>
+          <li>Prefer short sentences</li>
+          <li>Active voice</li>
+          <li>Second person ("you")</li>
+        </ul>
+      </div>
+
+      <div class="copy-rule-card">
+        <h4>CTAs</h4>
+        <ul>
+          <li>Max 3 words</li>
+          <li>Verb first</li>
+          <li>Examples: "Start talking", "Begin", "Meet Ferni"</li>
+        </ul>
+      </div>
+
+      <div class="copy-rule-card">
+        <h4>Error Messages</h4>
+        <ul>
+          <li>Blame the system, not the person</li>
+          <li>Offer a solution</li>
+          <li>Warm tone</li>
+        </ul>
+        <div class="example-box">
+          <span class="example-label">Example:</span>
+          <p>"Hmm. Something's not working right. (That's on me, not you.)"</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Voice Tests Section -->
+  <section class="section" id="testing">
+    <h2>Brand Tests</h2>
+    <p>Questions to ask before shipping any content.</p>
+
+    <div class="tests-grid">
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Friend Test</h4>
+        <p class="test-question">"Would a real friend say this?"</p>
+        <p class="test-fails">Fails if: sounds robotic, corporate, or performative</p>
+      </div>
+
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Spoken Test</h4>
+        <p class="test-question">"Does this sound natural spoken aloud?"</p>
+        <p class="test-fails">Fails if: sounds awkward or stiff when read</p>
+      </div>
+
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Overselling Test</h4>
+        <p class="test-question">"Are we overselling ourselves?"</p>
+        <p class="test-fails">Fails if: makes claims we can't back up</p>
+      </div>
+
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Underselling Test</h4>
+        <p class="test-question">"Are we underselling ourselves?"</p>
+        <p class="test-fails">Fails if: uses "feels human" instead of "better than human"</p>
+      </div>
+
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Warmth Test</h4>
+        <p class="test-question">"Does this feel warm and inviting?"</p>
+        <p class="test-fails">Fails if: feels cold, clinical, or corporate</p>
+      </div>
+
+      <div class="test-card">
+        <span class="test-icon"></span>
+        <h4>Simplicity Test</h4>
+        <p class="test-question">"Is this as simple as it could be?"</p>
+        <p class="test-fails">Fails if: has unnecessary elements or complexity</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Enforcement Section -->
+  <section class="section" id="enforcement">
+    <h2>Enforcement</h2>
+    <p>How these rules are automatically enforced.</p>
+
+    <div class="enforcement-grid">
+      <div class="enforcement-card">
+        <h4>Pre-commit Hook</h4>
+        <p>Runs before every commit</p>
+        <div class="check-list">
+          <span class="check">Language</span>
+          <span class="check">Colors</span>
+          <span class="check">Accessibility</span>
+        </div>
+      </div>
+
+      <div class="enforcement-card">
+        <h4>CI Pipeline</h4>
+        <p>Runs on every PR</p>
+        <div class="check-list">
+          <span class="check blocks">Accessibility</span>
+          <span class="check blocks">Forbidden Colors</span>
+          <span class="check warns">Language</span>
+          <span class="check warns">Copy</span>
+        </div>
+      </div>
+
+      <div class="enforcement-card">
+        <h4>Code Review Checklist</h4>
+        <ul>
+          <li>No forbidden words or phrases</li>
+          <li>All colors use CSS variables</li>
+          <li>Accessibility requirements met</li>
+          <li>Copy follows brand voice</li>
+          <li>Animations respect reduced motion</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+/* Brand Guardrails Page Styles */
+.guardrails-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Forbidden Section */
+.forbidden-section {
+  margin-top: var(--space-6);
+}
+
+.word-category {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--border-subtle);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.category-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
+
+.category-header.critical .category-icon { background: #EF4444; }
+.category-header.corporate .category-icon { background: #F59E0B; }
+.category-header.dehumanizing .category-icon { background: #8B5CF6; }
+.category-header.clinical .category-icon { background: #3B82F6; }
+
+.category-header h4 {
+  margin: 0;
+}
+
+.word-category > p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.word-chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+}
+
+.word-chip.forbidden {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.word-chip.preferred {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Phrases Section */
+.phrases-section {
+  margin-top: var(--space-8);
+}
+
+.phrases-section > p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.phrase-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.phrase-item {
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.phrase-item.forbidden {
+  border-left: 3px solid #EF4444;
+}
+
+/* Replacements Section */
+.replacements-section {
+  margin-top: var(--space-8);
+}
+
+.replacement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.replacement-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+
+.replacement-row .before {
+  text-decoration: line-through;
+  color: #EF4444;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.replacement-row .arrow {
+  width: 20px;
+  height: 2px;
+  background: var(--border-default);
+  position: relative;
+}
+
+.replacement-row .arrow::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  border: solid var(--border-default);
+  border-width: 0 2px 2px 0;
+  padding: 3px;
+  transform: rotate(-45deg);
+}
+
+.replacement-row .after {
+  color: #22C55E;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* Brand Words Section */
+.brand-words-section {
+  margin-top: var(--space-8);
+}
+
+.brand-words-section > p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.word-chips.preferred {
+  padding: var(--space-4);
+  background: rgba(34, 197, 94, 0.05);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+}
+
+/* Color Rules */
+.forbidden-colors-section {
+  margin-top: var(--space-6);
+}
+
+.color-category {
+  margin-bottom: var(--space-6);
+}
+
+.color-category h4 {
+  margin-bottom: var(--space-2);
+}
+
+.color-category > p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.swatch {
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: var(--space-1);
+  position: relative;
+}
+
+.color-swatches.forbidden .swatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px dashed #EF4444;
+  border-radius: var(--radius-md);
+}
+
+.swatch span {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Rule Cards */
+.color-rules-list,
+.typography-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.rule-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  border-left: 3px solid;
+}
+
+.rule-card.error {
+  border-color: #EF4444;
+}
+
+.rule-card.warning {
+  border-color: #F59E0B;
+}
+
+.rule-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rule-card p {
+  flex: 1;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.rule-card code {
+  font-size: var(--text-xs);
+}
+
+.severity {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Typography Rules */
+.font-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.font-category {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.font-category h4 {
+  margin-bottom: var(--space-4);
+}
+
+.font-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.font-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.font-name {
+  font-size: var(--text-lg);
+}
+
+.font-role {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.font-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.font-chip {
+  padding: var(--space-1) var(--space-3);
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  text-decoration: line-through;
+}
+
+/* Accessibility Section */
+.wcag-badge {
+  display: inline-flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  margin: var(--space-4) 0 var(--space-6);
+  border: 1px solid var(--border-subtle);
+}
+
+.wcag-level {
+  font-weight: 600;
+}
+
+.wcag-grade {
+  color: #22C55E;
+  font-weight: 600;
+}
+
+.a11y-requirements {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.a11y-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.a11y-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.a11y-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.ratio {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+}
+
+.required-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.a11y-forbidden {
+  margin-top: var(--space-6);
+}
+
+/* Animation Section */
+.animation-forbidden {
+  margin-top: var(--space-6);
+}
+
+.forbidden-animation-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.forbidden-animation {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  border-left: 3px solid #EF4444;
+}
+
+.animation-name {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.forbidden-animation p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.duration-limits {
+  margin-top: var(--space-8);
+}
+
+.duration-scale {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.duration-item {
+  display: grid;
+  grid-template-columns: 150px 80px 1fr;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.duration-name {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.duration-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-align: right;
+}
+
+.duration-bar {
+  height: 8px;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+
+.reduced-motion-section {
+  margin-top: var(--space-8);
+}
+
+.motion-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.motion-column {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.motion-column.allowed {
+  border-left: 3px solid #22C55E;
+}
+
+.motion-column.forbidden {
+  border-left: 3px solid #EF4444;
+}
+
+.motion-column h4 {
+  margin-bottom: var(--space-3);
+}
+
+.motion-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.motion-column li {
+  padding: var(--space-1) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* Copy Rules */
+.copy-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.copy-rule-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.copy-rule-card h4 {
+  margin-bottom: var(--space-4);
+}
+
+.copy-rule-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.copy-rule-card li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.copy-rule-card li:last-child {
+  border-bottom: none;
+}
+
+.example-box {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.example-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.example-box p {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Tests Grid */
+.tests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.test-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.test-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--color-ferni), var(--color-peter));
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+}
+
+.test-card h4 {
+  margin-bottom: var(--space-3);
+}
+
+.test-question {
+  font-size: var(--text-lg);
+  font-style: italic;
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.test-fails {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding-left: var(--space-3);
+  border-left: 2px solid #EF4444;
+  margin: 0;
+}
+
+/* Enforcement Grid */
+.enforcement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.enforcement-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.enforcement-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.enforcement-card > p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.check-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.check {
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+}
+
+.check.blocks {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+.check.warns {
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+}
+
+.enforcement-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.enforcement-card li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.enforcement-card li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #22C55E;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .motion-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .duration-item {
+    grid-template-columns: 1fr 80px;
+  }
+
+  .duration-bar {
+    display: none;
+  }
+}
+</style>

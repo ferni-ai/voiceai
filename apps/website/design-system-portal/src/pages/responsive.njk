@@ -1,0 +1,1332 @@
+---
+layout: layouts/base.njk
+title: Responsive
+description: Breakpoint system and adaptive component behaviors
+permalink: /responsive/
+---
+
+<article class="responsive-page">
+  <header class="page-header">
+    <h1>Responsive Design</h1>
+    <p class="lead">A systematic approach to responsive design. Components adapt intelligently across breakpoints—not just shrinking, but transforming to serve each context.</p>
+  </header>
+
+  <!-- Breakpoints Overview -->
+  <section class="section" id="breakpoints">
+    <h2>Breakpoints</h2>
+    <p>Four core breakpoints based on common device sizes. Each has distinct layout rules.</p>
+
+    <div class="breakpoint-visual">
+      <div class="breakpoint-bar">
+        <div class="bp-segment mobile" style="flex: 767;">
+          <span class="bp-label">Mobile</span>
+          <span class="bp-range">0 - 767px</span>
+        </div>
+        <div class="bp-segment tablet" style="flex: 255;">
+          <span class="bp-label">Tablet</span>
+          <span class="bp-range">768 - 1023px</span>
+        </div>
+        <div class="bp-segment desktop" style="flex: 415;">
+          <span class="bp-label">Desktop</span>
+          <span class="bp-range">1024 - 1439px</span>
+        </div>
+        <div class="bp-segment wide" style="flex: 200;">
+          <span class="bp-label">Wide</span>
+          <span class="bp-range">1440px+</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="breakpoint-cards">
+      <div class="breakpoint-card mobile">
+        <div class="bp-header">
+          <div class="bp-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+          </div>
+          <h3>Mobile</h3>
+        </div>
+        <div class="bp-specs">
+          <div class="bp-spec">
+            <span class="spec-label">Max Width</span>
+            <span class="spec-value">767px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Columns</span>
+            <span class="spec-value">4</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Gutter</span>
+            <span class="spec-value">16px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Margin</span>
+            <span class="spec-value">16px</span>
+          </div>
+        </div>
+        <pre><code>@media (max-width: 767px) { }</code></pre>
+      </div>
+
+      <div class="breakpoint-card tablet">
+        <div class="bp-header">
+          <div class="bp-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+          </div>
+          <h3>Tablet</h3>
+        </div>
+        <div class="bp-specs">
+          <div class="bp-spec">
+            <span class="spec-label">Range</span>
+            <span class="spec-value">768 - 1023px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Columns</span>
+            <span class="spec-value">8</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Gutter</span>
+            <span class="spec-value">20px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Margin</span>
+            <span class="spec-value">24px</span>
+          </div>
+        </div>
+        <pre><code>@media (min-width: 768px) and (max-width: 1023px) { }</code></pre>
+      </div>
+
+      <div class="breakpoint-card desktop">
+        <div class="bp-header">
+          <div class="bp-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3>Desktop</h3>
+        </div>
+        <div class="bp-specs">
+          <div class="bp-spec">
+            <span class="spec-label">Range</span>
+            <span class="spec-value">1024 - 1439px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Columns</span>
+            <span class="spec-value">12</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Gutter</span>
+            <span class="spec-value">24px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Container</span>
+            <span class="spec-value">1200px</span>
+          </div>
+        </div>
+        <pre><code>@media (min-width: 1024px) and (max-width: 1439px) { }</code></pre>
+      </div>
+
+      <div class="breakpoint-card wide">
+        <div class="bp-header">
+          <div class="bp-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+              <line x1="12" y1="18" x2="12" y2="22"/>
+            </svg>
+          </div>
+          <h3>Wide</h3>
+        </div>
+        <div class="bp-specs">
+          <div class="bp-spec">
+            <span class="spec-label">Min Width</span>
+            <span class="spec-value">1440px+</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Columns</span>
+            <span class="spec-value">12</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Gutter</span>
+            <span class="spec-value">32px</span>
+          </div>
+          <div class="bp-spec">
+            <span class="spec-label">Container</span>
+            <span class="spec-value">1400px</span>
+          </div>
+        </div>
+        <pre><code>@media (min-width: 1440px) { }</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fluid Typography -->
+  <section class="section" id="typography">
+    <h2>Fluid Typography</h2>
+    <p>Typography scales smoothly using <code>clamp()</code>. No jarring size jumps at breakpoints.</p>
+
+    <div class="fluid-type-demo">
+      <div class="type-sample display-xl">
+        <span class="type-label">Display XL</span>
+        <span class="type-text">Hello</span>
+        <code>clamp(3rem, 2rem + 5vw, 7rem)</code>
+      </div>
+      <div class="type-sample display-lg">
+        <span class="type-label">Display LG</span>
+        <span class="type-text">Hello</span>
+        <code>clamp(2.5rem, 2rem + 4vw, 6rem)</code>
+      </div>
+      <div class="type-sample display-md">
+        <span class="type-label">Display MD</span>
+        <span class="type-text">Hello</span>
+        <code>clamp(2rem, 1.5rem + 3vw, 4.5rem)</code>
+      </div>
+      <div class="type-sample h1">
+        <span class="type-label">H1</span>
+        <span class="type-text">Heading One</span>
+        <code>clamp(1.75rem, 1.5rem + 1.5vw, 3rem)</code>
+      </div>
+      <div class="type-sample h2">
+        <span class="type-label">H2</span>
+        <span class="type-text">Heading Two</span>
+        <code>clamp(1.5rem, 1.25rem + 1vw, 2.25rem)</code>
+      </div>
+      <div class="type-sample h3">
+        <span class="type-label">H3</span>
+        <span class="type-text">Heading Three</span>
+        <code>clamp(1.25rem, 1rem + 0.75vw, 1.75rem)</code>
+      </div>
+    </div>
+
+    <h3>Size Scale by Breakpoint</h3>
+    <div class="type-scale-table">
+      <div class="scale-header">
+        <span>Style</span>
+        <span>Mobile</span>
+        <span>Tablet</span>
+        <span>Desktop</span>
+        <span>Wide</span>
+      </div>
+      <div class="scale-row">
+        <span>Display XL</span>
+        <span>48px</span>
+        <span>72px</span>
+        <span>96px</span>
+        <span>112px</span>
+      </div>
+      <div class="scale-row">
+        <span>Display LG</span>
+        <span>40px</span>
+        <span>56px</span>
+        <span>80px</span>
+        <span>96px</span>
+      </div>
+      <div class="scale-row">
+        <span>Display MD</span>
+        <span>32px</span>
+        <span>48px</span>
+        <span>64px</span>
+        <span>72px</span>
+      </div>
+      <div class="scale-row">
+        <span>H1</span>
+        <span>28px</span>
+        <span>32px</span>
+        <span>40px</span>
+        <span>48px</span>
+      </div>
+      <div class="scale-row">
+        <span>H2</span>
+        <span>24px</span>
+        <span>28px</span>
+        <span>32px</span>
+        <span>36px</span>
+      </div>
+      <div class="scale-row">
+        <span>Body</span>
+        <span>16px</span>
+        <span>17px</span>
+        <span>18px</span>
+        <span>18px</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Component Behavior -->
+  <section class="section" id="components">
+    <h2>Component Behavior</h2>
+    <p>Components don't just shrink—they transform to serve each context appropriately.</p>
+
+    <!-- Hero -->
+    <div class="component-behavior">
+      <h3>Hero</h3>
+      <div class="behavior-grid">
+        <div class="behavior-card mobile">
+          <div class="behavior-preview hero-preview mobile">
+            <div class="hero-avatar"></div>
+            <div class="hero-text"></div>
+            <div class="hero-cta"></div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Mobile</span>
+            <ul>
+              <li>Layout: Stacked</li>
+              <li>Text: Centered</li>
+              <li>Avatar: 200px</li>
+              <li>CTAs: Stacked</li>
+            </ul>
+          </div>
+        </div>
+        <div class="behavior-card tablet">
+          <div class="behavior-preview hero-preview tablet">
+            <div class="hero-avatar"></div>
+            <div class="hero-text"></div>
+            <div class="hero-cta"></div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Tablet</span>
+            <ul>
+              <li>Layout: Stacked</li>
+              <li>Text: Centered</li>
+              <li>Avatar: 280px</li>
+              <li>CTAs: Inline</li>
+            </ul>
+          </div>
+        </div>
+        <div class="behavior-card desktop">
+          <div class="behavior-preview hero-preview desktop">
+            <div class="hero-text"></div>
+            <div class="hero-avatar"></div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Desktop</span>
+            <ul>
+              <li>Layout: Split (50/50)</li>
+              <li>Text: Left-aligned</li>
+              <li>Avatar: 360px</li>
+              <li>CTAs: Inline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="component-behavior">
+      <h3>Modal</h3>
+      <div class="behavior-grid">
+        <div class="behavior-card mobile">
+          <div class="behavior-preview modal-preview mobile">
+            <div class="modal-sheet"></div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Mobile</span>
+            <ul>
+              <li>Position: Bottom sheet</li>
+              <li>Width: 100%</li>
+              <li>Radius: Top only</li>
+              <li>Animation: Slide up</li>
+            </ul>
+          </div>
+        </div>
+        <div class="behavior-card desktop">
+          <div class="behavior-preview modal-preview desktop">
+            <div class="modal-centered"></div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Desktop</span>
+            <ul>
+              <li>Position: Centered</li>
+              <li>Width: 600px</li>
+              <li>Radius: All corners</li>
+              <li>Animation: Scale + fade</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="component-behavior">
+      <h3>Navigation</h3>
+      <div class="behavior-grid">
+        <div class="behavior-card mobile">
+          <div class="behavior-preview nav-preview mobile">
+            <div class="nav-tab-bar">
+              <div class="nav-tab"></div>
+              <div class="nav-tab"></div>
+              <div class="nav-tab"></div>
+              <div class="nav-tab"></div>
+              <div class="nav-tab"></div>
+            </div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Mobile</span>
+            <ul>
+              <li>Type: Bottom tab bar</li>
+              <li>Max items: 5</li>
+              <li>Labels: Visible</li>
+              <li>Menu: Hamburger</li>
+            </ul>
+          </div>
+        </div>
+        <div class="behavior-card desktop">
+          <div class="behavior-preview nav-preview desktop">
+            <div class="nav-top-bar">
+              <div class="nav-logo"></div>
+              <div class="nav-items"></div>
+              <div class="nav-avatar-btn"></div>
+            </div>
+          </div>
+          <div class="behavior-specs">
+            <span class="behavior-bp">Desktop</span>
+            <ul>
+              <li>Type: Top navigation</li>
+              <li>Max items: 8</li>
+              <li>Labels: Visible</li>
+              <li>Menu: Avatar dropdown</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avatar -->
+    <div class="component-behavior">
+      <h3>Avatar Sizes</h3>
+      <div class="avatar-size-grid">
+        <div class="avatar-size-card">
+          <span class="context">Conversation</span>
+          <div class="avatar-sizes">
+            <div class="avatar-sample" style="--size: 45px;"><span>M</span></div>
+            <div class="avatar-sample" style="--size: 60px;"><span>T</span></div>
+            <div class="avatar-sample" style="--size: 80px;"><span>D</span></div>
+            <div class="avatar-sample" style="--size: 100px;"><span>W</span></div>
+          </div>
+          <div class="avatar-values">
+            <span>180px</span>
+            <span>240px</span>
+            <span>320px</span>
+            <span>400px</span>
+          </div>
+        </div>
+        <div class="avatar-size-card">
+          <span class="context">Sidebar</span>
+          <div class="avatar-sizes small">
+            <div class="avatar-sample" style="--size: 24px;"><span>M</span></div>
+            <div class="avatar-sample" style="--size: 28px;"><span>T</span></div>
+            <div class="avatar-sample" style="--size: 32px;"><span>D</span></div>
+            <div class="avatar-sample" style="--size: 36px;"><span>W</span></div>
+          </div>
+          <div class="avatar-values">
+            <span>48px</span>
+            <span>56px</span>
+            <span>64px</span>
+            <span>72px</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Touch Targets -->
+  <section class="section" id="touch">
+    <h2>Touch Targets</h2>
+    <p>Minimum touch target sizes ensure comfortable tapping on mobile devices.</p>
+
+    <div class="touch-target-grid">
+      <div class="touch-card">
+        <div class="touch-visual primary"></div>
+        <h4>Primary Actions</h4>
+        <p>Buttons, main navigation</p>
+        <div class="touch-sizes">
+          <span><strong>Mobile:</strong> 48px</span>
+          <span><strong>Tablet:</strong> 44px</span>
+          <span><strong>Desktop:</strong> 40px</span>
+        </div>
+      </div>
+      <div class="touch-card">
+        <div class="touch-visual secondary"></div>
+        <h4>Secondary Actions</h4>
+        <p>Links, minor controls</p>
+        <div class="touch-sizes">
+          <span><strong>Mobile:</strong> 44px</span>
+          <span><strong>Tablet:</strong> 40px</span>
+          <span><strong>Desktop:</strong> 36px</span>
+        </div>
+      </div>
+      <div class="touch-card">
+        <div class="touch-visual compact"></div>
+        <h4>Compact</h4>
+        <p>Toolbars, tabs, dense layouts</p>
+        <div class="touch-sizes">
+          <span><strong>Mobile:</strong> 40px</span>
+          <span><strong>Tablet:</strong> 36px</span>
+          <span><strong>Desktop:</strong> 32px</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Common Patterns -->
+  <section class="section" id="patterns">
+    <h2>Common Patterns</h2>
+
+    <div class="pattern-grid">
+      <div class="pattern-card">
+        <h4>Stack to Split</h4>
+        <div class="pattern-demo stack-split">
+          <div class="pattern-mobile">
+            <div class="box"></div>
+            <div class="box"></div>
+          </div>
+          <div class="pattern-arrow">→</div>
+          <div class="pattern-desktop">
+            <div class="box"></div>
+            <div class="box"></div>
+          </div>
+        </div>
+        <p>Content stacks vertically on mobile, splits horizontally on desktop.</p>
+        <pre><code>.container {
+  flex-direction: column;
+}
+@media (min-width: 1024px) {
+  .container {
+    flex-direction: row;
+  }
+}</code></pre>
+      </div>
+
+      <div class="pattern-card">
+        <h4>Centered on Mobile</h4>
+        <div class="pattern-demo text-center">
+          <div class="pattern-mobile">
+            <div class="line center"></div>
+            <div class="line center short"></div>
+          </div>
+          <div class="pattern-arrow">→</div>
+          <div class="pattern-desktop">
+            <div class="line left"></div>
+            <div class="line left short"></div>
+          </div>
+        </div>
+        <p>Text centered on mobile, left-aligned on desktop.</p>
+        <pre><code>.text {
+  text-align: center;
+}
+@media (min-width: 1024px) {
+  .text {
+    text-align: left;
+  }
+}</code></pre>
+      </div>
+
+      <div class="pattern-card">
+        <h4>Full Width Mobile</h4>
+        <div class="pattern-demo full-width">
+          <div class="pattern-mobile">
+            <div class="button full"></div>
+          </div>
+          <div class="pattern-arrow">→</div>
+          <div class="pattern-desktop">
+            <div class="button auto"></div>
+          </div>
+        </div>
+        <p>Buttons span full width on mobile, auto-width on desktop.</p>
+        <pre><code>.button {
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .button {
+    width: auto;
+  }
+}</code></pre>
+      </div>
+
+      <div class="pattern-card">
+        <h4>Hide on Mobile</h4>
+        <div class="pattern-demo hide-mobile">
+          <div class="pattern-mobile">
+            <div class="visible"></div>
+          </div>
+          <div class="pattern-arrow">→</div>
+          <div class="pattern-desktop">
+            <div class="visible"></div>
+            <div class="visible secondary"></div>
+          </div>
+        </div>
+        <p>Secondary content hidden on mobile, visible on larger screens.</p>
+        <pre><code>.secondary {
+  display: none;
+}
+@media (min-width: 768px) {
+  .secondary {
+    display: block;
+  }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Animation Adjustments -->
+  <section class="section" id="animation">
+    <h2>Animation Adjustments</h2>
+    <p>Animations adapt to device capabilities for optimal performance.</p>
+
+    <div class="animation-rules">
+      <div class="animation-card mobile">
+        <h4>Mobile</h4>
+        <ul>
+          <li>Duration: <strong>0.9x</strong> (faster)</li>
+          <li>Complexity: <strong>Reduced</strong></li>
+          <li>Parallax: <strong>Disabled</strong></li>
+        </ul>
+        <p class="note">Faster animations, simpler effects for performance</p>
+      </div>
+      <div class="animation-card desktop">
+        <h4>Desktop</h4>
+        <ul>
+          <li>Duration: <strong>1.0x</strong> (normal)</li>
+          <li>Complexity: <strong>Full</strong></li>
+          <li>Parallax: <strong>Enabled</strong></li>
+        </ul>
+      </div>
+      <div class="animation-card wide">
+        <h4>Wide</h4>
+        <ul>
+          <li>Duration: <strong>1.1x</strong> (slower)</li>
+          <li>Complexity: <strong>Full</strong></li>
+          <li>Parallax: <strong>Enabled</strong></li>
+        </ul>
+        <p class="note">Slightly slower animations feel more elegant on large screens</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CSS Utilities -->
+  <section class="section" id="utilities">
+    <h2>Utility Classes</h2>
+    <p>Pre-built utility classes for common responsive patterns.</p>
+
+    <div class="utility-table">
+      <div class="utility-row header">
+        <span>Class</span>
+        <span>Effect</span>
+      </div>
+      <div class="utility-row">
+        <code>.hide-mobile</code>
+        <span>Hidden on mobile, visible elsewhere</span>
+      </div>
+      <div class="utility-row">
+        <code>.show-mobile-only</code>
+        <span>Visible only on mobile</span>
+      </div>
+      <div class="utility-row">
+        <code>.hide-tablet</code>
+        <span>Hidden on tablet</span>
+      </div>
+      <div class="utility-row">
+        <code>.text-center-mobile</code>
+        <span>Centered text on mobile only</span>
+      </div>
+      <div class="utility-row">
+        <code>.text-left-desktop</code>
+        <span>Left-aligned text on desktop+</span>
+      </div>
+      <div class="utility-row">
+        <code>.flex-col-mobile</code>
+        <span>Column direction on mobile</span>
+      </div>
+      <div class="utility-row">
+        <code>.flex-row-desktop</code>
+        <span>Row direction on desktop+</span>
+      </div>
+      <div class="utility-row">
+        <code>.grid-cols-1-mobile</code>
+        <span>1 column grid on mobile</span>
+      </div>
+      <div class="utility-row">
+        <code>.grid-cols-3-desktop</code>
+        <span>3 column grid on desktop+</span>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+/* Responsive Page Styles */
+.responsive-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Breakpoint Visual Bar */
+.breakpoint-visual {
+  margin: var(--space-8) 0;
+}
+
+.breakpoint-bar {
+  display: flex;
+  height: 60px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.bp-segment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: var(--text-sm);
+  min-width: 80px;
+}
+
+.bp-segment.mobile { background: var(--color-maya); }
+.bp-segment.tablet { background: var(--color-alex); }
+.bp-segment.desktop { background: var(--color-peter); }
+.bp-segment.wide { background: var(--color-ferni); }
+
+.bp-label {
+  font-weight: 600;
+}
+
+.bp-range {
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
+/* Breakpoint Cards */
+.breakpoint-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.breakpoint-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.breakpoint-card.mobile { border-top: 3px solid var(--color-maya); }
+.breakpoint-card.tablet { border-top: 3px solid var(--color-alex); }
+.breakpoint-card.desktop { border-top: 3px solid var(--color-peter); }
+.breakpoint-card.wide { border-top: 3px solid var(--color-ferni); }
+
+.bp-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.bp-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bp-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.bp-spec {
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.spec-value {
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.breakpoint-card pre {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* Fluid Typography Demo */
+.fluid-type-demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.type-sample {
+  background: var(--bg-elevated);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.type-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.type-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.type-sample.display-xl .type-text { font-size: clamp(2rem, 1.5rem + 2vw, 3rem); }
+.type-sample.display-lg .type-text { font-size: clamp(1.75rem, 1.25rem + 1.5vw, 2.5rem); }
+.type-sample.display-md .type-text { font-size: clamp(1.5rem, 1rem + 1vw, 2rem); }
+.type-sample.h1 .type-text { font-size: clamp(1.25rem, 1rem + 0.75vw, 1.75rem); }
+.type-sample.h2 .type-text { font-size: clamp(1.125rem, 0.9rem + 0.5vw, 1.5rem); }
+.type-sample.h3 .type-text { font-size: clamp(1rem, 0.9rem + 0.25vw, 1.25rem); }
+
+.type-sample code {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+/* Type Scale Table */
+.type-scale-table {
+  margin-top: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.scale-header,
+.scale-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(4, 80px);
+  padding: var(--space-3) var(--space-4);
+}
+
+.scale-header {
+  background: var(--bg-subtle);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.scale-row {
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-sm);
+}
+
+.scale-row span:first-child {
+  font-weight: 500;
+}
+
+.scale-row span:not(:first-child) {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+/* Component Behavior */
+.component-behavior {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.component-behavior:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: var(--space-6);
+}
+
+.behavior-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.behavior-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.behavior-preview {
+  height: 140px;
+  background: var(--bg-subtle);
+  padding: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hero preview */
+.hero-preview.mobile {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hero-preview.tablet {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.hero-preview.desktop {
+  flex-direction: row;
+  gap: var(--space-4);
+}
+
+.hero-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-ferni);
+}
+
+.hero-preview.desktop .hero-avatar {
+  width: 60px;
+  height: 60px;
+}
+
+.hero-text {
+  width: 60%;
+  height: 8px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.hero-cta {
+  width: 40%;
+  height: 16px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* Modal preview */
+.modal-preview {
+  position: relative;
+  background: var(--bg-base);
+}
+
+.modal-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal-centered {
+  width: 60%;
+  height: 50%;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+}
+
+/* Nav preview */
+.nav-preview.mobile {
+  align-items: flex-end;
+}
+
+.nav-tab-bar {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+}
+
+.nav-tab {
+  width: 32px;
+  height: 32px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.nav-preview.desktop {
+  align-items: flex-start;
+}
+
+.nav-top-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+}
+
+.nav-logo {
+  width: 24px;
+  height: 24px;
+  background: var(--color-ferni);
+  border-radius: var(--radius-sm);
+}
+
+.nav-items {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.nav-avatar-btn {
+  width: 24px;
+  height: 24px;
+  background: var(--color-alex);
+  border-radius: var(--radius-full);
+}
+
+.behavior-specs {
+  padding: var(--space-4);
+}
+
+.behavior-bp {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-3);
+}
+
+.behavior-card.mobile .behavior-bp { background: var(--color-maya); color: white; }
+.behavior-card.tablet .behavior-bp { background: var(--color-alex); color: white; }
+.behavior-card.desktop .behavior-bp { background: var(--color-peter); color: white; }
+
+.behavior-specs ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.behavior-specs li {
+  padding: var(--space-1) 0;
+  color: var(--text-secondary);
+}
+
+/* Avatar Size Grid */
+.avatar-size-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.avatar-size-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.avatar-size-card .context {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+}
+
+.avatar-sizes {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.avatar-sample {
+  width: var(--size);
+  height: var(--size);
+  background: var(--color-ferni);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.avatar-values {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+/* Touch Targets */
+.touch-target-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.touch-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.touch-visual {
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4);
+}
+
+.touch-visual.primary { background: var(--accent-primary); height: 48px; }
+.touch-visual.secondary { background: var(--color-alex); height: 44px; }
+.touch-visual.compact { background: var(--color-peter); height: 40px; }
+
+.touch-card h4 {
+  margin-bottom: var(--space-2);
+}
+
+.touch-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.touch-sizes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+/* Pattern Grid */
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.pattern-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.pattern-card h4 {
+  margin-bottom: var(--space-4);
+}
+
+.pattern-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+.pattern-mobile,
+.pattern-desktop {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pattern-demo.stack-split .pattern-mobile {
+  flex-direction: column;
+}
+
+.pattern-demo .box {
+  width: 24px;
+  height: 24px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+
+.pattern-demo .line {
+  height: 6px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  width: 60px;
+}
+
+.pattern-demo .line.short {
+  width: 40px;
+}
+
+.pattern-demo .line.center {
+  margin: 0 auto;
+}
+
+.pattern-demo .button {
+  height: 24px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+
+.pattern-demo .button.full {
+  width: 80px;
+}
+
+.pattern-demo .button.auto {
+  width: 48px;
+}
+
+.pattern-demo .visible {
+  width: 32px;
+  height: 24px;
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
+}
+
+.pattern-demo .visible.secondary {
+  background: var(--color-peter);
+}
+
+.pattern-arrow {
+  color: var(--text-tertiary);
+  font-size: var(--text-lg);
+}
+
+.pattern-card p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.pattern-card pre {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* Animation Rules */
+.animation-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.animation-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+}
+
+.animation-card.mobile { border-top: 3px solid var(--color-maya); }
+.animation-card.desktop { border-top: 3px solid var(--color-peter); }
+.animation-card.wide { border-top: 3px solid var(--color-ferni); }
+
+.animation-card h4 {
+  margin-bottom: var(--space-4);
+}
+
+.animation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.animation-card li {
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.animation-card li:last-child {
+  border-bottom: none;
+}
+
+.animation-card .note {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Utility Table */
+.utility-table {
+  margin-top: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.utility-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.utility-row.header {
+  background: var(--bg-subtle);
+  font-weight: 600;
+}
+
+.utility-row:not(.header) {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.utility-row code {
+  font-size: var(--text-xs);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .breakpoint-bar {
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  .bp-segment {
+    flex: 1 1 50% !important;
+    padding: var(--space-3);
+  }
+
+  .type-sample {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .scale-header,
+  .scale-row {
+    grid-template-columns: 1fr repeat(2, 60px);
+  }
+
+  .scale-header span:nth-child(3),
+  .scale-header span:nth-child(4),
+  .scale-row span:nth-child(3),
+  .scale-row span:nth-child(4) {
+    display: none;
+  }
+
+  .utility-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}
+</style>

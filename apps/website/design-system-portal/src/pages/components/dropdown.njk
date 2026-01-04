@@ -1,0 +1,416 @@
+---
+layout: layouts/base.njk
+title: Dropdown Component
+description: Dropdown menus for actions, navigation, and selection
+permalink: /components/dropdown/
+---
+
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Dropdown</span>
+    </nav>
+    <h1>Dropdown</h1>
+    <p class="lead">Contextual menus that appear on trigger interaction. Use for actions, navigation options, or selection lists.</p>
+  </header>
+
+  <section class="section">
+    <h2>Basic Dropdown</h2>
+
+    <div class="demo-block">
+      <h3>Menu Dropdown</h3>
+      <p class="demo-description">Click to reveal a list of actions.</p>
+      <div class="demo-area">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-trigger">
+            Options
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu">
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit
+            </button>
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Duplicate
+            </button>
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Share
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item dropdown-item-danger">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="dropdown"&gt;
+  &lt;button class="btn dropdown-trigger"&gt;
+    Options
+    &lt;svg&gt;...chevron...&lt;/svg&gt;
+  &lt;/button&gt;
+  &lt;div class="dropdown-menu"&gt;
+    &lt;button class="dropdown-item"&gt;Edit&lt;/button&gt;
+    &lt;button class="dropdown-item"&gt;Duplicate&lt;/button&gt;
+    &lt;div class="dropdown-divider"&gt;&lt;/div&gt;
+    &lt;button class="dropdown-item dropdown-item-danger"&gt;Delete&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Dropdown Positions</h2>
+
+    <div class="demo-block">
+      <h3>Alignment Options</h3>
+      <p class="demo-description">Position the menu relative to the trigger.</p>
+      <div class="demo-area" style="gap: var(--space-4); flex-wrap: wrap;">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-trigger">
+            Bottom Left
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu">
+            <button class="dropdown-item">Option 1</button>
+            <button class="dropdown-item">Option 2</button>
+            <button class="dropdown-item">Option 3</button>
+          </div>
+        </div>
+        <div class="dropdown dropdown-right">
+          <button class="btn btn-secondary dropdown-trigger">
+            Bottom Right
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu">
+            <button class="dropdown-item">Option 1</button>
+            <button class="dropdown-item">Option 2</button>
+            <button class="dropdown-item">Option 3</button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;!-- Default: bottom-left --&gt;
+&lt;div class="dropdown"&gt;...&lt;/div&gt;
+
+&lt;!-- Bottom-right --&gt;
+&lt;div class="dropdown dropdown-right"&gt;...&lt;/div&gt;
+
+&lt;!-- Top alignment --&gt;
+&lt;div class="dropdown dropdown-top"&gt;...&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>User Menu</h2>
+
+    <div class="demo-block">
+      <h3>Profile Dropdown</h3>
+      <p class="demo-description">Common pattern for user account menus.</p>
+      <div class="demo-area">
+        <div class="dropdown dropdown-right">
+          <button class="dropdown-trigger avatar-trigger">
+            <div class="avatar avatar-sm">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          </button>
+          <div class="dropdown-menu dropdown-menu-wide">
+            <div class="dropdown-header">
+              <div class="dropdown-header-name">Seth Ford</div>
+              <div class="dropdown-header-email">seth@ferni.ai</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Profile
+            </button>
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </button>
+            <button class="dropdown-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Help
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item dropdown-item-danger">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="dropdown-menu dropdown-menu-wide"&gt;
+  &lt;div class="dropdown-header"&gt;
+    &lt;div class="dropdown-header-name"&gt;Seth Ford&lt;/div&gt;
+    &lt;div class="dropdown-header-email"&gt;seth@ferni.ai&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class="dropdown-divider"&gt;&lt;/div&gt;
+  &lt;button class="dropdown-item"&gt;Profile&lt;/button&gt;
+  ...
+&lt;/div&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Selection Dropdown</h2>
+
+    <div class="demo-block">
+      <h3>With Checkmarks</h3>
+      <p class="demo-description">For selecting options with visual confirmation.</p>
+      <div class="demo-area">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-trigger">
+            Sort by: Recent
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu">
+            <button class="dropdown-item dropdown-item-selected">
+              <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Recent
+            </button>
+            <button class="dropdown-item">
+              <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Name (A-Z)
+            </button>
+            <button class="dropdown-item">
+              <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Name (Z-A)
+            </button>
+            <button class="dropdown-item">
+              <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Size
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;button class="dropdown-item dropdown-item-selected"&gt;
+  &lt;svg class="check-icon"&gt;...&lt;/svg&gt;
+  Recent
+&lt;/button&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Implementation</h2>
+
+    <div class="code-block standalone">
+      <pre><code>/* Dropdown Container */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger */
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Menu */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-2);
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2);
+  z-index: var(--z-dropdown);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all var(--duration-fast) var(--ease-ease-out);
+}
+
+.dropdown:hover .dropdown-menu,
+.dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Right alignment */
+.dropdown-right .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+/* Items */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-ease-out);
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-secondary);
+}
+
+.dropdown-item svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Danger variant */
+.dropdown-item-danger {
+  color: var(--error);
+}
+
+.dropdown-item-danger svg {
+  color: var(--error);
+}
+
+.dropdown-item-danger:hover {
+  background: rgba(var(--error-rgb), 0.1);
+}
+
+/* Divider */
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-2) 0;
+}
+
+/* Header */
+.dropdown-header {
+  padding: var(--space-3) var(--space-3);
+}
+
+.dropdown-header-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.dropdown-header-email {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Selection checkmark */
+.dropdown-item .check-icon {
+  opacity: 0;
+}
+
+.dropdown-item-selected .check-icon {
+  opacity: 1;
+  color: var(--accent-primary);
+}
+
+/* Wide variant */
+.dropdown-menu-wide {
+  min-width: 220px;
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>Keyboard Support</h4>
+        <p>Enter/Space opens menu. Arrow keys navigate. Escape closes. Tab moves focus out.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>ARIA Attributes</h4>
+        <p>Use <code>aria-haspopup="menu"</code> on trigger, <code>role="menu"</code> on container, <code>role="menuitem"</code> on items.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Management</h4>
+        <p>Focus moves to first item when opened. Returns to trigger on close.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Click Outside</h4>
+        <p>Clicking outside the dropdown closes it. Essential for touch devices.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<style>
+.component-page { max-width: var(--container-max); }
+.page-header { margin-bottom: var(--space-12); }
+.breadcrumb { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-4); }
+.breadcrumb a { color: var(--accent-text); text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.page-header h1 { font-family: var(--font-display); font-size: var(--text-4xl); font-weight: var(--font-weight-bold); letter-spacing: -0.02em; margin-bottom: var(--space-4); }
+
+.demo-block { margin-top: var(--space-8); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); overflow: hidden; }
+.demo-block h3 { font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--font-weight-semibold); padding: var(--space-5) var(--space-6) 0; }
+.demo-description { font-size: var(--text-sm); color: var(--text-muted); padding: var(--space-2) var(--space-6) var(--space-4); }
+.demo-area { padding: var(--space-8) var(--space-6); background: var(--bg-secondary); display: flex; align-items: flex-start; justify-content: center; min-height: 200px; }
+
+.code-block { background: var(--bg-tertiary); border-top: 1px solid var(--border-subtle); }
+.code-block.standalone { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); margin-top: var(--space-6); }
+.code-block pre { margin: 0; padding: var(--space-4) var(--space-6); overflow-x: auto; }
+.code-block code { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-relaxed); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-family: var(--font-body); font-weight: var(--font-weight-semibold); font-size: var(--text-sm); cursor: pointer; transition: all var(--duration-fast) var(--ease-ease-out); border: none; }
+.btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-medium); }
+.btn-secondary:hover { background: var(--bg-secondary); border-color: var(--border-strong); }
+
+/* Dropdown Styles */
+.dropdown { position: relative; display: inline-block; }
+.dropdown-trigger { display: inline-flex; align-items: center; gap: var(--space-2); }
+.dropdown-menu { position: absolute; top: 100%; left: 0; margin-top: var(--space-2); min-width: 180px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: var(--space-2); z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: all var(--duration-fast) var(--ease-ease-out); }
+.dropdown:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-right .dropdown-menu { left: auto; right: 0; }
+
+.dropdown-item { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-2) var(--space-3); font-family: var(--font-body); font-size: var(--text-sm); color: var(--text-primary); background: transparent; border: none; border-radius: var(--radius-md); cursor: pointer; transition: background var(--duration-fast) var(--ease-ease-out); text-align: left; }
+.dropdown-item:hover { background: var(--bg-secondary); }
+.dropdown-item svg { color: var(--text-muted); flex-shrink: 0; }
+.dropdown-item-danger { color: var(--error); }
+.dropdown-item-danger svg { color: var(--error); }
+.dropdown-item-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+.dropdown-divider { height: 1px; background: var(--border-subtle); margin: var(--space-2) 0; }
+.dropdown-header { padding: var(--space-3); }
+.dropdown-header-name { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.dropdown-header-email { font-size: var(--text-xs); color: var(--text-muted); }
+.dropdown-menu-wide { min-width: 220px; }
+
+.dropdown-item .check-icon { opacity: 0; }
+.dropdown-item-selected .check-icon { opacity: 1; color: var(--accent-primary); }
+
+.avatar-trigger { background: transparent; border: none; padding: 0; cursor: pointer; border-radius: var(--radius-full); }
+.avatar { width: 36px; height: 36px; background: var(--persona-ferni); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; }
+.avatar-sm { width: 32px; height: 32px; }
+
+.a11y-guidelines { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-5); margin-top: var(--space-6); }
+.a11y-item { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); }
+.a11y-item h4 { font-family: var(--font-display); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2); color: var(--accent-text); }
+.a11y-item p { font-size: var(--text-sm); color: var(--text-secondary); line-height: var(--leading-relaxed); }
+.a11y-item code { background: var(--bg-secondary); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--text-xs); }
+
+@media (max-width: 768px) { .page-header h1 { font-size: var(--text-3xl); } }
+</style>

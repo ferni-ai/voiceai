@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cedar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glass Surfaces Component | Ferni Design System</title>
+  <meta name="description" content="Frosted glass effects for overlays, modals, and layered interfaces">
+
+  <!-- Fonts: Plus Jakarta Sans (display), Inter (body), JetBrains Mono (code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design Tokens (auto-generated from design-system/tokens/*.json) -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/docs.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D5A45' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg>">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="logo">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+            </svg>
+          </span>
+          <span class="logo-text">Ferni Design</span>
+        </a>
+        <span class="version-badge">v2.0</span>
+      </div>
+
+      <!-- Search -->
+      <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="Search..." aria-label="Search documentation">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-section-title">Foundations</span>
+          <ul>
+            <li><a href="/" class="">Overview</a></li>
+            <li><a href="/colors/" class="">Colors</a></li>
+            <li><a href="/typography/" class="">Typography</a></li>
+            <li><a href="/spacing/" class="">Spacing</a></li>
+            <li><a href="/animation/" class="">Animation</a></li>
+            <li><a href="/physics/" class="">Physics</a></li>
+            <li><a href="/responsive/" class="">Responsive</a></li>
+            <li><a href="/effects/" class="">Effects</a></li>
+            <li><a href="/sequences/" class="">Sequences</a></li>
+            <li><a href="/motion/" class="">Motion</a></li>
+            <li><a href="/haptics/" class="">Haptics</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Patterns</span>
+          <ul>
+            <li><a href="/feedback/" class="">Feedback</a></li>
+            <li><a href="/predictive-ui/" class="">Predictive UI</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Brand</span>
+          <ul>
+            <li><a href="/personas/" class="">Personas</a></li>
+            <li><a href="/personality/" class="">Personality</a></li>
+            <li><a href="/capabilities/" class="">Capabilities</a></li>
+            <li><a href="/voice/" class="">Voice & Tone</a></li>
+            <li><a href="/sounds-haptics/" class="">Sounds & Haptics</a></li>
+            <li><a href="/sonic-identity/" class="">Sonic Identity</a></li>
+            <li><a href="/rituals/" class="">Rituals</a></li>
+            <li><a href="/icons/" class="">Icons</a></li>
+            <li><a href="/expressions/" class="">Expressions</a></li>
+            <li><a href="/glow-colors/" class="">Glow Colors</a></li>
+            <li><a href="/window-avatar/" class="">Window Avatar</a></li>
+            <li><a href="/universe/" class="">Universe</a></li>
+            <li><a href="/visualizations/" class="">Visualizations</a></li>
+            <li><a href="/brand-guardrails/" class="">Brand Guardrails</a></li>
+            <li><a href="/brand-kit/" class="">Brand Kit</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Components</span>
+          <ul>
+            <li><a href="/components/" class="">Overview</a></li>
+            <li><a href="/components/avatar/" class="">Avatar</a></li>
+            <li><a href="/components/badge/" class="">Badge</a></li>
+            <li><a href="/components/buttons/" class="">Buttons</a></li>
+            <li><a href="/components/cards/" class="">Cards</a></li>
+            <li><a href="/components/dropdown/" class="">Dropdown</a></li>
+            <li><a href="/components/glass/" class="active">Glass Surfaces</a></li>
+            <li><a href="/components/inputs/" class="">Inputs</a></li>
+            <li><a href="/components/modal/" class="">Modal</a></li>
+            <li><a href="/components/progress/" class="">Progress</a></li>
+            <li><a href="/components/tabs/" class="">Tabs</a></li>
+            <li><a href="/components/toast/" class="">Toast</a></li>
+            <li><a href="/components/tooltip/" class="">Tooltip</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-section-title">Resources</span>
+          <ul>
+            <li><a href="https://developers.ferni.ai" target="_blank">Developer Docs</a></li>
+            <li><a href="https://marketplace.ferni.ai" target="_blank">Marketplace</a></li>
+            <li><a href="https://ferni.ai" target="_blank">Product</a></li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-preview-btn" onclick="toggleThemePreview()" aria-label="Toggle theme comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+          </svg>
+          <span>Compare</span>
+        </button>
+        <div class="theme-toggle" onclick="toggleTheme()">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Theme Preview Modal -->
+    <div id="themePreviewModal" class="theme-preview-modal">
+      <div class="theme-preview-header">
+        <h3>Theme Comparison</h3>
+        <button class="close-preview" onclick="toggleThemePreview()" aria-label="Close preview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="theme-preview-content">
+        <div class="theme-panel" data-theme="cedar">
+          <div class="theme-label">Cedar (Dark)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-panel" data-theme="zen">
+          <div class="theme-label">Zen (Light)</div>
+          <div class="theme-sample">
+            <div class="sample-card">
+              <div class="sample-avatar"></div>
+              <div class="sample-text">
+                <div class="sample-title"></div>
+                <div class="sample-body"></div>
+              </div>
+            </div>
+            <div class="sample-buttons">
+              <button class="sample-btn primary">Primary</button>
+              <button class="sample-btn secondary">Secondary</button>
+            </div>
+            <div class="sample-colors">
+              <div class="color-dot ferni"></div>
+              <div class="color-dot maya"></div>
+              <div class="color-dot peter"></div>
+              <div class="color-dot alex"></div>
+              <div class="color-dot jordan"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" class="search-results"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+<article class="component-page">
+  <header class="page-header">
+    <nav class="breadcrumb">
+      <a href="/components/">Components</a>
+      <span>/</span>
+      <span>Glass Surfaces</span>
+    </nav>
+    <h1>Glass Surfaces</h1>
+    <p class="lead">Frosted glass effects that create depth and visual hierarchy while maintaining context awareness. Inspired by iOS and macOS design language.</p>
+  </header>
+
+  <section class="section">
+    <h2>Blur Intensities</h2>
+
+    <div class="demo-block">
+      <h3>Subtle Blur</h3>
+      <p class="demo-description">Light frosting for elevated surfaces that need to stay connected to content beneath.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-subtle">
+          <span>Subtle blur (8px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-subtle {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-subtle));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Medium Blur</h3>
+      <p class="demo-description">Standard frosting for modals, dropdowns, and floating panels.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-medium">
+          <span>Medium blur (16px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-medium {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <h3>Heavy Blur</h3>
+      <p class="demo-description">Strong frosting for full-screen overlays and critical modals.</p>
+      <div class="demo-area glass-demo-area">
+        <div class="glass-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-heavy">
+          <span>Heavy blur (24px)</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-heavy {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--border-glass);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Persona-Tinted Glass</h2>
+    <p>Glass surfaces can carry subtle persona tints for brand reinforcement without overwhelming the interface.</p>
+
+    <div class="demo-block">
+      <h3>Persona Variants</h3>
+      <p class="demo-description">Each persona has a subtle tint that can be applied to glass surfaces.</p>
+      <div class="demo-area glass-demo-area-grid">
+        <div class="glass-backdrop-full">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="glass-surface glass-persona glass-ferni">
+          <span class="persona-name">Ferni</span>
+        </div>
+        <div class="glass-surface glass-persona glass-maya">
+          <span class="persona-name">Maya</span>
+        </div>
+        <div class="glass-surface glass-persona glass-peter">
+          <span class="persona-name">Peter</span>
+        </div>
+        <div class="glass-surface glass-persona glass-alex">
+          <span class="persona-name">Alex</span>
+        </div>
+        <div class="glass-surface glass-persona glass-jordan">
+          <span class="persona-name">Jordan</span>
+        </div>
+        <div class="glass-surface glass-persona glass-nayan">
+          <span class="persona-name">Nayan</span>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-ferni {
+  background: rgba(var(--persona-ferni-rgb), 0.1);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid rgba(var(--persona-ferni-rgb), 0.2);
+}
+
+.glass-maya {
+  background: rgba(var(--persona-maya-rgb), 0.1);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid rgba(var(--persona-maya-rgb), 0.2);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Modal Overlay</h2>
+
+    <div class="demo-block">
+      <h3>Glass Modal</h3>
+      <p class="demo-description">Full modal implementation with glass backdrop and surface.</p>
+      <div class="demo-area modal-demo-area">
+        <button class="btn btn-primary" id="open-modal">Open Modal</button>
+      </div>
+      <div class="code-block">
+        <pre><code>&lt;div class="modal-backdrop"&gt;
+  &lt;div class="modal-surface"&gt;
+    &lt;h2&gt;Modal Title&lt;/h2&gt;
+    &lt;p&gt;Modal content goes here...&lt;/p&gt;
+    &lt;button class="btn btn-primary"&gt;Confirm&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-surface {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 480px;
+  box-shadow: var(--shadow-xl);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Floating Panels</h2>
+
+    <div class="demo-block">
+      <h3>Dropdown Panel</h3>
+      <p class="demo-description">Glass dropdown for menus and contextual actions.</p>
+      <div class="demo-area panel-demo-area">
+        <div class="panel-backdrop">
+          <div class="backdrop-pattern"></div>
+        </div>
+        <div class="dropdown-panel">
+          <div class="dropdown-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span>Profile</span>
+          </div>
+          <div class="dropdown-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Settings</span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item dropdown-item-danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>Sign out</span>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.dropdown-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-ease-out);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Card with Glass</h2>
+
+    <div class="demo-block">
+      <h3>Glassmorphic Card</h3>
+      <p class="demo-description">Cards that use glass effects for a premium, layered feel.</p>
+      <div class="demo-area card-demo-area">
+        <div class="glass-backdrop-large">
+          <div class="backdrop-gradient"></div>
+        </div>
+        <div class="glass-card">
+          <div class="glass-card-header">
+            <div class="avatar avatar-ferni avatar-md">
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4c-4 4-8 8-8 14a8 8 0 1016 0c0-6-4-10-8-14z"/>
+              </svg>
+            </div>
+            <div class="glass-card-title">
+              <h4>Daily Check-in</h4>
+              <span class="glass-card-subtitle">with Ferni</span>
+            </div>
+          </div>
+          <p class="glass-card-content">How are you feeling today? I noticed you've been working hard lately.</p>
+          <div class="glass-card-actions">
+            <button class="btn btn-glass">Later</button>
+            <button class="btn btn-primary">Start</button>
+          </div>
+        </div>
+      </div>
+      <div class="code-block">
+        <pre><code>.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>CSS Custom Properties</h2>
+
+    <div class="properties-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+            <th>Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>--glass-blur-subtle</code></td>
+            <td>8px</td>
+            <td>Light frosting, elevated surfaces</td>
+          </tr>
+          <tr>
+            <td><code>--glass-blur-medium</code></td>
+            <td>16px</td>
+            <td>Standard modals, dropdowns</td>
+          </tr>
+          <tr>
+            <td><code>--glass-blur-heavy</code></td>
+            <td>24px</td>
+            <td>Full overlays, critical modals</td>
+          </tr>
+          <tr>
+            <td><code>--bg-glass</code></td>
+            <td>rgba(255, 255, 255, 0.7)</td>
+            <td>Glass surface background</td>
+          </tr>
+          <tr>
+            <td><code>--border-glass</code></td>
+            <td>rgba(255, 255, 255, 0.3)</td>
+            <td>Glass surface border</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Browser Support</h2>
+
+    <div class="support-grid">
+      <div class="support-item supported">
+        <h4>Chrome / Edge</h4>
+        <span class="support-badge">Full Support</span>
+        <p>backdrop-filter with -webkit- prefix</p>
+      </div>
+      <div class="support-item supported">
+        <h4>Safari</h4>
+        <span class="support-badge">Full Support</span>
+        <p>Native backdrop-filter support</p>
+      </div>
+      <div class="support-item supported">
+        <h4>Firefox</h4>
+        <span class="support-badge">Full Support</span>
+        <p>backdrop-filter since v103</p>
+      </div>
+      <div class="support-item partial">
+        <h4>Older Browsers</h4>
+        <span class="support-badge">Graceful Fallback</span>
+        <p>Solid background color used</p>
+      </div>
+    </div>
+
+    <div class="code-block standalone">
+      <pre><code>/* Fallback for browsers without backdrop-filter */
+.glass-surface {
+  background: var(--bg-elevated); /* Fallback */
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass-surface {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--glass-blur-medium));
+    -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+  }
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Accessibility</h2>
+
+    <div class="a11y-guidelines">
+      <div class="a11y-item">
+        <h4>Contrast Ratio</h4>
+        <p>Text on glass surfaces maintains WCAG 2.1 AA contrast (4.5:1 for body, 3:1 for large text).</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Motion Sensitivity</h4>
+        <p>Glass effects are static and don't cause motion sensitivity issues.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Reduced Transparency</h4>
+        <p>Honor <code>prefers-reduced-transparency</code> by increasing opacity or using solid backgrounds.</p>
+      </div>
+      <div class="a11y-item">
+        <h4>Focus Visibility</h4>
+        <p>Focus rings remain clearly visible against glass backgrounds with sufficient contrast.</p>
+      </div>
+    </div>
+  </section>
+</article>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="demo-modal" style="display: none;">
+  <div class="modal-surface">
+    <h2>Glass Modal</h2>
+    <p>This modal uses a frosted glass surface with a blurred backdrop, creating depth while maintaining context awareness.</p>
+    <div class="modal-actions">
+      <button class="btn btn-glass" id="close-modal">Cancel</button>
+      <button class="btn btn-primary" id="confirm-modal">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.component-page {
+  max-width: var(--container-max);
+}
+
+.page-header {
+  margin-bottom: var(--space-12);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.breadcrumb a {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.demo-block {
+  margin-top: var(--space-8);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.demo-block h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-5) var(--space-6) 0;
+}
+
+.demo-description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-6) var(--space-4);
+}
+
+.demo-area {
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.code-block {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.code-block.standalone {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  margin-top: var(--space-6);
+}
+
+.code-block pre {
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Glass Demo Area */
+.glass-demo-area {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-pattern {
+  position: absolute;
+  inset: -20px;
+  background:
+    linear-gradient(135deg, var(--persona-ferni) 0%, transparent 50%),
+    linear-gradient(225deg, var(--persona-maya) 0%, transparent 50%),
+    linear-gradient(315deg, var(--persona-alex) 0%, transparent 50%),
+    linear-gradient(45deg, var(--persona-jordan) 0%, transparent 50%);
+  opacity: 0.8;
+}
+
+.glass-surface {
+  position: relative;
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  min-width: 200px;
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-medium {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-heavy {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Persona Glass Grid */
+.glass-demo-area-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  min-height: 280px;
+  padding: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop-full {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.glass-persona {
+  padding: var(--space-4);
+  min-width: auto;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-ferni {
+  background: rgba(74, 103, 65, 0.15);
+  border: 1px solid rgba(74, 103, 65, 0.25);
+}
+
+.glass-maya {
+  background: rgba(180, 83, 9, 0.15);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+}
+
+.glass-peter {
+  background: rgba(30, 58, 138, 0.15);
+  border: 1px solid rgba(30, 58, 138, 0.25);
+}
+
+.glass-alex {
+  background: rgba(109, 40, 217, 0.15);
+  border: 1px solid rgba(109, 40, 217, 0.25);
+}
+
+.glass-jordan {
+  background: rgba(219, 39, 119, 0.15);
+  border: 1px solid rgba(219, 39, 119, 0.25);
+}
+
+.glass-nayan {
+  background: rgba(20, 83, 45, 0.15);
+  border: 1px solid rgba(20, 83, 45, 0.25);
+}
+
+.persona-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Modal Demo */
+.modal-demo-area {
+  min-height: 100px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modal-backdrop-in 0.2s ease-out;
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-surface {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  max-width: 400px;
+  width: calc(100% - var(--space-8));
+  box-shadow: var(--shadow-xl);
+  animation: modal-surface-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-surface-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-surface h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-3);
+}
+
+.modal-surface p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-5);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* Panel Demo */
+.panel-demo-area {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.panel-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dropdown-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-ease-out);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item svg {
+  color: var(--text-muted);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: var(--space-2) 0;
+}
+
+.dropdown-item-danger {
+  color: var(--error);
+}
+
+.dropdown-item-danger svg {
+  color: var(--error);
+}
+
+/* Card Demo */
+.card-demo-area {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.glass-backdrop-large {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-gradient {
+  position: absolute;
+  inset: -50px;
+  background: linear-gradient(135deg,
+    var(--persona-ferni) 0%,
+    var(--persona-maya) 50%,
+    var(--persona-alex) 100%);
+  opacity: 0.6;
+}
+
+.glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  max-width: 320px;
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.avatar-ferni {
+  background: var(--persona-ferni);
+}
+
+.avatar-md {
+  width: 48px;
+  height: 48px;
+}
+
+.glass-card-title h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+.glass-card-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.glass-card-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+.glass-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-ease-out);
+  border: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Properties Table */
+.properties-table {
+  margin-top: var(--space-6);
+  overflow-x: auto;
+}
+
+.properties-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.properties-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.properties-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.properties-table code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* Support Grid */
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.support-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.support-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.support-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+}
+
+.support-item.supported .support-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.support-item.partial .support-badge {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--warning);
+}
+
+.support-item p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Accessibility Guidelines */
+.a11y-guidelines {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.a11y-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.a11y-item h4 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+}
+
+.a11y-item p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.a11y-item code {
+  background: var(--bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .glass-demo-area-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const openBtn = document.getElementById('open-modal');
+  const closeBtn = document.getElementById('close-modal');
+  const confirmBtn = document.getElementById('confirm-modal');
+  const modal = document.getElementById('demo-modal');
+
+  if (openBtn && modal) {
+    openBtn.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    confirmBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
+
+    </main>
+  </div>
+
+  <style>
+    /* Search styles */
+    .sidebar-search {
+      padding: 0 var(--space-4);
+      margin-bottom: var(--space-4);
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      padding-left: 36px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      font-family: var(--font-body);
+    }
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.1);
+    }
+    .sidebar-search input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .search-icon {
+      position: absolute;
+      left: calc(var(--space-4) + 10px);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+    .search-results {
+      position: fixed;
+      top: 80px;
+      left: 260px;
+      width: 400px;
+      max-height: 60vh;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow-y: auto;
+      z-index: 1000;
+      display: none;
+    }
+    .search-results.active {
+      display: block;
+    }
+    .search-result-item {
+      display: block;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: background 0.15s;
+    }
+    .search-result-item:hover {
+      background: var(--bg-subtle);
+    }
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+    .search-result-title {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .search-result-section {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+    .search-no-results {
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    /* Theme preview button */
+    .theme-preview-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-size: var(--text-xs);
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-preview-btn:hover {
+      background: var(--bg-elevated);
+      border-color: var(--color-accent);
+      color: var(--text-primary);
+    }
+
+    /* Theme preview modal */
+    .theme-preview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+    }
+    .theme-preview-modal.active {
+      display: flex;
+    }
+    .theme-preview-header {
+      position: absolute;
+      top: var(--space-4);
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    .theme-preview-header h3 {
+      color: white;
+      margin: 0;
+    }
+    .close-preview {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      padding: var(--space-2);
+      border-radius: var(--radius-md);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .close-preview:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .theme-preview-content {
+      display: flex;
+      gap: var(--space-6);
+      max-width: 900px;
+      width: 100%;
+    }
+    .theme-panel {
+      flex: 1;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    .theme-panel[data-theme="cedar"] {
+      background: #0c0a08;
+    }
+    .theme-panel[data-theme="zen"] {
+      background: #FFFDFB;
+    }
+    .theme-label {
+      padding: var(--space-3) var(--space-4);
+      font-weight: 600;
+      font-size: var(--text-sm);
+    }
+    .theme-panel[data-theme="cedar"] .theme-label {
+      color: #FAF8F5;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .theme-panel[data-theme="zen"] .theme-label {
+      color: #2C2520;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .theme-sample {
+      padding: var(--space-5);
+    }
+    .sample-card {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+    .theme-panel[data-theme="cedar"] .sample-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-card {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .sample-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #4a6741;
+    }
+    .sample-text {
+      flex: 1;
+    }
+    .sample-title {
+      height: 14px;
+      width: 60%;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sample-body {
+      height: 10px;
+      width: 80%;
+      border-radius: 4px;
+    }
+    .theme-panel[data-theme="cedar"] .sample-title {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .theme-panel[data-theme="cedar"] .sample-body {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .theme-panel[data-theme="zen"] .sample-title {
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .theme-panel[data-theme="zen"] .sample-body {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .sample-buttons {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+    .sample-btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: 9999px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      border: none;
+      cursor: default;
+    }
+    .sample-btn.primary {
+      background: #3D5A45;
+      color: white;
+    }
+    .sample-btn.secondary {
+      background: transparent;
+    }
+    .theme-panel[data-theme="cedar"] .sample-btn.secondary {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FAF8F5;
+    }
+    .theme-panel[data-theme="zen"] .sample-btn.secondary {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      color: #2C2520;
+    }
+    .sample-colors {
+      display: flex;
+      gap: var(--space-2);
+    }
+    .color-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+    .color-dot.ferni { background: #4a6741; }
+    .color-dot.maya { background: #a67a6a; }
+    .color-dot.peter { background: #3a6b73; }
+    .color-dot.alex { background: #5a6b8a; }
+    .color-dot.jordan { background: #c4856a; }
+
+    /* Copy button styles */
+    .code-block-wrapper {
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--surface-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: var(--font-body);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .code-block-wrapper:hover .copy-btn {
+      opacity: 1;
+    }
+    .copy-btn:hover {
+      background: var(--surface-tertiary);
+      color: var(--text-primary);
+    }
+    .copy-btn.copied {
+      background: var(--color-success-subtle);
+      border-color: var(--color-success);
+      color: var(--color-success);
+    }
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .copy-btn .check-icon {
+      display: none;
+    }
+    .copy-btn.copied .copy-icon {
+      display: none;
+    }
+    .copy-btn.copied .check-icon {
+      display: block;
+    }
+  </style>
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      var html = document.documentElement;
+      var current = html.getAttribute('data-theme');
+      var next = current === 'cedar' ? 'zen' : 'cedar';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('ferni-theme', next);
+    }
+
+    // Theme preview toggle
+    function toggleThemePreview() {
+      var modal = document.getElementById('themePreviewModal');
+      modal.classList.toggle('active');
+    }
+
+    // Close theme preview on escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('themePreviewModal');
+        modal.classList.remove('active');
+        var searchResults = document.getElementById('searchResults');
+        searchResults.classList.remove('active');
+      }
+    });
+
+    // Search functionality
+    var searchIndex = [
+      { title: 'Overview', section: 'Foundations', url: '/' },
+      { title: 'Colors', section: 'Foundations', url: '/colors/' },
+      { title: 'Typography', section: 'Foundations', url: '/typography/' },
+      { title: 'Spacing', section: 'Foundations', url: '/spacing/' },
+      { title: 'Animation', section: 'Foundations', url: '/animation/' },
+      { title: 'Physics & Motion', section: 'Foundations', url: '/physics/' },
+      { title: 'Responsive', section: 'Foundations', url: '/responsive/' },
+      { title: 'Effects', section: 'Foundations', url: '/effects/' },
+      { title: 'Sequences', section: 'Foundations', url: '/sequences/' },
+      { title: 'Motion', section: 'Foundations', url: '/motion/' },
+      { title: 'Haptics', section: 'Foundations', url: '/haptics/' },
+      { title: 'Feedback', section: 'Patterns', url: '/feedback/' },
+      { title: 'Predictive UI', section: 'Patterns', url: '/predictive-ui/' },
+      { title: 'Personas', section: 'Brand', url: '/personas/' },
+      { title: 'Personality', section: 'Brand', url: '/personality/' },
+      { title: 'Capabilities', section: 'Brand', url: '/capabilities/' },
+      { title: 'Voice & Tone', section: 'Brand', url: '/voice/' },
+      { title: 'Sounds & Haptics', section: 'Brand', url: '/sounds-haptics/' },
+      { title: 'Sonic Identity', section: 'Brand', url: '/sonic-identity/' },
+      { title: 'Glow Colors', section: 'Brand', url: '/glow-colors/' },
+      { title: 'Window Avatar', section: 'Brand', url: '/window-avatar/' },
+      { title: 'Rituals', section: 'Brand', url: '/rituals/' },
+      { title: 'Icons', section: 'Brand', url: '/icons/' },
+      { title: 'Expressions', section: 'Brand', url: '/expressions/' },
+      { title: 'Universe', section: 'Brand', url: '/universe/' },
+      { title: 'Visualizations', section: 'Brand', url: '/visualizations/' },
+      { title: 'Brand Guardrails', section: 'Brand', url: '/brand-guardrails/' },
+      { title: 'Brand Kit', section: 'Brand', url: '/brand-kit/' },
+      { title: 'Components Overview', section: 'Components', url: '/components/' },
+      { title: 'Avatar', section: 'Components', url: '/components/avatar/' },
+      { title: 'Badge', section: 'Components', url: '/components/badge/' },
+      { title: 'Buttons', section: 'Components', url: '/components/buttons/' },
+      { title: 'Cards', section: 'Components', url: '/components/cards/' },
+      { title: 'Dropdown', section: 'Components', url: '/components/dropdown/' },
+      { title: 'Glass Surfaces', section: 'Components', url: '/components/glass/' },
+      { title: 'Inputs', section: 'Components', url: '/components/inputs/' },
+      { title: 'Modal', section: 'Components', url: '/components/modal/' },
+      { title: 'Progress', section: 'Components', url: '/components/progress/' },
+      { title: 'Tabs', section: 'Components', url: '/components/tabs/' },
+      { title: 'Toast', section: 'Components', url: '/components/toast/' },
+      { title: 'Tooltip', section: 'Components', url: '/components/tooltip/' },
+      { title: 'Spring Animations', section: 'Physics', url: '/physics/#springs' },
+      { title: 'Emotional Momentum', section: 'Physics', url: '/physics/#emotional-momentum' },
+      { title: 'Forbidden Words', section: 'Brand Guardrails', url: '/brand-guardrails/#language' },
+      { title: 'Color Rules', section: 'Brand Guardrails', url: '/brand-guardrails/#colors' },
+      { title: 'Accessibility Requirements', section: 'Brand Guardrails', url: '/brand-guardrails/#accessibility' },
+      { title: 'App Wake Ritual', section: 'Rituals', url: '/rituals/#rituals' },
+      { title: 'Celebration Rituals', section: 'Rituals', url: '/rituals/#rituals' }
+    ];
+
+    function performSearch(query) {
+      var results = document.getElementById('searchResults');
+      if (!query || query.length < 2) {
+        results.classList.remove('active');
+        return;
+      }
+
+      var lowerQuery = query.toLowerCase();
+      var matches = searchIndex.filter(function(item) {
+        return item.title.toLowerCase().indexOf(lowerQuery) !== -1 ||
+               item.section.toLowerCase().indexOf(lowerQuery) !== -1;
+      });
+
+      if (matches.length === 0) {
+        results.classList.add('active');
+        var noResults = document.createElement('div');
+        noResults.className = 'search-no-results';
+        noResults.textContent = 'No results found';
+        results.innerHTML = '';
+        results.appendChild(noResults);
+        return;
+      }
+
+      results.classList.add('active');
+      results.innerHTML = '';
+
+      matches.slice(0, 8).forEach(function(item) {
+        var link = document.createElement('a');
+        link.className = 'search-result-item';
+        link.href = item.url;
+
+        var titleDiv = document.createElement('div');
+        titleDiv.className = 'search-result-title';
+        titleDiv.textContent = item.title;
+
+        var sectionDiv = document.createElement('div');
+        sectionDiv.className = 'search-result-section';
+        sectionDiv.textContent = item.section;
+
+        link.appendChild(titleDiv);
+        link.appendChild(sectionDiv);
+        results.appendChild(link);
+      });
+    }
+
+    // Load saved theme
+    var saved = localStorage.getItem('ferni-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+
+    // Initialize search
+    document.addEventListener('DOMContentLoaded', function() {
+      var searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+          performSearch(e.target.value);
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+          var results = document.getElementById('searchResults');
+          if (!e.target.closest('.sidebar-search') && !e.target.closest('.search-results')) {
+            results.classList.remove('active');
+          }
+        });
+      }
+    });
+
+    // Copy to clipboard functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const codeBlocks = document.querySelectorAll('pre');
+
+      codeBlocks.forEach(function(pre) {
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Create copy button using safe DOM methods
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.type = 'button';
+        copyBtn.setAttribute('aria-label', 'Copy code');
+
+        // Create copy icon SVG
+        const copyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        copyIcon.setAttribute('class', 'copy-icon');
+        copyIcon.setAttribute('viewBox', '0 0 24 24');
+        copyIcon.setAttribute('fill', 'none');
+        copyIcon.setAttribute('stroke', 'currentColor');
+        copyIcon.setAttribute('stroke-width', '2');
+        const copyPath1 = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        copyPath1.setAttribute('x', '9');
+        copyPath1.setAttribute('y', '9');
+        copyPath1.setAttribute('width', '13');
+        copyPath1.setAttribute('height', '13');
+        copyPath1.setAttribute('rx', '2');
+        const copyPath2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        copyPath2.setAttribute('d', 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1');
+        copyIcon.appendChild(copyPath1);
+        copyIcon.appendChild(copyPath2);
+
+        // Create check icon SVG
+        const checkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        checkIcon.setAttribute('class', 'check-icon');
+        checkIcon.setAttribute('viewBox', '0 0 24 24');
+        checkIcon.setAttribute('fill', 'none');
+        checkIcon.setAttribute('stroke', 'currentColor');
+        checkIcon.setAttribute('stroke-width', '2');
+        const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        checkPath.setAttribute('points', '20 6 9 17 4 12');
+        checkIcon.appendChild(checkPath);
+
+        // Create text span
+        const textSpan = document.createElement('span');
+        textSpan.className = 'copy-text';
+        textSpan.textContent = 'Copy';
+
+        // Assemble button
+        copyBtn.appendChild(copyIcon);
+        copyBtn.appendChild(checkIcon);
+        copyBtn.appendChild(textSpan);
+
+        wrapper.appendChild(copyBtn);
+
+        // Click handler
+        copyBtn.addEventListener('click', function() {
+          const code = pre.querySelector('code');
+          const text = code ? code.textContent : pre.textContent;
+
+          navigator.clipboard.writeText(text).then(function() {
+            copyBtn.classList.add('copied');
+            textSpan.textContent = 'Copied!';
+
+            setTimeout(function() {
+              copyBtn.classList.remove('copied');
+              textSpan.textContent = 'Copy';
+            }, 2000);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

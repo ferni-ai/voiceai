@@ -1,0 +1,844 @@
+---
+layout: layouts/base.njk
+title: Predictive UI
+permalink: /predictive-ui/
+---
+
+<div class="page-header">
+  <h1>Predictive UI</h1>
+  <p class="lead">The best interface is one that's already prepared for what you need. Ferni anticipates, not just reacts.</p>
+</div>
+
+<section class="section" id="preloading">
+  <h2>Preloading Patterns</h2>
+
+  <h3>Skeleton Loading</h3>
+  <div class="skeleton-demo">
+    <div class="skeleton-card">
+      <div class="skeleton-line" style="width: 80%"></div>
+      <div class="skeleton-line" style="width: 60%"></div>
+      <div class="skeleton-line" style="width: 70%"></div>
+    </div>
+    <div class="skeleton-specs">
+      <ul>
+        <li><strong>Shimmer speed:</strong> 1.5s</li>
+        <li><strong>Shimmer angle:</strong> -20deg</li>
+        <li><strong>Pulse opacity:</strong> 0.04 → 0.08</li>
+        <li><strong>Pulse duration:</strong> 2s</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Ghost Content</h3>
+  <p>Placeholder shapes that hint at incoming content structure.</p>
+
+  <div class="ghost-grid">
+    <div class="ghost-item">
+      <div class="ghost-shape text-line"></div>
+      <span>Text Line</span>
+      <code>height: 1em, width: 60-90%</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape avatar"></div>
+      <span>Avatar</span>
+      <code>40px circle</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape card"></div>
+      <span>Card</span>
+      <code>16:9 aspect ratio</code>
+    </div>
+    <div class="ghost-item">
+      <div class="ghost-shape button"></div>
+      <span>Button</span>
+      <code>120px × 44px pill</code>
+    </div>
+  </div>
+
+  <h3>Progressive Reveal</h3>
+  <p>Content appears in priority order with staggered timing.</p>
+
+  <div class="reveal-demo">
+    <div class="reveal-item" style="--delay: 0">
+      <span class="priority">1</span>
+      <span class="element">Heading</span>
+    </div>
+    <div class="reveal-item" style="--delay: 1">
+      <span class="priority">2</span>
+      <span class="element">Primary Action</span>
+    </div>
+    <div class="reveal-item" style="--delay: 2">
+      <span class="priority">3</span>
+      <span class="element">Body</span>
+    </div>
+    <div class="reveal-item" style="--delay: 3">
+      <span class="priority">4</span>
+      <span class="element">Metadata</span>
+    </div>
+    <div class="reveal-item" style="--delay: 4">
+      <span class="priority">5</span>
+      <span class="element">Secondary Actions</span>
+    </div>
+  </div>
+  <p class="spec-note">Stagger delay: 50ms per item · Animation: fadeSlideIn 300ms ease-out</p>
+</section>
+
+<section class="section" id="anticipation">
+  <h2>Anticipation</h2>
+  <p>UI prepares for likely next actions.</p>
+
+  <div class="anticipation-grid">
+    <div class="anticipation-card">
+      <h4>Hover Intent</h4>
+      <p>Detect hover trajectory to preload content</p>
+      <ul>
+        <li><strong>Detection radius:</strong> 100px</li>
+        <li><strong>Velocity threshold:</strong> 50px/s</li>
+        <li><strong>Preload delay:</strong> 100ms</li>
+        <li><strong>Visual hint:</strong> opacity 0.02, scale 1.005</li>
+      </ul>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Scroll Anticipation</h4>
+      <p>Preload content in scroll direction</p>
+      <ul>
+        <li><strong>Look ahead:</strong> 2 viewports</li>
+        <li><strong>Velocity multiplier:</strong> 1.5×</li>
+        <li><strong>Preload threshold:</strong> 0.5 viewports</li>
+      </ul>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Time-Based Preload</h4>
+      <p>Load content based on typical usage patterns</p>
+      <div class="time-preloads">
+        <div class="time-slot">
+          <span class="time">Morning</span>
+          <span class="content">calendar, weather, priorities</span>
+        </div>
+        <div class="time-slot">
+          <span class="time">Evening</span>
+          <span class="content">reflections, tomorrow-prep, wind-down</span>
+        </div>
+        <div class="time-slot">
+          <span class="time">Weekend</span>
+          <span class="content">weekly-review, personal-goals, relationships</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="anticipation-card">
+      <h4>Contextual Preload</h4>
+      <p>Load based on detected intent</p>
+      <div class="context-preloads">
+        <div class="context-row">
+          <span class="context">After goal discussion</span>
+          <span class="loads">goal-tracker, milestone-history</span>
+        </div>
+        <div class="context-row">
+          <span class="context">After emotional conversation</span>
+          <span class="loads">mood-insights, journal</span>
+        </div>
+        <div class="context-row">
+          <span class="context">After scheduling talk</span>
+          <span class="loads">calendar, reminders</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="suggestions">
+  <h2>Proactive Suggestions</h2>
+
+  <div class="suggestion-types">
+    <div class="suggestion-card">
+      <div class="suggestion-demo bubble">
+        <div class="suggestion-bubble">Hey, want to check in on your morning routine?</div>
+      </div>
+      <h4>Suggestion Bubble</h4>
+      <ul>
+        <li><strong>Max width:</strong> 280px</li>
+        <li><strong>Padding:</strong> 12px 16px</li>
+        <li><strong>Border radius:</strong> 16px</li>
+        <li><strong>Background:</strong> glass-regular</li>
+        <li><strong>Entry:</strong> bubbleIn 400ms spring</li>
+      </ul>
+    </div>
+
+    <div class="suggestion-card">
+      <div class="suggestion-demo nudge">
+        <div class="nudge-target">
+          <div class="nudge-arrow"></div>
+        </div>
+      </div>
+      <h4>Nudge</h4>
+      <ul>
+        <li><strong>Arrow size:</strong> 8px</li>
+        <li><strong>Animation:</strong> nudgePulse 2s infinite</li>
+        <li><strong>Max occurrences:</strong> 3</li>
+        <li><strong>Cooldown:</strong> 1 hour</li>
+      </ul>
+    </div>
+
+    <div class="suggestion-card">
+      <div class="suggestion-demo spotlight">
+        <div class="spotlight-target"></div>
+      </div>
+      <h4>Spotlight</h4>
+      <ul>
+        <li><strong>Glow radius:</strong> 20px</li>
+        <li><strong>Glow opacity:</strong> 0.15</li>
+        <li><strong>Animation:</strong> spotlightPulse 3s infinite</li>
+        <li><strong>Dim background:</strong> 0.4 opacity</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="adaptation">
+  <h2>UI Adaptation</h2>
+  <p>UI adapts to user patterns over time.</p>
+
+  <div class="adaptation-grid">
+    <div class="adaptation-card">
+      <h4>Frequency Boost</h4>
+      <p>Frequently used features become more prominent</p>
+      <ul>
+        <li><strong>Threshold:</strong> 5 uses / week</li>
+        <li><strong>Position:</strong> elevated</li>
+        <li><strong>Size:</strong> 1.1×</li>
+        <li><strong>Show shortcut:</strong> true</li>
+      </ul>
+    </div>
+
+    <div class="adaptation-card">
+      <h4>Time Optimization</h4>
+      <p>Features optimize for when they're most used</p>
+      <ul>
+        <li>Track usage time</li>
+        <li>Show at optimal time</li>
+        <li>Hide when irrelevant</li>
+      </ul>
+    </div>
+
+    <div class="adaptation-card">
+      <h4>Sequence Detection</h4>
+      <p>Detect common action sequences</p>
+      <ul>
+        <li><strong>Min length:</strong> 2 actions</li>
+        <li><strong>Confidence:</strong> 0.7</li>
+        <li><strong>Suggest next:</strong> true</li>
+        <li><strong>Create shortcut:</strong> after 10 occurrences</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="loading-stages">
+  <h2>Loading Stages</h2>
+  <p>Loading states that feel alive, not stuck.</p>
+
+  <div class="loading-stages">
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Instant</span>
+        <span class="stage-time">&lt; 100ms</span>
+      </div>
+      <div class="stage-show">Show nothing</div>
+      <p>Too fast to show anything</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Fast</span>
+        <span class="stage-time">100-300ms</span>
+      </div>
+      <div class="stage-show">
+        <div class="subtle-pulse"></div>
+        Subtle pulse
+      </div>
+      <p>Brief acknowledgment</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Normal</span>
+        <span class="stage-time">300ms-1s</span>
+      </div>
+      <div class="stage-show">
+        <div class="skeleton-mini"></div>
+        Skeleton
+      </div>
+      <p>Standard loading</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Slow</span>
+        <span class="stage-time">1-5s</span>
+      </div>
+      <div class="stage-show">
+        <div class="progress-mini"></div>
+        Skeleton + progress
+      </div>
+      <p>Show we're working</p>
+    </div>
+
+    <div class="stage-card">
+      <div class="stage-header">
+        <span class="stage-name">Extended</span>
+        <span class="stage-time">&gt; 5s</span>
+      </div>
+      <div class="stage-show">
+        Skeleton + progress + message
+      </div>
+      <p class="messages">"Still working..." → "Almost there..." → "Thanks for waiting..."</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="personalization">
+  <h2>Intelligence Personalization</h2>
+  <p>UI adapts to individual preferences over time.</p>
+
+  <div class="personalization-grid">
+    <div class="personalization-card">
+      <h4>Information Density</h4>
+      <div class="density-options">
+        <div class="density minimal">
+          <span class="label">Minimal</span>
+          <ul>
+            <li>Spacing: 1.5×</li>
+            <li>Font: 1.1×</li>
+            <li>Items/view: 3</li>
+          </ul>
+        </div>
+        <div class="density balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Spacing: 1×</li>
+            <li>Font: 1×</li>
+            <li>Items/view: 5</li>
+          </ul>
+        </div>
+        <div class="density dense">
+          <span class="label">Dense</span>
+          <ul>
+            <li>Spacing: 0.8×</li>
+            <li>Font: 0.95×</li>
+            <li>Items/view: 8</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="personalization-card">
+      <h4>Interaction Speed</h4>
+      <div class="speed-options">
+        <div class="speed deliberate">
+          <span class="label">Deliberate</span>
+          <ul>
+            <li>Animation: 0.8×</li>
+            <li>Hold duration: 1.2×</li>
+            <li>Tooltip delay: 400ms</li>
+          </ul>
+        </div>
+        <div class="speed balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Animation: 1×</li>
+            <li>Hold duration: 1×</li>
+            <li>Tooltip delay: 300ms</li>
+          </ul>
+        </div>
+        <div class="speed quick">
+          <span class="label">Quick</span>
+          <ul>
+            <li>Animation: 1.3×</li>
+            <li>Hold duration: 0.7×</li>
+            <li>Tooltip delay: 150ms</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="personalization-card">
+      <h4>Visual Complexity</h4>
+      <div class="complexity-options">
+        <div class="complexity calm">
+          <span class="label">Calm</span>
+          <ul>
+            <li>Particles: none</li>
+            <li>Gradients: subtle</li>
+            <li>Animations: minimal</li>
+          </ul>
+        </div>
+        <div class="complexity balanced">
+          <span class="label">Balanced</span>
+          <ul>
+            <li>Particles: light</li>
+            <li>Gradients: moderate</li>
+            <li>Animations: standard</li>
+          </ul>
+        </div>
+        <div class="complexity rich">
+          <span class="label">Rich</span>
+          <ul>
+            <li>Particles: full</li>
+            <li>Gradients: vibrant</li>
+            <li>Animations: expressive</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.skeleton-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+  align-items: center;
+}
+
+.skeleton-card {
+  padding: var(--space-5);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-specs ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.skeleton-specs li {
+  padding: var(--space-1) 0;
+}
+
+.ghost-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.ghost-item {
+  text-align: center;
+}
+
+.ghost-shape {
+  margin: 0 auto var(--space-3);
+  background: var(--color-border-subtle);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ghost-shape.text-line {
+  width: 80%;
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.ghost-shape.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.ghost-shape.card {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+}
+
+.ghost-shape.button {
+  width: 120px;
+  height: 44px;
+  border-radius: var(--radius-full);
+}
+
+.ghost-item span {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: 500;
+}
+
+.ghost-item code {
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary);
+}
+
+.reveal-demo {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-6) 0;
+}
+
+.reveal-item {
+  flex: 1;
+  padding: var(--space-3);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-md);
+  text-align: center;
+  animation: revealItem 3s ease-out infinite;
+  animation-delay: calc(var(--delay) * 0.15s);
+}
+
+@keyframes revealItem {
+  0%, 100% { opacity: 0.3; transform: translateY(8px); }
+  20%, 80% { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-item .priority {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.reveal-item .element {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.spec-note {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.anticipation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.anticipation-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.anticipation-card h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+}
+
+.anticipation-card > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.anticipation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.anticipation-card li {
+  padding: var(--space-1) 0;
+}
+
+.time-preloads, .context-preloads {
+  margin-top: var(--space-3);
+}
+
+.time-slot, .context-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 0.85rem;
+}
+
+.time-slot .time, .context-row .context {
+  font-weight: 500;
+}
+
+.time-slot .content, .context-row .loads {
+  color: var(--color-text-secondary);
+}
+
+.suggestion-types {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.suggestion-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.suggestion-demo {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+}
+
+.suggestion-bubble {
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass-regular-background);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  font-size: 0.9rem;
+  max-width: 200px;
+  animation: bubbleIn 2s ease-out infinite;
+}
+
+@keyframes bubbleIn {
+  0%, 100% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  30%, 70% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.nudge-target {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.nudge-arrow {
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid var(--color-accent);
+  animation: nudgePulse 2s ease-in-out infinite;
+}
+
+@keyframes nudgePulse {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  25% { transform: translateY(-50%) translateX(4px); }
+  75% { transform: translateY(-50%) translateX(-2px); }
+}
+
+.spotlight-target {
+  width: 60px;
+  height: 60px;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 20px var(--color-accent);
+  animation: spotlightPulse 3s ease-in-out infinite;
+}
+
+@keyframes spotlightPulse {
+  0%, 100% { box-shadow: 0 0 20px var(--color-accent); }
+  50% { box-shadow: 0 0 40px var(--color-accent); }
+}
+
+.suggestion-card h4 {
+  margin: 0 0 var(--space-3);
+}
+
+.suggestion-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.adaptation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.adaptation-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.adaptation-card h4 {
+  margin: 0 0 var(--space-2);
+  color: var(--color-accent);
+}
+
+.adaptation-card > p {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.adaptation-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.loading-stages {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.stage-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.stage-name {
+  font-weight: 600;
+}
+
+.stage-time {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.stage-show {
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.subtle-pulse {
+  width: 20px;
+  height: 20px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-mini {
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 0%, var(--color-bg-elevated) 50%, var(--color-border-subtle) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s infinite;
+}
+
+.progress-mini {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-mini::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 30%;
+  background: var(--color-accent);
+  animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+  0% { left: -30%; }
+  100% { left: 100%; }
+}
+
+.stage-card > p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.messages {
+  font-style: italic;
+}
+
+.personalization-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.personalization-card {
+  padding: var(--space-4);
+  background: var(--glass-subtle-background);
+  border-radius: var(--radius-lg);
+}
+
+.personalization-card h4 {
+  margin: 0 0 var(--space-4);
+  color: var(--color-accent);
+}
+
+.density-options, .speed-options, .complexity-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.density, .speed, .complexity {
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.density .label, .speed .label, .complexity .label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.density ul, .speed ul, .complexity ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+</style>
