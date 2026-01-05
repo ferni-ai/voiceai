@@ -232,7 +232,24 @@ const server = http.createServer(async (req, res) => {
   }
 
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-  const pathname = parsedUrl.pathname;
+  let pathname = parsedUrl.pathname;
+
+  // ============================================================================
+  // SUBDOMAIN ROUTING for *.ferni.ai custom agent sites
+  // ============================================================================
+  const host = req.headers.host || '';
+  const subdomainMatch = host.match(/^([a-z0-9-]+)\.ferni\.ai$/i);
+  if (subdomainMatch) {
+    const subdomain = subdomainMatch[1].toLowerCase();
+    // Skip reserved subdomains (these should go to main app)
+    const reserved = ['www', 'app', 'api', 'admin', 'mail', 'staging', 'dev', 'test'];
+    if (!reserved.includes(subdomain)) {
+      // Rewrite pathname to serve the deployed site
+      // e.g., joel-dickson.ferni.ai -> /sites/joel-dickson
+      pathname = `/sites/${subdomain}${pathname === '/' ? '' : pathname}`;
+      log.debug({ host, subdomain, rewrittenPath: pathname }, 'Subdomain routing');
+    }
+  }
 
   // Health endpoint with rate limiting (DDoS Protection)
   if (handleHealthEndpoint(req, res, pathname, 'bogle-ui')) {
