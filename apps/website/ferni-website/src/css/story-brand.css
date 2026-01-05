@@ -2445,11 +2445,11 @@ button {
   z-index: 1;
 }
 
-/* Subhead - High contrast */
+/* Subhead - High contrast on dark background */
 .final-cta__subhead {
   font-family: var(--font-body);
   font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-  color: var(--color-bg-secondary);
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: clamp(40px, 8vh, 64px);
   line-height: 1.6;
   position: relative;
@@ -7344,7 +7344,7 @@ body:not(.theme--dark) .chat-demo__label,
 /* Section Variations */
 .story-page__section--dark {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark-elevated) 100%) !important;
-  color: var(--color-bg-secondary) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .story-page__section--dark .story-page__subhead {

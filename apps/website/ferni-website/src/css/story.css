@@ -42,7 +42,7 @@
 
 .section--dark {
   background: var(--color-bg-dark);
-  color: var(--color-bg-secondary);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .section--dark .section__eyebrow {

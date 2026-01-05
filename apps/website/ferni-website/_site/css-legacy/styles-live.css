@@ -7,8 +7,8 @@
   --color-bg-overlay: rgba(245, 241, 232, 0.95);
   --color-text: var(--color-text-primary);
   --color-text-secondary: #5c544a;
-  --color-text-muted: #756a5e;
-  --color-text-dimmed: #a89d90;
+  --color-text-muted: #6b635a;   /* 5.5:1 contrast - WCAG AA compliant */
+  --color-text-dimmed: #756a5e;  /* 4.7:1 contrast - WCAG AA compliant */
   --color-text-inverse: var(--color-bg-primary);
   --color-accent: #3d5a45;
   --color-accent-hover: var(--color-accent-hover);
