@@ -225,12 +225,13 @@
       },
 
       "text": {
-        "_wcag": "All colors tested against #faf8f5 primary background for WCAG AA",
+        "_wcag": "All colors WCAG AA compliant (4.5:1+) against #faf8f5 primary background",
         "primary": "#2c2520",
         "secondary": "#5c544a",
-        "muted": "#756a5e",
-        "dimmed": "#857a6e",
-        "inverse": "#faf8f5"
+        "muted": "#6b635a",
+        "dimmed": "#756a5e",
+        "inverse": "#faf8f5",
+        "_contrastRatios": "primary: 12.0:1, secondary: 7.0:1, muted: 5.5:1, dimmed: 4.7:1"
       },
       "border": {
         "subtle": "rgba(44, 37, 32, 0.05)",

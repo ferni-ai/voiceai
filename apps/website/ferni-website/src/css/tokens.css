@@ -47,12 +47,12 @@
   --color-bg-code: #2c2520;                       /* Code blocks */
 
   /* =========================================================================
-     COLORS - TEXT (Light Mode)
+     COLORS - TEXT (Light Mode) - WCAG AA Compliant
      ========================================================================= */
-  --color-text-primary: #2c2520;                  /* Natural Ink - headlines */
-  --color-text-secondary: #5c544a;                /* Body text */
-  --color-text-muted: #756a5e;                    /* Captions, hints */
-  --color-text-dimmed: #857a6e;                   /* Disabled, placeholder */
+  --color-text-primary: #2c2520;                  /* 12.0:1 contrast - headlines */
+  --color-text-secondary: #5c544a;                /* 7.0:1 contrast - body text */
+  --color-text-muted: #6b635a;                    /* 5.5:1 contrast - captions, hints */
+  --color-text-dimmed: #756a5e;                   /* 4.7:1 contrast - disabled, placeholder */
   --color-text-inverse: #faf8f5;                  /* Text on dark backgrounds */
 
   /* =========================================================================

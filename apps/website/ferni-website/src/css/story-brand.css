@@ -5110,7 +5110,8 @@ img[loading='lazy']:not([data-src]) {
    The emotional core - powerful, immersive, memorable
    ============================================ */
 .two-am {
-  background: var(--color-bg-dark);
+  /* ALWAYS dark dramatic background - explicit colors since --color-bg-dark doesn't exist in tokens */
+  background: linear-gradient(180deg, #1a1613 0%, #2c2520 100%);
   padding: 0;
   overflow: hidden;
   position: relative;
@@ -5152,8 +5153,8 @@ img[loading='lazy']:not([data-src]) {
   font-weight: 200;
   letter-spacing: -0.02em;
   line-height: 1;
-  /* Ethereal glow effect */
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  /* Ethereal glow effect - brighter for visibility */
+  background: linear-gradient(180deg, rgba(255, 250, 245, 0.9) 0%, rgba(255, 250, 245, 0.6) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -5172,7 +5173,8 @@ img[loading='lazy']:not([data-src]) {
   font-size: clamp(1.5rem, 4vw, 2.5rem);
   font-style: italic;
   font-weight: 500;
-  color: var(--color-text-inverse);
+  /* Always light cream text on always-dark background - explicit color */
+  color: #f5f0e6;
   line-height: 1.4;
   letter-spacing: -0.01em;
 }
@@ -5209,22 +5211,25 @@ img[loading='lazy']:not([data-src]) {
   font-family: var(--font-display);
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--color-text-muted);
+  /* Warm accent color - explicit for always-dark section */
+  color: var(--color-nayan, #c4956b);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
-/* Status - High contrast text */
+/* Status - Light text on dark bg */
 .two-am__limit-status {
   font-family: var(--font-body);
   font-size: var(--text-base);
-  color: var(--color-bg-secondary);
+  /* Light muted text - explicit for always-dark section */
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.5;
 }
 
 /* THE RESPONSE - Relief moment */
 .two-am__response {
-  background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-paper-cream) 30%);
+  /* Transition from dark to cream - explicit colors */
+  background: linear-gradient(180deg, #1a1613 0%, var(--color-paper-cream, #f5f0e6) 30%);
   padding: clamp(80px, 12vh, 120px) var(--space-6);
   display: flex;
   justify-content: center;
@@ -6785,14 +6790,479 @@ body[data-time-of-day='early-morning'] {
   .konami-reward__inner {
     background: var(--color-ferni-cinematic-surface, var(--color-bg-dark-surface));
   }
-  
+
   .konami-reward__title {
     color: var(--color-ferni-cinematic-text, var(--color-text-inverse));
   }
-  
+
   .konami-reward__message {
     color: var(--color-ferni-cinematic-text-secondary, var(--color-bg-secondary));
   }
+
+  /* ===========================================
+     FEATURE CARDS - Keep white bg with dark text
+     Cards are "islands of light" in dark mode
+     =========================================== */
+  .feature {
+    background: white !important;
+    border-color: rgba(44, 37, 32, 0.1);
+  }
+
+  .feature__title {
+    color: var(--color-text-primary) !important; /* Uses token: dark text on white cards */
+  }
+
+  .feature__description {
+    color: var(--color-text-secondary) !important; /* Uses token: secondary text on white cards */
+    opacity: 1 !important;
+  }
+
+  .feature__icon {
+    background: rgba(74, 103, 65, 0.1);
+  }
+
+  .feature__icon svg {
+    color: var(--color-ferni, #4a6741);
+  }
+
+  /* ===========================================
+     JOURNEY SECTION - Fix heading/timeline contrast
+     =========================================== */
+  .journey .section__eyebrow {
+    color: var(--color-highlight, #b4a89a) !important;
+  }
+
+  .journey .section__title {
+    color: var(--color-ferni-cinematic-text, #faf6f0) !important;
+  }
+
+  .journey .section__subtitle {
+    color: var(--color-ferni-cinematic-text-secondary, #d4c8b8) !important;
+  }
+
+  .journey__stage-title {
+    color: var(--color-ferni-cinematic-text, #faf6f0) !important;
+  }
+
+  .journey__stage-description {
+    color: var(--color-ferni-cinematic-text-secondary, #d4c8b8) !important;
+  }
+
+  .journey__stage-badge {
+    background: var(--color-bg-dark-surface, #4a403a);
+    color: var(--color-ferni-cinematic-text, #faf6f0);
+  }
+
+  /* Generic section headers in dark sections */
+  .section--dark .section__eyebrow,
+  [class*="dark"] .section__eyebrow {
+    color: var(--color-highlight, #b4a89a) !important;
+  }
+
+  .section--dark .section__title,
+  [class*="dark"] .section__title {
+    color: var(--color-ferni-cinematic-text, #faf6f0) !important;
+  }
+
+  .section--dark .section__subtitle,
+  [class*="dark"] .section__subtitle {
+    color: var(--color-ferni-cinematic-text-secondary, #d4c8b8) !important;
+  }
+}
+
+/* ============================================
+   THEME-DARK CLASS OVERRIDES
+   The site uses .theme--dark class regardless of OS preference
+   These styles ensure proper contrast in dark theme mode
+   ============================================ */
+
+/* Feature Cards - "Islands of light" with dark readable text */
+.theme--dark .feature,
+body.theme--dark .feature {
+  background: white !important;
+  border-color: rgba(44, 37, 32, 0.1) !important;
+}
+
+.theme--dark .feature__title,
+body.theme--dark .feature__title {
+  color: var(--color-text-inverse) !important; /* Dark text on white cards in dark mode */
+}
+
+.theme--dark .feature__description,
+body.theme--dark .feature__description {
+  color: var(--color-text-inverse) !important; /* Dark text on white cards - token adapts to theme */
+  opacity: 0.75 !important; /* Slightly muted secondary text */
+}
+
+.theme--dark .feature__icon,
+body.theme--dark .feature__icon {
+  background: rgba(74, 103, 65, 0.1) !important;
+}
+
+.theme--dark .feature__icon svg,
+body.theme--dark .feature__icon svg {
+  color: var(--color-ferni) !important;
+}
+
+/* Story Section - "I'm here when others can't be." headline */
+.theme--dark .story .section__eyebrow,
+body.theme--dark .story .section__eyebrow {
+  color: var(--color-highlight, var(--color-nayan)) !important;
+}
+
+.theme--dark .story .section__title,
+body.theme--dark .story .section__title {
+  color: var(--color-text-primary) !important;
+}
+
+/* Journey Section - Timeline headings and descriptions */
+.theme--dark .journey .section__eyebrow,
+body.theme--dark .journey .section__eyebrow {
+  color: var(--color-highlight, var(--color-nayan)) !important;
+}
+
+.theme--dark .journey .section__title,
+body.theme--dark .journey .section__title {
+  color: var(--color-text-primary) !important;
+}
+
+.theme--dark .journey .section__subtitle,
+body.theme--dark .journey .section__subtitle {
+  color: var(--color-text-secondary) !important;
+}
+
+.theme--dark .journey__stage-title,
+body.theme--dark .journey__stage-title {
+  color: var(--color-text-primary) !important;
+}
+
+.theme--dark .journey__stage-description,
+body.theme--dark .journey__stage-description {
+  color: var(--color-text-secondary) !important;
+}
+
+.theme--dark .journey__stage-badge,
+body.theme--dark .journey__stage-badge {
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Use-Case Cards - "Islands of light" in YOUR MOMENTS section */
+.theme--dark .use-case,
+body.theme--dark .use-case {
+  background: white !important;
+  border-color: var(--color-border-medium) !important;
+}
+
+.theme--dark .use-case__title,
+body.theme--dark .use-case__title {
+  color: var(--color-text-inverse) !important; /* Dark text on white cards in dark mode */
+}
+
+.theme--dark .use-case__description,
+body.theme--dark .use-case__description {
+  color: var(--color-text-inverse) !important; /* Dark text on white cards */
+  opacity: 0.75 !important; /* Slightly muted for secondary text */
+}
+
+.theme--dark .use-case__quote,
+body.theme--dark .use-case__quote {
+  color: var(--color-text-muted) !important; /* Warm muted for quotes */
+  background: var(--color-accent-subtle) !important;
+}
+
+.theme--dark .use-case__icon,
+body.theme--dark .use-case__icon {
+  background: var(--color-accent-subtle) !important;
+}
+
+.theme--dark .use-case__icon svg,
+body.theme--dark .use-case__icon svg {
+  color: var(--color-ferni) !important;
+}
+
+/* ============================================
+   ZEN/LIGHT THEME FIXES
+   These dramatic sections need dark backgrounds with light text
+   to maintain visual impact. Force proper contrast when NOT in dark mode.
+   ============================================ */
+
+/* Stats Bar - Dramatic dark section (always dark) */
+body:not(.theme--dark) .stats-bar,
+.theme--zen .stats-bar {
+  background: linear-gradient(180deg, #2c2520 0%, #1f1a16 100%) !important; /* Force explicit dark */
+}
+
+body:not(.theme--dark) .stat__value,
+.theme--zen .stat__value {
+  background: linear-gradient(135deg, rgba(255, 250, 245, 1) 0%, rgba(245, 240, 230, 0.9) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.15)) !important;
+}
+
+body:not(.theme--dark) .stat__label,
+.theme--zen .stat__label {
+  color: var(--color-text-dimmed) !important;
+}
+
+/* Two-AM Section - 3:47 AM dramatic moment (always dark) */
+/* NOTE: Main .two-am background rule moved below for proper ordering */
+
+body:not(.theme--dark) .two-am__darkness,
+.theme--zen .two-am__darkness {
+  background: transparent !important;
+}
+
+body:not(.theme--dark) .two-am__time,
+.theme--zen .two-am__time {
+  background: linear-gradient(180deg, rgba(255, 250, 245, 1) 0%, rgba(255, 250, 245, 0.8) 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.2)) !important;
+}
+
+/* Two-Am Section - FORCE dark dramatic background in zen mode */
+body:not(.theme--dark) .two-am,
+.theme--zen .two-am {
+  background: linear-gradient(180deg, #1a1613 0%, #2c2520 100%) !important; /* Force dark for dramatic effect */
+}
+
+body:not(.theme--dark) .two-am__thought,
+.theme--zen .two-am__thought {
+  color: var(--color-paper-cream, #f5f0e6) !important; /* Light cream text on forced dark bg */
+}
+
+body:not(.theme--dark) .two-am__quote,
+.theme--zen .two-am__quote {
+  color: var(--color-paper-cream, #f5f0e6) !important; /* Light cream text on forced dark bg */
+}
+
+body:not(.theme--dark) .two-am__limit,
+.theme--zen .two-am__limit {
+  background: rgba(255, 255, 255, 0.08) !important; /* Slightly more visible */
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body:not(.theme--dark) .two-am__limit-who,
+.theme--zen .two-am__limit-who {
+  color: var(--color-nayan) !important; /* Warm highlight */
+}
+
+body:not(.theme--dark) .two-am__limit-status,
+.theme--zen .two-am__limit-status {
+  color: rgba(255, 255, 255, 0.7) !important; /* Light muted text on dark bg */
+}
+
+body:not(.theme--dark) .two-am__response,
+.theme--zen .two-am__response {
+  background: linear-gradient(180deg, #1a1613 0%, var(--color-paper-cream, var(--color-bg-primary)) 30%) !important;
+}
+
+body:not(.theme--dark) .two-am__bubble,
+.theme--zen .two-am__bubble {
+  background: var(--color-bg-primary) !important;
+  color: var(--color-text-primary) !important;
+}
+
+body:not(.theme--dark) .two-am__ferni-says,
+.theme--zen .two-am__ferni-says {
+  color: var(--color-text-primary) !important;
+}
+
+body:not(.theme--dark) .two-am__ferni-sub,
+.theme--zen .two-am__ferni-sub {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Memory Demo Section - Keep dark dramatic background (always dark) */
+body:not(.theme--dark) .memory-demo,
+.theme--zen .memory-demo {
+  background: linear-gradient(180deg, #2c2520 0%, #1a1613 100%) !important; /* Force explicit dark */
+}
+
+body:not(.theme--dark) .memory-demo .section__eyebrow,
+.theme--zen .memory-demo .section__eyebrow {
+  color: var(--color-nayan) !important; /* Warm highlight */
+}
+
+body:not(.theme--dark) .memory-demo .section__title,
+.theme--zen .memory-demo .section__title {
+  color: var(--color-paper-cream, #f5f0e6) !important; /* Light cream text on dark bg */
+}
+
+body:not(.theme--dark) .memory-demo .section__subtitle,
+.theme--zen .memory-demo .section__subtitle {
+  color: rgba(255, 255, 255, 0.7) !important; /* Light muted text on dark bg */
+}
+
+/* ============================================
+   ZEN/LIGHT THEME - CARD TEXT FIXES
+   Cards on light backgrounds need DARK text for readability.
+   These override the base styles that use CSS variables.
+   ============================================ */
+
+/* Use Case Cards - Dark text on white/cream cards */
+body:not(.theme--dark) .use-case__title,
+.theme--zen .use-case__title {
+  color: var(--color-text-primary) !important; /* Natural ink via token */
+}
+
+body:not(.theme--dark) .use-case__description,
+.theme--zen .use-case__description {
+  color: var(--color-text-secondary) !important; /* Secondary text via token */
+  opacity: 1 !important;
+}
+
+body:not(.theme--dark) .use-case__example,
+.theme--zen .use-case__example {
+  color: var(--color-accent) !important; /* Ferni green via token */
+}
+
+body:not(.theme--dark) .use-case__icon,
+.theme--zen .use-case__icon {
+  background: var(--color-accent-subtle) !important;
+}
+
+body:not(.theme--dark) .use-case__icon svg,
+.theme--zen .use-case__icon svg {
+  color: var(--color-ferni) !important;
+}
+
+/* Feature Cards - Dark text on white/cream cards */
+body:not(.theme--dark) .feature__title,
+.theme--zen .feature__title {
+  color: var(--color-text-primary) !important; /* Natural ink via token */
+}
+
+body:not(.theme--dark) .feature__description,
+.theme--zen .feature__description {
+  color: var(--color-text-secondary) !important; /* Secondary text via token */
+  opacity: 1 !important;
+}
+
+body:not(.theme--dark) .feature__icon,
+.theme--zen .feature__icon {
+  background: var(--color-accent-subtle) !important;
+}
+
+body:not(.theme--dark) .feature__icon svg,
+.theme--zen .feature__icon svg {
+  color: var(--color-ferni) !important;
+}
+
+/* Story Cards (Amplified, Built by Experts, etc.) */
+body:not(.theme--dark) .story__card-title,
+.theme--zen .story__card-title {
+  color: var(--color-text-primary) !important; /* Natural ink via token */
+}
+
+body:not(.theme--dark) .story__card-text,
+.theme--zen .story__card-text {
+  color: var(--color-text-secondary) !important; /* Secondary text via token */
+}
+
+body:not(.theme--dark) .story__card-highlight,
+.theme--zen .story__card-highlight {
+  color: var(--color-accent) !important; /* Ferni green via token */
+}
+
+/* Story Chapter Text */
+body:not(.theme--dark) .story__text,
+.theme--zen .story__text {
+  color: var(--color-text-secondary) !important;
+}
+
+body:not(.theme--dark) .story__text--highlight,
+.theme--zen .story__text--highlight {
+  color: var(--color-jordan) !important; /* Coral/terracotta for highlights */
+}
+
+body:not(.theme--dark) .story__text--highlight em,
+.theme--zen .story__text--highlight em {
+  color: var(--color-jordan) !important;
+}
+
+/* Experience Section - Dark text on light background */
+body:not(.theme--dark) .experience .section__eyebrow,
+.theme--zen .experience .section__eyebrow {
+  color: var(--color-text-muted) !important; /* Muted text via token */
+}
+
+body:not(.theme--dark) .experience .section__title,
+.theme--zen .experience .section__title {
+  color: var(--color-text-primary) !important; /* Natural ink via token */
+}
+
+body:not(.theme--dark) .experience .section__subtitle,
+.theme--zen .experience .section__subtitle {
+  color: var(--color-text-secondary) !important; /* Secondary text via token */
+}
+
+body:not(.theme--dark) .experience__text,
+.theme--zen .experience__text {
+  color: var(--color-text-secondary) !important;
+}
+
+body:not(.theme--dark) .experience__list li,
+.theme--zen .experience__list li {
+  color: var(--color-text-secondary) !important;
+}
+
+body:not(.theme--dark) .experience__list svg,
+.theme--zen .experience__list svg {
+  color: var(--color-ferni) !important;
+}
+
+/* Proof Section - Values cards */
+body:not(.theme--dark) .proof__value-title,
+.theme--zen .proof__value-title {
+  color: var(--color-jordan) !important; /* Coral accent via token */
+}
+
+body:not(.theme--dark) .proof__value-text,
+.theme--zen .proof__value-text {
+  color: var(--color-text-secondary) !important;
+}
+
+body:not(.theme--dark) .proof__value-highlight,
+.theme--zen .proof__value-highlight {
+  color: var(--color-text-primary) !important; /* Bold highlight via token */
+}
+
+/* General Section Titles on Light Backgrounds */
+body:not(.theme--dark) .section__eyebrow,
+.theme--zen .section__eyebrow {
+  color: var(--color-text-muted) !important;
+}
+
+body:not(.theme--dark) .section__title,
+.theme--zen .section__title {
+  color: var(--color-text-primary) !important;
+}
+
+body:not(.theme--dark) .section__subtitle,
+.theme--zen .section__subtitle {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Comparison/Limitation Cards */
+body:not(.theme--dark) .comparison__title,
+.theme--zen .comparison__title {
+  color: var(--color-text-primary) !important;
+}
+
+body:not(.theme--dark) .comparison__text,
+.theme--zen .comparison__text {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Chat Demo Text */
+body:not(.theme--dark) .chat-demo__label,
+.theme--zen .chat-demo__label {
+  color: var(--color-text-muted) !important;
 }
 
 /* ============================================

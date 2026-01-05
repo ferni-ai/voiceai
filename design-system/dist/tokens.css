@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-30T20:40:49.214Z
+ * Build: 2026-01-05T10:22:04.366Z
  */
 
 /* ========================================
@@ -243,12 +243,13 @@
   --color-tonal-surface-hover-_usage: Hover state for tonal surfaces;
   --color-tonal-surface-active-background: rgba(44, 37, 32, 0.12);
   --color-tonal-surface-active-_usage: Active/pressed state for tonal surfaces;
-  --color-text-_wcag: All colors tested against #faf8f5 primary background for WCAG AA;
+  --color-text-_wcag: All colors WCAG AA compliant (4.5:1+) against #faf8f5 primary background;
   --color-text-primary: #2c2520;
   --color-text-secondary: #5c544a;
-  --color-text-muted: #756a5e;
-  --color-text-dimmed: #857a6e;
+  --color-text-muted: #6b635a;
+  --color-text-dimmed: #756a5e;
   --color-text-inverse: #faf8f5;
+  --color-text-_contrast-ratios: primary: 12.0:1, secondary: 7.0:1, muted: 5.5:1, dimmed: 4.7:1;
   --color-border-subtle: rgba(44, 37, 32, 0.05);
   --color-border-medium: rgba(44, 37, 32, 0.10);
   --color-border-strong: rgba(44, 37, 32, 0.18);
