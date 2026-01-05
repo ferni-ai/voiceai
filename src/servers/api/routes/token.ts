@@ -264,6 +264,9 @@ export async function handleTokenRoutes(
   if (pathname === '/demo-token') {
     const ip = getClientIp(req);
 
+    // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
+    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+
     // Check rate limits using shared module
     const allowed = checkDemoAllowed(ip);
     if (!allowed.allowed) {
@@ -292,19 +295,19 @@ export async function handleTokenRoutes(
       // Record the session for rate limiting using shared module
       recordDemoSession(ip);
 
-      // Pre-warm LLM content cache for demo (fire-and-forget)
-      prewarmLLMContentForPersona('ferni');
+      // Pre-warm LLM content cache for the requested persona (fire-and-forget)
+      prewarmLLMContentForPersona(personaId);
 
       // Generate token
       const token = await createToken(roomName, username);
 
-      // Dispatch agent
+      // Dispatch agent with requested persona
       try {
         const agentMetadata = {
           is_demo: true,
           demo_id: demoId,
           session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          persona_id: 'ferni',
+          persona_id: personaId,
         };
         await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
