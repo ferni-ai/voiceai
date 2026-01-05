@@ -110,8 +110,8 @@
       }
     `,document.head.appendChild(e)}const I={ferni:{greeting:"What's on your mind?",style:"warm, present, curious",sample:"That's a thoughtful question. What does your gut tell you?"},maya:{greeting:"What small step could we take today?",style:"gentle, practical, encouraging",sample:"What if we started with just two minutes? Embarrassingly small is perfect."},peter:{greeting:"Let's dig into this together.",style:"curious, thorough, analytical",sample:"Interesting. I found three perspectives on this we should explore."},alex:{greeting:"How can I help you communicate?",style:"clear, empathetic, strategic",sample:"Let's think about who you're talking to and what outcome you need."},jordan:{greeting:"What are we planning?",style:"organized, creative, calm",sample:"Let's map this out. What matters most to you about this event?"},nayan:{greeting:"What's weighing on your soul?",style:"wise, calm, philosophical",sample:"There's an old saying that might resonate here. Would you like to hear it?"}};function U(){c.enablePersonaVoices&&(document.querySelectorAll(".team-card, .team__member").forEach(e=>{const t=e.dataset.persona||K(e);if(!t||!I[t]||e.querySelector(".persona-voice-input"))return;const n=document.createElement("div");n.className="persona-voice-input",n.innerHTML=`
         <input type="text" placeholder="${I[t].greeting}" />
-        <button class="persona-voice-send">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="persona-voice-send" aria-label="Send message">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
           </svg>
         </button>
