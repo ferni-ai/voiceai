@@ -35,30 +35,34 @@
 
 :root {
   /* =========================================================================
-     COLORS - BACKGROUND
+     COLORS - BACKGROUND (Light Mode)
+     Values from design-system/tokens/colors.json
      ========================================================================= */
-  --color-bg-primary: var(--color-bg-primary);      /* Paper Cream - main background */
-  --color-bg-secondary: var(--color-bg-secondary);    /* Sand - cards, sections */
-  --color-bg-elevated: var(--color-bg-elevated);     /* Elevated surfaces */
-  --color-bg-dark: var(--color-text-primary);         /* Dark sections, footer */
-  --color-bg-code: var(--color-text-primary);         /* Code blocks */
+  --color-bg-primary: #faf8f5;                    /* Paper Cream - main background */
+  --color-bg-secondary: #f5f2ed;                  /* Sand - cards, sections */
+  --color-bg-elevated: #fffdfb;                   /* Elevated surfaces */
+  --color-bg-dark: #2c2520;                       /* Dark sections, footer */
+  --color-bg-dark-elevated: #3a322c;              /* Dark elevated surfaces */
+  --color-bg-dark-surface: #4a403a;               /* Dark card surfaces */
+  --color-bg-code: #2c2520;                       /* Code blocks */
 
   /* =========================================================================
-     COLORS - TEXT
+     COLORS - TEXT (Light Mode)
      ========================================================================= */
-  --color-text-primary: var(--color-text-primary);    /* Natural Ink - headlines */
-  --color-text-secondary: var(--color-text-secondary);  /* Body text */
-  --color-text-muted: var(--color-text-muted);      /* Captions, hints */
-  --color-text-dimmed: var(--color-text-muted);     /* Disabled, placeholder */
-  --color-text-inverse: var(--color-bg-primary);    /* Text on dark backgrounds */
+  --color-text-primary: #2c2520;                  /* Natural Ink - headlines */
+  --color-text-secondary: #5c544a;                /* Body text */
+  --color-text-muted: #756a5e;                    /* Captions, hints */
+  --color-text-dimmed: #857a6e;                   /* Disabled, placeholder */
+  --color-text-inverse: #faf8f5;                  /* Text on dark backgrounds */
 
   /* =========================================================================
-     COLORS - ACCENT
+     COLORS - ACCENT (Light Mode)
      ========================================================================= */
-  --color-accent: var(--color-accent);          /* Forest Green - CTAs, links */
-  --color-accent-hover: var(--color-accent-hover);    /* Hover state */
-  --color-accent-light: rgba(61, 90, 69, 0.1);  /* Light accent bg */
-  --color-highlight: var(--color-nayan);       /* Warm Amber - emphasis */
+  --color-accent: #3D5A45;                        /* Forest Green - CTAs, links */
+  --color-accent-hover: #4a6b52;                  /* Hover state */
+  --color-accent-pressed: #2d4535;                /* Pressed state */
+  --color-accent-light: rgba(61, 90, 69, 0.1);    /* Light accent bg */
+  --color-highlight: #b8956a;                     /* Warm Amber - emphasis (nayan) */
   --color-highlight-glow: rgba(196, 162, 101, 0.2);
 
   /* =========================================================================
@@ -135,31 +139,40 @@
 
   /* =========================================================================
      COLORS - PERSONAS
+     Values from design-system/tokens/colors.json
      ========================================================================= */
-  --color-ferni: var(--color-ferni);
-  --color-ferni-secondary: var(--color-ferni-secondary);
+  --color-ferni: #4a6741;
+  --color-ferni-secondary: #3d5a35;
+  --color-ferni-glow: rgba(74, 103, 65, 0.28);
+  --color-ferni-text: #4a6741;
 
   /* Garden/Sage Colors - Community funding theme */
-  --color-sage: var(--color-ferni);
-  --color-sage-dark: var(--color-ferni-secondary);
+  --color-sage: #4a6741;
+  --color-sage-dark: #3d5a35;
   --color-bg-sage-subtle: rgba(74, 103, 65, 0.05);
 
-  --color-jack: var(--color-jack);
+  --color-jack: #9a7b5a;
   --color-jack-secondary: #7d6348;
-  --color-peter: var(--color-peter);
+  --color-jack-glow: rgba(154, 123, 90, 0.28);
+  --color-peter: #3a6b73;
   --color-peter-secondary: #2d5359;
-  --color-alex: var(--color-alex);
+  --color-peter-glow: rgba(58, 107, 115, 0.28);
+  --color-alex: #5a6b8a;
   --color-alex-secondary: #4a5a73;
-  --color-maya: var(--color-maya);
+  --color-alex-glow: rgba(90, 107, 138, 0.28);
+  --color-maya: #a67a6a;
   --color-maya-secondary: #8a635a;
-  --color-jordan: var(--color-jordan);
+  --color-maya-glow: rgba(166, 122, 106, 0.28);
+  --color-jordan: #c4856a;
   --color-jordan-secondary: #a86d55;
-  --color-jaggi: var(--color-nayan);
+  --color-jordan-glow: rgba(196, 133, 106, 0.28);
+  --color-jaggi: #b8956a;
   --color-jaggi-secondary: #9a7a52;
 
   /* Nayan (alias for jaggi) */
-  --color-nayan: var(--color-nayan);
+  --color-nayan: #b8956a;
   --color-nayan-secondary: #9a7a52;
+  --color-nayan-glow: rgba(184, 149, 106, 0.28);
 
   /* =========================================================================
      PERSONA COLORS - Extended Palette (for visualizations)
@@ -569,65 +582,148 @@ code {
    ============================================================================
    When the user has dark mode enabled, override all color tokens to ensure
    excellent contrast and visibility throughout the site.
+   Values from design-system/tokens/colors.json (Cedar Night theme)
    ============================================================================ */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Background Colors - Warm Ferni Dark Palette */
-    --color-bg-primary: var(--color-text-primary);           /* Warm dark brown */
-    --color-bg-secondary: var(--color-bg-dark-elevated);         /* Slightly lighter */
-    --color-bg-elevated: var(--color-bg-dark-surface);          /* Card surfaces */
-    --color-bg-dark: var(--color-bg-dark);              /* Deepest dark */
-    
+    /* Background Colors - Warm Ferni Dark Palette (Cedar Night) */
+    --color-bg-primary: #584840;                  /* Warm dark brown */
+    --color-bg-secondary: #60504a;                /* Slightly lighter */
+    --color-bg-elevated: #70605a;                 /* Card surfaces */
+    --color-bg-dark: #2a2420;                     /* Deepest dark */
+    --color-bg-dark-elevated: #3a322c;            /* Dark elevated */
+    --color-bg-dark-surface: #4a403a;             /* Dark surface */
+    --color-bg-glass: rgba(230, 195, 160, 0.08);
+    --color-bg-overlay: rgba(88, 72, 64, 0.95);
+
     /* Text Colors - High Contrast for Readability */
-    --color-text-primary: var(--color-text-inverse);         /* Pure white for headlines */
-    --color-text-secondary: var(--color-bg-secondary);       /* Warm cream for body */
-    --color-text-muted: var(--color-text-muted);           /* Muted for captions */
-    --color-text-dimmed: var(--color-text-dimmed);          /* Subtle text */
-    --color-text-inverse: var(--color-text-primary);         /* Dark text on light bg */
-    
+    --color-text-primary: #faf6f0;                /* Cream white for headlines */
+    --color-text-secondary: #f0ebe4;              /* Warm cream for body */
+    --color-text-muted: #e8e2da;                  /* Muted for captions */
+    --color-text-dimmed: #ddd6cc;                 /* Subtle text */
+    --color-text-inverse: #2a2420;                /* Dark text on light bg */
+
     /* Accent Colors - Brighter for Dark Mode */
-    --color-accent: #5a7a52;               /* Brighter forest green */
-    --color-accent-hover: #6a8a62;         /* Even brighter on hover */
-    --color-accent-light: rgba(90, 122, 82, 0.2);
-    --color-highlight: var(--color-highlight);            /* Brighter warm amber */
+    --color-accent: #d4a84a;                      /* Golden amber (warm) */
+    --color-accent-hover: #e0bc6a;                /* Even brighter on hover */
+    --color-accent-pressed: #c49a3a;              /* Pressed state */
+    --color-accent-light: rgba(212, 168, 74, 0.2);
+    --color-accent-glow: rgba(212, 168, 74, 0.22);
+    --color-highlight: #d4b275;                   /* Brighter warm amber */
     --color-highlight-glow: rgba(212, 178, 117, 0.3);
-    
+
     /* Border Colors - Visible on Dark */
-    --color-border-subtle: rgba(255, 255, 255, 0.08);
-    --color-border-medium: rgba(255, 255, 255, 0.15);
-    --color-border-strong: rgba(255, 255, 255, 0.25);
-    
+    --color-border-subtle: rgba(215, 185, 145, 0.12);
+    --color-border-medium: rgba(215, 185, 145, 0.20);
+    --color-border-strong: rgba(215, 185, 145, 0.30);
+
+    /* Semantic Colors - Bright for Dark Mode */
+    --color-success: #6bc48f;
+    --color-success-bg: rgba(107, 196, 143, 0.22);
+    --color-error: #e07575;
+    --color-error-bg: rgba(224, 117, 117, 0.22);
+    --color-warning: #e0b860;
+    --color-warning-bg: rgba(224, 184, 96, 0.22);
+
+    /* Persona Text Colors - WCAG AA compliant on dark backgrounds */
+    --color-ferni-text: #a5c99a;
+    --color-jack-text: #d4c4a8;
+    --color-peter-text: #8bc4cf;
+    --color-alex-text: #a8b8d8;
+    --color-maya-text: #e0b8a8;
+    --color-jordan-text: #f0c0a0;
+    --color-nayan-text: #e8d0a8;
+
     /* Shadows - Deeper for Dark Mode */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.6);
   }
-  
+
   /* Body Dark Background */
   body {
     background: var(--color-bg-primary);
     color: var(--color-text-primary);
   }
-  
+
   /* All headings to white */
   h1, h2, h3, h4, h5, h6 {
     color: var(--color-text-primary);
   }
-  
+
   /* Links - Brighter accent */
   a {
     color: var(--color-highlight);
   }
-  
+
   a:hover {
     color: var(--color-accent-hover);
   }
-  
+
   /* Code blocks */
   code {
     background: var(--color-bg-secondary);
     color: var(--color-text-secondary);
   }
+}
+
+/* ============================================================================
+   DATA-THEME DARK MODE (for manual toggle)
+   ============================================================================ */
+[data-theme="dark"] {
+  /* Background Colors - Warm Ferni Dark Palette (Cedar Night) */
+  --color-bg-primary: #584840;
+  --color-bg-secondary: #60504a;
+  --color-bg-elevated: #70605a;
+  --color-bg-dark: #2a2420;
+  --color-bg-dark-elevated: #3a322c;
+  --color-bg-dark-surface: #4a403a;
+  --color-bg-glass: rgba(230, 195, 160, 0.08);
+  --color-bg-overlay: rgba(88, 72, 64, 0.95);
+
+  /* Text Colors - High Contrast */
+  --color-text-primary: #faf6f0;
+  --color-text-secondary: #f0ebe4;
+  --color-text-muted: #e8e2da;
+  --color-text-dimmed: #ddd6cc;
+  --color-text-inverse: #2a2420;
+
+  /* Accent Colors */
+  --color-accent: #d4a84a;
+  --color-accent-hover: #e0bc6a;
+  --color-accent-pressed: #c49a3a;
+  --color-accent-light: rgba(212, 168, 74, 0.2);
+  --color-accent-glow: rgba(212, 168, 74, 0.22);
+  --color-highlight: #d4b275;
+  --color-highlight-glow: rgba(212, 178, 117, 0.3);
+
+  /* Border Colors */
+  --color-border-subtle: rgba(215, 185, 145, 0.12);
+  --color-border-medium: rgba(215, 185, 145, 0.20);
+  --color-border-strong: rgba(215, 185, 145, 0.30);
+
+  /* Semantic Colors */
+  --color-success: #6bc48f;
+  --color-success-bg: rgba(107, 196, 143, 0.22);
+  --color-error: #e07575;
+  --color-error-bg: rgba(224, 117, 117, 0.22);
+  --color-warning: #e0b860;
+  --color-warning-bg: rgba(224, 184, 96, 0.22);
+
+  /* Persona Text Colors - WCAG AA */
+  --color-ferni-text: #a5c99a;
+  --color-jack-text: #d4c4a8;
+  --color-peter-text: #8bc4cf;
+  --color-alex-text: #a8b8d8;
+  --color-maya-text: #e0b8a8;
+  --color-jordan-text: #f0c0a0;
+  --color-nayan-text: #e8d0a8;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
 
