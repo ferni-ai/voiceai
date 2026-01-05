@@ -17,6 +17,7 @@ import {
   rotateApiKey,
   deleteApiKey,
 } from '../../publisher-auth.js';
+import { getPublisherFromToken } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-keys' });
 
@@ -27,94 +28,6 @@ const log = getLogger().child({ module: 'developers-keys' });
 interface CreateKeyRequest {
   type: 'live' | 'test';
   name?: string;
-}
-
-interface FirebaseDecodedToken {
-  uid: string;
-  email?: string;
-}
-
-// ============================================================================
-// FIREBASE AUTH HELPER
-// ============================================================================
-
-let firebaseAdmin: typeof import('firebase-admin') | null = null;
-
-async function getFirebaseAdmin() {
-  if (firebaseAdmin) return firebaseAdmin;
-
-  const admin = await import('firebase-admin');
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-    });
-  }
-  firebaseAdmin = admin;
-  return firebaseAdmin;
-}
-
-// ============================================================================
-// FIRESTORE HELPERS (for finding publisher by Firebase UID)
-// ============================================================================
-
-interface Firestore {
-  collection: (path: string) => CollectionReference;
-}
-
-interface CollectionReference {
-  where: (field: string, op: string, value: unknown) => Query;
-}
-
-interface Query {
-  limit: (n: number) => Query;
-  get: () => Promise<QuerySnapshot>;
-}
-
-interface QuerySnapshot {
-  empty: boolean;
-  docs: Array<{ id: string; data: () => Record<string, unknown> | undefined }>;
-}
-
-let db: Firestore | null = null;
-
-async function getFirestore(): Promise<Firestore> {
-  if (db) return db;
-
-  const { Firestore } = await import('@google-cloud/firestore');
-  db = new Firestore({
-    projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-  }) as unknown as Firestore;
-
-  return db;
-}
-
-/**
- * Get publisher ID from Firebase token
- */
-async function getPublisherFromToken(req: IncomingMessage): Promise<string | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null;
-  }
-
-  const idToken = authHeader.substring(7);
-
-  try {
-    const admin = await getFirebaseAdmin();
-    const decodedToken = (await admin.auth().verifyIdToken(idToken)) as FirebaseDecodedToken;
-
-    const db = await getFirestore();
-    const query = db.collection('publishers').where('firebaseUid', '==', decodedToken.uid).limit(1);
-    const snapshot = await query.get();
-
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].id;
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    log.warn({ error: err.message }, 'Failed to get publisher from token');
-    return null;
-  }
 }
 
 // ============================================================================

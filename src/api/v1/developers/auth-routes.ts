@@ -57,30 +57,39 @@ interface DeveloperSession {
 // FIREBASE ADMIN INITIALIZATION
 // ============================================================================
 
-let firebaseAdmin: typeof import('firebase-admin') | null = null;
-let adminInitPromise: Promise<void> | null = null;
+// Firebase Auth instance (lazy loaded)
+let firebaseAuthInstance: Awaited<ReturnType<typeof import('firebase-admin/auth').getAuth>> | null = null;
+let authInitPromise: Promise<void> | null = null;
 
-async function getFirebaseAdmin() {
-  if (firebaseAdmin) return firebaseAdmin;
+/**
+ * Get Firebase Auth instance for token verification
+ * Uses firebase-admin/auth module directly for better ESM compatibility
+ */
+async function getFirebaseAuth() {
+  if (firebaseAuthInstance) return firebaseAuthInstance;
 
-  if (adminInitPromise) {
-    await adminInitPromise;
-    if (firebaseAdmin) return firebaseAdmin;
+  if (authInitPromise) {
+    await authInitPromise;
+    if (firebaseAuthInstance) return firebaseAuthInstance;
   }
 
-  adminInitPromise = (async () => {
+  authInitPromise = (async () => {
     try {
-      const admin = await import('firebase-admin');
+      // Import firebase-admin modules separately for ESM compatibility
+      const { initializeApp, getApps, cert, applicationDefault } = await import('firebase-admin/app');
+      const { getAuth } = await import('firebase-admin/auth');
 
       // Initialize if not already done
-      if (admin.apps.length === 0) {
-        admin.initializeApp({
+      if (getApps().length === 0) {
+        // In Cloud Run, use application default credentials
+        initializeApp({
           projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+          credential: applicationDefault(),
         });
+        log.info('Firebase Admin initialized for developer auth');
       }
 
-      firebaseAdmin = admin;
-      log.info('Firebase Admin initialized for developer auth');
+      firebaseAuthInstance = getAuth();
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       log.error({ error: err.message }, 'Failed to initialize Firebase Admin');
@@ -88,9 +97,9 @@ async function getFirebaseAdmin() {
     }
   })();
 
-  await adminInitPromise;
-  if (!firebaseAdmin) throw new Error('Firebase Admin initialization failed');
-  return firebaseAdmin;
+  await authInitPromise;
+  if (!firebaseAuthInstance) throw new Error('Firebase Admin initialization failed');
+  return firebaseAuthInstance;
 }
 
 // ============================================================================
@@ -143,6 +152,25 @@ async function getFirestore(): Promise<Firestore> {
 }
 
 /**
+ * Convert Firestore timestamp to Date
+ * Handles Firestore Timestamp, Date, number (ms), or ISO string
+ */
+function toDate(value: unknown): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  if (typeof value === 'number') return new Date(value);
+  if (typeof value === 'string') return new Date(value);
+  if (typeof (value as { toDate?: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  // Firestore Timestamp with _seconds
+  if (typeof (value as { _seconds?: number })._seconds === 'number') {
+    return new Date((value as { _seconds: number })._seconds * 1000);
+  }
+  return new Date();
+}
+
+/**
  * Find publisher by Firebase UID
  */
 async function findPublisherByFirebaseUid(firebaseUid: string): Promise<Publisher | null> {
@@ -162,7 +190,7 @@ async function findPublisherByFirebaseUid(firebaseUid: string): Promise<Publishe
     email: data.email as string,
     name: data.name as string,
     verified: data.verified as boolean,
-    createdAt: (data.createdAt as { toDate: () => Date }).toDate(),
+    createdAt: toDate(data.createdAt),
   };
 }
 
@@ -200,7 +228,7 @@ async function linkFirebaseToPublisher(
       email: data.email as string,
       name: data.name as string,
       verified: data.verified as boolean,
-      createdAt: (data.createdAt as { toDate: () => Date }).toDate(),
+      createdAt: toDate(data.createdAt),
     };
 
     log.info({ publisherId: publisher.id, firebaseUid }, 'Linked Firebase UID to existing publisher');
@@ -252,11 +280,11 @@ export async function handleDeveloperAuthRoutes(
       }
 
       // Verify Firebase ID token
-      const admin = await getFirebaseAdmin();
+      const auth = await getFirebaseAuth();
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await admin.auth().verifyIdToken(body.idToken)) as FirebaseDecodedToken;
+        decodedToken = (await auth.verifyIdToken(body.idToken)) as FirebaseDecodedToken;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         log.warn({ error: err.message }, 'Invalid Firebase ID token');
@@ -317,11 +345,11 @@ export async function handleDeveloperAuthRoutes(
       const idToken = authHeader.substring(7);
 
       // Verify token
-      const admin = await getFirebaseAdmin();
+      const auth = await getFirebaseAuth();
       let decodedToken: FirebaseDecodedToken;
 
       try {
-        decodedToken = (await admin.auth().verifyIdToken(idToken)) as FirebaseDecodedToken;
+        decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
       } catch (error) {
         sendError(res, 'Invalid or expired token', 401);
         return true;
