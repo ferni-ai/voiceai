@@ -64,6 +64,8 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'nayan-wisdom-insights': async () => import('../personas/nayan-wisdom-insights.js'), // Nayan: big-picture wisdom synthesis
   'alex-communication-insights': async () =>
     import('../personas/alex-communication-insights/index.js'), // Alex: communication coaching insights
+  'joel-dickson-insights': async () =>
+    import('../personas/joel-dickson-insights/index.js'), // Joel: investing wisdom, Bogle principles (STANDALONE)
   'better-than-human-direct': async () => import('../better-than-human-direct.js'), // Direct surfacing of BTH phrases
   'conversational-superpowers': async () => import('../conversational-superpowers.js'),
   'conversation-forward': async () => import('../session/conversation-forward.js'), // Better Than Human: keep conversations moving

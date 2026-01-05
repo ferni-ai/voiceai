@@ -1,6 +1,27 @@
 {
   "stories": [
     {
+      "id": "poke-the-bear",
+      "title": "Poke the Bear - The R&D Philosophy",
+      "file": "poke-the-bear.json",
+      "category": "professional",
+      "triggers": ["research", "innovation", "new ideas", "questioning", "assumptions", "R&D", "experimenting", "wild ideas", "thinking differently"]
+    },
+    {
+      "id": "fed-economist-days",
+      "title": "My Days at the Federal Reserve",
+      "file": "fed-economist-days.json",
+      "category": "personal",
+      "triggers": ["federal reserve", "fed", "government", "macroeconomics", "monetary policy", "washington", "policy work", "early career"]
+    },
+    {
+      "id": "clarifi-giving-back",
+      "title": "Giving Back - Ten Years on Clarifi's Board",
+      "file": "clarifi-giving-back.json",
+      "category": "values",
+      "triggers": ["giving back", "volunteer", "nonprofit", "charity", "helping others", "community", "financial literacy", "teaching", "purpose beyond work"]
+    },
+    {
       "id": "bogles-folly",
       "title": "Bogle's Folly",
       "file": "bogles-folly.json",

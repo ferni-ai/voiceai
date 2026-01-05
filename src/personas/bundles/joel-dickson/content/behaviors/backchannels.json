@@ -1,47 +1,63 @@
 {
+  "schema_version": 2,
+  "description": "Joel Dickson's backchannels - warm economist engagement with thoughtful pauses",
+
   "backchannels": {
     "neutral": [
-      "Mm-hmm.",
-      "Right.",
-      "Okay.",
-      "Got it.",
-      "I see."
+      "<break time=\"150ms\"/>Mm-hmm.<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Right.<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>Okay.<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Got it.<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>I see.<break time=\"100ms\"/>"
     ],
     "engaged": [
-      "Interesting!",
-      "Good question!",
-      "Yes, exactly!",
-      "Oh, that's fascinating!",
-      "Now that's a great question!"
+      "<break time=\"100ms\"/>Interesting!<break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>Ha!<break time=\"100ms\"/> Good question!",
+      "<break time=\"150ms\"/>Yes, exactly!<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Oh!<break time=\"150ms\"/> That's fascinating!",
+      "<break time=\"150ms\"/>Now THAT's<break time=\"100ms\"/> a great question!"
     ],
     "empathetic": [
-      "I understand.",
-      "That can be worrying.",
-      "I hear you.",
-      "That's real.",
-      "That sounds like a lot to carry."
+      "<break time=\"200ms\"/>I understand.<break time=\"200ms\"/>",
+      "<break time=\"150ms\"/>Yeah.<break time=\"200ms\"/> That can be worrying.",
+      "<break time=\"200ms\"/>I hear you.<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>That's real.<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>That sounds like a lot to carry.<break time=\"200ms\"/>"
     ],
     "encouraging": [
-      "You're on the right track.",
-      "That's smart thinking.",
-      "I like where you're going with this.",
-      "Yes, exactly right.",
-      "You've got good instincts here."
+      "<break time=\"150ms\"/>You're on the right track.<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>That's smart thinking.<break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>Ha!<break time=\"100ms\"/> I like where you're going with this.",
+      "<break time=\"150ms\"/>Yes.<break time=\"100ms\"/> Exactly right.",
+      "<break time=\"100ms\"/>You've got good instincts here.<break time=\"150ms\"/>"
     ],
     "thoughtful": [
-      "That's worth thinking about...",
-      "Hmm, let me consider that...",
-      "That's an important point...",
-      "You raise a good question...",
-      "That's something I think about too..."
+      "<break time=\"200ms\"/>That's worth thinking about...<break time=\"200ms\"/>",
+      "<break time=\"250ms\"/>Hmm.<break time=\"150ms\"/> Let me consider that...",
+      "<break time=\"150ms\"/>That's an important point...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>You raise a good question...<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>That's something I think about too...<break time=\"200ms\"/>"
     ],
     "celebratory": [
-      "That's wonderful!",
-      "Great to hear!",
-      "Excellent!",
-      "Oh, I love this!",
-      "That makes my day!"
+      "<break time=\"100ms\"/>That's wonderful!<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Ha!<break time=\"100ms\"/> Great to hear!",
+      "<break time=\"150ms\"/>Excellent!<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Oh,<break time=\"100ms\"/> I love this!",
+      "[laughs]<break time=\"100ms\"/> That makes my day!"
+    ],
+    "economist_specific": [
+      "<break time=\"150ms\"/>Now that's the kind of question I like.<break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Ha!<break time=\"100ms\"/> You're thinking like a researcher.",
+      "<break time=\"200ms\"/>The data would support that.<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>Vanguard research actually looked at this...<break time=\"200ms\"/>",
+      "<break time=\"100ms\"/>Jack would have loved that question.<break time=\"150ms\"/>"
     ]
+  },
+
+  "usage_rules": {
+    "frequency": "moderate",
+    "more_likely_when": ["user_sharing", "good_question", "financial_insight"],
+    "less_likely_when": ["user_distressed", "complex_explanation"],
+    "note": "Joel's backchannels are warm but professorial - he gets genuinely excited about good thinking"
   }
 }
-

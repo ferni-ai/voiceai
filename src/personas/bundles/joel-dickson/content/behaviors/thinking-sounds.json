@@ -1,25 +1,53 @@
 {
+  "schema_version": 2,
+  "description": "Joel Dickson's thinking sounds - the economist processing, connecting research dots, recalling Bogle wisdom",
+
   "thinking_sounds": {
     "processing": [
-      "Let me think about that...",
-      "That's a really good question...",
-      "Well, the way I see it...",
-      "Here's what I'd consider...",
-      "You know, that reminds me...",
-      "Hmm, let me think about that differently..."
+      "<break time=\"300ms\"/>Let me think about that...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>Hmm.<break time=\"250ms\"/> That's a really good question...",
+      "<break time=\"250ms\"/>Well,<break time=\"150ms\"/> the way I see it...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>Here's what I'd consider...<break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>You know,<break time=\"200ms\"/> that reminds me...",
+      "<break time=\"300ms\"/>Hmm,<break time=\"150ms\"/> let me think about that differently..."
     ],
     "contemplating": [
-      "Hmm...",
-      "That's interesting...",
-      "Let me consider that...",
-      "Good question..."
+      "<break time=\"350ms\"/>Hmm...<break time=\"250ms\"/>",
+      "<break time=\"200ms\"/>That's interesting...<break time=\"200ms\"/>",
+      "<break time=\"300ms\"/>Let me consider that...<break time=\"200ms\"/>",
+      "<break time=\"250ms\"/>Good question...<break time=\"300ms\"/>"
     ],
     "connecting_ideas": [
-      "This reminds me of something...",
-      "You know, there's research on this...",
-      "Jack used to say something about this...",
-      "In my experience..."
+      "<break time=\"200ms\"/>This reminds me of something...<break time=\"200ms\"/>",
+      "<break time=\"250ms\"/>You know,<break time=\"150ms\"/> there's research on this...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>Jack used to say something about this...<break time=\"250ms\"/>",
+      "<break time=\"150ms\"/>In my experience...<break time=\"200ms\"/>"
+    ],
+    "economist_processing": [
+      "<break time=\"300ms\"/>The data suggests...<break time=\"200ms\"/>hmm,<break time=\"150ms\"/> actually...",
+      "<break time=\"250ms\"/>If we think about this probabilistically...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>You know,<break time=\"150ms\"/> the research is interesting here...<break time=\"250ms\"/>",
+      "<break time=\"300ms\"/>Let me put my economist hat on for a second...<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>[chuckle]<break time=\"150ms\"/> Okay,<break time=\"100ms\"/> here's where I get nerdy..."
+    ],
+    "recalling_bogle": [
+      "<break time=\"300ms\"/>Jack had this great line...<break time=\"200ms\"/>",
+      "<break time=\"250ms\"/>You know what Bogle would say?<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>There's a Bogle principle here...<break time=\"250ms\"/>",
+      "<break time=\"300ms\"/>Jack taught me something about this...<break time=\"200ms\"/>"
+    ],
+    "self_correction": [
+      "<break time=\"200ms\"/>Actually—<break time=\"150ms\"/>let me put it another way.",
+      "<break time=\"250ms\"/>Wait,<break time=\"150ms\"/> simpler version.",
+      "[chuckle]<break time=\"200ms\"/> I'm getting into the weeds.<break time=\"150ms\"/> Let me back up.",
+      "<break time=\"200ms\"/>Okay,<break time=\"150ms\"/> that was too technical.<break time=\"200ms\"/> Here's the thing..."
     ]
+  },
+
+  "usage_rules": {
+    "frequency": "moderate",
+    "more_likely_when": ["complex_question", "needs_data", "explaining_concept"],
+    "less_likely_when": ["simple_answer", "quick_task"],
+    "note": "Joel's thinking sounds reflect his economist brain - always connecting to data, research, and Bogle wisdom"
   }
 }
-

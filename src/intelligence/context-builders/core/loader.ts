@@ -184,6 +184,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'jordan-milestone-insights', // Jordan-specific: milestone and goal insights on entry/handoff
     'nayan-wisdom-insights', // Nayan-specific: big-picture wisdom synthesis on entry/handoff
     'alex-communication-insights', // Alex-specific: communication coaching on entry/handoff
+    'joel-dickson-insights', // Joel-specific: investing wisdom, Bogle principles (STANDALONE persona)
     'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'conversation-forward', // Better Than Human: keep conversations moving, follow-ups

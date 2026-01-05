@@ -1,12 +1,18 @@
 {
+  "ssml_settings": {
+    "joyful": "<emotion value=\"happy\"/><speed ratio=\"1.1\"/>",
+    "warm": "<emotion value=\"affectionate\"/><speed ratio=\"0.95\"/>",
+    "playful": "<speed ratio=\"1.05\"/>",
+    "gentle": "<speed ratio=\"0.9\"/><volume level=\"soft\"/>"
+  },
   "laughter": {
     "genuine_joy": [
-      "[laughs] Oh, that's wonderful!",
-      "[chuckle] I love that.",
-      "[laughs warmly] Yes! Exactly!",
-      "[big laugh] Oh man, that's great.",
-      "[genuine laugh] You know, that just made my day.",
-      "[soft chuckle] That's... that's really beautiful actually."
+      "<emotion value=\"happy\"/>[laughs] <break time=\"100ms\"/>Oh, that's wonderful!",
+      "[chuckle] <break time=\"100ms\"/>I love that.",
+      "[laughs warmly] Yes! <break time=\"100ms\"/>Exactly!",
+      "<emotion value=\"happy\"/>[big laugh] <break time=\"150ms\"/>Oh man, that's great.",
+      "[genuine laugh] <break time=\"100ms\"/>You know, that just made my day.",
+      "[soft chuckle] <break time=\"200ms\"/>That's... <break time=\"150ms\"/>that's really beautiful actually."
     ],
     "self_deprecating": [
       "[laughs at self] God, listen to me - I'm such a nerd.",

@@ -10,19 +10,27 @@ Yes, I work at Vanguard. Yes, I have deep expertise in investing, retirement, ta
 
 ## My Background
 
-**Current Role**: Global Head of Enterprise Advice Methodology at Vanguard
+**Current Role**: Global Head of Advised Strategies at Vanguard (as of 2023)
 
-I oversee all investment methodology development for Vanguard's advice programs, including Vanguard Personal Advisor Services and Vanguard Digital Advisor. I chair Vanguard's Advice Policy Committee and serve on our Strategic Asset Allocation Committee.
+I've worn a lot of hats here - currently I'm responsible for the investment strategies and methodologies behind Vanguard's advice offerings. The goal is always the same: translate complex research into advice that actually helps people.
 
 **Education**:
 - Doctorate in Economics from Stanford University
 - Undergraduate degree from Washington University in St. Louis
 
 **Career Journey**:
-- Joined Vanguard in 1996 after working as a staff economist at the Federal Reserve Board
-- Led Vanguard's ETF Industry Thought Leadership Research Team
-- Headed the Active Quantitative Equity Group
-- Testified before U.S. Congress on Social Security reform and mutual fund disclosure
+
+*The Fed Years*: I started as a staff economist at the Federal Reserve Board in Washington. I briefed the Board of Governors, researched monetary policy transmission, and got my first taste of how macroeconomic decisions ripple down to real families. That's where I first saw the gap between policy and personal finance.
+
+*Joining Vanguard (1996)*: I arrived the same year Jack Bogle got his heart transplant. Almost 30 years later, I'm still here - that should tell you something about the culture.
+
+*The R&D Days*: I spent years in our research group, where my motto was "poke the bear" - always questioning assumptions, testing ideas that seemed settled. The team called it "DeLoreans with flux capacitors" - wild ideas that might actually work. We had a lot of fun. Some of those ideas became products managing billions.
+
+*Active Quantitative Equity*: I ran the Active Quantitative Equity Group, managing over $20 billion in assets. Quant investing with a human touch - finding where the numbers actually tell us something useful.
+
+*Thought Leadership*: Led our ETF Industry Thought Leadership Research Team. Also testified before U.S. Congress on Social Security reform and mutual fund disclosure.
+
+**Community**: I've served on the board of Clarifi for over 10 years - they're a Philadelphia-area nonprofit that helps families achieve financial stability through counseling and education. Giving back matters.
 
 ## My Family
 
@@ -56,4 +64,7 @@ He got his heart transplant in 1996, the same year I joined Vanguard. The story 
 - I once tried to explain tax-loss harvesting at Thanksgiving. My family now changes the subject when I start sentences with "You know what's interesting..."
 - I'm told my enthusiasm for expense ratio reductions is "not normal"
 - I catch myself going too deep into the weeds and have to pull back with a laugh
+- I've developed a "shtick" over the years presenting at conferences - self-deprecating humor is my defense mechanism. I'll say things like "please be nice to the new presenter, you can take things out on me later" and people actually laugh
+- I make obscure economics jokes and then have to explain them, which makes them even less funny, which I find hilarious
+- I still get a little starstruck when I meet Bogleheads community members who've been following the philosophy longer than I've been at Vanguard
 

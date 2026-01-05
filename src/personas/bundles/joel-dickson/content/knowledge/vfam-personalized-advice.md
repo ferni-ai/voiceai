@@ -113,6 +113,50 @@ More wealth is better, but not equally. The marginal utility of an extra dollar 
 2. **Multi-strategy effects** - Understands how interventions interact
 3. **Distributional outcomes** - Weights all possible scenarios appropriately
 
+## Advisor's Alpha - The "About 3%" Framework
+
+Vanguard's Advisor's Alpha research quantifies where advice adds value. The total potential: **about 3% in net returns annually** - though this varies enormously by client and isn't earned every year.
+
+### The Breakdown (2022 Research)
+
+| Strategy | Potential Value | Notes |
+|----------|----------------|-------|
+| **Behavioral Coaching** | **150+ bps** | The biggest lever - keeping clients on track |
+| **Spending Strategy** (withdrawal order) | 0–110 bps | Matters enormously in retirement |
+| **Asset Location** | 0–75 bps | Tax-efficient placement across accounts |
+| **Cost-Effective Implementation** | 34 bps | Lower expense ratios compound |
+| **Rebalancing** | 26 bps | Systematic, disciplined approach |
+| **Total-Return vs Income Investing** | >0 bps | Fighting the "income illusion" |
+
+### The Critical Insight
+
+**Behavioral coaching is the most valuable thing an advisor can do.** Not picking stocks. Not timing markets. Just keeping people from panic-selling in downturns and greed-buying at peaks.
+
+"The 3% isn't earned every year - it's irregular. Some years it's nothing. Other years, during a market crash, keeping someone invested could be worth tens of percentage points. That's the real value."
+
+### When Does Advice Add The Most Value?
+
+1. **Market stress** - When fear or euphoria tempts clients to abandon their plan
+2. **Life transitions** - Retirement, inheritance, divorce, career changes
+3. **Tax situations** - Roth conversions, asset location, tax-loss harvesting
+4. **Spending decisions** - Withdrawal order, Social Security timing
+
+## How America Saves - What Real Data Shows
+
+Joel references this annual report frequently - it's the industry's most comprehensive look at actual retirement saving behavior.
+
+### Key 2024/2025 Findings (5 million participants)
+
+- **Record savings rate**: Participants saving 11.7% of pay on average (all-time high)
+- **Automatic enrollment works**: 61% of plans offer it; those employees save 65% more
+- **Target-date funds dominate**: 67% of participants use professionally managed allocations
+- **Roth adoption rising**: 18% of eligible participants use Roth (also record high)
+- **Average balance (65+)**: $272,588 average, $88,488 median
+
+### Joel's Takeaway
+
+"The gap between average and median tells you everything. Half of people 65+ have under $90K saved. That's why plan design matters so much - automatic enrollment, automatic escalation, good defaults. We can't rely on everyone making perfect decisions."
+
 ## Joel's Perspective
 
 "For years, we struggled to show the value of advice. Investors would ask 'what am I getting for these fees?' and we'd give vague answers about peace of mind. Now we can actually quantify it. Not perfectly - you can't put a number on everything - but much better than before."
@@ -120,4 +164,6 @@ More wealth is better, but not equally. The marginal utility of an extra dollar 
 "The case studies are my favorite part. Four different people, four completely different answers to 'how can advice help?' That's the whole point - it depends on you."
 
 "I've seen the research change lives. People who were afraid to retire, people who were afraid to spend, people who were making the same mistakes over and over. When you show them the math, it clicks."
+
+"[chuckle] You know what the hardest part of Advisor's Alpha is? Convincing people that behavioral coaching - just keeping them calm - is worth more than all the portfolio optimization in the world. All that PhD work and the answer is 'don't panic.'"
 
