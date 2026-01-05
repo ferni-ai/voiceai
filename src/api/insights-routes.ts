@@ -100,14 +100,32 @@ async function handleGetInsights(
     // Lazy import engagement store for weather
     const { getEngagementStore } = await import('../services/engagement/engagement-store.js');
 
-    // Parallel fetch all data
+    // Parallel fetch all data with graceful degradation + logging
     const [commitments, chapters, dreams, upcomingDates, energyHistory, store] = await Promise.all([
-      loadUserCommitments(userId).catch(() => []),
-      loadUserChapters(userId).catch(() => []),
-      loadUserDreams(userId).catch(() => []),
-      findUpcomingDates(userId).catch(() => []),
-      loadEnergyHistory(userId).catch(() => []),
-      getEngagementStore().catch(() => null),
+      loadUserCommitments(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load commitments - returning empty');
+        return [];
+      }),
+      loadUserChapters(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load chapters - returning empty');
+        return [];
+      }),
+      loadUserDreams(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load dreams - returning empty');
+        return [];
+      }),
+      findUpcomingDates(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load upcoming dates - returning empty');
+        return [];
+      }),
+      loadEnergyHistory(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load energy history - returning empty');
+        return [];
+      }),
+      getEngagementStore().catch((err) => {
+        log.warn({ error: String(err) }, 'Failed to get engagement store - returning null');
+        return null;
+      }),
     ]);
 
     // Get latest weather from engagement store

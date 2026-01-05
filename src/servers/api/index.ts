@@ -470,6 +470,11 @@ const server = http.createServer(async (req, res) => {
 
   try {
     // Group conversation routes (Team Roundtable, Conference Calls)
+    // TODO: TECHNICAL DEBT - This uses an Express Router pattern while everything else
+    // uses raw Node.js HTTP handlers. This creates unnecessary overhead (dynamic import,
+    // mock app creation) on every /api/group/ request. Should refactor
+    // group-conversation-routes.ts to use the standard handleXxxRoutes() pattern.
+    // See: src/api/CLAUDE.md for the standard pattern.
     if (pathname.startsWith('/api/group/')) {
       const express = await import('express');
       const mockApp = express.default();

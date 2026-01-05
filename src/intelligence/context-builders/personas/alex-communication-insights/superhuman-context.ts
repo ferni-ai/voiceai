@@ -86,9 +86,18 @@ export async function buildAlexSuperhumanContext(
 
     // Get quick stats for summary
     const [debts, tempAlerts, unsaid, heldMsgs] = await Promise.all([
-      communicationDebt.getPending(userId).catch(() => []),
-      relationshipTemperature.getNeedingAttention(userId).catch(() => []),
-      unsaidWordsDetector.get(userId).catch(() => []),
+      communicationDebt.getPending(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to get communication debts');
+        return [];
+      }),
+      relationshipTemperature.getNeedingAttention(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to get relationship temperature alerts');
+        return [];
+      }),
+      unsaidWordsDetector.get(userId).catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to get unsaid words');
+        return [];
+      }),
       Promise.resolve(strategicSilence.getReadyMessages(userId)),
     ]);
 
