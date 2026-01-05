@@ -314,6 +314,10 @@ export function getSecureResponseHeaders(origin?: string): Record<string, string
 /**
  * Send JSON response with security headers.
  *
+ * NOTE: CORS headers are set by handleCorsPreflightIfNeeded(), so we only
+ * add security headers here. Make sure to call handleCorsPreflightIfNeeded()
+ * at the start of your route handler.
+ *
  * @param res - Server response
  * @param data - Data to serialize as JSON
  * @param status - HTTP status code (default 200)
@@ -321,7 +325,7 @@ export function getSecureResponseHeaders(origin?: string): Record<string, string
 export function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    ...getSecureResponseHeaders(),
+    ...getAPISecurityHeaders(),
   });
   res.end(JSON.stringify(data));
 }
@@ -412,9 +416,10 @@ export function sendError(res: ServerResponse, message: string, status = 500): v
   // In production, avoid exposing internal error details
   const safeMessage = isProduction() && status >= 500 ? 'Internal server error' : message;
 
+  // NOTE: CORS headers are set by handleCorsPreflightIfNeeded()
   res.writeHead(status, {
     'Content-Type': 'application/json',
-    ...getSecureResponseHeaders(),
+    ...getAPISecurityHeaders(),
   });
   res.end(JSON.stringify({ error: safeMessage }));
 }
@@ -475,13 +480,26 @@ export function sendApiError(
 /**
  * Handle CORS preflight requests
  *
+ * IMPORTANT: This also sets CORS headers on the response for ALL requests,
+ * not just OPTIONS. This is critical for cross-origin API calls to work.
+ *
  * @param req - Incoming request
  * @param res - Server response
  * @returns true if this was a preflight request that was handled
  */
 export function handleCorsPreflightIfNeeded(req: IncomingMessage, res: ServerResponse): boolean {
+  const origin = req.headers.origin as string | undefined;
+
+  // Set CORS headers on ALL responses (required for cross-origin API calls)
+  const corsHeaders = getCorsHeaders(origin);
+  for (const [key, value] of Object.entries(corsHeaders)) {
+    if (value) {
+      res.setHeader(key, value);
+    }
+  }
+
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, getCorsHeaders());
+    res.writeHead(204);
     res.end();
     return true;
   }
