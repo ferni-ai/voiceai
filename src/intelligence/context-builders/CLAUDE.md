@@ -6,16 +6,122 @@ Context builders are how we make AI emotionally intelligent. They inject the awa
 
 ---
 
+## 🎯 Architecture Vision (January 2026)
+
+**We are migrating to a cleaner, more discoverable architecture.**
+
+See:
+- `docs/architecture/CONTEXT-BUILDERS-RATIONALIZATION.md` - Complete migration plan
+- `docs/architecture/CONTEXT-BUILDERS-MIGRATION-TRACKER.md` - Progress tracking
+
+### Two Systems (Legacy → Behavioral)
+
+| System | Status | Use For |
+|--------|--------|---------|
+| **Legacy** (`buildConversationContext`) | ⚠️ Deprecated | Existing builders |
+| **Behavioral** (`buildIntegratedContext`) | ✅ Preferred | New builders |
+
+**Why migrate?** The behavioral system prevents **context leakage** - where internal guidance ("User seems sad") accidentally becomes spoken output.
+
+```typescript
+// ❌ LEGACY (can leak)
+createContextInjection('emotional', `[CONTEXT: User seems sad. Be supportive.]`);
+
+// ✅ BEHAVIORAL (can't leak)
+return { tone: 'gentle', style: 'supportive', questionStyle: 'reflective' };
+```
+
+### Directory Organization (Target State)
+
+```
+context-builders/
+├── core/           # Foundation (types, registry, loader)
+├── behavioral/     # NEW SYSTEM - expand this ⭐
+├── safety/         # P0 - Crisis, wellbeing (always runs first)
+├── intelligence/   # "Better Than Human" capabilities ⭐
+├── memory/         # Cross-session memory
+├── emotional/      # Emotion handling
+├── awareness/      # External/situational facts
+├── relationship/   # Trust, social, relationship arc
+├── engagement/     # Games, music, rituals
+├── personas/       # Persona-specific builders
+├── coaching/       # Life coaching
+├── session/        # Session state
+├── team/           # Multi-persona coordination
+├── superhuman/     # Superhuman services
+├── humanization/   # Speech naturalness
+├── external/       # External integrations
+└── learning/       # Collective intelligence
+```
+
+---
+
 ## What They Do
 Context builders inject guidance into each conversation turn. They analyze the current state (emotion, memory, topic, etc.) and return instructions that shape the agent's response.
 
 ## Reference Docs
+- **Migration Plan**: `docs/architecture/CONTEXT-BUILDERS-RATIONALIZATION.md` ⭐
+- **Progress Tracker**: `docs/architecture/CONTEXT-BUILDERS-MIGRATION-TRACKER.md`
 - Architecture: `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md`
 - Dynamic Triggers: `docs/architecture/DYNAMIC-TRIGGER-SYSTEM.md` (proactive behavior activation)
-- Examples: See `emotional.ts`, `memory.ts`, `crisis.ts` in this directory
+- Behavioral System: `behavioral/README.md` (preferred approach)
 - Trigger Utils: `dynamic-trigger-utils.ts` (condition-based trigger matching)
 
-## Quick Start
+---
+
+## Quick Start: Creating a BEHAVIORAL Builder (Preferred)
+
+The behavioral system is architecturally superior - it can't leak. **Use this for new builders.**
+
+```typescript
+// behavioral/builders/my-feature.behavioral.ts
+import type { ContextBuilderInput } from '../../core/types.js';
+import type { BehavioralSignals } from '../signals.js';
+import { registerBehavioralBuilder } from '../orchestrator.js';
+
+async function buildMyFeatureBehavior(input: ContextBuilderInput): Promise<BehavioralSignals> {
+  const { userText, analysis, userData, persona } = input;
+
+  // Analyze context...
+  // Return BEHAVIORAL signals, NOT facts about the user
+
+  return {
+    source: 'my-feature',
+    confidence: 0.8,
+    priority: 50,
+
+    // ✅ GOOD: Behavioral guidance
+    tone: 'warm',
+    style: 'exploratory',
+    
+    // ✅ GOOD: Behavioral hints (no raw facts)
+    callbacks: [{
+      type: 'pattern',
+      hint: 'They seem interested in exploring this further.',
+      strength: 'natural',
+    }],
+
+    // ❌ BAD: This would leak raw facts
+    // callbacks: [{ hint: 'User mentioned divorce on Dec 15th' }],
+  };
+}
+
+registerBehavioralBuilder({
+  name: 'my-feature',
+  description: 'What this builder does',
+  priority: 50, // 0=runs first, 100=runs last
+  category: 'category-name',
+  build: buildMyFeatureBehavior,
+});
+```
+
+**Key Rule:** Return signals about **HOW to behave**, never facts about the user.
+
+---
+
+## Quick Start: Creating a LEGACY Builder (Deprecated)
+
+Only use this pattern for modifying existing legacy builders.
 
 ### 1. Create the Builder
 ```typescript
