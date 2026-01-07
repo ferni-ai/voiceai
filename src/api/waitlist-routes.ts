@@ -619,7 +619,8 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
  */
 const ADMIN_BYPASS_EMAILS: string[] = [
   'noreply@ferni.ai',
-  'sethford@gmail.com', // Gmail treats these the same
+  'sethford@gmail.com',
+  'seth.ford@gmail.com', // Gmail treats dots as optional, but we check exact strings
   'admin@ferni.ai',
 ];
 

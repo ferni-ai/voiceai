@@ -2,6 +2,7 @@ packages:
   - .
   - apps/web
   - apps/async
+  - apps/cli
   - apps/intelligence-worker
   - apps/rust-audio
   - apps/rust-perf
