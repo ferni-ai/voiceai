@@ -1,548 +1,496 @@
 /**
  * Entity Store Integration
  *
- * Bridges the entity store with existing systems:
- * - Data capture pipeline
- * - Memory orchestrator
- * - Context builders
+ * This module provides the integration hooks for capturing entities from
+ * various sources (data capture, conversation, imports) into the unified store.
  *
  * @module memory/entity-store/integration
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getEntityStore, initializeEntityStore } from './store.js';
-import { graphRAGRetrieve } from './graph-rag.js';
-import { getProactiveSurfacingEngine } from './proactive-surfacing.js';
+import { resolvePerson } from './entity-resolver.js';
+import { createMention, recordMention, hasEntityStore } from './storage.js';
 import type {
-  Entity,
-  EntityType,
-  PersonAttributes,
-  CommitmentAttributes,
-  EventAttributes,
-  EntitySearchResult,
-  SurfacingOpportunity,
+  PersonCaptureInput,
+  CaptureContext,
+  CaptureResult,
+  MentionType,
+  ExtractedFact,
 } from './types.js';
 
-const log = createLogger({ module: 'EntityStoreIntegration' });
+const log = createLogger({ module: 'entity-store:integration' });
 
 // ============================================================================
-// INITIALIZATION
+// INITIALIZATION STATE
 // ============================================================================
 
 let initialized = false;
+let initializationError: string | null = null;
 
 /**
- * Initialize entity store integration
- * Call this during application startup
+ * Check if entity store is ready to use
  */
-export async function initializeEntityStoreIntegration(): Promise<void> {
+export function isEntityStoreReady(): boolean {
+  return initialized && !initializationError;
+}
+
+/**
+ * Initialize entity store
+ */
+export async function initializeEntityStore(): Promise<void> {
   if (initialized) return;
 
   try {
-    await initializeEntityStore();
+    // Verify Firestore connectivity
+    const { getFirestore } = await import('@google-cloud/firestore');
+    const db = new getFirestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+    });
+
+    // Test connectivity
+    await db.collection('entity_store').doc('_health').get();
+
     initialized = true;
-    log.info('✅ Entity store integration initialized');
+    log.info('Entity store initialized');
   } catch (error) {
-    log.error({ error: String(error) }, 'Failed to initialize entity store integration');
-    throw error;
+    initializationError = String(error);
+    log.warn({ error: initializationError }, 'Entity store initialization failed - will use legacy collections');
   }
 }
 
-/**
- * Check if entity store is ready
- */
-export function isEntityStoreReady(): boolean {
-  return initialized;
-}
+// Auto-initialize on module load
+initializeEntityStore().catch(() => {
+  // Silently fail - we'll use legacy collections
+});
 
 // ============================================================================
-// DATA CAPTURE INTEGRATION
+// PERSON CAPTURE
 // ============================================================================
 
 /**
- * Capture a contact/person entity from data capture
+ * Capture a person entity from conversation
  *
- * This is the bridge between data-capture and entity store.
- * Call this when a contact is extracted from conversation.
+ * This is the main entry point for data capture integration.
+ * Call this whenever a person is mentioned in conversation.
  */
 export async function capturePersonEntity(
   userId: string,
-  data: {
-    name?: string;
-    relationship?: string;
+  input: PersonCaptureInput,
+  context: CaptureContext
+): Promise<CaptureResult> {
+  if (!isEntityStoreReady()) {
+    throw new Error('Entity store not ready');
+  }
+
+  log.debug(
+    { userId, name: input.name, relationship: input.relationship },
+    'Capturing person entity'
+  );
+
+  // Resolve to canonical entity (create or find existing)
+  const resolved = await resolvePerson(userId, input);
+
+  // Create mention record
+  const mention = await createMention(userId, {
+    userId,
+    entityId: resolved.entity.id,
+    transcript: context.transcript,
+    sessionId: context.sessionId,
+    personaId: context.personaId,
+    timestamp: new Date(),
+    mentionType: inferMentionType(context.transcript, input),
+    sentiment: 0, // TODO: Sentiment analysis
+    emotionalIntensity: context.emotion?.intensity || 0.5,
+    topics: extractTopics(context.transcript),
+    facts: extractFacts(input, context),
+  });
+
+  // Update entity mention count
+  await recordMention(userId, resolved.entity.id, {
+    sentiment: mention.sentiment,
+    topics: mention.topics,
+  });
+
+  log.info(
+    {
+      userId,
+      entityId: resolved.entity.id,
+      name: resolved.entity.canonicalName,
+      isNew: resolved.isNew,
+      resolvedFrom: resolved.resolvedFrom,
+    },
+    resolved.isNew ? '✨ Created new person entity' : '📝 Updated existing entity'
+  );
+
+  return {
+    entity: resolved.entity,
+    isNew: resolved.isNew,
+    merged: resolved.merged,
+    confidence: resolved.confidence,
+  };
+}
+
+/**
+ * Infer mention type from transcript and input
+ */
+function inferMentionType(transcript: string, input: PersonCaptureInput): MentionType {
+  const lower = transcript.toLowerCase();
+
+  // Check for explicit contact info sharing
+  if (input.phone || input.email) {
+    return 'fact';
+  }
+
+  // Check for planning
+  if (
+    /\b(meeting|call|see|visit|meet up|hang out|tomorrow|next week|this weekend)\b/.test(lower)
+  ) {
+    return 'planning';
+  }
+
+  // Check for emotional content
+  if (/\b(worried|concerned|scared|happy|excited|upset|angry|love|miss|hate)\b/.test(lower)) {
+    return 'emotion';
+  }
+
+  // Check for story
+  if (/\b(told me|said|did|happened|went|came|made)\b/.test(lower)) {
+    return 'story';
+  }
+
+  // Check for update/status
+  if (/\b(just|recently|now|started|got|became|is doing)\b/.test(lower)) {
+    return 'update';
+  }
+
+  return 'reference';
+}
+
+/**
+ * Extract topics from transcript (simple keyword extraction)
+ */
+function extractTopics(transcript: string): string[] {
+  const topics: string[] = [];
+  const lower = transcript.toLowerCase();
+
+  // Topic patterns
+  const topicPatterns: Array<{ pattern: RegExp; topic: string }> = [
+    { pattern: /\b(work|job|office|career|boss|meeting)\b/, topic: 'work' },
+    { pattern: /\b(health|sick|hospital|doctor|surgery|medical)\b/, topic: 'health' },
+    { pattern: /\b(family|mom|dad|brother|sister|kids|children)\b/, topic: 'family' },
+    { pattern: /\b(money|pay|salary|bills|financial|budget)\b/, topic: 'finances' },
+    { pattern: /\b(wedding|engaged|married|anniversary)\b/, topic: 'relationship' },
+    { pattern: /\b(birthday|holiday|christmas|thanksgiving|celebration)\b/, topic: 'celebration' },
+    { pattern: /\b(school|college|university|class|exam|grade)\b/, topic: 'education' },
+    { pattern: /\b(move|moving|house|apartment|home)\b/, topic: 'housing' },
+    { pattern: /\b(trip|vacation|travel|flight|visit)\b/, topic: 'travel' },
+  ];
+
+  for (const { pattern, topic } of topicPatterns) {
+    if (pattern.test(lower)) {
+      topics.push(topic);
+    }
+  }
+
+  return topics;
+}
+
+/**
+ * Extract facts from input and context
+ */
+function extractFacts(input: PersonCaptureInput, context: CaptureContext): ExtractedFact[] {
+  const facts: ExtractedFact[] = [];
+
+  if (input.phone) {
+    facts.push({
+      type: 'attribute',
+      key: 'phone',
+      value: input.phone,
+      confidence: 0.95,
+    });
+  }
+
+  if (input.email) {
+    facts.push({
+      type: 'attribute',
+      key: 'email',
+      value: input.email,
+      confidence: 0.95,
+    });
+  }
+
+  if (input.relationship) {
+    facts.push({
+      type: 'relationship',
+      key: 'relationship_to_user',
+      value: input.relationship,
+      confidence: 0.9,
+    });
+  }
+
+  return facts;
+}
+
+// ============================================================================
+// BULK OPERATIONS
+// ============================================================================
+
+/**
+ * Capture multiple people at once (for imports)
+ */
+export async function captureMultiplePeople(
+  userId: string,
+  inputs: PersonCaptureInput[],
+  context: Omit<CaptureContext, 'transcript'>
+): Promise<CaptureResult[]> {
+  const results: CaptureResult[] = [];
+
+  for (const input of inputs) {
+    try {
+      const result = await capturePersonEntity(userId, input, {
+        ...context,
+        transcript: `Imported: ${input.name || input.relationship}`,
+      });
+      results.push(result);
+    } catch (error) {
+      log.warn(
+        { userId, name: input.name, error: String(error) },
+        'Failed to capture person in bulk import'
+      );
+    }
+  }
+
+  log.info(
+    { userId, total: inputs.length, captured: results.length },
+    'Bulk person capture complete'
+  );
+
+  return results;
+}
+
+// ============================================================================
+// QUERY HELPERS
+// ============================================================================
+
+/**
+ * Find a contact for telephony (call/text)
+ *
+ * This replaces the fragmented contact lookup used by telephony tools.
+ */
+export async function findContactForTelephony(
+  userId: string,
+  query: string
+): Promise<{
+  name: string;
+  phone: string;
+  relationship?: string;
+} | null> {
+  if (!isEntityStoreReady()) {
+    // Fall back to legacy lookup
+    return null;
+  }
+
+  const { findEntityByAlias, searchEntities } = await import('./storage.js');
+
+  // Try exact match first
+  let entity = await findEntityByAlias(userId, query, 'person');
+
+  // Try search if exact match fails
+  if (!entity) {
+    const results = await searchEntities(userId, query, { types: ['person'], limit: 1 });
+    entity = results[0] || null;
+  }
+
+  if (!entity || !entity.contact?.phone) {
+    return null;
+  }
+
+  return {
+    name: entity.canonicalName,
+    phone: entity.contact.phone,
+    relationship: entity.specificRelation,
+  };
+}
+
+/**
+ * Get all contacts for a user (for contact list display)
+ */
+export async function getAllContacts(userId: string): Promise<
+  Array<{
+    id: string;
+    name: string;
     phone?: string;
     email?: string;
-  },
-  context: {
-    conversationId: string;
-    sessionId: string;
-    personaId: string;
-    transcript: string;
-  }
-): Promise<Entity | null> {
-  if (!initialized) {
-    log.warn('Entity store not initialized, skipping capture');
-    return null;
+    relationship?: string;
+  }>
+> {
+  if (!isEntityStoreReady()) {
+    return [];
   }
 
-  const store = getEntityStore();
+  const { getAllEntities } = await import('./storage.js');
+  const entities = await getAllEntities(userId, { types: ['person'], limit: 200 });
 
-  // Determine the best name to use
-  const displayName = data.name || data.relationship || 'Unknown';
+  return entities.map((e) => ({
+    id: e.id,
+    name: e.canonicalName,
+    phone: e.contact?.phone,
+    email: e.contact?.email,
+    relationship: e.specificRelation,
+  }));
+}
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+/**
+ * Get entity store health status
+ */
+export async function getEntityStoreHealth(userId: string): Promise<{
+  ready: boolean;
+  error?: string;
+  stats?: {
+    entityCount: number;
+    mentionCount: number;
+    relationshipCount: number;
+  };
+}> {
+  if (!isEntityStoreReady()) {
+    return {
+      ready: false,
+      error: initializationError || 'Not initialized',
+    };
+  }
 
   try {
-    // Use entity resolution to find or create
-    const { entity, isNew } = await store.resolveEntity(
-      userId,
-      displayName,
-      'person',
-      { relationship: data.relationship }
-    );
+    const { getEntityStoreStats } = await import('./storage.js');
+    const stats = await getEntityStoreStats(userId);
 
-    // Update with additional data if we have it
-    const attrs = entity.attributes as PersonAttributes;
-    const updates: Partial<Entity> = {};
-    let needsUpdate = false;
-
-    if (data.phone && !attrs.phone) {
-      attrs.phone = data.phone;
-      needsUpdate = true;
-    }
-
-    if (data.email && !attrs.email) {
-      attrs.email = data.email;
-      needsUpdate = true;
-    }
-
-    if (data.relationship && attrs.relationship === 'unknown') {
-      attrs.relationship = data.relationship;
-      attrs.relationshipCategory = categorizeRelationship(data.relationship);
-      needsUpdate = true;
-    }
-
-    // Add alias if name differs
-    if (data.name && data.relationship && !entity.aliases.includes(data.relationship.toLowerCase())) {
-      updates.aliases = [...entity.aliases, data.relationship.toLowerCase()];
-      needsUpdate = true;
-    }
-
-    if (needsUpdate) {
-      updates.attributes = attrs;
-      await store.updateEntity(entity.id, updates);
-    }
-
-    // Record the mention
-    await store.recordMention(entity.id, {
-      userId,
-      conversationId: context.conversationId,
-      sessionId: context.sessionId,
-      personaId: context.personaId,
-      snippet: context.transcript.substring(0, 200),
-      mentionContext: 'direct',
-    });
-
-    log.info(
-      {
-        userId: userId.substring(0, 8),
-        entityId: entity.id,
-        name: displayName,
-        isNew,
+    return {
+      ready: true,
+      stats: {
+        entityCount: stats.entityCount,
+        mentionCount: stats.mentionCount,
+        relationshipCount: stats.relationshipCount,
       },
-      '📇 Captured person entity'
-    );
-
-    return entity;
+    };
   } catch (error) {
-    log.error({ error: String(error), userId, name: displayName }, 'Failed to capture person entity');
-    return null;
-  }
-}
-
-/**
- * Capture a commitment entity from data capture
- */
-export async function captureCommitmentEntity(
-  userId: string,
-  data: {
-    statement: string;
-    type: 'promise' | 'intention' | 'decision' | 'goal';
-    targetDate?: Date;
-    relatedPeople?: string[];
-  },
-  context: {
-    conversationId: string;
-    sessionId: string;
-    personaId: string;
-  }
-): Promise<Entity | null> {
-  if (!initialized) {
-    log.warn('Entity store not initialized, skipping capture');
-    return null;
-  }
-
-  const store = getEntityStore();
-
-  try {
-    // Create the commitment entity
-    const entity = await store.createEntity(
-      userId,
-      'commitment',
-      data.statement.substring(0, 100),
-      {
-        _type: 'commitment',
-        commitmentType: data.type,
-        status: 'active',
-        targetDate: data.targetDate,
-        relatedPeople: [],
-        accountability: 'self',
-        originalStatement: data.statement,
-      } as CommitmentAttributes,
-      {
-        sourceConversation: context.conversationId,
-        sourcePersona: context.personaId,
-      }
-    );
-
-    // Link to related people if any
-    if (data.relatedPeople && data.relatedPeople.length > 0) {
-      for (const personName of data.relatedPeople) {
-        // Find the person entity
-        const { entity: personEntity } = await store.resolveEntity(
-          userId,
-          personName,
-          'person'
-        );
-
-        // Create relationship
-        await store.createRelationship(entity.id, personEntity.id, 'involves', {
-          context: 'Commitment involves this person',
-        });
-      }
-    }
-
-    log.info(
-      { userId: userId.substring(0, 8), entityId: entity.id, type: data.type },
-      '📝 Captured commitment entity'
-    );
-
-    return entity;
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to capture commitment entity');
-    return null;
-  }
-}
-
-/**
- * Capture an event entity
- */
-export async function captureEventEntity(
-  userId: string,
-  data: {
-    name: string;
-    eventType: EventAttributes['eventType'];
-    date?: Date;
-    relatedPeople?: string[];
-    emotionalSignificance?: EventAttributes['emotionalSignificance'];
-  },
-  context: {
-    conversationId: string;
-    sessionId: string;
-    personaId: string;
-  }
-): Promise<Entity | null> {
-  if (!initialized) {
-    log.warn('Entity store not initialized, skipping capture');
-    return null;
-  }
-
-  const store = getEntityStore();
-
-  try {
-    const entity = await store.createEntity(
-      userId,
-      'event',
-      data.name,
-      {
-        _type: 'event',
-        eventType: data.eventType,
-        date: data.date,
-        isRecurring: data.eventType === 'birthday' || data.eventType === 'anniversary',
-        relatedPeople: [],
-        emotionalSignificance: data.emotionalSignificance || 'meaningful',
-        status: data.date && data.date > new Date() ? 'upcoming' : 'happened',
-      } as EventAttributes,
-      {
-        sourceConversation: context.conversationId,
-        sourcePersona: context.personaId,
-      }
-    );
-
-    // Link to related people
-    if (data.relatedPeople && data.relatedPeople.length > 0) {
-      for (const personName of data.relatedPeople) {
-        const { entity: personEntity } = await store.resolveEntity(userId, personName, 'person');
-        await store.createRelationship(entity.id, personEntity.id, 'involves');
-      }
-    }
-
-    log.info(
-      { userId: userId.substring(0, 8), entityId: entity.id, eventType: data.eventType },
-      '📅 Captured event entity'
-    );
-
-    return entity;
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to capture event entity');
-    return null;
+    return {
+      ready: false,
+      error: String(error),
+    };
   }
 }
 
 // ============================================================================
-// MEMORY RETRIEVAL INTEGRATION
+// UNIFIED MEMORY RETRIEVAL
 // ============================================================================
 
 /**
- * Unified memory retrieval using Graph-RAG
+ * Options for unified memory retrieval
+ */
+export interface RetrieveMemoriesOptions {
+  currentTopic?: string;
+  currentEmotion?: string;
+  personaId?: string;
+  conversationTurn?: number;
+  recentTopics?: string[];
+  limit?: number;
+}
+
+/**
+ * Score breakdown for retrieved entity
+ */
+interface EntityScoreBreakdown {
+  semantic: number;
+  temporal: number;
+  emotional: number;
+  graphDistance: number;
+}
+
+/**
+ * Retrieved entity result
+ */
+interface EntityRetrievalResult {
+  entity: {
+    id: string;
+    type: string;
+    lastSeen: string;
+    emotionalWeight: number;
+    salienceScore: number;
+    [key: string]: unknown;
+  };
+  score: number;
+  scoreBreakdown: EntityScoreBreakdown;
+  reason: string;
+}
+
+/**
+ * Result of unified memory retrieval
+ */
+interface UnifiedMemoryResult {
+  entities: EntityRetrievalResult[];
+  formattedContext: string;
+}
+
+/**
+ * Retrieve memories from entity store using unified Graph-RAG approach
  *
- * Replaces fragmented memory retrieval with entity-centric search.
+ * This function combines entity lookup with Graph-RAG for contextual retrieval.
+ * TODO: Implement full Graph-RAG retrieval with entity relationships
  */
 export async function retrieveMemoriesUnified(
   userId: string,
   query: string,
-  context: {
-    currentTopic?: string;
-    currentEmotion?: string;
-    personaId?: string;
-    conversationTurn?: number;
-    recentTopics?: string[];
-  }
-): Promise<{
-  entities: EntitySearchResult[];
-  formattedContext: string;
-}> {
-  if (!initialized) {
-    log.warn('Entity store not initialized, falling back to empty results');
+  options: RetrieveMemoriesOptions = {}
+): Promise<UnifiedMemoryResult> {
+  if (!isEntityStoreReady()) {
     return { entities: [], formattedContext: '' };
   }
 
   try {
-    const result = await graphRAGRetrieve(
-      userId,
-      query,
-      {
-        currentTopic: context.currentTopic,
-        currentEmotion: context.currentEmotion,
-        personaId: context.personaId,
-        conversationTurn: context.conversationTurn,
-        recentTopics: context.recentTopics,
-      },
-      {
-        topK: 10,
-        minScore: 0.3,
-        expandGraph: true,
-        maxGraphHops: 2,
-        hybrid: true,
-      }
-    );
+    // Import entity search functionality
+    const { searchEntities } = await import('./storage.js');
 
-    // Format entities into LLM-friendly context
-    const formattedContext = formatEntitiesForLLM(result.entities);
+    // Search for entities matching the query
+    const entities = await searchEntities(userId, query, {
+      limit: options.limit || 5,
+    });
 
-    log.debug(
-      {
-        userId: userId.substring(0, 8),
-        query: query.substring(0, 50),
-        results: result.entities.length,
-        latencyMs: result.latencyMs,
+    // Convert to retrieval results with scores
+    const results: EntityRetrievalResult[] = entities.map((entity, index) => ({
+      entity: {
+        id: entity.id,
+        type: entity.type,
+        lastSeen: entity.lastMentionedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        emotionalWeight: entity.emotionalWeight || 0.5,
+        salienceScore: entity.salience || 0.5,
+        canonicalName: entity.canonicalName,
+        relationship: entity.relationship,
+        specificRelation: entity.specificRelation,
       },
-      '🧠 Unified memory retrieval complete'
-    );
+      score: 1 - (index * 0.1), // Simple scoring based on search order
+      scoreBreakdown: {
+        semantic: 0.7,
+        temporal: 0.6,
+        emotional: entity.emotionalWeight || 0.5,
+        graphDistance: 0,
+      },
+      reason: `Matched query "${query}" - ${entity.canonicalName}`,
+    }));
+
+    // Build formatted context
+    const formattedContext = results
+      .map((r) => `[${r.entity.type}] ${r.entity.canonicalName}: ${r.reason}`)
+      .join('\n');
 
     return {
-      entities: result.entities,
+      entities: results,
       formattedContext,
     };
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Unified memory retrieval failed');
+    log.warn({ error: String(error), userId, query }, 'Failed to retrieve unified memories');
     return { entities: [], formattedContext: '' };
   }
 }
-
-/**
- * Format entities for LLM context injection
- */
-function formatEntitiesForLLM(entities: EntitySearchResult[]): string {
-  if (entities.length === 0) return '';
-
-  const sections: string[] = [];
-
-  // Group by type
-  const byType = new Map<EntityType, EntitySearchResult[]>();
-  for (const result of entities) {
-    const type = result.entity.type;
-    if (!byType.has(type)) byType.set(type, []);
-    byType.get(type)!.push(result);
-  }
-
-  // Format people
-  const people = byType.get('person') || [];
-  if (people.length > 0) {
-    const peopleLines = people.map((r) => {
-      const attrs = r.entity.attributes as PersonAttributes;
-      const details = [attrs.relationship];
-      if (attrs.lastKnownStatus) details.push(attrs.lastKnownStatus);
-      return `- ${r.entity.canonicalName} (${details.join(', ')})`;
-    });
-    sections.push(`**People mentioned:**\n${peopleLines.join('\n')}`);
-  }
-
-  // Format commitments
-  const commitments = byType.get('commitment') || [];
-  if (commitments.length > 0) {
-    const commitmentLines = commitments.map((r) => {
-      const attrs = r.entity.attributes as CommitmentAttributes;
-      return `- ${attrs.originalStatement} [${attrs.status}]`;
-    });
-    sections.push(`**Active commitments:**\n${commitmentLines.join('\n')}`);
-  }
-
-  // Format events
-  const events = byType.get('event') || [];
-  if (events.length > 0) {
-    const eventLines = events.map((r) => {
-      const attrs = r.entity.attributes as EventAttributes;
-      const dateStr = attrs.date ? ` (${attrs.date.toLocaleDateString()})` : '';
-      return `- ${r.entity.canonicalName}${dateStr}`;
-    });
-    sections.push(`**Relevant events:**\n${eventLines.join('\n')}`);
-  }
-
-  return sections.join('\n\n');
-}
-
-// ============================================================================
-// PROACTIVE SURFACING INTEGRATION
-// ============================================================================
-
-/**
- * Check for proactive surfacing opportunities
- *
- * Call this on each turn to find memories worth proactively mentioning.
- */
-export async function checkProactiveSurfacing(
-  userId: string,
-  currentTurn: string,
-  context: {
-    sessionId: string;
-    personaId: string;
-    turnNumber: number;
-    surfacingCountThisSession: number;
-    sessionTopics: string[];
-    conversationMood?: 'exploratory' | 'venting' | 'seeking_help' | 'casual';
-    lastTurnWasQuestion?: boolean;
-    detectedEmotion?: string;
-  }
-): Promise<SurfacingOpportunity[]> {
-  if (!initialized) {
-    return [];
-  }
-
-  const engine = getProactiveSurfacingEngine();
-
-  try {
-    const opportunities = await engine.analyze({
-      userId,
-      currentTurn,
-      sessionId: context.sessionId,
-      personaId: context.personaId,
-      turnNumber: context.turnNumber,
-      surfacingCountThisSession: context.surfacingCountThisSession,
-      sessionTopics: context.sessionTopics,
-      conversationMood: context.conversationMood,
-      lastTurnWasQuestion: context.lastTurnWasQuestion,
-      detectedEmotion: context.detectedEmotion,
-    });
-
-    if (opportunities.length > 0) {
-      log.debug(
-        {
-          userId: userId.substring(0, 8),
-          opportunities: opportunities.map((o) => ({
-            type: o.type,
-            entity: o.entity.canonicalName,
-            timing: o.timing,
-          })),
-        },
-        '💡 Proactive surfacing opportunities found'
-      );
-    }
-
-    return opportunities;
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Proactive surfacing check failed');
-    return [];
-  }
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function categorizeRelationship(
-  relationship: string
-): PersonAttributes['relationshipCategory'] {
-  const rel = relationship.toLowerCase();
-
-  if (
-    [
-      'mother',
-      'father',
-      'mom',
-      'dad',
-      'brother',
-      'sister',
-      'son',
-      'daughter',
-      'wife',
-      'husband',
-      'spouse',
-      'parent',
-      'child',
-      'grandparent',
-      'aunt',
-      'uncle',
-      'cousin',
-    ].includes(rel)
-  ) {
-    return 'family';
-  }
-
-  if (['friend', 'best friend', 'close friend'].includes(rel)) {
-    return 'friend';
-  }
-
-  if (['boss', 'coworker', 'colleague', 'manager', 'employee', 'client'].includes(rel)) {
-    return 'colleague';
-  }
-
-  if (['doctor', 'lawyer', 'therapist', 'accountant', 'advisor'].includes(rel)) {
-    return 'professional';
-  }
-
-  if (['acquaintance', 'neighbor'].includes(rel)) {
-    return 'acquaintance';
-  }
-
-  return 'other';
-}
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  // Re-export core functionality
-  getEntityStore,
-  graphRAGRetrieve,
-  getProactiveSurfacingEngine,
-};
