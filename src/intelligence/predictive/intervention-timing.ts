@@ -44,7 +44,8 @@ export type InterventionType =
   | 'perspective_shift'     // When to broaden their view
   | 'grounding'             // When to bring them back to earth
   | 'humor'                 // When lightness helps
-  | 'boundary_support';     // When to help with boundaries
+  | 'boundary_support'      // When to help with boundaries
+  | 'presence';             // When just being present is the intervention
 
 /** Conditions for optimal timing */
 export interface OptimalConditions {
@@ -278,6 +279,14 @@ const CONFIG = {
       dayOfWeek: [1, 2, 3, 4],
       recencyRange: { min: 0, max: 7 },
       contraindications: ['exhausted', 'crisis'],
+    },
+    presence: {
+      emotionalStates: ['any'],
+      requiredContext: [],
+      timeOfDay: ['any'],
+      dayOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      recencyRange: { min: 0, max: 14 },
+      contraindications: [],
     },
   } as Record<InterventionType, OptimalConditions>,
 

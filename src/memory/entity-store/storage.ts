@@ -260,7 +260,7 @@ export async function getAllEntities(
   options: EntitySearchOptions = {}
 ): Promise<Entity[]> {
   const ref = await getEntitiesRef(userId);
-  const limit = options.limit || 100;
+  const limit = options.limit || options.topK || 100;
 
   let query: FirebaseFirestore.Query = ref;
 
@@ -268,7 +268,8 @@ export async function getAllEntities(
     query = query.where('type', 'in', options.types);
   }
 
-  const snapshot = await query.orderBy('lastMentionedAt', 'desc').limit(limit).get();
+  // Use lastMentioned (not lastMentionedAt) to match Entity schema
+  const snapshot = await query.orderBy('lastMentioned', 'desc').limit(limit).get();
 
   return snapshot.docs.map((doc) => ({
     ...doc.data(),

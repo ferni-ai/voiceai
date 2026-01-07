@@ -1,6 +1,6 @@
 # Semantic Data Store - Critical Gaps Audit
 
-> **Audit Date:** December 30, 2024 (Final Update)  
+> **Audit Date:** January 7, 2026 (Phase 8-10 Update)
 > **Status:** 🟢 **ALL PHASES COMPLETE - PRODUCTION READY**
 
 ---
@@ -309,7 +309,7 @@ await vectorStore.addDocument(...);  // May fail if not initialized
 
 ---
 
-## Priority Matrix (Updated Dec 30, 2024)
+## Priority Matrix (Updated Jan 7, 2026)
 
 | Issue                      | Severity    | Effort | Priority | Status                  |
 | -------------------------- | ----------- | ------ | -------- | ----------------------- |
@@ -318,11 +318,11 @@ await vectorStore.addDocument(...);  // May fail if not initialized
 | 3. Duplicate patterns      | 🟡 Medium   | Medium | P2       | ⏳ Documented           |
 | 4. Entity type mapping     | 🟢 Low      | Medium | P3       | ✅ FIXED                |
 | 5. TTL not enforced        | 🟡 Medium   | Medium | P2       | ✅ FIXED                |
-| 6. maxPerUser not enforced | 🟢 Low      | Medium | P3       | ⏳ Future enhancement   |
+| 6. maxPerUser not enforced | 🟢 Low      | Medium | P3       | ✅ FIXED (Phase 9)      |
 | 7. Services not wired      | 🟡 Medium   | High   | P2       | ✅ FIXED ~90% done      |
 | 8. No E2E test             | 🟡 Medium   | High   | P2       | ✅ FIXED 181 tests      |
 | 9. No API route            | 🟢 Low      | Low    | P3       | ✅ FIXED                |
-| 10. Init not awaited       | 🟢 Low      | Low    | P3       | ⏳ Non-critical         |
+| 10. Init not awaited       | 🟢 Low      | Low    | P3       | ✅ FIXED (Phase 10)     |
 | 11. Deindex functions      | 🟡 Medium   | Medium | P1       | ✅ FIXED (13 added)     |
 | 12. Type errors            | 🔴 Critical | Medium | P0       | ✅ FIXED (30+ resolved) |
 
@@ -353,9 +353,9 @@ All P0 and P1 issues have been fixed. The semantic data store is now **productio
 
 **Future Enhancements (Non-Critical):**
 
-- ⏳ maxPerUser limits (soft cap, not blocking)
+- ✅ maxPerUser limits - FIXED (Phase 9, already implemented in store-hooks.ts)
 - ⏳ Dual patterns consolidation (hooks vs integrations)
-- ⏳ Vector store initialization awaiting
+- ✅ Vector store initialization awaiting - FIXED (Phase 10, all methods now call ensureInitialized())
 
 **Risk Level:** 🟢 **Production Ready** - All critical functionality works. 90%+ services wired.
 
@@ -544,5 +544,132 @@ import { onCommitmentChange } from '../data-layer/hooks/trust-hooks.js';
 
 ---
 
+## Phase 8: Wire Data Capture Definitions to Semantic Indexing
+
+**Completed:** January 7, 2026
+
+**Problem:** Data capture definitions (in `src/intelligence/data-capture/definitions/`) were not wired to semantic hooks.
+
+**Solution:** Verified all 11 capture definitions are properly wired:
+
+| Capture Definition | Target Service | Hook Used |
+|--------------------|----------------|-----------|
+| `boundary.capture.ts` | `protective-silence.ts` | `onProtectiveMomentChange` ✅ |
+| `commitments.capture.ts` | `commitment-keeper.ts` | `onCommitmentKeeperChange` ✅ |
+| `conflict.capture.ts` | `conflict-resolution-memory.ts` | `onConflictMemoryChange` ✅ |
+| `contacts.capture.ts` | `contacts.ts` | `onContactChange` ✅ **FIXED** |
+| `dreams.capture.ts` | `dream-keeper.ts` → `indexDream` | `onDreamChange` ✅ |
+| `inside-joke.capture.ts` | `inside-joke-memory.ts` | `onInsideJokeChange` ✅ |
+| `mood.capture.ts` | `mood-calendar.ts` | `onMoodPatternChange` ✅ |
+| `recovery-event.capture.ts` | `recovery-tracking.ts` | `onRecoveryMilestoneChange` ✅ |
+| `relationships.capture.ts` | `relationship-network.ts` | `onRelationshipNetworkChange` ✅ |
+| `social-event.capture.ts` | `social-battery.ts` | `onCapacityStateChange` ✅ |
+| `actionable-intent.capture.ts` | N/A (returns suggestions) | N/A ✅ |
+
+**Fix Applied:** Added `onContactChange` hook calls to `contacts.ts`:
+- `createContact()` - calls hook with 'create' change type
+- `updateContact()` - calls hook with 'update' change type
+- `deleteContact()` - calls hook with 'delete' change type
+
+---
+
+## Phase 9: maxPerUser Limits Enforcement
+
+**Completed:** January 7, 2026 (Already Implemented)
+
+**Finding:** `enforceMaxPerUser()` was already fully implemented in `store-hooks.ts:74-136`:
+
+```typescript
+async function enforceMaxPerUser(
+  vectorStore: ReturnType<typeof getFirestoreVectorStore>,
+  userId: string,
+  entityType: EntityType
+): Promise<void> {
+  const policy = getEntityPolicy(entityType);
+  const maxPerUser = policy?.conditions?.maxPerUser;
+
+  if (!maxPerUser || maxPerUser <= 0) return;
+
+  // Query existing documents
+  const existingDocs = await vectorStore.search('', {
+    topK: maxPerUser + 10,
+    filter: { userId, metadata: { entityType } },
+  });
+
+  // Delete oldest if over limit
+  if (existingDocs.length >= maxPerUser) {
+    // Sort by indexedAt and remove oldest
+    ...
+  }
+}
+```
+
+Called on line 271 after every index operation. **No additional work needed.**
+
+---
+
+## Phase 10: Fix Vector Store Initialization Awaiting
+
+**Completed:** January 7, 2026
+
+**Problem:** Several `FirestoreVectorStore` methods didn't call `ensureInitialized()` before operations, which could cause:
+- Operations to silently use fallback cache
+- Empty results when Firestore wasn't connected yet
+- Race conditions if multiple methods called simultaneously
+
+**Methods Fixed:** Added `await this.ensureInitialized()` to:
+
+| Method | Before | After |
+|--------|--------|-------|
+| `removeDocument()` | ❌ No init check | ✅ Added |
+| `getDocument()` | ❌ No init check | ✅ Added |
+| `searchByEmbedding()` | ❌ No init check | ✅ Added |
+| `list()` | ❌ No init check | ✅ Added |
+| `getStats()` | ❌ No init check | ✅ Added |
+| `clear()` | ❌ No init check | ✅ Added |
+
+**File Modified:** `src/memory/firestore-vector-store/core.ts`
+
+**Pattern Explanation:**
+```typescript
+// Before (bug)
+async getDocument(id: string) {
+  const cached = this.fallbackCache.get(id);
+  if (cached) return cached.doc;
+  // May fail if not initialized!
+  if (this.useFallback || !this.db) return undefined;
+  ...
+}
+
+// After (fixed)
+async getDocument(id: string) {
+  await this.ensureInitialized();  // ← Ensures Firestore connection
+  const cached = this.fallbackCache.get(id);
+  if (cached) return cached.doc;
+  if (this.useFallback || !this.db) return undefined;
+  ...
+}
+```
+
+---
+
+## Final Summary (January 2026)
+
+### All Phases Complete ✅
+
+| Phase | Description                           | Status |
+| ----- | ------------------------------------- | ------ |
+| 1-2   | Foundation & Types (98 entity types)  | ✅     |
+| 3     | Wire 37+ Services to Hooks            | ✅     |
+| 4     | Wire 8 Semantic Intelligence Services | ✅     |
+| 5     | TTL Cleanup + Observability API       | ✅     |
+| 6     | E2E Test Suite (48 tests)             | ✅     |
+| 7     | Consolidate Hooks vs Integrations     | ✅     |
+| **8** | **Wire Data Capture to Semantic**     | ✅     |
+| **9** | **maxPerUser Limits (verified)**      | ✅     |
+| **10**| **Vector Store Init Awaiting**        | ✅     |
+
+---
+
 _Generated: December 30, 2024_
-_Last Updated: December 30, 2024 (Phase 7 Complete - ALL DONE)_
+_Last Updated: January 7, 2026 (Phase 10 Complete - ALL DONE)_

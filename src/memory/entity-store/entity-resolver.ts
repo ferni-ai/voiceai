@@ -347,6 +347,10 @@ export async function resolvePerson(
     email,
   });
 
+  const now = new Date();
+  const salienceScore = 0.5;
+  const emotionalWeight = 0.5;
+
   const newEntity = await createEntity(userId, {
     userId,
     type: 'person',
@@ -357,18 +361,26 @@ export async function resolvePerson(
     sourceConversations: [],
     sourcePersonas: [],
     confidence: name ? 0.8 : 0.6, // Lower confidence if we only have relationship
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    firstSeen: new Date(),
-    lastSeen: new Date(),
+    createdAt: now,
+    updatedAt: now,
+    firstSeen: now,
+    lastSeen: now,
+    // Compatibility aliases (required)
+    firstMentioned: now,
+    lastMentioned: now,
     mentionCount: 1,
-    salienceScore: 0.5,
-    emotionalWeight: 0.5,
+    salienceScore,
+    emotionalWeight,
+    // Compatibility aliases (required)
+    importance: salienceScore,
+    emotionalSalience: emotionalWeight,
     recencyBoost: 1.0,
     temporalContext: {
       peakMoments: [],
       emotionalDecayResistance: 1.0,
     },
+    // Compatibility (required)
+    properties: {},
     embedding: [],
   });
 
@@ -581,7 +593,7 @@ export async function whatDoWeKnowAbout(
   query: string
 ): Promise<{
   entity: Entity | null;
-  mentions: import('./types.js').EntityMention[];
+  mentions: import('./types.js').Mention[];
   relationships: import('./types.js').EntityRelationship[];
   relatedEntities: Entity[];
 }> {

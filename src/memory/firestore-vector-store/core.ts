@@ -261,6 +261,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
    * Remove a document from the store.
    */
   async removeDocument(id: string): Promise<boolean> {
+    await this.ensureInitialized();
+
     this.fallbackCache.delete(id);
 
     if (this.useFallback || !this.db) {
@@ -281,6 +283,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
    * Get a document by ID.
    */
   async getDocument(id: string): Promise<VectorDocument | undefined> {
+    await this.ensureInitialized();
+
     const cached = this.fallbackCache.get(id);
     if (cached) return cached.doc;
 
@@ -433,6 +437,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       minScore?: number;
     }
   ): Promise<VectorSearchResult[]> {
+    await this.ensureInitialized();
+
     const topK = options?.topK || 5;
     const minScore = options?.minScore || 0;
 
@@ -508,6 +514,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
    * Get all documents matching a filter.
    */
   async list(filter?: VectorFilter): Promise<VectorDocument[]> {
+    await this.ensureInitialized();
+
     const results: VectorDocument[] = this.fallbackCache.list(filter);
 
     if (this.useFallback || !this.db) {
@@ -568,6 +576,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
     byCategory: Record<string, number>;
     usingFallback: boolean;
   }> {
+    await this.ensureInitialized();
+
     const cacheStats = this.fallbackCache.getStats();
     let documentCount = cacheStats.count;
     const bySource = { ...cacheStats.bySource };
@@ -599,6 +609,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
    * Clear all documents.
    */
   async clear(): Promise<void> {
+    await this.ensureInitialized();
+
     this.fallbackCache.clear();
 
     if (this.useFallback || !this.db) return;

@@ -364,8 +364,8 @@ export class PredictiveMemory {
   ): Promise<void> {
     // Store outcome for future learning
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       await db.collection('knowledge_graph')
         .doc(userId)

@@ -176,8 +176,8 @@ export class ContradictionDetector {
    */
   async getUnresolvedContradictions(userId: string): Promise<Contradiction[]> {
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       const snapshot = await db
         .collection('knowledge_graph')
@@ -188,7 +188,7 @@ export class ContradictionDetector {
         .limit(20)
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
         id: doc.id,
         ...doc.data(),
         originalFact: {
@@ -215,8 +215,8 @@ export class ContradictionDetector {
     resolution: 'new_is_correct' | 'original_is_correct' | 'both_true' | 'dismiss'
   ): Promise<void> {
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       const resolutionText = {
         new_is_correct: 'Updated to new information',

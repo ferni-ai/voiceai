@@ -263,16 +263,18 @@ export function getKnowledgeGraph(): KnowledgeGraph {
           timestamp: new Date(),
           sessionId: (context as { sessionId?: string })?.sessionId || 'unknown',
           personaId: (context as { personaId?: string })?.personaId || 'ferni',
-          snippet: factObj.content || factObj.value || '',
-          emotionalWeight: 0,
-          mentionContext: 'direct',
+          transcript: factObj.content || factObj.value || '',
+          topics: [],
+          sentiment: 0,
+          emotionalIntensity: 0,
+          mentionType: 'reference',
           facts: [{
             type: (factObj.type as 'attribute' | 'event' | 'relationship' | 'state') || 'attribute',
             key: factObj.key || 'fact',
             value: factObj.value || factObj.content || '',
             confidence: factObj.confidence ?? 0.8,
           }],
-        } as Omit<import('../entity-store/types.js').Mention, 'id'>);
+        });
 
         // Also update the entity's lastSeen
         const { updateEntity } = await import('../entity-store/storage.js');
@@ -310,15 +312,13 @@ export function getKnowledgeGraph(): KnowledgeGraph {
           timestamp: new Date(),
           sessionId: mentionObj.sessionId || contextObj?.sessionId || 'unknown',
           personaId: mentionObj.personaId || contextObj?.personaId || 'ferni',
-          snippet: mentionObj.text || mentionObj.snippet || mentionObj.context || '',
-          emotionalWeight: mentionObj.emotionalWeight ?? 0,
-          mentionContext: 'direct',
+          transcript: mentionObj.text || mentionObj.snippet || mentionObj.context || '',
+          topics: contextObj?.topics || [],
           sentiment: mentionObj.sentiment ?? 0,
           emotionalIntensity: Math.abs(mentionObj.sentiment ?? 0),
-          topics: contextObj?.topics || [],
           mentionType: 'reference',
           facts: [],
-        } as Omit<import('../entity-store/types.js').Mention, 'id'>);
+        });
 
         // Update entity mention count and lastSeen
         const { getEntity } = await import('../entity-store/storage.js');

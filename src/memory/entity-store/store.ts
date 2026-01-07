@@ -629,6 +629,7 @@ export class EntityStore {
 
   /**
    * Create a relationship between entities
+   * Uses the proper user-scoped subcollection path
    */
   async createRelationship(
     fromEntityId: string,
@@ -642,66 +643,44 @@ export class EntityStore {
   ): Promise<EntityRelationship> {
     this.ensureInitialized();
 
-    const id = uuidv4();
-    const now = new Date();
+    // Get one of the entities to determine the userId
+    const fromEntity = await this.getEntity(fromEntityId);
+    if (!fromEntity) {
+      throw new Error(`Entity not found: ${fromEntityId}`);
+    }
 
-    const relationship: EntityRelationship = {
-      id,
+    // Use the storage module which has the correct subcollection path
+    const { upsertRelationship } = await import('./storage.js');
+    return upsertRelationship(fromEntity.userId, {
       fromEntity: fromEntityId,
       toEntity: toEntityId,
       type,
       strength: options?.strength ?? 0.5,
-      firstLinked: now,
-      lastReinforced: now,
+      firstLinked: new Date(),
+      lastReinforced: new Date(),
       reinforcementCount: 1,
       context: options?.context,
       bidirectional: options?.bidirectional ?? false,
-    };
-
-    await this.db!.collection(RELATIONSHIPS_COLLECTION)
-      .doc(id)
-      .set(cleanForFirestore(relationship));
-
-    log.debug(
-      { relationshipId: id, from: fromEntityId, to: toEntityId, type },
-      'Created relationship'
-    );
-
-    return relationship;
+    });
   }
 
   /**
    * Get relationships for an entity
+   * Note: Requires userId to locate the entity first, then uses the correct subcollection path
    */
   async getEntityRelationships(entityId: string): Promise<EntityRelationship[]> {
     this.ensureInitialized();
 
-    // Get relationships where entity is source or target
-    const [fromQuery, toQuery] = await Promise.all([
-      this.db!.collection(RELATIONSHIPS_COLLECTION).where('fromEntity', '==', entityId).get(),
-      this.db!.collection(RELATIONSHIPS_COLLECTION).where('toEntity', '==', entityId).get(),
-    ]);
-
-    const relationships: EntityRelationship[] = [];
-
-    for (const doc of fromQuery.docs) {
-      const data = doc.data();
-      if (data) {
-        relationships.push({ ...data, id: doc.id } as unknown as EntityRelationship);
-      }
+    // First get the entity to find its userId
+    const entity = await this.getEntity(entityId);
+    if (!entity) {
+      log.warn({ entityId }, 'Entity not found when fetching relationships');
+      return [];
     }
 
-    for (const doc of toQuery.docs) {
-      const data = doc.data();
-      if (!data) continue;
-      const rel = { ...data, id: doc.id } as unknown as EntityRelationship;
-      // Only include if bidirectional or not already added
-      if (rel.bidirectional && !relationships.find((r) => r.id === rel.id)) {
-        relationships.push(rel);
-      }
-    }
-
-    return relationships;
+    // Use the storage module which has the correct subcollection path
+    const { getRelationshipsForEntity } = await import('./storage.js');
+    return getRelationshipsForEntity(entity.userId, entityId);
   }
 
   /**

@@ -5,7 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "type", "order": "ASCENDING" },
-        { "fieldPath": "lastMentionedAt", "order": "DESCENDING" }
+        { "fieldPath": "lastMentioned", "order": "DESCENDING" }
       ]
     },
     {

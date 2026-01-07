@@ -35,6 +35,10 @@ export interface ExtractedRelationship {
   fromEntityId: string;
   /** Target entity ID */
   toEntityId: string;
+  /** Source entity name (for display) */
+  fromEntityName?: string;
+  /** Target entity name (for display) */
+  toEntityName?: string;
   /** Type of relationship */
   type: EdgeType;
   /** Human-readable label */

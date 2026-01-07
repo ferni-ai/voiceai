@@ -219,8 +219,8 @@ export class AnniversaryEngine {
 
     try {
       // Conversation count milestones
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       const userDoc = await db.collection('bogle_users').doc(userId).get();
       const totalConversations = userDoc.data()?.totalConversations || 0;
@@ -341,8 +341,8 @@ export class AnniversaryEngine {
    */
   async recordSurfacing(userId: string, anniversaryId: string): Promise<void> {
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       await db
         .collection('knowledge_graph')
@@ -366,8 +366,8 @@ export class AnniversaryEngine {
     feedback: Anniversary['feedback']
   ): Promise<void> {
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       await db
         .collection('knowledge_graph')
@@ -389,8 +389,8 @@ export class AnniversaryEngine {
 
   private async loadAnniversaries(userId: string): Promise<Anniversary[]> {
     try {
-      const { getFirestore } = await import('@google-cloud/firestore');
-      const db = new getFirestore();
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = new Firestore();
 
       const snapshot = await db
         .collection('knowledge_graph')
@@ -398,7 +398,7 @@ export class AnniversaryEngine {
         .collection('anniversaries')
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      return snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => ({
         id: doc.id,
         ...doc.data(),
         date: doc.data().date?.toDate?.() || new Date(doc.data().date),

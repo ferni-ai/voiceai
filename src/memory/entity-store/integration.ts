@@ -42,8 +42,8 @@ export async function initializeEntityStore(): Promise<void> {
 
   try {
     // Verify Firestore connectivity
-    const { getFirestore } = await import('@google-cloud/firestore');
-    const db = new getFirestore({
+    const { Firestore } = await import('@google-cloud/firestore');
+    const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
     });
 
