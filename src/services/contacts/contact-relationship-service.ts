@@ -698,6 +698,10 @@ const RELATIONSHIP_ALIASES: Record<string, string[]> = {
 
 /**
  * Search contacts by name, topic, or relationship alias
+ *
+ * 🐛 FIX: Also searches the main contacts service (user_contacts collection)
+ * as a fallback, since data capture saves contacts there but telephony
+ * was only looking in contact_relationships.
  */
 export async function searchContacts(
   userId: string,
@@ -715,7 +719,7 @@ export async function searchContacts(
     }
   }
 
-  return contacts.filter((contact) => {
+  const results = contacts.filter((contact) => {
     // Search by relationship alias (e.g., "mom" matches family)
     if (matchingRelationshipType && contact.relationship === matchingRelationshipType) {
       // For family, also check if the specific alias matches the role
@@ -755,6 +759,49 @@ export async function searchContacts(
 
     return false;
   });
+
+  // 🐛 FIX: If no results in contact_relationships, also search the main contacts service
+  // Data capture saves to user_contacts, but telephony was only looking here
+  if (results.length === 0) {
+    try {
+      const { searchContacts: searchMainContacts } = await import('../contacts.js');
+      const mainResults = await searchMainContacts(userId, queryLower);
+
+      // Convert main contacts to ContactRelationship format
+      for (const result of mainResults) {
+        const mainContact = result.contact;
+        if (mainContact.phones?.[0]?.number || mainContact.emails?.[0]?.address) {
+          const converted: ContactRelationship = {
+            id: mainContact.id,
+            userId: mainContact.userId,
+            contactId: mainContact.id,
+            name: mainContact.displayName,
+            email: mainContact.emails?.[0]?.address,
+            phone: mainContact.phones?.[0]?.number,
+            relationship: (mainContact.relationship as ContactRelationship['relationship']) || 'other',
+            notes: mainContact.notes || mainContact.nicknames?.join(', '),
+            firstInteraction: mainContact.createdAt,
+            lastInteraction: mainContact.lastContactedAt || mainContact.updatedAt,
+            interactionCount: 1,
+            strengthScore: 50,
+            topics: [],
+            recentContext: [],
+            createdAt: mainContact.createdAt,
+            updatedAt: mainContact.updatedAt,
+          };
+          results.push(converted);
+          log.info(
+            { userId, query, contactName: converted.name, phone: converted.phone },
+            '📇 Found contact in main contacts service (fallback)'
+          );
+        }
+      }
+    } catch (fallbackErr) {
+      log.debug({ error: String(fallbackErr) }, 'Fallback contact search failed (non-fatal)');
+    }
+  }
+
+  return results;
 }
 
 /**

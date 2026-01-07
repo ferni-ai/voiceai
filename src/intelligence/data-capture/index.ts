@@ -126,12 +126,18 @@ interface RelationshipMatch {
 function extractRelationship(text: string): RelationshipMatch | null {
   const lowerText = text.toLowerCase();
 
-  // Check for "my [relationship]" patterns
+  // Check for relationship patterns
   for (const [keyword, relationship] of Object.entries(RELATIONSHIP_MAP)) {
-    // Patterns: "my mom's", "my mom is", "my mom,", etc.
+    // Patterns: "my mom's", "my mom is", "my mom,", "a sister", "have a brother"
     const patterns = [
+      // "my mom", "my mom's", "my mom is"
       new RegExp(`\\bmy\\s+${keyword}(?:'s|\\s|,|$)`, 'i'),
+      // "mom's number", "mom's phone"
       new RegExp(`\\b${keyword}(?:'s)?\\s+(?:number|phone|email)`, 'i'),
+      // "have a sister", "got a brother" - for introduction patterns
+      new RegExp(`\\b(?:have|got)\\s+a\\s+${keyword}\\b`, 'i'),
+      // "a sister named", "a brother called" - named introductions
+      new RegExp(`\\ba\\s+${keyword}\\s+(?:named|called)\\b`, 'i'),
     ];
 
     for (const pattern of patterns) {
@@ -155,7 +161,7 @@ function extractRelationship(text: string): RelationshipMatch | null {
 // INTENT CLASSIFICATION
 // ============================================================================
 
-function classifyIntent(text: string, hasContactInfo: boolean): DataIntent {
+function classifyIntent(text: string, hasContactInfo: boolean, hasRelationship: boolean): DataIntent {
   const lowerText = text.toLowerCase();
 
   // Explicit save commands
@@ -178,6 +184,36 @@ function classifyIntent(text: string, hasContactInfo: boolean): DataIntent {
     return 'implicit_share';
   }
 
+  // Relationship mention with action intent (call, text, message, talk to)
+  // e.g., "call my mom", "text my brother", "I need to talk to my sister"
+  if (hasRelationship && /\b(call|text|message|reach|contact|talk\s+to|speak\s+(to|with))\s+(my\s+)?/.test(lowerText)) {
+    return 'relationship_mention';
+  }
+
+  // Explicit relationship introduction (my X is, I have a X)
+  // e.g., "my mom is coming over", "I have a brother named John"
+  if (hasRelationship && /\b(my\s+\w+\s+(is|was|has|loves|likes|works|lives))\b/.test(lowerText)) {
+    return 'relationship_mention';
+  }
+
+  // Naming a relationship (my X, her/his name is Y, my X named Y)
+  // e.g., "my mom, her name is Betty", "my brother named John", "my mom's name is Sarah"
+  if (hasRelationship && /\b(name\s+is|named|called)\b/i.test(lowerText)) {
+    return 'relationship_mention';
+  }
+
+  // Emotional relationship mentions (miss, love, worried about, thinking of)
+  // e.g., "I miss my mom", "I love my sister", "worried about my dad"
+  if (hasRelationship && /\b(miss|love|adore|worried\s+(about|for)|thinking\s+(of|about)|care\s+(for|about))\s+(my\s+)?/.test(lowerText)) {
+    return 'relationship_mention';
+  }
+
+  // First-time relationship introduction (I have a, I've got a, there's my)
+  // e.g., "I have a sister", "I've got a brother in Seattle"
+  if (hasRelationship && /\b(i\s+(have|'ve\s+got|got)\s+a|there('s| is)\s+my)\s+/i.test(lowerText)) {
+    return 'relationship_mention';
+  }
+
   // Reference only (mentioned but not sharing new info)
   return 'reference_only';
 }
@@ -196,11 +232,8 @@ function extractContactEntity(text: string): ContactEntity | null {
     return null;
   }
 
-  // Must have contact info to be actionable
-  if (!phone && !email) {
-    return null;
-  }
-
+  // Return entity even if only relationship (no phone/email)
+  // The intent classifier will decide if it should be saved
   return {
     type: 'contact',
     name: relationshipMatch?.displayName,
@@ -226,6 +259,7 @@ function generateAcknowledgment(items: CapturedItem[]): string | undefined {
   const contact = contactItems[0].entity as ContactEntity;
   const name = contact.name || contact.relationship || 'that contact';
 
+  const hasContactInfo = !!(contact.phone || contact.email);
   const parts: string[] = [];
   if (contact.phone) parts.push('number');
   if (contact.email) parts.push('email');
@@ -241,6 +275,11 @@ function generateAcknowledgment(items: CapturedItem[]): string | undefined {
       return `I've saved ${name}'s ${what} for you.`;
     case 'correction':
       return `Updated! I've got ${name}'s new ${what}.`;
+    case 'relationship_mention':
+      // Relationship-only save - acknowledge we're remembering them
+      return hasContactInfo
+        ? `I've noted ${name}'s ${what}.`
+        : undefined; // Silent save for relationship-only - more natural
     default:
       return undefined;
   }
@@ -280,8 +319,8 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
     }
   }
 
-  // Create new contact
-  createContact(context.userId, {
+  // Create new contact in main contacts service
+  const newContact = await createContact(context.userId, {
     displayName: contact.name || contact.relationship || 'Contact',
     phone: contact.phone,
     relationship: contact.relationship,
@@ -298,6 +337,37 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
     },
     '📇 Created contact via data capture'
   );
+
+  // 🐛 FIX: Also add to contact_relationships for telephony/search
+  // This ensures "call my brother" will find the contact
+  try {
+    const { upsertContact } = await import('../../services/contacts/contact-relationship-service.js');
+    const relationshipType = contact.relationship === 'mother' || contact.relationship === 'father' ||
+      contact.relationship === 'brother' || contact.relationship === 'sister' ||
+      contact.relationship === 'wife' || contact.relationship === 'husband' ||
+      contact.relationship === 'son' || contact.relationship === 'daughter'
+      ? 'family'
+      : contact.relationship === 'friend' ? 'friend'
+      : contact.relationship === 'boss' || contact.relationship === 'coworker' || contact.relationship === 'colleague'
+      ? 'colleague'
+      : 'other';
+
+    await upsertContact(context.userId, {
+      contactId: newContact.id,
+      name: contact.name || contact.relationship || 'Contact',
+      phone: contact.phone,
+      email: contact.email,
+      relationship: relationshipType as 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other',
+      notes: contact.relationship, // Store the specific relationship (mom, brother, etc.)
+    });
+
+    log.info(
+      { userId: context.userId, name: contact.name, relationship: contact.relationship },
+      '📇 Also synced to contact_relationships for telephony'
+    );
+  } catch (syncErr) {
+    log.warn({ error: String(syncErr) }, 'Failed to sync contact to relationships (non-fatal)');
+  }
 }
 
 // ============================================================================
@@ -319,20 +389,29 @@ export async function processDataCapture(context: DataCaptureContext): Promise<D
   const contactEntity = extractContactEntity(transcript);
   if (contactEntity) {
     const hasContactInfo = !!(contactEntity.phone || contactEntity.email);
-    const intent = classifyIntent(transcript, hasContactInfo);
+    const hasRelationship = !!(contactEntity.relationship || contactEntity.name);
+    const intent = classifyIntent(transcript, hasContactInfo, hasRelationship);
 
-    // Determine storage action
+    // Determine storage action - now includes relationship_mention for "call my mom" style phrases
     const shouldSave =
-      intent === 'explicit_save' || intent === 'implicit_share' || intent === 'correction';
+      intent === 'explicit_save' ||
+      intent === 'implicit_share' ||
+      intent === 'correction' ||
+      intent === 'relationship_mention';
+
+    // Determine storage target (contacts for contact info, relationships for relationship-only)
+    const storageTarget = hasContactInfo ? 'contacts' : 'relationships';
 
     const item: CapturedItem = {
       entity: contactEntity,
       intent,
-      confidence: hasContactInfo ? 0.9 : 0.5,
+      confidence: hasContactInfo ? 0.9 : hasRelationship ? 0.7 : 0.5,
       storage: {
-        target: 'contacts',
+        target: storageTarget,
         action: shouldSave ? 'create' : 'skip',
-        reason: shouldSave ? `${intent}: saving contact info` : 'reference only, not saving',
+        reason: shouldSave
+          ? `${intent}: saving ${hasContactInfo ? 'contact info' : 'relationship'}`
+          : 'reference only, not saving',
       },
       acknowledged: shouldSave,
     };
@@ -535,8 +614,13 @@ export async function captureDataBetterThanHuman(
   // First, try the fast hardcoded path for contacts
   const hardcodedResult = await processDataCapture(context);
 
-  // If hardcoded captured something, use that
-  if (hardcodedResult.captured.length > 0 && hardcodedResult.suggestedAcknowledgment) {
+  // If hardcoded captured something that should be saved, use that result
+  // Note: relationship-only saves may not have an acknowledgment (silent save)
+  // but we still want to return the captured data for tracking
+  if (
+    hardcodedResult.captured.length > 0 &&
+    hardcodedResult.captured.some((c) => c.storage.action !== 'skip')
+  ) {
     return hardcodedResult;
   }
 

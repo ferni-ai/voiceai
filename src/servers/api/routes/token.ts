@@ -309,6 +309,40 @@ export async function handleTokenRoutes(
       // Pre-warm LLM content cache for the requested persona (fire-and-forget)
       prewarmLLMContentForPersona(personaId);
 
+      // 🌍 Detect geo/location for demo users (enables weather, local content)
+      let demoGeoData = {
+        locale: 'en-US',
+        detectedAccent: 'american',
+        countryCode: undefined as string | undefined,
+        city: undefined as string | undefined,
+        regionCode: undefined as string | undefined,
+      };
+
+      try {
+        const { detectGeoFromRequest } =
+          await import('../../../services/identity/geo-detection.js');
+        const geo = await detectGeoFromRequest(req, {
+          enableIpLookup: true,
+          ipLookupTimeout: 2000,
+        });
+        demoGeoData = {
+          locale: geo.primaryLanguage || 'en-US',
+          detectedAccent: geo.accent,
+          countryCode: geo.countryCode,
+          city: geo.city,
+          regionCode: geo.regionCode,
+        };
+
+        if (geo.city) {
+          log.info(
+            { city: geo.city, region: geo.regionCode, country: geo.countryCode },
+            '📍 Demo: location detected for weather/local content'
+          );
+        }
+      } catch (geoErr) {
+        log.debug({ note: (geoErr as Error).message }, 'Demo geo detection failed (non-fatal)');
+      }
+
       // Generate token
       const token = await createToken(roomName, username);
 
@@ -319,8 +353,14 @@ export async function handleTokenRoutes(
           demo_id: demoId,
           session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
           persona_id: personaId,
+          // 🌍 Include geo data for weather and local content (TikTok-style)
+          locale: demoGeoData.locale,
+          preferredAccent: demoGeoData.detectedAccent,
+          countryCode: demoGeoData.countryCode,
+          city: demoGeoData.city,
+          regionCode: demoGeoData.regionCode,
         };
-        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '🚀 Dispatching agent');
+        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
         await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
@@ -341,6 +381,10 @@ export async function handleTokenRoutes(
           sessions_remaining: isBrandedPersona ? 999 : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
+          // 🌍 Include detected location for UI (weather, personalization)
+          city: demoGeoData.city,
+          regionCode: demoGeoData.regionCode,
+          countryCode: demoGeoData.countryCode,
         })
       );
     } catch (error) {
