@@ -476,7 +476,7 @@ export function recordAgentResponse(sessionId: string, response: string): void {
   humanizer.recordAgentResponse(response);
 
   // Also record to deep understanding for new repair intelligence
-  import('../intelligence/context-builders/deep-understanding.js')
+  import('../intelligence/context-builders/intelligence/deep-understanding.js')
     .then(({ recordResponse }) => {
       recordResponse(sessionId, response);
     })

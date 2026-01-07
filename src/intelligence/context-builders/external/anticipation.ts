@@ -12,7 +12,7 @@
  * @module intelligence/context-builders/anticipation
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   hasCalendarConnected,
   generateAnticipationInsights,
@@ -26,7 +26,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { loadPersonaContent } from '../../services/persona-content-loader.js';
 import {
   checkDynamicTriggers,

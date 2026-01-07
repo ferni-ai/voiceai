@@ -125,7 +125,7 @@ export interface TurnHandlerContext {
     /** Current emotion for cache-aware TTS lookup (set during turn processing) */
     currentEmotion?: string;
     // macOS context from menubar app (sent via data channel)
-    macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
+    macOS?: import('../../intelligence/context-builders/external/macos-context.js').MacOSContextPayload;
     // Better Than Human: Calendar awareness (loaded async at session start)
     calendarAwareness?: string;
     // Greeting awareness: Tell LLM what greeting was spoken

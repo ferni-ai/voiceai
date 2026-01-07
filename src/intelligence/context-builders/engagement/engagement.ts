@@ -17,7 +17,7 @@ import {
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { detectUserEngagement, getRunningJokeCallback } from '../human-behaviors.js';
 
 // ============================================================================

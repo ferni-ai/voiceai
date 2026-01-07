@@ -28,7 +28,7 @@ import {
   createHighInjection,
   createHintInjection,
   registerContextBuilder,
-} from './index.js';
+} from '../index.js';
 
 import {
   // Core trust context
@@ -61,7 +61,7 @@ import {
   processContextForSignals,
 } from '../../services/trust-systems/index.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   checkDynamicTriggers,
   calculateProbabilityBoost,

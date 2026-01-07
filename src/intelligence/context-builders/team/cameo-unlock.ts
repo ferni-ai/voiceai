@@ -24,13 +24,13 @@ import {
   type TeamMemberId,
   type TeamUnlockState,
 } from '../../services/team-unlocks.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'CameoUnlock' });
 

@@ -6,7 +6,7 @@
  *
  * Storage path: bogle_users/{userId}/relationship_arc/data
  *
- * @module intelligence/context-builders/relationship-arc/storage
+ * @module intelligence/context-builders/relationship/arc/storage
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';

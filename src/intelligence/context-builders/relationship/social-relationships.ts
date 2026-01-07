@@ -14,7 +14,7 @@
  * @module intelligence/context-builders/social-relationships
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   recordMention,
   extractNames,
@@ -27,7 +27,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:social-relationships' });
 

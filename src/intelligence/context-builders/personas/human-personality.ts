@@ -24,7 +24,7 @@ import {
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 import { extractAndSaveCallbacks } from '../../personality/callback-persistence.js';
 import {

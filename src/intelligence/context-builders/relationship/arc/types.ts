@@ -7,7 +7,7 @@
  * These types define the data structures for tracking a relationship
  * from first meeting through deep partnership.
  *
- * @module intelligence/context-builders/relationship-arc/types
+ * @module intelligence/context-builders/relationship/arc/types
  */
 
 // ============================================================================

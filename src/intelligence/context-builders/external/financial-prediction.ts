@@ -20,14 +20,14 @@ import {
   predictCashFlow,
 } from '../../services/finance/prediction.js';
 import { hasLinkedAccounts } from '../../tools/domains/finance/plaid.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { DISTRESS } from '../distress-levels.js';
 import {
   registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:financial-prediction' });
 

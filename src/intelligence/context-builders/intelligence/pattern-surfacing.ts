@@ -25,13 +25,13 @@
  */
 
 import { getBetterThanHumanTelemetry } from '../../services/analytics/better-than-human-telemetry.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = getLogger();
 

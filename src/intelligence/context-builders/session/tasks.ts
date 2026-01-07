@@ -10,13 +10,13 @@
  *
  * Extracted from jack-bogle.ts lines 538-558
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { getTaskManager } from '../../tasks/task-manager.js';
 import type { ConversationAnalysis as TaskManagerAnalysis } from '../../services/index.js';
 

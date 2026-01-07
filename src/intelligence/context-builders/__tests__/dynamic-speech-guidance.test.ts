@@ -20,7 +20,7 @@ import {
   getAntiRepetitionGuidance,
   recordUsedPhrase,
   wasRecentlyUsed,
-} from '../dynamic-speech-guidance.js';
+} from '../humanization/dynamic-speech-guidance.js';
 
 describe('dynamic-speech-guidance context builder', () => {
   const createMockInput = (overrides: Partial<ContextBuilderInput> = {}): ContextBuilderInput => ({

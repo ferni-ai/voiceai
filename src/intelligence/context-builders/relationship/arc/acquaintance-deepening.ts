@@ -17,7 +17,7 @@
  * 3. Build on exactly where you left off
  * 4. Never have an "off day" of forgetfulness
  *
- * @module intelligence/context-builders/relationship-arc/acquaintance-deepening
+ * @module intelligence/context-builders/relationship/arc/acquaintance-deepening
  */
 
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';

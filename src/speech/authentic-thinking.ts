@@ -151,7 +151,7 @@ export function analyzeQuestionComplexity(userText: string): number {
 // ============================================================================
 //
 // These static thinking phrases have been replaced by LLM behavioral guidance.
-// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+// See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
 //
 // The new approach:
 // - Silence is fine when thinking (don't announce "let me think")

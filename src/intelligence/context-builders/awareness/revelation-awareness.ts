@@ -21,10 +21,10 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
-import type { RelationshipStage } from './relationship-arc/types.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import type { RelationshipStage } from '../relationship/arc/types.js';
 
 const log = createLogger({ module: 'context:revelation-awareness' });
 

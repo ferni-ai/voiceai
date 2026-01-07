@@ -2,7 +2,7 @@
  * Tool Fillers - SSML Pauses During Tool Execution
  *
  * DEPRECATED: Static verbal phrases have been replaced by LLM behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * This module now only provides SSML pause tags (no spoken content).
  * The LLM will generate natural speech based on context, not static phrases.

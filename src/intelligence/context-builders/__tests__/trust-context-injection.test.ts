@@ -91,7 +91,7 @@ describe('Trust Context Injection', () => {
   describe('Builder Registration', () => {
     it('should be registered as a context builder', async () => {
       // Import trust-context first to trigger registration
-      await import('../trust-context.js');
+      await import('../relationship/trust-context.js');
 
       // Then check registration
       const { getRegisteredBuilders } = await import('../index.js');
@@ -105,7 +105,7 @@ describe('Trust Context Injection', () => {
 
   describe('Context Building', () => {
     it('should return empty array when no userId', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const input = createMockInput({
         services: { userId: undefined } as ContextBuilderInput['services'],
       });
@@ -116,7 +116,7 @@ describe('Trust Context Injection', () => {
     });
 
     it('should return injections when userId is present', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const input = createMockInput();
 
       const result = await buildTrustAwareContext(input);
@@ -126,7 +126,7 @@ describe('Trust Context Injection', () => {
     });
 
     it('should handle all persona types without throwing', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const personas = [
         'ferni',
         'maya-santos',
@@ -150,7 +150,7 @@ describe('Trust Context Injection', () => {
 
   describe('Trust Signal Processing', () => {
     it('should call buildTrustContext with correct parameters', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const { buildTrustContext } = await import('../../../services/trust-systems/index.js');
 
       const input = createMockInput({ userText: "I'm feeling anxious today" });
@@ -168,7 +168,7 @@ describe('Trust Context Injection', () => {
     });
 
     it('should emit trust signals to frontend', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const { processContextForSignals } = await import('../../../services/trust-systems/index.js');
 
       const input = createMockInput();
@@ -180,7 +180,7 @@ describe('Trust Context Injection', () => {
 
   describe('Integration with Trust Systems', () => {
     it('should query relationship health when userId present', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const { getHealthScore } = await import('../../../services/trust-systems/index.js');
 
       const input = createMockInput();
@@ -190,7 +190,7 @@ describe('Trust Context Injection', () => {
     });
 
     it('should query upcoming events for life events context', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const { getUpcomingEvents } = await import('../../../services/trust-systems/index.js');
 
       const input = createMockInput();
@@ -200,7 +200,7 @@ describe('Trust Context Injection', () => {
     });
 
     it('should check for events needing reminders', async () => {
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const { getEventsNeedingReminders } =
         await import('../../../services/trust-systems/index.js');
 
@@ -216,7 +216,7 @@ describe('Trust Context Injection', () => {
       const { loadTrustPhrases } = await import('../../../services/persona-content-loader.js');
       vi.mocked(loadTrustPhrases).mockRejectedValueOnce(new Error('File not found'));
 
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const input = createMockInput();
 
       // Should not throw
@@ -230,7 +230,7 @@ describe('Trust Context Injection', () => {
         throw new Error('Signal emission failed');
       });
 
-      const { buildTrustAwareContext } = await import('../trust-context.js');
+      const { buildTrustAwareContext } = await import('../relationship/trust-context.js');
       const input = createMockInput();
 
       // Should not throw

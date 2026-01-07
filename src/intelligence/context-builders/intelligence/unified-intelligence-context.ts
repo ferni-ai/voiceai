@@ -13,7 +13,7 @@
  * @module intelligence/context-builders/unified-intelligence-context
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   getIntelligenceForTurn,
   getRelevantCorrelations,
@@ -24,7 +24,7 @@ import {
   type ProactiveIntelligenceInsight,
   type SurfaceMoment,
 } from '../index.js';
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';
 
 const log = createLogger({ module: 'unified-intelligence-context' });
 

@@ -29,7 +29,7 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 // Semantic tool presence - "Better than Human" tool feedback
 import { startToolPresence, stopToolPresence } from '../../tools/execution/index.js';
 // Tool timing context for natural LLM framing
-import { recordToolTiming } from '../../intelligence/context-builders/tool-timing-context.js';
+import { recordToolTiming } from '../../intelligence/context-builders/awareness/tool-timing-context.js';
 
 // ============================================================================
 // TYPES

@@ -22,7 +22,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 // Import memory systems
 import { getBestInsight, type TonalInsight } from '../../services/trust-systems/tonal-memory.js';

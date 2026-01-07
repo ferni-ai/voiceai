@@ -782,7 +782,7 @@ async function applyHumanListeningAdjustments(
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const { applyHumanListeningAdjustments: applySsml } =
       await import('../../speech/emotion-matching.js');
 
@@ -942,7 +942,7 @@ async function applyDynamicSpeedControl(
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const { applyDynamicSpeed, getPersonaSpeedProfile, calculatePersonaAdjustedSpeed } =
       await import('../integrations/dynamic-speed-integration.js');
     const { getEmotionalArcTracker } = await import('../../conversation/index.js');

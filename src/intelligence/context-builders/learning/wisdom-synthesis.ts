@@ -10,7 +10,7 @@
  * @module WisdomSynthesisContextBuilder
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -18,7 +18,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   getWisdomContextInjection,
   getPopulationInsights,

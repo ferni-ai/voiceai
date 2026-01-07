@@ -13,7 +13,7 @@
  * @module intelligence/context-builders/biometrics
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   hasBiometricsConnected,
   getCurrentBiometrics,
@@ -25,7 +25,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:biometrics' });
 

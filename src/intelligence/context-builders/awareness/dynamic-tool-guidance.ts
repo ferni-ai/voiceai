@@ -11,8 +11,8 @@
  * @module intelligence/context-builders/dynamic-tool-guidance
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { BuilderCategory } from './core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { BuilderCategory } from '../core/categories.js';
 import {
   createInjection,
   registerContextBuilder,
@@ -20,7 +20,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
   type ContextPriority,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:dynamic-tool-guidance' });
 

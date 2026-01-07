@@ -223,7 +223,7 @@ async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
 async function fetchRelationshipProgress(userId: string): Promise<RelationshipProgress> {
   try {
     const { loadRelationshipArcData, getCurrentStage } =
-      await import('../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../intelligence/context-builders/relationship/arc/storage.js');
 
     const stage = await getCurrentStage(userId);
     const arcData = await loadRelationshipArcData(userId);

@@ -41,7 +41,7 @@ import {
   type BuilderCategory,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'BetterThanHumanDirect' });
 

@@ -20,11 +20,11 @@
  * This builder synthesizes all these signals into coherent guidance
  * for truly superhuman emotional intelligence.
  *
- * @module intelligence/context-builders/deep-understanding
+ * @module intelligence/context-builders/intelligence/deep-understanding
  */
 
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 // Import all intelligence systems
 import {
@@ -77,7 +77,7 @@ import {
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'DeepUnderstanding' });
 

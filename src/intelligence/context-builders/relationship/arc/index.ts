@@ -23,7 +23,7 @@
  * The builders auto-activate based on relationship stage. Just import to register:
  *
  * ```typescript
- * import 'src/intelligence/context-builders/relationship-arc/index.js';
+ * import 'src/intelligence/context-builders/relationship/arc/index.js';
  * ```
  *
  * ## Storage

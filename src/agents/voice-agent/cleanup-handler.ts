@@ -89,7 +89,7 @@ import { clearSessionHistory } from '../shared/action-history.js';
 import { finops } from '../../services/observability/finops.js';
 
 // Relationship Arc - Better Than Human relationship progression
-import { incrementSessionStats } from '../../intelligence/context-builders/relationship-arc/storage.js';
+import { incrementSessionStats } from '../../intelligence/context-builders/relationship/arc/storage.js';
 // Resilience metrics
 import { resilienceMetrics } from '../../services/observability/resilience-metrics.js';
 
@@ -929,7 +929,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Tool timing context cleanup (for natural LLM response framing)
     (async () => {
       const { clearToolTimings } =
-        await import('../../intelligence/context-builders/tool-timing-context.js');
+        await import('../../intelligence/context-builders/awareness/tool-timing-context.js');
       clearToolTimings(sessionId);
     })(),
 
@@ -1371,7 +1371,7 @@ async function cleanupHumanListening(sessionId: string): Promise<void> {
     // Only clear the context builder result - the speech pipeline is already
     // cleaned up by cleanupSpeechSession() in STEP 7
     const { clearHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     clearHumanListeningResult(sessionId);
     diag.session('🎧 Human listening context cleared');
   } catch (listeningCleanupErr) {

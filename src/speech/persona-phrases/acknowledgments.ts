@@ -4,7 +4,7 @@
  * Acknowledgment prefixes for all personas.
  *
  * @deprecated REMOVED - LLM generates natural acknowledgments from behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * @module persona-phrases/acknowledgments
  */
@@ -18,7 +18,7 @@ import { addPersonaAliases } from './helpers.js';
 // ============================================================================
 //
 // DEPRECATED: Static phrase pools replaced by LLM behavioral guidance.
-// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+// See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
 //
 // The new architecture:
 // - Don't inject static acknowledgment prefixes
@@ -203,7 +203,7 @@ addPersonaAliases(ACKNOWLEDGMENT_PREFIXES);
  * Get acknowledgment prefix for a persona
  *
  * @deprecated REMOVED - LLM generates natural acknowledgments from behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * Returns only a brief pause. The LLM will generate contextually appropriate
  * acknowledgments naturally based on what the user said and the persona's identity.

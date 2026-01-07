@@ -23,9 +23,9 @@ import {
   createHighInjection,
   createStandardInjection,
   registerContextBuilder,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { loadPersonaContent } from '../../services/persona-content-loader.js';
 
 // Tonal memory - remember HOW things were said

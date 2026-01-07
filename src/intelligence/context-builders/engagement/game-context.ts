@@ -8,13 +8,13 @@
  */
 
 import { getSessionGameEngine } from '../../services/games/game-engine.js';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = getLogger();
 

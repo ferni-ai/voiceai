@@ -13,7 +13,7 @@
  * @module intelligence/context-builders/sec-intelligence
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   generateSECInsight,
   getInsiderTradingSummary,

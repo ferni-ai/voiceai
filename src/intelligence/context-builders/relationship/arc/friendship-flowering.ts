@@ -19,7 +19,7 @@
  * 4. See patterns across all their conversations
  * 5. Be consistently present without judgment
  *
- * @module intelligence/context-builders/relationship-arc/friendship-flowering
+ * @module intelligence/context-builders/relationship/arc/friendship-flowering
  */
 
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';

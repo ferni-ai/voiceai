@@ -20,9 +20,9 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
   createHintInjection,
-} from './index.js';
+} from '../index.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NaturalUncertainty' });
 

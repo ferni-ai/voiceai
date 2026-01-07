@@ -16,8 +16,8 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
 
 const log = getLogger();
 

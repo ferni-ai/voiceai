@@ -26,14 +26,14 @@ import {
   incrementSessionStats,
   getCurrentStage,
   markFirstWordsCallbackMade,
-} from '../intelligence/context-builders/relationship-arc/storage.js';
+} from '../intelligence/context-builders/relationship/arc/storage.js';
 import {
   createDefaultRelationshipArcData,
   determineStage,
   type RelationshipStage,
   type FirstMeetingData,
   type KeyMoment,
-} from '../intelligence/context-builders/relationship-arc/types.js';
+} from '../intelligence/context-builders/relationship/arc/types.js';
 
 const log = createLogger({ module: 'RelationshipArc' });
 

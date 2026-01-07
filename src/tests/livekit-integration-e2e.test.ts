@@ -184,7 +184,7 @@ describe('Intelligence Context Builders', () => {
 
   describe('Trust Context', () => {
     it('should have trust context builder', async () => {
-      const module = await import('../intelligence/context-builders/trust-context.js');
+      const module = await import('../intelligence/context-builders/relationship/trust-context.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);

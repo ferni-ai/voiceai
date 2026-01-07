@@ -377,7 +377,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // CRITICAL: Store with BOTH roomName and sessionId since context builder uses sessionId
       try {
         const { setOutboundCallContext } =
-          await import('../intelligence/context-builders/outbound-call-context.js');
+          await import('../intelligence/context-builders/external/outbound-call-context.js');
         const roomNameForContext = ctx.job.room?.name || `call-${metadata.callId}`;
         const outboundContext = {
           callId: metadata.callId as string,
@@ -985,7 +985,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     if (userId) {
       try {
         const { buildThreadContext } =
-          await import('../intelligence/context-builders/thread-context.js');
+          await import('../intelligence/context-builders/session/thread-context.js');
         const threadContext = await buildThreadContext(
           userId,
           personaId as import('../personas/types.js').PersonaId,

@@ -184,7 +184,7 @@ describe('Natural Fillers', () => {
 
     it('should return text unchanged (filler injection deprecated)', () => {
       // DEPRECATED: Static filler injection has been replaced by LLM behavioral guidance.
-      // See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+      // See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
       //
       // The LLM now generates natural speech patterns based on context,
       // rather than having fillers randomly injected.

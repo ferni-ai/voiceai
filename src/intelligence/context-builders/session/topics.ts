@@ -22,7 +22,7 @@ import {
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 // Extended services interface for topics
 interface TopicServices {

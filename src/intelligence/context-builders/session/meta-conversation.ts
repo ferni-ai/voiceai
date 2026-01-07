@@ -10,14 +10,14 @@
  * the agent feel more present and observant.
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import type { UserProfile, EmotionalPattern } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'MetaConversation' });

@@ -11,7 +11,7 @@
  * - Compliance requirements (AI disclosure, recording consent)
  * - Must-confirm and must-not-do guardrails
  *
- * @module intelligence/context-builders/outbound-call-context
+ * @module intelligence/context-builders/external/outbound-call-context
  */
 
 import {
@@ -20,9 +20,9 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:outbound-call' });
 

@@ -18,9 +18,9 @@ import {
   createStandardInjection,
   createHighInjection,
   registerContextBuilder,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   processCommitments,
   generateFollowUpPhrase,

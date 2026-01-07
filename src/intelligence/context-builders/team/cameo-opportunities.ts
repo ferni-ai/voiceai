@@ -16,13 +16,13 @@
  */
 
 import { TEAM_MEMBERS, type TeamMemberId } from '../../services/team-unlocks.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const logger = createLogger({ module: 'CameoOpportunities' });
 

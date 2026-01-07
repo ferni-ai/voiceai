@@ -4,10 +4,10 @@
  * Injects conversation thread context into the LLM system prompt.
  * This ensures continuity across channels and agent handoffs.
  *
- * @module intelligence/context-builders/thread-context
+ * @module intelligence/context-builders/session/thread-context
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { PersonaId } from '../../personas/types.js';
 import {
   getActiveThread,

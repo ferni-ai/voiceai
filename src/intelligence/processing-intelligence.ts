@@ -89,7 +89,7 @@ const RELATIONSHIP_MULTIPLIERS: Record<string, number> = {
 // ============================================================================
 //
 // These static phrase pools have been replaced by LLM behavioral guidance.
-// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+// See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
 //
 // The new approach:
 // - Don't give the LLM phrases to repeat
@@ -393,7 +393,7 @@ export function getContextLoadingProcessing(weight: ProcessingWeight = 'light'):
 // ============================================================================
 //
 // These persona-specific phrases have been replaced by LLM behavioral guidance.
-// See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+// See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
 //
 // The LLM now generates persona-appropriate speech naturally based on:
 // 1. Persona identity (system prompt)

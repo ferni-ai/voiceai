@@ -31,7 +31,7 @@ import {
   recordMusicFeedback,
 } from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
-import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
+import { setHumanListeningResult } from '../../intelligence/context-builders/emotional/human-listening.js';
 import {
   extractPreferences,
   hasPreferenceContent,

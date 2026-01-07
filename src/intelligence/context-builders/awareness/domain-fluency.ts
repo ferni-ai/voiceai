@@ -15,7 +15,7 @@
  *
  * > "Better than human" = superhuman capabilities expressed humanly
  *
- * @module intelligence/context-builders/domain-fluency
+ * @module intelligence/context-builders/awareness/domain-fluency
  */
 
 import {
@@ -24,9 +24,9 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 // Import capability learning for optimization
 import {

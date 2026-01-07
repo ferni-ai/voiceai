@@ -24,14 +24,14 @@ import {
   selectMomentForTurn,
   type JourneyMoment,
 } from '../../services/personal-journey/index.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
   createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'PersonalJourneyBuilder' });
 

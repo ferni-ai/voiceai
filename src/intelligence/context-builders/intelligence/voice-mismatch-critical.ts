@@ -12,7 +12,7 @@
  * @module intelligence/context-builders/voice-mismatch-critical
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import type { VoiceEmotionResult as AudioProsodyVoiceEmotionResult } from '../../speech/audio-prosody/types.js';
 import { VoiceTextMismatchDetector, type MismatchResult } from '../unified/mismatch-detector.js';
 import {
@@ -22,8 +22,8 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
 
 const log = createLogger({ module: 'context:voice-mismatch-critical' });
 

@@ -22,7 +22,7 @@
  * - Uses unified-result-capture.ts for storage/retrieval
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
 

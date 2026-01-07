@@ -111,7 +111,7 @@ import {
 import type { SuperhumanCapability } from '../../conversation/superhuman/analytics.js';
 
 // Honesty guardrail - prevents Ferni from implying she did something she didn't
-import { getHonestyInjection } from '../../intelligence/context-builders/honesty-guardrail.js';
+import { getHonestyInjection } from '../../intelligence/context-builders/safety/honesty-guardrail.js';
 
 // Smart injection filtering - be selective like a human
 import {
@@ -204,7 +204,7 @@ import { detectAndRecordKeyMoment } from '../integrations/relationship-arc-integ
 import {
   buildReferralPromptInjection,
   buildReferralConversationContext,
-} from '../../intelligence/context-builders/referral-prompt.js';
+} from '../../intelligence/context-builders/engagement/referral-prompt.js';
 
 // Humanizing context formatting (used in buildContextInjections)
 import {
@@ -470,7 +470,7 @@ async function buildContextInjections(
   if (services.userId && (userData.turnCount || 0) === 0) {
     try {
       const { buildAllPendingResultsContext } =
-        await import('../../intelligence/context-builders/pending-call-results.js');
+        await import('../../intelligence/context-builders/external/pending-call-results.js');
       const pendingResultsContext = await buildAllPendingResultsContext(services.userId);
       if (pendingResultsContext) {
         injections.push({

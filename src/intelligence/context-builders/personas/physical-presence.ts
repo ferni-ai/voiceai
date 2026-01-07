@@ -25,7 +25,7 @@ import {
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   checkDynamicTriggers,
   calculateProbabilityBoost,

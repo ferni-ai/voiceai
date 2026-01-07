@@ -7,13 +7,13 @@
  * - Adjusts pacing suggestions
  * - Enhances the storytelling experience
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   getStoryMusicOffer,
   getStorytellingIntro,

@@ -30,7 +30,7 @@ import {
   firstMeetingMagicBuilder,
   checkIsFirstMeeting,
   detectUserEnergy as getDetectedEnergy,
-} from '../../intelligence/context-builders/relationship-arc/first-meeting-magic.js';
+} from '../../intelligence/context-builders/relationship/arc/first-meeting-magic.js';
 import type { ContextBuilderInput } from '../../intelligence/context-builders/index.js';
 
 // ============================================================================

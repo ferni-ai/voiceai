@@ -18,10 +18,10 @@
  * @module DynamicSpeechGuidance
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './core/types.js';
-import { registerContextBuilder, createStandardInjection } from './index.js';
-import { BuilderCategory } from './core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
+import { registerContextBuilder, createStandardInjection } from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:dynamic-speech-guidance' });
 

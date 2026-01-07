@@ -25,8 +25,8 @@ import {
   createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import { detectHandoffSemanticly } from '../../services/coaching/semantic-handoff.js';
 import { detectCalendarIntent as detectCalendarSemanticIntent } from '../../services/coaching/semantic-calendar.js';
 import { detectTrustSignals, type TrustSignal } from '../../services/coaching/semantic-trust.js';

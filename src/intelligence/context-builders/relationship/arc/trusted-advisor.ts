@@ -19,7 +19,7 @@
  * 4. Never get tired, distracted, or have competing interests
  * 5. Be the consistent thread through their life changes
  *
- * @module intelligence/context-builders/relationship-arc/trusted-advisor
+ * @module intelligence/context-builders/relationship/arc/trusted-advisor
  */
 
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';

@@ -11,7 +11,7 @@
  * This is the "brain" that decides what engagement opportunities to surface.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
 import { getMemoryEngagementEngine, buildMemoryEngagementContext } from '../memory-engagement.js';
@@ -22,7 +22,7 @@ import {
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 // ============================================================================
 // TYPES

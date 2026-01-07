@@ -10,13 +10,13 @@
  *
  * Extracted from jack-bogle.ts lines 430-453
  */
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 // ============================================================================
 // MUSIC PATTERNS

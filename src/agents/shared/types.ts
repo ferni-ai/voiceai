@@ -342,7 +342,7 @@ export interface UserData {
   // ============================================================
 
   /** macOS desktop context from menubar app (sent via data channel) */
-  macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
+  macOS?: import('../../intelligence/context-builders/external/macos-context.js').MacOSContextPayload;
 
   // ============================================================
   // ANTICIPATORY TRIGGERS (Phase 5)

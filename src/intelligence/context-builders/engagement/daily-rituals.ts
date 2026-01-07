@@ -17,7 +17,7 @@ import {
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
 } from '../../services/daily-rituals.js';
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
   createStandardInjection,
@@ -25,7 +25,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'DailyRitualsContextBuilder' });
 

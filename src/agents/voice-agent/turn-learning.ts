@@ -18,8 +18,8 @@ import {
   recordResponseForLearning,
   type ConversationSignalContext,
 } from '../../intelligence/index.js';
-import { learnTemporalPattern } from '../../intelligence/context-builders/temporal-intelligence.js';
-import { recordSharedMoment } from '../../intelligence/context-builders/deep-relationship.js';
+import { learnTemporalPattern } from '../../intelligence/context-builders/intelligence/temporal-intelligence.js';
+import { recordSharedMoment } from '../../intelligence/context-builders/relationship/deep-relationship.js';
 import { recordTrustSystemsData } from './index.js';
 
 // Capability learning - track engagement with surfaced capabilities

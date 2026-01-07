@@ -1,24 +1,55 @@
 /**
- * TRUE Predictive Intelligence Module
+ * TRUE Predictive Intelligence Module - Better Than Human v4
+ *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
  *
  * This module provides REAL machine learning-based prediction, not just rules.
+ * With v4, we add 8 SUPERHUMAN capabilities that go beyond what any human
+ * friend or therapist can provide.
  *
- * Components:
+ * CORE COMPONENTS:
  * - MARKOV: Learn behavioral sequences (what follows what)
  * - TIME SERIES: Forecast continuous values (mood, energy over time)
  * - MULTI-SIGNAL: Fuse weak signals into strong predictions
  * - REINFORCEMENT: Learn from outcomes to improve
+ * - LLM DEEP ANALYSIS: Gemini-powered batch insights
+ *
+ * BETTER THAN HUMAN v4 - 8 SUPERHUMAN CAPABILITIES:
+ * 1. AVOIDANCE PREDICTION: Track what they DON'T say and when it'll surface
+ * 2. BREAKTHROUGH PROXIMITY: Detect when insights are forming
+ * 3. PRE-TRAJECTORY DETECTION: Predict emotional shifts before symptoms
+ * 4. CONVERSATION PREPARATION: Know what they'll need before they do
+ * 5. COGNITIVE FINGERPRINT: Learn their unique cognitive signature
+ * 6. RIPPLE EFFECT PREDICTION: See how one change cascades through life
+ * 7. LIFE PHASE PREDICTION: Know their personal season, not just calendar
+ * 8. INTERVENTION TIMING: Optimal moment for each type of support
  *
  * @module intelligence/predictive
  */
 
-// Re-export all components
+// ============================================================================
+// CORE COMPONENTS
+// ============================================================================
+
 export * from './markov-sequence-predictor.js';
 export * from './time-series-forecaster.js';
 export * from './multi-signal-fusion.js';
 export * from './reinforcement-learner.js';
 export * from './llm-deep-analysis.js';
 export * from './persistence.js';
+
+// ============================================================================
+// BETTER THAN HUMAN v4 - SUPERHUMAN CAPABILITIES
+// ============================================================================
+
+export * from './avoidance-prediction.js';
+export * from './breakthrough-proximity.js';
+export * from './pre-trajectory-detection.js';
+export * from './conversation-preparation.js';
+export * from './cognitive-fingerprint.js';
+export * from './ripple-effect-prediction.js';
+export * from './life-phase-prediction.js';
+export * from './intervention-timing.js';
 
 // Import for unified interface
 import {
@@ -87,6 +118,66 @@ import {
 import { getMarkovDataForPersistence } from './markov-sequence-predictor.js';
 import { getTimeSeriesDataForPersistence } from './time-series-forecaster.js';
 import { getReinforcementDataForPersistence } from './reinforcement-learner.js';
+
+// ============================================================================
+// BETTER THAN HUMAN v4 - SUPERHUMAN CAPABILITIES IMPORTS
+// ============================================================================
+
+import {
+  avoidancePrediction,
+  buildAvoidanceContext,
+  type AvoidanceSurfacingPrediction,
+  type AvoidableTopic,
+} from './avoidance-prediction.js';
+
+import {
+  breakthroughProximity,
+  buildBreakthroughContext,
+  type BreakthroughProximity,
+  type BreakthroughType,
+} from './breakthrough-proximity.js';
+
+import {
+  preTrajectoryDetection,
+  buildPreTrajectoryContext,
+  type TrajectoryPrediction,
+  type EmotionalTrajectory,
+} from './pre-trajectory-detection.js';
+
+import {
+  conversationPreparation,
+  buildConversationPrepContext,
+  type ConversationPreparation,
+  type ConversationNeed,
+} from './conversation-preparation.js';
+
+import {
+  cognitiveFingerprint,
+  buildFingerprintContext,
+  type CognitiveFingerprint,
+  type DecisionStyle,
+} from './cognitive-fingerprint.js';
+
+import {
+  rippleEffectPrediction,
+  buildRippleContext,
+  type RipplePrediction,
+  type LifeDomain,
+} from './ripple-effect-prediction.js';
+
+import {
+  lifePhasePrediction,
+  buildPhaseContext,
+  type PhasePrediction,
+  type LifePhase,
+} from './life-phase-prediction.js';
+
+import {
+  interventionTiming,
+  buildInterventionTimingContext,
+  type TimingRecommendation,
+  type InterventionType,
+} from './intervention-timing.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -480,6 +571,7 @@ export async function flushUserMLState(userId: string): Promise<void> {
  * Combines:
  * - Statistical predictions (fast, real-time)
  * - Deep analysis insights (pre-computed by Gemini)
+ * - BETTER THAN HUMAN v4 - 8 Superhuman capabilities
  *
  * This is what gets injected into the LLM context during turn processing.
  */
@@ -559,11 +651,118 @@ export async function getPredictiveIntelligenceContext(
         }
       }
     }
+
+    // ========================================================================
+    // BETTER THAN HUMAN v4 - SUPERHUMAN CAPABILITIES
+    // ========================================================================
+
+    // 4. Avoidance Intelligence - What they're NOT saying
+    const avoidanceContext = buildAvoidanceContext(userId);
+    if (avoidanceContext) {
+      sections.push('');
+      sections.push(avoidanceContext);
+    }
+
+    // 5. Breakthrough Intelligence - Insights forming
+    const breakthroughContext = buildBreakthroughContext(userId);
+    if (breakthroughContext) {
+      sections.push('');
+      sections.push(breakthroughContext);
+    }
+
+    // 6. Pre-Trajectory Intelligence - Weather before the storm
+    const trajectoryContext = buildPreTrajectoryContext(userId);
+    if (trajectoryContext) {
+      sections.push('');
+      sections.push(trajectoryContext);
+    }
+
+    // 7. Life Phase Intelligence - Their personal season
+    const phaseContext = buildPhaseContext(userId);
+    if (phaseContext) {
+      sections.push('');
+      sections.push(phaseContext);
+    }
+
+    // 8. Cognitive Fingerprint - Their unique pattern
+    const fingerprintContext = buildFingerprintContext(userId);
+    if (fingerprintContext) {
+      sections.push('');
+      sections.push(fingerprintContext);
+    }
+
+    // 9. Ripple Intelligence - Cross-domain cascades
+    const rippleContext = buildRippleContext(userId);
+    if (rippleContext) {
+      sections.push('');
+      sections.push(rippleContext);
+    }
+
+    // 10. Intervention Timing - Right moment for each type
+    const timingContext = buildInterventionTimingContext(userId, context);
+    if (timingContext) {
+      sections.push('');
+      sections.push(timingContext);
+    }
+
+    // 11. Conversation Preparation - What they'll need
+    const prepContext = buildConversationPrepContext(userId);
+    if (prepContext) {
+      sections.push('');
+      sections.push(prepContext);
+    }
+
   } catch (error) {
     log.debug({ error, userId }, 'Failed to build predictive intelligence context');
   }
 
   return sections.length > 0 ? sections.join('\n') : '';
+}
+
+// ============================================================================
+// BETTER THAN HUMAN v4 - UNIFIED SUPERHUMAN CONTEXT
+// ============================================================================
+
+/**
+ * Get just the superhuman capabilities context (for targeted injection)
+ *
+ * Use this when you want only the v4 Better Than Human capabilities
+ * without the core predictive intelligence.
+ */
+export function getSuperhumanPredictiveContext(
+  userId: string,
+  context: {
+    currentEmotion?: string;
+    currentTopic?: string;
+  } = {}
+): string {
+  const sections: string[] = [];
+
+  try {
+    // Collect all superhuman contexts
+    const contexts = [
+      buildAvoidanceContext(userId),
+      buildBreakthroughContext(userId),
+      buildPreTrajectoryContext(userId),
+      buildPhaseContext(userId),
+      buildFingerprintContext(userId),
+      buildRippleContext(userId),
+      buildInterventionTimingContext(userId, context),
+      buildConversationPrepContext(userId),
+    ].filter(Boolean);
+
+    if (contexts.length > 0) {
+      sections.push('═══════════════════════════════════════════════════════════════');
+      sections.push('SUPERHUMAN INTELLIGENCE - What No Human Friend Could Know');
+      sections.push('═══════════════════════════════════════════════════════════════');
+      sections.push('');
+      sections.push(...contexts);
+    }
+  } catch (error) {
+    log.debug({ error, userId }, 'Failed to build superhuman predictive context');
+  }
+
+  return sections.join('\n');
 }
 
 // ============================================================================
@@ -600,6 +799,33 @@ export {
   getDeepAnalysisContextForTurn,
   runBatchDeepAnalysis,
   recordDeepAnalysisFeedback,
+  // ============================================================================
+  // BETTER THAN HUMAN v4 - SUPERHUMAN CAPABILITIES
+  // ============================================================================
+  // Avoidance Prediction
+  avoidancePrediction,
+  buildAvoidanceContext,
+  // Breakthrough Proximity
+  breakthroughProximity,
+  buildBreakthroughContext,
+  // Pre-Trajectory Detection
+  preTrajectoryDetection,
+  buildPreTrajectoryContext,
+  // Conversation Preparation
+  conversationPreparation,
+  buildConversationPrepContext,
+  // Cognitive Fingerprint
+  cognitiveFingerprint,
+  buildFingerprintContext,
+  // Ripple Effect Prediction
+  rippleEffectPrediction,
+  buildRippleContext,
+  // Life Phase Prediction
+  lifePhasePrediction,
+  buildPhaseContext,
+  // Intervention Timing
+  interventionTiming,
+  buildInterventionTimingContext,
 };
 
 // Types
@@ -619,4 +845,31 @@ export type {
   SemanticInsight,
   PredictiveHypothesis,
   OutreachSuggestion,
+  // ============================================================================
+  // BETTER THAN HUMAN v4 - TYPES
+  // ============================================================================
+  // Avoidance Prediction
+  AvoidanceSurfacingPrediction,
+  AvoidableTopic,
+  // Breakthrough Proximity
+  BreakthroughProximity,
+  BreakthroughType,
+  // Pre-Trajectory Detection
+  TrajectoryPrediction,
+  EmotionalTrajectory,
+  // Conversation Preparation
+  ConversationPreparation,
+  ConversationNeed,
+  // Cognitive Fingerprint
+  CognitiveFingerprint,
+  DecisionStyle,
+  // Ripple Effect Prediction
+  RipplePrediction,
+  LifeDomain,
+  // Life Phase Prediction
+  PhasePrediction,
+  LifePhase,
+  // Intervention Timing
+  TimingRecommendation,
+  InterventionType,
 };

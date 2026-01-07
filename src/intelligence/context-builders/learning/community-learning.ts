@@ -10,14 +10,14 @@
  * This makes every conversation smarter because of collective learning.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { getCommunityInsights } from '../community-insights.js';
 import { getAgentEvolution } from '../agent-evolution.js';
 

@@ -25,15 +25,15 @@ import {
   detectUserExpertise,
   getCognitiveEngine,
   getCognitiveProfile,
-} from '../../personas/cognitive-index.js';
-import type { CognitiveContext, ReasoningStyle } from '../../personas/cognitive-types.js';
+} from '../../../personas/cognitive-index.js';
+import type { CognitiveContext, ReasoningStyle } from '../../../personas/cognitive-types.js';
 import {
   createHintInjection,
   createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 // Advanced cognitive features
 import {
@@ -46,11 +46,11 @@ import {
   getKnowledgeStateTracker,
   getReasoningChainGuidance,
   type UserCognitiveStyle,
-} from '../../personas/cognitive-advanced.js';
+} from '../../../personas/cognitive-advanced.js';
 
-import { generateCognitiveQuestion } from '../../conversation/cognitive-questions.js';
-import { generateTeamCommentary } from '../../personas/collaborative-cognition.js';
-import { getUnlockedTeamMemberIds } from './superhuman/team-availability.js';
+import { generateCognitiveQuestion } from '../../../conversation/cognitive-questions.js';
+import { generateTeamCommentary } from '../../../personas/collaborative-cognition.js';
+import { getUnlockedTeamMemberIds } from '../team/team-availability.js';
 
 // Broadcast service for real-time dashboard updates
 import {
@@ -58,17 +58,17 @@ import {
   broadcastCognitiveMode,
   broadcastConfidence,
   broadcastUserStyle,
-} from '../../services/cognitive-broadcast.js';
+} from '../../../services/cognitive-broadcast.js';
 
 // Cognitive metrics for performance tracking
 import {
   cognitiveMetrics,
   maybeBroadcastMetrics,
   recordTurnMetrics,
-} from '../../utils/cognitive-metrics.js';
+} from '../../../../utils/cognitive-metrics.js';
 
 // Centralized distress levels
-import { DISTRESS } from '../distress-levels.js';
+import { DISTRESS } from '../../distress-levels.js';
 
 // Centralized session state
 import {
@@ -78,7 +78,7 @@ import {
   getCognitiveState,
   setActiveReasoningChain,
   updateUserCognitiveStyle,
-} from '../session-state.js';
+} from '../../session-state.js';
 
 /**
  * Build cognitive intelligence context

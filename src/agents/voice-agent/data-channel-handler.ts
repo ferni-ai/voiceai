@@ -15,7 +15,7 @@
 
 import { log as livekitLog, type JobContext, type voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
-import type { MacOSContextPayload } from '../../intelligence/context-builders/macos-context.js';
+import type { MacOSContextPayload } from '../../intelligence/context-builders/external/macos-context.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
@@ -710,7 +710,7 @@ async function handleMacOSContext(
   try {
     // Import and use the macOS context builder
     const { buildMacOSContext } =
-      await import('../../intelligence/context-builders/macos-context.js');
+      await import('../../intelligence/context-builders/external/macos-context.js');
 
     // The message is already parsed, use payload directly as MacOSContextPayload
     const macOSContext = payload as unknown as MacOSContextPayload;

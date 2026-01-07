@@ -11,13 +11,13 @@
  * - Tracks offer acceptance/rejection for future improvement
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   getEmotionMusicSuggestion,
   getEmotionMusicOffer,

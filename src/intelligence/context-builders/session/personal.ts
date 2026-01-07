@@ -11,13 +11,13 @@
  *
  * Extracted from jack-bogle.ts lines 709-720, 1261-1270, 1413-1439
  */
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { extractSmallDetails, getDetailCallback } from '../conversation-quality.js';
 import type { UserProfile, FamilyMember } from '../../types/user-profile.js';
 

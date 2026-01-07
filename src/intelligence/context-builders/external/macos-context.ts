@@ -14,16 +14,16 @@
  * - Screen time monitoring (gentle break suggestions)
  * - Selected text for instant help ("Help me with this")
  *
- * @module intelligence/context-builders/macos-context
+ * @module intelligence/context-builders/external/macos-context
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:macos-context' });
 

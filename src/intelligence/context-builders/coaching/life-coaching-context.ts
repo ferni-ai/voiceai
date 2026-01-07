@@ -21,14 +21,14 @@
  * @module LifeCoachingContextBuilder
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
   createHighInjection,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   loadSecondChancesVoice,
   loadConnectionVoice,

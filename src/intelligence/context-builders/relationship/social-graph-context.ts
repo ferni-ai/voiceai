@@ -13,9 +13,9 @@
  * @module intelligence/context-builders/social-graph-context
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import type { ContextInjection, ContextBuilderInput } from './core/types.js';
-import { registerContextBuilder, createHintInjection, createStandardInjection } from './index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import type { ContextInjection, ContextBuilderInput } from '../core/types.js';
+import { registerContextBuilder, createHintInjection, createStandardInjection } from '../index.js';
 
 const log = createLogger({ module: 'SocialGraphContext' });
 

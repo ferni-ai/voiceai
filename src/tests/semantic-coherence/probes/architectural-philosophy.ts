@@ -133,7 +133,7 @@ export function generateRelationshipProbes(): SemanticProbe[] {
       category: 'architectural-philosophy',
       question: `Memory should prioritize relationship context. Is "deep-relationship.ts" (inside jokes, shared vocabulary) prominent enough? Should relationship memory be more central?`,
       context: {
-        target: 'intelligence/context-builders/deep-relationship.ts',
+        target: 'intelligence/context-builders/relationship/deep-relationship.ts',
         relatedModules: ['memory/associative-memory.ts'],
         philosophyPrinciples: [CORE_PRINCIPLES.RELATIONSHIP_OVER_TRANSACTION],
       },

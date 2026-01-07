@@ -24,8 +24,8 @@ import {
   createHighInjection,
   createStandardInjection,
   registerContextBuilder,
-} from './index.js';
-import { BuilderCategory } from './core/categories.js';
+} from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getSuperhmanHealth, getFirestoreDb } from '../../services/superhuman/firestore-utils.js';
 

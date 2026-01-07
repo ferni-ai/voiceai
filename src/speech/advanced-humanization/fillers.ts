@@ -2,7 +2,7 @@
  * Natural Filler Injection
  *
  * DEPRECATED: Static filler injection replaced by LLM behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * The new architecture:
  * - Don't inject static fillers ("um", "well", "you know")
@@ -138,7 +138,7 @@ function getFillerForContext(
  * Inject natural fillers into text
  *
  * @deprecated DISABLED - LLM generates natural speech patterns from behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * This function now returns text unchanged. The LLM generates contextually
  * appropriate speech rhythms naturally based on:

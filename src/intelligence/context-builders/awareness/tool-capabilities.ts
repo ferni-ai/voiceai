@@ -15,15 +15,15 @@
  * @module intelligence/context-builders/tool-capabilities
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { BuilderCategory } from './core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { BuilderCategory } from '../core/categories.js';
 import {
   createInjection,
   registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:tool-capabilities' });
 

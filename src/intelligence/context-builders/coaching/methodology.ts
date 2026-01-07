@@ -22,15 +22,15 @@
  */
 
 import { loadBundleById } from '../../personas/bundles/loader.js';
-import { createLogger } from '../../utils/safe-logger.js';
-import { BuilderCategory } from './core/categories.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { BuilderCategory } from '../core/categories.js';
 import {
   createHintInjection,
   createStandardInjection,
   registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 
 const log = createLogger({ module: 'context:methodology' });
 

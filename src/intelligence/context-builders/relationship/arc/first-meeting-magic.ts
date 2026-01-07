@@ -29,7 +29,7 @@
  * - Explain features
  * - Use enterprise software patterns
  *
- * @module intelligence/context-builders/relationship-arc/first-meeting-magic
+ * @module intelligence/context-builders/relationship/arc/first-meeting-magic
  */
 
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';

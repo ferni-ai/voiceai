@@ -42,7 +42,7 @@ vi.mock('../../utils/safe-logger.js', () => ({
 describe('relationship-arc/types', () => {
   it('should create default arc data with correct structure', async () => {
     const { createDefaultRelationshipArcData } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     const arcData = createDefaultRelationshipArcData('user123');
 
@@ -57,7 +57,7 @@ describe('relationship-arc/types', () => {
 
   it('should determine stage correctly based on sessions', async () => {
     const { determineStage } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     expect(determineStage(0)).toBe('stranger');
     expect(determineStage(1)).toBe('stranger');
@@ -115,7 +115,7 @@ describe('relationship-arc/first-meeting-magic', () => {
   describe('energy detection', () => {
     it('should detect rushed energy from text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy("I have a quick question, don't have much time")).toBe('rushed');
       expect(detectUserEnergy('just need a quick answer')).toBe('rushed');
@@ -124,7 +124,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect anxious energy from text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy("I don't know if this is okay")).toBe('anxious');
       expect(detectUserEnergy("Sorry, I'm not sure if I should ask")).toBe('anxious');
@@ -133,7 +133,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect excited energy from text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy('This is amazing! I finally found you!')).toBe('excited');
       expect(detectUserEnergy("I can't wait to get started!")).toBe('excited');
@@ -142,7 +142,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect low energy from text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy("I'm so tired and exhausted")).toBe('low');
       expect(detectUserEnergy('Had a rough day, feeling drained')).toBe('low');
@@ -151,7 +151,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect guarded energy from text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy("I'm just trying to see if this works")).toBe('guarded');
       expect(detectUserEnergy("I'll see, not sure if this is for me")).toBe('guarded');
@@ -160,7 +160,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect energy from voice signals', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy('hello', { primary: 'anxious', intensity: 0.8 })).toBe('anxious');
       expect(detectUserEnergy('hello', { primary: 'excited', intensity: 0.9 })).toBe('excited');
@@ -170,7 +170,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should detect energy from speech rate', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy('hello', undefined, 200)).toBe('rushed'); // > 180 WPM
       expect(detectUserEnergy('hello', undefined, 80)).toBe('low'); // < 100 WPM
@@ -179,7 +179,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should default to neutral for ambiguous text', async () => {
       const { detectUserEnergy } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       expect(detectUserEnergy('Hello there')).toBe('neutral');
       expect(detectUserEnergy('Hi, how are you?')).toBe('neutral');
@@ -189,7 +189,7 @@ describe('relationship-arc/first-meeting-magic', () => {
   describe('stage detection', () => {
     it('should identify first meeting for turn 0 non-returning user', async () => {
       const { checkIsFirstMeeting } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       const input = createMockInput({
         userData: { turnCount: 0, isReturningUser: false },
@@ -200,7 +200,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should NOT identify first meeting for returning user', async () => {
       const { checkIsFirstMeeting } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       const input = createMockInput({
         userData: { turnCount: 0, isReturningUser: true },
@@ -211,7 +211,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should NOT identify first meeting for later turns', async () => {
       const { checkIsFirstMeeting } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       const input = createMockInput({
         userData: { turnCount: 5, isReturningUser: false },
@@ -224,7 +224,7 @@ describe('relationship-arc/first-meeting-magic', () => {
   describe('builder', () => {
     it('should generate injections for first turn of first meeting', async () => {
       const { firstMeetingMagicBuilder } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       const input = createMockInput({
         userText: "Hi, I'm nervous to try this",
@@ -239,7 +239,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 
     it('should return empty for returning users', async () => {
       const { firstMeetingMagicBuilder } =
-        await import('../../intelligence/context-builders/relationship-arc/first-meeting-magic.js');
+        await import('../../intelligence/context-builders/relationship/arc/first-meeting-magic.js');
 
       const input = createMockInput({
         userData: { turnCount: 0, isReturningUser: true },
@@ -260,7 +260,7 @@ describe('relationship-arc/first-meeting-magic', () => {
 describe('relationship-arc stage progression', () => {
   it('should correctly determine stage from session count', async () => {
     const { determineStage } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     // Stranger (default)
     expect(determineStage(0)).toBe('stranger');
@@ -281,7 +281,7 @@ describe('relationship-arc stage progression', () => {
 
   it('should respect trust score requirements for higher stages', async () => {
     const { determineStage } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     // The actual implementation requires trust >= minTrustRequired
     // trusted_advisor requires 0.7, friend requires 0.4
@@ -319,7 +319,7 @@ describe('relationship-arc/storage', () => {
 
   it('should return null when Firestore unavailable', async () => {
     const { loadRelationshipArcData } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
 
     // When Firestore is unavailable, returns null (callers should create default)
     const arcData = await loadRelationshipArcData('test-user');
@@ -329,10 +329,10 @@ describe('relationship-arc/storage', () => {
 
   it('should check if first words callback is available', async () => {
     const { canMakeFirstWordsCallback } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
 
     const { createDefaultRelationshipArcData } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     // No first meeting data
     const noFirstMeetingArc = createDefaultRelationshipArcData('user1');
@@ -383,10 +383,10 @@ describe('relationship-arc/storage', () => {
 
   it('should get unreferenced moments', async () => {
     const { getUnreferencedMoments } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
 
     const { createDefaultRelationshipArcData, generateMomentId } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     const arcData = {
       ...createDefaultRelationshipArcData('user1'),
@@ -433,10 +433,10 @@ describe('relationship-arc/storage', () => {
 
   it('should get moments by type', async () => {
     const { getMomentsByType } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
 
     const { createDefaultRelationshipArcData, generateMomentId } =
-      await import('../../intelligence/context-builders/relationship-arc/types.js');
+      await import('../../intelligence/context-builders/relationship/arc/types.js');
 
     const arcData = {
       ...createDefaultRelationshipArcData('user1'),
@@ -485,7 +485,7 @@ describe('relationship-arc/storage', () => {
 
 describe('relationship-arc/index convenience functions', () => {
   it('should export all necessary functions', async () => {
-    const index = await import('../../intelligence/context-builders/relationship-arc/index.js');
+    const index = await import('../../intelligence/context-builders/relationship/arc/index.js');
 
     // Types and constants
     expect(typeof index.STAGE_CONFIGS).toBe('object');
@@ -515,7 +515,7 @@ describe('relationship-arc/index convenience functions', () => {
 
   it('should return stranger stage for new user', async () => {
     const { getRelationshipStage } =
-      await import('../../intelligence/context-builders/relationship-arc/index.js');
+      await import('../../intelligence/context-builders/relationship/arc/index.js');
 
     const stage = await getRelationshipStage('new-user-test');
     expect(stage).toBe('stranger');
@@ -523,7 +523,7 @@ describe('relationship-arc/index convenience functions', () => {
 
   it('should correctly check hasEstablishedRelationship', async () => {
     const { hasEstablishedRelationship } =
-      await import('../../intelligence/context-builders/relationship-arc/index.js');
+      await import('../../intelligence/context-builders/relationship/arc/index.js');
 
     // New user should not have established relationship
     const hasRelationship = await hasEstablishedRelationship('new-user-test');

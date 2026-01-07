@@ -16,8 +16,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectReflectionMoment } from '../../intelligence/cross-session-reflection.js';
-import { recordKeyMoment } from '../../intelligence/context-builders/relationship-arc/storage.js';
-import type { KeyMoment } from '../../intelligence/context-builders/relationship-arc/types.js';
+import { recordKeyMoment } from '../../intelligence/context-builders/relationship/arc/storage.js';
+import type { KeyMoment } from '../../intelligence/context-builders/relationship/arc/types.js';
 
 const log = createLogger({ module: 'relationship-arc-integration' });
 
@@ -121,7 +121,7 @@ export async function detectAndRecordKeyMoment(input: KeyMomentInput): Promise<v
 export async function markFirstWordsCallbackUsed(userId: string): Promise<void> {
   try {
     const { markFirstWordsCallbackMade } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
     await markFirstWordsCallbackMade(userId);
     log.info({ userId }, '📝 First-words callback marked as used');
   } catch (error) {
@@ -143,7 +143,7 @@ export async function canMakeFirstWordsCallback(userId: string): Promise<{
 }> {
   try {
     const { loadRelationshipArcData, canMakeFirstWordsCallback: checkCallback } =
-      await import('../../intelligence/context-builders/relationship-arc/storage.js');
+      await import('../../intelligence/context-builders/relationship/arc/storage.js');
 
     const arcData = await loadRelationshipArcData(userId);
     if (!arcData) {

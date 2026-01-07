@@ -557,7 +557,7 @@ describe('Deep Understanding Context Builder Integration', () => {
   it('should detect repair needs when previous response was off', async () => {
     // Simulate first turn with AI giving advice
     const { recordResponse } =
-      await import('../intelligence/context-builders/deep-understanding.js');
+      await import('../intelligence/context-builders/intelligence/deep-understanding.js');
     recordResponse(TEST_SESSION_ID, 'You should definitely stand up to your boss about this.');
 
     // Second turn - user pushes back

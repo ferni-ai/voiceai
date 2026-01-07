@@ -13,14 +13,14 @@
  * 3. Injects STRONG guidance to hand off, not answer
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createCriticalInjection,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import { isTeamMemberUnlocked } from './superhuman/team-availability.js';
 
 const log = createLogger({ module: 'RoleBoundaries' });

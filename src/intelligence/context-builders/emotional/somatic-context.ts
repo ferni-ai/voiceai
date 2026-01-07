@@ -21,7 +21,7 @@ import {
   type ContextInjection,
   createHintInjection,
   createStandardInjection,
-} from './index.js';
+} from '../index.js';
 
 import {
   selectExercise,

@@ -22,7 +22,7 @@ import {
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
-} from './index.js';
+} from '../index.js';
 import {
   getHumanListeningPipeline,
   type HumanListeningResult,

@@ -754,7 +754,7 @@ async function getTremorOptions(
 ): Promise<{ intensity?: 'none' | 'subtle' | 'noticeable' | 'pronounced' }> {
   try {
     const { getHumanListeningResult } =
-      await import('../../intelligence/context-builders/human-listening.js');
+      await import('../../intelligence/context-builders/emotional/human-listening.js');
     const listeningResult = getHumanListeningResult(sessionId);
     if (listeningResult?.audio?.tremor?.detected) {
       return {

@@ -4,7 +4,7 @@
  * Tests the unified context-aware processing phrase composition system.
  *
  * IMPORTANT: The phrase pools have been deprecated in favor of LLM behavioral guidance.
- * See: src/intelligence/context-builders/dynamic-speech-guidance.ts
+ * See: src/intelligence/context-builders/humanization/dynamic-speech-guidance.ts
  *
  * The new architecture:
  * - Processing phrases are intentionally empty

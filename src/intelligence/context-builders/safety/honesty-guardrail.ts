@@ -12,10 +12,10 @@
  * - "Did you send that text?"
  * - "Have you made the reservation?"
  *
- * @module intelligence/context-builders/honesty-guardrail
+ * @module intelligence/context-builders/safety/honesty-guardrail
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   wasHighImpactActionExecuted,
   getHumanReadableSummary,
