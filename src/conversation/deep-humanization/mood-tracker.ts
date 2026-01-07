@@ -4,14 +4,92 @@
  * Tracks the agent's mood throughout a conversation.
  * Mood influences which humanization effects are appropriate.
  *
+ * Now with Firestore persistence for emotional trajectory analysis.
+ *
  * @module @ferni/conversation/deep-humanization/mood-tracker
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import type { ConversationMood } from './types.js';
 
 const log = createLogger({ module: 'MoodTracker' });
+
+// ============================================================================
+// FIRESTORE PERSISTENCE FOR EMOTIONAL TRAJECTORY
+// ============================================================================
+
+const USERS_COLLECTION = 'bogle_users';
+const EMOTIONAL_TRAJECTORY_COLLECTION = 'emotional_trajectory';
+
+let firestoreInstance: FirebaseFirestore.Firestore | null = null;
+let firestoreInitAttempted = false;
+
+async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
+  if (firestoreInstance) return firestoreInstance;
+  if (firestoreInitAttempted) {
+    log.debug({}, 'getFirestoreDb: Init already attempted, returning null');
+    return null;
+  }
+  firestoreInitAttempted = true;
+
+  try {
+    const admin = await import('firebase-admin');
+    if (!admin.apps || admin.apps.length === 0) {
+      const projectId =
+        process.env.GCP_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.GOOGLE_CLOUD_PROJECT;
+      log.debug({ projectId, hasProjectId: !!projectId }, 'getFirestoreDb: Initializing Firebase Admin for mood-tracker');
+      if (projectId) {
+        admin.initializeApp({ projectId });
+      } else {
+        admin.initializeApp();
+      }
+    }
+    firestoreInstance = admin.firestore();
+    log.info({}, '📊 Firestore initialized successfully for mood-tracker');
+    return firestoreInstance;
+  } catch (error) {
+    log.error({ error: String(error) }, '📊 CRITICAL: Failed to initialize Firestore for mood-tracker');
+    return null;
+  }
+}
+
+/**
+ * Per-turn emotional snapshot
+ */
+export interface EmotionalSnapshot {
+  turn: number;
+  timestamp: string;
+  energy: number;
+  engagement: number;
+  emotionalLoad: number;
+  inEmotionalMoment: boolean;
+  userEmotion?: string;
+  topicWeight?: 'light' | 'medium' | 'heavy';
+}
+
+/**
+ * Session emotional trajectory
+ */
+export interface EmotionalTrajectory {
+  sessionId: string;
+  userId: string;
+  personaId: string;
+  startedAt: string;
+  endedAt?: string;
+  snapshots: EmotionalSnapshot[];
+  summary?: {
+    peakEnergy: number;
+    lowestEnergy: number;
+    peakEmotionalLoad: number;
+    emotionalMomentCount: number;
+    dominantEmotion?: string;
+    trend: 'improving' | 'declining' | 'stable';
+  };
+}
 
 // ============================================================================
 // MOOD TRACKER
@@ -21,8 +99,32 @@ export class MoodTracker {
   private mood: ConversationMood;
   private turnCount = 0;
 
+  // Session metadata for persistence
+  private sessionId?: string;
+  private userId?: string;
+  private personaId?: string;
+  private startedAt: Date;
+
+  // Per-turn emotional snapshots
+  private snapshots: EmotionalSnapshot[] = [];
+  private emotionCounts: Map<string, number> = new Map();
+
   constructor() {
     this.mood = this.getInitialMood();
+    this.startedAt = new Date();
+  }
+
+  /**
+   * Initialize with session metadata for persistence
+   */
+  initializeSession(sessionId: string, userId: string, personaId: string): void {
+    this.sessionId = sessionId;
+    this.userId = userId;
+    this.personaId = personaId;
+    this.startedAt = new Date();
+    this.snapshots = [];
+    this.emotionCounts.clear();
+    log.info({ sessionId, userId, personaId }, '📊 Mood tracker initialized for session');
   }
 
   private getInitialMood(): ConversationMood {
@@ -89,6 +191,42 @@ export class MoodTracker {
     if (this.mood.inEmotionalMoment && context.userEmotion === 'vulnerable') {
       void humanizationSignalEmitter.vulnerability(0.8);
     }
+
+    // Record emotional snapshot for trajectory analysis
+    this.recordSnapshot(context);
+  }
+
+  /**
+   * Record per-turn emotional snapshot
+   */
+  private recordSnapshot(context: {
+    userEmotion?: string;
+    topicWeight?: 'light' | 'medium' | 'heavy';
+    turnCount: number;
+  }): void {
+    const snapshot: EmotionalSnapshot = {
+      turn: context.turnCount,
+      timestamp: new Date().toISOString(),
+      energy: Math.round(this.mood.energy * 100) / 100,
+      engagement: Math.round(this.mood.engagement * 100) / 100,
+      emotionalLoad: Math.round(this.mood.emotionalLoad * 100) / 100,
+      inEmotionalMoment: this.mood.inEmotionalMoment,
+      userEmotion: context.userEmotion,
+      topicWeight: context.topicWeight,
+    };
+
+    this.snapshots.push(snapshot);
+
+    // Track emotion frequency
+    if (context.userEmotion) {
+      const count = this.emotionCounts.get(context.userEmotion) || 0;
+      this.emotionCounts.set(context.userEmotion, count + 1);
+    }
+
+    // Limit to last 100 snapshots to prevent memory bloat
+    if (this.snapshots.length > 100) {
+      this.snapshots = this.snapshots.slice(-100);
+    }
   }
 
   /**
@@ -132,6 +270,139 @@ export class MoodTracker {
   reset(): void {
     this.mood = this.getInitialMood();
     this.turnCount = 0;
+    this.snapshots = [];
+    this.emotionCounts.clear();
+    this.sessionId = undefined;
+    this.userId = undefined;
+    this.personaId = undefined;
+    this.startedAt = new Date();
+  }
+
+  /**
+   * Get emotional trajectory for this session
+   */
+  getTrajectory(): EmotionalTrajectory | null {
+    if (!this.sessionId || !this.userId || !this.personaId) {
+      return null;
+    }
+
+    // Calculate summary
+    const summary = this.calculateSummary();
+
+    return {
+      sessionId: this.sessionId,
+      userId: this.userId,
+      personaId: this.personaId,
+      startedAt: this.startedAt.toISOString(),
+      snapshots: this.snapshots,
+      summary,
+    };
+  }
+
+  /**
+   * Calculate summary statistics from snapshots
+   */
+  private calculateSummary(): EmotionalTrajectory['summary'] {
+    if (this.snapshots.length === 0) {
+      return undefined;
+    }
+
+    const energyValues = this.snapshots.map((s) => s.energy);
+    const emotionalLoadValues = this.snapshots.map((s) => s.emotionalLoad);
+    const emotionalMomentCount = this.snapshots.filter((s) => s.inEmotionalMoment).length;
+
+    // Find dominant emotion
+    let dominantEmotion: string | undefined;
+    let maxCount = 0;
+    for (const [emotion, count] of this.emotionCounts.entries()) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantEmotion = emotion;
+      }
+    }
+
+    // Calculate trend from first half vs second half energy
+    let trend: 'improving' | 'declining' | 'stable' = 'stable';
+    if (this.snapshots.length >= 4) {
+      const mid = Math.floor(this.snapshots.length / 2);
+      const firstHalfAvg =
+        this.snapshots.slice(0, mid).reduce((sum, s) => sum + s.energy, 0) / mid;
+      const secondHalfAvg =
+        this.snapshots.slice(mid).reduce((sum, s) => sum + s.energy, 0) / (this.snapshots.length - mid);
+
+      const diff = secondHalfAvg - firstHalfAvg;
+      if (diff > 0.1) {
+        trend = 'improving';
+      } else if (diff < -0.1) {
+        trend = 'declining';
+      }
+    }
+
+    return {
+      peakEnergy: Math.max(...energyValues),
+      lowestEnergy: Math.min(...energyValues),
+      peakEmotionalLoad: Math.max(...emotionalLoadValues),
+      emotionalMomentCount,
+      dominantEmotion,
+      trend,
+    };
+  }
+
+  /**
+   * Persist emotional trajectory to Firestore
+   */
+  async persistTrajectory(): Promise<boolean> {
+    const trajectory = this.getTrajectory();
+    if (!trajectory) {
+      log.warn({
+        hasSessionId: !!this.sessionId,
+        hasUserId: !!this.userId,
+        hasPersonaId: !!this.personaId,
+        snapshotCount: this.snapshots.length,
+      }, '📊 SKIP: No trajectory to persist (missing session metadata)');
+      return false;
+    }
+
+    try {
+      const db = await getFirestoreDb();
+      if (!db) {
+        log.warn('Firestore not available for trajectory persistence');
+        return false;
+      }
+
+      const { FieldValue } = await import('firebase-admin/firestore');
+      const path = `${USERS_COLLECTION}/${trajectory.userId}/${EMOTIONAL_TRAJECTORY_COLLECTION}/${trajectory.sessionId}`;
+
+      const firestoreData = removeUndefined({
+        ...trajectory,
+        endedAt: new Date().toISOString(),
+        persistedAt: FieldValue.serverTimestamp(),
+      });
+
+      await db.doc(path).set(firestoreData);
+
+      log.info(
+        {
+          sessionId: trajectory.sessionId,
+          userId: trajectory.userId,
+          snapshotCount: trajectory.snapshots.length,
+          trend: trajectory.summary?.trend,
+        },
+        '📊 Emotional trajectory persisted to Firestore'
+      );
+
+      return true;
+    } catch (error) {
+      log.error({ error: String(error) }, 'Failed to persist emotional trajectory');
+      return false;
+    }
+  }
+
+  /**
+   * Get snapshots for debugging/analysis
+   */
+  getSnapshots(): EmotionalSnapshot[] {
+    return [...this.snapshots];
   }
 }
 
@@ -150,6 +421,35 @@ export function getMoodTracker(personaId: string): MoodTracker {
   return tracker;
 }
 
+/**
+ * Initialize mood tracker with session metadata
+ */
+export function initializeMoodTracker(
+  personaId: string,
+  sessionId: string,
+  userId: string
+): MoodTracker {
+  const tracker = getMoodTracker(personaId);
+  tracker.initializeSession(sessionId, userId, personaId);
+  return tracker;
+}
+
+/**
+ * Reset mood tracker and persist trajectory to Firestore
+ */
+export async function resetMoodTrackerWithPersistence(personaId: string): Promise<void> {
+  const tracker = trackers.get(personaId);
+  if (tracker) {
+    // Persist trajectory before resetting
+    await tracker.persistTrajectory();
+    tracker.reset();
+  }
+  trackers.delete(personaId);
+}
+
+/**
+ * Reset mood tracker without persistence (for quick cleanup)
+ */
 export function resetMoodTracker(personaId: string): void {
   const tracker = trackers.get(personaId);
   if (tracker) {
@@ -158,6 +458,38 @@ export function resetMoodTracker(personaId: string): void {
   trackers.delete(personaId);
 }
 
-export function resetAllMoodTrackers(): void {
+/**
+ * Reset all mood trackers (with optional persistence)
+ */
+export async function resetAllMoodTrackers(persist = false): Promise<void> {
+  if (persist) {
+    const persistPromises = Array.from(trackers.values()).map((t) => t.persistTrajectory());
+    await Promise.allSettled(persistPromises);
+  }
   trackers.clear();
+}
+
+/**
+ * Get recent emotional trajectories for a user
+ */
+export async function getRecentTrajectories(
+  userId: string,
+  limit = 10
+): Promise<EmotionalTrajectory[]> {
+  try {
+    const db = await getFirestoreDb();
+    if (!db) return [];
+
+    const path = `${USERS_COLLECTION}/${userId}/${EMOTIONAL_TRAJECTORY_COLLECTION}`;
+    const snapshot = await db
+      .collection(path)
+      .orderBy('startedAt', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => doc.data() as EmotionalTrajectory);
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Failed to fetch recent trajectories');
+    return [];
+  }
 }

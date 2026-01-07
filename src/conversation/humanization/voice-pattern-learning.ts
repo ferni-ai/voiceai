@@ -438,7 +438,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
 
   try {
     const admin = await import('firebase-admin');
-    if (admin.apps.length === 0) {
+    if (!admin.apps || admin.apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||
