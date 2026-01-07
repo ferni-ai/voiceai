@@ -143,6 +143,9 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 
+// Convert WSS URL to HTTPS for REST API calls (AgentDispatchClient uses HTTP, not WebSocket)
+const LIVEKIT_HOST = LIVEKIT_URL.replace('wss://', 'https://');
+
 // Agent dispatch client
 let agentDispatch: AgentDispatchClient | null = null;
 
@@ -151,7 +154,7 @@ let agentDispatch: AgentDispatchClient | null = null;
  */
 function getAgentDispatch(): AgentDispatchClient {
   if (!agentDispatch) {
-    agentDispatch = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+    agentDispatch = new AgentDispatchClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
   }
   return agentDispatch;
 }
@@ -267,17 +270,23 @@ export async function handleTokenRoutes(
     // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
     const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
 
-    // Check rate limits using shared module
-    const allowed = checkDemoAllowed(ip);
-    if (!allowed.allowed) {
-      res.writeHead(429, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: allowed.reason,
-          message: allowed.message,
-        })
-      );
-      return true;
+    // Branded persona pages bypass demo rate limits (they have their own dedicated experience)
+    const BRANDED_PERSONAS = ['joel-dickson'];
+    const isBrandedPersona = BRANDED_PERSONAS.includes(personaId);
+
+    // Check rate limits using shared module (skip for branded personas)
+    if (!isBrandedPersona) {
+      const allowed = checkDemoAllowed(ip);
+      if (!allowed.allowed) {
+        res.writeHead(429, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: allowed.reason,
+            message: allowed.message,
+          })
+        );
+        return true;
+      }
     }
 
     try {
@@ -292,8 +301,10 @@ export async function handleTokenRoutes(
         userAgent: req.headers['user-agent'],
       });
 
-      // Record the session for rate limiting using shared module
-      recordDemoSession(ip);
+      // Record the session for rate limiting (skip for branded personas)
+      if (!isBrandedPersona) {
+        recordDemoSession(ip);
+      }
 
       // Pre-warm LLM content cache for the requested persona (fire-and-forget)
       prewarmLLMContentForPersona(personaId);
@@ -309,11 +320,13 @@ export async function handleTokenRoutes(
           session_duration_minutes: DEMO_CONFIG.sessionDurationMinutes,
           persona_id: personaId,
         };
+        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '🚀 Dispatching agent');
         await getAgentDispatch().createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
+        log.info({ room: roomName, agent: AGENT_NAME, persona: personaId }, '✅ Agent dispatched');
       } catch (dispatchErr) {
-        log.debug({ note: (dispatchErr as Error).message }, 'Demo agent dispatch note');
+        log.error({ error: (dispatchErr as Error).message, room: roomName }, '❌ Agent dispatch failed');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -325,7 +338,7 @@ export async function handleTokenRoutes(
           username,
           demo_id: demoId,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          sessions_remaining: (allowed.sessionsRemaining ?? 1) - 1,
+          sessions_remaining: isBrandedPersona ? 999 : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
         })
@@ -469,6 +482,9 @@ export async function handleTokenRoutes(
     const device_id = parsedUrl.searchParams.get('device_id');
     const persona_id = parsedUrl.searchParams.get('persona_id');
     const preferred_accent = parsedUrl.searchParams.get('accent');
+    // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
+    const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
+    const user_email_param = parsedUrl.searchParams.get('user_email');
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -479,7 +495,7 @@ export async function handleTokenRoutes(
     const selectedPersona = persona_id || 'ferni';
 
     try {
-      // Try to verify Firebase token
+      // Try to verify Firebase token from Authorization header
       let firebaseUid: string | null = null;
       const authHeader = req.headers['authorization'];
       if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
@@ -490,11 +506,21 @@ export async function handleTokenRoutes(
           const verified = await verifyFirebaseToken(firebaseToken);
           if (verified) {
             firebaseUid = verified.uid;
-            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth');
+            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
           }
         } catch (firebaseErr) {
-          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth note');
+          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth header failed');
         }
+      }
+
+      // 🐛 FIX: Fallback to firebase_uid query param if header auth failed
+      // This is critical for user memory persistence!
+      if (!firebaseUid && firebase_uid_param) {
+        firebaseUid = firebase_uid_param;
+        log.info(
+          { firebaseUid: firebaseUid.substring(0, 8) },
+          '🔑 Using firebase_uid from query param (header auth unavailable)'
+        );
       }
 
       // Generate token
@@ -639,6 +665,8 @@ export async function handleTokenRoutes(
         const agentMetadata = {
           user_name: username,
           firebase_uid: firebaseUid || undefined,
+          // 🐛 FIX: Include user_email for granted profile linking
+          user_email: user_email_param || undefined,
           device_id: device_id || undefined,
           persona_id: selectedPersona,
           source: 'web',
