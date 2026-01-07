@@ -16,121 +16,56 @@
  */
 
 // ============================================================================
-// ENTITY TYPES
+// RE-EXPORTS FROM ENTITY-STORE (Single Source of Truth)
 // ============================================================================
 
-/**
- * Core entity types in the knowledge graph
- */
-export type EntityType =
-  | 'person' // People mentioned: family, friends, colleagues
-  | 'place' // Locations: home, work, cities, countries
-  | 'organization' // Companies, schools, groups
-  | 'event' // Events: meetings, birthdays, trips
-  | 'topic' // Abstract topics: career, health, relationships
-  | 'goal' // User's goals and aspirations
-  | 'habit' // Habits the user has or wants
-  | 'commitment' // Promises, intentions, plans
-  | 'emotion' // Emotional states experienced
-  | 'value' // User's values and beliefs
-  | 'dream' // Long-term dreams and aspirations
-  | 'memory' // A specific memory/moment
-  | 'self'; // The user themselves
+// Import for internal use in this file
+import type {
+  Entity as EntityStoreEntity,
+  EntityProperties as EntityStoreEntityProperties,
+  EntityType as EntityStoreEntityType,
+} from '../entity-store/types.js';
 
-/**
- * A node in the knowledge graph.
- * Everything is an entity - people, places, concepts, memories.
- */
-export interface Entity {
-  /** Unique identifier */
-  id: string;
+// Re-export core entity types - entity-store is the canonical source
+export type {
+  CommitmentAttributes,
+  DreamAttributes,
+  EmotionAttributes,
+  Entity,
+  EntityAttributes,
+  EntityProperties,
+  EntityType,
+  EventAttributes,
+  GoalAttributes,
+  MemoryAttributes,
+  PatternAttributes,
+  PersonAttributes,
+  PlaceAttributes,
+  PreferenceAttributes,
+  TemporalContext,
+  TopicAttributes,
+  ValueAttributes,
+} from '../entity-store/types.js';
 
-  /** User who owns this entity */
-  userId: string;
+// Backward compatibility types
+export type {
+  CaptureContext,
+  CaptureResult,
+  ExtractedFact,
+  LegacyContact,
+  LegacyRelationshipPerson,
+  Mention,
+  MentionType,
+  MigrationResult,
+} from '../entity-store/types.js';
 
-  /** Type of entity */
-  type: EntityType;
+// Factory helpers
+export { createEntity, entityToText, tokenize } from '../entity-store/types.js';
 
-  /** Canonical name (for display and matching) */
-  canonicalName: string;
-
-  /** Alternative names/aliases for this entity */
-  aliases: string[];
-
-  /** When this entity was first mentioned */
-  firstMentioned: Date;
-
-  /** When this entity was last mentioned */
-  lastMentioned: Date;
-
-  /** Total number of times this entity has been mentioned */
-  mentionCount: number;
-
-  /** Emotional salience score (0-1) - how emotionally significant */
-  emotionalSalience: number;
-
-  /** Importance score (0-1) - computed from connections and mentions */
-  importance: number;
-
-  /** Domain-specific properties (structured data) */
-  properties: EntityProperties;
-
-  /** Embedding vector for semantic search */
-  embedding?: number[];
-
-  /** Metadata */
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Properties specific to entity types.
- * This provides structured data for each entity type.
- */
-export interface EntityProperties {
-  // Person properties
-  relationship?: string; // "mother", "friend", "colleague"
-  phone?: string;
-  email?: string;
-  birthday?: string;
-  location?: string;
-  occupation?: string;
-
-  // Place properties
-  address?: string;
-  coordinates?: { lat: number; lng: number };
-  placeType?: string; // "home", "work", "restaurant"
-
-  // Event properties
-  date?: Date;
-  endDate?: Date;
-  recurring?: boolean;
-  recurrencePattern?: string;
-  participants?: string[]; // Entity IDs
-
-  // Goal/Dream properties
-  status?: 'active' | 'achieved' | 'abandoned' | 'paused';
-  targetDate?: Date;
-  progress?: number; // 0-100
-
-  // Habit properties
-  frequency?: string;
-  streak?: number;
-  lastCompleted?: Date;
-
-  // Commitment properties
-  dueDate?: Date;
-  priority?: 'high' | 'medium' | 'low';
-  completed?: boolean;
-
-  // Value properties
-  strength?: number; // How strongly held (0-1)
-  category?: string;
-
-  // Generic
-  notes?: string;
-  tags?: string[];
-}
+// Type aliases for internal use in this file
+type Entity = EntityStoreEntity;
+type EntityType = EntityStoreEntityType;
+type EntityProperties = EntityStoreEntityProperties;
 
 // ============================================================================
 // RELATIONSHIP TYPES
@@ -346,6 +281,12 @@ export interface TemporalMention {
   surfacingFeedback?: 'helpful' | 'neutral' | 'unhelpful';
 }
 
+/**
+ * Alias for backward compatibility
+ * @deprecated Use TemporalMention
+ */
+export type EntityMention = TemporalMention;
+
 // ============================================================================
 // CORRELATION TYPES
 // ============================================================================
@@ -462,11 +403,11 @@ export interface EntityQueryResult {
   relevance: number;
 
   /** Related entities (if depth > 0) */
-  related?: {
+  related?: Array<{
     entity: Entity;
     relationship: Relationship;
     depth: number;
-  }[];
+  }>;
 
   /** Facts about this entity (if requested) */
   facts?: Fact[];
@@ -489,10 +430,10 @@ export interface EntityProfile {
   facts: Fact[];
 
   /** All relationships */
-  relationships: {
+  relationships: Array<{
     relationship: Relationship;
     relatedEntity: Entity;
-  }[];
+  }>;
 
   /** Temporal history */
   timeline: TemporalMention[];
@@ -508,11 +449,11 @@ export interface EntityProfile {
   };
 
   /** Recommended follow-ups or things to remember */
-  recommendations: {
+  recommendations: Array<{
     type: 'follow_up' | 'remember' | 'check_in' | 'celebrate';
     content: string;
     urgency: 'high' | 'medium' | 'low';
-  }[];
+  }>;
 }
 
 // ============================================================================
@@ -596,3 +537,93 @@ export type SurfacingReason =
   | 'commitment_due' // Commitment coming due
   | 'connection_dormant' // Haven't mentioned in a while
   | 'celebration'; // Something to celebrate
+
+// ============================================================================
+// INSIGHT TYPES
+// ============================================================================
+
+export type InsightType =
+  | 'pattern'
+  | 'correlation'
+  | 'growth'
+  | 'risk'
+  | 'opportunity'
+  | 'milestone'
+  | 'prediction'
+  | 'behavioral_pattern'
+  | 'temporal_pattern'
+  | 'relationship_dynamic'
+  | 'value_alignment'
+  | 'growth_opportunity'
+  | 'risk_pattern'
+  | 'goal_progress'
+  | 'commitment_status';
+
+/**
+ * A generated insight from the knowledge graph
+ */
+export interface Insight {
+  id: string;
+  userId: string;
+  type: InsightType;
+  insightType?: InsightType;
+  title: string;
+  description: string;
+  confidence: number;
+  entityIds: string[];
+  evidence: string[];
+  actionable: boolean;
+  suggestedAction?: string;
+  surfacedAt?: Date;
+  lastSurfacedAt?: Date;
+  surfacedCount: number;
+  receptivityThreshold?: number;
+  userReaction?: 'helpful' | 'neutral' | 'unhelpful';
+  userFeedback?: Array<{ timestamp: Date; reaction: string }>;
+  createdAt: Date;
+  expiresAt?: Date;
+  validUntil?: Date;
+}
+
+// ============================================================================
+// THREAD TYPES
+// ============================================================================
+
+export type ThreadStatus = 'open' | 'resolved' | 'dormant' | 'archived' | 'active' | 'recurring';
+
+/**
+ * Session within a thread
+ */
+export interface ThreadSession {
+  sessionId: string;
+  timestamp: Date;
+  summary: string;
+  emotionalState?: string;
+}
+
+/**
+ * A conversational thread - a topic arc spanning multiple sessions
+ */
+export interface Thread {
+  id: string;
+  userId: string;
+  topic: string;
+  title?: string;
+  summary?: string;
+  relatedTopics: string[];
+  status: ThreadStatus;
+  entityIds: string[];
+  sessions: ThreadSession[];
+  sessionIds?: string[];
+  openQuestions: string[];
+  pendingActions: string[];
+  openedAt?: Date;
+  createdAt: Date;
+  lastUpdatedAt: Date;
+  resolvedAt?: Date;
+  emotionalArc?: string;
+  emotionalWeight: number;
+  salience: number;
+  embedding: number[];
+  relatedThreadIds?: string[];
+}

@@ -316,7 +316,7 @@ export class PredictiveMemory {
         const relationships = await getRelationshipsForEntity(context.userId, entityId);
 
         for (const rel of relationships.slice(0, 2)) {
-          const connectedId = rel.fromEntityId === entityId ? rel.toEntityId : rel.fromEntityId;
+          const connectedId = rel.fromEntity === entityId ? rel.toEntity : rel.fromEntity;
 
           predictions.push({
             id: `pattern-${entityId}-${connectedId}`,

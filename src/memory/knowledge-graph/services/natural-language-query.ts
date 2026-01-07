@@ -426,7 +426,7 @@ async function executeRelationshipQuery(
 
   const relationships = await getRelationshipsForEntity(userId, entity1.id);
   const connection = relationships.find(
-    (r) => r.fromEntityId === entity2.id || r.toEntityId === entity2.id
+    (r) => r.fromEntity === entity2.id || r.toEntity === entity2.id
   );
 
   const formattedResponse = formatRelationshipResponse(entity1, entity2, connection);
