@@ -28,6 +28,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { handleAdminRoutes } from './admin/index.js';
 import { handleIntegrationsRoutes } from './integrations/handler.js';
 import { handlePublicExperimentsRoutes } from './public/experiments.js';
+import { handleSuperhumanExperimentsRoutes } from './public/superhuman-experiments.js';
 import { handleDeveloperRoutes } from './developers/index.js';
 // Note: Voice auth routes (/api/voice/*) are handled directly in ui-server.js
 // They are NOT under /api/v1 namespace since they're a standalone auth system
@@ -85,6 +86,10 @@ export async function handleV1Routes(
   // }
 
   // Public routes (no auth required)
+  if (pathname.startsWith(`${BASE_PATH}/public/superhuman`)) {
+    return handleSuperhumanExperimentsRoutes(req, res, pathname, parsedUrl);
+  }
+
   if (pathname.startsWith(`${BASE_PATH}/public/experiments`)) {
     return handlePublicExperimentsRoutes(req, res, pathname, parsedUrl);
   }
@@ -99,4 +104,5 @@ export default { handleV1Routes };
 export { handleAdminRoutes } from './admin/index.js';
 export { handleIntegrationsRoutes } from './integrations/handler.js';
 export { handlePublicExperimentsRoutes } from './public/experiments.js';
+export { handleSuperhumanExperimentsRoutes } from './public/superhuman-experiments.js';
 export { handleDeveloperRoutes } from './developers/index.js';

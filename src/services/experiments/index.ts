@@ -147,3 +147,112 @@ export {
   type GeneratedHypothesis,
   type PatternAnalysisResult,
 } from './hypothesis-generator.js';
+
+// ============================================================================
+// Superhuman Experiments (Better than Human A/B Testing)
+// ============================================================================
+
+// Export superhuman bandit algorithm (Thompson Sampling, UCB1, Epsilon-Greedy)
+export {
+  thompsonSample,
+  epsilonGreedy,
+  ucb1Select,
+  detectWinner,
+  createArm,
+  recordConversion as recordBanditConversion,
+  getExpectedRate,
+  getCredibleInterval,
+  calculateRegret as calculateBanditRegret,
+  sampleFromBeta,
+  type BanditArm as SuperhumanBanditArm,
+  type BanditSelection as SuperhumanBanditSelection,
+  type WinnerDetection,
+} from './bandit-algorithm.js';
+
+// Export contextual variant selection
+export {
+  evaluateCondition,
+  calculateContextualWeights,
+  selectContextualVariant,
+  extractContextFromRequest,
+  mergeContexts,
+  mobileBoost,
+  eveningBoost,
+  newUserBoost,
+  highEngagementBoost,
+  skepticalUserBoost,
+  weekendBoost,
+  PREDEFINED_MODIFIERS,
+  type UserContext,
+  type ContextualVariant,
+  type ContextCondition,
+  type ContextModifier,
+  type ContextualVariantSelection,
+} from './contextual-selector.js';
+
+// Export cross-experiment learning
+export {
+  buildUserProfile,
+  findCorrelation,
+  findAllCorrelations,
+  generateTransferPriors,
+  detectMetaPatterns,
+  predictVariantPreference,
+  serializeLearningState,
+  calculateStaleness,
+  type ExperimentOutcome,
+  type UserExperimentProfile,
+  type ExperimentCorrelation,
+  type VariantPairing,
+  type TransferLearningPrior,
+  type MetaPattern,
+  type CrossExperimentLearningState,
+} from './cross-experiment-learning.js';
+
+// Export semantic experiment routing
+export {
+  calculateTagSimilarity,
+  calculateIntentMatch,
+  checkEligibility,
+  filterMutualExclusions,
+  routeByTags,
+  routeByIntent,
+  getExperimentsForPage,
+  createExperimentMetadata,
+  validateExperimentMetadata,
+  type ExperimentMetadata,
+  type EligibilityRules,
+  type AudienceDefinition,
+  type CustomRule,
+  type RoutingContext,
+  type RoutingResult,
+  type RoutingDecision,
+} from './semantic-router.js';
+
+// Export main superhuman orchestrator
+export {
+  createExperiment as createSuperhumanExperiment,
+  getExperiment as getSuperhumanExperiment,
+  listExperiments as listSuperhumanExperiments,
+  updateExperimentMetadata as updateSuperhumanExperimentMetadata,
+  enrollUser,
+  recordUserConversion,
+  graduateExperiment,
+  stopExperiment as stopSuperhumanExperiment,
+  pauseExperiment,
+  resumeExperiment,
+  findExperimentsByTags,
+  findExperimentsByIntent,
+  updateLearningState,
+  getTransferPriors,
+  getExperimentStats,
+  createSimpleABTest,
+  createMultiVariantTest,
+  type Experiment as SuperhumanExperiment,
+  type ExperimentVariant as SuperhumanVariant,
+  type BanditState,
+  type ExperimentSettings,
+  type EnrollmentResult,
+  type ConversionResult,
+  type ExperimentStats,
+} from './superhuman-experiments.js';
