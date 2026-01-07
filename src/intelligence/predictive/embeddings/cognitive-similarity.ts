@@ -451,6 +451,8 @@ function getDecisionStyleAdvice(style: DecisionStyle): string {
     procrastinate_leap: 'deadlines that force action (self-imposed or external)',
     incremental: 'breaking decisions into smaller steps',
     values_based: 'clarity on what matters most before deciding',
+    deadline_driven: 'clear deadlines and external accountability',
+    emotion_driven: 'feeling emotionally ready and aligned before committing',
   };
   return advice[style] || 'thoughtful consideration';
 }

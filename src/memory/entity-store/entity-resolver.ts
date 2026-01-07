@@ -681,13 +681,13 @@ export interface EntityResolver {
   /** Resolve an entity by ID or query */
   resolve: (userId: string, query: string | EntityQuery) => Promise<Entity | null>;
   /** Get all people entities for a user */
-  getPeople: (userId: string) => Promise<Entity[]>;
+  getPeople: (userId: string, limit?: number) => Promise<Entity[]>;
   /** Get facts about an entity */
   getFacts: (userId: string, entityId: string) => Promise<ExtractedFact[]>;
   /** Get a specific entity by ID */
   getEntity: (userId: string, entityId: string) => Promise<Entity | null>;
   /** Get entities by type */
-  getEntitiesByType: (userId: string, type: string) => Promise<Entity[]>;
+  getEntitiesByType: (userId: string, type: string, limit?: number) => Promise<Entity[]>;
 }
 
 let entityResolverInstance: EntityResolver | null = null;
@@ -843,8 +843,8 @@ async function resolveImpl(
 /**
  * Get all people entities for a user - FULL IMPLEMENTATION
  */
-async function getPeopleImpl(userId: string): Promise<Entity[]> {
-  return getAllEntities(userId, { types: ['person'], topK: 500 });
+async function getPeopleImpl(userId: string, limit: number = 500): Promise<Entity[]> {
+  return getAllEntities(userId, { types: ['person'], topK: limit });
 }
 
 /**
@@ -885,9 +885,10 @@ async function getEntityImpl(
  */
 async function getEntitiesByTypeImpl(
   userId: string,
-  type: string
+  type: string,
+  limit: number = 200
 ): Promise<Entity[]> {
-  return getAllEntities(userId, { types: [type as import('./types.js').EntityType], topK: 200 });
+  return getAllEntities(userId, { types: [type as import('./types.js').EntityType], topK: limit });
 }
 
 /**

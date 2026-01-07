@@ -32,6 +32,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import * as fs from 'fs';
 import * as path from 'path';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { onContactChange } from './data-layer/hooks/contacts-hooks.js';
 
 // ============================================================================
 // TYPES
@@ -372,6 +373,22 @@ export function createContact(
     userId,
   });
 
+  // Index to semantic memory for "Better Than Human" search
+  void onContactChange(
+    userId,
+    id,
+    {
+      name: contact.displayName,
+      relationship: contact.relationship || 'contact',
+      notes: contact.notes,
+      importantDates: contact.birthday
+        ? [{ label: 'Birthday', date: contact.birthday }]
+        : undefined,
+      communicationPreference: contact.phones.length > 0 ? 'phone' : 'email',
+    },
+    'create'
+  );
+
   getLogger().info(
     {
       contactId: id,
@@ -405,6 +422,22 @@ export function updateContact(
     operation: 'update',
   });
 
+  // Index to semantic memory for "Better Than Human" search
+  void onContactChange(
+    contact.userId,
+    contactId,
+    {
+      name: contact.displayName,
+      relationship: contact.relationship || 'contact',
+      notes: contact.notes,
+      importantDates: contact.birthday
+        ? [{ label: 'Birthday', date: contact.birthday }]
+        : undefined,
+      communicationPreference: contact.phones.length > 0 ? 'phone' : 'email',
+    },
+    'update'
+  );
+
   return contact;
 }
 
@@ -412,12 +445,24 @@ export function updateContact(
  * Delete a contact
  */
 export function deleteContact(contactId: string): boolean {
+  const contact = contactsStore.get(contactId);
   const deleted = contactsStore.delete(contactId);
-  if (deleted) {
+  if (deleted && contact) {
     runBackground(deleteContactFromFirestore(contactId), {
       task: 'deleteContact',
       contactId,
     });
+
+    // Remove from semantic index
+    void onContactChange(
+      contact.userId,
+      contactId,
+      {
+        name: contact.displayName,
+        relationship: contact.relationship || 'contact',
+      },
+      'delete'
+    );
   }
   return deleted;
 }

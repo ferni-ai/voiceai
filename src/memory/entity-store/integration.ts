@@ -556,3 +556,64 @@ export async function checkProactiveSurfacing(
     return [];
   }
 }
+
+// ============================================================================
+// INITIALIZATION (Alias for backward compatibility)
+// ============================================================================
+
+/**
+ * Initialize the entity store integration
+ * Alias for initializeEntityStore for backward compatibility
+ */
+export const initializeEntityStoreIntegration = initializeEntityStore;
+
+// ============================================================================
+// COMMITMENT ENTITY CAPTURE (TODO: Implement)
+// ============================================================================
+
+/**
+ * Capture a commitment entity from conversation
+ * TODO: Implement full commitment capture logic
+ */
+export async function captureCommitmentEntity(
+  userId: string,
+  data: {
+    commitment: string;
+    type?: 'promise' | 'intention' | 'goal' | 'deadline';
+    dueDate?: Date;
+    relatedEntityIds?: string[];
+  },
+  context: {
+    sessionId: string;
+    personaId: string;
+    transcript: string;
+  }
+): Promise<CaptureResult> {
+  if (!isEntityStoreReady()) {
+    throw new Error('Entity store not initialized');
+  }
+
+  // Dynamic import to avoid circular dependency
+  const { getEntityStore } = await import('./store.js');
+  const store = getEntityStore();
+
+  // Create the commitment entity
+  const entity = await store.createEntity(userId, {
+    type: 'commitment',
+    canonicalName: data.commitment,
+    attributes: {
+      commitmentType: data.type || 'intention',
+      dueDate: data.dueDate,
+      status: 'active',
+    } as unknown as Record<string, unknown>,
+  });
+
+  log.info({ userId, entityId: entity.id, commitment: data.commitment }, '✨ Captured commitment entity');
+
+  return {
+    entity,
+    isNew: true,
+    merged: false,
+    confidence: 0.8,
+  };
+}

@@ -722,6 +722,7 @@ export type EdgeType =
   | 'worried_about' // Concern
   | 'wants' // Desire/goal
   | 'committed_to' // Commitment
+  | 'commitment' // Alias for committed_to
   | 'values' // Core value
   // Thing-to-thing edge types
   | 'part_of' // Hierarchical
@@ -994,6 +995,26 @@ export function createEntity(
 }
 
 /**
+ * Map various status strings to EntityProperties status values
+ */
+function mapStatusToEntityProps(
+  status: string
+): 'active' | 'achieved' | 'abandoned' | 'paused' | undefined {
+  const mapping: Record<string, 'active' | 'achieved' | 'abandoned' | 'paused'> = {
+    active: 'active',
+    achieved: 'achieved',
+    abandoned: 'abandoned',
+    paused: 'paused',
+    // Goal/commitment status mappings
+    planning: 'active',
+    stalled: 'paused',
+    completed: 'achieved',
+    deferred: 'paused',
+  };
+  return mapping[status];
+}
+
+/**
  * Convert EntityAttributes to EntityProperties for backward compatibility
  */
 function attributesToProperties(attrs: EntityAttributes): EntityProperties {
@@ -1005,7 +1026,8 @@ function attributesToProperties(attrs: EntityAttributes): EntityProperties {
       props.phone = attrs.phone;
       props.email = attrs.email;
       if (attrs.birthday) {
-        props.birthday = `${attrs.birthday.month}/${attrs.birthday.day}${attrs.birthday.year ? `/${attrs.birthday.year}` : ''}`;
+        const yearSuffix = attrs.birthday.year != null ? `/${attrs.birthday.year}` : '';
+        props.birthday = `${attrs.birthday.month}/${attrs.birthday.day}${yearSuffix}`;
       }
       break;
     case 'place':
@@ -1016,16 +1038,18 @@ function attributesToProperties(attrs: EntityAttributes): EntityProperties {
     case 'event':
       props.date = attrs.date;
       props.recurring = attrs.isRecurring;
-      props.recurringPattern = attrs.recurringPattern;
+      props.recurrencePattern = attrs.recurringPattern;
       props.participants = attrs.relatedPeople;
       break;
     case 'goal':
-      props.status = attrs.status;
+      // Map goal status to EntityProperties status
+      props.status = mapStatusToEntityProps(attrs.status);
       props.targetDate = attrs.targetDate;
       props.progress = attrs.progress;
       break;
     case 'commitment':
-      props.status = attrs.status;
+      // Map commitment status to EntityProperties status
+      props.status = mapStatusToEntityProps(attrs.status);
       props.targetDate = attrs.targetDate;
       break;
     // Add more as needed
@@ -1198,6 +1222,15 @@ export interface ExtractedFact {
   entityId?: string;
   /** Entity name (for display, knowledge-graph compatibility) */
   entityName?: string;
+  /** Human-readable content (knowledge-graph compatibility) */
+  content?: string;
+  /** Structured fact data (for proactive-surfacing compatibility) */
+  structured?: {
+    predicate?: string;
+    value?: string | number | boolean | Date;
+    subject?: string;
+    object?: string;
+  };
 }
 
 /**

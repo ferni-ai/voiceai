@@ -587,6 +587,7 @@ export type InsightType =
   | 'prediction'
   | 'behavioral_pattern'
   | 'temporal_pattern'
+  | 'emotional_pattern'
   | 'relationship_dynamic'
   | 'value_alignment'
   | 'growth_opportunity'

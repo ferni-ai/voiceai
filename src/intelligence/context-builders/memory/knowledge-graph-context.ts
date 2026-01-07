@@ -295,7 +295,7 @@ async function buildKnowledgeGraphContext(
         );
 
         const correlationEngine = getCorrelationEngine();
-        const correlations = await correlationEngine.getCorrelationsForUser(userId, {
+        const correlations = await correlationEngine.getCorrelations(userId, {
           minStrength: 0.6,
           limit: config.maxPatterns,
         });

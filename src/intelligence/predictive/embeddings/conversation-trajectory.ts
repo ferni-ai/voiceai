@@ -293,15 +293,15 @@ export function getSemanticDistance(
 export function endTrajectory(sessionId: string): ConversationTrajectory | null {
   const trajectory = activeTrajectories.get(sessionId);
   activeTrajectories.delete(sessionId);
-  
+
   if (trajectory) {
     log.debug(
       { sessionId, turns: trajectory.turns.length, drift: trajectory.metrics.semanticDrift },
       '📊 Ended conversation trajectory'
     );
   }
-  
-  return trajectory;
+
+  return trajectory ?? null;
 }
 
 // ============================================================================

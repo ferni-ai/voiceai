@@ -97,15 +97,18 @@ const DOMAIN_DESCRIPTIONS: Record<LifeDomain, string> = {
   work: 'career, job, professional life, work stress, colleagues, deadlines',
   relationships: 'romantic partner, dating, marriage, intimacy, connection',
   health: 'physical health, exercise, body, illness, medical',
+  physical_health: 'exercise, fitness, body, illness, medical, physical wellbeing',
   finances: 'money, budget, savings, debt, financial security',
   family: 'parents, siblings, children, relatives, family dynamics',
   mental_health: 'anxiety, depression, emotional wellbeing, therapy, mental state',
   sleep: 'rest, insomnia, fatigue, sleep quality, tiredness',
   energy: 'vitality, motivation, enthusiasm, burnout, exhaustion',
+  habits: 'routines, habits, daily practices, consistency, behavior patterns',
   self_care: 'hobbies, relaxation, personal time, boundaries, self-compassion',
   social: 'friends, social life, community, belonging, isolation',
   creativity: 'creative expression, art, writing, innovation, imagination',
   spirituality: 'meaning, purpose, faith, existential, transcendence',
+  personal_growth: 'self-improvement, learning, development, skills, growth mindset',
   growth: 'personal development, learning, goals, aspirations, becoming',
 };
 

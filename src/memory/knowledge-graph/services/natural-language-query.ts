@@ -787,6 +787,29 @@ function formatTimelineResponse(entity: Entity, mentions: Mention[]): string {
  * This provides a singleton-style accessor pattern used by higher-level
  * modules. It wraps executeNaturalQuery with additional convenience methods.
  */
+/**
+ * Options for entity search
+ */
+export interface SearchOptions {
+  userId: string;
+  types?: string[];
+  minImportance?: number;
+  limit?: number;
+  includeRecentMentions?: number;
+  query?: string;
+  includeFacts?: boolean;
+}
+
+/**
+ * Result from entity search
+ */
+export interface SearchResult {
+  entity: Entity;
+  relevance: number;
+  facts?: ExtractedFact[];
+  recentMentions?: Mention[];
+}
+
 export interface UnifiedQueryEngine {
   /** Execute a natural language query */
   query: (userId: string, query: string, options?: QueryOptions) => Promise<NaturalQueryResult>;
@@ -794,11 +817,94 @@ export interface UnifiedQueryEngine {
   detectType: (query: string) => { type: QueryType; target: string };
   /** Check if engine is ready */
   isReady: () => boolean;
-  /** Search entities (stub for backward compatibility) */
-  search?: (userId: string, query: string, options?: unknown) => Promise<unknown[]>;
+  /** Search entities - FULL IMPLEMENTATION */
+  search: (options: SearchOptions) => Promise<SearchResult[]>;
 }
 
 let unifiedEngineInstance: UnifiedQueryEngine | null = null;
+
+/**
+ * Search entities - FULL IMPLEMENTATION
+ * 
+ * This searches the entity store based on various criteria and returns
+ * relevant entities with their facts and mentions.
+ */
+async function searchImpl(options: SearchOptions): Promise<SearchResult[]> {
+  const { 
+    userId, 
+    types, 
+    minImportance = 0, 
+    limit = 10,
+    includeRecentMentions = 0,
+    query,
+    includeFacts = false 
+  } = options;
+
+  const { getEntityResolver } = await import('../index.js');
+  const resolver = getEntityResolver();
+
+  // Get entities based on criteria
+  let entities: Entity[] = [];
+
+  if (types && types.length > 0) {
+    // Get entities by type
+    for (const type of types) {
+      const typeEntities = await resolver.getEntitiesByType(userId, type);
+      entities.push(...typeEntities);
+    }
+  } else {
+    // Get all people as default
+    entities = await resolver.getPeople(userId);
+  }
+
+  // Filter by importance/salience
+  if (minImportance > 0) {
+    entities = entities.filter(e => (e.salienceScore || 0) >= minImportance);
+  }
+
+  // If query provided, do text matching
+  if (query) {
+    const queryLower = query.toLowerCase();
+    entities = entities.filter(e => {
+      const name = (e.canonicalName || '').toLowerCase();
+      const aliases = (e.aliases || []).map(a => a.toLowerCase());
+      return name.includes(queryLower) || 
+             aliases.some(a => a.includes(queryLower)) ||
+             queryLower.includes(name);
+    });
+  }
+
+  // Sort by salience/importance
+  entities.sort((a, b) => (b.salienceScore || 0) - (a.salienceScore || 0));
+
+  // Limit results
+  entities = entities.slice(0, limit);
+
+  // Build search results
+  const results: SearchResult[] = [];
+
+  for (const entity of entities) {
+    const result: SearchResult = {
+      entity,
+      relevance: entity.salienceScore || 0.5,
+    };
+
+    // Include facts if requested
+    if (includeFacts) {
+      result.facts = await resolver.getFacts(userId, entity.id);
+    }
+
+    // Include recent mentions if requested
+    if (includeRecentMentions > 0) {
+      const { getMentionsForEntity } = await import('../../entity-store/storage.js');
+      result.recentMentions = await getMentionsForEntity(userId, entity.id, includeRecentMentions);
+    }
+
+    results.push(result);
+  }
+
+  return results;
+}
 
 /**
  * Get the unified query engine singleton
@@ -809,7 +915,7 @@ export function getUnifiedQueryEngine(): UnifiedQueryEngine {
       query: executeNaturalQuery,
       detectType: detectQueryType,
       isReady: () => true,
-      search: async (_userId, _query, _options) => [],
+      search: searchImpl,
     };
   }
   return unifiedEngineInstance;
