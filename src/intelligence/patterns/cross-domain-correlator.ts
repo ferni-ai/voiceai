@@ -43,7 +43,16 @@ export type CorrelationDomain =
   | 'day_of_week'
   | 'weather'
   | 'person_mentioned'
-  | 'topic_discussed';
+  | 'topic_discussed'
+  // Extended domains
+  | 'calendar'
+  | 'financial'
+  | 'habit' // singular alias for habits
+  | 'task'
+  | 'milestone'
+  | 'emotion'
+  | 'wellness'
+  | 'relationships';
 
 /**
  * A signal from a specific domain

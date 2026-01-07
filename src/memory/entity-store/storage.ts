@@ -11,15 +11,14 @@
  * @module memory/entity-store/storage
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import type {
   Entity,
-  EntityType,
-  EntityQuery,
-  Mention,
   EntityRelationship,
   EntitySearchOptions,
+  EntityType,
+  Mention,
 } from './types.js';
 
 const log = createLogger({ module: 'entity-store:storage' });
@@ -314,7 +313,10 @@ async function getMentionsRef(userId: string) {
 /**
  * Create a mention
  */
-export async function createMention(userId: string, mention: Omit<Mention, 'id'>): Promise<Mention> {
+export async function createMention(
+  userId: string,
+  mention: Omit<Mention, 'id'>
+): Promise<Mention> {
   const ref = await getMentionsRef(userId);
   const docRef = ref.doc();
 
@@ -395,9 +397,9 @@ export async function upsertRelationship(
 
   // Check for existing relationship
   const existing = await ref
-    .where('fromEntityId', '==', relationship.fromEntityId)
-    .where('toEntityId', '==', relationship.toEntityId)
-    .where('relationshipType', '==', relationship.relationshipType)
+    .where('fromEntity', '==', relationship.fromEntity)
+    .where('toEntity', '==', relationship.toEntity)
+    .where('type', '==', relationship.type)
     .limit(1)
     .get();
 
@@ -407,7 +409,9 @@ export async function upsertRelationship(
     await docRef.update(
       cleanForFirestore({
         ...relationship,
-        updatedAt: new Date(),
+        lastReinforced: new Date(),
+        reinforcementCount:
+          ((existing.docs[0].data() as EntityRelationship).reinforcementCount || 0) + 1,
       })
     );
     return { ...existing.docs[0].data(), id: existing.docs[0].id } as EntityRelationship;
@@ -415,14 +419,14 @@ export async function upsertRelationship(
 
   // Create new
   const docRef = ref.doc();
+  const now = new Date();
   const fullRelationship: EntityRelationship = {
     ...relationship,
     id: docRef.id,
-    userId,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastMentionedAt: new Date(),
-    mentionIds: relationship.mentionIds || [],
+    firstLinked: now,
+    lastReinforced: now,
+    reinforcementCount: 1,
+    bidirectional: relationship.bidirectional ?? false,
   };
 
   await docRef.set(cleanForFirestore(fullRelationship));
@@ -430,9 +434,9 @@ export async function upsertRelationship(
   log.debug(
     {
       userId,
-      fromEntityId: relationship.fromEntityId,
-      toEntityId: relationship.toEntityId,
-      type: relationship.relationshipType,
+      fromEntity: relationship.fromEntity,
+      toEntity: relationship.toEntity,
+      type: relationship.type,
     },
     'Created relationship'
   );
@@ -451,8 +455,8 @@ export async function getRelationshipsForEntity(
 
   // Get relationships where entity is either source or target
   const [fromSnapshot, toSnapshot] = await Promise.all([
-    ref.where('fromEntityId', '==', entityId).get(),
-    ref.where('toEntityId', '==', entityId).get(),
+    ref.where('fromEntity', '==', entityId).get(),
+    ref.where('toEntity', '==', entityId).get(),
   ]);
 
   const relationships: EntityRelationship[] = [];

@@ -8,22 +8,21 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { embed } from '../embeddings.js';
 import { cosineSimilarity } from '../rust-accelerator.js';
 import type {
   Entity,
-  EntityType,
+  EdgeType,
   EntityAttributes,
-  EntityRelationship,
-  RelationshipType,
   EntityMention,
+  EntityRelationship,
   EntitySearchOptions,
   EntitySearchResult,
-  ConsolidationReport,
+  EntityType,
 } from './types.js';
-import { tokenize, entityToText, createEntity } from './types.js';
+import { createEntity, entityToText, tokenize } from './types.js';
 
 const log = createLogger({ module: 'EntityStore' });
 
@@ -192,10 +191,7 @@ export class EntityStore {
     }
     this.userEntityIndex.get(userId)!.add(id);
 
-    log.info(
-      { entityId: id, type, name, userId: userId.substring(0, 8) },
-      '🧠 Created entity'
-    );
+    log.info({ entityId: id, type, name, userId: userId.substring(0, 8) }, '🧠 Created entity');
 
     return entity;
   }
@@ -243,21 +239,21 @@ export class EntityStore {
     // Re-embed if name or attributes changed significantly
     if (updates.canonicalName || updates.attributes || updates.aliases) {
       updated.embedding = await embed(entityToText(updated));
-      updated.searchTokens = tokenize(
-        [updated.canonicalName, ...updated.aliases].join(' ')
-      );
+      updated.searchTokens = tokenize([updated.canonicalName, ...updated.aliases].join(' '));
     }
 
-    await this.db!.collection(ENTITIES_COLLECTION).doc(entityId).update(
-      cleanForFirestore({
-        ...updates,
-        updatedAt: updated.updatedAt,
-        lastSeen: updated.lastSeen,
-        mentionCount: updated.mentionCount,
-        embedding: updated.embedding,
-        searchTokens: updated.searchTokens,
-      })
-    );
+    await this.db!.collection(ENTITIES_COLLECTION)
+      .doc(entityId)
+      .update(
+        cleanForFirestore({
+          ...updates,
+          updatedAt: updated.updatedAt,
+          lastSeen: updated.lastSeen,
+          mentionCount: updated.mentionCount,
+          embedding: updated.embedding,
+          searchTokens: updated.searchTokens,
+        })
+      );
 
     // Update cache
     this.entityCache.set(entityId, updated);
@@ -322,6 +318,53 @@ export class EntityStore {
     return snapshot.docs.map((doc) => this.docToEntity(doc));
   }
 
+  /**
+   * Alias for searchEntities (for API compatibility)
+   */
+  async search(
+    userId: string,
+    options: {
+      embedding?: number[];
+      query?: string;
+      limit?: number;
+      minScore?: number;
+      types?: EntityType[];
+    }
+  ): Promise<EntitySearchResult[]> {
+    // If embedding provided, do vector search directly
+    // Otherwise use the standard search
+    const searchOptions: EntitySearchOptions = {
+      userId,
+      topK: options.limit ?? DEFAULT_TOP_K,
+      minScore: options.minScore ?? DEFAULT_MIN_SCORE,
+      types: options.types,
+      hybrid: true,
+    };
+    return this.searchEntities(options.query || '', searchOptions);
+  }
+
+  /**
+   * Get recently mentioned entities
+   */
+  async getRecentlyMentioned(userId: string, limit = 20): Promise<Entity[]> {
+    this.ensureInitialized();
+
+    const snapshot = await this.db!.collection(ENTITIES_COLLECTION)
+      .where('userId', '==', userId)
+      .orderBy('lastSeen', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => this.docToEntity(doc));
+  }
+
+  /**
+   * Get entities by type
+   */
+  async getByType(userId: string, type: EntityType, limit = 50): Promise<Entity[]> {
+    return this.getUserEntities(userId, { types: [type], limit });
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // ENTITY SEARCH
   // ═══════════════════════════════════════════════════════════════════════════
@@ -329,10 +372,7 @@ export class EntityStore {
   /**
    * Semantic search for entities
    */
-  async searchEntities(
-    query: string,
-    options: EntitySearchOptions
-  ): Promise<EntitySearchResult[]> {
+  async searchEntities(query: string, options: EntitySearchOptions): Promise<EntitySearchResult[]> {
     this.ensureInitialized();
 
     const topK = options.topK ?? DEFAULT_TOP_K;
@@ -373,7 +413,14 @@ export class EntityStore {
     // TEMPORAL & EMOTIONAL WEIGHTING
     // ═══════════════════════════════════════════════════════════════════════
 
-    const weightedResults = expandedResults.map((result) => {
+    interface SearchResultWithGraph {
+      entity: Entity;
+      score: number;
+      keywordScore?: number;
+      graphDistance?: number;
+      graphPath?: string[];
+    }
+    const weightedResults = (expandedResults as SearchResultWithGraph[]).map((result) => {
       const { entity, score, graphDistance = 0 } = result;
 
       // Temporal recency boost
@@ -381,7 +428,7 @@ export class EntityStore {
       const recencyScore = Math.exp(-daysSinceLastSeen / 30); // 30-day half-life
 
       // Emotional salience boost (decays slower)
-      const lastEmotionalPeak = entity.temporalContext.lastEmotionalPeak;
+      const { lastEmotionalPeak } = entity.temporalContext;
       const daysSinceEmotionalPeak = lastEmotionalPeak
         ? this.daysBetween(lastEmotionalPeak, new Date())
         : 365;
@@ -392,10 +439,7 @@ export class EntityStore {
 
       // Combined score
       const finalScore =
-        (score * 0.5 +
-          recencyScore * 0.2 +
-          emotionalScore * 0.2 +
-          entity.salienceScore * 0.1) *
+        (score * 0.5 + recencyScore * 0.2 + emotionalScore * 0.2 + entity.salienceScore * 0.1) *
         graphPenalty;
 
       return {
@@ -459,6 +503,9 @@ export class EntityStore {
     queryEmbedding: number[],
     options: EntitySearchOptions
   ): Promise<Array<{ entity: Entity; score: number }>> {
+    if (!options.userId) {
+      return [];
+    }
     // First, get user's entities
     const entities = await this.getUserEntities(options.userId, {
       types: options.types,
@@ -586,7 +633,7 @@ export class EntityStore {
   async createRelationship(
     fromEntityId: string,
     toEntityId: string,
-    type: RelationshipType,
+    type: EdgeType,
     options?: {
       strength?: number;
       context?: string;
@@ -631,22 +678,23 @@ export class EntityStore {
 
     // Get relationships where entity is source or target
     const [fromQuery, toQuery] = await Promise.all([
-      this.db!.collection(RELATIONSHIPS_COLLECTION)
-        .where('fromEntity', '==', entityId)
-        .get(),
-      this.db!.collection(RELATIONSHIPS_COLLECTION)
-        .where('toEntity', '==', entityId)
-        .get(),
+      this.db!.collection(RELATIONSHIPS_COLLECTION).where('fromEntity', '==', entityId).get(),
+      this.db!.collection(RELATIONSHIPS_COLLECTION).where('toEntity', '==', entityId).get(),
     ]);
 
     const relationships: EntityRelationship[] = [];
 
     for (const doc of fromQuery.docs) {
-      relationships.push(doc.data() as EntityRelationship);
+      const data = doc.data();
+      if (data) {
+        relationships.push({ ...data, id: doc.id } as unknown as EntityRelationship);
+      }
     }
 
     for (const doc of toQuery.docs) {
-      const rel = doc.data() as EntityRelationship;
+      const data = doc.data();
+      if (!data) continue;
+      const rel = { ...data, id: doc.id } as unknown as EntityRelationship;
       // Only include if bidirectional or not already added
       if (rel.bidirectional && !relationships.find((r) => r.id === rel.id)) {
         relationships.push(rel);
@@ -665,9 +713,10 @@ export class EntityStore {
     const docRef = this.db!.collection(RELATIONSHIPS_COLLECTION).doc(relationshipId);
     const doc = await docRef.get();
 
-    if (!doc.exists) return;
+    const data = doc.data();
+    if (!doc.exists || !data) return;
 
-    const rel = doc.data() as EntityRelationship;
+    const rel = data as unknown as EntityRelationship;
     const newStrength = Math.min(1.0, rel.strength + 0.1);
 
     await docRef.update({
@@ -741,7 +790,7 @@ export class EntityStore {
 
   /**
    * Find or create entity by name/alias
-   * 
+   *
    * This is the key to solving the fragmentation problem:
    * "my brother" should always resolve to the same entity
    */
@@ -942,7 +991,7 @@ export class EntityStore {
       createdAt: this.toDate(data.createdAt),
       updatedAt: this.toDate(data.updatedAt),
       temporalContext: {
-        ...data.temporalContext as Entity['temporalContext'],
+        ...(data.temporalContext as Entity['temporalContext']),
         peakMoments: ((data.temporalContext as Entity['temporalContext'])?.peakMoments ?? []).map(
           (d: unknown) => this.toDate(d)
         ),

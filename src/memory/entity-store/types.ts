@@ -27,7 +27,13 @@ export type EntityType =
   | 'memory' // Specific remembered moments
   | 'topic' // Recurring conversation topics
   | 'emotion' // Emotional states/patterns
-  | 'goal'; // Active goals
+  | 'goal' // Active goals
+  | 'concept' // Abstract concepts
+  | 'insight' // Generated insights
+  // Additional types for knowledge-graph compatibility
+  | 'organization' // Companies, schools, groups
+  | 'habit' // Habits the user has or wants
+  | 'self'; // The user themselves
 
 /**
  * How was this entity created?
@@ -54,7 +60,14 @@ export type RelationshipType =
   | 'other';
 
 /** @deprecated Use RelationshipType instead */
-export type SimpleRelationshipType = RelationshipType;
+export type SimpleRelationshipType =
+  | 'family'
+  | 'friend'
+  | 'colleague'
+  | 'romantic'
+  | 'professional'
+  | 'acquaintance'
+  | 'other';
 
 /**
  * Specific family relationships
@@ -181,6 +194,12 @@ export interface Entity {
   /** Extended temporal context */
   temporalContext: TemporalContext;
 
+  // Backward compatibility aliases for knowledge-graph (REQUIRED for compatibility)
+  /** Alias for firstSeen - knowledge-graph compatibility */
+  firstMentioned: Date;
+  /** Alias for lastSeen - knowledge-graph compatibility */
+  lastMentioned: Date;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // SALIENCE
   // ═══════════════════════════════════════════════════════════════════════════
@@ -194,12 +213,21 @@ export interface Entity {
   /** Computed recency boost */
   recencyBoost: number;
 
+  // Backward compatibility aliases for knowledge-graph (REQUIRED for compatibility)
+  /** Alias for salienceScore - knowledge-graph compatibility */
+  importance: number;
+  /** Alias for emotionalWeight - knowledge-graph compatibility */
+  emotionalSalience: number;
+
   // ═══════════════════════════════════════════════════════════════════════════
   // TYPE-SPECIFIC ATTRIBUTES
   // ═══════════════════════════════════════════════════════════════════════════
 
   /** Type-dependent fields (polymorphic) */
   attributes: EntityAttributes;
+
+  /** Generic properties - knowledge-graph compatibility */
+  properties: EntityProperties;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PROVENANCE
@@ -323,13 +351,7 @@ export interface PersonAttributes {
   relationship: string;
 
   /** Relationship category */
-  relationshipCategory:
-    | 'family'
-    | 'friend'
-    | 'colleague'
-    | 'acquaintance'
-    | 'professional'
-    | 'other';
+  relationshipCategory: SimpleRelationshipType;
 
   /** Contact information */
   phone?: string;
@@ -695,7 +717,16 @@ export type EdgeType =
   | 'triggers' // Emotion triggered by Event/Topic
   | 'blocks' // Blocker blocks Goal
   | 'helps' // Resource helps Goal
-  // Person-to-person edge types (used in EntityRelationship)
+  // Person-to-thing edge types
+  | 'interested_in' // Interest/hobby
+  | 'worried_about' // Concern
+  | 'wants' // Desire/goal
+  | 'committed_to' // Commitment
+  | 'values' // Core value
+  // Thing-to-thing edge types
+  | 'part_of' // Hierarchical
+  | 'enables' // Dependency
+  // Person-to-person edge types
   | 'knows' // Generic connection
   | 'family_of' // Family relationship
   | 'friend_of' // Friendship
@@ -921,6 +952,8 @@ export function createEntity(
   attributes: EntityAttributes
 ): Omit<Entity, 'id' | 'embedding'> {
   const now = new Date();
+  const salienceScore = 0.5;
+  const emotionalWeight = 0;
   return {
     userId,
     type,
@@ -934,16 +967,65 @@ export function createEntity(
       peakMoments: [],
       emotionalDecayResistance: 1.0,
     },
-    salienceScore: 0.5,
-    emotionalWeight: 0,
+    // Compatibility aliases
+    firstMentioned: now,
+    lastMentioned: now,
+    salienceScore,
+    emotionalWeight,
+    // Compatibility aliases
+    importance: salienceScore,
+    emotionalSalience: emotionalWeight,
     recencyBoost: 1.0,
     attributes,
+    // Compatibility - convert attributes to generic properties
+    properties: attributesToProperties(attributes),
     sourceConversations: [],
     sourcePersonas: [],
     confidence: 0.8,
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/**
+ * Convert EntityAttributes to EntityProperties for backward compatibility
+ */
+function attributesToProperties(attrs: EntityAttributes): EntityProperties {
+  const props: EntityProperties = {};
+  
+  switch (attrs._type) {
+    case 'person':
+      props.relationship = attrs.relationship;
+      props.phone = attrs.phone;
+      props.email = attrs.email;
+      if (attrs.birthday) {
+        props.birthday = `${attrs.birthday.month}/${attrs.birthday.day}${attrs.birthday.year ? `/${attrs.birthday.year}` : ''}`;
+      }
+      break;
+    case 'place':
+      props.placeType = attrs.placeType;
+      props.location = attrs.location;
+      props.coordinates = attrs.coordinates;
+      break;
+    case 'event':
+      props.date = attrs.date;
+      props.recurring = attrs.isRecurring;
+      props.recurringPattern = attrs.recurringPattern;
+      props.participants = attrs.relatedPeople;
+      break;
+    case 'goal':
+      props.status = attrs.status;
+      props.targetDate = attrs.targetDate;
+      props.progress = attrs.progress;
+      break;
+    case 'commitment':
+      props.status = attrs.status;
+      props.targetDate = attrs.targetDate;
+      break;
+    // Add more as needed
+  }
+  
+  return props;
 }
 
 /**
@@ -987,4 +1069,197 @@ export function entityToText(entity: Entity): string {
   }
 
   return parts.join(' - ');
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY TYPES
+// ============================================================================
+
+/**
+ * Generic entity properties (knowledge-graph compatibility)
+ * @deprecated Use type-specific attributes (EntityAttributes) instead
+ */
+export interface EntityProperties {
+  // Person properties
+  relationship?: string;
+  phone?: string;
+  email?: string;
+  birthday?: string;
+  location?: string;
+  occupation?: string;
+
+  // Place properties
+  address?: string;
+  coordinates?: { lat: number; lng: number };
+  placeType?: string;
+
+  // Event properties
+  date?: Date;
+  endDate?: Date;
+  recurring?: boolean;
+  recurrencePattern?: string;
+  participants?: string[];
+
+  // Goal/Dream properties
+  status?: 'active' | 'achieved' | 'abandoned' | 'paused';
+  targetDate?: Date;
+  progress?: number;
+
+  // Habit properties
+  frequency?: string;
+  streak?: number;
+  lastCompleted?: Date;
+
+  // Commitment properties
+  dueDate?: Date;
+  priority?: 'high' | 'medium' | 'low';
+  completed?: boolean;
+
+  // Value properties
+  strength?: number;
+  category?: string;
+
+  // Generic
+  notes?: string;
+  tags?: string[];
+}
+
+/**
+ * Mention type classification
+ */
+export type MentionType =
+  | 'reference' // Simple reference ("I saw Mike")
+  | 'story' // Story about entity ("Mike did something funny")
+  | 'emotion' // Emotional content ("I'm worried about Mike")
+  | 'fact' // New fact ("Mike lives in Chicago")
+  | 'update' // Status update ("Mike got promoted")
+  | 'planning' // Future planning ("Meeting Mike tomorrow")
+  | 'reflection'; // Reflecting on relationship
+
+/**
+ * Mention - A reference to an entity in conversation
+ * (Alias for EntityMention with additional fields)
+ */
+export interface Mention {
+  id: string;
+  userId: string;
+  entityId: string;
+
+  // Context
+  transcript: string;
+  sessionId: string;
+  turnNumber?: number;
+  personaId: string;
+
+  // Temporal
+  timestamp: Date;
+
+  // Semantic
+  topics: string[];
+  sentiment: number; // -1 to 1
+  emotionalIntensity: number; // 0-1
+
+  // Classification
+  mentionType: MentionType;
+
+  // Extracted facts
+  facts: ExtractedFact[];
+
+  // Embedding for semantic search
+  embedding?: number[];
+}
+
+/**
+ * Extracted fact from a mention
+ */
+export interface ExtractedFact {
+  type: 'attribute' | 'event' | 'relationship' | 'state';
+  key: string;
+  value: string;
+  confidence: number; // 0-1
+  validFrom?: Date;
+  validUntil?: Date;
+}
+
+/**
+ * Query options for entity retrieval
+ */
+export interface EntityQuery {
+  entityId?: string;
+  name?: string;
+  type?: EntityType;
+  relationship?: RelationshipType;
+  includeRelated?: boolean;
+  includeMentions?: boolean;
+  timeRange?: { start: Date; end: Date };
+  limit?: number;
+}
+
+/**
+ * Result of an entity query
+ */
+export interface EntityQueryResult {
+  entity: Entity;
+  mentions: Mention[];
+  facts: ExtractedFact[];
+  relationships: EntityRelationship[];
+  relatedEntities: Entity[];
+}
+
+// ============================================================================
+// MIGRATION TYPES (for legacy data)
+// ============================================================================
+
+/**
+ * Legacy contact from user_contacts collection
+ */
+export interface LegacyContact {
+  id: string;
+  userId: string;
+  displayName?: string;
+  name?: string;
+  phone?: string;
+  phones?: Array<{ number: string; type: string }>;
+  email?: string;
+  emails?: Array<{ address: string; type: string }>;
+  relationship?: string;
+  notes?: string;
+  nicknames?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * Legacy person from relationship_network collection
+ */
+export interface LegacyRelationshipPerson {
+  id: string;
+  userId: string;
+  name: string;
+  type: string;
+  importance: number;
+  sentiment: number;
+  mentionCount: number;
+  firstMentioned?: Date;
+  lastMentioned?: Date;
+  context?: string[];
+}
+
+/**
+ * Result of a migration operation
+ */
+export interface MigrationResult {
+  userId: string;
+  entitiesCreated: number;
+  entitiesMerged: number;
+  mentionsCreated: number;
+  legacyCollections: {
+    userContacts: number;
+    relationshipNetwork: number;
+    contactRelationships: number;
+    guestProfiles: number;
+    relationshipNodes: number;
+  };
+  errors: string[];
+  duration: number;
 }
