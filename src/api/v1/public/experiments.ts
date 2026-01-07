@@ -201,7 +201,15 @@ export async function handlePublicExperimentsRoutes(
       return true;
     }
 
-    return false;
+    // Catch-all for unknown routes under /api/v1/public/experiments
+    // Return 200 with error info instead of 404 to reduce noisy console errors
+    log.debug({ pathname, method }, 'Unmatched experiments route');
+    sendJson(res, 200, {
+      error: 'Unknown experiments endpoint',
+      code: 'UNKNOWN_ROUTE',
+      path: pathname,
+    });
+    return true;
   } catch (error) {
     log.error({ error, pathname, method }, 'Error in public experiments API');
     sendJson(res, 500, { error: 'Internal server error' });
