@@ -84,7 +84,17 @@ export interface CallbackSignal {
     | 'milestone' // An achievement/progress
     | 'pattern' // Something you've noticed over time
     | 'shared-moment' // A moment you experienced together
-    | 'growth'; // Change/progress you've observed
+    | 'growth' // Change/progress you've observed
+    // Superhuman predictive types
+    | 'breakthrough' // Near breakthrough moment
+    | 'suggestion' // Actionable suggestion
+    | 'avoidance' // Topic to navigate carefully
+    | 'trajectory' // Emotional trajectory insight
+    | 'prevention' // Proactive prevention
+    | 'ripple' // Ripple effect insight
+    | 'leverage' // Leverage point for change
+    | 'spiral' // Spiral risk warning
+    | 'proactive'; // Proactive insight
 
   /**
    * Natural language hint for weaving in.
@@ -96,7 +106,7 @@ export interface CallbackSignal {
   hint: string;
 
   /** How strongly to consider referencing this */
-  strength: 'subtle' | 'natural' | 'important';
+  strength: 'subtle' | 'natural' | 'important' | 'gentle';
 }
 
 // ============================================================================
@@ -159,6 +169,9 @@ export interface BehavioralSignals {
 
   /** Response length guidance */
   length?: LengthModifier;
+
+  /** Response depth guidance */
+  depth?: DepthModifier;
 
   /** Energy level to match/project */
   energy?: EnergyModifier;

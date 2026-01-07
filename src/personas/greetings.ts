@@ -741,7 +741,7 @@ function generateMemoryBasedGreeting(
 // ============================================================================
 
 import { generateProactiveOpener, type OpenerContext } from '../conversation/proactive-starters.js';
-import { getJourneyGreetingEnhancement } from '../intelligence/context-builders/personal-journey.js';
+import { getJourneyGreetingEnhancement } from '../intelligence/context-builders/external/personal-journey.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import { generateCompositionalGreeting } from './compositional-greetings.js';
 

@@ -24,9 +24,9 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getEntityResolver } from './entity-resolver.js';
-import { getUnifiedQueryEngine } from './unified-query.js';
-import { getCorrelationEngine } from './correlation-engine.js';
+import { getEntityResolver } from '../entity-store/entity-resolver.js';
+import { getUnifiedQueryEngine } from './services/natural-language-query.js';
+import { getCorrelationEngine } from '../entity-store/correlation-engine.js';
 import type {
   Entity,
   SurfacingRecommendation,
