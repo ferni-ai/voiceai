@@ -13,7 +13,6 @@
       "playMusic",
       "musicControl",
       "musicInfo",
-      "getNews",
       "getWeather",
       "setReminder",
       "recallFromMemory",
