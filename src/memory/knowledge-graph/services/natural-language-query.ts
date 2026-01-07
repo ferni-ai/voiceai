@@ -176,7 +176,7 @@ const QUERY_PATTERNS: Array<{
 /**
  * Detect query type and extract target from natural language
  */
-function detectQueryType(query: string): { type: QueryType; target: string } {
+export function detectQueryType(query: string): { type: QueryType; target: string } {
   for (const { pattern, type, extractTarget } of QUERY_PATTERNS) {
     const match = query.match(pattern);
     if (match) {
@@ -775,6 +775,41 @@ function formatTimelineResponse(entity: Entity, mentions: Mention[]): string {
   }
 
   return lines.join('\n');
+}
+
+// ============================================================================
+// UNIFIED QUERY ENGINE
+// ============================================================================
+
+/**
+ * Unified Query Engine - facade for natural language queries
+ *
+ * This provides a singleton-style accessor pattern used by higher-level
+ * modules. It wraps executeNaturalQuery with additional convenience methods.
+ */
+export interface UnifiedQueryEngine {
+  /** Execute a natural language query */
+  query: (userId: string, query: string, options?: QueryOptions) => Promise<NaturalQueryResult>;
+  /** Detect query type without executing */
+  detectType: (query: string) => { type: QueryType; target: string };
+  /** Check if engine is ready */
+  isReady: () => boolean;
+}
+
+let unifiedEngineInstance: UnifiedQueryEngine | null = null;
+
+/**
+ * Get the unified query engine singleton
+ */
+export function getUnifiedQueryEngine(): UnifiedQueryEngine {
+  if (!unifiedEngineInstance) {
+    unifiedEngineInstance = {
+      query: executeNaturalQuery,
+      detectType: detectQueryType,
+      isReady: () => true,
+    };
+  }
+  return unifiedEngineInstance;
 }
 
 // ============================================================================

@@ -17,6 +17,8 @@ export {
 export {
   executeNaturalQuery,
   detectQueryType,
+  getUnifiedQueryEngine,
+  type UnifiedQueryEngine,
   type QueryType,
   type QueryOptions,
   type NaturalQueryResult,

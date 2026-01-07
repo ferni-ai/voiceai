@@ -561,3 +561,41 @@ export async function whatDoWeKnowAbout(
     relatedEntities,
   };
 }
+
+// ============================================================================
+// ENTITY RESOLVER SINGLETON
+// ============================================================================
+
+/**
+ * Entity Resolver - singleton accessor pattern
+ *
+ * This provides a facade for entity resolution operations used by
+ * higher-level modules like knowledge-graph.
+ */
+export interface EntityResolver {
+  /** Resolve a person mention to a canonical entity */
+  resolvePerson: typeof resolvePerson;
+  /** Merge duplicate entities */
+  mergeEntities: typeof mergeEntities;
+  /** Get everything we know about an entity */
+  whatDoWeKnowAbout: typeof whatDoWeKnowAbout;
+  /** Check if resolver is ready */
+  isReady: () => boolean;
+}
+
+let entityResolverInstance: EntityResolver | null = null;
+
+/**
+ * Get the entity resolver singleton
+ */
+export function getEntityResolver(): EntityResolver {
+  if (!entityResolverInstance) {
+    entityResolverInstance = {
+      resolvePerson,
+      mergeEntities,
+      whatDoWeKnowAbout,
+      isReady: () => true,
+    };
+  }
+  return entityResolverInstance;
+}

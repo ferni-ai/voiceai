@@ -73,6 +73,8 @@ export {
   // Natural language query
   executeNaturalQuery,
   detectQueryType,
+  getUnifiedQueryEngine,
+  type UnifiedQueryEngine,
   type QueryType,
   type QueryOptions,
   type NaturalQueryResult,
@@ -143,3 +145,60 @@ export {
   findOrCreateThread,
   markDormantThreads,
 } from './storage/index.js';
+
+// ============================================================================
+// ENTITY RESOLVER RE-EXPORT
+// ============================================================================
+
+export {
+  getEntityResolver,
+  type EntityResolver,
+} from '../entity-store/entity-resolver.js';
+
+// ============================================================================
+// KNOWLEDGE GRAPH SINGLETON
+// ============================================================================
+
+import type { EntityResolver } from '../entity-store/entity-resolver.js';
+import type { UnifiedQueryEngine } from './services/natural-language-query.js';
+
+/**
+ * Knowledge Graph - unified facade for the knowledge graph system
+ *
+ * This provides a singleton accessor pattern used by higher-level modules
+ * like integration.ts to access all knowledge graph functionality.
+ */
+export interface KnowledgeGraph {
+  /** Entity resolver for person mentions */
+  entityResolver: EntityResolver;
+  /** Query engine for natural language queries */
+  queryEngine: UnifiedQueryEngine;
+  /** Capture knowledge from conversation turns */
+  captureTurn: typeof captureTurn;
+  /** Execute natural language queries */
+  executeQuery: typeof executeNaturalQuery;
+  /** Check if knowledge graph is ready */
+  isReady: () => boolean;
+}
+
+let knowledgeGraphInstance: KnowledgeGraph | null = null;
+
+/**
+ * Get the knowledge graph singleton
+ */
+export function getKnowledgeGraph(): KnowledgeGraph {
+  if (!knowledgeGraphInstance) {
+    // Lazy import to avoid circular dependencies
+    const { getEntityResolver: getResolver } = require('../entity-store/entity-resolver.js');
+    const { getUnifiedQueryEngine: getEngine } = require('./services/natural-language-query.js');
+
+    knowledgeGraphInstance = {
+      entityResolver: getResolver(),
+      queryEngine: getEngine(),
+      captureTurn,
+      executeQuery: executeNaturalQuery,
+      isReady: () => isKnowledgeCaptureReady(),
+    };
+  }
+  return knowledgeGraphInstance;
+}
