@@ -172,6 +172,7 @@ export {
 
 import type { EntityResolver } from '../entity-store/entity-resolver.js';
 import type { UnifiedQueryEngine } from './services/natural-language-query.js';
+import type { Entity } from './types.js';
 
 /**
  * Knowledge Graph - unified facade for the knowledge graph system
@@ -193,11 +194,11 @@ export interface KnowledgeGraph {
 
   // Stub methods for backward compatibility with integration.ts
   /** Resolve a mention to an entity (stub - delegates to entityResolver) */
-  resolveMention: (userId: string, mention: unknown) => Promise<unknown>;
+  resolveMention: (userId: string, mention: unknown, context?: unknown) => Promise<Entity>;
   /** Add a fact about an entity (stub) */
-  addFact: (userId: string, entityId: string, fact: unknown) => Promise<void>;
+  addFact: (userId: string, entityId: string, fact: unknown, context?: unknown) => Promise<void>;
   /** Record a mention of an entity (stub) */
-  recordMention: (userId: string, entityId: string, mention: unknown) => Promise<void>;
+  recordMention: (userId: string, entityId: string, mention: unknown, context?: unknown) => Promise<void>;
 }
 
 let knowledgeGraphInstance: KnowledgeGraph | null = null;
@@ -220,19 +221,115 @@ export function getKnowledgeGraph(): KnowledgeGraph {
       executeQuery: executeNaturalQuery,
       isReady: () => isKnowledgeCaptureReady(),
 
-      // Stub implementations for backward compatibility
-      resolveMention: async (userId: string, mention: unknown) => {
-        // Delegate to entityResolver if it has the method, otherwise return null
+      // Full implementations (not stubs!)
+      resolveMention: async (userId: string, mention: unknown, context?: unknown): Promise<Entity> => {
+        // Use the full entity resolver implementation
         if (resolver && typeof resolver.resolveMention === 'function') {
-          return resolver.resolveMention(userId, mention);
+          const resolved = await resolver.resolveMention(userId, mention);
+          if (resolved) {
+            return resolved as Entity;
+          }
         }
-        return null;
+
+        // Fallback: Use resolvePerson for person mentions
+        const input = mention as { name?: string; text?: string; relationship?: string };
+        const result = await resolver.resolvePerson(userId, {
+          name: input.name || input.text,
+          relationship: input.relationship,
+          context: typeof context === 'object' && context !== null 
+            ? JSON.stringify(context) 
+            : undefined,
+        });
+
+        return result.entity as Entity;
       },
-      addFact: async (_userId: string, _entityId: string, _fact: unknown) => {
-        // Stub - facts are captured through captureTurn
+
+      addFact: async (userId: string, entityId: string, fact: unknown, context?: unknown) => {
+        // Full implementation: Store fact as part of a mention
+        const { createMention } = await import('../entity-store/storage.js');
+        
+        const factObj = fact as { 
+          type?: string; 
+          key?: string; 
+          value?: string; 
+          content?: string;
+          confidence?: number;
+        };
+
+        // Create a mention with the fact attached
+        await createMention(userId, {
+          entityId,
+          userId,
+          timestamp: new Date(),
+          sessionId: (context as { sessionId?: string })?.sessionId || 'unknown',
+          personaId: (context as { personaId?: string })?.personaId || 'ferni',
+          snippet: factObj.content || factObj.value || '',
+          emotionalWeight: 0,
+          mentionContext: 'direct',
+          facts: [{
+            type: (factObj.type as 'attribute' | 'event' | 'relationship' | 'state') || 'attribute',
+            key: factObj.key || 'fact',
+            value: factObj.value || factObj.content || '',
+            confidence: factObj.confidence ?? 0.8,
+          }],
+        } as Omit<import('../entity-store/types.js').Mention, 'id'>);
+
+        // Also update the entity's lastSeen
+        const { updateEntity } = await import('../entity-store/storage.js');
+        await updateEntity(userId, entityId, {
+          lastSeen: new Date(),
+          updatedAt: new Date(),
+        });
       },
-      recordMention: async (_userId: string, _entityId: string, _mention: unknown) => {
-        // Stub - mentions are captured through captureTurn
+
+      recordMention: async (userId: string, entityId: string, mention: unknown, context?: unknown) => {
+        // Full implementation: Record the mention in storage
+        const { createMention, updateEntity } = await import('../entity-store/storage.js');
+        
+        const mentionObj = mention as {
+          text?: string;
+          snippet?: string;
+          context?: string;
+          sessionId?: string;
+          personaId?: string;
+          emotionalWeight?: number;
+          sentiment?: number;
+        };
+
+        const contextObj = context as {
+          sessionId?: string;
+          personaId?: string;
+          turnNumber?: number;
+          topics?: string[];
+        } | undefined;
+
+        // Create the mention record
+        await createMention(userId, {
+          entityId,
+          userId,
+          timestamp: new Date(),
+          sessionId: mentionObj.sessionId || contextObj?.sessionId || 'unknown',
+          personaId: mentionObj.personaId || contextObj?.personaId || 'ferni',
+          snippet: mentionObj.text || mentionObj.snippet || mentionObj.context || '',
+          emotionalWeight: mentionObj.emotionalWeight ?? 0,
+          mentionContext: 'direct',
+          sentiment: mentionObj.sentiment ?? 0,
+          emotionalIntensity: Math.abs(mentionObj.sentiment ?? 0),
+          topics: contextObj?.topics || [],
+          mentionType: 'reference',
+          facts: [],
+        } as Omit<import('../entity-store/types.js').Mention, 'id'>);
+
+        // Update entity mention count and lastSeen
+        const { getEntity } = await import('../entity-store/storage.js');
+        const entity = await getEntity(userId, entityId);
+        if (entity) {
+          await updateEntity(userId, entityId, {
+            lastSeen: new Date(),
+            mentionCount: (entity.mentionCount || 0) + 1,
+            updatedAt: new Date(),
+          });
+        }
       },
     };
   }

@@ -26,6 +26,7 @@ import type {
   PersonCaptureInput,
   PersonAttributes,
   EntityAttributes,
+  ExtractedFact,
 } from './types.js';
 
 const log = createLogger({ module: 'entity-store:resolver' });
@@ -641,6 +642,27 @@ export async function whatDoWeKnowAbout(
  * This provides a facade for entity resolution operations used by
  * higher-level modules like knowledge-graph.
  */
+/**
+ * Input for resolving a mention
+ */
+export interface MentionInput {
+  text?: string;
+  name?: string;
+  relationship?: string;
+  type?: string;
+  phone?: string;
+  email?: string;
+}
+
+/**
+ * Query for resolving an entity
+ */
+export interface EntityQuery {
+  id?: string;
+  name?: string;
+  type?: string;
+}
+
 export interface EntityResolver {
   /** Resolve a person mention to a canonical entity */
   resolvePerson: typeof resolvePerson;
@@ -650,9 +672,223 @@ export interface EntityResolver {
   whatDoWeKnowAbout: typeof whatDoWeKnowAbout;
   /** Check if resolver is ready */
   isReady: () => boolean;
+
+  // Full implementations for knowledge-graph integration
+  /** Resolve a mention (name/relationship) to a canonical entity */
+  resolveMention: (userId: string, mention: MentionInput) => Promise<Entity | null>;
+  /** Add a relationship between two entities */
+  addRelationship: (userId: string, fromId: string, toId: string, type: string) => Promise<void>;
+  /** Resolve an entity by ID or query */
+  resolve: (userId: string, query: string | EntityQuery) => Promise<Entity | null>;
+  /** Get all people entities for a user */
+  getPeople: (userId: string) => Promise<Entity[]>;
+  /** Get facts about an entity */
+  getFacts: (userId: string, entityId: string) => Promise<ExtractedFact[]>;
+  /** Get a specific entity by ID */
+  getEntity: (userId: string, entityId: string) => Promise<Entity | null>;
+  /** Get entities by type */
+  getEntitiesByType: (userId: string, type: string) => Promise<Entity[]>;
 }
 
 let entityResolverInstance: EntityResolver | null = null;
+
+// ============================================================================
+// FULL IMPLEMENTATIONS (not stubs)
+// ============================================================================
+
+/**
+ * Resolve a mention to an entity - FULL IMPLEMENTATION
+ * This handles text mentions like "my brother" or "Mike" and resolves to canonical entities.
+ */
+async function resolveMentionImpl(
+  userId: string,
+  mention: unknown
+): Promise<Entity | null> {
+  const input = mention as {
+    text?: string;
+    name?: string;
+    relationship?: string;
+    type?: string;
+    phone?: string;
+    email?: string;
+  };
+
+  // Extract the name/text to resolve
+  const nameOrText = input.name || input.text;
+  
+  if (!nameOrText && !input.relationship) {
+    log.debug({ userId, mention }, 'Cannot resolve mention without name or relationship');
+    return null;
+  }
+
+  // Use the existing resolvePerson which handles all resolution logic
+  const result = await resolvePerson(userId, {
+    name: nameOrText,
+    relationship: input.relationship,
+    phone: input.phone,
+    email: input.email,
+    context: input.text,
+  });
+
+  log.debug(
+    { userId, input: nameOrText, entityId: result.entity.id, confidence: result.confidence },
+    'Resolved mention to entity'
+  );
+
+  return result.entity;
+}
+
+/**
+ * Add a relationship between two entities - FULL IMPLEMENTATION
+ */
+async function addRelationshipImpl(
+  userId: string,
+  fromEntityId: string,
+  toEntityId: string,
+  relationshipType: string
+): Promise<void> {
+  const { upsertRelationship } = await import('./storage.js');
+
+  // Map string relationship type to EdgeType
+  const edgeType = mapToEdgeType(relationshipType);
+
+  await upsertRelationship(userId, {
+    fromEntity: fromEntityId,
+    toEntity: toEntityId,
+    type: edgeType,
+    strength: 0.5,
+    firstLinked: new Date(),
+    lastReinforced: new Date(),
+    reinforcementCount: 1,
+    bidirectional: false,
+  });
+
+  log.info(
+    { userId, fromEntityId, toEntityId, relationshipType },
+    'Added relationship between entities'
+  );
+}
+
+/**
+ * Map string to EdgeType (handles various relationship strings)
+ */
+function mapToEdgeType(rel: string): import('./types.js').EdgeType {
+  const mapping: Record<string, import('./types.js').EdgeType> = {
+    // Person-to-person
+    family: 'family_of',
+    family_of: 'family_of',
+    friend: 'friend_of',
+    friend_of: 'friend_of',
+    colleague: 'works_with',
+    works_with: 'works_with',
+    romantic: 'romantic_with',
+    romantic_with: 'romantic_with',
+    knows: 'knows',
+    reports_to: 'reports_to',
+    // Person-to-thing
+    interested_in: 'interested_in',
+    worried_about: 'worried_about',
+    wants: 'wants',
+    committed_to: 'committed_to',
+    commitment: 'committed_to',
+    values: 'values',
+    // Generic
+    related_to: 'related_to',
+    involves: 'involves',
+    about: 'about',
+    affects: 'affects',
+    causes: 'causes',
+    supports: 'supports',
+    blocks: 'blocks',
+    helps: 'helps',
+  };
+
+  return mapping[rel.toLowerCase()] || 'related_to';
+}
+
+/**
+ * Resolve an entity by ID or query - FULL IMPLEMENTATION
+ */
+async function resolveImpl(
+  userId: string,
+  query: unknown
+): Promise<Entity | null> {
+  // If query is a string, could be an ID or a name
+  if (typeof query === 'string') {
+    // First try as ID
+    const byId = await getEntity(userId, query);
+    if (byId) return byId;
+
+    // Then try as name/alias
+    const byName = await findEntityByAlias(userId, query);
+    if (byName) return byName;
+
+    return null;
+  }
+
+  // If query is an object, use it for resolution
+  const queryObj = query as { id?: string; name?: string; type?: string };
+  
+  if (queryObj.id) {
+    return getEntity(userId, queryObj.id);
+  }
+
+  if (queryObj.name) {
+    return findEntityByAlias(userId, queryObj.name, queryObj.type as import('./types.js').EntityType);
+  }
+
+  return null;
+}
+
+/**
+ * Get all people entities for a user - FULL IMPLEMENTATION
+ */
+async function getPeopleImpl(userId: string): Promise<Entity[]> {
+  return getAllEntities(userId, { types: ['person'], topK: 500 });
+}
+
+/**
+ * Get facts about an entity - FULL IMPLEMENTATION
+ */
+async function getFactsImpl(
+  userId: string,
+  entityId: string
+): Promise<import('./types.js').ExtractedFact[]> {
+  const { getMentionsForEntity } = await import('./storage.js');
+
+  // Get all mentions for this entity
+  const mentions = await getMentionsForEntity(userId, entityId, 100);
+
+  // Extract facts from mentions
+  const facts: import('./types.js').ExtractedFact[] = [];
+  for (const mention of mentions) {
+    if (mention.facts && Array.isArray(mention.facts)) {
+      facts.push(...mention.facts);
+    }
+  }
+
+  return facts;
+}
+
+/**
+ * Get a specific entity by ID - FULL IMPLEMENTATION
+ */
+async function getEntityImpl(
+  userId: string,
+  entityId: string
+): Promise<Entity | null> {
+  return getEntity(userId, entityId);
+}
+
+/**
+ * Get entities by type - FULL IMPLEMENTATION
+ */
+async function getEntitiesByTypeImpl(
+  userId: string,
+  type: string
+): Promise<Entity[]> {
+  return getAllEntities(userId, { types: [type as import('./types.js').EntityType], topK: 200 });
+}
 
 /**
  * Get the entity resolver singleton
@@ -664,6 +900,15 @@ export function getEntityResolver(): EntityResolver {
       mergeEntities,
       whatDoWeKnowAbout,
       isReady: () => true,
+
+      // Full implementations (not stubs!)
+      resolveMention: resolveMentionImpl,
+      addRelationship: addRelationshipImpl,
+      resolve: resolveImpl,
+      getPeople: getPeopleImpl,
+      getFacts: getFactsImpl,
+      getEntity: getEntityImpl,
+      getEntitiesByType: getEntitiesByTypeImpl,
     };
   }
   return entityResolverInstance;

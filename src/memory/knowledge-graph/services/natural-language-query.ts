@@ -794,6 +794,8 @@ export interface UnifiedQueryEngine {
   detectType: (query: string) => { type: QueryType; target: string };
   /** Check if engine is ready */
   isReady: () => boolean;
+  /** Search entities (stub for backward compatibility) */
+  search?: (userId: string, query: string, options?: unknown) => Promise<unknown[]>;
 }
 
 let unifiedEngineInstance: UnifiedQueryEngine | null = null;
@@ -807,18 +809,10 @@ export function getUnifiedQueryEngine(): UnifiedQueryEngine {
       query: executeNaturalQuery,
       detectType: detectQueryType,
       isReady: () => true,
+      search: async (_userId, _query, _options) => [],
     };
   }
   return unifiedEngineInstance;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-// Types are re-exported here since functions are already exported inline
-export {
-  type QueryType,
-  type QueryOptions,
-  type NaturalQueryResult,
-};
+// Types QueryType, QueryOptions, and NaturalQueryResult are already exported inline above
