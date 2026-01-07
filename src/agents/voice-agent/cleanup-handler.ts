@@ -929,7 +929,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Tool timing context cleanup (for natural LLM response framing)
     (async () => {
       const { clearToolTimings } =
-        await import('../../intelligence/context-builders/awareness/tool-timing-context.js');
+        await import('../../intelligence/context-builders/awareness/tool-timing-awareness.js');
       clearToolTimings(sessionId);
     })(),
 

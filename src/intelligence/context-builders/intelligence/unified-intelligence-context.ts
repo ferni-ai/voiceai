@@ -79,8 +79,8 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
         moment,
         voiceEmotion: emotion
           ? {
-              primary: emotion.primary || emotion.detected || 'neutral',
-              valence: emotion.valence,
+              primary: emotion.emotion || 'neutral',
+              valence: emotion.valence !== undefined ? String(emotion.valence) : undefined,
               energy: emotion.arousal,
             }
           : undefined,

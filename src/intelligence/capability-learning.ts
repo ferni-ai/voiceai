@@ -22,7 +22,7 @@ import {
   markCapabilityEngaged,
   markCapabilityToolUsed,
   type CapabilityEffectiveness,
-} from './context-builders/awareness/domain-fluency.js';
+} from './context-builders/awareness/domain-awareness.js';
 
 const log = createLogger({ module: 'capability-learning' });
 

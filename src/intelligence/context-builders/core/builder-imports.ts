@@ -95,15 +95,15 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'conversational-superpowers': async () => import('../superhuman/conversational-superpowers.js'),
   'alive-awareness': async () => import('../awareness/alive-awareness.js'),
   'inner-world-injector': async () => import('../intelligence/inner-world-injector.js'),
-  'proactive-noticing': async () => import('../intelligence/proactive-noticing.js'),
+  'proactive-noticing': async () => import('../intelligence/proactive-intelligence.js'),
   'commitment-follow-up': async () => import('../intelligence/commitment-follow-up.js'),
   'temporal-intelligence': async () => import('../intelligence/temporal-intelligence.js'),
-  'pattern-surfacing': async () => import('../intelligence/pattern-surfacing.js'),
+  'pattern-surfacing': async () => import('../intelligence/pattern-intelligence.js'),
   'deep-understanding': async () => import('../intelligence/deep-understanding.js'),
   'life-context-synthesis': async () => import('../intelligence/life-context-synthesis.js'),
   'unified-intelligence': async () => import('../intelligence/unified-intelligence-context.js'),
   'sec-intelligence': async () => import('../intelligence/sec-intelligence.js'),
-  'prediction-surfacing': async () => import('../intelligence/prediction-surfacing.js'),
+  'prediction-surfacing': async () => import('../intelligence/prediction-intelligence.js'),
   'semantic-intent-guidance': async () => import('../intelligence/semantic-intent-guidance.js'),
 
   // ============================================================================
@@ -156,12 +156,12 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   'conversation-forward': async () => import('../session/conversation-forward.js'),
   'session-flow': async () => import('../session/session-flow.js'),
-  intent: async () => import('../session/intent.js'),
-  topics: async () => import('../session/topics.js'),
-  discovery: async () => import('../session/discovery.js'),
-  personal: async () => import('../session/personal.js'),
+  intent: async () => import('../session/intent-context.js'),
+  topics: async () => import('../session/topics-context.js'),
+  discovery: async () => import('../session/discovery-context.js'),
+  personal: async () => import('../session/personal-context.js'),
   'meta-conversation': async () => import('../session/meta-conversation.js'),
-  tasks: async () => import('../session/tasks.js'),
+  tasks: async () => import('../session/tasks-context.js'),
   'thread-context': async () => import('../session/thread-context.js'),
 
   // ============================================================================
@@ -177,10 +177,10 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'device-awareness': async () => import('../awareness/device-awareness.js'),
   'linkedin-awareness': async () => import('../awareness/linkedin-awareness.js'),
   'world-awareness': async () => import('../awareness/world-awareness.js'),
-  'domain-fluency': async () => import('../awareness/domain-fluency.js'),
-  'tool-capabilities': async () => import('../awareness/tool-capabilities.js'),
-  'dynamic-tool-guidance': async () => import('../awareness/dynamic-tool-guidance.js'),
-  'tool-timing-context': async () => import('../awareness/tool-timing-context.js'),
+  'domain-fluency': async () => import('../awareness/domain-awareness.js'),
+  'tool-capabilities': async () => import('../awareness/tool-awareness.js'),
+  'dynamic-tool-guidance': async () => import('../awareness/tool-guidance-awareness.js'),
+  'tool-timing-context': async () => import('../awareness/tool-timing-awareness.js'),
   'revelation-awareness': async () => import('../awareness/revelation-awareness.js'),
 
   // ============================================================================
