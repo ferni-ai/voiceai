@@ -295,6 +295,45 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
 
   const contact = item.entity as ContactEntity;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🧠 ENTITY STORE: Unified entity capture (Better Than Human memory)
+  // This is the PRIMARY storage - legacy collections below are for backwards compatibility
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    const { capturePersonEntity, isEntityStoreReady } = await import(
+      '../../memory/entity-store/integration.js'
+    );
+
+    if (isEntityStoreReady()) {
+      await capturePersonEntity(
+        context.userId,
+        {
+          name: contact.name,
+          relationship: contact.relationship,
+          phone: contact.phone,
+          email: contact.email,
+        },
+        {
+          conversationId: context.sessionId || 'unknown',
+          sessionId: context.sessionId || 'unknown',
+          personaId: 'ferni', // TODO: Get from context
+          transcript: context.transcript,
+        }
+      );
+      log.info(
+        { userId: context.userId, name: contact.name || contact.relationship },
+        '🧠 Captured to unified entity store'
+      );
+    }
+  } catch (entityErr) {
+    log.warn({ error: String(entityErr) }, 'Entity store capture failed (non-fatal, continuing to legacy)');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LEGACY: Also write to old collections for backwards compatibility
+  // TODO: Remove after migration is complete
+  // ═══════════════════════════════════════════════════════════════════════════
+
   // Import contacts service
   const { createContact, findContact, updateContact } = await import('../../services/contacts.js');
 

@@ -43,6 +43,18 @@ export interface TurnContext {
     debug: (data: Record<string, unknown>, msg: string) => void;
     warn: (data: Record<string, unknown>, msg: string) => void;
   };
+  /** Number of proactive surfacings this session (for throttling) */
+  surfacingCount?: number;
+  /** Topics discussed this session */
+  sessionTopics?: string[];
+  /** Proactive surfacing opportunities found for this turn */
+  proactiveSurfacing?: Array<{
+    type: string;
+    entity: { canonicalName: string; type: string };
+    timing: string;
+    naturalPhrasing: string;
+    receptivityScore?: number;
+  }>;
 }
 
 // ============================================================================

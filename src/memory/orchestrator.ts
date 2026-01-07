@@ -36,6 +36,12 @@ import {
   getConversationPrimingMemories,
   buildMemoryIndex,
 } from './advanced-retrieval.js';
+
+// Entity Store - Unified Better Than Human memory
+import {
+  isEntityStoreReady,
+  retrieveMemoriesUnified,
+} from './entity-store/integration.js';
 import { getRetrievalExplainer } from './retrieval-explanations.js';
 import { getSessionPrimer } from './session-priming.js';
 import { getUnifiedEmotionalMemory } from './emotional-memory-unified.js';
@@ -300,13 +306,71 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
    * Gather memories from all sources
    */
   private async gatherMemories(context: RecallContext): Promise<RetrievedMemory[]> {
-    const { userId, query, isSessionStart, personaId } = context;
+    const { userId, query, isSessionStart, personaId, currentTopic, currentEmotion } = context;
     const memories: RetrievedMemory[] = [];
 
-    // 1. Semantic retrieval (main memory system)
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 0. ENTITY STORE (Primary - Better Than Human unified memory)
+    // Uses Graph-RAG for state-of-the-art retrieval
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (query && isEntityStoreReady()) {
+      try {
+        const { entities, formattedContext } = await retrieveMemoriesUnified(userId, query, {
+          currentTopic,
+          currentEmotion,
+          personaId,
+          conversationTurn: context.conversationTurn,
+          recentTopics: context.recentTopics,
+        });
+
+        // Convert entity results to RetrievedMemory format
+        for (const result of entities) {
+          const entityMemory: MemoryItem = {
+            id: `entity:${result.entity.id}`,
+            type: this.mapEntityTypeToMemoryType(result.entity.type),
+            content: this.entityToContent(result.entity),
+            timestamp: result.entity.lastSeen,
+            emotionalWeight: result.entity.emotionalWeight,
+            relevanceDecay: 0, // Already factored into score
+            baseImportance: result.entity.salienceScore,
+            source: { collection: 'entities', documentId: result.entity.id },
+          };
+
+          memories.push({
+            item: entityMemory,
+            score: result.score,
+            scoreBreakdown: {
+              semantic: result.scoreBreakdown.semantic,
+              temporal: result.scoreBreakdown.temporal,
+              emotional: result.scoreBreakdown.emotional,
+              contextual: result.scoreBreakdown.graphDistance > 0 ? 0.8 : 1.0,
+            },
+            reason: result.reason,
+            triggerType: 'entity_store',
+          });
+        }
+
+        log.debug(
+          { userId: userId.substring(0, 8), entityResults: entities.length },
+          '🧠 Entity store retrieval complete'
+        );
+      } catch (error) {
+        log.warn({ error: String(error) }, 'Entity store retrieval failed, continuing with legacy');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 1. LEGACY: Semantic retrieval (for backward compatibility)
+    // TODO: Remove after full entity store migration
+    // ═══════════════════════════════════════════════════════════════════════════
     try {
       const semanticMemories = await retrieveMemories(userId, context);
-      memories.push(...semanticMemories);
+      // Only add if not already found in entity store
+      for (const mem of semanticMemories) {
+        if (!memories.some((m) => m.item.content === mem.item.content)) {
+          memories.push(mem);
+        }
+      }
     } catch (error) {
       log.warn({ error: String(error) }, 'Semantic retrieval failed');
     }
@@ -594,6 +658,75 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
     }
 
     return sections.join('\n\n');
+  }
+
+  /**
+   * Map entity type to memory item type
+   */
+  private mapEntityTypeToMemoryType(
+    entityType: string
+  ): 'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event' {
+    const typeMap: Record<string, 'summary' | 'moment' | 'topic' | 'commitment' | 'preference' | 'person' | 'event'> = {
+      person: 'person',
+      commitment: 'commitment',
+      event: 'event',
+      value: 'topic',
+      dream: 'topic',
+      pattern: 'topic',
+      preference: 'preference',
+      memory: 'moment',
+      topic: 'topic',
+      emotion: 'topic',
+      goal: 'commitment',
+      place: 'topic',
+    };
+    return typeMap[entityType] || 'topic';
+  }
+
+  /**
+   * Convert entity to memory content string
+   */
+  private entityToContent(entity: {
+    canonicalName: string;
+    type: string;
+    attributes: Record<string, unknown>;
+  }): string {
+    const parts = [entity.canonicalName];
+    const attrs = entity.attributes;
+
+    switch (attrs._type) {
+      case 'person': {
+        const personAttrs = attrs as { relationship?: string; lastKnownStatus?: string; recentContext?: string[] };
+        if (personAttrs.relationship) parts.push(`(${personAttrs.relationship})`);
+        if (personAttrs.lastKnownStatus) parts.push(`- ${personAttrs.lastKnownStatus}`);
+        if (personAttrs.recentContext?.length) parts.push(`Recent: ${personAttrs.recentContext[0]}`);
+        break;
+      }
+      case 'commitment': {
+        const commitAttrs = attrs as { originalStatement?: string; status?: string };
+        if (commitAttrs.originalStatement) parts.push(`- ${commitAttrs.originalStatement}`);
+        if (commitAttrs.status) parts.push(`[${commitAttrs.status}]`);
+        break;
+      }
+      case 'event': {
+        const eventAttrs = attrs as { eventType?: string; date?: Date };
+        if (eventAttrs.eventType) parts.push(`(${eventAttrs.eventType})`);
+        if (eventAttrs.date) parts.push(`on ${new Date(eventAttrs.date).toLocaleDateString()}`);
+        break;
+      }
+      case 'memory': {
+        const memAttrs = attrs as { content?: string };
+        if (memAttrs.content) parts.push(`- ${memAttrs.content.substring(0, 200)}`);
+        break;
+      }
+      case 'pattern': {
+        const patternAttrs = attrs as { description?: string };
+        if (patternAttrs.description) parts.push(`- ${patternAttrs.description}`);
+        break;
+      }
+    }
+
+    return parts.join(' ');
   }
 
   /**

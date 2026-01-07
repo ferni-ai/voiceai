@@ -243,13 +243,9 @@ import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 // 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
 import { detectCrisis, guardPreResponse } from '../safety/crisis-guard.js';
 
-// 🧠 REAL-TIME LEARNING: Social graph, data capture, and persistence
+// 🧠 REAL-TIME LEARNING: Relationship network, data capture, and persistence
 // "Better than Human" - We learn and remember as the conversation unfolds
-import {
-  recordMention,
-  extractNames,
-  loadGraphFromFirestore,
-} from '../../services/social-graph/index.js';
+import { recordMention, extractNames } from '../../services/superhuman/relationship-network.js';
 import { processDataCapture } from '../../intelligence/data-capture/index.js';
 import { triggerAutoSave } from '../../services/realtime-persistence.js';
 
@@ -1227,6 +1223,20 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     });
   }
 
+  // 9b. PROACTIVE MEMORY SURFACING - "Better than Human" memory intelligence
+  // Suggests relevant memories worth mentioning at this moment
+  if (ctx.proactiveSurfacing && ctx.proactiveSurfacing.length > 0) {
+    const surfacingLines = ctx.proactiveSurfacing
+      .slice(0, 2) // Max 2 suggestions
+      .map((opp) => `- ${opp.naturalPhrasing}`);
+    
+    injections.push({
+      category: 'proactive_memory',
+      content: `[MEMORY SURFACING - Consider mentioning naturally if relevant]\n${surfacingLines.join('\n')}\n(Only mention if it flows naturally - don't force it)`,
+      priority: 29,
+    });
+  }
+
   // 10. Humanizing context
   if (humanizingResult && humanizingResult.injections.length > 0) {
     const humanizingPrompt = formatHumanizingForPrompt(humanizingResult);
@@ -1713,24 +1723,23 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     // "Better than Human" - We learn and remember as the conversation unfolds
     // ============================================================================
 
-    // 1. SOCIAL GRAPH: Extract and record names/relationships mentioned
+    // 1. RELATIONSHIP NETWORK: Extract and record names/relationships mentioned
     safeFireAndForget(
       async () => {
-        // Convert valence from string to number for sentiment scoring
-        const valenceStr = analysisResult.analysis.emotion.valence;
-        const sentiment = valenceStr === 'positive' ? 0.5 : valenceStr === 'negative' ? -0.5 : 0;
-        const topics = analysisResult.analysis.topics?.detected || [];
-        const emotionalWeight = analysisResult.analysis.emotion.intensity || 0.5;
-
         // Extract names from the user's message
         const extractedNames = extractNames(userText);
 
         for (const { name, context } of extractedNames) {
-          recordMention(services.userId!, name, context, sentiment, topics, emotionalWeight);
-          diag.state('📇 Recorded person mention', { name, sentiment: sentiment.toString() });
+          // recordMention analyzes sentiment internally from context
+          await recordMention(services.userId!, {
+            name,
+            type: 'acquaintance', // Default - will be refined by extractPerson
+            context,
+          });
+          diag.state('📇 Recorded person mention', { name });
         }
       },
-      { context: 'social-graph-extraction' }
+      { context: 'relationship-network-extraction' }
     );
 
     // 2. DATA CAPTURE ROUTER: Extract contacts, commitments, etc.
@@ -1798,6 +1807,51 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
           );
         },
         { context: 'team-huddle-observation' }
+      );
+    }
+
+    // ============================================================================
+    // 💡 PROACTIVE SURFACING: Check for memories worth mentioning
+    // "Better than Human" - bring up relevant memories at the right moment
+    // ============================================================================
+    if (services.userId) {
+      safeFireAndForget(
+        async () => {
+          try {
+            const { checkProactiveSurfacing, isEntityStoreReady } = await import(
+              '../../memory/entity-store/integration.js'
+            );
+
+            if (!isEntityStoreReady()) return;
+
+            const opportunities = await checkProactiveSurfacing(
+              services.userId!,
+              userText,
+              {
+                sessionId: services.sessionId,
+                personaId: ctx.persona?.id || 'ferni',
+                turnNumber: turnCount,
+                surfacingCountThisSession: ctx.surfacingCount || 0,
+                sessionTopics: ctx.sessionTopics || [],
+                conversationMood: analysisResult?.mood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
+                lastTurnWasQuestion: userText.trim().endsWith('?'),
+                detectedEmotion: analysisResult?.analysis?.emotion?.primary,
+              }
+            );
+
+            if (opportunities.length > 0) {
+              diag.state('💡 Proactive surfacing opportunities found', {
+                count: opportunities.length,
+                types: opportunities.map((o) => o.type),
+              });
+              // Store in context for response generation
+              ctx.proactiveSurfacing = opportunities;
+            }
+          } catch (error) {
+            diag.debug('Proactive surfacing check failed (non-blocking)', { error: String(error) });
+          }
+        },
+        { context: 'proactive-surfacing' }
       );
     }
   }

@@ -882,6 +882,22 @@ async function doInitializeMemorySystem(config?: MemorySystemConfig): Promise<Me
   // The rehydrateConversations config option is kept for backward compatibility
   // but does nothing. See rehydrateConversationEmbeddings() JSDoc for details.
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 🧠 ENTITY STORE: Initialize unified Better Than Human memory
+  // This is the new entity-centric memory system that eliminates fragmentation
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    const { initializeEntityStoreIntegration } = await import('./entity-store/integration.js');
+    await initializeEntityStoreIntegration();
+    getLogger().info('✅ Entity store (Better Than Human memory) initialized');
+  } catch (error) {
+    // Non-fatal - legacy memory system will continue to work
+    getLogger().warn(
+      { error: String(error) },
+      '⚠️ Entity store initialization failed (legacy memory will be used)'
+    );
+  }
+
   getLogger().info(
     `Memory system initialized (store: ${storeType}, vectors: ${usePersistentVectors ? 'persistent' : 'ephemeral'}, redis: ${!!redisCache})`
   );
