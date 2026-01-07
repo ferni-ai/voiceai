@@ -307,7 +307,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   clearSessionHistory(sessionId);
 
   // End conversation state (needed for data below)
-  const finalConvState = endConversationState(sessionId);
+  const finalConvState = await endConversationState(sessionId);
   if (finalConvState) {
     diag.session('Conversation state ended', {
       turnCount: finalConvState.flow.turnCount,

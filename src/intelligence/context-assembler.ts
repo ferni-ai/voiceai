@@ -30,7 +30,7 @@ import { buildNetworkContext } from '../services/superhuman/relationship-network
 import { buildSeasonalContext } from '../services/superhuman/seasonal-awareness.js';
 import { buildNarrativeContextString } from '../services/superhuman/life-narrative.js';
 import { getSessionState } from './session-state.js';
-import type { Persona } from '../personas/types.js';
+import type { PersonaConfig } from '../personas/types.js';
 
 const log = createLogger({ module: 'context-assembler' });
 
@@ -274,16 +274,22 @@ async function assembleRecent(options: AssemblyOptions): Promise<RecentContext> 
   // Get from session state if available
   const sessionState = getSessionState(options.userId);
   if (sessionState) {
-    // Get emotional trajectory
-    if (sessionState.emotionalTrajectory?.emotions?.length) {
-      recent.emotionalPatterns = sessionState.emotionalTrajectory.emotions
-        .slice(-5)
-        .map((e) => e.emotion);
+    // Get emotional trajectory - build patterns from trajectory data
+    if (sessionState.emotionalTrajectory) {
+      const trajectory = sessionState.emotionalTrajectory;
+      // Build emotional patterns from available data
+      const patterns: string[] = [];
+      if (trajectory.startEmotion) patterns.push(trajectory.startEmotion);
+      if (trajectory.currentEmotion && trajectory.currentEmotion !== trajectory.startEmotion) {
+        patterns.push(trajectory.currentEmotion);
+      }
+      if (trajectory.trend) patterns.push(`trend:${trajectory.trend}`);
+      recent.emotionalPatterns = patterns;
     }
 
     // Get open threads from conversation flow
-    if (sessionState.conversationFlow?.mentionedTopics?.length) {
-      recent.topicsDiscussed = sessionState.conversationFlow.mentionedTopics.slice(-10);
+    if (sessionState.conversationFlow?.topicsDiscussed?.length) {
+      recent.topicsDiscussed = sessionState.conversationFlow.topicsDiscussed.slice(-10);
     }
   }
 
@@ -311,19 +317,14 @@ async function assembleRelationship(userId: string): Promise<RelationshipContext
     const commitments = await loadUserCommitments(userId);
     if (commitments?.length) {
       relationship.activeCommitments = commitments
-        .filter((c) => c.status === 'active' || c.status === 'pending')
+        .filter((c) => c.status === 'active')
         .slice(0, 5)
-        .map((c) => c.content || c.description || 'Commitment');
+        .map((c) => c.summary || c.statement || 'Commitment');
     }
 
     // Get session count from session state
-    const sessionState = getSessionState(userId);
-    if (sessionState) {
-      relationship.sessionCount = sessionState.sessionCount || 1;
-
-      // Trust level increases with sessions (simple heuristic)
-      relationship.trustLevel = Math.min(0.95, 0.3 + relationship.sessionCount * 0.05);
-    }
+    // Note: sessionCount not available in SessionState, use default
+    // Trust level starts at default and can be adjusted based on other factors
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load relationship data');
   }
@@ -345,13 +346,21 @@ async function assembleCapacity(userId: string): Promise<CapacityContext> {
     // Get burnout assessment
     const burnout = await assessBurnoutRisk(userId);
     if (burnout) {
-      capacity.burnoutRisk = burnout.riskLevel || 'low';
-      capacity.stressIndicators = burnout.indicators || [];
+      // Map BurnoutRisk to CapacityContext.burnoutRisk (elevated -> moderate)
+      const riskMap: Record<string, 'low' | 'moderate' | 'high' | 'critical'> = {
+        low: 'low',
+        moderate: 'moderate',
+        elevated: 'moderate',
+        high: 'high',
+        critical: 'critical',
+      };
+      capacity.burnoutRisk = riskMap[burnout.risk] || 'low';
+      capacity.stressIndicators = burnout.factors?.map((f) => f.description) || [];
 
       // Map burnout risk to bandwidth
-      if (burnout.riskLevel === 'critical' || burnout.riskLevel === 'high') {
+      if (burnout.risk === 'critical' || burnout.risk === 'high') {
         capacity.bandwidth = 'low';
-      } else if (burnout.riskLevel === 'moderate') {
+      } else if (burnout.risk === 'moderate' || burnout.risk === 'elevated') {
         capacity.bandwidth = 'medium';
       } else {
         capacity.bandwidth = 'high';
@@ -463,7 +472,7 @@ function detectActiveDomains(
 export function selectContextForTurn(
   context: ContextWindow,
   currentTopic: string,
-  persona?: Persona
+  persona?: PersonaConfig
 ): ContextWindow {
   // Create a copy to avoid mutating original
   const selected = { ...context };

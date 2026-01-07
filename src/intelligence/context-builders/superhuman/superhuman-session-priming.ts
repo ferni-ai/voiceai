@@ -26,8 +26,8 @@ import {
   registerContextBuilder,
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
-import { getSuperhmanHealth, getFirestoreDb } from '../../services/superhuman/firestore-utils.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { getSuperhmanHealth, getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'SuperhumanSessionPriming' });
 
@@ -47,7 +47,7 @@ const primedSessions = new Set<string>();
 
 async function loadActiveCommitments(userId: string): Promise<string | null> {
   try {
-    const { loadUserCommitments } = await import('../../services/superhuman/commitment-keeper.js');
+    const { loadUserCommitments } = await import('../../../services/superhuman/commitment-keeper.js');
 
     const allCommitments = await loadUserCommitments(userId);
     const now = Date.now();
@@ -90,7 +90,7 @@ async function loadActiveCommitments(userId: string): Promise<string | null> {
 
 async function loadTrackedDreams(userId: string): Promise<string | null> {
   try {
-    const { loadUserDreams } = await import('../../services/superhuman/dream-keeper.js');
+    const { loadUserDreams } = await import('../../../services/superhuman/dream-keeper.js');
     const dreams = await loadUserDreams(userId);
 
     if (!dreams || dreams.length === 0) return null;
@@ -110,7 +110,7 @@ async function loadTrackedDreams(userId: string): Promise<string | null> {
 
 async function loadUpcomingMilestones(userId: string): Promise<string | null> {
   try {
-    const { findUpcomingDates } = await import('../../services/superhuman/seasonal-awareness.js');
+    const { findUpcomingDates } = await import('../../../services/superhuman/seasonal-awareness.js');
     const personalDates = await findUpcomingDates(userId, 7); // Next 7 days
 
     if (!personalDates || personalDates.length === 0) return null;
@@ -132,7 +132,7 @@ async function loadUpcomingMilestones(userId: string): Promise<string | null> {
 
 async function loadCapacityStatus(userId: string): Promise<string | null> {
   try {
-    const { assessBurnoutRisk } = await import('../../services/superhuman/capacity-guardian.js');
+    const { assessBurnoutRisk } = await import('../../../services/superhuman/capacity-guardian.js');
     const assessment = await assessBurnoutRisk(userId);
 
     // BurnoutRisk type: 'low' | 'moderate' | 'elevated' | 'high' | 'critical'
@@ -156,7 +156,7 @@ async function loadCapacityStatus(userId: string): Promise<string | null> {
 async function loadSeasonalContext(userId: string): Promise<string | null> {
   try {
     const { buildSeasonalContext } =
-      await import('../../services/superhuman/seasonal-awareness.js');
+      await import('../../../services/superhuman/seasonal-awareness.js');
     const seasonalContext = await buildSeasonalContext(userId);
 
     if (!seasonalContext || seasonalContext.length < 20) return null;
@@ -173,7 +173,7 @@ async function loadSeasonalContext(userId: string): Promise<string | null> {
 
 async function loadValuesContext(userId: string): Promise<string | null> {
   try {
-    const { loadUserValues } = await import('../../services/superhuman/values-alignment.js');
+    const { loadUserValues } = await import('../../../services/superhuman/values-alignment.js');
     const values = await loadUserValues(userId);
 
     if (!values || values.length === 0) return null;
@@ -195,7 +195,7 @@ async function loadValuesContext(userId: string): Promise<string | null> {
 async function loadSemanticIntelligenceContext(userId: string): Promise<string | null> {
   try {
     const { buildSemanticIntelligenceContext, formatSemanticIntelligenceContext } =
-      await import('../../services/superhuman/semantic-intelligence/index.js');
+      await import('../../../services/superhuman/semantic-intelligence/index.js');
 
     // Build context with session start flag
     const context = await buildSemanticIntelligenceContext(userId, {

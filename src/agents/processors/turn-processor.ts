@@ -1772,6 +1772,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
           if (!isKnowledgeCaptureReady()) return;
 
+          // Convert string valence to numeric: positive=1, neutral=0, negative=-1
+          const valenceToNumber = (v?: string): number | undefined => {
+            if (!v) return undefined;
+            if (v === 'positive') return 1;
+            if (v === 'negative') return -1;
+            return 0; // neutral
+          };
+
           const captureResult = await captureTurn({
             userId: services.userId!,
             sessionId: services.sessionId,
@@ -1782,11 +1790,13 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
               ? {
                   primary: analysisResult.analysis.emotion.primary,
                   intensity: analysisResult.analysis.emotion.intensity,
-                  valence: analysisResult.analysis.emotion.valence,
+                  valence: valenceToNumber(analysisResult.analysis.emotion.valence),
                 }
               : undefined,
-            topic: analysisResult?.analysis?.topics?.primary,
-            recentContext: ctx.conversationHistory?.slice(-3).join('\n'),
+            // TopicExtractionResult has detected[] array, not primary
+            topic: analysisResult?.analysis?.topics?.detected?.[0],
+            // Note: conversationHistory not available on TurnContext, omitting
+            recentContext: undefined,
           });
 
           if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
@@ -1877,7 +1887,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
                 turnNumber: turnCount,
                 surfacingCountThisSession: ctx.surfacingCount || 0,
                 sessionTopics: ctx.sessionTopics || [],
-                conversationMood: analysisResult?.mood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
+                // Get mood from analysis.state.currentMood
+                conversationMood: analysisResult?.analysis?.state?.currentMood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
                 lastTurnWasQuestion: userText.trim().endsWith('?'),
                 detectedEmotion: analysisResult?.analysis?.emotion?.primary,
               }
@@ -1886,7 +1897,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
             if (opportunities.length > 0) {
               diag.state('💡 Proactive surfacing opportunities found', {
                 count: opportunities.length,
-                types: opportunities.map((o) => o.type),
+                types: opportunities.map((o: { type: string }) => o.type),
               });
               // Store in context for response generation
               ctx.proactiveSurfacing = opportunities;

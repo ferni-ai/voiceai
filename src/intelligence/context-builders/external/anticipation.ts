@@ -19,7 +19,7 @@ import {
   generateSuperhumanMoment,
   getUpcomingEvents,
   getCurrentLocation,
-} from '../../services/context-awareness/location-calendar.js';
+} from '../../../services/context-awareness/location-calendar.js';
 import {
   registerContextBuilder,
   createHighInjection,
@@ -27,14 +27,14 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { loadPersonaContent } from '../../services/persona-content-loader.js';
+import { loadPersonaContent } from '../../../services/persona-content-loader.js';
 import {
   checkDynamicTriggers,
   calculateProbabilityBoost,
   shouldSkipDueToNeverWhen,
   buildTriggerContext,
   type ProactiveTrigger,
-} from './dynamic-trigger-utils.js';
+} from '../dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'context:anticipation' });
 

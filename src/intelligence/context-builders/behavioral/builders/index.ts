@@ -15,6 +15,7 @@
  * ✅ humanizing.behavioral.ts - Human conversational style
  * ✅ validation.behavioral.ts - When user needs validation
  * ✅ energy.behavioral.ts - Energy level matching
+ * ✅ predictive.behavioral.ts - Superhuman predictive intelligence (Better Than Human v4)
  *
  * HANDLED BY AWARENESS (facts the model should know):
  * 📊 Time of day, user name, session state, current topic
@@ -43,6 +44,7 @@ import './pacing.behavioral.js';
 import './humanizing.behavioral.js';
 import './validation.behavioral.js';
 import './energy.behavioral.js';
+import './predictive.behavioral.js';
 
 // Export for explicit importing
 export { buildEmotionalBehavior } from './emotional.behavioral.js';
@@ -53,3 +55,4 @@ export { buildPacingBehavior } from './pacing.behavioral.js';
 export { buildHumanizingBehavior } from './humanizing.behavioral.js';
 export { buildValidationBehavior } from './validation.behavioral.js';
 export { buildEnergyBehavior } from './energy.behavioral.js';
+export { buildPredictiveBehavior } from './predictive.behavioral.js';

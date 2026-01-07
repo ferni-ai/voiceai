@@ -25,13 +25,19 @@ export type ToneModifier =
   | 'serious' // Gravity, importance
   | 'playful' // Light, fun
   | 'contemplative' // Thoughtful, reflective
-  | 'celebratory'; // Joyful, acknowledging achievement
+  | 'celebratory' // Joyful, acknowledging achievement
+  | 'encouraging' // Supportive push, growth-oriented
+  | 'direct' // Straightforward, no softening
+  | 'curious'; // Wonder, exploration
 
 /** Pace of the response */
 export type PaceModifier = 'slow' | 'normal' | 'brisk';
 
 /** Response length guidance */
-export type LengthModifier = 'brief' | 'moderate' | 'expansive';
+export type LengthModifier = 'brief' | 'moderate' | 'expansive' | 'conversational';
+
+/** Response depth guidance */
+export type DepthModifier = 'surface' | 'moderate' | 'deep';
 
 /** Emotional energy level */
 export type EnergyModifier = 'subdued' | 'calm' | 'warm' | 'elevated' | 'high';
@@ -49,7 +55,10 @@ export type StyleModifier =
   | 'celebratory' // Acknowledging wins
   | 'reflective' // Mirroring back insights
   | 'grounding' // Stabilizing, present
-  | 'collaborative'; // Working together
+  | 'collaborative' // Working together
+  | 'coaching' // Action-oriented guidance
+  | 'challenging' // Gentle pushback, growth
+  | 'direct'; // Straightforward communication
 
 /** Question style within response */
 export type QuestionStyle =
@@ -115,6 +124,16 @@ export interface SpecialModes {
 
   /** Deep emotional processing - minimal intervention */
   processingMode?: boolean;
+
+  // =========================================
+  // SUPERHUMAN PREDICTIVE MODES (v4)
+  // =========================================
+
+  /** User is close to a breakthrough - be the midwife, not the teacher */
+  breakthroughMode?: boolean;
+
+  /** Multiple domains stressed, risk of negative spiral */
+  spiralRiskMode?: boolean;
 }
 
 // ============================================================================

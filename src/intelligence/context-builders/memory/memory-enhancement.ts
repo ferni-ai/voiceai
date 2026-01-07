@@ -12,7 +12,7 @@
  * @module intelligence/context-builders/memory-enhancement
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
   createHintInjection,
@@ -25,28 +25,28 @@ import {
 } from '../index.js';
 
 // Import memory systems
-import { getBestInsight, type TonalInsight } from '../../services/trust-systems/tonal-memory.js';
+import { getBestInsight, type TonalInsight } from '../../../services/trust-systems/tonal-memory.js';
 
 import {
   getFollowUpOpportunity,
   detectPassingMentions,
   recordPassingMention,
   type FollowUpOpportunity,
-} from '../../services/trust-systems/curiosity-memory.js';
+} from '../../../services/trust-systems/curiosity-memory.js';
 
 import {
   getThinkingMomentToSurface,
   detectThinkingWorthy,
   recordThinkingMoment,
   type ThinkingMoment,
-} from '../../services/trust-systems/between-session-thinking.js';
+} from '../../../services/trust-systems/between-session-thinking.js';
 
 import {
   getGrowthMomentToShare,
   detectGrowthOpportunity,
   recordPersonaGrowth,
   type GrowthMoment,
-} from '../../services/trust-systems/persona-growth.js';
+} from '../../../services/trust-systems/persona-growth.js';
 
 import {
   recordToneSignal,
@@ -57,7 +57,7 @@ import {
   compareToUsual,
   getRecentTextureSummary,
   type TextureComparison,
-} from '../../services/trust-systems/conversation-texture.js';
+} from '../../../services/trust-systems/conversation-texture.js';
 
 const log = createLogger({ module: 'MemoryEnhancementBuilder' });
 

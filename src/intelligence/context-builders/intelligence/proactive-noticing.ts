@@ -26,7 +26,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { loadPersonaContent } from '../../services/persona-content-loader.js';
+import { loadPersonaContent } from '../../../services/persona-content-loader.js';
 
 // Tonal memory - remember HOW things were said
 import {
@@ -34,7 +34,7 @@ import {
   markInsightSurfaced as markTonalInsightSurfaced,
   recordTonalObservation,
   type TonalInsight,
-} from '../../services/trust-systems/tonal-memory.js';
+} from '../../../services/trust-systems/tonal-memory.js';
 
 const log = createLogger({ module: 'ProactiveNoticing' });
 

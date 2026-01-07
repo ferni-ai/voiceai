@@ -20,7 +20,7 @@ import {
   type WellbeingProcessResult,
 } from '../../../services/wellbeing-tracking/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { BuilderCategory } from './categories.js';
+import { BuilderCategory } from '../core/categories.js';
 import {
   createCriticalInjection,
   createHintInjection,

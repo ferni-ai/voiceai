@@ -13,8 +13,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { VoiceEmotionResult as AudioProsodyVoiceEmotionResult } from '../../speech/audio-prosody/types.js';
-import { VoiceTextMismatchDetector, type MismatchResult } from '../unified/mismatch-detector.js';
+import type { VoiceEmotionResult as AudioProsodyVoiceEmotionResult } from '../../../speech/audio-prosody/types.js';
+import { VoiceTextMismatchDetector, type MismatchResult } from '../../unified/mismatch-detector.js';
 import {
   createCriticalInjection,
   createHighInjection,

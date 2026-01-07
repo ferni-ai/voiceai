@@ -21,11 +21,11 @@
 export type {
   RelationshipStage,
   UserProfileRelationshipStage,
-} from '../../types/humanizing-types.js';
+} from '../../../types/humanizing-types.js';
 import type {
   RelationshipStage,
   UserProfileRelationshipStage,
-} from '../../types/humanizing-types.js';
+} from '../../../types/humanizing-types.js';
 
 export interface RelationshipBehaviors {
   stage: RelationshipStage;

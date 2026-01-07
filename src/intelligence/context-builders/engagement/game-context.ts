@@ -7,7 +7,7 @@
  * - Reference scores, rounds, etc.
  */
 
-import { getSessionGameEngine } from '../../services/games/game-engine.js';
+import { getSessionGameEngine } from '../../../services/games/game-engine.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   createStandardInjection,

@@ -27,11 +27,11 @@ import {
   type ContextInjection,
 } from '../index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { detectHandoffSemanticly } from '../../services/coaching/semantic-handoff.js';
-import { detectCalendarIntent as detectCalendarSemanticIntent } from '../../services/coaching/semantic-calendar.js';
-import { detectTrustSignals, type TrustSignal } from '../../services/coaching/semantic-trust.js';
-import { recordDetection } from '../../services/coaching/semantic-confidence-tracker.js';
-import { isTeamMemberUnlocked } from './superhuman/team-availability.js';
+import { detectHandoffSemanticly } from '../../../services/coaching/semantic-handoff.js';
+import { detectCalendarIntent as detectCalendarSemanticIntent } from '../../../services/coaching/semantic-calendar.js';
+import { detectTrustSignals, type TrustSignal } from '../../../services/coaching/semantic-trust.js';
+import { recordDetection } from '../../../services/coaching/semantic-confidence-tracker.js';
+import { isTeamMemberUnlocked } from '../team/team-availability.js';
 
 const log = createLogger({ module: 'SemanticIntentGuidance' });
 

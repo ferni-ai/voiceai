@@ -22,8 +22,8 @@ import {
   getEmotionMusicSuggestion,
   getEmotionMusicOffer,
   type EmotionMusicMapping,
-} from '../../audio/dj-enhancements.js';
-import { getMusicPlayer } from '../../audio/music-player.js';
+} from '../../../audio/dj-enhancements.js';
+import { getMusicPlayer } from '../../../audio/music-player.js';
 
 const log = getLogger();
 

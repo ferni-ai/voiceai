@@ -15,7 +15,7 @@ import {
   isPersonalJourneyEnabled,
   isPersonalJourneyFeatureEnabled,
   isUserInPersonalJourneyRollout,
-} from '../../config/feature-flags.js';
+} from '../../../config/feature-flags.js';
 import {
   getCurrentChapterSummary,
   getJourneySnapshot,
@@ -23,7 +23,7 @@ import {
   recordDelivery,
   selectMomentForTurn,
   type JourneyMoment,
-} from '../../services/personal-journey/index.js';
+} from '../../../services/personal-journey/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,

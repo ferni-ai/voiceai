@@ -31,14 +31,14 @@ import {
   formatInnerWorldForPrompt,
   shouldInject,
   type InnerWorldInjection,
-} from '../inner-world-injector.js';
+} from '../intelligence/inner-world-injector.js';
 
 import {
   selectSpontaneousShare,
   formatSpontaneousShareForPrompt,
   getShareTags,
   type SpontaneousShare,
-} from '../spontaneous-vulnerability.js';
+} from '../personas/spontaneous-vulnerability.js';
 
 import {
   selectPersonaMood,
@@ -61,7 +61,7 @@ import {
   type RelationshipBehaviors,
   type RelationshipStage,
   type UserProfileRelationshipStage,
-} from '../relationship-behaviors.js';
+} from '../relationship/relationship-behaviors.js';
 
 // ============================================================================
 // TYPES

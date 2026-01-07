@@ -20,7 +20,7 @@
  * @module intelligence/context-builders/better-than-human-direct
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   loadBetterThanHumanContent,
   getEmotionalBondPhrase,
@@ -32,7 +32,7 @@ import {
   getMetaRelationshipPhrase,
   getRandomPhrase,
   type BetterThanHumanContent,
-} from '../../conversation/superhuman/content-loader.js';
+} from '../../../conversation/superhuman/content-loader.js';
 import {
   createHighInjection,
   createHintInjection,

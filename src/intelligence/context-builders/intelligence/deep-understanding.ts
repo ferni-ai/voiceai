@@ -23,7 +23,7 @@
  * @module intelligence/context-builders/intelligence/deep-understanding
  */
 
-import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
+import type { VoiceEmotionResult } from '../../../speech/audio-prosody.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 // Import all intelligence systems
@@ -31,42 +31,42 @@ import {
   analyzeSilence,
   formatSilenceForPrompt,
   type SilenceAnalysis,
-} from '../silence-intelligence.js';
+} from '../../silence-intelligence.js';
 
 // Voice-text mismatch detection
-import { buildMismatchGuidance, detectMismatch } from '../voice-text-mismatch.js';
+import { buildMismatchGuidance, detectMismatch } from '../../voice-text-mismatch.js';
 
 import {
   formatPredictionForPrompt,
   predictUserState,
   recordConversationObservation,
-} from '../life-rhythm-prediction.js';
+} from '../../life-rhythm-prediction.js';
 
 import {
   detectUnspokenTension,
   extractPersonMentions,
   formatRelationalInsightsForPrompt,
   recordPersonMention,
-} from '../relational-network.js';
+} from '../../relational-network.js';
 
-import { analyzeResistance, formatResistanceForPrompt } from '../resistance-detection.js';
+import { analyzeResistance, formatResistanceForPrompt } from '../../resistance-detection.js';
 
-import { assessEnergyState, formatEnergyForPrompt } from '../energy-state.js';
+import { assessEnergyState, formatEnergyForPrompt } from '../../energy-state.js';
 
-import { analyzeSubconscious } from '../subconscious-goals.js';
+import { analyzeSubconscious } from '../../subconscious-goals.js';
 
-import { analyzeFlow, formatFlowForPrompt } from '../conversational-flow.js';
+import { analyzeFlow, formatFlowForPrompt } from '../../conversational-flow.js';
 
 import {
   detectMisunderstanding,
   formatRepairForPrompt,
   generateRepair,
   recordAIResponse,
-} from '../repair-intelligence.js';
+} from '../../repair-intelligence.js';
 
-import { analyzeHope, formatHopeForPrompt } from '../hope-trajectory.js';
+import { analyzeHope, formatHopeForPrompt } from '../../hope-trajectory.js';
 
-import { analyzeChapter, formatChapterForPrompt } from '../life-chapter.js';
+import { analyzeChapter, formatChapterForPrompt } from '../../life-chapter.js';
 
 import {
   BuilderCategory,

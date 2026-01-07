@@ -12,13 +12,13 @@
  * PRIORITY: Bundle data > PERSONA_PRESENCE fallback > DEFAULT actions
  */
 
-import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
+import type { BundleRuntimeEngine } from '../../../personas/bundles/runtime.js';
 import {
   getRandomPhraseClean,
   loadLateNightPresence,
   loadPersonaContent,
-} from '../../services/persona-content-loader.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../../../services/persona-content-loader.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
   createHighInjection,
@@ -32,7 +32,7 @@ import {
   shouldSkipDueToNeverWhen,
   buildTriggerContext,
   type ProactiveTrigger,
-} from './dynamic-trigger-utils.js';
+} from '../dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'PhysicalPresence' });
 

@@ -32,7 +32,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { EdgeCache } from '../../services/cache/edge-cache.js';
+import { EdgeCache } from '../../../services/cache/edge-cache.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 // Use dynamic import for Firestore to avoid hard dependency

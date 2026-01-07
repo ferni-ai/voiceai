@@ -13,7 +13,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { formatReferralConversationsForContext } from '../../services/outreach/conversational-calls.js';
+import { formatReferralConversationsForContext } from '../../../services/outreach/conversational-calls.js';
 
 const log = getLogger().child({ module: 'referral-prompt' });
 

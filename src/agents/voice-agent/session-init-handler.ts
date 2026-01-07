@@ -684,6 +684,22 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             });
           }
         })(),
+
+        // Phase 11: Knowledge Graph LLM Capture - Initialize the LLM-based knowledge extraction
+        // This enables comprehensive entity/fact/relationship extraction from conversations
+        // using Gemini 1.5 Flash with structured JSON output. Complements fast regex capture.
+        (async () => {
+          try {
+            const { initializeKnowledgeCapture } =
+              await import('../../memory/knowledge-graph/services/knowledge-capture.js');
+            await initializeKnowledgeCapture();
+            diag.session('🧠 Knowledge graph LLM capture initialized', { userId });
+          } catch (knowledgeErr) {
+            diag.warn('Knowledge graph LLM capture init failed (non-fatal)', {
+              error: String(knowledgeErr),
+            });
+          }
+        })(),
       ]);
 
       const profileDuration = Date.now() - profileLoadStart;

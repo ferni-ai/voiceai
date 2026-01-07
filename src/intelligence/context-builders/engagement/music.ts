@@ -39,7 +39,7 @@ async function buildMusicContext(input: ContextBuilderInput): Promise<ContextInj
   const injections: ContextInjection[] = [];
   try {
     // Dynamic import to avoid circular dependencies
-    const { getMusicPlayer } = await import('../../audio/index.js');
+    const { getMusicPlayer } = await import('../../../audio/index.js');
     const musicPlayer = getMusicPlayer();
     const musicState = musicPlayer.getState();
     if (musicState.isPlaying && musicState.currentTrack) {

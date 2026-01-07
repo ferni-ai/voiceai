@@ -19,7 +19,7 @@ import {
   getCurrentBiometrics,
   generateBiometricInsight,
   generateSuperhumanMoment,
-} from '../../services/biometrics/index.js';
+} from '../../../services/biometrics/index.js';
 import {
   registerContextBuilder,
   type ContextBuilder,

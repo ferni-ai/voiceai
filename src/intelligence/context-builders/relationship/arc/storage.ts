@@ -9,8 +9,8 @@
  * @module intelligence/context-builders/relationship/arc/storage
  */
 
-import { createLogger } from '../../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { createLogger } from '../../../../utils/safe-logger.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import type {
   RelationshipArcData,
   FirstMeetingData,
@@ -39,7 +39,7 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  */
 async function getDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js');
+    const { getFirestoreDb } = await import('../../../../services/superhuman/firestore-utils.js');
     return getFirestoreDb();
   } catch {
     log.debug('Firestore not available');

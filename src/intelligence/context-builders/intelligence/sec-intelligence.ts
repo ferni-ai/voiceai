@@ -18,7 +18,7 @@ import {
   generateSECInsight,
   getInsiderTradingSummary,
   getCompanyFilings,
-} from '../../services/finance/sec-edgar.js';
+} from '../../../services/finance/sec-edgar.js';
 
 const log = createLogger({ module: 'SECIntelligenceBuilder' });
 

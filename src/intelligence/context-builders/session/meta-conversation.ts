@@ -18,7 +18,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import type { UserProfile, EmotionalPattern } from '../../types/user-profile.js';
+import type { UserProfile, EmotionalPattern } from '../../../types/user-profile.js';
 
 const log = createLogger({ module: 'MetaConversation' });
 

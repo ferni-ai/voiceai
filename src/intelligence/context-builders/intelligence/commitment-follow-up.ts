@@ -26,7 +26,7 @@ import {
   generateFollowUpPhrase,
   recordFollowUp,
   type Commitment,
-} from '../../services/trust-systems/commitment-tracking.js';
+} from '../../../services/trust-systems/commitment-tracking.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 

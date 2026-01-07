@@ -26,30 +26,30 @@ import {
   type ContextInjection,
 } from '../index.js';
 
-import { extractAndSaveCallbacks } from '../../personality/callback-persistence.js';
+import { extractAndSaveCallbacks } from '../../../personality/callback-persistence.js';
 import {
   formatGrowthForPrompt,
   formatPatternForPrompt,
   getGrowthCelebrations,
   getPatternInsights,
   recordEmotionalDataPoint,
-} from '../../personality/emotional-patterns.js';
+} from '../../../personality/emotional-patterns.js';
 import {
   extractCallbackKeyMoments,
   findRelevantMomentSemantic,
   formatCallbackForPrompt,
   getPendingCallbacksFromProfile,
   warmUpPersonaEmbeddings,
-} from '../../personality/memory-adapter.js';
-import { saveEmotionalDataPoint } from '../../personality/pattern-persistence.js';
+} from '../../../personality/memory-adapter.js';
+import { saveEmotionalDataPoint } from '../../../personality/pattern-persistence.js';
 import {
   analyzeMessageTiming,
   formatTimingGuidance,
   shouldSharePersonalMoment,
-} from '../../personality/timing-intelligence.js';
-import type { RelationshipStage } from '../../personality/types.js';
-import type { KeyMoment, SharedStory } from '../../types/user-profile.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../../../personality/timing-intelligence.js';
+import type { RelationshipStage } from '../../../personality/types.js';
+import type { KeyMoment, SharedStory } from '../../../types/user-profile.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'HumanPersonality' });
 

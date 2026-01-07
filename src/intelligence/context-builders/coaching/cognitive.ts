@@ -65,7 +65,7 @@ import {
   cognitiveMetrics,
   maybeBroadcastMetrics,
   recordTurnMetrics,
-} from '../../../../utils/cognitive-metrics.js';
+} from '../../../utils/cognitive-metrics.js';
 
 // Centralized distress levels
 import { DISTRESS } from '../../distress-levels.js';

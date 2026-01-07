@@ -30,58 +30,58 @@ import {
   captureJoke,
   findRelevantJoke,
   formatJokeForPrompt,
-} from '../../conversation/superhuman/inside-jokes.js';
+} from '../../../conversation/superhuman/inside-jokes.js';
 import {
   detectMicroWin,
   formatMicroWinForPrompt,
-} from '../../conversation/superhuman/micro-celebrations.js';
-import { formatNaturalSpeechGuidance } from '../../conversation/superhuman/natural-speech.js';
+} from '../../../conversation/superhuman/micro-celebrations.js';
+import { formatNaturalSpeechGuidance } from '../../../conversation/superhuman/natural-speech.js';
 import {
   extractNameFromMessage,
   formatNamingGuidance,
   setUserName,
   updateEndearmentLevel,
-} from '../../conversation/superhuman/nicknames.js';
+} from '../../../conversation/superhuman/nicknames.js';
 import {
   captureQuote,
   findRelevantQuote,
   formatQuoteForPrompt,
   markQuoteSurfaced,
-} from '../../conversation/superhuman/quote-memory.js';
+} from '../../../conversation/superhuman/quote-memory.js';
 import {
   acknowledgeMilestone,
   checkMilestones,
   formatMilestoneForPrompt,
   recordConversation,
   recordLaugh,
-} from '../../conversation/superhuman/relationship-milestones.js';
+} from '../../../conversation/superhuman/relationship-milestones.js';
 import {
   extractPerson,
   findPeopleToAskAbout,
   formatFollowUpForPrompt,
   getOrCreatePerson,
-} from '../../conversation/superhuman/story-continuity.js';
+} from '../../../conversation/superhuman/story-continuity.js';
 
 // Phase 2 imports
-import { formatRitualGuidance } from '../../conversation/superhuman/conversational-rituals.js';
+import { formatRitualGuidance } from '../../../conversation/superhuman/conversational-rituals.js';
 import {
   formatForecastGuidance,
   shouldMentionForecast,
-} from '../../conversation/superhuman/emotional-forecasting.js';
-import { formatReflectionGuidance } from '../../conversation/superhuman/empathetic-reflections.js';
-import { formatChallengeGuidance } from '../../conversation/superhuman/gentle-challenges.js';
-import { formatMetaMomentGuidance } from '../../conversation/superhuman/meta-moments.js';
+} from '../../../conversation/superhuman/emotional-forecasting.js';
+import { formatReflectionGuidance } from '../../../conversation/superhuman/empathetic-reflections.js';
+import { formatChallengeGuidance } from '../../../conversation/superhuman/gentle-challenges.js';
+import { formatMetaMomentGuidance } from '../../../conversation/superhuman/meta-moments.js';
 import {
   formatPresenceGuidance,
   shouldAvoidAdvice,
-} from '../../conversation/superhuman/presence-mode.js';
+} from '../../../conversation/superhuman/presence-mode.js';
 import {
   extractSharedLanguage,
   formatSharedLanguageGuidance,
-} from '../../conversation/superhuman/shared-language.js';
-import { formatVulnerabilityGuidance } from '../../conversation/superhuman/vulnerability-matching.js';
+} from '../../../conversation/superhuman/shared-language.js';
+import { formatVulnerabilityGuidance } from '../../../conversation/superhuman/vulnerability-matching.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
   createHintInjection,

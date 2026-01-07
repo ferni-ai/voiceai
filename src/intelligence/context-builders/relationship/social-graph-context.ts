@@ -55,7 +55,7 @@ export async function buildSocialGraphContext(
 
   try {
     const { detectWithdrawal, generateSocialInsights, getUpcomingDates, detectSentimentPatterns } =
-      await import('../../services/social-graph/index.js');
+      await import('../../../services/social-graph/index.js');
 
     // 1. WITHDRAWAL DETECTION
     // "You haven't mentioned Sarah in a while - everything okay?"

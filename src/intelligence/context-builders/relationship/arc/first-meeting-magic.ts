@@ -32,10 +32,10 @@
  * @module intelligence/context-builders/relationship/arc/first-meeting-magic
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';
-import { registerContextBuilder, createHighInjection, createStandardInjection } from '../index.js';
-import { BuilderCategory } from '../core/categories.js';
-import { createLogger } from '../../../utils/safe-logger.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../../index.js';
+import { registerContextBuilder, createHighInjection, createStandardInjection } from '../../index.js';
+import { BuilderCategory } from '../../core/categories.js';
+import { createLogger } from '../../../../utils/safe-logger.js';
 import type { DetectedEnergy, FirstMeetingData } from './types.js';
 import { recordFirstMeeting, loadRelationshipArcData } from './storage.js';
 

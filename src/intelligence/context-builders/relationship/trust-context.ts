@@ -59,7 +59,7 @@ import {
   type UnsaidSignal,
   // Trust Signal Emitter (Frontend UI Bridge)
   processContextForSignals,
-} from '../../services/trust-systems/index.js';
+} from '../../../services/trust-systems/index.js';
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
@@ -68,7 +68,7 @@ import {
   shouldSkipDueToNeverWhen,
   buildTriggerContext,
   type ProactiveTrigger,
-} from './dynamic-trigger-utils.js';
+} from '../dynamic-trigger-utils.js';
 
 const log = createLogger({ module: 'TrustContextBuilder' });
 
@@ -218,7 +218,7 @@ async function buildTrustAwareContext(input: ContextBuilderInput): Promise<Conte
 
   // Use the smart detection function
   const { isGoodMomentForGrowth, generateEarlyGrowthReflection, generateGrowthReflection } =
-    await import('../../services/trust-systems/index.js');
+    await import('../../../services/trust-systems/index.js');
 
   const growthMoment = isGoodMomentForGrowth(userId, {
     turnCount,
@@ -584,7 +584,7 @@ import {
   getRandomPhraseClean,
   loadTrustPhrases,
   type TrustPhrases,
-} from '../../services/persona-content-loader.js';
+} from '../../../services/persona-content-loader.js';
 
 /**
  * Cached trust phrases per persona

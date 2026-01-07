@@ -22,7 +22,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { isTeamMemberUnlocked } from '../../intelligence/context-builders/superhuman/team-availability.js';
+import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { getToolDescription } from '../utils/tool-descriptions.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
@@ -681,7 +681,7 @@ Do NOT try to transfer to them. This was just a quick hello.`,
       // This prevents re-introduction in the same session
       try {
         const { markIntroduced } =
-          await import('../../intelligence/context-builders/cameo-unlock.js');
+          await import('../../intelligence/context-builders/team/cameo-unlock.js');
         markIntroduced(member.memberId);
       } catch {
         // Non-critical - continue anyway

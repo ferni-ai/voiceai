@@ -14,7 +14,7 @@
  */
 import { createLogger } from '../../../utils/safe-logger.js';
 import { DISTRESS } from '../../distress-levels.js';
-import { BuilderCategory } from './categories.js';
+import { BuilderCategory } from '../core/categories.js';
 import {
   createCriticalInjection,
   createStandardInjection,

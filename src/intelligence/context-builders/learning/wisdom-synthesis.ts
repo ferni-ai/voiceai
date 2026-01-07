@@ -23,7 +23,7 @@ import {
   getWisdomContextInjection,
   getPopulationInsights,
   type SituationType,
-} from '../../services/wisdom-synthesis/index.js';
+} from '../../../services/wisdom-synthesis/index.js';
 
 const log = getLogger().child({ module: 'context:wisdom-synthesis' });
 

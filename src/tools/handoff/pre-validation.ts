@@ -17,7 +17,7 @@
 import {
   isCoreTeamMember,
   isTeamMemberUnlocked,
-} from '../../intelligence/context-builders/superhuman/team-availability.js';
+} from '../../intelligence/context-builders/team/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
 import type { UserProfile } from '../../types/user-profile.js';

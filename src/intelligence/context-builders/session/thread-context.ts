@@ -8,12 +8,12 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { PersonaId } from '../../personas/types.js';
+import type { PersonaId } from '../../../personas/types.js';
 import {
   getActiveThread,
   buildAgentContext,
-} from '../../services/conversation-thread/thread-manager.js';
-import { getConversationBridgeContext } from '../../services/outreach/conversation-context-bridge.js';
+} from '../../../services/conversation-thread/thread-manager.js';
+import { getConversationBridgeContext } from '../../../services/outreach/conversation-context-bridge.js';
 
 const log = createLogger({ module: 'ThreadContextBuilder' });
 

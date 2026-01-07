@@ -19,21 +19,21 @@
  * @module LovablePresenceContextBuilder
  */
 
-import { loadBundleById } from '../../personas/bundles/loader.js';
+import { loadBundleById } from '../../../personas/bundles/loader.js';
 import type {
   BundleDelightfulSurprises,
   BundleLiveReactions,
   BundleLovableMoments,
   BundleNoticingPatterns,
   BundleVerbalPersonality,
-} from '../../personas/bundles/types/content.js';
-import { createLogger } from '../../utils/safe-logger.js';
-import { DISTRESS } from '../distress-levels.js';
+} from '../../../personas/bundles/types/content.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { DISTRESS } from '../../distress-levels.js';
 import {
   getLovableState,
   type LovablePresenceState,
   updateLovableState,
-} from '../session-state.js';
+} from '../../session-state.js';
 import {
   createHintInjection,
   createStandardInjection,

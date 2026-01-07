@@ -12,8 +12,8 @@
  * @module intelligence/context-builders/thinking-of-you
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
-import { registerInterval } from '../../utils/interval-manager.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { registerInterval } from '../../../utils/interval-manager.js';
 import {
   BuilderCategory,
   createStandardInjection,
@@ -23,14 +23,14 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { loadPersonaContent } from '../../services/persona-content-loader.js';
+import { loadPersonaContent } from '../../../services/persona-content-loader.js';
 import {
   checkDynamicTriggers,
   calculateProbabilityBoost,
   shouldSkipDueToNeverWhen,
   buildTriggerContext,
   type ProactiveTrigger,
-} from './dynamic-trigger-utils.js';
+} from '../dynamic-trigger-utils.js';
 
 // Between-session thinking - "I've been thinking about what you said"
 import {
@@ -38,7 +38,7 @@ import {
   markThinkingSurfaced,
   incrementSessionCount,
   type ThinkingMoment,
-} from '../../services/trust-systems/between-session-thinking.js';
+} from '../../../services/trust-systems/between-session-thinking.js';
 
 const log = createLogger({ module: 'ThinkingOfYouContextBuilder' });
 

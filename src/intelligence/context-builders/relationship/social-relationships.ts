@@ -21,7 +21,7 @@ import {
   generateSocialInsights,
   generateSuperhumanMoment,
   getImportantPeople,
-} from '../../services/social-graph/index.js';
+} from '../../../services/social-graph/index.js';
 import {
   registerContextBuilder,
   type ContextBuilder,

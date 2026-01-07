@@ -18,7 +18,7 @@ import {
   getStoryMusicOffer,
   getStorytellingIntro,
   getStorytellingConfig,
-} from '../../personas/theatrical.js';
+} from '../../../personas/theatrical.js';
 
 // ============================================================================
 // STORYTELLING PATTERNS

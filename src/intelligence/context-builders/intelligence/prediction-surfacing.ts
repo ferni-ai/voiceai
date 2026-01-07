@@ -142,7 +142,7 @@ async function collectTriggers(
 
   // Lazy import to avoid circular dependencies
   const { generatePredictions, getDayPatterns } =
-    await import('../../services/superhuman/predictive-coaching.js');
+    await import('../../../services/superhuman/predictive-coaching.js');
 
   // Get active predictions from rule-based system
   const predictions: PredictionData[] = await generatePredictions(userId);
@@ -153,7 +153,7 @@ async function collectTriggers(
   // ============================================================================
   try {
     const { getAllPredictions, predictNextStates, extractStatesFromTurn } =
-      await import('../predictive/index.js');
+      await import('../../predictive/index.js');
 
     // Get ML-fused predictions (burnout risk, needs support, etc.)
     const mlPredictions = await getAllPredictions(userId, {

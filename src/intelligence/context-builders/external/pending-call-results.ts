@@ -52,7 +52,7 @@ interface PendingCallResult {
  */
 export async function getPendingCallResults(userId: string): Promise<PendingCallResult[]> {
   try {
-    const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js').catch(
+    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js').catch(
       () => ({ getFirestoreDb: null })
     );
 
@@ -117,7 +117,7 @@ export async function markCallResultsDelivered(
   callIds: string[]
 ): Promise<void> {
   try {
-    const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js').catch(
+    const { getFirestoreDb } = await import('../../../services/superhuman/firestore-utils.js').catch(
       () => ({ getFirestoreDb: null })
     );
 
@@ -225,7 +225,7 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
  */
 export async function buildPendingBackgroundResultsContext(userId: string): Promise<string | null> {
   try {
-    const { buildPendingResultsContext } = await import('../../services/background-agents/index.js');
+    const { buildPendingResultsContext } = await import('../../../services/background-agents/index.js');
     return await buildPendingResultsContext(userId);
   } catch (error) {
     log.debug({ error: String(error) }, 'Unified background results not available, falling back to calls only');

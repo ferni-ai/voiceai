@@ -12,10 +12,10 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { UserProfile } from '../../types/user-profile.js';
-import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
-import { getMemoryEngagementEngine, buildMemoryEngagementContext } from '../memory-engagement.js';
-import { getTeamEngagementService } from '../../services/engagement/team-engagement.js';
+import type { UserProfile } from '../../../types/user-profile.js';
+import { getDailyRitualsService, PERSONA_RITUALS } from '../../../services/daily-rituals.js';
+import { getMemoryEngagementEngine, buildMemoryEngagementContext } from '../../memory-engagement.js';
+import { getTeamEngagementService } from '../../../services/engagement/team-engagement.js';
 import {
   registerContextBuilder,
   createStandardInjection,

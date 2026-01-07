@@ -18,7 +18,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { getTransition } from '../../tasks/transitions.js';
+import { getTransition } from '../../../tasks/transitions.js';
 
 // ============================================================================
 // INTENT HELPERS

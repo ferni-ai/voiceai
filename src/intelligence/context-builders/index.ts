@@ -1067,7 +1067,7 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear deep understanding session state
   try {
-    const { clearDeepUnderstandingSession } = await import('./deep-understanding.js');
+    const { clearDeepUnderstandingSession } = await import('./intelligence/deep-understanding.js');
     clearDeepUnderstandingSession(sessionId);
   } catch {
     /* module not loaded */
@@ -1075,7 +1075,7 @@ export async function cleanupContextBuilderSession(sessionId: string): Promise<v
 
   // Clear conversational superpowers session state
   try {
-    const { clearSuperpowersSession } = await import('./conversational-superpowers.js');
+    const { clearSuperpowersSession } = await import('./superhuman/conversational-superpowers.js');
     clearSuperpowersSession(sessionId);
   } catch {
     /* module not loaded */
@@ -1101,7 +1101,7 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all deep understanding sessions
   try {
-    const { clearAllDeepUnderstandingSessions } = await import('./deep-understanding.js');
+    const { clearAllDeepUnderstandingSessions } = await import('./intelligence/deep-understanding.js');
     clearAllDeepUnderstandingSessions();
   } catch {
     /* module not loaded */
@@ -1109,7 +1109,7 @@ export async function cleanupAllContextBuilderSessions(): Promise<void> {
 
   // Clear all conversational superpowers sessions
   try {
-    const { clearAllSuperpowersSessions } = await import('./conversational-superpowers.js');
+    const { clearAllSuperpowersSessions } = await import('./superhuman/conversational-superpowers.js');
     clearAllSuperpowersSessions();
   } catch {
     /* module not loaded */

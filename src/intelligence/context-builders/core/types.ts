@@ -210,7 +210,7 @@ export interface ContextUserData {
   /** Whether we've already referenced the last conversation topic */
   hasReferencedLastConversation?: boolean;
   /** macOS desktop context from menubar app (sent via data channel) */
-  macOS?: import('../macos-context.js').MacOSContextPayload;
+  macOS?: import('../external/macos-context.js').MacOSContextPayload;
 
   // ============================================================
   // DEEP UNDERSTANDING - Superhuman Intelligence Signals

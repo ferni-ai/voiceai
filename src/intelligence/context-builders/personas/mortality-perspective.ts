@@ -16,14 +16,14 @@
  * @module intelligence/context-builders/mortality-perspective
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 import {
   calculateLifeExpectancy,
   generateMortalityPerspective,
   generateSuperhumanMortalityMoment,
   calculateRemainingInstances,
   type LifeExpectancyResult,
-} from '../../services/wisdom/life-expectancy.js';
+} from '../../../services/wisdom/life-expectancy.js';
 
 const log = createLogger({ module: 'MortalityPerspectiveBuilder' });
 

@@ -83,7 +83,7 @@ export const revelationAwarenessBuilder: ContextBuilder = {
     const turnCount = userData?.turnCount ?? 0;
 
     // Get relationship stage for trust level calculation
-    const { getCurrentStage } = await import('./relationship-arc/storage.js');
+    const { getCurrentStage } = await import('../relationship/arc/storage.js');
     let trustLevel = 0.1;
     try {
       const currentStage = await getCurrentStage(userId);
@@ -95,11 +95,11 @@ export const revelationAwarenessBuilder: ContextBuilder = {
 
     // Import revelation system (lazy to avoid circular deps)
     const { getAntiSurveillanceGuidance } =
-      await import('../../services/revelation-moments/anti-surveillance.js');
+      await import('../../../services/revelation-moments/anti-surveillance.js');
     const { getThrottleState, getAvailableRevelations } =
-      await import('../../services/revelation-moments/throttling.js');
+      await import('../../../services/revelation-moments/throttling.js');
     const { getPermissionGuidance } =
-      await import('../../services/revelation-moments/permission-prompts.js');
+      await import('../../../services/revelation-moments/permission-prompts.js');
 
     // =========================================================================
     // ANTI-SURVEILLANCE GUIDANCE (Always inject)
@@ -192,7 +192,7 @@ Just be present and warm. Don't show off.`,
       // If we have available revelations, provide permission guidance
       if (availableRevelations.length > 0 && sessionNumber >= 3) {
         // Map revelation types to capability categories
-        const { revelationToCategory } = await import('../../services/revelation-moments/types.js');
+        const { revelationToCategory } = await import('../../../services/revelation-moments/types.js');
         const availableCategories = availableRevelations.map((r) => revelationToCategory(r));
 
         const permissionGuidance = getPermissionGuidance(availableCategories, trustLevel);
@@ -267,7 +267,7 @@ export async function checkBeforeReveal(
   isFirstTime: boolean;
 }> {
   try {
-    const { checkCapabilityUsage } = await import('../../services/revelation-moments/index.js');
+    const { checkCapabilityUsage } = await import('../../../services/revelation-moments/index.js');
 
     const result = await checkCapabilityUsage(userId, sessionId, capability, context);
 
@@ -300,7 +300,7 @@ export async function afterReveal(
   context: string
 ): Promise<void> {
   try {
-    const { recordCapabilityUsage } = await import('../../services/revelation-moments/index.js');
+    const { recordCapabilityUsage } = await import('../../../services/revelation-moments/index.js');
 
     await recordCapabilityUsage(userId, sessionId, capability, personaId, context);
   } catch (error) {

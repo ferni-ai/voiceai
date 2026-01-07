@@ -33,7 +33,7 @@ import {
   getDomainEngagementRate,
   getBestEmotionalContext,
   trackSurfacedDomains,
-} from '../capability-learning.js';
+} from '../../capability-learning.js';
 
 const log = createLogger({ module: 'context:domain-fluency' });
 

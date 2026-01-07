@@ -23,7 +23,7 @@ import {
   TEAM_MEMBERS,
   type TeamMemberId,
   type TeamUnlockState,
-} from '../../services/team-unlocks.js';
+} from '../../../services/team-unlocks.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,

@@ -18,8 +18,8 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { extractSmallDetails, getDetailCallback } from '../conversation-quality.js';
-import type { UserProfile, FamilyMember } from '../../types/user-profile.js';
+import { extractSmallDetails, getDetailCallback } from '../../conversation-quality/index.js';
+import type { UserProfile, FamilyMember } from '../../../types/user-profile.js';
 
 const log = createLogger({ module: 'Personal' });
 

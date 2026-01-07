@@ -22,10 +22,10 @@
  * @module intelligence/context-builders/relationship/arc/trusted-advisor
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';
-import { registerContextBuilder, createStandardInjection, createHintInjection } from '../index.js';
-import { BuilderCategory } from '../core/categories.js';
-import { createLogger } from '../../../utils/safe-logger.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../../index.js';
+import { registerContextBuilder, createStandardInjection, createHintInjection } from '../../index.js';
+import { BuilderCategory } from '../../core/categories.js';
+import { createLogger } from '../../../../utils/safe-logger.js';
 import { loadRelationshipArcData } from './storage.js';
 import type { KeyMoment, StageTransition } from './types.js';
 

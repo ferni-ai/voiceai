@@ -9,7 +9,7 @@
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,

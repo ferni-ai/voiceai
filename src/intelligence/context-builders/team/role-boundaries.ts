@@ -15,13 +15,13 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
   createCriticalInjection,
+  registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { isTeamMemberUnlocked } from './superhuman/team-availability.js';
+import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = createLogger({ module: 'RoleBoundaries' });
 
@@ -292,4 +292,4 @@ YOU ARE ${currentPersonaName}. You have teammates who could help with this, but 
 
 registerContextBuilder(roleBoundaryBuilder);
 
-export { roleBoundaryBuilder, detectBoundaryViolation, DOMAIN_OWNERSHIP, type BoundaryViolation };
+export { detectBoundaryViolation, DOMAIN_OWNERSHIP, roleBoundaryBuilder, type BoundaryViolation };

@@ -39,8 +39,8 @@ import {
 import {
   getRandomExpression,
   type DynamicExpressionResult,
-} from '../../personas/bundles/ferni/dynamic-personality.js';
-import { createLogger } from '../../utils/safe-logger.js';
+} from '../../../personas/bundles/ferni/dynamic-personality.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FerniPersonality' });
 
@@ -469,7 +469,7 @@ When they're excited, MATCH AND AMPLIFY. When they're hurting, SLOW DOWN AND BE 
   // "Caught doing" moments at conversation start (INCREASED to 0.35)
   if (turnCount === 0 && Math.random() < 0.35) {
     const { getCaughtDoingMoment } =
-      await import('../../personas/bundles/ferni/dynamic-personality.js');
+      await import('../../../personas/bundles/ferni/dynamic-personality.js');
     const caughtDoing = getCaughtDoingMoment(sessionId);
     if (caughtDoing) {
       injections.push(
@@ -487,7 +487,7 @@ When they're excited, MATCH AND AMPLIFY. When they're hurting, SLOW DOWN AND BE 
   // Sensory moments mid-conversation (INCREASED to 0.20)
   if (turnCount >= 4 && Math.random() < 0.2) {
     const { getSensoryMoment } =
-      await import('../../personas/bundles/ferni/dynamic-personality.js');
+      await import('../../../personas/bundles/ferni/dynamic-personality.js');
     const sensory = getSensoryMoment(sessionId, userEmotion);
     if (sensory) {
       injections.push(
@@ -549,7 +549,7 @@ When they're excited, MATCH AND AMPLIFY. When they're hurting, SLOW DOWN AND BE 
     Math.random() < 0.35
   ) {
     const { getTravelerReference } =
-      await import('../../personas/bundles/ferni/dynamic-personality.js');
+      await import('../../../personas/bundles/ferni/dynamic-personality.js');
     const traveler = getTravelerReference(sessionId);
     if (traveler) {
       injections.push(

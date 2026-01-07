@@ -13,7 +13,7 @@
  * @module HumanListeningContextBuilder
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createCriticalInjection,
@@ -26,7 +26,7 @@ import {
 import {
   getHumanListeningPipeline,
   type HumanListeningResult,
-} from '../../speech/human-listening-pipeline.js';
+} from '../../../speech/human-listening-pipeline.js';
 
 const log = getLogger().child({ module: 'context:human-listening' });
 
@@ -171,7 +171,7 @@ Their words may be masking how they really feel.`,
         if (userId) {
           // Speech pattern deviations (fillers, hedging, self-soothing)
           const { detectDeviations } =
-            await import('../../services/memory/human-listening-memory.js');
+            await import('../../../services/memory/human-listening-memory.js');
           const deviationReport = detectDeviations(userId, sessionId);
 
           if (deviationReport.hasDeviation && deviationReport.confidence > 0.5) {
@@ -227,7 +227,7 @@ Or weave in naturally: "I'm picking up on something..."`,
 
           if (voiceSignal) {
             const { detectVoiceDeviation } =
-              await import('../../services/trust-systems/voice-emotion-integration.js');
+              await import('../../../services/trust-systems/voice-emotion-integration.js');
             const voiceDeviation = detectVoiceDeviation(userId, voiceSignal);
 
             if (voiceDeviation.deviates && voiceDeviation.significance > 0.4) {

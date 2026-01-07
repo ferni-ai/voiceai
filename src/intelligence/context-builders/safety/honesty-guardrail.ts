@@ -19,7 +19,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import {
   wasHighImpactActionExecuted,
   getHumanReadableSummary,
-} from '../../agents/shared/action-history.js';
+} from '../../../agents/shared/action-history.js';
 
 const log = createLogger({ module: 'honesty-guardrail' });
 

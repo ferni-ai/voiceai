@@ -17,8 +17,8 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { getTaskManager } from '../../tasks/task-manager.js';
-import type { ConversationAnalysis as TaskManagerAnalysis } from '../../services/index.js';
+import { getTaskManager } from '../../../tasks/task-manager.js';
+import type { ConversationAnalysis as TaskManagerAnalysis } from '../../../services/index.js';
 
 // ============================================================================
 // TASKS CONTEXT BUILDER

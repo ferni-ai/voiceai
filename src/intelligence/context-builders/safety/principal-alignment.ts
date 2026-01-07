@@ -34,11 +34,11 @@ const log = createLogger({ module: 'context:principal-alignment' });
 // LAZY IMPORTS
 // ============================================================================
 
-let principalModule: typeof import('../../services/principal-alignment/index.js') | null = null;
+let principalModule: typeof import('../../../services/principal-alignment/index.js') | null = null;
 
 async function getPrincipalModule() {
   if (!principalModule) {
-    principalModule = await import('../../services/principal-alignment/index.js');
+    principalModule = await import('../../../services/principal-alignment/index.js');
   }
   return principalModule;
 }

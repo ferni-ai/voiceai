@@ -127,7 +127,7 @@ vi.mock('../../../config/handoff-timing.js', () => ({
 }));
 
 // Mock team availability to allow all handoffs in tests
-vi.mock('../../../intelligence/context-builders/superhuman/team-availability.js', () => ({
+vi.mock('../../../intelligence/context-builders/team/team-availability.js', () => ({
   isTeamMemberUnlocked: () => true,
   getLockedMemberTeaser: () => null,
   isCoreTeamMember: () => true, // Assume all test agents are core team members
@@ -521,7 +521,7 @@ describe('Unlock Validation', () => {
   it('should block handoffs to locked members', async () => {
     // Mock isTeamMemberUnlocked to return false for this test
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
     vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(
       "I have a friend who's amazing at that... once we talk more, I'll introduce you."
@@ -541,7 +541,7 @@ describe('Unlock Validation', () => {
   it('should allow handoffs to unlocked members', async () => {
     // Mock isTeamMemberUnlocked to return true
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(true);
 
     const result = await executeHandoff('peter-john', 'User wants stock research', {
@@ -561,7 +561,7 @@ describe('Unlock Validation', () => {
 
     // Mock isTeamMemberUnlocked to return false (shouldn't matter for Ferni)
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
 
     const result = await executeHandoff('ferni', 'Return to main coach', {
@@ -578,7 +578,7 @@ describe('Unlock Validation', () => {
   it('should skip unlock check when skipUnlockCheck option is true', async () => {
     // Mock isTeamMemberUnlocked to return false
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
 
     const result = await executeHandoff('maya-santos', 'Test bypass', {
@@ -591,7 +591,7 @@ describe('Unlock Validation', () => {
 
   it('should use teaser message as error for locked members', async () => {
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
     vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(
       'Peter can show you incredible patterns, but I need to know you better first.'
@@ -612,7 +612,7 @@ describe('Unlock Validation', () => {
 
   it('should provide fallback error message when no teaser available', async () => {
     const teamAvailability =
-      await import('../../../intelligence/context-builders/superhuman/team-availability.js');
+      await import('../../../intelligence/context-builders/team/team-availability.js');
     vi.spyOn(teamAvailability, 'isTeamMemberUnlocked').mockReturnValue(false);
     vi.spyOn(teamAvailability, 'getLockedMemberTeaser').mockReturnValue(null);
 

@@ -29,9 +29,9 @@ import {
   generateVoiceGuidance,
   type Exercise,
   type NervousSystemState,
-} from '../../services/somatic-intelligence/index.js';
+} from '../../../services/somatic-intelligence/index.js';
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SomaticContextBuilder' });
 
