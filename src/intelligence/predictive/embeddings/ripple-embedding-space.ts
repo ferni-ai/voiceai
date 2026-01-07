@@ -567,6 +567,90 @@ export async function buildRippleSpaceContext(
 }
 
 // ============================================================================
+// PERSISTENCE (Hydration & Export)
+// ============================================================================
+
+export interface RippleSpacePersistenceData {
+  domains: Array<{
+    domain: LifeDomain;
+    coreEmbedding: number[];
+    currentStateEmbedding: number[];
+    healthyStateEmbedding: number[];
+    personalMeaning: string;
+    recentTopics: string[];
+    emotionalAssociation: number;
+  }>;
+  influenceVectors: InfluenceVector[];
+  lastUpdated: number;
+}
+
+/**
+ * Get current state for persistence
+ */
+export function getStateForPersistence(userId: string): RippleSpacePersistenceData | null {
+  const space = userDomainSpaces.get(userId);
+  if (!space) return null;
+  
+  const domainsArray: RippleSpacePersistenceData['domains'] = [];
+  for (const [domain, data] of space.domains) {
+    domainsArray.push({
+      domain,
+      coreEmbedding: data.coreEmbedding,
+      currentStateEmbedding: data.currentStateEmbedding,
+      healthyStateEmbedding: data.healthyStateEmbedding,
+      personalMeaning: data.personalMeaning,
+      recentTopics: data.recentTopics,
+      emotionalAssociation: data.emotionalAssociation,
+    });
+  }
+  
+  return {
+    domains: domainsArray,
+    influenceVectors: space.influenceVectors,
+    lastUpdated: space.lastUpdated,
+  };
+}
+
+/**
+ * Hydrate from persisted data
+ */
+export function hydrateFromPersistence(
+  userId: string,
+  data: RippleSpacePersistenceData
+): void {
+  if (!data.domains || data.domains.length === 0) return;
+  
+  const domains = new Map<LifeDomain, DomainEmbedding>();
+  for (const d of data.domains) {
+    domains.set(d.domain, {
+      domain: d.domain,
+      coreEmbedding: d.coreEmbedding,
+      currentStateEmbedding: d.currentStateEmbedding,
+      healthyStateEmbedding: d.healthyStateEmbedding,
+      personalMeaning: d.personalMeaning,
+      recentTopics: d.recentTopics,
+      emotionalAssociation: d.emotionalAssociation,
+    });
+  }
+  
+  userDomainSpaces.set(userId, {
+    userId,
+    domains,
+    influenceVectors: data.influenceVectors || [],
+    lastUpdated: data.lastUpdated || Date.now(),
+  });
+  
+  log.debug({ userId, domainCount: domains.size }, '💧 Hydrated ripple embedding space');
+}
+
+/**
+ * Clear user data (for cleanup)
+ */
+export function clearUserData(userId: string): void {
+  userDomainSpaces.delete(userId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -579,6 +663,10 @@ export const rippleEmbeddingSpace = {
   getDomainDistance,
   findRelatedDomains,
   buildRippleSpaceContext,
+  // Persistence
+  getStateForPersistence,
+  hydrateFromPersistence,
+  clearUserData,
 };
 
 export default rippleEmbeddingSpace;

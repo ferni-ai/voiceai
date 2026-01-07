@@ -554,6 +554,43 @@ export async function buildInterventionMatchingContext(
 }
 
 // ============================================================================
+// PERSISTENCE (Hydration & Export)
+// ============================================================================
+
+export interface InterventionPersistenceData {
+  situations: SituationEmbedding[];
+}
+
+/**
+ * Get current state for persistence
+ */
+export function getStateForPersistence(userId: string): InterventionPersistenceData {
+  return {
+    situations: userSituationLibrary.get(userId) || [],
+  };
+}
+
+/**
+ * Hydrate from persisted data
+ */
+export function hydrateFromPersistence(
+  userId: string,
+  data: InterventionPersistenceData
+): void {
+  if (data.situations && data.situations.length > 0) {
+    userSituationLibrary.set(userId, data.situations);
+    log.debug({ userId, count: data.situations.length }, '💧 Hydrated intervention situations');
+  }
+}
+
+/**
+ * Clear user data (for cleanup)
+ */
+export function clearUserData(userId: string): void {
+  userSituationLibrary.delete(userId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -566,6 +603,10 @@ export const interventionMatching = {
   getSuccessfulSituations,
   getInterventionStats,
   buildInterventionMatchingContext,
+  // Persistence
+  getStateForPersistence,
+  hydrateFromPersistence,
+  clearUserData,
 };
 
 export default interventionMatching;

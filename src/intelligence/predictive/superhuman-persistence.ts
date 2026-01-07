@@ -42,6 +42,7 @@ export interface AvoidancePersistenceData {
   avoidanceTendency: number;
   pressureBuildupRate: number;
   lastUpdated: number;
+  [key: string]: unknown;
 }
 
 export interface BreakthroughPersistenceData {
@@ -198,6 +199,7 @@ export interface CognitiveFingerprintPersistenceData {
   };
   totalObservations: number;
   lastUpdated: number;
+  [key: string]: unknown;
 }
 
 export interface RipplePersistenceData {
@@ -248,6 +250,7 @@ export interface LifePhasePersistenceData {
   };
   phaseTendencies: Array<{ phase: string; score: number }>;
   lastUpdated: number;
+  [key: string]: unknown;
 }
 
 export interface InterventionTimingPersistenceData {

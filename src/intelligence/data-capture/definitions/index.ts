@@ -16,6 +16,8 @@ import { conflictCaptureDefinition } from './conflict.capture.js';
 import { boundaryCaptureDefinition } from './boundary.capture.js';
 import { recoveryEventCaptureDefinition } from './recovery-event.capture.js';
 import { insideJokeCaptureDefinition } from './inside-joke.capture.js';
+// Actionable Intent Capture - surfaces suggestions to LLM
+import { actionableIntentCaptureDefinition } from './actionable-intent.capture.js';
 import type { DataCaptureDefinition } from '../types.js';
 
 /**
@@ -25,6 +27,8 @@ import type { DataCaptureDefinition } from '../types.js';
 export const allDataCaptureDefinitions: DataCaptureDefinition[] = [
   // Safety/Boundaries first - important to respect
   boundaryCaptureDefinition,
+  // Actionable intents - calendar, tasks, reminders (guides LLM to offer)
+  actionableIntentCaptureDefinition,
   // Contacts - most specific (phone/email patterns)
   contactCaptureDefinition,
   // Commitments - specific language patterns
@@ -57,3 +61,4 @@ export { conflictCaptureDefinition } from './conflict.capture.js';
 export { boundaryCaptureDefinition } from './boundary.capture.js';
 export { recoveryEventCaptureDefinition } from './recovery-event.capture.js';
 export { insideJokeCaptureDefinition } from './inside-joke.capture.js';
+export { actionableIntentCaptureDefinition } from './actionable-intent.capture.js';

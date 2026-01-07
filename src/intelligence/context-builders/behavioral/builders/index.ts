@@ -45,6 +45,7 @@ import './humanizing.behavioral.js';
 import './validation.behavioral.js';
 import './energy.behavioral.js';
 import './predictive.behavioral.js';
+import './embedding-predictive.behavioral.js';
 
 // Export for explicit importing
 export { buildEmotionalBehavior } from './emotional.behavioral.js';
@@ -56,3 +57,4 @@ export { buildHumanizingBehavior } from './humanizing.behavioral.js';
 export { buildValidationBehavior } from './validation.behavioral.js';
 export { buildEnergyBehavior } from './energy.behavioral.js';
 export { buildPredictiveBehavior } from './predictive.behavioral.js';
+export { buildEmbeddingPredictiveBehavior } from './embedding-predictive.behavioral.js';

@@ -60,27 +60,27 @@ interface InsightGenerationConfig extends BaseJobConfig {
   minStrength: number;
 }
 
-const INSIGHT_GENERATION_DEFAULT_CONFIG: InsightGenerationConfig = {
-  enabled: true,
-  intervalMs: 24 * 60 * 60 * 1000, // Daily
-  maxUsers: 50,
-  minObservations: 5,
-  minStrength: 0.5,
-};
+interface InsightGenerationResult {
+  processedUsers: number;
+  totalInsights: number;
+  [key: string]: unknown;
+}
 
 /**
  * Generate insights for users from their knowledge graphs
  */
-export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig> {
+export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, InsightGenerationResult> {
   readonly name = 'knowledge-graph-insight-generation';
   readonly description = 'Generate patterns, correlations, and insights from knowledge graph';
 
-  constructor(config?: Partial<InsightGenerationConfig>) {
-    super({ ...INSIGHT_GENERATION_DEFAULT_CONFIG, ...config });
-  }
+  readonly defaultConfig: InsightGenerationConfig = {
+    dryRun: false,
+    maxUsers: 50,
+    minObservations: 5,
+    minStrength: 0.5,
+  };
 
-  async execute(context: JobContext): Promise<void> {
-    const startTime = Date.now();
+  protected async execute(config: InsightGenerationConfig, ctx: JobContext): Promise<InsightGenerationResult> {
     let processedUsers = 0;
     let totalInsights = 0;
 
@@ -92,11 +92,11 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig> 
         '../../memory/knowledge-graph/storage/index.js'
       );
 
-      const users = await getKnowledgeGraphUsers(this.config.maxUsers);
-      log.info({ userCount: users.length }, 'Starting insight generation job');
+      const users = await getKnowledgeGraphUsers(config.maxUsers);
+      ctx.log.info({ userCount: users.length }, 'Starting insight generation job');
 
       for (const userId of users) {
-        if (context.shouldStop) break;
+        ctx.counters.processed++;
 
         try {
           // Run consolidation which includes correlation detection
@@ -106,7 +106,7 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig> 
           // Store detected correlations as insights
           if (result.newCorrelations.length > 0) {
             const insights = result.newCorrelations
-              .filter((c) => c.strength >= this.config.minStrength)
+              .filter((c) => c.strength >= config.minStrength)
               .map((correlation) => ({
                 insightType: this.mapCorrelationToInsightType(correlation.type),
                 title: correlation.description.slice(0, 50),
@@ -123,27 +123,31 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig> 
             if (insights.length > 0) {
               await createInsightsBatch(userId, insights as Parameters<typeof createInsightsBatch>[1]);
               totalInsights += insights.length;
+              ctx.counters.success++;
             }
           }
 
           processedUsers++;
         } catch (error) {
-          log.warn(
+          ctx.counters.errors++;
+          ctx.log.warn(
             { error: String(error), userId },
             'Failed to generate insights for user'
           );
         }
       }
 
-      const duration = Date.now() - startTime;
-      log.info(
+      const duration = Date.now() - ctx.startedAt.getTime();
+      ctx.log.info(
         { processedUsers, totalInsights, durationMs: duration },
         'Insight generation job completed'
       );
     } catch (error) {
-      log.error({ error: String(error) }, 'Insight generation job failed');
+      ctx.log.error({ error: String(error) }, 'Insight generation job failed');
       throw error;
     }
+
+    return { processedUsers, totalInsights };
   }
 
   private mapCorrelationToInsightType(
@@ -175,27 +179,28 @@ interface ConsolidationConfig extends BaseJobConfig {
   archiveThreshold: number;
 }
 
-const CONSOLIDATION_DEFAULT_CONFIG: ConsolidationConfig = {
-  enabled: true,
-  intervalMs: 24 * 60 * 60 * 1000, // Daily
-  maxUsers: 100,
-  decayRate: 0.02,
-  archiveThreshold: 0.05,
-};
+interface ConsolidationResult {
+  processedUsers: number;
+  entitiesMerged: number;
+  entitiesDecayed: number;
+  [key: string]: unknown;
+}
 
 /**
  * Consolidate and maintain knowledge graph health
  */
-export class ConsolidationJob extends ScheduledJob<ConsolidationConfig> {
+export class ConsolidationJob extends ScheduledJob<ConsolidationConfig, ConsolidationResult> {
   readonly name = 'knowledge-graph-consolidation';
   readonly description = 'Consolidate entities, apply decay, archive old data';
 
-  constructor(config?: Partial<ConsolidationConfig>) {
-    super({ ...CONSOLIDATION_DEFAULT_CONFIG, ...config });
-  }
+  readonly defaultConfig: ConsolidationConfig = {
+    dryRun: false,
+    maxUsers: 100,
+    decayRate: 0.02,
+    archiveThreshold: 0.05,
+  };
 
-  async execute(context: JobContext): Promise<void> {
-    const startTime = Date.now();
+  protected async execute(config: ConsolidationConfig, ctx: JobContext): Promise<ConsolidationResult> {
     let processedUsers = 0;
     let entitiesMerged = 0;
     let entitiesDecayed = 0;
@@ -205,39 +210,43 @@ export class ConsolidationJob extends ScheduledJob<ConsolidationConfig> {
         '../../memory/knowledge-graph/index.js'
       );
 
-      const users = await getKnowledgeGraphUsers(this.config.maxUsers);
-      log.info({ userCount: users.length }, 'Starting consolidation job');
+      const users = await getKnowledgeGraphUsers(config.maxUsers);
+      ctx.log.info({ userCount: users.length }, 'Starting consolidation job');
 
       const engine = getConsolidationEngine({
-        baseDecayRate: this.config.decayRate,
-        minimumStrength: this.config.archiveThreshold,
+        baseDecayRate: config.decayRate,
+        minimumStrength: config.archiveThreshold,
       });
 
       for (const userId of users) {
-        if (context.shouldStop) break;
+        ctx.counters.processed++;
 
         try {
           const result = await engine.runConsolidation(userId);
           entitiesMerged += result.entitiesMerged;
           entitiesDecayed += result.memoriesDecayed;
           processedUsers++;
+          ctx.counters.success++;
         } catch (error) {
-          log.warn(
+          ctx.counters.errors++;
+          ctx.log.warn(
             { error: String(error), userId },
             'Failed to consolidate user knowledge graph'
           );
         }
       }
 
-      const duration = Date.now() - startTime;
-      log.info(
+      const duration = Date.now() - ctx.startedAt.getTime();
+      ctx.log.info(
         { processedUsers, entitiesMerged, entitiesDecayed, durationMs: duration },
         'Consolidation job completed'
       );
     } catch (error) {
-      log.error({ error: String(error) }, 'Consolidation job failed');
+      ctx.log.error({ error: String(error) }, 'Consolidation job failed');
       throw error;
     }
+
+    return { processedUsers, entitiesMerged, entitiesDecayed };
   }
 }
 
@@ -252,26 +261,27 @@ interface ThreadMaintenanceConfig extends BaseJobConfig {
   dormantAfterDays: number;
 }
 
-const THREAD_MAINTENANCE_DEFAULT_CONFIG: ThreadMaintenanceConfig = {
-  enabled: true,
-  intervalMs: 24 * 60 * 60 * 1000, // Daily
-  maxUsers: 100,
-  dormantAfterDays: 14,
-};
+interface ThreadMaintenanceResult {
+  processedUsers: number;
+  threadsDormant: number;
+  insightsExpired: number;
+  [key: string]: unknown;
+}
 
 /**
  * Maintain conversation threads - mark dormant, cleanup
  */
-export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig> {
+export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig, ThreadMaintenanceResult> {
   readonly name = 'knowledge-graph-thread-maintenance';
   readonly description = 'Mark dormant threads, cleanup expired data';
 
-  constructor(config?: Partial<ThreadMaintenanceConfig>) {
-    super({ ...THREAD_MAINTENANCE_DEFAULT_CONFIG, ...config });
-  }
+  readonly defaultConfig: ThreadMaintenanceConfig = {
+    dryRun: false,
+    maxUsers: 100,
+    dormantAfterDays: 14,
+  };
 
-  async execute(context: JobContext): Promise<void> {
-    const startTime = Date.now();
+  protected async execute(config: ThreadMaintenanceConfig, ctx: JobContext): Promise<ThreadMaintenanceResult> {
     let processedUsers = 0;
     let threadsDormant = 0;
     let insightsExpired = 0;
@@ -281,11 +291,11 @@ export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig> 
         '../../memory/knowledge-graph/storage/index.js'
       );
 
-      const users = await getKnowledgeGraphUsers(this.config.maxUsers);
-      log.info({ userCount: users.length }, 'Starting thread maintenance job');
+      const users = await getKnowledgeGraphUsers(config.maxUsers);
+      ctx.log.info({ userCount: users.length }, 'Starting thread maintenance job');
 
       for (const userId of users) {
-        if (context.shouldStop) break;
+        ctx.counters.processed++;
 
         try {
           // Mark dormant threads
@@ -300,23 +310,27 @@ export class ThreadMaintenanceJob extends ScheduledJob<ThreadMaintenanceConfig> 
           await deleteNegativeInsights(userId);
 
           processedUsers++;
+          ctx.counters.success++;
         } catch (error) {
-          log.warn(
+          ctx.counters.errors++;
+          ctx.log.warn(
             { error: String(error), userId },
             'Failed to maintain threads for user'
           );
         }
       }
 
-      const duration = Date.now() - startTime;
-      log.info(
+      const duration = Date.now() - ctx.startedAt.getTime();
+      ctx.log.info(
         { processedUsers, threadsDormant, insightsExpired, durationMs: duration },
         'Thread maintenance job completed'
       );
     } catch (error) {
-      log.error({ error: String(error) }, 'Thread maintenance job failed');
+      ctx.log.error({ error: String(error) }, 'Thread maintenance job failed');
       throw error;
     }
+
+    return { processedUsers, threadsDormant, insightsExpired };
   }
 }
 
@@ -335,69 +349,73 @@ interface EntityDecayConfig extends BaseJobConfig {
   recentMentionProtectionDays: number;
 }
 
-const ENTITY_DECAY_DEFAULT_CONFIG: EntityDecayConfig = {
-  enabled: true,
-  intervalMs: 24 * 60 * 60 * 1000, // Daily
-  maxUsers: 100,
-  baseDecayRate: 0.02,
-  emotionalProtection: 0.5,
-  recentMentionProtectionDays: 7,
-};
+interface EntityDecayResult {
+  processedUsers: number;
+  entitiesDecayed: number;
+  [key: string]: unknown;
+}
 
 /**
  * Apply decay to entity salience scores
  */
-export class EntityDecayJob extends ScheduledJob<EntityDecayConfig> {
+export class EntityDecayJob extends ScheduledJob<EntityDecayConfig, EntityDecayResult> {
   readonly name = 'knowledge-graph-entity-decay';
   readonly description = 'Apply graceful forgetting to entity salience scores';
 
-  constructor(config?: Partial<EntityDecayConfig>) {
-    super({ ...ENTITY_DECAY_DEFAULT_CONFIG, ...config });
-  }
+  readonly defaultConfig: EntityDecayConfig = {
+    dryRun: false,
+    maxUsers: 100,
+    baseDecayRate: 0.02,
+    emotionalProtection: 0.5,
+    recentMentionProtectionDays: 7,
+  };
 
-  async execute(context: JobContext): Promise<void> {
-    const startTime = Date.now();
+  protected async execute(config: EntityDecayConfig, ctx: JobContext): Promise<EntityDecayResult> {
     let processedUsers = 0;
     let entitiesDecayed = 0;
 
     try {
-      const users = await getKnowledgeGraphUsers(this.config.maxUsers);
-      log.info({ userCount: users.length }, 'Starting entity decay job');
+      const users = await getKnowledgeGraphUsers(config.maxUsers);
+      ctx.log.info({ userCount: users.length }, 'Starting entity decay job');
 
       for (const userId of users) {
-        if (context.shouldStop) break;
+        ctx.counters.processed++;
 
         try {
-          const decayed = await this.applyDecayForUser(userId);
+          const decayed = await this.applyDecayForUser(userId, config);
           entitiesDecayed += decayed;
           processedUsers++;
+          ctx.counters.success++;
         } catch (error) {
-          log.warn(
+          ctx.counters.errors++;
+          ctx.log.warn(
             { error: String(error), userId },
             'Failed to apply decay for user'
           );
         }
       }
 
-      const duration = Date.now() - startTime;
-      log.info(
+      const duration = Date.now() - ctx.startedAt.getTime();
+      ctx.log.info(
         { processedUsers, entitiesDecayed, durationMs: duration },
         'Entity decay job completed'
       );
     } catch (error) {
-      log.error({ error: String(error) }, 'Entity decay job failed');
+      ctx.log.error({ error: String(error) }, 'Entity decay job failed');
       throw error;
     }
+
+    return { processedUsers, entitiesDecayed };
   }
 
-  private async applyDecayForUser(userId: string): Promise<number> {
+  private async applyDecayForUser(userId: string, config: EntityDecayConfig): Promise<number> {
     const { getAllEntities, updateEntity } = await import(
       '../../memory/entity-store/storage.js'
     );
 
     const entities = await getAllEntities(userId, { limit: 500 });
     const now = Date.now();
-    const protectionCutoff = now - this.config.recentMentionProtectionDays * 24 * 60 * 60 * 1000;
+    const protectionCutoff = now - config.recentMentionProtectionDays * 24 * 60 * 60 * 1000;
     let decayed = 0;
 
     for (const entity of entities) {
@@ -407,15 +425,16 @@ export class EntityDecayJob extends ScheduledJob<EntityDecayConfig> {
       }
 
       // Calculate decay with emotional protection
-      let decayRate = this.config.baseDecayRate;
-      if (entity.emotionalWeight > 0.5) {
-        decayRate *= 1 - this.config.emotionalProtection * (entity.emotionalWeight - 0.5) * 2;
+      let decayRate = config.baseDecayRate;
+      if (entity.emotionalWeight && entity.emotionalWeight > 0.5) {
+        decayRate *= 1 - config.emotionalProtection * (entity.emotionalWeight - 0.5) * 2;
       }
 
       // Apply decay
-      const newSalience = Math.max(0.01, entity.salience * (1 - decayRate));
+      const currentSalience = entity.salience ?? 0.5;
+      const newSalience = Math.max(0.01, currentSalience * (1 - decayRate));
 
-      if (newSalience !== entity.salience) {
+      if (newSalience !== currentSalience) {
         await updateEntity(userId, entity.id, { salience: newSalience });
         decayed++;
       }
@@ -432,7 +451,7 @@ export class EntityDecayJob extends ScheduledJob<EntityDecayConfig> {
 /**
  * Get all knowledge graph jobs
  */
-export function getKnowledgeGraphJobs(): ScheduledJob<BaseJobConfig>[] {
+export function getKnowledgeGraphJobs(): ScheduledJob<BaseJobConfig, Record<string, unknown>>[] {
   return [
     new InsightGenerationJob(),
     new ConsolidationJob(),
@@ -448,7 +467,11 @@ export function getKnowledgeGraphJobs(): ScheduledJob<BaseJobConfig>[] {
 // Types are re-exported here since classes are already exported inline
 export {
   type InsightGenerationConfig,
+  type InsightGenerationResult,
   type ConsolidationConfig,
+  type ConsolidationResult,
   type ThreadMaintenanceConfig,
+  type ThreadMaintenanceResult,
   type EntityDecayConfig,
+  type EntityDecayResult,
 };

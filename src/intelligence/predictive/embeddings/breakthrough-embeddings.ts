@@ -51,8 +51,8 @@ export interface BreakthroughEmbedding {
   // Context
   conversationContext: string;
   emotionalState: string;
-  topic: string;
-  
+  // Note: topic is defined above at line 29
+
   // Temporal
   timestamp: number;
   conversationLength: number;  // minutes into conversation
@@ -441,6 +441,43 @@ export async function buildBreakthroughEmbeddingContext(
 }
 
 // ============================================================================
+// PERSISTENCE (Hydration & Export)
+// ============================================================================
+
+export interface BreakthroughPersistenceData {
+  breakthroughs: BreakthroughEmbedding[];
+}
+
+/**
+ * Get current state for persistence
+ */
+export function getStateForPersistence(userId: string): BreakthroughPersistenceData {
+  return {
+    breakthroughs: userBreakthroughLibrary.get(userId) || [],
+  };
+}
+
+/**
+ * Hydrate from persisted data
+ */
+export function hydrateFromPersistence(
+  userId: string,
+  data: BreakthroughPersistenceData
+): void {
+  if (data.breakthroughs && data.breakthroughs.length > 0) {
+    userBreakthroughLibrary.set(userId, data.breakthroughs);
+    log.debug({ userId, count: data.breakthroughs.length }, '💧 Hydrated breakthrough embeddings');
+  }
+}
+
+/**
+ * Clear user data (for cleanup)
+ */
+export function clearUserData(userId: string): void {
+  userBreakthroughLibrary.delete(userId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -451,6 +488,10 @@ export const breakthroughEmbeddings = {
   getOptimalCatalysts,
   getBreakthroughsByTopic,
   buildBreakthroughEmbeddingContext,
+  // Persistence
+  getStateForPersistence,
+  hydrateFromPersistence,
+  clearUserData,
 };
 
 export default breakthroughEmbeddings;

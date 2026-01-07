@@ -68,6 +68,38 @@ type EntityType = EntityStoreEntityType;
 type EntityProperties = EntityStoreEntityProperties;
 
 // ============================================================================
+// INPUT TYPES FOR INTEGRATION
+// ============================================================================
+
+/**
+ * Input for resolving a mention to an entity.
+ * Used by integration.ts for data capture pipeline.
+ */
+export interface MentionInput {
+  /** The text/name mentioned */
+  text: string;
+  /** Resolved name if different from text */
+  name?: string;
+  /** Relationship to user */
+  relationship?: string;
+  /** Entity type */
+  type?: EntityType;
+  /** Phone number */
+  phone?: string;
+  /** Email address */
+  email?: string;
+  /** Additional context */
+  context?: string;
+}
+
+/**
+ * Alias EntityMention to MentionInput for backward compatibility.
+ * The original EntityMention was used for input, but TemporalMention
+ * is for tracking mentions over time.
+ */
+export type EntityMentionInput = MentionInput;
+
+// ============================================================================
 // RELATIONSHIP TYPES
 // ============================================================================
 
@@ -266,6 +298,9 @@ export interface TemporalMention {
 
   /** The context/transcript snippet */
   context: string;
+
+  /** Text alias for context (backward compat) */
+  text?: string;
 
   /** Emotional state during this mention */
   emotionalContext: {

@@ -856,7 +856,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = FerniWatch/FerniWatch.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWatch/Info.plist;
 				MARKETING_VERSION = 1.0.0;
@@ -873,7 +873,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniWatchWidgets/FerniWatchWidgets.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWatchWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -896,7 +896,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = FerniWatch/FerniWatch.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWatch/Info.plist;
 				MARKETING_VERSION = 1.0.0;
@@ -913,7 +913,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniShareExtension/FerniShareExtension.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FerniShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -981,7 +981,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = XT8W26YE9U;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1010,7 +1010,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniWidgets/FerniWidgets.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1062,7 +1062,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = XT8W26YE9U;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1098,7 +1098,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniWidgets/FerniWidgets.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWidgets/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1119,7 +1119,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniWatchWidgets/FerniWatchWidgets.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FerniWatchWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1178,7 +1178,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FerniShareExtension/FerniShareExtension.entitlements;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = FerniShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;

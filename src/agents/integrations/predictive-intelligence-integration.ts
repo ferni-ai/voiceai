@@ -37,6 +37,15 @@ import {
   markSuperhumanDirty,
 } from '../../intelligence/predictive/index.js';
 
+// 🧬 EMBEDDING INTELLIGENCE: Vector-powered predictions
+import {
+  embeddingPersistence,
+  conversationTrajectory,
+  semanticAvoidance,
+  interventionMatching,
+  getEmbeddingPredictiveContext,
+} from '../../intelligence/predictive/embeddings/index.js';
+
 // Import the three pattern systems
 import {
   recordObservation,
@@ -141,6 +150,11 @@ export function initializePredictiveIntelligence(
     log.debug({ error: String(err), userId }, 'Superhuman session start failed (non-fatal)');
   });
 
+  // 🧬 EMBEDDING INTELLIGENCE: Initialize embedding session
+  void embeddingPersistence.initializeSession(userId, sessionId).catch((err) => {
+    log.debug({ error: String(err), userId }, 'Embedding session start failed (non-fatal)');
+  });
+
   log.debug({ sessionId, userId }, '🔮 Predictive intelligence initialized');
 }
 
@@ -175,6 +189,11 @@ export function cleanupPredictiveIntelligence(
 
     // Mark for persistence flush
     markSuperhumanDirty(userId);
+
+    // 🧬 EMBEDDING INTELLIGENCE: Cleanup embedding session
+    void embeddingPersistence.cleanupSession(userId, sessionId).catch((err) => {
+      log.debug({ error: String(err), userId }, 'Embedding session cleanup failed (non-fatal)');
+    });
   }
 
   log.debug({ sessionId }, '🔮 Predictive intelligence cleaned up');
@@ -242,6 +261,19 @@ export async function processForPredictiveIntelligence(
       },
     }).catch((err) => {
       log.debug({ error: String(err), userId }, 'Superhuman learning failed (non-fatal)');
+    });
+
+    // ========================================================================
+    // 0.5. EMBEDDING INTELLIGENCE - Record turn for vector-powered learning
+    // ========================================================================
+    // Fire-and-forget: Update conversation trajectory and embedding-based learning
+    void conversationTrajectory.recordTurn(sessionId, {
+      text: message,
+      speaker: 'user',
+      emotionalValence: emotionIntensity ? (emotion?.includes('positive') ? emotionIntensity : -emotionIntensity) : 0,
+      topicDepth: undefined, // Will be estimated internally
+    }).catch((err) => {
+      log.debug({ error: String(err), userId }, 'Embedding turn recording failed (non-fatal)');
     });
 
     // ========================================================================
@@ -496,6 +528,21 @@ export async function getPredictiveContextForTurn(
       }
     } catch (err) {
       log.debug({ error: String(err), userId }, 'Failed to get superhuman predictive context');
+    }
+
+    // 🧬 EMBEDDING INTELLIGENCE: Get embedding-powered context
+    try {
+      const embeddingContext = await getEmbeddingPredictiveContext({
+        userId,
+        sessionId,
+        currentTopic: undefined, // Would need to be passed in
+      });
+      if (embeddingContext && embeddingContext.length > 0) {
+        sections.push('');
+        sections.push(embeddingContext);
+      }
+    } catch (err) {
+      log.debug({ error: String(err), userId }, 'Failed to get embedding predictive context');
     }
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to build predictive context');

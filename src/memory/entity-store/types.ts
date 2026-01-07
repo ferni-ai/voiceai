@@ -750,6 +750,12 @@ export interface EntityRelationship {
   /** Edge type describing the relationship */
   type: EdgeType;
 
+  /** Human-readable label for this relationship */
+  label?: string;
+
+  /** Alias for type - backward compatibility */
+  relationshipType?: EdgeType;
+
   /** Relationship strength (0-1) */
   strength: number;
 
@@ -992,7 +998,7 @@ export function createEntity(
  */
 function attributesToProperties(attrs: EntityAttributes): EntityProperties {
   const props: EntityProperties = {};
-  
+
   switch (attrs._type) {
     case 'person':
       props.relationship = attrs.relationship;
@@ -1024,7 +1030,7 @@ function attributesToProperties(attrs: EntityAttributes): EntityProperties {
       break;
     // Add more as needed
   }
-  
+
   return props;
 }
 
@@ -1159,6 +1165,15 @@ export interface Mention {
   sentiment: number; // -1 to 1
   emotionalIntensity: number; // 0-1
 
+  // Optional emotion string (for backward compatibility with superhuman modules)
+  emotion?: string;
+
+  // Optional context object (for backward compatibility)
+  context?: {
+    topic?: string;
+    [key: string]: unknown;
+  };
+
   // Classification
   mentionType: MentionType;
 
@@ -1179,6 +1194,10 @@ export interface ExtractedFact {
   confidence: number; // 0-1
   validFrom?: Date;
   validUntil?: Date;
+  /** Entity this fact is about (for knowledge-graph compatibility) */
+  entityId?: string;
+  /** Entity name (for display, knowledge-graph compatibility) */
+  entityName?: string;
 }
 
 /**

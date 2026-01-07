@@ -17,19 +17,30 @@
  */
 
 // ============================================================================
-// EXPORTS
+// NAMESPACE EXPORTS (avoid wildcard to prevent naming collisions)
 // ============================================================================
 
-export * from './semantic-avoidance.js';
-export * from './trajectory-patterns.js';
-export * from './breakthrough-embeddings.js';
-export * from './conversation-trajectory.js';
-export * from './cognitive-similarity.js';
-export * from './ripple-embedding-space.js';
-export * from './intervention-matching.js';
+// Re-export namespace objects from each module
+export { semanticAvoidance } from './semantic-avoidance.js';
+export { trajectoryPatterns } from './trajectory-patterns.js';
+export { breakthroughEmbeddings } from './breakthrough-embeddings.js';
+export { conversationTrajectory } from './conversation-trajectory.js';
+export { cognitiveSimilarity } from './cognitive-similarity.js';
+export { rippleEmbeddingSpace } from './ripple-embedding-space.js';
+export { interventionMatching } from './intervention-matching.js';
+export { embeddingPersistence } from './embedding-persistence.js';
+export { entitySynergy } from './entity-synergy.js';
+export { embeddingObservability } from './embedding-observability.js';
+export { entityEmbeddingSync } from './entity-embedding-sync.js';
+
+// Re-export types that are unique to this module (avoiding conflicts with superhuman-persistence types)
+// Note: AvoidancePersistenceData, TrajectoryPersistenceData, BreakthroughPersistenceData are NOT re-exported
+// here because different versions exist in superhuman-persistence.ts
+export type { RippleSpacePersistenceData, InterventionPersistenceData } from './embedding-persistence.js';
+export type { EntityContext, EntityAvoidanceLink, EntityTrajectoryContext, EntityBreakthroughContext } from './entity-synergy.js';
 
 // ============================================================================
-// NAMED IMPORTS FOR CONVENIENCE
+// NAMED IMPORTS FOR INTERNAL USE
 // ============================================================================
 
 import { semanticAvoidance } from './semantic-avoidance.js';
@@ -39,6 +50,10 @@ import { conversationTrajectory } from './conversation-trajectory.js';
 import { cognitiveSimilarity } from './cognitive-similarity.js';
 import { rippleEmbeddingSpace } from './ripple-embedding-space.js';
 import { interventionMatching } from './intervention-matching.js';
+import { embeddingPersistence } from './embedding-persistence.js';
+import { entitySynergy } from './entity-synergy.js';
+import { embeddingObservability } from './embedding-observability.js';
+import { entityEmbeddingSync } from './entity-embedding-sync.js';
 
 // ============================================================================
 // UNIFIED CONTEXT BUILDER
@@ -132,16 +147,4 @@ export async function getEmbeddingPredictiveContext(
   return '\n=== EMBEDDING INTELLIGENCE ===\n' + sections.join('\n\n');
 }
 
-// ============================================================================
-// MODULE EXPORTS
-// ============================================================================
-
-export {
-  semanticAvoidance,
-  trajectoryPatterns,
-  breakthroughEmbeddings,
-  conversationTrajectory,
-  cognitiveSimilarity,
-  rippleEmbeddingSpace,
-  interventionMatching,
-};
+// Note: Namespace objects are exported at the top of the file

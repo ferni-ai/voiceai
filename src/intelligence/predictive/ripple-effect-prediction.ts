@@ -40,6 +40,7 @@ export type LifeDomain =
   | 'creativity'
   | 'spirituality'
   | 'personal_growth'
+  | 'growth'  // Alias for personal_growth
   | 'habits'
   | 'energy'
   | 'sleep'

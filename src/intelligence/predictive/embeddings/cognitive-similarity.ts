@@ -505,6 +505,76 @@ export async function buildCommunityLearningContext(userId: string): Promise<str
 }
 
 // ============================================================================
+// PERSISTENCE (Hydration & Export)
+// ============================================================================
+
+export interface CognitiveSimilarityPersistenceData {
+  fingerprint: CognitiveFingerprintEmbedding | null;
+  interventionOutcomes: Array<{
+    interventionType: string;
+    successes: number;
+    failures: number;
+    conditions: string[];
+  }>;
+}
+
+/**
+ * Get current state for persistence (per-user)
+ */
+export function getStateForPersistence(userId: string): CognitiveSimilarityPersistenceData {
+  const fingerprint = communityFingerprints.get(userId) || null;
+  const outcomes = communityInterventionOutcomes.get(userId);
+  
+  const interventionOutcomes: CognitiveSimilarityPersistenceData['interventionOutcomes'] = [];
+  if (outcomes) {
+    for (const [interventionType, data] of outcomes) {
+      interventionOutcomes.push({
+        interventionType,
+        successes: data.successes,
+        failures: data.failures,
+        conditions: data.conditions,
+      });
+    }
+  }
+  
+  return { fingerprint, interventionOutcomes };
+}
+
+/**
+ * Hydrate from persisted data
+ */
+export function hydrateFromPersistence(
+  userId: string,
+  data: CognitiveSimilarityPersistenceData
+): void {
+  if (data.fingerprint) {
+    communityFingerprints.set(userId, data.fingerprint);
+    log.debug({ userId }, '💧 Hydrated cognitive fingerprint');
+  }
+  
+  if (data.interventionOutcomes && data.interventionOutcomes.length > 0) {
+    const outcomes = new Map<string, { successes: number; failures: number; conditions: string[] }>();
+    for (const o of data.interventionOutcomes) {
+      outcomes.set(o.interventionType, {
+        successes: o.successes,
+        failures: o.failures,
+        conditions: o.conditions,
+      });
+    }
+    communityInterventionOutcomes.set(userId, outcomes);
+    log.debug({ userId, count: data.interventionOutcomes.length }, '💧 Hydrated intervention outcomes');
+  }
+}
+
+/**
+ * Clear user data (for cleanup)
+ */
+export function clearUserData(userId: string): void {
+  communityFingerprints.delete(userId);
+  communityInterventionOutcomes.delete(userId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -516,6 +586,10 @@ export const cognitiveSimilarity = {
   recordInterventionOutcome,
   getCommunityStats,
   buildCommunityLearningContext,
+  // Persistence
+  getStateForPersistence,
+  hydrateFromPersistence,
+  clearUserData,
 };
 
 export default cognitiveSimilarity;

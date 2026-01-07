@@ -402,6 +402,43 @@ export async function buildTrajectoryPatternContext(
 }
 
 // ============================================================================
+// PERSISTENCE (Hydration & Export)
+// ============================================================================
+
+export interface TrajectoryPatternsPersistenceData {
+  patterns: TrajectoryPattern[];
+}
+
+/**
+ * Get current state for persistence
+ */
+export function getStateForPersistence(userId: string): TrajectoryPatternsPersistenceData {
+  return {
+    patterns: userPatternLibrary.get(userId) || [],
+  };
+}
+
+/**
+ * Hydrate from persisted data
+ */
+export function hydrateFromPersistence(
+  userId: string,
+  data: TrajectoryPatternsPersistenceData
+): void {
+  if (data.patterns && data.patterns.length > 0) {
+    userPatternLibrary.set(userId, data.patterns);
+    log.debug({ userId, count: data.patterns.length }, '💧 Hydrated trajectory patterns');
+  }
+}
+
+/**
+ * Clear user data (for cleanup)
+ */
+export function clearUserData(userId: string): void {
+  userPatternLibrary.delete(userId);
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -412,6 +449,10 @@ export const trajectoryPatterns = {
   recordTrajectoryOutcome,
   getTrajectoryStats,
   buildTrajectoryPatternContext,
+  // Persistence
+  getStateForPersistence,
+  hydrateFromPersistence,
+  clearUserData,
 };
 
 export default trajectoryPatterns;

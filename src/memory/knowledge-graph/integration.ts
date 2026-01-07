@@ -17,8 +17,11 @@ import { getKnowledgeGraph, getEntityResolver } from './index.js';
 import type {
   Entity,
   EntityType,
-  EntityMention,
+  MentionInput,
 } from './types.js';
+
+// Alias for backward compatibility
+type EntityMention = MentionInput;
 
 const log = createLogger({ module: 'KnowledgeGraphIntegration' });
 

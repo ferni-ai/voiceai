@@ -190,6 +190,14 @@ export interface KnowledgeGraph {
   executeQuery: typeof executeNaturalQuery;
   /** Check if knowledge graph is ready */
   isReady: () => boolean;
+
+  // Stub methods for backward compatibility with integration.ts
+  /** Resolve a mention to an entity (stub - delegates to entityResolver) */
+  resolveMention: (userId: string, mention: unknown) => Promise<unknown>;
+  /** Add a fact about an entity (stub) */
+  addFact: (userId: string, entityId: string, fact: unknown) => Promise<void>;
+  /** Record a mention of an entity (stub) */
+  recordMention: (userId: string, entityId: string, mention: unknown) => Promise<void>;
 }
 
 let knowledgeGraphInstance: KnowledgeGraph | null = null;
@@ -203,12 +211,29 @@ export function getKnowledgeGraph(): KnowledgeGraph {
     const { getEntityResolver: getResolver } = require('../entity-store/entity-resolver.js');
     const { getUnifiedQueryEngine: getEngine } = require('./services/natural-language-query.js');
 
+    const resolver = getResolver();
+
     knowledgeGraphInstance = {
-      entityResolver: getResolver(),
+      entityResolver: resolver,
       queryEngine: getEngine(),
       captureTurn,
       executeQuery: executeNaturalQuery,
       isReady: () => isKnowledgeCaptureReady(),
+
+      // Stub implementations for backward compatibility
+      resolveMention: async (userId: string, mention: unknown) => {
+        // Delegate to entityResolver if it has the method, otherwise return null
+        if (resolver && typeof resolver.resolveMention === 'function') {
+          return resolver.resolveMention(userId, mention);
+        }
+        return null;
+      },
+      addFact: async (_userId: string, _entityId: string, _fact: unknown) => {
+        // Stub - facts are captured through captureTurn
+      },
+      recordMention: async (_userId: string, _entityId: string, _mention: unknown) => {
+        // Stub - mentions are captured through captureTurn
+      },
     };
   }
   return knowledgeGraphInstance;

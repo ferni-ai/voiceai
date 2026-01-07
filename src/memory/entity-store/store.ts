@@ -13,8 +13,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { embed } from '../embeddings.js';
 import { cosineSimilarity } from '../rust-accelerator.js';
 import type {
-  Entity,
   EdgeType,
+  Entity,
   EntityAttributes,
   EntityMention,
   EntityRelationship,
