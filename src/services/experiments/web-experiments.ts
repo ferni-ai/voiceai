@@ -23,6 +23,22 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WebExperiments' });
 
+/**
+ * Safely convert Firestore timestamp or other date formats to Date
+ */
+function safeToDate(value: unknown): Date {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  if (typeof value === 'object' && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? new Date() : date;
+  }
+  return new Date();
+}
+
 // ============================================================================
 // FIREBASE INITIALIZATION
 // ============================================================================
@@ -187,11 +203,11 @@ export async function initWebExperiments(): Promise<void> {
         targetAudience: data.targetAudience,
         primaryGoal: data.primaryGoal || 'conversion',
         secondaryGoals: data.secondaryGoals,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        startedAt: data.startedAt?.toDate(),
-        endedAt: data.endedAt?.toDate(),
-        scheduledStart: data.scheduledStart?.toDate(),
-        scheduledEnd: data.scheduledEnd?.toDate(),
+        createdAt: safeToDate(data.createdAt),
+        startedAt: data.startedAt ? safeToDate(data.startedAt) : undefined,
+        endedAt: data.endedAt ? safeToDate(data.endedAt) : undefined,
+        scheduledStart: data.scheduledStart ? safeToDate(data.scheduledStart) : undefined,
+        scheduledEnd: data.scheduledEnd ? safeToDate(data.scheduledEnd) : undefined,
         minimumSamples: data.minimumSamples || 1000,
         winner: data.winner,
         winnerConfidence: data.winnerConfidence,
@@ -220,7 +236,7 @@ export async function initWebExperiments(): Promise<void> {
           exposures: data.exposures || 0,
           conversions: data.conversions || {},
           conversionRates: data.conversionRates || {},
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          updatedAt: safeToDate(data.updatedAt),
         });
       }
       metricsCache.set(exp.id, expMetrics);
