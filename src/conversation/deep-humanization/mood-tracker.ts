@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { humanizationSignalEmitter } from '../../services/humanization/humanization-signal-emitter.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';
+import { getDb } from '../../utils/safe-firestore.js';
 import type { ConversationMood } from './types.js';
 
 const log = createLogger({ module: 'MoodTracker' });
@@ -23,38 +24,16 @@ const log = createLogger({ module: 'MoodTracker' });
 const USERS_COLLECTION = 'bogle_users';
 const EMOTIONAL_TRAJECTORY_COLLECTION = 'emotional_trajectory';
 
-let firestoreInstance: FirebaseFirestore.Firestore | null = null;
-let firestoreInitAttempted = false;
-
+/**
+ * Get Firestore instance using shared utility
+ * Uses centralized getDb() which handles initialization safely
+ */
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  if (firestoreInstance) return firestoreInstance;
-  if (firestoreInitAttempted) {
-    log.debug({}, 'getFirestoreDb: Init already attempted, returning null');
-    return null;
+  const db = getDb();
+  if (!db) {
+    log.debug({}, 'getFirestoreDb: Firestore not available from shared utility');
   }
-  firestoreInitAttempted = true;
-
-  try {
-    const admin = await import('firebase-admin');
-    if (!admin.apps || admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-      log.debug({ projectId, hasProjectId: !!projectId }, 'getFirestoreDb: Initializing Firebase Admin for mood-tracker');
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-    firestoreInstance = admin.firestore();
-    log.info({}, '📊 Firestore initialized successfully for mood-tracker');
-    return firestoreInstance;
-  } catch (error) {
-    log.error({ error: String(error) }, '📊 CRITICAL: Failed to initialize Firestore for mood-tracker');
-    return null;
-  }
+  return db;
 }
 
 /**

@@ -24,6 +24,7 @@
 import { createSessionId, createUserId, type SessionId, type UserId } from '../types/branded.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore, removeUndefined } from '../utils/firestore-utils.js';
+import { getDb } from '../utils/safe-firestore.js';
 
 // ============================================================================
 // FIRESTORE PERSISTENCE
@@ -32,47 +33,16 @@ import { cleanForFirestore, removeUndefined } from '../utils/firestore-utils.js'
 const USERS_COLLECTION = 'bogle_users';
 const CONVERSATION_STATE_DOC = 'conversation_state';
 
-let firestoreInstance: FirebaseFirestore.Firestore | null = null;
-let firestoreInitAttempted = false;
-
 /**
- * Get Firestore instance with lazy initialization
+ * Get Firestore instance using shared utility
+ * Uses centralized getDb() which handles initialization safely
  */
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
-  if (firestoreInstance) return firestoreInstance;
-  if (firestoreInitAttempted) {
-    getLogger().debug({}, 'getFirestoreDb: Init already attempted, returning null');
-    return null;
+  const db = getDb();
+  if (!db) {
+    getLogger().debug({}, 'getFirestoreDb: Firestore not available from shared utility');
   }
-  firestoreInitAttempted = true;
-
-  try {
-    const admin = await import('firebase-admin');
-    if (!admin.apps || admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-      getLogger().debug(
-        { projectId, hasProjectId: !!projectId },
-        'getFirestoreDb: Initializing Firebase Admin'
-      );
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-    firestoreInstance = admin.firestore();
-    getLogger().info({}, '💾 Firestore initialized successfully for conversation-state');
-    return firestoreInstance;
-  } catch (error) {
-    getLogger().error(
-      { error: String(error) },
-      '💾 CRITICAL: Failed to initialize Firestore for conversation-state'
-    );
-    return null;
-  }
+  return db;
 }
 
 /**
