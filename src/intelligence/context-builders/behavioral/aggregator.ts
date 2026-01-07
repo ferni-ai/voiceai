@@ -127,6 +127,9 @@ function aggregateModes(signals: BehavioralSignals[]): SpecialModes {
       if (signal.modes.transitionMode) result.transitionMode = true;
       if (signal.modes.ventingMode) result.ventingMode = true;
       if (signal.modes.processingMode) result.processingMode = true;
+      // Superhuman predictive modes
+      if (signal.modes.breakthroughMode) result.breakthroughMode = true;
+      if (signal.modes.spiralRiskMode) result.spiralRiskMode = true;
     }
   }
 
@@ -149,8 +152,13 @@ function aggregateCallbacks(signals: BehavioralSignals[], maxCallbacks = 3): Cal
     }
   }
 
-  // Sort by strength (important > natural > subtle)
-  const strengthOrder = { important: 0, natural: 1, subtle: 2 };
+  // Sort by strength (important > natural > gentle > subtle)
+  const strengthOrder: Record<CallbackSignal['strength'], number> = {
+    important: 0,
+    natural: 1,
+    gentle: 2,
+    subtle: 3,
+  };
   all.sort((a, b) => strengthOrder[a.strength] - strengthOrder[b.strength]);
 
   // Limit to top N
@@ -338,6 +346,9 @@ export function formatBehavioralDirective(behavior: AggregatedBehavior): string 
     reflective: 'Mirror back insights.',
     grounding: 'Help them feel stable and present.',
     collaborative: 'Work alongside them.',
+    coaching: 'Guide with action-oriented questions and suggestions.',
+    challenging: 'Offer gentle pushback to encourage growth.',
+    direct: 'Be straightforward and clear.',
   };
   lines.push(styleMap[behavior.style]);
 

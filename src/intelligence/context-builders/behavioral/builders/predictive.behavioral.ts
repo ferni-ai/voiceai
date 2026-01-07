@@ -104,8 +104,8 @@ function mapPreferredTone(preferred: string): ToneModifier {
  * Build predictive behavioral signals from superhuman capabilities
  */
 async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<BehavioralSignals> {
-  const { userData } = input;
-  const userId = userData?.userId;
+  const { services } = input;
+  const userId = services?.userId;
 
   if (!userId) {
     return {
@@ -128,12 +128,13 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
     // =========================================
     const bestIntervention = interventionTiming.getBestIntervention(userId, {
       emotionalState: input.analysis?.emotion?.primary,
-      topic: input.analysis?.topics?.primary,
+      topic: input.analysis?.topics?.primary ?? undefined,
     });
 
-    if (bestIntervention.recommended && bestIntervention.optimalityScore > 0.6) {
+    const optimalityScore = bestIntervention.optimalityScore ?? 0;
+    if (bestIntervention.recommended && optimalityScore > 0.6) {
       signals.style = mapInterventionToStyle(bestIntervention.interventionType);
-      signals.confidence = Math.max(signals.confidence, bestIntervention.optimalityScore);
+      signals.confidence = Math.max(signals.confidence ?? 0, optimalityScore);
       signals.callbacks!.push(
         createCallback(
           'pattern',
@@ -234,7 +235,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
           createCallback(
             'breakthrough',
             `They're close to a breakthrough about "${topBreakthrough.topic}". Be the midwife to their insight, not the teacher.`,
-            'critical'
+            'important'
           )
         );
 
@@ -361,7 +362,7 @@ async function buildPredictiveBehavior(input: ContextBuilderInput): Promise<Beha
         createCallback(
           'spiral',
           `Spiral risk: ${spiralWarning.spiralWarning.description}. Break points: ${spiralWarning.spiralWarning.breakPoints.slice(0, 2).join(', ')}`,
-          'critical'
+          'important'
         )
       );
     }

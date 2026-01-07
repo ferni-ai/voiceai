@@ -16,15 +16,13 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   getIntelligenceForTurn,
-  getRelevantCorrelations,
-  checkProactiveTriggers,
-  assembleContext,
   type ContextWindow,
   type CrossDomainCorrelation,
   type ProactiveIntelligenceInsight,
   type SurfaceMoment,
-} from '../index.js';
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../index.js';
+} from '../../unified-intelligence-api.js';
+import type { ContextBuilder, ContextBuilderInput, ContextInjection, ContextPriority } from '../index.js';
+import { BuilderCategory } from '../core/categories.js';
 
 const log = createLogger({ module: 'unified-intelligence-context' });
 
@@ -55,11 +53,15 @@ interface UnifiedIntelligenceData {
 export const unifiedIntelligenceBuilder: ContextBuilder = {
   name: 'unified-intelligence',
   priority: 50, // Standard priority - run after critical builders
-  category: 'intelligence',
+  category: BuilderCategory.COGNITIVE,
   description: 'Injects cross-domain correlations and proactive insights',
 
   async build(input: ContextBuilderInput): Promise<ContextInjection[]> {
-    const { userId, sessionId, turnCount = 0, emotion, topics } = input;
+    const { services, analysis, userData, voiceEmotion } = input;
+    const userId = services?.userId;
+    const turnCount = userData?.turnCount ?? 0;
+    const emotion = voiceEmotion;
+    const topics = userData?.recentTopics;
 
     if (!userId) {
       return [];
@@ -89,21 +91,23 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
       // Inject context awareness
       if (intelligence.context.immediate.isLateNight) {
         injections.push({
-          type: 'hint',
+          id: `uic-late-night-${Date.now()}`,
           content:
             "[AWARENESS] It's late night. Be extra gentle and present. Ask if they're okay.",
           source: 'unified-intelligence',
-          priority: 85,
+          priority: 'high' as ContextPriority,
+          category: 'awareness',
         });
       }
 
       if (intelligence.context.capacity.bandwidth === 'low') {
         injections.push({
-          type: 'hint',
+          id: `uic-low-bandwidth-${Date.now()}`,
           content:
             '[CAPACITY] Low bandwidth detected. Keep responses focused and avoid overwhelming.',
           source: 'unified-intelligence',
-          priority: 80,
+          priority: 'high' as ContextPriority,
+          category: 'capacity',
         });
       }
 
@@ -111,15 +115,11 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
       for (const corr of intelligence.correlations.slice(0, 2)) {
         if (corr.confidence !== 'suspected') {
           injections.push({
-            type: 'standard',
+            id: `uic-corr-${corr.id}`,
             content: `[PATTERN INSIGHT] ${corr.insight}${corr.suggestion ? ` Consider: ${corr.suggestion}` : ''}`,
             source: 'unified-intelligence',
-            priority: 60,
-            metadata: {
-              correlationId: corr.id,
-              confidence: corr.confidence,
-              domains: [corr.domainA.domain, corr.domainB.domain],
-            },
+            priority: 'standard' as ContextPriority,
+            category: 'pattern',
           });
         }
       }
@@ -131,16 +131,11 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
         // Only inject high-priority insights, or any insight at session start
         if (insight.priority <= 5 || moment === 'session_start') {
           injections.push({
-            type: 'critical',
+            id: `uic-insight-${insight.id}`,
             content: `[PROACTIVE INSIGHT - ${insight.category.toUpperCase()}] Ready to share: "${insight.message}"${insight.followUp ? ` Follow-up: "${insight.followUp}"` : ''}`,
             source: 'unified-intelligence',
-            priority: 90 - insight.priority, // Higher priority insights get higher injection priority
-            metadata: {
-              insightId: insight.id,
-              category: insight.category,
-              priority: insight.priority,
-              surfaceMoment: insight.surfaceMoment,
-            },
+            priority: (insight.priority <= 2 ? 'critical' : 'high') as ContextPriority,
+            category: 'proactive',
           });
         }
       }
@@ -159,15 +154,16 @@ export const unifiedIntelligenceBuilder: ContextBuilder = {
         };
 
         const relevantDomains = intelligence.context.activeDomains
-          .filter((d) => domainDescriptions[d])
-          .map((d) => domainDescriptions[d]);
+          .filter((d: string) => domainDescriptions[d])
+          .map((d: string) => domainDescriptions[d]);
 
         if (relevantDomains.length > 0) {
           injections.push({
-            type: 'hint',
+            id: `uic-domains-${Date.now()}`,
             content: `[CONTEXT] Active domains: ${relevantDomains.join(', ')}`,
             source: 'unified-intelligence',
-            priority: 40,
+            priority: 'hint' as ContextPriority,
+            category: 'domains',
           });
         }
       }
