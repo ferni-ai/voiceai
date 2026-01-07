@@ -59,9 +59,20 @@ export {
 } from './extractors/index.js';
 
 // ============================================================================
-// SERVICE EXPORTS
+// SERVICE IMPORTS & EXPORTS
 // ============================================================================
 
+// Import for local use in getKnowledgeGraph
+import {
+  captureTurn,
+  isKnowledgeCaptureReady,
+} from './services/index.js';
+
+import {
+  executeNaturalQuery,
+} from './services/index.js';
+
+// Re-export everything
 export {
   captureTurn,
   captureBatch,
