@@ -437,7 +437,8 @@ describe('Deployment Configuration', () => {
   it('should use production endpoints by default', async () => {
     const result = await generateAgentPage(validConfig);
 
-    expect(result.html).toContain('ferni.ai/token');
+    // Production uses relative URL for token endpoint (works on any host)
+    expect(result.html).toContain("'/token'");
     expect(result.html).toContain('test-rvg91u1z.livekit.cloud');
   });
 

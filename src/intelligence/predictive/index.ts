@@ -51,6 +51,13 @@ export * from './ripple-effect-prediction.js';
 export * from './life-phase-prediction.js';
 export * from './intervention-timing.js';
 
+// Integration & Persistence
+export * from './signal-integration.js';
+export * from './superhuman-persistence.js';
+
+// Embedding-Powered Intelligence
+export * from './embeddings/index.js';
+
 // Import for unified interface
 import {
   recordTransition,
@@ -178,6 +185,27 @@ import {
   type TimingRecommendation,
   type InterventionType,
 } from './intervention-timing.js';
+
+// Signal Integration
+import {
+  signalIntegration,
+  processTurnForSuperhumanLearning,
+  recordInterventionFromTurn,
+  recordBreakthroughMoment,
+  recordLifeEvent,
+  recordDecisionMade,
+  recordStressObserved,
+  recordVulnerabilityMoment,
+  processSessionStart,
+  processSessionEnd,
+} from './signal-integration.js';
+
+// Superhuman Persistence
+import {
+  superhumanPersistence,
+  markSuperhumanDirty,
+  flushSuperhumanState,
+} from './superhuman-persistence.js';
 
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -826,6 +854,21 @@ export {
   // Intervention Timing
   interventionTiming,
   buildInterventionTimingContext,
+  // Signal Integration
+  signalIntegration,
+  processTurnForSuperhumanLearning,
+  recordInterventionFromTurn,
+  recordBreakthroughMoment,
+  recordLifeEvent,
+  recordDecisionMade,
+  recordStressObserved,
+  recordVulnerabilityMoment,
+  processSessionStart,
+  processSessionEnd,
+  // Superhuman Persistence
+  superhumanPersistence,
+  markSuperhumanDirty,
+  flushSuperhumanState,
 };
 
 // Types

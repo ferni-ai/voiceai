@@ -767,6 +767,13 @@ export async function autoRegisterAllDomains(): Promise<void> {
         return m.getToolDefinitions();
       },
     },
+
+    // === LOCAL SEARCH DOMAIN (Google Places + Yelp) ===
+    {
+      name: 'local-search' as ToolDomain,
+      loader: async () =>
+        import('../domains/local-search/index.js').then(async (m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

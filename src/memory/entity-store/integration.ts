@@ -494,3 +494,65 @@ export async function retrieveMemoriesUnified(
     return { entities: [], formattedContext: '' };
   }
 }
+
+// ============================================================================
+// PROACTIVE SURFACING
+// ============================================================================
+
+/**
+ * Options for checking proactive surfacing opportunities
+ */
+export interface ProactiveSurfacingOptions {
+  sessionId: string;
+  personaId: string;
+  turnNumber: number;
+  surfacingCountThisSession: number;
+  sessionTopics: string[];
+  conversationMood?: 'exploratory' | 'venting' | 'seeking_help' | 'casual';
+  lastTurnWasQuestion?: boolean;
+  detectedEmotion?: string;
+}
+
+/**
+ * Check for proactive surfacing opportunities based on current turn
+ *
+ * This wraps the ProactiveSurfacingEngine to analyze the current conversation
+ * context and find relevant memories worth mentioning.
+ */
+export async function checkProactiveSurfacing(
+  userId: string,
+  currentTurn: string,
+  options: ProactiveSurfacingOptions
+): Promise<import('./types.js').SurfacingOpportunity[]> {
+  if (!isEntityStoreReady()) {
+    return [];
+  }
+
+  try {
+    const { getProactiveSurfacingEngine } = await import('./proactive-surfacing.js');
+    const engine = getProactiveSurfacingEngine();
+
+    const opportunities = await engine.analyze({
+      currentTurn,
+      userId,
+      sessionId: options.sessionId,
+      personaId: options.personaId,
+      turnNumber: options.turnNumber,
+      detectedEmotion: options.detectedEmotion,
+      conversationMood: options.conversationMood,
+      lastTurnWasQuestion: options.lastTurnWasQuestion,
+      surfacingCountThisSession: options.surfacingCountThisSession,
+      sessionTopics: options.sessionTopics,
+    });
+
+    log.debug(
+      { userId, turnNumber: options.turnNumber, opportunitiesFound: opportunities.length },
+      'Proactive surfacing check complete'
+    );
+
+    return opportunities;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Proactive surfacing check failed');
+    return [];
+  }
+}

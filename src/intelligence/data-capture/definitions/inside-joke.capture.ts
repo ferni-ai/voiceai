@@ -20,26 +20,62 @@ export const insideJokeCaptureDefinition: DataCaptureDefinition = {
 
   triggers: {
     phrases: [
+      // Laughter indicators
       'haha',
       'lol',
       'that was funny',
       "that's hilarious",
       "i can't stop laughing",
       'you crack me up',
-      'remember when',
       "you're so funny",
+      // Callbacks and references
+      'remember when',
+      'remember that time',
+      'just like when',
       'classic',
       "that's our thing",
       'you always say that',
       'every time',
       "that's so us",
+      // Nicknames
+      "i'll call you",
+      "i'm gonna call you",
+      "let's call it",
+      "your new name is",
+      "we should call that",
+      // Traditions
+      'we always do that',
+      'our tradition',
+      "that's what we do",
+      'every time we',
+      "it's become our",
+      // Breakthroughs
+      'i finally get it',
+      'that makes sense now',
+      'aha moment',
+      "i've been thinking",
+      'this is huge',
+      // Running gags
+      'there you go again',
+      'you and your',
+      'typical you',
+      "that's so on brand",
     ],
     patterns: [
       /(?:haha|hahaha|lol|lmao|rofl|😂|🤣)+/i,
       /(?:that(?:'s| is|was)\s+(?:so|really|hilarious|funny))/i,
-      /(?:remember\s+when|you always|every time)\s+(.+)/i,
+      /(?:remember\s+(?:when|that\s+time)|you always|every time)\s+(.+)/i,
       /(?:that's our|that's so us|classic you|typical|you and your)/i,
       /(?:i love how you|you're so|only you would)/i,
+      // Nickname patterns
+      /(?:call(?:ing)?\s+(?:you|it|this))\s+["']?([^"']+)["']?/i,
+      /(?:new\s+name|nickname)\s+(?:is|will be)\s+["']?([^"']+)["']?/i,
+      // Tradition patterns
+      /(?:always|every\s+(?:time|week|month|year))\s+(?:we|you|i)\s+(.+)/i,
+      /(?:our\s+(?:tradition|thing|ritual))\s+(?:is|to)\s+(.+)/i,
+      // Breakthrough patterns
+      /(?:finally|now\s+i)\s+(?:get|understand|see)\s+(.+)/i,
+      /(?:aha|eureka|lightbulb|breakthrough)\s*(?:moment)?/i,
     ],
     keywords: [
       { word: 'haha', weight: 0.7 },
@@ -48,8 +84,14 @@ export const insideJokeCaptureDefinition: DataCaptureDefinition = {
       { word: 'remember when', weight: 0.9 },
       { word: 'classic', weight: 0.7 },
       { word: 'every time', weight: 0.8 },
+      { word: 'nickname', weight: 0.9 },
+      { word: 'tradition', weight: 0.9 },
+      { word: 'breakthrough', weight: 0.8 },
+      { word: 'aha moment', weight: 0.9 },
+      { word: 'running joke', weight: 0.9 },
+      { word: 'our thing', weight: 0.8 },
     ],
-    antiKeywords: [],
+    antiKeywords: ['worried', 'scared', 'anxious', 'upset', 'angry'],
   },
 
   arguments: [
@@ -87,7 +129,7 @@ export const insideJokeCaptureDefinition: DataCaptureDefinition = {
     const momentTypeHint = String(extractedArgs.momentType || '').toLowerCase();
     const contentHint = String(extractedArgs.content || '').trim();
 
-    // Determine moment type
+    // Determine moment type with expanded detection
     let momentType:
       | 'inside_joke'
       | 'callback'
@@ -99,18 +141,65 @@ export const insideJokeCaptureDefinition: DataCaptureDefinition = {
       | 'nickname'
       | 'tradition' = 'silly_moment';
 
+    const lowerTranscript = context.transcript.toLowerCase();
+
+    // Check for nicknames first (specific pattern)
     if (
+      lowerTranscript.includes("call you") ||
+      lowerTranscript.includes("call it") ||
+      lowerTranscript.includes("nickname") ||
+      lowerTranscript.includes("new name")
+    ) {
+      momentType = 'nickname';
+    }
+    // Check for traditions
+    else if (
+      lowerTranscript.includes("tradition") ||
+      lowerTranscript.includes("ritual") ||
+      (lowerTranscript.includes("always") && lowerTranscript.includes("we"))
+    ) {
+      momentType = 'tradition';
+    }
+    // Check for breakthroughs
+    else if (
+      lowerTranscript.includes("finally get") ||
+      lowerTranscript.includes("makes sense") ||
+      lowerTranscript.includes("aha") ||
+      lowerTranscript.includes("eureka") ||
+      lowerTranscript.includes("breakthrough")
+    ) {
+      momentType = 'breakthrough';
+    }
+    // Check for running gags
+    else if (
+      lowerTranscript.includes("there you go again") ||
+      lowerTranscript.includes("typical you") ||
+      lowerTranscript.includes("on brand") ||
+      lowerTranscript.includes("you and your")
+    ) {
+      momentType = 'running_gag';
+    }
+    // Check for callbacks
+    else if (
       momentTypeHint.includes('remember') ||
       momentTypeHint.includes('always') ||
-      momentTypeHint.includes('every time')
+      momentTypeHint.includes('every time') ||
+      lowerTranscript.includes('remember when') ||
+      lowerTranscript.includes('remember that time')
     ) {
       momentType = 'callback';
-    } else if (
-      context.transcript.toLowerCase().includes('haha') ||
-      context.transcript.toLowerCase().includes('lol')
+    }
+    // Check for laughter
+    else if (
+      lowerTranscript.includes('haha') ||
+      lowerTranscript.includes('lol') ||
+      lowerTranscript.includes('lmao') ||
+      lowerTranscript.includes('😂')
     ) {
       momentType = 'silly_moment';
-    } else if (contentHint && contentHint.length > 20) {
+    }
+    // Default to inside_joke if there's meaningful content
+    else if (contentHint && contentHint.length > 20) {
       momentType = 'inside_joke';
     }
 

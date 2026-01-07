@@ -92,6 +92,9 @@ import {
   markProactiveInsightSurfaced,
 } from '../integrations/unified-intelligence-integration.js';
 
+// "Better Than Human" data capture - passive learning from conversation
+import { captureDataBetterThanHuman } from '../../intelligence/data-capture/index.js';
+
 // Re-export cleanupPersonalityState for backwards compatibility
 export { cleanupPersonalityState } from './turn-personality.js';
 
@@ -1374,6 +1377,34 @@ IMPORTANT:
           topics: result.analysis.analysis.topics?.detected || [],
           reactionToInsight: intelligence?.insightToSurface ? 'acknowledged' : undefined,
         });
+      }
+
+      // ================================================================
+      // "BETTER THAN HUMAN" DATA CAPTURE: Passive learning from conversation
+      // Captures commitments, dreams, boundaries, moods, relationships, etc.
+      // Fire-and-forget to not block turn completion
+      // ================================================================
+      if (services.userId) {
+        const captureUserId = services.userId; // Capture for closure
+        fireAndForget(
+          async () => {
+            const captureResult = await captureDataBetterThanHuman({
+              userId: captureUserId,
+              sessionId: services.sessionId,
+              transcript: userText,
+              recentTopics: result.analysis.analysis.topics?.detected,
+              personaId: persona.id, // For multi-persona data attribution
+            });
+
+            if (captureResult.captured.length > 0 || captureResult.suggestedAcknowledgment) {
+              diag.debug('Data capture completed', {
+                capturedCount: captureResult.captured.length,
+                hasAcknowledgment: !!captureResult.suggestedAcknowledgment,
+              });
+            }
+          },
+          'data-capture-better-than-human'
+        );
       }
     }
 

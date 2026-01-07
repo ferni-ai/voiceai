@@ -18,53 +18,94 @@ const RECOVERY_EVENT_TYPES: Record<string, { type: string; baseIntensity: number
   fight: { type: 'conflict', baseIntensity: 0.7 },
   argument: { type: 'conflict', baseIntensity: 0.7 },
   blowup: { type: 'conflict', baseIntensity: 0.8 },
+  'falling out': { type: 'conflict', baseIntensity: 0.8 },
+  confrontation: { type: 'conflict', baseIntensity: 0.7 },
   // Bad news
   'bad news': { type: 'bad_news', baseIntensity: 0.7 },
   'found out': { type: 'bad_news', baseIntensity: 0.6 },
   'got news': { type: 'bad_news', baseIntensity: 0.6 },
+  diagnosis: { type: 'bad_news', baseIntensity: 0.8 },
   // Rejection
   rejected: { type: 'rejection', baseIntensity: 0.8 },
   'turned down': { type: 'rejection', baseIntensity: 0.7 },
   "didn't get": { type: 'rejection', baseIntensity: 0.6 },
   'passed over': { type: 'rejection', baseIntensity: 0.7 },
+  ghosted: { type: 'rejection', baseIntensity: 0.7 },
+  'said no': { type: 'rejection', baseIntensity: 0.6 },
   // Loss
   lost: { type: 'loss', baseIntensity: 0.9 },
   died: { type: 'loss', baseIntensity: 0.95 },
   'passed away': { type: 'loss', baseIntensity: 0.95 },
   funeral: { type: 'loss', baseIntensity: 0.9 },
   breakup: { type: 'loss', baseIntensity: 0.85 },
+  divorce: { type: 'loss', baseIntensity: 0.9 },
   ended: { type: 'loss', baseIntensity: 0.7 },
+  miscarriage: { type: 'loss', baseIntensity: 0.95 },
+  'put down': { type: 'loss', baseIntensity: 0.85 }, // pet loss
+  // Betrayal
+  betrayed: { type: 'betrayal', baseIntensity: 0.9 },
+  cheated: { type: 'betrayal', baseIntensity: 0.9 },
+  'stabbed in the back': { type: 'betrayal', baseIntensity: 0.85 },
+  lied: { type: 'betrayal', baseIntensity: 0.7 },
+  // Failure
+  failed: { type: 'failure', baseIntensity: 0.7 },
+  bombed: { type: 'failure', baseIntensity: 0.7 },
+  blew: { type: 'failure', baseIntensity: 0.6 },
+  'messed up': { type: 'failure', baseIntensity: 0.6 },
   // Intense work
   deadline: { type: 'intense_work', baseIntensity: 0.6 },
   crunch: { type: 'intense_work', baseIntensity: 0.7 },
   'all-nighter': { type: 'intense_work', baseIntensity: 0.8 },
   'worked all': { type: 'intense_work', baseIntensity: 0.7 },
   'pulled an all-nighter': { type: 'intense_work', baseIntensity: 0.8 },
+  sprint: { type: 'intense_work', baseIntensity: 0.6 },
+  // Burnout
+  burnout: { type: 'burnout', baseIntensity: 0.9 },
+  'burned out': { type: 'burnout', baseIntensity: 0.9 },
+  exhausted: { type: 'burnout', baseIntensity: 0.7 },
+  'running on empty': { type: 'burnout', baseIntensity: 0.8 },
+  depleted: { type: 'burnout', baseIntensity: 0.8 },
   // Social
   'big event': { type: 'social_event', baseIntensity: 0.5 },
   party: { type: 'social_event', baseIntensity: 0.4 },
   wedding: { type: 'social_event', baseIntensity: 0.5 },
   conference: { type: 'social_event', baseIntensity: 0.6 },
+  reunion: { type: 'social_event', baseIntensity: 0.6 },
   // Emotional conversation
   'heavy conversation': { type: 'emotional_conversation', baseIntensity: 0.7 },
   'emotional talk': { type: 'emotional_conversation', baseIntensity: 0.7 },
   'heart-to-heart': { type: 'emotional_conversation', baseIntensity: 0.6 },
+  'hard talk': { type: 'emotional_conversation', baseIntensity: 0.7 },
+  'difficult conversation': { type: 'emotional_conversation', baseIntensity: 0.7 },
   // Medical
   surgery: { type: 'medical_procedure', baseIntensity: 0.8 },
   procedure: { type: 'medical_procedure', baseIntensity: 0.6 },
   doctor: { type: 'medical_procedure', baseIntensity: 0.4 },
+  hospital: { type: 'medical_procedure', baseIntensity: 0.7 },
+  'emergency room': { type: 'medical_procedure', baseIntensity: 0.8 },
+  biopsy: { type: 'medical_procedure', baseIntensity: 0.8 },
   // Stress
   'panic attack': { type: 'anxiety_peak', baseIntensity: 0.9 },
   'anxiety attack': { type: 'anxiety_peak', baseIntensity: 0.9 },
   breakdown: { type: 'anxiety_peak', baseIntensity: 0.85 },
   meltdown: { type: 'anxiety_peak', baseIntensity: 0.8 },
+  'freaking out': { type: 'anxiety_peak', baseIntensity: 0.7 },
+  overwhelmed: { type: 'anxiety_peak', baseIntensity: 0.7 },
   // Disappointment
   disappointed: { type: 'disappointment', baseIntensity: 0.6 },
   'let down': { type: 'disappointment', baseIntensity: 0.6 },
+  'fell through': { type: 'disappointment', baseIntensity: 0.6 },
+  canceled: { type: 'disappointment', baseIntensity: 0.5 },
   // Embarrassment
   embarrassed: { type: 'embarrassment', baseIntensity: 0.5 },
   humiliated: { type: 'embarrassment', baseIntensity: 0.7 },
   mortified: { type: 'embarrassment', baseIntensity: 0.7 },
+  ashamed: { type: 'embarrassment', baseIntensity: 0.7 },
+  // Trauma
+  traumatic: { type: 'trauma', baseIntensity: 0.95 },
+  assault: { type: 'trauma', baseIntensity: 0.95 },
+  accident: { type: 'trauma', baseIntensity: 0.85 },
+  witnessed: { type: 'trauma', baseIntensity: 0.85 },
 };
 
 export const recoveryEventCaptureDefinition: DataCaptureDefinition = {
@@ -183,14 +224,18 @@ export const recoveryEventCaptureDefinition: DataCaptureDefinition = {
           | 'bad_news'
           | 'rejection'
           | 'loss'
+          | 'betrayal'
+          | 'failure'
           | 'intense_work'
+          | 'burnout'
           | 'social_event'
           | 'emotional_conversation'
           | 'medical_procedure'
           | 'high_stress'
           | 'disappointment'
           | 'embarrassment'
-          | 'anxiety_peak',
+          | 'anxiety_peak'
+          | 'trauma',
         intensity,
         eventDescription.slice(0, 200)
       );

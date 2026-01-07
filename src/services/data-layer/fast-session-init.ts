@@ -113,6 +113,21 @@ export async function fastSessionStart(
   });
   backgroundTasks.push('intelligent_loader');
 
+  // Initialize knowledge graph LLM capture (for ALL users - both new and returning)
+  // This enables comprehensive entity/fact/relationship extraction via Gemini
+  scheduleBackgroundTask('knowledge_capture', async () => {
+    try {
+      const { initializeKnowledgeCapture } = await import(
+        '../../memory/knowledge-graph/services/knowledge-capture.js'
+      );
+      await initializeKnowledgeCapture();
+      log.debug({ userId }, '🧠 Knowledge graph LLM capture initialized');
+    } catch {
+      // Non-critical - regex capture still works as fast fallback
+    }
+  });
+  backgroundTasks.push('knowledge_capture');
+
   // ============================================================================
   // NON-BLOCKING: Start background enrichment tasks
   // ============================================================================

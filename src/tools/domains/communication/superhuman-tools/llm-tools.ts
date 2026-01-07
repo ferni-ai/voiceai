@@ -11,6 +11,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { getToolDescription } from '../../../utils/tool-descriptions.js';
+import type { ToolDefinition, ToolContext, Tool } from '../../../registry/types.js';
 
 // Import superhuman capabilities
 import { communicationArchaeology } from './communication-archaeology.js';
@@ -538,9 +539,39 @@ Sometimes the best messages are the ones we don't send. 💭`;
 // DOMAIN EXPORT
 // ============================================================================
 
-export function getToolDefinitions() {
-  const tools = createSuperhumanCommunicationTools();
-  return Object.values(tools);
+/**
+ * Get properly structured tool definitions for the registry.
+ * Wraps each llm.tool() in a ToolDefinition with id, name, domain, and create function.
+ */
+export function getToolDefinitions(): ToolDefinition[] {
+  // Map of tool key -> display name
+  const toolNames: Record<string, string> = {
+    recallConversation: 'Recall Conversation',
+    checkRelationshipHealth: 'Check Relationship Health',
+    getRelationshipsNeedingAttention: 'Get Relationships Needing Attention',
+    getDeflectedTopics: 'Get Deflected Topics',
+    predictMessageReception: 'Predict Message Reception',
+    getApologyAdvice: 'Get Apology Advice',
+    analyzeConflict: 'Analyze Conflict',
+    getCommunicationDebts: 'Get Communication Debts',
+    markCommunicationDone: 'Mark Communication Done',
+    getObjectivePerspective: 'Get Objective Perspective',
+    shouldISendThis: 'Should I Send This',
+    holdMessageForLater: 'Hold Message For Later',
+    translateMyNeed: 'Translate My Need',
+    whatAmIAvoiding: 'What Am I Avoiding',
+  };
+
+  const rawTools = createSuperhumanCommunicationTools();
+
+  return Object.entries(rawTools).map(([key, rawTool]) => ({
+    id: key,
+    name: toolNames[key] || key,
+    domain: 'superhuman-communication' as const,
+    description: `Superhuman communication tool: ${toolNames[key] || key}`,
+    tags: ['superhuman', 'communication', 'alex'],
+    create: (_ctx: ToolContext): Tool => rawTool,
+  }));
 }
 
 export const domain = 'superhuman-communication';

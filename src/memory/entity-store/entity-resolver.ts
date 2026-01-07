@@ -20,13 +20,85 @@ import {
 import type {
   Entity,
   EntityType,
-  RelationshipType,
+  SimpleRelationshipType,
   FamilyRelation,
   EntitySource,
   PersonCaptureInput,
+  PersonAttributes,
+  EntityAttributes,
 } from './types.js';
 
 const log = createLogger({ module: 'entity-store:resolver' });
+
+// ============================================================================
+// HELPER FUNCTIONS FOR NEW SCHEMA
+// ============================================================================
+
+/**
+ * Type guard for PersonAttributes
+ */
+function isPersonAttributes(attrs: EntityAttributes): attrs is PersonAttributes {
+  return attrs._type === 'person';
+}
+
+/**
+ * Get phone from entity (handles new schema)
+ */
+function getPhone(entity: Entity): string | undefined {
+  if (isPersonAttributes(entity.attributes)) {
+    return entity.attributes.phone;
+  }
+  return undefined;
+}
+
+/**
+ * Get email from entity (handles new schema)
+ */
+function getEmail(entity: Entity): string | undefined {
+  if (isPersonAttributes(entity.attributes)) {
+    return entity.attributes.email;
+  }
+  return undefined;
+}
+
+/**
+ * Get specific relationship from entity (e.g., "brother", "mother")
+ */
+function getSpecificRelation(entity: Entity): string | undefined {
+  if (isPersonAttributes(entity.attributes)) {
+    return entity.attributes.relationship;
+  }
+  return undefined;
+}
+
+/**
+ * Get relationship category from entity (e.g., "family", "colleague")
+ */
+function getRelationshipCategory(entity: Entity): SimpleRelationshipType | undefined {
+  if (isPersonAttributes(entity.attributes)) {
+    return entity.attributes.relationshipCategory;
+  }
+  return undefined;
+}
+
+/**
+ * Create PersonAttributes for a new entity
+ */
+function createPersonAttributes(options: {
+  relationship?: string;
+  relationshipCategory?: SimpleRelationshipType;
+  phone?: string;
+  email?: string;
+}): PersonAttributes {
+  return {
+    _type: 'person',
+    relationship: options.relationship || 'unknown',
+    relationshipCategory: options.relationshipCategory || 'other',
+    phone: options.phone,
+    email: options.email,
+    sentiment: 0,
+  };
+}
 
 // ============================================================================
 // RELATIONSHIP MAPPING
@@ -35,7 +107,7 @@ const log = createLogger({ module: 'entity-store:resolver' });
 /**
  * Map relationship terms to canonical types
  */
-const RELATIONSHIP_ALIASES: Record<string, { type: RelationshipType; specific?: FamilyRelation }> = {
+const RELATIONSHIP_ALIASES: Record<string, { type: SimpleRelationshipType; specific?: FamilyRelation }> = {
   // Family
   mother: { type: 'family', specific: 'mother' },
   mom: { type: 'family', specific: 'mother' },
@@ -101,7 +173,7 @@ const RELATIONSHIP_ALIASES: Record<string, { type: RelationshipType; specific?: 
  * Normalize a relationship term to canonical form
  */
 function normalizeRelationship(term: string): {
-  type: RelationshipType;
+  type: SimpleRelationshipType;
   specific?: string;
 } | null {
   const normalized = term.toLowerCase().trim().replace(/[^a-z\s-]/g, '');
@@ -158,11 +230,12 @@ export async function resolvePerson(
 
       // Update with new contact info if provided
       if (phone || email) {
+        const currentAttrs = exactMatch.attributes as PersonAttributes;
         await updateEntity(userId, exactMatch.id, {
-          contact: {
-            ...exactMatch.contact,
-            phone: phone || exactMatch.contact?.phone,
-            email: email || exactMatch.contact?.email,
+          attributes: {
+            ...currentAttrs,
+            phone: phone || currentAttrs.phone,
+            email: email || currentAttrs.email,
           },
         });
       }
@@ -177,7 +250,7 @@ export async function resolvePerson(
     }
   }
 
-  // Strategy 2: Relationship match ("my brother" → find entity with specificRelation="brother")
+  // Strategy 2: Relationship match ("my brother" → find entity with relationship="brother")
   if (relationship) {
     const normalizedRel = normalizeRelationship(relationship);
     if (normalizedRel?.specific) {
@@ -200,10 +273,11 @@ export async function resolvePerson(
           }
         }
         if (phone || email) {
-          updates.contact = {
-            ...existingByRelation.contact,
-            phone: phone || existingByRelation.contact?.phone,
-            email: email || existingByRelation.contact?.email,
+          const currentAttrs = existingByRelation.attributes as PersonAttributes;
+          updates.attributes = {
+            ...currentAttrs,
+            phone: phone || currentAttrs.phone,
+            email: email || currentAttrs.email,
           };
         }
 
@@ -263,29 +337,42 @@ export async function resolvePerson(
 
   // Strategy 5: Create new entity
   const normalizedRel = relationship ? normalizeRelationship(relationship) : null;
+  const canonicalName = name || normalizedRel?.specific || relationship || 'Unknown Person';
+  
+  const personAttrs = createPersonAttributes({
+    relationship: normalizedRel?.specific || relationship,
+    relationshipCategory: normalizedRel?.type || 'other',
+    phone,
+    email,
+  });
 
   const newEntity = await createEntity(userId, {
     userId,
     type: 'person',
-    canonicalName: name || normalizedRel?.specific || relationship || 'Unknown Person',
+    canonicalName,
     aliases: buildAliases(name, relationship),
-    relationship: normalizedRel?.type || 'other',
-    specificRelation: normalizedRel?.specific || relationship,
-    contact: phone || email ? { phone, email } : undefined,
-    source: 'conversation',
+    searchTokens: [canonicalName.toLowerCase(), ...(name ? [name.toLowerCase()] : [])],
+    attributes: personAttrs,
+    sourceConversations: [],
+    sourcePersonas: [],
     confidence: name ? 0.8 : 0.6, // Lower confidence if we only have relationship
     createdAt: new Date(),
     updatedAt: new Date(),
-    firstMentionedAt: new Date(),
-    lastMentionedAt: new Date(),
+    firstSeen: new Date(),
+    lastSeen: new Date(),
     mentionCount: 1,
-    salience: 0.5,
+    salienceScore: 0.5,
     emotionalWeight: 0.5,
-    topics: [],
+    recencyBoost: 1.0,
+    temporalContext: {
+      peakMoments: [],
+      emotionalDecayResistance: 1.0,
+    },
+    embedding: [],
   });
 
   log.info(
-    { entityId: newEntity.id, name: newEntity.canonicalName, relationship: newEntity.specificRelation },
+    { entityId: newEntity.id, name: newEntity.canonicalName, relationship: getSpecificRelation(newEntity) },
     '✨ Created new person entity'
   );
 
@@ -333,10 +420,11 @@ function buildAliases(name?: string, relationship?: string): string[] {
  * Find entity by specific relation (brother, mother, etc.)
  */
 async function findBySpecificRelation(userId: string, specificRelation: string): Promise<Entity | null> {
-  const entities = await getAllEntities(userId, { types: ['person'], limit: 100 });
+  const entities = await getAllEntities(userId, { types: ['person'], topK: 100 });
 
   for (const entity of entities) {
-    if (entity.specificRelation?.toLowerCase() === specificRelation.toLowerCase()) {
+    const relation = getSpecificRelation(entity);
+    if (relation?.toLowerCase() === specificRelation.toLowerCase()) {
       return entity;
     }
   }
@@ -349,10 +437,11 @@ async function findBySpecificRelation(userId: string, specificRelation: string):
  */
 async function findByPhone(userId: string, phone: string): Promise<Entity | null> {
   const normalizedPhone = normalizePhone(phone);
-  const entities = await getAllEntities(userId, { types: ['person'], limit: 100 });
+  const entities = await getAllEntities(userId, { types: ['person'], topK: 100 });
 
   for (const entity of entities) {
-    if (entity.contact?.phone && normalizePhone(entity.contact.phone) === normalizedPhone) {
+    const entityPhone = getPhone(entity);
+    if (entityPhone && normalizePhone(entityPhone) === normalizedPhone) {
       return entity;
     }
   }
@@ -402,17 +491,11 @@ export async function mergeEntities(
   // Merge aliases
   const allAliases = new Set(primary.aliases);
   for (const secondary of secondaries) {
-    secondary.aliases?.forEach((a) => allAliases.add(a));
+    secondary.aliases?.forEach((a: string) => allAliases.add(a));
     // Also add canonical name as alias
     if (secondary.canonicalName) {
       allAliases.add(secondary.canonicalName.toLowerCase());
     }
-  }
-
-  // Merge topics
-  const allTopics = new Set(primary.topics);
-  for (const secondary of secondaries) {
-    secondary.topics?.forEach((t) => allTopics.add(t));
   }
 
   // Pick best canonical name (prefer actual names over relationship terms)
@@ -427,45 +510,42 @@ export async function mergeEntities(
     }
   }
 
-  // Merge contact info
-  const mergedContact = {
-    phone: primary.contact?.phone || secondaries.find((s) => s.contact?.phone)?.contact?.phone,
-    email: primary.contact?.email || secondaries.find((s) => s.contact?.email)?.contact?.email,
-    address: primary.contact?.address || secondaries.find((s) => s.contact?.address)?.contact?.address,
-    birthday: primary.contact?.birthday || secondaries.find((s) => s.contact?.birthday)?.contact?.birthday,
-  };
+  // Merge contact info (from PersonAttributes)
+  const primaryAttrs = primary.attributes as PersonAttributes;
+  const mergedPhone = primaryAttrs.phone || secondaries.find((s) => getPhone(s))?.attributes && getPhone(secondaries.find((s) => getPhone(s))!);
+  const mergedEmail = primaryAttrs.email || secondaries.find((s) => getEmail(s))?.attributes && getEmail(secondaries.find((s) => getEmail(s))!);
 
   // Sum mention counts
   const totalMentions = primary.mentionCount + secondaries.reduce((sum, s) => sum + s.mentionCount, 0);
 
   // Take highest salience and emotional weight
-  const maxSalience = Math.max(primary.salience, ...secondaries.map((s) => s.salience));
+  const maxSalience = Math.max(primary.salienceScore, ...secondaries.map((s) => s.salienceScore));
   const maxEmotionalWeight = Math.max(
     primary.emotionalWeight,
     ...secondaries.map((s) => s.emotionalWeight)
   );
 
-  // Track legacy IDs from merged entities
-  const mergedLegacyIds = {
-    ...primary.legacyIds,
-  };
+  // Merge source conversations
+  const allSourceConversations = new Set(primary.sourceConversations);
   for (const secondary of secondaries) {
-    if (secondary.legacyIds) {
-      Object.assign(mergedLegacyIds, secondary.legacyIds);
-    }
+    secondary.sourceConversations?.forEach((c: string) => allSourceConversations.add(c));
   }
 
   // Update primary entity
+  const mergedAttributes: PersonAttributes = {
+    ...primaryAttrs,
+    phone: mergedPhone,
+    email: mergedEmail,
+  };
+
   const updated = await updateEntity(userId, primaryEntityId, {
     canonicalName: bestName,
     aliases: [...allAliases],
-    topics: [...allTopics],
-    contact: mergedContact,
+    attributes: mergedAttributes,
     mentionCount: totalMentions,
-    salience: maxSalience,
+    salienceScore: maxSalience,
     emotionalWeight: maxEmotionalWeight,
-    mergedFrom: [...(primary.mergedFrom || []), ...secondaryEntityIds],
-    legacyIds: mergedLegacyIds,
+    sourceConversations: [...allSourceConversations],
   });
 
   // Delete secondary entities
@@ -500,8 +580,7 @@ export async function whatDoWeKnowAbout(
   query: string
 ): Promise<{
   entity: Entity | null;
-  mentions: import('./types.js').Mention[];
-  facts: import('./types.js').ExtractedFact[];
+  mentions: import('./types.js').EntityMention[];
   relationships: import('./types.js').EntityRelationship[];
   relatedEntities: Entity[];
 }> {
@@ -512,7 +591,7 @@ export async function whatDoWeKnowAbout(
 
   if (!entity) {
     // Try search
-    const results = await searchEntities(userId, query, { types: ['person'], limit: 1 });
+    const results = await searchEntities(userId, query, { types: ['person'], topK: 1 });
     entity = results[0] || null;
   }
 
@@ -520,7 +599,6 @@ export async function whatDoWeKnowAbout(
     return {
       entity: null,
       mentions: [],
-      facts: [],
       relationships: [],
       relatedEntities: [],
     };
@@ -529,22 +607,14 @@ export async function whatDoWeKnowAbout(
   // Get all mentions
   const mentions = await getMentionsForEntity(userId, entity.id, 100);
 
-  // Extract all facts from mentions
-  const facts: import('./types.js').ExtractedFact[] = [];
-  for (const mention of mentions) {
-    if (mention.facts) {
-      facts.push(...mention.facts);
-    }
-  }
-
   // Get relationships
   const relationships = await getRelationshipsForEntity(userId, entity.id);
 
   // Get related entities
   const relatedEntityIds = new Set<string>();
   for (const rel of relationships) {
-    if (rel.fromEntityId !== entity.id) relatedEntityIds.add(rel.fromEntityId);
-    if (rel.toEntityId !== entity.id) relatedEntityIds.add(rel.toEntityId);
+    if (rel.fromEntity !== entity.id) relatedEntityIds.add(rel.fromEntity);
+    if (rel.toEntity !== entity.id) relatedEntityIds.add(rel.toEntity);
   }
 
   const relatedEntities: Entity[] = [];
@@ -556,7 +626,6 @@ export async function whatDoWeKnowAbout(
   return {
     entity,
     mentions,
-    facts,
     relationships,
     relatedEntities,
   };

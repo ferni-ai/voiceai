@@ -539,10 +539,6 @@ class IOSLiveKitSession: ObservableObject {
             } else {
                 // Agent is speaking
                 self.updateLiveActivitySpeakingState(.agentSpeaking)
-                if isFinal {
-                    // Show recent transcript in Dynamic Island
-                    self.updateLiveActivityTranscript(text)
-                }
             }
 
             // Only save final transcripts
@@ -843,15 +839,6 @@ extension IOSLiveKitSession {
         #if os(iOS)
         if #available(iOS 16.2, *) {
             FerniLiveActivityManager.shared.updateSpeakingState(state)
-        }
-        #endif
-    }
-
-    /// Update transcript snippet in Live Activity (iOS 16.2+ only, no-op on macOS)
-    private func updateLiveActivityTranscript(_ text: String) {
-        #if os(iOS)
-        if #available(iOS 16.2, *) {
-            FerniLiveActivityManager.shared.updateTranscript(text)
         }
         #endif
     }

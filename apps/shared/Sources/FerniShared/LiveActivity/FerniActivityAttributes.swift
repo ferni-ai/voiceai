@@ -89,9 +89,6 @@ public struct FerniActivityAttributes: ActivityAttributes {
         /// Who is currently speaking
         public var speakingState: SpeakingState
 
-        /// Recent transcript snippet (last ~50 chars)
-        public var transcriptSnippet: String?
-
         // MARK: - Better Than Human State
 
         /// Current emotional tone (for subtle color shifts)
@@ -105,7 +102,6 @@ public struct FerniActivityAttributes: ActivityAttributes {
             durationSeconds: Int = 0,
             isMuted: Bool = false,
             speakingState: SpeakingState = .idle,
-            transcriptSnippet: String? = nil,
             emotionalTone: EmotionalTone = .neutral,
             showingConcern: Bool = false
         ) {
@@ -113,7 +109,6 @@ public struct FerniActivityAttributes: ActivityAttributes {
             self.durationSeconds = durationSeconds
             self.isMuted = isMuted
             self.speakingState = speakingState
-            self.transcriptSnippet = transcriptSnippet
             self.emotionalTone = emotionalTone
             self.showingConcern = showingConcern
         }

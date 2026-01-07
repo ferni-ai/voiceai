@@ -29,14 +29,18 @@ export type RecoveryEventType =
   | 'bad_news' // Receiving difficult news
   | 'rejection' // Job, relationship, etc.
   | 'loss' // Death, ending
+  | 'betrayal' // Cheated on, backstabbed, lied to
+  | 'failure' // Failed exam, bombed interview, messed up
   | 'intense_work' // Deadline, crunch
+  | 'burnout' // Depleted, running on empty
   | 'social_event' // Large gathering
   | 'emotional_conversation' // Deep, draining talk
   | 'medical_procedure' // Health-related
   | 'high_stress' // General acute stress
   | 'disappointment' // Let down
   | 'embarrassment' // Social discomfort
-  | 'anxiety_peak'; // Panic, acute anxiety
+  | 'anxiety_peak' // Panic, acute anxiety
+  | 'trauma'; // Traumatic event, accident, assault
 
 export interface RecoveryEvent {
   userId: string;
@@ -91,7 +95,10 @@ const DEFAULT_RECOVERY_TIMES: Record<RecoveryEventType, number> = {
   bad_news: 48,
   rejection: 72,
   loss: 168, // 1 week minimum
+  betrayal: 168, // Deep wounds need time
+  failure: 48,
   intense_work: 12,
+  burnout: 72, // Burnout needs real recovery
   social_event: 4,
   emotional_conversation: 6,
   medical_procedure: 24,
@@ -99,6 +106,7 @@ const DEFAULT_RECOVERY_TIMES: Record<RecoveryEventType, number> = {
   disappointment: 12,
   embarrassment: 6,
   anxiety_peak: 8,
+  trauma: 336, // 2 weeks minimum for trauma
 };
 
 const RECOVERY_DESCRIPTIONS: Record<RecoveryEventType, string> = {
@@ -106,7 +114,10 @@ const RECOVERY_DESCRIPTIONS: Record<RecoveryEventType, string> = {
   bad_news: 'receiving difficult news',
   rejection: 'rejection experience',
   loss: 'loss or grief',
+  betrayal: 'betrayal or broken trust',
+  failure: 'setback or failure',
   intense_work: 'intense work period',
+  burnout: 'burnout or exhaustion',
   social_event: 'large social event',
   emotional_conversation: 'emotionally intense conversation',
   medical_procedure: 'medical procedure',
@@ -114,6 +125,7 @@ const RECOVERY_DESCRIPTIONS: Record<RecoveryEventType, string> = {
   disappointment: 'disappointment',
   embarrassment: 'embarrassing situation',
   anxiety_peak: 'anxiety episode',
+  trauma: 'traumatic experience',
 };
 
 // ============================================================================
@@ -264,7 +276,10 @@ export async function buildRecoveryProfile(userId: string): Promise<RecoveryProf
     'bad_news',
     'rejection',
     'loss',
+    'betrayal',
+    'failure',
     'intense_work',
+    'burnout',
     'social_event',
     'emotional_conversation',
     'medical_procedure',
@@ -272,6 +287,7 @@ export async function buildRecoveryProfile(userId: string): Promise<RecoveryProf
     'disappointment',
     'embarrassment',
     'anxiety_peak',
+    'trauma',
   ];
 
   for (const type of eventTypes) {

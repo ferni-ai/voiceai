@@ -186,7 +186,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     const storageStart = Date.now();
 
     const { resolvePerson } = await import('../../entity-store/entity-resolver.js');
-    const { recordMention, upsertRelationship } = await import('../../entity-store/storage.js');
+    const { createMention, upsertRelationship } = await import('../../entity-store/storage.js');
 
     const resolvedEntities: Array<{
       extracted: ExtractedEntity;
@@ -223,15 +223,7 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
           } else {
             result.entities.updated++;
           }
-
-          // Record mention for temporal tracking
-          await recordMention(input.userId, resolved.entity.id, {
-            sessionId: input.sessionId,
-            turnNumber: input.turnNumber,
-            transcript: extracted.sourceText,
-            emotion: input.emotion?.primary,
-            emotionalIntensity: input.emotion?.intensity,
-          });
+          // Note: Mention creation moved to after fact extraction so facts can be included
         }
         // TODO: Handle other entity types (place, event, goal, etc.)
       } catch (error) {
@@ -242,8 +234,11 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
       }
     }
 
-    // 3. Extract facts about resolved entities
+    // 3. Extract facts about resolved entities AND create mentions with facts
     if (resolvedEntities.length > 0) {
+      let extractedFacts: Array<{ entityId?: string; type: string; key: string; value: string; confidence: number }> = [];
+
+      // First, extract facts
       try {
         const factResult = await extractFacts({
           transcript: input.transcript,
@@ -256,13 +251,49 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
           sessionId: input.sessionId,
         });
 
+        extractedFacts = factResult.facts;
         result.facts.count = factResult.facts.length;
         result.facts.entityIds = [...new Set(factResult.facts.map((f) => f.entityId).filter(Boolean) as string[])];
-
-        // Store facts (facts are stored as part of mentions in current implementation)
-        // TODO: Implement dedicated fact storage
       } catch (error) {
         log.warn({ error: String(error) }, 'Fact extraction failed');
+      }
+
+      // Now create mentions for each resolved entity WITH their facts
+      for (const resolved of resolvedEntities) {
+        try {
+          // Get facts specific to this entity
+          const entityFacts = extractedFacts.filter((f) => f.entityId === resolved.id);
+
+          await createMention(input.userId, {
+            userId: input.userId,
+            entityId: resolved.id,
+            sessionId: input.sessionId,
+            personaId: input.personaId || 'ferni',
+            timestamp: new Date(),
+            transcript: resolved.extracted.sourceText || input.transcript,
+            mentionType: resolved.isNew ? 'reference' : 'reference',
+            sentiment: input.emotion?.valence || 0,
+            emotionalIntensity: input.emotion?.intensity || 0.5,
+            topics: input.topic ? [input.topic] : [],
+            facts: entityFacts.map((f) => ({
+              type: f.type as 'attribute' | 'event' | 'relationship' | 'state',
+              key: f.key,
+              value: f.value,
+              confidence: f.confidence,
+              entityId: f.entityId,
+            })),
+          });
+
+          log.debug(
+            { entityId: resolved.id, factsCount: entityFacts.length },
+            'Created mention with facts'
+          );
+        } catch (error) {
+          log.warn(
+            { error: String(error), entityId: resolved.id },
+            'Failed to create mention'
+          );
+        }
       }
     }
 

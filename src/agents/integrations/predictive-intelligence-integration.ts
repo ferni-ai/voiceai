@@ -28,6 +28,15 @@ import { createLogger } from '../../utils/safe-logger.js';
 // 🧠 TRUE PREDICTIVE INTELLIGENCE: Flush ML state on session end
 import { flushUserMLState } from '../../intelligence/predictive/index.js';
 
+// 🧠 BETTER THAN HUMAN v4: Superhuman predictive capabilities
+import {
+  processTurnForSuperhumanLearning,
+  processSessionStart as superhumanSessionStart,
+  processSessionEnd as superhumanSessionEnd,
+  flushSuperhumanState,
+  markSuperhumanDirty,
+} from '../../intelligence/predictive/index.js';
+
 // Import the three pattern systems
 import {
   recordObservation,
@@ -118,11 +127,19 @@ const sessionEngines = new Map<string, SuperhumanObservationsEngine>();
 export function initializePredictiveIntelligence(
   sessionId: string,
   userId: string,
-  existingObservations?: unknown[]
+  existingObservations?: unknown[],
+  sessionData?: { daysSinceLastConversation?: number }
 ): void {
   // Get or create the superhuman observations engine
   const engine = getSuperhumanObservations(userId, existingObservations as never);
   sessionEngines.set(sessionId, engine);
+
+  // 🧠 BETTER THAN HUMAN v4: Initialize superhuman predictive capabilities
+  void superhumanSessionStart(userId, {
+    daysSinceLastConversation: sessionData?.daysSinceLastConversation,
+  }).catch((err) => {
+    log.debug({ error: String(err), userId }, 'Superhuman session start failed (non-fatal)');
+  });
 
   log.debug({ sessionId, userId }, '🔮 Predictive intelligence initialized');
 }
@@ -130,7 +147,15 @@ export function initializePredictiveIntelligence(
 /**
  * Cleanup predictive intelligence for a session
  */
-export function cleanupPredictiveIntelligence(sessionId: string, userId?: string): void {
+export function cleanupPredictiveIntelligence(
+  sessionId: string,
+  userId?: string,
+  sessionSummary?: {
+    topicsDiscussed?: string[];
+    primaryEmotion?: string;
+    satisfactionLevel?: number;
+  }
+): void {
   sessionEngines.delete(sessionId);
 
   // 🧠 Flush ML state to Firestore on session end (non-blocking)
@@ -138,6 +163,18 @@ export function cleanupPredictiveIntelligence(sessionId: string, userId?: string
     void flushUserMLState(userId).catch((err) => {
       log.debug({ error: String(err), userId }, 'ML state flush failed (non-fatal)');
     });
+
+    // 🧠 BETTER THAN HUMAN v4: Process session end and flush superhuman state
+    void superhumanSessionEnd(userId, {
+      topicsDiscussed: sessionSummary?.topicsDiscussed || [],
+      emotionalArc: sessionSummary?.primaryEmotion,
+      satisfactionLevel: sessionSummary?.satisfactionLevel,
+    }).catch((err) => {
+      log.debug({ error: String(err), userId }, 'Superhuman session end failed (non-fatal)');
+    });
+
+    // Mark for persistence flush
+    markSuperhumanDirty(userId);
   }
 
   log.debug({ sessionId }, '🔮 Predictive intelligence cleaned up');
@@ -179,6 +216,34 @@ export async function processForPredictiveIntelligence(
   let surfacingContent: PredictiveIntelligenceResult['surfacingContent'];
 
   try {
+    // ========================================================================
+    // 0. BETTER THAN HUMAN v4 - Superhuman predictive capabilities
+    // ========================================================================
+    // Fire-and-forget: Feed the 8 superhuman capability systems
+    void processTurnForSuperhumanLearning(userId, {
+      userMessage: message,
+      emotion: emotion
+        ? {
+            primary: emotion,
+            intensity: emotionIntensity,
+            valence: emotionIntensity && emotionIntensity > 0.5 ? 'negative' : 'neutral',
+          }
+        : undefined,
+      topic: topic
+        ? {
+            primary: topic,
+            category: topic,
+          }
+        : undefined,
+      conversationContext: {
+        turnCount,
+        sessionDuration: undefined,
+        daysSinceLastConversation: undefined,
+      },
+    }).catch((err) => {
+      log.debug({ error: String(err), userId }, 'Superhuman learning failed (non-fatal)');
+    });
+
     // ========================================================================
     // 1. PREDICTIVE COACHING - Record temporal/emotional patterns
     // ========================================================================
@@ -417,6 +482,20 @@ export async function getPredictiveContextForTurn(
           sections.push(`  → "${obs.surfacingPhrase}"`);
         }
       }
+    }
+
+    // 🧠 BETTER THAN HUMAN v4: Get superhuman predictive context
+    try {
+      const { getSuperhumanPredictiveContext } = await import(
+        '../../intelligence/predictive/index.js'
+      );
+      const superhumanContext = getSuperhumanPredictiveContext(userId, {});
+      if (superhumanContext && superhumanContext.length > 0) {
+        sections.push('');
+        sections.push(superhumanContext);
+      }
+    } catch (err) {
+      log.debug({ error: String(err), userId }, 'Failed to get superhuman predictive context');
     }
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to build predictive context');

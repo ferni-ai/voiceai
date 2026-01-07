@@ -344,7 +344,6 @@ final class FerniActivityAttributesTests: XCTestCase {
         XCTAssertEqual(state.durationSeconds, 0)
         XCTAssertFalse(state.isMuted)
         XCTAssertEqual(state.speakingState, .idle)
-        XCTAssertNil(state.transcriptSnippet)
         XCTAssertEqual(state.emotionalTone, .neutral)
         XCTAssertFalse(state.showingConcern)
     }
@@ -355,7 +354,6 @@ final class FerniActivityAttributesTests: XCTestCase {
             durationSeconds: 120,
             isMuted: true,
             speakingState: .agentSpeaking,
-            transcriptSnippet: "I hear you...",
             emotionalTone: .warm,
             showingConcern: true
         )
@@ -364,7 +362,6 @@ final class FerniActivityAttributesTests: XCTestCase {
         XCTAssertEqual(state.durationSeconds, 120)
         XCTAssertTrue(state.isMuted)
         XCTAssertEqual(state.speakingState, .agentSpeaking)
-        XCTAssertEqual(state.transcriptSnippet, "I hear you...")
         XCTAssertEqual(state.emotionalTone, .warm)
         XCTAssertTrue(state.showingConcern)
     }
@@ -407,7 +404,6 @@ final class FerniActivityAttributesTests: XCTestCase {
             durationSeconds: 180,
             isMuted: false,
             speakingState: .userSpeaking,
-            transcriptSnippet: "How are you?",
             emotionalTone: .excited,
             showingConcern: false
         )

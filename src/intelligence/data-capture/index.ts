@@ -316,7 +316,7 @@ async function routeToStorage(item: CapturedItem, context: DataCaptureContext): 
         {
           conversationId: context.sessionId || 'unknown',
           sessionId: context.sessionId || 'unknown',
-          personaId: 'ferni', // TODO: Get from context
+          personaId: context.personaId || 'ferni', // Use context persona or fallback to Ferni
           transcript: context.transcript,
         }
       );

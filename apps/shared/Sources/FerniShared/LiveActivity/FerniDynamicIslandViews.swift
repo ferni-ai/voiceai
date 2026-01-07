@@ -133,17 +133,10 @@ public struct FerniDynamicIslandViews {
                         }
                     }
 
-                    // Status or transcript
-                    if let transcript = state.transcriptSnippet {
-                        Text(transcript)
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.7))
-                            .lineLimit(1)
-                    } else {
-                        Text(state.statusText)
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
+                    // Status text
+                    Text(state.statusText)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 .accessibilityHidden(true)  // Announced via main container
 
@@ -187,12 +180,8 @@ public struct FerniDynamicIslandViews {
                 parts.append("showing concern")
             }
 
-            // Transcript or status
-            if let transcript = state.transcriptSnippet {
-                parts.append("saying: \(transcript)")
-            } else {
-                parts.append(state.statusText)
-            }
+            // Status
+            parts.append(state.statusText)
 
             // Duration
             parts.append("duration \(state.formattedDuration)")
@@ -380,13 +369,9 @@ public struct FerniDynamicIslandViews {
                     }
                 }
 
-                if let transcript = state.transcriptSnippet {
-                    Text(transcript)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                }
+                Text(state.statusText)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
@@ -399,9 +384,7 @@ public struct FerniDynamicIslandViews {
                 parts.append("showing concern")
             }
 
-            if let transcript = state.transcriptSnippet {
-                parts.append("saying: \(transcript)")
-            }
+            parts.append(state.statusText)
 
             return parts.joined(separator: ", ")
         }

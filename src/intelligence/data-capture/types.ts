@@ -103,6 +103,8 @@ export interface DataCaptureContext {
   previousTranscript?: string;
   existingPeople?: string[]; // Known people names
   recentTopics?: string[];
+  /** Active persona ID (for multi-persona capture attribution) */
+  personaId?: string;
 }
 
 // ============================================================================

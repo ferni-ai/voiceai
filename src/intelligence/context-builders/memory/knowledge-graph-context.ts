@@ -253,9 +253,9 @@ async function buildKnowledgeGraphContext(
       limit: config.maxEntities * 2, // Get more, filter by score
     });
 
-    // Filter by relevance score
+    // Filter by relevance score (using salience which is the property on Entity)
     const highRelevanceEntities = relevantEntities.filter(
-      (e) => (e.relevance || e.salience || 0.5) >= config.minRelevanceScore
+      (e) => (e.salience || 0.5) >= config.minRelevanceScore
     );
 
     if (highRelevanceEntities.length > 0) {
@@ -290,17 +290,18 @@ async function buildKnowledgeGraphContext(
     // 2. Get detected patterns (if enabled)
     if (config.enablePatterns) {
       try {
-        const { getActiveCorrelations } = await import(
+        const { getCorrelationEngine } = await import(
           '../../../memory/entity-store/correlation-engine.js'
         );
 
-        const correlations = await getActiveCorrelations(userId, {
+        const correlationEngine = getCorrelationEngine();
+        const correlations = await correlationEngine.getCorrelationsForUser(userId, {
           minStrength: 0.6,
           limit: config.maxPatterns,
         });
 
         if (correlations.length > 0) {
-          const formattedPatterns: FormattedPattern[] = correlations.map((c) => ({
+          const formattedPatterns: FormattedPattern[] = correlations.map((c: { description: string; strength: number; confidence: number; pattern?: { behavioral?: string } }) => ({
             description: c.description,
             strength: c.strength,
             actionable: c.pattern?.behavioral,
@@ -333,20 +334,20 @@ async function buildKnowledgeGraphContext(
           sessionId: services?.sessionId || '',
           personaId: input.persona?.id || 'ferni',
           turnNumber: turnCount,
-          surfacingCountThisSession: input.analysis?.surfacingCount || 0,
+          surfacingCountThisSession: 0, // Track externally if needed
           sessionTopics: analysis?.topics?.detected || [],
-          conversationMood: analysis?.mood as 'exploratory' | 'venting' | 'seeking_help' | 'casual' | undefined,
+          conversationMood: (analysis?.state?.currentMood as 'exploratory' | 'venting' | 'seeking_help' | 'casual') || undefined,
         });
 
-        // Convert to suggestions format
+        // Convert to suggestions format using available SurfacingOpportunity properties
         const suggestions: ProactiveSuggestion[] = opportunities
-          .filter((o) => o.confidence >= 0.7)
+          .filter((o) => (o.receptivityScore ?? 0.5) >= 0.7)
           .slice(0, 2)
           .map((o) => ({
             entityName: o.entity.canonicalName,
-            reason: o.reason || 'Relevant to conversation',
-            suggestedPhrase: o.suggestedPhrase || `How is ${o.entity.canonicalName}?`,
-            urgency: o.urgency >= 0.8 ? 'high' : o.urgency >= 0.5 ? 'medium' : 'low',
+            reason: `${o.type.replace(/_/g, ' ')} opportunity`,
+            suggestedPhrase: o.naturalPhrasing || `How is ${o.entity.canonicalName}?`,
+            urgency: o.timing === 'immediate' ? 'high' : o.timing === 'soon' ? 'medium' : 'low',
           }));
 
         if (suggestions.length > 0) {
@@ -375,7 +376,7 @@ async function buildKnowledgeGraphContext(
           const relationships = await getRelationshipsForEntity(userId, entity.id);
           for (const rel of relationships.slice(0, 2)) {
             if (rel.label) {
-              crossRefs.push(`${entity.canonicalName} ${rel.label} (${rel.type})`);
+              crossRefs.push(`${entity.canonicalName} ${rel.label} (${rel.relationshipType})`);
             }
           }
         }

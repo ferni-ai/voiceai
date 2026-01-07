@@ -124,18 +124,6 @@ public class FerniLiveActivityManager: ObservableObject {
         }
     }
 
-    /// Update with new transcript snippet
-    public func updateTranscript(_ snippet: String) {
-        // Truncate to ~50 chars for Dynamic Island display
-        let truncated = snippet.count > 50
-            ? String(snippet.prefix(47)) + "..."
-            : snippet
-
-        updateActivity { state in
-            state.transcriptSnippet = truncated
-        }
-    }
-
     // MARK: - Mute Toggle
 
     public func updateMuteState(_ isMuted: Bool) {
@@ -173,7 +161,6 @@ public class FerniLiveActivityManager: ObservableObject {
     public func onHandoffStarted(toPersona personaName: String) {
         updateActivity { state in
             state.status = .handoff
-            state.transcriptSnippet = "Connecting you to \(personaName)..."
         }
     }
 
@@ -181,7 +168,6 @@ public class FerniLiveActivityManager: ObservableObject {
     public func onHandoffComplete() {
         updateActivity { state in
             state.status = .connected
-            state.transcriptSnippet = nil
         }
     }
 
