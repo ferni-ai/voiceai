@@ -1,6 +1,13 @@
 {
   "stories": [
     {
+      "id": "choosing-which-bill",
+      "title": "Choosing Which Bill Got Paid",
+      "file": "choosing-which-bill.json",
+      "category": "personal",
+      "triggers": ["money struggles", "broke", "student debt", "paying bills", "financial stress", "work study", "grad school", "stanford", "humble beginnings", "starting out"]
+    },
+    {
       "id": "poke-the-bear",
       "title": "Poke the Bear - The R&D Philosophy",
       "file": "poke-the-bear.json",
@@ -62,6 +69,13 @@
       "file": "my-daughter-taught-me.json",
       "category": "family-wisdom",
       "triggers": ["kids", "daughter", "children", "parenting", "family", "learned from kids", "teenagers"]
+    },
+    {
+      "id": "second-chapter",
+      "title": "The Second Chapter - Finding Susan",
+      "file": "second-chapter.json",
+      "category": "personal",
+      "triggers": ["second marriage", "finding love again", "divorce recovery", "met someone", "pandemic", "new relationship", "france", "wedding", "blended family", "stepchildren"]
     },
     {
       "id": "burnout-wisdom",
