@@ -45,6 +45,11 @@ import {
   recordCheckInSent,
   type CheckInType,
 } from './onboarding-checkin-arc.js';
+import {
+  onNeedsTeamSupport,
+  onNeedsTeamRoundtable,
+  onNeedsMultiplePerspectives,
+} from './superhuman-outreach-bridge.js';
 
 // Re-export types from dedicated types module
 export type {
@@ -595,7 +600,21 @@ class OutreachDecisionEngine extends EventEmitter {
       return this.createDecision(trigger, 'defer', 'Weekly limit reached', this.getNextWeek(now));
     }
 
-    // Decision 3: Is this a good time?
+    // Decision 3: Check for GROUP OUTREACH triggers
+    // These are handled by the group outreach system, not single-persona flow
+    if (this.isGroupOutreachTrigger(trigger, state)) {
+      await this.routeToGroupOutreach(trigger, state);
+      // Mark as sent (group outreach handles its own delivery)
+      this.recordOutreach(trigger.userId);
+      return {
+        trigger,
+        decision: 'send',
+        decidedAt: now,
+        // Group outreach - no single persona/channel
+      };
+    }
+
+    // Decision 4: Is this a good time?
     const timingDecision = await this.evaluateTiming(state, trigger, now);
     if (timingDecision.defer) {
       return this.createDecision(
@@ -606,7 +625,7 @@ class OutreachDecisionEngine extends EventEmitter {
       );
     }
 
-    // Decision 4: Select persona
+    // Decision 5: Select persona
     const persona =
       trigger.suggestedPersona ||
       (selectPersonaForOutreach(
@@ -615,13 +634,13 @@ class OutreachDecisionEngine extends EventEmitter {
         trigger.wasRecentConversation
       ) as AgentId);
 
-    // Decision 5: Select channel
+    // Decision 6: Select channel
     const channel = this.selectChannel(trigger, state);
     if (!channel) {
       return this.createDecision(trigger, 'skip', 'No suitable channel available');
     }
 
-    // Decision 6: Generate the message
+    // Decision 7: Generate the message
     const context = this.buildOutreachContext(trigger, state);
     const tone = this.determineTone(trigger);
     const generatedMessage = generateOutreach(persona, context, channel, tone);
@@ -987,6 +1006,115 @@ class OutreachDecisionEngine extends EventEmitter {
     };
 
     return channelMap[type] || null;
+  }
+
+  // ============================================================================
+  // GROUP OUTREACH ROUTING
+  // ============================================================================
+
+  /**
+   * Determine if a trigger should use group outreach (multiple personas)
+   */
+  private isGroupOutreachTrigger(trigger: OutreachTrigger, state: UserOutreachState): boolean {
+    // Explicit group outreach types
+    const groupTriggerTypes: OutreachTriggerType[] = [
+      'team_insight',
+      'collaborative_support',
+      'planning',
+      'team_roundtable',
+    ];
+
+    if (groupTriggerTypes.includes(trigger.type)) {
+      return true;
+    }
+
+    // Escalate to group support for severe situations
+    if (trigger.type === 'emotional_support' && trigger.priority === 'urgent') {
+      return true;
+    }
+
+    // Escalate celebratory moments for deep relationships
+    if (trigger.type === 'celebration' && state.relationshipStage === 'deep') {
+      return true;
+    }
+
+    // Complex planning that benefits from multiple perspectives
+    if (trigger.type === 'milestone_approaching' && trigger.context?.complexity === 'high') {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Route trigger to appropriate group outreach handler
+   */
+  private async routeToGroupOutreach(
+    trigger: OutreachTrigger,
+    state: UserOutreachState
+  ): Promise<void> {
+    const preferredName = this.getUserNameFromContext(trigger.userId, state);
+
+    log.info(
+      { userId: trigger.userId, type: trigger.type, priority: trigger.priority },
+      '👥 Routing to group outreach'
+    );
+
+    switch (trigger.type) {
+      case 'team_roundtable':
+        await onNeedsTeamRoundtable(trigger.userId, {
+          topic: String(trigger.context?.topic || trigger.reason),
+          reason: trigger.reason,
+          suggestedPersonas: trigger.context?.personas as string[] | undefined,
+          collaborationMode: trigger.context?.mode as 'discussion' | 'brainstorm' | 'support' | undefined,
+          preferredName,
+        });
+        break;
+
+      case 'team_insight':
+        await onNeedsMultiplePerspectives(trigger.userId, {
+          topic: String(trigger.context?.topic || trigger.reason),
+          insightSummary: trigger.reason,
+          preferredName,
+        });
+        break;
+
+      case 'collaborative_support':
+      case 'emotional_support':
+        await onNeedsTeamSupport(trigger.userId, {
+          type: trigger.priority === 'urgent' ? 'crisis' : 'complex_challenge',
+          description: trigger.reason,
+          preferredName,
+          currentStruggles: state.context.currentStruggles,
+        });
+        break;
+
+      case 'celebration':
+        await onNeedsTeamSupport(trigger.userId, {
+          type: 'celebration',
+          description: trigger.milestone || trigger.reason,
+          preferredName,
+        });
+        break;
+
+      case 'planning':
+      case 'milestone_approaching':
+        await onNeedsTeamRoundtable(trigger.userId, {
+          topic: trigger.milestone || trigger.event || trigger.reason,
+          reason: trigger.reason,
+          collaborationMode: 'brainstorm',
+          preferredName,
+        });
+        break;
+
+      default:
+        // Fallback to team support
+        await onNeedsTeamSupport(trigger.userId, {
+          type: 'complex_challenge',
+          description: trigger.reason,
+          preferredName,
+        });
+    }
   }
 
   // ============================================================================

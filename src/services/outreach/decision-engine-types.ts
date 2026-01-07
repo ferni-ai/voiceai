@@ -38,6 +38,12 @@ export type OutreachTriggerType =
   | 'personal_share' // User wants to share Ferni with someone
   | 'check_in' // General check-in
 
+  // GROUP OUTREACH triggers (multiple personas)
+  | 'team_insight' // Multiple personas share insights
+  | 'collaborative_support' // Team support for tough situations
+  | 'planning' // Team helps with planning (Maya + Jordan)
+  | 'team_roundtable' // Voice call with multiple personas
+
   // Onboarding triggers (first 14 days)
   | 'onboarding_welcome' // Day 1: Welcome and invitation to explore
   | 'onboarding_nextday' // Day 2: "How was it?" check

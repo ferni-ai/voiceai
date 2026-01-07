@@ -17,6 +17,12 @@ import {
   publishEmotionalSupportTrigger,
   publishCommitmentTrigger,
 } from './trigger-publisher.js';
+import {
+  initiateGroupOutreach,
+  teamCelebrationOutreach,
+  fullTeamSupportOutreach,
+  peterFerniInsightOutreach,
+} from '../conversation-thread/group-outreach.js';
 
 const log = createLogger({ module: 'SuperhumanOutreachBridge' });
 
@@ -550,6 +556,165 @@ export async function onRecoveryCheckIn(
 }
 
 // ============================================================================
+// GROUP OUTREACH TRIGGERS (TEAM SUPPORT)
+// ============================================================================
+
+/**
+ * Called when user needs full team support (major life event or crisis)
+ * Triggers group outreach with multiple personas
+ */
+export async function onNeedsTeamSupport(
+  userId: string,
+  situation: {
+    type: 'crisis' | 'major_life_event' | 'complex_challenge' | 'celebration';
+    description: string;
+    preferredName?: string;
+    currentStruggles?: string[];
+  }
+): Promise<void> {
+  try {
+    let result;
+
+    if (situation.type === 'celebration') {
+      // Use celebration team (Ferni, Maya, Jordan)
+      result = await teamCelebrationOutreach(userId, {
+        achievement: situation.description,
+        preferredName: situation.preferredName,
+      });
+    } else {
+      // Use support team (Ferni, Maya, Nayan)
+      result = await fullTeamSupportOutreach(userId, {
+        situation: situation.description,
+        preferredName: situation.preferredName,
+        currentStruggles: situation.currentStruggles,
+      });
+    }
+
+    if (result.success) {
+      log.info(
+        { userId, type: situation.type, personas: result.personas },
+        '👥 Team support outreach initiated'
+      );
+    } else {
+      log.warn({ userId, error: result.error }, 'Failed to initiate team support');
+    }
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to trigger team support outreach');
+  }
+}
+
+/**
+ * Called when multiple perspectives would help (research + coaching)
+ * Triggers Peter + Ferni collaborative outreach
+ */
+export async function onNeedsMultiplePerspectives(
+  userId: string,
+  insight: {
+    topic: string;
+    insightSummary: string;
+    preferredName?: string;
+  }
+): Promise<void> {
+  try {
+    const result = await peterFerniInsightOutreach(userId, {
+      topic: insight.topic,
+      insight: insight.insightSummary,
+      preferredName: insight.preferredName,
+    });
+
+    if (result.success) {
+      log.info(
+        { userId, topic: insight.topic },
+        '🔬 Peter + Ferni insight outreach initiated'
+      );
+    }
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to trigger multi-perspective outreach');
+  }
+}
+
+/**
+ * Called when a commitment is severely at risk and needs team intervention
+ * More urgent than single-persona follow-up
+ */
+export async function onCommitmentNeedsTeamSupport(
+  userId: string,
+  commitment: {
+    id: string;
+    summary: string;
+    daysOverdue: number;
+    preferredName?: string;
+    relatedStruggles?: string[];
+  }
+): Promise<void> {
+  // Only trigger team support for significantly overdue commitments
+  if (commitment.daysOverdue < 7) {
+    // Fall back to single persona
+    await onCommitmentAtRisk(userId, commitment);
+    return;
+  }
+
+  try {
+    const result = await fullTeamSupportOutreach(userId, {
+      situation: `commitment "${commitment.summary}" has been challenging for ${commitment.daysOverdue} days`,
+      preferredName: commitment.preferredName,
+      currentStruggles: commitment.relatedStruggles,
+    });
+
+    if (result.success) {
+      log.info(
+        { userId, commitment: commitment.summary, daysOverdue: commitment.daysOverdue },
+        '👥 Team support for commitment initiated'
+      );
+    }
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to trigger team commitment support');
+  }
+}
+
+/**
+ * Called for team roundtable voice calls on complex topics
+ */
+export async function onNeedsTeamRoundtable(
+  userId: string,
+  roundtable: {
+    topic: string;
+    reason: string;
+    suggestedPersonas?: string[];
+    collaborationMode?: 'discussion' | 'brainstorm' | 'support';
+    preferredName?: string;
+  }
+): Promise<void> {
+  try {
+    // Default to a well-rounded team if not specified
+    const personas = roundtable.suggestedPersonas || ['ferni', 'peter-john', 'maya-habits'];
+
+    const result = await initiateGroupOutreach({
+      userId,
+      personas: personas as import('../../personas/types.js').PersonaId[],
+      leadPersona: 'ferni',
+      preferredChannel: 'voice',
+      triggerType: 'team_insight',
+      reason: roundtable.reason,
+      topic: roundtable.topic,
+      collaborationMode: roundtable.collaborationMode || 'discussion',
+      context: {
+        preferredName: roundtable.preferredName,
+      },
+    });
+
+    if (result.success) {
+      log.info(
+        { userId, topic: roundtable.topic, personas },
+        '🎙️ Team roundtable call initiated'
+      );
+    }
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to initiate team roundtable');
+  }
+}
+
+// ============================================================================
 // BATCH BRIDGE - Call from superhuman services
 // ============================================================================
 
@@ -572,6 +737,7 @@ export const superhumanOutreachBridge = {
   // Commitment Keeper
   onCommitmentMade,
   onCommitmentAtRisk,
+  onCommitmentNeedsTeamSupport, // NEW: Team support for severely overdue
 
   // Seasonal Awareness
   onImportantDateApproaching,
@@ -597,6 +763,11 @@ export const superhumanOutreachBridge = {
 
   // Recovery
   onRecoveryCheckIn,
+
+  // GROUP OUTREACH (Team Support)
+  onNeedsTeamSupport,
+  onNeedsMultiplePerspectives,
+  onNeedsTeamRoundtable,
 };
 
 export default superhumanOutreachBridge;

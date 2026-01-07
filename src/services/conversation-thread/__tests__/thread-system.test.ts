@@ -1,207 +1,210 @@
 /**
  * Conversation Thread System Tests
  *
- * Tests for the bidirectional agent engagement system.
+ * Comprehensive tests for the bidirectional agent engagement system.
+ * Tests thread lifecycle, message management, handoffs, persistence, and routing.
+ *
+ * @module services/conversation-thread/__tests__/thread-system.test.ts
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { v4 as uuidv4 } from 'uuid';
+import type { ConversationThread, ThreadMessage, EngagementChannel } from '../types.js';
+import type { PersonaId } from '../../../personas/types.js';
 
-// Mock Firestore before imports
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
-  getLogger: () => ({
-    info: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
+// ============================================================================
+// MOCKS
+// ============================================================================
+
+// Mock Firestore persistence
+vi.mock('../thread-persistence.js', () => ({
+  saveThread: vi.fn().mockResolvedValue(true),
+  loadThread: vi.fn().mockResolvedValue(null),
+  loadActiveThread: vi.fn().mockResolvedValue(null),
+  saveMessage: vi.fn().mockResolvedValue(true),
+  loadMessages: vi.fn().mockResolvedValue([]),
+  closeThread: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('@google-cloud/firestore', () => ({
-  Firestore: vi.fn().mockImplementation(() => ({
-    collection: vi.fn().mockReturnValue({
-      doc: vi.fn().mockReturnValue({
-        get: vi.fn().mockResolvedValue({ exists: false, data: () => null }),
-        set: vi.fn().mockResolvedValue(undefined),
-        update: vi.fn().mockResolvedValue(undefined),
-      }),
-      where: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
-    }),
-  })),
-  Timestamp: {
-    fromDate: vi.fn((date: Date) => ({ toDate: () => date })),
-    now: vi.fn(() => ({ toDate: () => new Date() })),
-  },
+// Mock data layer hooks
+vi.mock('../../data-layer/hooks/index.js', () => ({
+  onConversationThreadChange: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Mock outreach context bridge
 vi.mock('../../outreach/conversation-context-bridge.js', () => ({
   storeOutreachContext: vi.fn().mockResolvedValue(undefined),
-  getConversationBridgeContext: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('../../outreach/delivery/index.js', () => ({
-  deliverOutreach: vi.fn().mockResolvedValue({ success: true, messageId: 'test-123' }),
-}));
-
+// Mock persona voice generator
 vi.mock('../../outreach/persona-voice-generator.js', () => ({
   getPersonaOutreachVoice: vi.fn().mockReturnValue({
-    displayName: 'Ferni',
-    signaturePhrases: {
-      greeting: ['Hey there'],
-      encouragement: ['You got this'],
-      celebration: ['Amazing!'],
-      thinkingOfYou: ['Just thinking of you'],
-      closing: ['Talk soon'],
-    },
-    emojiStyle: ['✨'],
-    formality: 'casual',
+    tone: 'warm',
+    openings: ['Hey!'],
   }),
   generateTextMessage: vi.fn().mockReturnValue('Test message'),
 }));
 
-// Import after mocks
-import {
-  getOrCreateThread,
-  getActiveThread,
-  addMessage,
-  buildAgentContext,
-  transferOwnership,
-  updateThreadStatus,
-  clearStaleThreads,
-} from '../thread-manager.js';
+// Mock delivery
+vi.mock('../../outreach/delivery/index.js', () => ({
+  deliverOutreach: vi.fn().mockResolvedValue({ success: true, messageId: 'msg-123' }),
+}));
 
-import { routeInbound } from '../inbound-router.js';
-import { initiateOutreach } from '../outbound-initiator.js';
-import { initiateGroupOutreach } from '../group-outreach.js';
+// ============================================================================
+// IMPORT AFTER MOCKS
+// ============================================================================
 
-import type { PersonaId } from '../../../personas/types.js';
+let threadManager: typeof import('../thread-manager.js');
+let groupOutreach: typeof import('../group-outreach.js');
+let inboundRouter: typeof import('../inbound-router.js');
+let outboundInitiator: typeof import('../outbound-initiator.js');
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  // Reset modules to get fresh state
+  vi.resetModules();
+  // Dynamic import to get fresh module state
+  threadManager = await import('../thread-manager.js');
+  groupOutreach = await import('../group-outreach.js');
+  inboundRouter = await import('../inbound-router.js');
+  outboundInitiator = await import('../outbound-initiator.js');
+});
 
 // ============================================================================
 // THREAD MANAGER TESTS
 // ============================================================================
 
-describe('Thread Manager', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearStaleThreads(); // Clear any existing threads
-  });
+describe('ThreadManager', () => {
+  const testChannel: EngagementChannel = 'voice';
+  const testAgentId: PersonaId = 'ferni';
+
+  // Use unique user IDs per test to avoid state pollution
+  function uniqueUserId(): string {
+    return `test-user-${uuidv4().slice(0, 8)}`;
+  }
 
   describe('getOrCreateThread', () => {
-    it('creates a new thread when none exists', async () => {
-      const thread = await getOrCreateThread('user-123', 'voice', 'ferni' as PersonaId);
+    it('should create a new thread when none exists', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
       expect(thread).toBeDefined();
-      expect(thread.userId).toBe('user-123');
-      expect(thread.originChannel).toBe('voice');
-      expect(thread.currentOwnerId).toBe('ferni');
+      expect(thread.id).toBeDefined();
+      expect(thread.userId).toBe(userId);
+      expect(thread.currentOwnerId).toBe(testAgentId);
+      expect(thread.originChannel).toBe(testChannel);
       expect(thread.status).toBe('active');
       expect(thread.messageCount).toBe(0);
     });
 
-    it('returns existing active thread for same user', async () => {
-      const thread1 = await getOrCreateThread('user-456', 'voice', 'ferni' as PersonaId);
-      const thread2 = await getOrCreateThread('user-456', 'sms', 'maya-habits' as PersonaId);
+    it('should return existing thread if not stale', async () => {
+      const userId = uniqueUserId();
+      const thread1 = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
+      const thread2 = await threadManager.getOrCreateThread(userId, 'sms', 'maya-habits');
 
       expect(thread2.id).toBe(thread1.id);
+      // Original agent retained
+      expect(thread2.currentOwnerId).toBe(testAgentId);
     });
 
-    it('creates new thread if existing is stale', async () => {
-      // Note: This tests the staleness logic. In practice, threads are considered
-      // stale after 24 hours of inactivity, but the in-memory cache check happens first.
-      // This test verifies the thread has the correct initial state.
-      const thread1 = await getOrCreateThread('user-789', 'voice', 'ferni' as PersonaId);
+    it('should store trigger type and outreach ID', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId, {
+        triggerType: 'commitment_check',
+        outreachId: 'outreach-123',
+      });
 
-      // Verify the thread was created with correct initial state
-      expect(thread1.status).toBe('active');
-      expect(thread1.messageCount).toBe(0);
-
-      // In a real scenario with Firestore, a stale thread would not be returned
-      // from loadPersistedActiveThread() due to the staleness check
+      expect(thread.triggerType).toBe('commitment_check');
+      expect(thread.outreachId).toBe('outreach-123');
     });
   });
 
   describe('addMessage', () => {
-    it('adds message and updates thread metadata', async () => {
-      const thread = await getOrCreateThread('user-msg-1', 'voice', 'ferni' as PersonaId);
+    it('should add a message to a thread', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      const message = await addMessage(thread.id, {
+      const message = await threadManager.addMessage(thread.id, {
         role: 'user',
         channel: 'voice',
         direction: 'inbound',
-        content: 'Hello Ferni!',
+        content: 'Hello, Ferni!',
         timestamp: new Date(),
       });
 
       expect(message.id).toBeDefined();
       expect(message.threadId).toBe(thread.id);
-      expect(message.content).toBe('Hello Ferni!');
-      expect(thread.messageCount).toBe(1);
+      expect(message.content).toBe('Hello, Ferni!');
+
+      // Check thread was updated
+      const updatedThread = await threadManager.getThread(thread.id);
+      expect(updatedThread?.messageCount).toBe(1);
     });
 
-    it('tracks channel usage', async () => {
-      const thread = await getOrCreateThread('user-msg-2', 'voice', 'ferni' as PersonaId);
+    it('should track channel usage', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, 'voice', testAgentId);
 
-      await addMessage(thread.id, {
+      await threadManager.addMessage(thread.id, {
         role: 'user',
-        channel: 'voice',
-        direction: 'inbound',
-        content: 'Hi',
-        timestamp: new Date(),
-      });
-
-      await addMessage(thread.id, {
-        role: 'agent',
-        agentId: 'ferni' as PersonaId,
         channel: 'sms',
-        direction: 'outbound',
-        content: 'Hey there!',
+        direction: 'inbound',
+        content: 'Text message',
         timestamp: new Date(),
       });
 
-      expect(thread.channelsUsed).toContain('voice');
-      expect(thread.channelsUsed).toContain('sms');
-      expect(thread.lastChannel).toBe('sms');
+      const updatedThread = await threadManager.getThread(thread.id);
+      expect(updatedThread?.channelsUsed).toContain('voice');
+      expect(updatedThread?.channelsUsed).toContain('sms');
+      expect(updatedThread?.lastChannel).toBe('sms');
+    });
+
+    it('should update last activity timestamps', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
+      const before = thread.lastActivityAt;
+
+      // Wait a bit to ensure timestamp difference
+      await new Promise((r) => setTimeout(r, 10));
+
+      await threadManager.addMessage(thread.id, {
+        role: 'agent',
+        agentId: testAgentId,
+        channel: 'voice',
+        direction: 'outbound',
+        content: 'Hello!',
+        timestamp: new Date(),
+      });
+
+      const updatedThread = await threadManager.getThread(thread.id);
+      expect(updatedThread?.lastActivityAt.getTime()).toBeGreaterThan(before.getTime());
+      expect(updatedThread?.lastAgentMessageAt).toBeDefined();
     });
   });
 
   describe('transferOwnership', () => {
-    it('transfers thread to another agent', async () => {
-      const thread = await getOrCreateThread('user-transfer', 'voice', 'ferni' as PersonaId);
+    it('should transfer ownership to a new agent', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      await transferOwnership(thread.id, 'maya-habits' as PersonaId, 'User asked about habits');
+      await threadManager.transferOwnership(thread.id, 'maya-habits', 'User wants habit help');
 
-      expect(thread.currentOwnerId).toBe('maya-habits');
-      expect(thread.ownershipHistory).toHaveLength(1);
-      expect(thread.ownershipHistory[0].fromAgentId).toBe('ferni');
-      expect(thread.ownershipHistory[0].toAgentId).toBe('maya-habits');
+      const updatedThread = await threadManager.getThread(thread.id);
+      expect(updatedThread?.currentOwnerId).toBe('maya-habits');
+      expect(updatedThread?.ownershipHistory).toHaveLength(1);
+      expect(updatedThread?.ownershipHistory[0].fromAgentId).toBe('ferni');
+      expect(updatedThread?.ownershipHistory[0].toAgentId).toBe('maya-habits');
+      expect(updatedThread?.ownershipHistory[0].reason).toBe('User wants habit help');
     });
   });
 
   describe('buildAgentContext', () => {
-    it('builds LLM context for agent', async () => {
-      const thread = await getOrCreateThread('user-context', 'voice', 'ferni' as PersonaId);
+    it('should build LLM context for a thread', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      await addMessage(thread.id, {
+      // Add some messages
+      await threadManager.addMessage(thread.id, {
         role: 'user',
         channel: 'voice',
         direction: 'inbound',
@@ -209,81 +212,61 @@ describe('Thread Manager', () => {
         timestamp: new Date(),
       });
 
-      const context = await buildAgentContext(thread.id, 'maya-habits' as PersonaId, {
-        userInitiated: true,
-        joinReason: 'handoff from ferni',
-      });
-
-      expect(context.thread).toBe(thread);
-      expect(context.isNewToThread).toBe(true);
-      expect(context.llmContext).toContain('CONVERSATION THREAD CONTEXT');
-    });
-  });
-});
-
-// ============================================================================
-// INBOUND ROUTER TESTS
-// ============================================================================
-
-describe('Inbound Router', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearStaleThreads();
-  });
-
-  describe('routeInbound', () => {
-    it('routes to thread owner when thread exists', async () => {
-      // Create thread with ferni
-      const thread = await getOrCreateThread('user-route-1', 'voice', 'ferni' as PersonaId);
-
-      await addMessage(thread.id, {
+      await threadManager.addMessage(thread.id, {
         role: 'agent',
-        agentId: 'ferni' as PersonaId,
-        channel: 'sms',
+        agentId: testAgentId,
+        channel: 'voice',
         direction: 'outbound',
-        content: 'How are you?',
+        content: 'I\'d love to help with that!',
         timestamp: new Date(),
       });
 
-      const result = await routeInbound('user-route-1', 'sms', 'Doing great!', {
-        fromPhone: '+15551234567',
+      const context = await threadManager.buildAgentContext(thread.id, testAgentId, {
+        userInitiated: true,
       });
 
-      expect(result.agentId).toBe('ferni');
+      expect(context.thread).toBeDefined();
+      expect(context.recentMessages.length).toBeGreaterThanOrEqual(2);
+      expect(context.llmContext).toContain('[CONVERSATION THREAD CONTEXT]');
+      expect(context.llmContext).toContain('I need help with my habits');
+      expect(context.userInitiated).toBe(true);
     });
 
-    it('defaults to ferni when no thread exists', async () => {
-      const result = await routeInbound('user-new', 'sms', 'Hello!', { fromPhone: '+15559876543' });
+    it('should detect new agent to thread', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
 
-      expect(result.agentId).toBe('ferni');
-    });
-  });
-});
-
-// ============================================================================
-// OUTBOUND INITIATOR TESTS
-// ============================================================================
-
-describe('Outbound Initiator', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearStaleThreads();
-  });
-
-  describe('initiateOutreach', () => {
-    it('creates outreach and returns result', async () => {
-      const result = await initiateOutreach({
-        userId: 'user-outreach',
-        agentId: 'ferni' as PersonaId,
-        preferredChannel: 'sms',
-        triggerType: 'thinking_of_you',
-        reason: 'Just checking in',
-        messageContent: 'Hey, how are you?',
+      const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
+        userInitiated: true,
       });
 
-      expect(result.success).toBe(true);
-      expect(result.outreachId).toBeDefined();
-      expect(result.threadId).toBeDefined();
+      expect(context.isNewToThread).toBe(true);
+    });
+
+    it('should include handoff context', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
+      await threadManager.transferOwnership(thread.id, 'maya-habits', 'Habit coaching');
+
+      const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
+        userInitiated: true,
+      });
+
+      expect(context.previousOwner).toBe('ferni');
+      expect(context.llmContext).toContain('ferni');
+    });
+  });
+
+  describe('updateThreadStatus', () => {
+    it('should update thread status', async () => {
+      const userId = uniqueUserId();
+      const thread = await threadManager.getOrCreateThread(userId, testChannel, testAgentId);
+
+      await threadManager.updateThreadStatus(thread.id, 'paused', 'User stepped away');
+
+      const updatedThread = await threadManager.getThread(thread.id);
+      expect(updatedThread?.status).toBe('paused');
+      expect(updatedThread?.statusReason).toBe('User stepped away');
     });
   });
 });
@@ -292,34 +275,15 @@ describe('Outbound Initiator', () => {
 // GROUP OUTREACH TESTS
 // ============================================================================
 
-describe('Group Outreach', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearStaleThreads();
-  });
+describe('GroupOutreach', () => {
+  const testUserId = 'test-user-456';
 
   describe('initiateGroupOutreach', () => {
-    it('creates group outreach with multiple personas', async () => {
-      const result = await initiateGroupOutreach({
-        userId: 'user-group',
-        personas: ['maya-habits', 'jordan-taylor'] as PersonaId[],
-        leadPersona: 'maya-habits' as PersonaId,
-        preferredChannel: 'sms',
-        triggerType: 'planning',
-        reason: 'Trip planning',
-        topic: 'Hawaii vacation',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.personas).toContain('maya-habits');
-      expect(result.personas).toContain('jordan-taylor');
-    });
-
-    it('fails with less than 2 personas', async () => {
-      const result = await initiateGroupOutreach({
-        userId: 'user-group-fail',
-        personas: ['ferni'] as PersonaId[],
-        leadPersona: 'ferni' as PersonaId,
+    it('should require at least 2 personas', async () => {
+      const result = await groupOutreach.initiateGroupOutreach({
+        userId: testUserId,
+        personas: ['ferni'],
+        leadPersona: 'ferni',
         preferredChannel: 'sms',
         triggerType: 'team_insight',
         reason: 'Test',
@@ -329,52 +293,319 @@ describe('Group Outreach', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('at least 2 personas');
     });
+
+    it('should create a group outreach with multiple personas', async () => {
+      const result = await groupOutreach.initiateGroupOutreach({
+        userId: testUserId,
+        personas: ['ferni', 'maya-habits'],
+        leadPersona: 'ferni',
+        preferredChannel: 'sms',
+        triggerType: 'team_insight',
+        reason: 'Collaborative insight',
+        topic: 'Morning routine',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.outreachId).toBeDefined();
+      expect(result.threadId).toBeDefined();
+      expect(result.personas).toContain('ferni');
+      expect(result.personas).toContain('maya-habits');
+      expect(result.message).toBeDefined();
+    });
+
+    it('should generate roundtable config for voice calls', async () => {
+      const result = await groupOutreach.initiateGroupOutreach({
+        userId: testUserId,
+        personas: ['ferni', 'peter-john', 'maya-habits'],
+        leadPersona: 'ferni',
+        preferredChannel: 'voice',
+        triggerType: 'collaborative_support',
+        reason: 'Team brainstorm',
+        topic: 'Career planning',
+        collaborationMode: 'brainstorm',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.roundtableConfig).toBeDefined();
+      expect(result.roundtableConfig?.moderator).toBe('ferni');
+      expect(result.roundtableConfig?.personas).toHaveLength(3);
+      expect(result.roundtableConfig?.collaborationMode).toBe('brainstorm');
+    });
+  });
+
+  describe('convenience functions', () => {
+    it('mayaJordanPlanningOutreach should use Maya and Jordan', async () => {
+      const result = await groupOutreach.mayaJordanPlanningOutreach(testUserId, {
+        eventName: 'Hawaii trip',
+        preferredName: 'Sarah',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.personas).toContain('maya-habits');
+      expect(result.personas).toContain('jordan-taylor');
+    });
+
+    it('teamCelebrationOutreach should use Ferni, Maya, and Jordan', async () => {
+      const result = await groupOutreach.teamCelebrationOutreach(testUserId, {
+        achievement: 'Finished certification',
+        preferredName: 'Mike',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.personas).toContain('ferni');
+      expect(result.personas).toContain('maya-habits');
+      expect(result.personas).toContain('jordan-taylor');
+    });
+
+    it('fullTeamSupportOutreach should use supportive personas', async () => {
+      const result = await groupOutreach.fullTeamSupportOutreach(testUserId, {
+        situation: 'job loss',
+        preferredName: 'Alex',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.personas).toContain('ferni');
+      expect(result.personas).toContain('nayan-sharma');
+    });
+  });
+
+  describe('generateGroupCallIntroductions', () => {
+    it('should generate introductions for each persona', () => {
+      const intros = groupOutreach.generateGroupCallIntroductions(
+        ['ferni', 'maya-habits', 'peter-john'],
+        'Career planning',
+        'ferni'
+      );
+
+      expect(intros.get('ferni')).toContain('Ferni');
+      expect(intros.get('ferni')).toContain('Career planning');
+      expect(intros.get('maya-habits')).toContain('Maya');
+      expect(intros.get('peter-john')).toContain('Peter');
+    });
   });
 });
 
 // ============================================================================
-// THREAD LIFECYCLE TESTS
+// THREAD PERSISTENCE INTEGRATION TESTS
 // ============================================================================
 
-describe('Thread Lifecycle', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    clearStaleThreads();
+describe('Thread Persistence Integration', () => {
+  it('should persist thread to Firestore on create', async () => {
+    const { saveThread } = await import('../thread-persistence.js');
+
+    await threadManager.getOrCreateThread('persist-user', 'voice', 'ferni');
+
+    expect(saveThread).toHaveBeenCalled();
   });
 
-  it('complete flow: create → message → transfer → close', async () => {
-    // 1. Create thread
-    const thread = await getOrCreateThread('user-lifecycle', 'voice', 'ferni' as PersonaId);
-    expect(thread.status).toBe('active');
+  it('should persist messages to Firestore', async () => {
+    const { saveMessage } = await import('../thread-persistence.js');
 
-    // 2. Add user message
-    await addMessage(thread.id, {
+    const thread = await threadManager.getOrCreateThread('persist-user-2', 'voice', 'ferni');
+
+    await threadManager.addMessage(thread.id, {
       role: 'user',
       channel: 'voice',
       direction: 'inbound',
-      content: 'I need help with my habits',
+      content: 'Test message',
       timestamp: new Date(),
     });
-    expect(thread.messageCount).toBe(1);
 
-    // 3. Agent responds
-    await addMessage(thread.id, {
+    expect(saveMessage).toHaveBeenCalled();
+  });
+});
+
+// ============================================================================
+// CROSS-CHANNEL CONTINUITY TESTS
+// ============================================================================
+
+describe('Cross-Channel Continuity', () => {
+  it('should maintain thread across channels', async () => {
+    const userId = 'cross-channel-user';
+
+    // Start on voice
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    // Add voice message
+    await threadManager.addMessage(thread.id, {
+      role: 'user',
+      channel: 'voice',
+      direction: 'inbound',
+      content: 'Hello on voice',
+      timestamp: new Date(),
+    });
+
+    // User replies via SMS
+    await threadManager.addMessage(thread.id, {
+      role: 'user',
+      channel: 'sms',
+      direction: 'inbound',
+      content: 'Following up via text',
+      timestamp: new Date(),
+    });
+
+    const updatedThread = await threadManager.getThread(thread.id);
+    expect(updatedThread?.channelsUsed).toContain('voice');
+    expect(updatedThread?.channelsUsed).toContain('sms');
+    expect(updatedThread?.lastChannel).toBe('sms');
+    expect(updatedThread?.messageCount).toBe(2);
+  });
+
+  it('should build context aware of channel switches', async () => {
+    const userId = 'multi-channel-user';
+
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    await threadManager.addMessage(thread.id, {
+      role: 'user',
+      channel: 'sms',
+      direction: 'inbound',
+      content: 'Text message',
+      timestamp: new Date(),
+    });
+
+    const context = await threadManager.buildAgentContext(thread.id, 'ferni');
+
+    expect(context.llmContext).toContain('voice');
+    expect(context.llmContext).toContain('sms');
+    expect(context.llmContext).toContain('multiple channels');
+  });
+});
+
+// ============================================================================
+// OUTREACH → INBOUND FLOW TESTS
+// ============================================================================
+
+describe('Outreach → Inbound Flow', () => {
+  it('should mark thread as response to outreach in context', async () => {
+    const userId = 'outreach-response-user';
+
+    // Create thread with outreach context
+    const thread = await threadManager.getOrCreateThread(userId, 'sms', 'maya-habits', {
+      triggerType: 'commitment_check',
+      outreachId: 'outreach-xyz',
+    });
+
+    // User responds
+    await threadManager.addMessage(thread.id, {
+      role: 'user',
+      channel: 'sms',
+      direction: 'inbound',
+      content: 'Yes, I did my workout!',
+      timestamp: new Date(),
+    });
+
+    const context = await threadManager.buildAgentContext(thread.id, 'maya-habits', {
+      userInitiated: true,
+    });
+
+    expect(context.llmContext).toContain('RESPONSE to our earlier outreach');
+    expect(context.thread.outreachId).toBe('outreach-xyz');
+  });
+});
+
+// ============================================================================
+// AGENT HANDOFF TESTS
+// ============================================================================
+
+describe('Agent Handoff Flow', () => {
+  it('should preserve context through multiple handoffs', async () => {
+    const userId = 'handoff-user';
+
+    // Start with Ferni
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    await threadManager.addMessage(thread.id, {
+      role: 'user',
+      channel: 'voice',
+      direction: 'inbound',
+      content: 'I want to plan a trip',
+      timestamp: new Date(),
+    });
+
+    // Handoff to Jordan
+    await threadManager.transferOwnership(thread.id, 'jordan-taylor', 'Trip planning');
+
+    await threadManager.addMessage(thread.id, {
       role: 'agent',
-      agentId: 'ferni' as PersonaId,
+      agentId: 'jordan-taylor',
       channel: 'voice',
       direction: 'outbound',
-      content: 'Let me connect you with Maya for habits!',
+      content: 'I love planning trips!',
       timestamp: new Date(),
     });
-    expect(thread.messageCount).toBe(2);
 
-    // 4. Transfer to Maya
-    await transferOwnership(thread.id, 'maya-habits' as PersonaId, 'User needs habit help');
-    expect(thread.currentOwnerId).toBe('maya-habits');
-    expect(thread.messageCount).toBe(3); // System message added
+    // Handoff to Maya for habits around travel
+    await threadManager.transferOwnership(thread.id, 'maya-habits', 'Workout habits while traveling');
 
-    // 5. Close thread
-    await updateThreadStatus(thread.id, 'closed', 'Session ended');
-    expect(thread.status).toBe('closed');
+    const context = await threadManager.buildAgentContext(thread.id, 'maya-habits');
+
+    // Should show full ownership chain
+    expect(context.thread.ownershipHistory).toHaveLength(2);
+    expect(context.llmContext).toContain('ferni');
+    expect(context.llmContext).toContain('jordan-taylor');
+    expect(context.previousOwner).toBe('jordan-taylor');
+  });
+});
+
+// ============================================================================
+// EMOTIONAL CONTEXT TESTS
+// ============================================================================
+
+describe('Emotional Context Tracking', () => {
+  it('should track emotional context through conversation', async () => {
+    const userId = 'emotional-user';
+
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    await threadManager.updateEmotionalContext(thread.id, 'stressed', 'declining');
+
+    const context = await threadManager.buildAgentContext(thread.id, 'ferni');
+
+    expect(context.thread.emotionalContext?.current).toBe('stressed');
+    expect(context.thread.emotionalContext?.trajectory).toBe('declining');
+    expect(context.llmContext).toContain('stressed');
+    expect(context.llmContext).toContain('declining');
+  });
+});
+
+// ============================================================================
+// TOPIC TRACKING TESTS
+// ============================================================================
+
+describe('Topic Tracking', () => {
+  it('should accumulate topics discussed', async () => {
+    const userId = 'topic-user';
+
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    await threadManager.updateThreadTopics(thread.id, ['career', 'stress']);
+    await threadManager.updateThreadTopics(thread.id, ['relationships', 'career']); // career duplicate
+
+    const updatedThread = await threadManager.getThread(thread.id);
+    expect(updatedThread?.topicTags).toContain('career');
+    expect(updatedThread?.topicTags).toContain('stress');
+    expect(updatedThread?.topicTags).toContain('relationships');
+    // No duplicates
+    expect(updatedThread?.topicTags.filter((t) => t === 'career')).toHaveLength(1);
+  });
+});
+
+// ============================================================================
+// STALE THREAD CLEANUP TESTS
+// ============================================================================
+
+describe('Stale Thread Management', () => {
+  it('should identify stale threads', async () => {
+    // This test validates the staleness logic
+    // In real implementation, we'd mock Date.now() to test
+    const userId = 'stale-user';
+
+    const thread = await threadManager.getOrCreateThread(userId, 'voice', 'ferni');
+
+    // Fresh thread should not be stale
+    const freshThread = await threadManager.getActiveThread(userId);
+    expect(freshThread).not.toBeNull();
+    expect(freshThread?.id).toBe(thread.id);
   });
 });

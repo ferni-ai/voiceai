@@ -561,6 +561,12 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     onboarding_first_week: 'celebration', // First week reflection
     onboarding_momentum: 'accountability', // Momentum/habit nudge
     onboarding_two_week: 'celebration', // Two-week celebration
+
+    // Group outreach triggers
+    planning: 'reminder', // Team helps with planning
+    team_insight: 'information', // Multiple perspectives sharing insights
+    collaborative_support: 'emotional', // Team support for tough situations
+    team_roundtable: 'casual', // Voice call with multiple personas
   };
 
   return mapping[triggerType] || 'casual';
