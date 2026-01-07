@@ -136,6 +136,7 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'cross-session-reflection': BuilderCategory.MEMORY,
   'cross-session-threading': BuilderCategory.MEMORY,
   'unified-memory-orchestrator': BuilderCategory.MEMORY,
+  'knowledge-graph': BuilderCategory.MEMORY, // Unified entity knowledge graph
   'thinking-of-you': BuilderCategory.MEMORY,
   'commitment-follow-up': BuilderCategory.MEMORY, // Track and surface commitments
   'proactive-noticing': BuilderCategory.MEMORY, // Surface noticed patterns

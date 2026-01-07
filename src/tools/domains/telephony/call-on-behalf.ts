@@ -120,21 +120,61 @@ export interface CallOutcome {
 
 /**
  * Resolve a contact query to a phone number
- * Integrates with existing contact lookup service
+ *
+ * Resolution priority:
+ * 1. Unified Entity Store (primary) - "Better Than Human" memory
+ * 2. Legacy contact_relationships (fallback) - for backwards compatibility
+ *
+ * The entity store handles:
+ * - "my brother" → finds entity with specificRelation="brother"
+ * - "Mike" → finds entity with canonicalName/alias="Mike"
+ * - Deduplication across all legacy collections
  */
 async function resolveContact(
   contactQuery: string,
   userId: string
 ): Promise<ResolvedContact | null> {
   try {
-    // Dynamic import to avoid circular dependencies
+    // =========================================================================
+    // PRIMARY: Try unified entity store first
+    // =========================================================================
+    try {
+      const { findContactForTelephony, isEntityStoreReady } =
+        await import('../../../memory/entity-store/integration.js');
+
+      if (isEntityStoreReady()) {
+        const entityResult = await findContactForTelephony(userId, contactQuery);
+
+        if (entityResult) {
+          log.info(
+            { contactQuery, name: entityResult.name, source: 'entity_store' },
+            '📇 Contact resolved from unified entity store'
+          );
+
+          return {
+            name: entityResult.name,
+            phone: entityResult.phone,
+            relationship: entityResult.relationship,
+          };
+        }
+      }
+    } catch (entityError) {
+      log.debug(
+        { error: String(entityError), contactQuery },
+        'Entity store lookup failed, falling back to legacy'
+      );
+    }
+
+    // =========================================================================
+    // FALLBACK: Legacy contact_relationships collection
+    // =========================================================================
     const { searchContacts } =
       await import('../../../services/contacts/contact-relationship-service.js');
 
     const results = await searchContacts(userId, contactQuery);
 
     if (results.length === 0) {
-      log.debug({ contactQuery, userId }, 'No contact found');
+      log.debug({ contactQuery, userId }, 'No contact found in any store');
       return null;
     }
 
@@ -146,6 +186,11 @@ async function resolveContact(
       log.debug({ contactQuery, contactName: contact.name }, 'Contact has no phone number');
       return null;
     }
+
+    log.info(
+      { contactQuery, name: contact.name, source: 'legacy_contact_relationships' },
+      '📇 Contact resolved from legacy collection'
+    );
 
     return {
       id: contact.id,

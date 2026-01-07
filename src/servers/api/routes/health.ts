@@ -437,6 +437,117 @@ export async function handleHealthRoutes(
     return true;
   }
 
+  // Superhuman services health (Better than Human capabilities)
+  if (pathname === '/health/superhuman') {
+    try {
+      const { getSuperhmanHealth, SUPERHUMAN_SERVICES, getFirestoreDb } =
+        await import('../../../services/superhuman/firestore-utils.js');
+
+      const healthStatus = getSuperhmanHealth();
+      const dbCheck = getFirestoreDb(); // Trigger initialization if not already done
+
+      interface HealthAlert {
+        level: 'warn' | 'error';
+        message: string;
+      }
+
+      const superhumanHealth: {
+        status: 'ok' | 'degraded' | 'unavailable';
+        timestamp: string;
+        database: {
+          available: boolean;
+          initialized: boolean;
+          error: string | null;
+        };
+        services: {
+          total: number;
+          operational: number;
+          degraded: number;
+          list: readonly string[];
+        };
+        degradation: {
+          totalCount: number;
+          recentEvents: Array<{ service: string; timestamp: string; reason: string }>;
+          lastOccurredAt: string | null;
+        };
+        alerts: HealthAlert[];
+        userImpact: string;
+      } = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: {
+          available: dbCheck !== null,
+          initialized: healthStatus.initialized,
+          error: healthStatus.initializationError,
+        },
+        services: {
+          total: SUPERHUMAN_SERVICES.length,
+          operational: dbCheck !== null ? SUPERHUMAN_SERVICES.length : 0,
+          degraded: dbCheck !== null ? 0 : SUPERHUMAN_SERVICES.length,
+          list: SUPERHUMAN_SERVICES,
+        },
+        degradation: {
+          totalCount: healthStatus.degradationCount,
+          recentEvents: healthStatus.recentDegradations.slice(0, 10),
+          lastOccurredAt: healthStatus.lastDegradationAt,
+        },
+        alerts: [],
+        userImpact: 'none',
+      };
+
+      // Determine status and alerts
+      if (!healthStatus.dbAvailable) {
+        superhumanHealth.status = 'unavailable';
+        superhumanHealth.userImpact =
+          "Ferni cannot remember commitments, track patterns, or provide personalized insights. Memory features are offline.";
+        superhumanHealth.alerts.push({
+          level: 'error',
+          message: `Superhuman Firestore unavailable - all ${SUPERHUMAN_SERVICES.length} services degraded`,
+        });
+        if (healthStatus.initializationError) {
+          superhumanHealth.alerts.push({
+            level: 'error',
+            message: `Initialization error: ${healthStatus.initializationError}`,
+          });
+        }
+      } else if (healthStatus.degradationCount > 0) {
+        superhumanHealth.status = 'degraded';
+        superhumanHealth.userImpact =
+          'Some memory features experienced temporary issues but should now be operational.';
+        superhumanHealth.alerts.push({
+          level: 'warn',
+          message: `${healthStatus.degradationCount} degradation events recorded`,
+        });
+      }
+
+      // Add warning if many recent degradations
+      if (healthStatus.recentDegradations.length >= 5) {
+        const recentServices = [...new Set(healthStatus.recentDegradations.map((d) => d.service))];
+        superhumanHealth.alerts.push({
+          level: 'warn',
+          message: `Frequent degradations in: ${recentServices.join(', ')}`,
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(superhumanHealth, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Superhuman health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+          alerts: [
+            { level: 'error', message: `Superhuman health check failed: ${(err as Error).message}` },
+          ],
+        })
+      );
+    }
+    return true;
+  }
+
   // Memory system health
   if (pathname === '/api/memory/health') {
     try {

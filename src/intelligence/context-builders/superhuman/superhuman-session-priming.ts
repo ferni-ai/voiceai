@@ -27,6 +27,7 @@ import {
 } from './index.js';
 import { BuilderCategory } from './core/categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { getSuperhmanHealth, getFirestoreDb } from '../../services/superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'SuperhumanSessionPriming' });
 
@@ -273,6 +274,48 @@ async function buildSuperhumanSessionPriming(
   }
 
   const startTime = Date.now();
+
+  // ============================================================================
+  // DEGRADATION CHECK: If superhuman DB is unavailable, inject graceful messaging
+  // ============================================================================
+  const db = getFirestoreDb();
+  if (!db) {
+    const healthStatus = getSuperhmanHealth();
+    log.warn(
+      {
+        userId,
+        sessionId,
+        initializationError: healthStatus.initializationError,
+        degradationCount: healthStatus.degradationCount,
+      },
+      '⚠️ Superhuman memory unavailable - injecting graceful degradation guidance'
+    );
+
+    // Inject guidance for Ferni to naturally acknowledge memory limitations
+    return [
+      createHighInjection(
+        'memory_degradation',
+        `[⚠️ IMPORTANT: Memory System Temporarily Unavailable]
+
+Your long-term memory and personal tracking features are experiencing technical difficulties right now. You cannot access:
+- The user's commitments and promises
+- Their tracked dreams and goals
+- Important dates and milestones
+- Energy/capacity patterns
+- Relationship network details
+
+HOW TO HANDLE THIS NATURALLY:
+1. If the user asks you to remember something specific: "I'm having a bit of trouble with my memory right now - could you remind me?"
+2. If they reference past conversations: "My memory's being a little fuzzy today. Can you fill me in?"
+3. If they ask about their commitments/goals: "I'm experiencing some technical hiccups with my notes. Mind catching me up?"
+4. DO NOT: Pretend you remember when you don't. Be honest but warm.
+5. DO: Still be fully present, empathetic, and helpful in THIS conversation.
+
+The goal is honesty with warmth - acknowledge limitations without making it a big deal.`,
+        { category: 'system', confidence: 1.0 }
+      ),
+    ];
+  }
 
   // Load all superhuman context in parallel
   const [commitments, dreams, milestones, capacity, seasonal, values, semanticIntelligence] =

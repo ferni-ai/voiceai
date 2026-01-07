@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import {
   getCalendarLoadFactors,
   getCalendarBurnoutRiskFactors,
@@ -277,7 +277,10 @@ export async function loadEnergyHistory(userId: string, days = 14): Promise<Ener
 
   try {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) {
+      recordDegradation('capacity-guardian');
+      return [];
+    }
 
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
     const snapshot = await db

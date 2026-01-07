@@ -53,7 +53,8 @@ export type DataIntent =
   | 'implicit_share' // "My mom's number is..."
   | 'reference_only' // "I called my mom"
   | 'correction' // "Actually, mom's new number is..."
-  | 'query'; // "What's mom's number?"
+  | 'query' // "What's mom's number?"
+  | 'relationship_mention'; // "My friend Sarah" - mentioning relationship
 
 // ============================================================================
 // STORAGE ROUTING

@@ -2,7 +2,50 @@
 
 > **"Ferni doesn't just have data. Ferni understands."**
 
+**Status: ✅ IMPLEMENTED** (January 2026)
+
 This document maps the complete intelligence ecosystem and how all components work together.
+
+## Quick Start
+
+```typescript
+import {
+  initIntelligenceSession,
+  getIntelligenceForTurn,
+  recordDomainSignal,
+  markInsightSurfaced,
+} from './intelligence/index.js';
+
+// At session start
+initIntelligenceSession(userId);
+
+// Each turn - get everything Ferni needs
+const intelligence = await getIntelligenceForTurn(userId, {
+  moment: 'session_start', // or 'natural_pause', 'topic_relevant'
+  voiceEmotion: { primary: 'anxious', energy: 0.3 },
+  recentTopics: ['work stress', 'sleep'],
+});
+
+// Use in prompt
+systemPrompt += intelligence.formattedContext;
+
+// Check for proactive insight
+if (intelligence.proactiveInsights.length > 0) {
+  const insight = intelligence.proactiveInsights[0];
+  // Surface it to user, then:
+  markInsightSurfaced(userId, insight.id);
+}
+
+// Record signals for correlation learning
+recordDomainSignal(userId, {
+  domain: 'sleep',
+  store: 'conversation',
+  metric: 'quality',
+  direction: 'decreased',
+  magnitude: 'moderate',
+  timestamp: new Date(),
+});
+```
 
 ---
 
@@ -63,11 +106,11 @@ This document maps the complete intelligence ecosystem and how all components wo
 
 ## Component Ownership
 
-| Component | Owner Module | Purpose |
-|-----------|-------------|---------|
-| **Context Assembly** | `intelligence/context-assembler.ts` | Knows what matters RIGHT NOW |
-| **Cross-Domain Correlation** | `intelligence/patterns/cross-domain-correlator.ts` | Connects dots humans miss |
-| **Proactive Surfacing** | `intelligence/proactive/proactive-engine.ts` | Decides WHEN to share insights |
+| Component | Owner Module | Status | Purpose |
+|-----------|-------------|--------|---------|
+| **Context Assembly** | `intelligence/context-assembler.ts` | ✅ Implemented | Knows what matters RIGHT NOW |
+| **Cross-Domain Correlation** | `intelligence/patterns/cross-domain-correlator.ts` | ✅ Implemented | Connects dots humans miss |
+| **Proactive Surfacing** | `intelligence/proactive/proactive-engine.ts` | ✅ Implemented | Decides WHEN to share insights |
 | **Superhuman Services** | `services/superhuman/` | 19 "Better Than Human" capabilities |
 | **Semantic Intelligence** | `services/superhuman/semantic-intelligence/` | V3 AI understanding |
 | **Predictive Intelligence** | `intelligence/predictive/` | Multi-signal prediction fusion |
@@ -387,12 +430,13 @@ User Conversation
 
 ## Key Files Reference
 
-| Layer | File | Purpose |
-|-------|------|---------|
-| **Unified Entry** | `intelligence/index.ts` | All exports |
-| **Context Assembly** | `intelligence/context-assembler.ts` | What matters now |
-| **Cross-Domain** | `intelligence/patterns/cross-domain-correlator.ts` | Pattern connections |
-| **Proactive** | `intelligence/proactive/proactive-engine.ts` | Timing decisions |
+| Layer | File | Status | Purpose |
+|-------|------|--------|---------|
+| **Unified Entry** | `intelligence/index.ts` | ✅ | All exports |
+| **Unified API** | `intelligence/unified-intelligence-api.ts` | ✅ | Single entry point for all intelligence |
+| **Context Assembly** | `intelligence/context-assembler.ts` | ✅ | What matters now |
+| **Cross-Domain** | `intelligence/patterns/cross-domain-correlator.ts` | ✅ | Pattern connections |
+| **Proactive** | `intelligence/proactive/proactive-engine.ts` | ✅ | Timing decisions |
 | **Superhuman** | `services/superhuman/index.ts` | 19 capabilities |
 | **Semantic V3** | `services/superhuman/semantic-intelligence/index.ts` | AI understanding |
 | **Predictions** | `intelligence/predictive/index.ts` | Multi-signal fusion |

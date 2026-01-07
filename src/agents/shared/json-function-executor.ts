@@ -2660,6 +2660,11 @@ async function routeToTool(
     '⚠️ Unknown function - no route defined. Add route in json-function-executor.ts if this is a valid tool.'
   );
 
+  // Also output to stderr for maximum visibility in production logs
+  process.stderr.write(`\n⚠️ UNKNOWN TOOL: "${fn}" with args: ${JSON.stringify(args)}\n`);
+  process.stderr.write(`   User: ${ctx.userId || 'unknown'}, Persona: ${ctx.personaId || 'unknown'}\n`);
+  process.stderr.write(`   → If this is a valid tool, add route in json-function-executor.ts\n\n`);
+
   // Return a human-friendly response that can be spoken by TTS
   // Note: Returning a string (not an object) ensures the agent can speak naturally
   return `I'm not able to do that specific action right now, but I'm happy to help in another way. What would you like to do?`;

@@ -11,6 +11,7 @@ This document provides a comprehensive plan to rationalize the 119+ context buil
 ## Executive Summary
 
 ### The Problem
+
 - **119+ builder files** with inconsistent naming
 - **80 loose files** at root level that should be organized
 - **5 different naming conventions** (`-context`, `-insights`, `-awareness`, `-intelligence`, no suffix)
@@ -19,7 +20,9 @@ This document provides a comprehensive plan to rationalize the 119+ context buil
 - **Technical debt** from organic growth
 
 ### The Solution
+
 A phased migration that:
+
 1. Completes the behavioral system migration (architecturally superior)
 2. Organizes files by **capability domain** (not technical function)
 3. Standardizes naming to **one convention per purpose**
@@ -32,39 +35,39 @@ A phased migration that:
 
 ### File Counts by Location
 
-| Location | File Count | Status |
-|----------|------------|--------|
-| Root level (loose) | 80 | ❌ Need organization |
-| `core/` | 13 | ✅ Foundation - keep |
-| `awareness/` | 11 | ✅ Well organized |
-| `behavioral/` | 19 | ✅ New system - expand |
-| `coaching/` | 7 | ✅ Well organized |
-| `emotional/` | 8 | ✅ Well organized |
-| `humanization/` | 6 | ✅ Consolidating |
-| `memory/` | 10 | ✅ Has orchestrator |
-| `personas/` | 60 | ✅ Well organized |
-| `relationship-arc/` | 7 | ✅ Well organized |
-| `session/` | 5 | ✅ Well organized |
-| `superhuman/` | 8 | ⚠️ Needs expansion |
-| **Total** | **119+** | |
+| Location            | File Count | Status                 |
+| ------------------- | ---------- | ---------------------- |
+| Root level (loose)  | 80         | ❌ Need organization   |
+| `core/`             | 13         | ✅ Foundation - keep   |
+| `awareness/`        | 11         | ✅ Well organized      |
+| `behavioral/`       | 19         | ✅ New system - expand |
+| `coaching/`         | 7          | ✅ Well organized      |
+| `emotional/`        | 8          | ✅ Well organized      |
+| `humanization/`     | 6          | ✅ Consolidating       |
+| `memory/`           | 10         | ✅ Has orchestrator    |
+| `personas/`         | 60         | ✅ Well organized      |
+| `relationship-arc/` | 7          | ✅ Well organized      |
+| `session/`          | 5          | ✅ Well organized      |
+| `superhuman/`       | 8          | ⚠️ Needs expansion     |
+| **Total**           | **119+**   |                        |
 
 ### Naming Convention Audit
 
-| Pattern | Count | Examples | Recommended |
-|---------|-------|----------|-------------|
-| `-context` | ~15 | `coaching-context.ts`, `game-context.ts` | For session/turn state |
-| `-insights` | ~12 | `superhuman-insights.ts`, `maya-habit-insights.ts` | For cross-domain patterns |
-| `-awareness` | ~11 | `calendar-awareness.ts`, `alive-awareness.ts` | For external/situational facts |
-| `-intelligence` | ~5 | `temporal-intelligence.ts`, `semantic-intelligence-integration.ts` | For "Better Than Human" capabilities |
-| No suffix | ~20 | `cognitive.ts`, `engagement.ts`, `memory.ts` | Legacy - migrate to above |
-| `.behavioral.ts` | 8 | `emotional.behavioral.ts`, `pacing.behavioral.ts` | For behavioral signal builders |
+| Pattern          | Count | Examples                                                           | Recommended                          |
+| ---------------- | ----- | ------------------------------------------------------------------ | ------------------------------------ |
+| `-context`       | ~15   | `coaching-context.ts`, `game-context.ts`                           | For session/turn state               |
+| `-insights`      | ~12   | `superhuman-insights.ts`, `maya-habit-insights.ts`                 | For cross-domain patterns            |
+| `-awareness`     | ~11   | `calendar-awareness.ts`, `alive-awareness.ts`                      | For external/situational facts       |
+| `-intelligence`  | ~5    | `temporal-intelligence.ts`, `semantic-intelligence-integration.ts` | For "Better Than Human" capabilities |
+| No suffix        | ~20   | `cognitive.ts`, `engagement.ts`, `memory.ts`                       | Legacy - migrate to above            |
+| `.behavioral.ts` | 8     | `emotional.behavioral.ts`, `pacing.behavioral.ts`                  | For behavioral signal builders       |
 
 ### Registration Analysis (293 calls across 145 files)
 
-| Registry Type | Count | System |
-|---------------|-------|--------|
-| `registerContextBuilder` | ~285 | Legacy (deprecated) |
-| `registerBehavioralBuilder` | ~8 | Behavioral (preferred) |
+| Registry Type               | Count | System                 |
+| --------------------------- | ----- | ---------------------- |
+| `registerContextBuilder`    | ~285  | Legacy (deprecated)    |
+| `registerBehavioralBuilder` | ~8    | Behavioral (preferred) |
 
 ---
 
@@ -194,20 +197,21 @@ context-builders/
 
 ### Naming Convention Standard
 
-| Purpose | Convention | Example |
-|---------|------------|---------|
-| **External facts about the world** | `*-awareness.ts` | `calendar-awareness.ts` |
-| **Superhuman cross-domain patterns** | `*-intelligence.ts` | `temporal-intelligence.ts` |
-| **Session/turn temporary state** | `*-context.ts` | `coaching-context.ts` |
-| **Deep persona-specific insights** | `*-insights.ts` | `maya-coaching-insights.ts` |
-| **Behavioral signal builders** | `*.behavioral.ts` | `emotional.behavioral.ts` |
-| **Orchestrators/coordinators** | `unified-*.ts` | `unified-memory-orchestrator.ts` |
+| Purpose                              | Convention          | Example                          |
+| ------------------------------------ | ------------------- | -------------------------------- |
+| **External facts about the world**   | `*-awareness.ts`    | `calendar-awareness.ts`          |
+| **Superhuman cross-domain patterns** | `*-intelligence.ts` | `temporal-intelligence.ts`       |
+| **Session/turn temporary state**     | `*-context.ts`      | `coaching-context.ts`            |
+| **Deep persona-specific insights**   | `*-insights.ts`     | `maya-coaching-insights.ts`      |
+| **Behavioral signal builders**       | `*.behavioral.ts`   | `emotional.behavioral.ts`        |
+| **Orchestrators/coordinators**       | `unified-*.ts`      | `unified-memory-orchestrator.ts` |
 
 ---
 
 ## Migration Plan
 
 ### Phase 1: Documentation & Audit (Week 1)
+
 **Goal:** Complete understanding before any changes
 
 - [ ] Create this architecture document ✅
@@ -217,14 +221,17 @@ context-builders/
 - [ ] Document which builders are DISABLED vs ACTIVE in `loader.ts`
 
 ### Phase 2: Behavioral Migration (Weeks 2-4)
+
 **Goal:** Complete the behavioral system migration
 
 The behavioral system is architecturally superior:
+
 - No context leakage (can't speak internal guidance)
 - Structured signals (type-safe)
 - Clear separation: Behavioral (HOW) vs Awareness (WHAT) vs Tool Guidance (WHEN)
 
 **Priority order for behavioral migration:**
+
 1. ✅ `emotional.behavioral.ts` - Done
 2. ✅ `memory.behavioral.ts` - Done
 3. ✅ `distress.behavioral.ts` - Done
@@ -239,6 +246,7 @@ The behavioral system is architecturally superior:
 12. 🔲 `relationship.behavioral.ts` - Convert relationship signals
 
 **For each conversion:**
+
 ```typescript
 // 1. Create new behavioral builder
 // behavioral/builders/my-feature.behavioral.ts
@@ -247,11 +255,13 @@ The behavioral system is architecturally superior:
 return {
   tone: 'gentle',
   style: 'supportive',
-  callbacks: [{
-    type: 'pattern',
-    hint: 'They seem interested in exploring this further.',
-    strength: 'natural',
-  }],
+  callbacks: [
+    {
+      type: 'pattern',
+      hint: 'They seem interested in exploring this further.',
+      strength: 'natural',
+    },
+  ],
 };
 
 // 3. Update builder-imports.ts to reference behavioral version
@@ -260,11 +270,13 @@ return {
 ```
 
 ### Phase 3: Folder Organization (Weeks 5-6)
+
 **Goal:** Move loose files to proper homes
 
 **Moves by new folder:**
 
 #### `intelligence/` (NEW - "Better Than Human" capabilities)
+
 ```bash
 # Move these from root to intelligence/
 mv temporal-intelligence.ts intelligence/
@@ -278,6 +290,7 @@ mv semantic-intelligence-integration.ts intelligence/  # from superhuman/
 ```
 
 #### `relationship/` (NEW - Consolidated)
+
 ```bash
 # Rename relationship-arc/ to relationship/arc/
 mv relationship-arc/* relationship/arc/
@@ -291,6 +304,7 @@ mv social-graph-context.ts relationship/
 ```
 
 #### `engagement/` (NEW)
+
 ```bash
 # Move these from root to engagement/
 mv engagement.ts engagement/
@@ -303,6 +317,7 @@ mv storytelling.ts engagement/
 ```
 
 #### `team/` (NEW - from superhuman/ and root)
+
 ```bash
 # Move these from superhuman/ to team/
 mv superhuman/team-availability.ts team/
@@ -317,6 +332,7 @@ mv cameo-unlock.ts team/
 ```
 
 #### `safety/` (NEW)
+
 ```bash
 # Move these from core/ and root to safety/
 mv core/crisis.ts safety/
@@ -326,6 +342,7 @@ mv honesty-guardrail.ts safety/
 ```
 
 #### `external/` (NEW)
+
 ```bash
 # Move these from root to external/
 mv biometrics.ts external/
@@ -335,9 +352,11 @@ mv anticipation.ts external/
 ```
 
 ### Phase 4: Naming Standardization (Week 7)
+
 **Goal:** Consistent naming across all files
 
 **Renames:**
+
 ```bash
 # Standardize to -intelligence suffix for superhuman capabilities
 mv cognitive.ts cognitive-intelligence.ts
@@ -353,9 +372,11 @@ mv topics.ts topics-context.ts
 ```
 
 ### Phase 5: Update Imports & Manifest (Week 8)
+
 **Goal:** Update all references to moved files
 
 For each moved file:
+
 1. Update `builder-imports.ts` with new path
 2. Update `BUILDER_MANIFEST` in `loader.ts`
 3. Update `BUILDER_CATEGORIES` in `categories.ts`
@@ -363,6 +384,7 @@ For each moved file:
 5. Update any direct imports in other files
 
 ### Phase 6: Clean Up & Documentation (Week 9)
+
 **Goal:** Final polish
 
 - [ ] Delete any dead code identified in Phase 1
@@ -370,13 +392,14 @@ For each moved file:
 - [ ] Update `context-builders/index.ts` exports
 - [ ] Add README.md to each new folder
 - [ ] Run full test suite
-- [ ] Update docs/architecture/*.md files
+- [ ] Update docs/architecture/\*.md files
 
 ---
 
 ## Files to Move: Complete List
 
 ### Root → `intelligence/` (12 files)
+
 ```
 temporal-intelligence.ts
 pattern-surfacing.ts
@@ -392,6 +415,7 @@ inner-world-injector.ts
 ```
 
 ### Root → `relationship/` (5 files)
+
 ```
 trust-context.ts
 deep-relationship.ts
@@ -401,6 +425,7 @@ social-graph-context.ts
 ```
 
 ### Root → `engagement/` (7 files)
+
 ```
 engagement.ts
 engagement-context.ts
@@ -412,6 +437,7 @@ storytelling.ts
 ```
 
 ### Root → `team/` (3 files from root + 4 from superhuman/)
+
 ```
 role-boundaries.ts
 cameo-opportunities.ts
@@ -423,6 +449,7 @@ cameo-unlock.ts
 ```
 
 ### Root → `safety/` (2 files from core/ + 2 from root)
+
 ```
 + core/crisis.ts
 + core/wellbeing-context.ts
@@ -431,6 +458,7 @@ honesty-guardrail.ts
 ```
 
 ### Root → `superhuman/` (3 files)
+
 ```
 superhuman-session-priming.ts
 better-than-human-direct.ts
@@ -438,6 +466,7 @@ conversational-superpowers.ts
 ```
 
 ### Root → `external/` (5 files)
+
 ```
 biometrics.ts
 financial-prediction.ts
@@ -447,6 +476,7 @@ pending-call-results.ts
 ```
 
 ### Root → `humanization/` (4 files)
+
 ```
 conversational-imperfections.ts
 natural-uncertainty.ts
@@ -455,6 +485,7 @@ dynamic-speech-guidance.ts
 ```
 
 ### Root → `personas/` (3 files)
+
 ```
 ferni-personality.ts
 human-personality.ts
@@ -465,28 +496,33 @@ twin-profile-context.ts
 ```
 
 ### Root → `awareness/` (1 file - to consolidate existing folder)
+
 ```
 revelation-awareness.ts → awareness/ (capability throttling)
 ```
 
 ### Root → `coaching/` (2 files)
+
 ```
 life-coaching-context.ts
 methodology.ts
 ```
 
 ### Root → `session/` (1 file)
+
 ```
 thread-context.ts
 ```
 
 ### Root → `memory/` (2 files)
+
 ```
 memory-enhancement.ts
 thinking-of-you.ts
 ```
 
 ### Files that stay at root (utilities/infrastructure)
+
 ```
 index.ts                    # Main entry
 metrics.ts                  # Performance tracking
@@ -515,6 +551,7 @@ export * from './relationship/trust-context.js';
 ```
 
 This allows:
+
 1. Existing imports continue to work
 2. Gradual migration of import statements
 3. Eventually remove deprecated re-exports
@@ -522,6 +559,7 @@ This allows:
 ### Registry Compatibility
 
 The builder names in the registry remain unchanged:
+
 - `registerContextBuilder('trust-context', ...)` still works
 - Only file paths change
 - `builder-imports.ts` handles path mapping
@@ -530,14 +568,14 @@ The builder names in the registry remain unchanged:
 
 ## Success Metrics
 
-| Metric | Before | Target |
-|--------|--------|--------|
-| Files at root level | 80 | <10 |
-| Behavioral builders | 8 | 40+ |
-| Naming conventions | 5 | 1 per purpose |
+| Metric                                 | Before    | Target                 |
+| -------------------------------------- | --------- | ---------------------- |
+| Files at root level                    | 80        | <10                    |
+| Behavioral builders                    | 8         | 40+                    |
+| Naming conventions                     | 5         | 1 per purpose          |
 | "Better Than Human" files discoverable | Scattered | `intelligence/` folder |
-| New developer onboarding time | Hours | Minutes |
-| Test coverage of behavioral system | ~20% | 80%+ |
+| New developer onboarding time          | Hours     | Minutes                |
+| Test coverage of behavioral system     | ~20%      | 80%+                   |
 
 ---
 
@@ -562,4 +600,4 @@ The builder names in the registry remain unchanged:
 
 ---
 
-*"Context builders are how we make AI emotionally intelligent. They inject the awareness, empathy, and memory that transforms responses from robotic to human."*
+_"Context builders are how we make AI emotionally intelligent. They inject the awareness, empathy, and memory that transforms responses from robotic to human."_

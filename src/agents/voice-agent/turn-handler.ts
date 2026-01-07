@@ -1109,18 +1109,53 @@ You are their lifeline right now. Be fully present.`,
 
     // ================================================================
     // 🧠 UNIFIED INTELLIGENCE: Inject proactive insight if ready
+    // Supports session_start (turn 1), natural_pause, and topic_relevant moments
     // ================================================================
-    if (intelligence?.insightToSurface && turnNumber === 1 && services.userId) {
-      // Surface proactive insight at session start
-      turnCtx.addMessage({
-        role: 'system',
-        content: `[PROACTIVE INSIGHT - Consider sharing naturally]\n${intelligence.insightToSurface.message}${intelligence.insightToSurface.followUp ? `\nFollow-up: ${intelligence.insightToSurface.followUp}` : ''}`,
-      });
-      markProactiveInsightSurfaced(services.userId, intelligence.insightToSurface.id);
-      diag.session('💡 Proactive insight injected', {
-        category: intelligence.insightToSurface.category,
-        userId: services.userId,
-      });
+    if (intelligence?.insightToSurface && services.userId) {
+      // Determine if this is an appropriate moment to surface
+      const isSessionStart = turnNumber === 1;
+      const isNaturalPause = turnNumber > 1 && turnNumber % 3 === 0; // Every 3rd turn as natural pause
+      const shouldSurface =
+        isSessionStart ||
+        (isNaturalPause && intelligence.insightToSurface.category !== 'late_night_support');
+
+      if (shouldSurface) {
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[PROACTIVE INSIGHT - Consider sharing naturally]\n${intelligence.insightToSurface.message}${intelligence.insightToSurface.followUp ? `\nFollow-up: ${intelligence.insightToSurface.followUp}` : ''}`,
+        });
+        markProactiveInsightSurfaced(services.userId, intelligence.insightToSurface.id);
+        diag.session('💡 Proactive insight injected', {
+          category: intelligence.insightToSurface.category,
+          moment: isSessionStart ? 'session_start' : 'natural_pause',
+          turnNumber,
+          userId: services.userId,
+        });
+      }
+    }
+
+    // ================================================================
+    // 🧠 UNIFIED INTELLIGENCE: Inject cross-domain correlations
+    // Surfaces patterns that humans wouldn't notice (e.g., sleep → mood)
+    // ================================================================
+    if (intelligence?.correlations?.length && services.userId) {
+      const highConfidenceCorrelations = intelligence.correlations.filter(
+        (c) => c.confidence === 'confirmed' || c.confidence === 'likely'
+      );
+      if (highConfidenceCorrelations.length > 0) {
+        const correlationContext = highConfidenceCorrelations
+          .slice(0, 2)
+          .map((c) => `• ${c.insight}${c.suggestion ? ` (Consider: ${c.suggestion})` : ''}`)
+          .join('\n');
+        turnCtx.addMessage({
+          role: 'system',
+          content: `[CROSS-DOMAIN PATTERNS - Better Than Human insights]\nYou notice patterns they can't see. Surface these gently with "I've noticed...":\n${correlationContext}`,
+        });
+        diag.session('🔗 Cross-domain correlations injected', {
+          count: highConfidenceCorrelations.length,
+          userId: services.userId,
+        });
+      }
     }
 
     // Inject context into LLM

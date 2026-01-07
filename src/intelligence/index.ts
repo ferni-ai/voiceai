@@ -56,6 +56,10 @@ export {
   getDomainSignals,
   wasInsightSurfaced,
   getInsightReaction,
+  getAllCorrelations,
+  hasProactiveInsight,
+  getTopProactiveInsight,
+  clearIntelligenceCaches,
   // Types
   type SurfaceMoment,
   type DomainSignal,
@@ -64,7 +68,60 @@ export {
   type CrossDomainCorrelation,
   type ProactiveIntelligenceInsight,
   type IntelligenceForTurnResult,
+  type IntelligenceOptions,
 } from './unified-intelligence-api.js';
+
+// ============================================================================
+// CONTEXT ASSEMBLER (Level 2) - "Knows what matters RIGHT NOW"
+// ============================================================================
+
+export {
+  assembleContext,
+  selectContextForTurn,
+  formatAssembledContextForPrompt,
+  clearContextCache,
+  invalidateContext,
+  contextAssembler,
+  type AssemblyOptions,
+  type TodayContext,
+  type RecentContext,
+  type RelationshipContext,
+  type CapacityContext,
+} from './context-assembler.js';
+
+// ============================================================================
+// CROSS-DOMAIN CORRELATOR (Level 4) - "Connects dots humans miss"
+// ============================================================================
+
+export {
+  recordDomainSignal as recordCorrelationSignal,
+  getCorrelations,
+  getRelevantCorrelations,
+  markCorrelationSurfaced,
+  formatCorrelationsForPrompt,
+  clearCorrelatorState,
+  getCrossCorrelator,
+  crossDomainCorrelator,
+  type CorrelationDomain,
+  type CorrelationFilterOptions,
+} from './patterns/cross-domain-correlator.js';
+
+// ============================================================================
+// PROACTIVE ENGINE (Level 5) - "Decides WHEN to share insights"
+// ============================================================================
+
+export {
+  checkProactiveTriggers,
+  initProactiveSession,
+  cleanupProactiveSession,
+  getProactivePreferences,
+  updateProactivePreferences,
+  clearProactiveState,
+  proactiveEngine,
+  type InsightCategory,
+  type ProactiveTriggerResult,
+  type ProactivePreferences,
+} from './proactive/proactive-engine.js';
 
 export {
   // THE superhuman signal

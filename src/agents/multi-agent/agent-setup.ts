@@ -579,13 +579,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       return tools;
     } catch (err) {
-      log.error({ personaId: persona.id, error: String(err) }, '❌ Fast path failed');
-      return {};
+      // FIX: Don't return empty - fall back to essential tools!
+      log.error({ personaId: persona.id, error: String(err) }, '❌ Fast path failed - trying essential fallback');
+      return await loadEssentialToolsFallback();
     }
   };
 
   // FALLBACK PATH: Load essential tools when full orchestrator times out
   // BUG FIX: Previously only loaded handoff tools, missing music/weather/etc!
+  // FIX: NEVER return empty - always provide minimum viable toolset
   const loadEssentialToolsFallback = async (): Promise<Record<string, unknown>> => {
     // This is the fallback when full tool loading times out
     // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
@@ -593,7 +595,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       const { buildHandoffTools } = await import('../../tools/handoff/handoff-factory.js');
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-      
+
       // 1. Build handoff tools (critical for team switching)
       const { tools: handoffTools, toolCount: handoffCount } = await buildHandoffTools({
         currentAgentId: persona.id,
@@ -621,19 +623,65 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       const allTools = { ...handoffTools, ...essentialTools };
       log.info(
-        { 
-          personaId: persona.id, 
-          handoffCount, 
+        {
+          personaId: persona.id,
+          handoffCount,
           essentialCount: Object.keys(essentialTools).length,
-          totalCount: Object.keys(allTools).length 
+          totalCount: Object.keys(allTools).length
         },
         '🔄 Essential tools loaded as timeout fallback (handoff + essential domains)'
       );
       return allTools;
     } catch (err) {
-      log.error({ personaId: persona.id, error: String(err) }, '❌ Failed to load essential tools');
-      return {};
+      // 🚨 CRITICAL: Even if all else fails, return emergency handoff tools
+      // These are hardcoded tool definitions that ALWAYS work
+      log.error(
+        { personaId: persona.id, error: String(err) },
+        '🚨 CRITICAL: Essential tool loading failed - using EMERGENCY hardcoded tools'
+      );
+      process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${err}\n`);
+      process.stderr.write('🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n');
+
+      // Return emergency toolset - better than nothing!
+      return getEmergencyToolset(persona.id);
     }
+  };
+
+  // 🚨 EMERGENCY TOOLSET: Absolute last resort when all tool loading fails
+  // These are minimal handoff tools defined inline to guarantee availability
+  const getEmergencyToolset = (currentPersonaId: string): Record<string, unknown> => {
+    const personas = ['ferni', 'maya', 'peter-john', 'jordan', 'alex', 'nayan'];
+    const tools: Record<string, unknown> = {};
+
+    for (const targetId of personas) {
+      if (targetId === currentPersonaId) continue;
+
+      const toolName = `handoffTo${targetId.charAt(0).toUpperCase() + targetId.slice(1).replace('-', '')}`;
+      tools[toolName] = {
+        name: toolName,
+        description: `Transfer the conversation to ${targetId}`,
+        parameters: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string', description: 'Why transferring' },
+          },
+        },
+      };
+    }
+
+    // Add endCall tool
+    tools.endCall = {
+      name: 'endCall',
+      description: 'End the conversation when the user wants to go',
+      parameters: { type: 'object', properties: {} },
+    };
+
+    log.warn(
+      { personaId: currentPersonaId, emergencyToolCount: Object.keys(tools).length },
+      '🚨 EMERGENCY TOOLS ACTIVE - Only handoffs + endCall available!'
+    );
+
+    return tools;
   };
 
   const loadToolsInner = async (): Promise<Record<string, unknown>> => {
@@ -762,10 +810,48 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Wait for TTS and tools (LLM is created below in parallel section)
   const [tts, orchestratorTools] = await Promise.all([ttsPromise, toolsPromise]);
 
+  // =========================================================================
+  // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
+  // This helps debug "tools not working" issues
+  // =========================================================================
+  const toolCount = Object.keys(orchestratorTools).length;
+  const toolNames = Object.keys(orchestratorTools);
+  const sampleTools = toolNames.slice(0, 10).join(', ');
+  const hasHandoffs = toolNames.some(t => t.toLowerCase().includes('handoff'));
+  const hasMusic = toolNames.some(t => t.toLowerCase().includes('music') || t.toLowerCase().includes('play'));
+  const hasMemory = toolNames.some(t => t.toLowerCase().includes('memory') || t.toLowerCase().includes('recall'));
+
+  // Log to both structured log AND stderr for visibility
   log.info(
-    { personaId: persona.id, parallelPhase1Ms: Date.now() - parallelStart },
-    '⚡ TTS + tools loaded in parallel'
+    {
+      personaId: persona.id,
+      toolCount,
+      hasHandoffs,
+      hasMusic,
+      hasMemory,
+      sampleTools,
+      parallelPhase1Ms: Date.now() - parallelStart,
+    },
+    `🔧 TOOLS LOADED: ${toolCount} tools available to LLM`
   );
+  process.stderr.write(`\n${'='.repeat(60)}\n`);
+  process.stderr.write(`🔧 TOOLS AVAILABLE TO LLM: ${toolCount}\n`);
+  process.stderr.write(`   Handoffs: ${hasHandoffs ? '✅' : '❌'} | Music: ${hasMusic ? '✅' : '❌'} | Memory: ${hasMemory ? '✅' : '❌'}\n`);
+  process.stderr.write(`   Sample: ${sampleTools}\n`);
+  process.stderr.write(`${'='.repeat(60)}\n\n`);
+
+  // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
+  if (toolCount < 10) {
+    log.error(
+      { personaId: persona.id, toolCount, toolNames },
+      '🚨 CRITICAL: Tool count is suspiciously low! Many features will not work.'
+    );
+    process.stderr.write(`\n🚨🚨🚨 CRITICAL WARNING 🚨🚨🚨\n`);
+    process.stderr.write(`Tool count is only ${toolCount}! Expected 40-80 tools.\n`);
+    process.stderr.write(`Available tools: ${toolNames.join(', ')}\n`);
+    process.stderr.write(`This will cause many features to fail!\n`);
+    process.stderr.write(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨\n\n`);
+  }
 
   // =========================================================================
   // LLM SELECTION: OpenAI Realtime vs Gemini Live

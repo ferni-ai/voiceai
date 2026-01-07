@@ -119,10 +119,11 @@ export async function loadToolDomain(
   if (!loader) {
     // FIX: Log error (not just warning) for missing loaders - this is a critical issue
     // Missing loaders mean tools won't be available to the voice agent
-    getLogger().error(
-      { domain },
-      '❌ No loader registered for domain - tools will NOT be available! Register loaders via registerDomainLoader or use autoRegisterAllDomains'
-    );
+    const errorMsg = `❌ No loader registered for domain "${domain}" - tools will NOT be available!`;
+    getLogger().error({ domain }, errorMsg);
+    // Also output to stderr for maximum visibility
+    process.stderr.write(`\n🚨 TOOL DOMAIN ERROR: ${errorMsg}\n`);
+    process.stderr.write(`   Fix: Register via registerDomainLoader() or include in autoRegisterAllDomains()\n\n`);
     // Note: Dynamic imports with variables don't work in Vitest/bundlers
     // Domains must be pre-registered via registerDomainLoader()
     // Return -1 to indicate failure (vs 0 which means success with no tools)
@@ -134,7 +135,12 @@ export async function loadToolDomain(
       toolCount = definitions.length;
       getLogger().info({ domain, count: definitions.length }, 'Domain tools loaded');
     } catch (error) {
-      getLogger().error({ domain, error }, 'Failed to load domain tools');
+      const errorMsg = `Failed to load domain "${domain}" tools: ${error}`;
+      getLogger().error({ domain, error: String(error) }, errorMsg);
+      // Output to stderr for maximum visibility
+      process.stderr.write(`\n🚨 TOOL LOAD FAILURE: ${errorMsg}\n\n`);
+      // Return -1 to indicate failure
+      return -1;
     }
   }
 
@@ -938,6 +944,31 @@ export async function initializeToolRegistry(options: InitializeToolRegistryOpti
       ? '🚀 Tool registry initialized (lazy loading enabled)'
       : '🔧 Tool registry initialization complete'
   );
+
+  // 🚨 CRITICAL: Output summary to stderr for visibility
+  process.stderr.write(`\n${'='.repeat(60)}\n`);
+  process.stderr.write(`🔧 TOOL REGISTRY INITIALIZATION SUMMARY\n`);
+  process.stderr.write(`   Total tools loaded: ${totalLoaded}\n`);
+  process.stderr.write(`   Domains loaded: ${Object.keys(byDomain).length}\n`);
+  process.stderr.write(`   Remaining domains (lazy): ${remainingDomains.length}\n`);
+  process.stderr.write(`   Time: ${elapsed}ms\n`);
+
+  if (errors.length > 0) {
+    process.stderr.write(`\n🚨 ERRORS (${errors.length}):\n`);
+    for (const err of errors) {
+      process.stderr.write(`   ❌ ${err}\n`);
+    }
+    process.stderr.write(`\n⚠️  Some tools will not be available!\n`);
+  }
+
+  if (totalLoaded < 20) {
+    process.stderr.write(`\n🚨🚨🚨 CRITICAL WARNING 🚨🚨🚨\n`);
+    process.stderr.write(`Only ${totalLoaded} tools loaded! Expected 40-80 minimum.\n`);
+    process.stderr.write(`Voice agent capabilities will be severely limited.\n`);
+    process.stderr.write(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨\n`);
+  }
+
+  process.stderr.write(`${'='.repeat(60)}\n\n`);
 
   return {
     loaded: totalLoaded,

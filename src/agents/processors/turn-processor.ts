@@ -1761,6 +1761,50 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       { context: 'data-capture-routing' }
     );
 
+    // 2b. KNOWLEDGE GRAPH CAPTURE: Extract entities, facts, relationships via LLM
+    // "Better than Human" - build unified knowledge graph from every conversation
+    safeFireAndForget(
+      async () => {
+        try {
+          const { captureTurn, isKnowledgeCaptureReady } = await import(
+            '../../memory/knowledge-graph/index.js'
+          );
+
+          if (!isKnowledgeCaptureReady()) return;
+
+          const captureResult = await captureTurn({
+            userId: services.userId!,
+            sessionId: services.sessionId,
+            turnNumber: turnCount,
+            transcript: userText,
+            personaId: ctx.persona?.id,
+            emotion: analysisResult?.analysis?.emotion
+              ? {
+                  primary: analysisResult.analysis.emotion.primary,
+                  intensity: analysisResult.analysis.emotion.intensity,
+                  valence: analysisResult.analysis.emotion.valence,
+                }
+              : undefined,
+            topic: analysisResult?.analysis?.topics?.primary,
+            recentContext: ctx.conversationHistory?.slice(-3).join('\n'),
+          });
+
+          if (captureResult.entities.created > 0 || captureResult.entities.updated > 0) {
+            diag.state('🧠 Knowledge graph updated', {
+              entitiesCreated: captureResult.entities.created,
+              entitiesUpdated: captureResult.entities.updated,
+              factsCount: captureResult.facts.count,
+              relationshipsCount: captureResult.relationships.count,
+              timeMs: captureResult.metrics.totalTimeMs,
+            });
+          }
+        } catch (error) {
+          diag.debug('Knowledge graph capture failed (non-blocking)', { error: String(error) });
+        }
+      },
+      { context: 'knowledge-graph-capture' }
+    );
+
     // 3. PERIODIC AUTO-SAVE: Persist extracted details and social graph every 3 turns
     // Note: extractedDetails may be in userData from context-builders/personal.ts
     const extractedDetails = (userData as Record<string, unknown>).extractedDetails as

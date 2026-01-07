@@ -154,6 +154,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'superhuman-session-priming', // NEW: Surfaces ALL superhuman memory at session start (Better Than Human)
     'better-than-human-memory', // P0: Proactive surfacing with timing intelligence and learning
     'unified-memory-orchestrator', // PRIMARY: Coordinates all memory subsystems
+    'knowledge-graph', // Unified entity knowledge graph (Better Than Human memory)
     // 'memory',               // DISABLED: Consolidated into orchestrator
     // 'advanced-memory',      // DISABLED: Consolidated into orchestrator
     // 'proactive-memory',     // DISABLED: Consolidated into orchestrator
@@ -209,6 +210,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // COGNITIVE - Cognitive intelligence
   [BuilderCategory.COGNITIVE]: [
+    'unified-intelligence', // NEW: Unified Intelligence (Levels 2-5) - cross-domain correlations, proactive insights
     'deep-understanding', // Unified deep intelligence: silence, rhythm, resistance, energy, goals, flow, repair, hope, chapters
     'awareness', // Momentum, thinking time, tangents, self-awareness (priority 55)
     'cognitive',

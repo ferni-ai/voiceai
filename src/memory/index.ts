@@ -526,6 +526,68 @@ export {
 export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 
 // ============================================================================
+// UNIFIED ENTITY STORE (Better Than Human Memory)
+// ============================================================================
+
+// The unified entity store replaces fragmented collections:
+// - user_contacts, contact_relationships, relationship_network
+// - relationship_nodes, guest_profiles, network/relationships
+//
+// All people, places, events, and concepts are now stored as unified entities
+// with deduplication, alias resolution, and cross-domain queries.
+
+export {
+  // Types
+  type Entity,
+  type EntityType,
+  type EntitySource,
+  type RelationshipType,
+  type Mention,
+  type MentionType,
+  type ExtractedFact,
+  type EntityRelationship,
+  type EdgeType,
+  type EntityQuery,
+  type EntityQueryResult,
+  type PersonCaptureInput,
+  type CaptureContext,
+  type CaptureResult,
+  // Storage
+  createEntity,
+  getEntity,
+  updateEntity,
+  deleteEntity,
+  findEntityByAlias,
+  searchEntities,
+  getAllEntities,
+  getEntitiesByType,
+  createMention,
+  getMentionsForEntity,
+  getRecentMentions,
+  upsertRelationship,
+  getRelationshipsForEntity,
+  recordMention,
+  hasEntityStore,
+  getEntityStoreStats,
+  // Resolver
+  resolvePerson,
+  mergeEntities,
+  whatDoWeKnowAbout,
+  type ResolvedEntity,
+  // Integration
+  isEntityStoreReady,
+  initializeEntityStore,
+  capturePersonEntity,
+  captureMultiplePeople,
+  findContactForTelephony,
+  getAllContacts,
+  getEntityStoreHealth,
+  // Migration
+  migrateUser,
+  migrateAllUsers,
+} from './entity-store/index.js';
+
+// ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================
 

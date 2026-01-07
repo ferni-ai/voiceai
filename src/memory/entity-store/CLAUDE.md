@@ -1,401 +1,274 @@
-# Entity Store - Superhuman Memory Foundation
+# Unified Entity Store
 
-> **"Store once, link everywhere."**
+> **"What do we know about Mike?"** - A question that was impossible to answer before this module.
 
-The entity store is the unified foundation for Ferni's "Better Than Human" memory.
-It eliminates the fragmentation across 50+ Firestore collections by providing a
-single, entity-centric data model with semantic search and graph relationships.
+This module provides a **unified knowledge graph** for all entities (people, places, events, concepts) in a user's life. It replaces the fragmented storage that existed across 7+ separate Firestore collections.
 
 ---
 
-## Quick Start
+## The Problem We Solved
 
-```typescript
-import {
-  getEntityStore,
-  initializeEntityStore,
-  graphRAGRetrieve,
-  getProactiveSurfacingEngine,
-} from '../memory/entity-store/index.js';
+Before this module, when a user said "my brother's phone is 555-1234", the data went to `user_contacts`. But when they said "call my brother", the telephony tool searched `contact_relationships`. These collections didn't talk to each other.
 
-// Initialize (do once at startup)
-await initializeEntityStore();
+**Fragmented collections we're replacing:**
 
-// Create an entity
-const store = getEntityStore();
-const mike = await store.createEntity(
-  userId,
-  'person',
-  'Mike',
-  {
-    _type: 'person',
-    relationship: 'brother',
-    relationshipCategory: 'family',
-    phone: '555-1234',
-    sentiment: 0.8,
-  },
-  { aliases: ['my brother', 'bro'] }
-);
-
-// Search with Graph-RAG
-const results = await graphRAGRetrieve(
-  userId,
-  'call my brother',
-  { personaId: 'ferni' },
-  { topK: 5, expandGraph: true }
-);
-
-// Proactive surfacing
-const engine = getProactiveSurfacingEngine();
-const opportunities = await engine.analyze({
-  userId,
-  currentTurn: "I'm thinking about family...",
-  sessionId: 'abc123',
-  personaId: 'ferni',
-  turnNumber: 3,
-  surfacingCountThisSession: 0,
-  sessionTopics: ['family'],
-});
-```
+| Collection | Used By | What It Stored |
+|------------|---------|----------------|
+| `user_contacts` | `contacts.ts` | Basic contact info |
+| `contact_relationships` | `contact-relationship-service.ts` | Telephony contacts |
+| `relationship_network` | `superhuman/relationship-network.ts` | Social graph |
+| `relationship_nodes` | `semantic-intelligence/relationship-graph.ts` | Graph nodes |
+| `guest_profiles` | `jordan-planning-services.ts` | Event guests |
+| `network/relationships` | Research tools | Another contact store |
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Entity Store                                      │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────┐     ┌──────────────────┐     ┌────────────────────┐   │
-│  │   types.ts  │     │    store.ts      │     │   graph-rag.ts     │   │
-│  │             │     │                  │     │                    │   │
-│  │  Entity     │────▶│  EntityStore     │────▶│  GraphRAGRetriever │   │
-│  │  Relations  │     │  - CRUD          │     │  - Hybrid search   │   │
-│  │  Attributes │     │  - Search        │     │  - Graph expansion │   │
-│  │             │     │  - Graph ops     │     │  - Reranking       │   │
-│  └─────────────┘     └──────────────────┘     └────────────────────┘   │
-│                                                                          │
-│  ┌────────────────────────┐     ┌────────────────────────────────────┐  │
-│  │  proactive-surfacing.ts│     │         migration.ts               │  │
-│  │                        │     │                                    │  │
-│  │  - Temporal triggers   │     │  - Legacy collection migration     │  │
-│  │  - Pattern insights    │     │  - Deduplication                   │  │
-│  │  - Commitment checkins │     │  - Relationship creation           │  │
-│  │  - Receptivity scoring │     │                                    │  │
-│  └────────────────────────┘     └────────────────────────────────────┘  │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+entity_store/{userId}/
+├── entities/           # All entities (people, places, events, concepts)
+├── mentions/           # Every time an entity is mentioned
+└── relationships/      # Edges connecting entities
+```
+
+### Core Components
+
+```
+entity-store/
+├── types.ts            # Type definitions
+├── storage.ts          # Firestore CRUD operations
+├── entity-resolver.ts  # Resolves mentions to canonical entities
+├── integration.ts      # Hooks for data capture, telephony, etc.
+├── migration.ts        # Migrates legacy collections
+└── index.ts            # Main exports
 ```
 
 ---
 
-## Key Concepts
+## Usage
 
-### 1. Entities
-
-Everything is an entity with a unified schema:
-
-| Type | Description | Key Attributes |
-|------|-------------|----------------|
-| `person` | People in user's life | relationship, phone, sentiment |
-| `commitment` | Promises, intentions | status, targetDate, originalStatement |
-| `event` | Past/future events | date, eventType, relatedPeople |
-| `dream` | Long-term aspirations | status, obstacles |
-| `value` | Core values | strength, demonstrations |
-| `pattern` | Behavioral patterns | confidence, shouldSurface |
-| `goal` | Active goals | progress, milestones |
-| `memory` | Specific moments | content, emotionalIntensity |
-
-### 2. Entity Resolution
-
-The key to solving fragmentation - "my brother" always resolves to the same entity:
+### Capturing a Person from Conversation
 
 ```typescript
-const { entity, isNew } = await store.resolveEntity(
-  userId,
-  'my brother',
-  'person',
-  { relationship: 'brother' }
-);
+import { capturePersonEntity, isEntityStoreReady } from '../memory/entity-store/index.js';
 
-// If "Mike" (the brother) already exists, returns that entity
-// Otherwise creates new entity with "my brother" as an alias
+// In data capture or turn processor:
+if (isEntityStoreReady()) {
+  const result = await capturePersonEntity(userId, {
+    name: 'Mike',
+    relationship: 'brother',
+    phone: '555-1234',
+  }, {
+    conversationId: sessionId,
+    sessionId: sessionId,
+    personaId: 'ferni',
+    transcript: 'My brother Mike's phone is 555-1234',
+  });
+  
+  // result.entity - The canonical entity
+  // result.isNew - true if newly created
+  // result.merged - true if merged with existing
+  // result.confidence - 0-1 confidence score
+}
 ```
 
-### 3. Graph Relationships
-
-Entities connect via typed relationships:
+### Finding a Contact for Telephony
 
 ```typescript
-await store.createRelationship(
-  mikeEntityId,
-  surgeryEventId,
-  'involves',           // RelationshipType
-  {
-    strength: 0.9,      // How strong the connection
-    context: 'Mike is having surgery',
-    bidirectional: false,
-  }
-);
+import { findContactForTelephony } from '../memory/entity-store/index.js';
+
+// Replaces fragmented lookups in call-on-behalf.ts
+const contact = await findContactForTelephony(userId, 'my brother');
+// Returns: { name: 'Mike', phone: '555-1234', relationship: 'brother' }
 ```
 
-**Relationship Types:**
-- `involves` - Event involves Person
-- `about` - Commitment is about Topic
-- `causes` - X causes Y
-- `mentions` - Memory mentions Person
-- `triggers` - Emotion triggered by Event
-
-### 4. Graph-RAG Retrieval
-
-State-of-the-art hybrid search:
+### Querying Everything About Someone
 
 ```typescript
-const results = await graphRAGRetrieve(userId, 'call my brother', context, {
-  topK: 10,
-  expandGraph: true,    // Follow relationships
-  maxGraphHops: 2,      // 2 levels of connections
-  hybrid: true,         // BM25 + Vector fusion
-  rerank: false,        // Cross-encoder (expensive)
-});
-```
+import { whatDoWeKnowAbout } from '../memory/entity-store/index.js';
 
-**Pipeline:**
-1. **BM25 Search** - Keyword matching for exact names
-2. **Vector Search** - Semantic similarity
-3. **Reciprocal Rank Fusion** - Combine results
-4. **Graph Expansion** - Follow relationships 1-2 hops
-5. **Temporal/Emotional Weighting** - Boost recent + significant
-6. **Cross-Encoder Rerank** (optional) - More accurate scoring
-
-### 5. Proactive Surfacing
-
-Know WHEN to surface, not just WHAT:
-
-```typescript
-const opportunities = await engine.analyze(context);
-
-// Returns opportunities like:
+const info = await whatDoWeKnowAbout(userId, 'Mike');
+// Returns:
 // {
-//   type: 'temporal',
-//   entity: mikeBirthdayEvent,
-//   timing: 'soon',
-//   naturalPhrasing: "Mike's birthday is tomorrow!",
-//   receptivityScore: 0.85,
+//   entity: Entity,              // The person
+//   mentions: Mention[],         // Every time they were mentioned
+//   facts: ExtractedFact[],      // All facts we know
+//   relationships: EntityRelationship[], // Connections to other entities
+//   relatedEntities: Entity[]    // Related people/things
 // }
 ```
 
 ---
 
-## Firestore Collections
+## Entity Resolution
 
-| Collection | Purpose |
-|------------|---------|
-| `entities` | All unified entities |
-| `entity_relationships` | Graph edges |
-| `entity_mentions` | Track every mention |
+The **entity resolver** is the brain of this module. When someone mentions "my brother" or "Mike" or "bro", it figures out which entity they're referring to.
 
-**Schema:**
-```
-entities/{entityId}
-├── userId: string
-├── type: EntityType
-├── canonicalName: string
-├── aliases: string[]
-├── embedding: vector(1536)
-├── salienceScore: number
-├── emotionalWeight: number
-├── temporalContext: { peakMoments, lastEmotionalPeak, ... }
-├── attributes: { _type: 'person', relationship, phone, ... }
-└── searchTokens: string[]
-```
+**Resolution strategy (in order):**
+1. **Exact name match** - "Mike" → find entity with canonicalName="Mike"
+2. **Relationship match** - "my brother" → find entity with specificRelation="brother"
+3. **Alias match** - "bro" → find entity where aliases includes "bro"
+4. **Phone match** - Same phone number → same person
+5. **Create new** - No match found → create new entity
+
+### Handling Ambiguity
+
+If user has two brothers, and says "my brother":
+- If one was mentioned recently, prefer that one
+- If both have names, ask for clarification
+- If only one has a phone number and they said "call my brother", prefer the one with phone
 
 ---
 
 ## Migration
 
-Migrate from legacy fragmented collections:
+To migrate a user's legacy data:
 
 ```typescript
-// Single user
-const result = await migrateUserToEntities(userId);
-console.log(`Created ${result.entitiesCreated}, merged ${result.entitiesMerged}`);
+import { migrateUser } from '../memory/entity-store/migration.js';
 
-// All users (batch)
-const { totalUsers, successful, failed } = await runFullMigration({
-  batchSize: 10,
-  dryRun: false,
-});
+const result = await migrateUser(userId, { dryRun: true }); // Preview first
+console.log(result);
+// {
+//   entitiesCreated: 15,
+//   entitiesMerged: 8,         // Duplicates found and merged
+//   legacyCollections: {
+//     userContacts: 10,
+//     relationshipNetwork: 12,
+//     contactRelationships: 5,
+//     ...
+//   }
+// }
+
+// Actually run it
+await migrateUser(userId, { dryRun: false });
 ```
 
-**Collections Migrated:**
-- `user_contacts`
-- `contact_relationships`
-- `relationship_network`
-- `commitments`
-- `dreams`
-- `values`
-- `patterns`
-- And 40+ more...
+To migrate all users (run as batch job):
+
+```typescript
+import { migrateAllUsers } from '../memory/entity-store/migration.js';
+
+await migrateAllUsers({ dryRun: false, limit: 100 });
+```
+
+---
+
+## Rules
+
+### Do
+- Always use `capturePersonEntity()` for new person mentions
+- Use `findContactForTelephony()` instead of legacy contact lookups
+- Run migration before deprecating legacy collections
+- Store legacy IDs for backwards compatibility during transition
+
+### Don't
+- Don't write directly to legacy collections (they're read-only now)
+- Don't skip the entity resolver (it handles deduplication)
+- Don't delete legacy collections until migration is verified
+- Don't import from higher architecture levels
 
 ---
 
 ## Integration Points
 
-### Data Capture
+### Data Capture (`src/intelligence/data-capture/index.ts`)
 
-When user mentions someone/something, use entity resolution:
+Already integrated! When contacts are captured from conversation, they go to both:
+1. Entity store (primary) ✅
+2. Legacy collections (backwards compatibility)
+
+### Telephony Tools (`src/tools/domains/telephony/`)
+
+Update to use entity store:
 
 ```typescript
-// In data capture pipeline
-const { entity, isNew } = await store.resolveEntity(
-  userId,
-  extractedName,
-  'person',
-  { relationship: extractedRelationship }
-);
+// OLD (fragmented):
+const contact = await searchContacts(userId, query); // Only searches contact_relationships
 
-// Record the mention
-await store.recordMention(entity.id, {
-  userId,
-  conversationId,
-  sessionId,
-  personaId,
-  snippet: userText,
-  emotionalWeight: detectedEmotion.intensity,
-});
+// NEW (unified):
+const contact = await findContactForTelephony(userId, query); // Searches entity_store
 ```
 
 ### Context Builders
 
-Use Graph-RAG for memory retrieval:
+The entity store enables new context builders:
 
 ```typescript
-// In unified-memory-orchestrator or similar
-const memories = await graphRAGRetrieve(userId, userTurn, {
-  currentTopic,
-  personaId,
-  recentEntityMentions: recentlyMentioned,
-});
-
-// Convert to context injection
-return memories.entities.map(r => ({
-  content: formatEntityForContext(r.entity),
-  reason: r.reason,
-  priority: r.score * 100,
-}));
-```
-
-### Proactive Surfacing
-
-Wire into turn processor:
-
-```typescript
-// After analyzing user turn
-const surfacingOpportunities = await surfacingEngine.analyze({
-  userId,
-  currentTurn: userText,
-  sessionId,
-  personaId,
-  turnNumber,
-  surfacingCountThisSession,
-  sessionTopics,
-  conversationMood: detectedMood,
-});
-
-// Inject top opportunity into response guidance
-if (surfacingOpportunities.length > 0 && surfacingOpportunities[0].timing === 'immediate') {
-  responseGuidance.proactiveSurfacing = surfacingOpportunities[0].naturalPhrasing;
+// "What do we know about people mentioned in this turn?"
+const mentionedPeople = await extractMentions(transcript);
+for (const mention of mentionedPeople) {
+  const info = await whatDoWeKnowAbout(userId, mention);
+  // Inject into LLM context
 }
 ```
 
 ---
 
-## Best Practices
+## Firestore Schema
 
-### 1. Always Use Entity Resolution
+### Entity Document
 
 ```typescript
-// ❌ Bad - creates duplicates
-await store.createEntity(userId, 'person', 'my mom', attrs);
-
-// ✅ Good - finds existing or creates
-const { entity } = await store.resolveEntity(userId, 'my mom', 'person');
+entity_store/{userId}/entities/{entityId}
+{
+  id: string,
+  userId: string,
+  type: 'person' | 'place' | 'event' | 'concept' | ...,
+  canonicalName: string,      // "Mike"
+  aliases: string[],          // ["michael", "brother", "bro"]
+  relationship: string,       // "family"
+  specificRelation: string,   // "brother"
+  contact: {
+    phone?: string,
+    email?: string,
+    address?: string,
+  },
+  salience: number,           // 0-1, how important
+  emotionalWeight: number,    // 0-1, emotional significance
+  mentionCount: number,
+  firstMentionedAt: Timestamp,
+  lastMentionedAt: Timestamp,
+  legacyIds: {                // For migration
+    userContactId?: string,
+    relationshipNetworkId?: string,
+    ...
+  }
+}
 ```
 
-### 2. Record All Mentions
+### Mention Document
 
 ```typescript
-// Every time an entity is referenced in conversation
-await store.recordMention(entityId, context);
-```
-
-### 3. Create Relationships When Linking
-
-```typescript
-// When a commitment involves a person
-await store.createRelationship(commitmentId, personId, 'involves');
-```
-
-### 4. Use Graph-RAG for Retrieval
-
-```typescript
-// ❌ Bad - misses relationships
-const results = await store.searchEntities(query, { userId });
-
-// ✅ Good - expands via graph
-const results = await graphRAGRetrieve(userId, query, ctx, { expandGraph: true });
-```
-
----
-
-## Debugging
-
-### Check Entity Resolution
-
-```typescript
-const store = getEntityStore();
-const entities = await store.getUserEntities(userId, { types: ['person'] });
-console.log('People:', entities.map(e => ({
-  name: e.canonicalName,
-  aliases: e.aliases,
-  salience: e.salienceScore,
-})));
-```
-
-### Inspect Relationships
-
-```typescript
-const relationships = await store.getEntityRelationships(entityId);
-console.log('Relationships:', relationships.map(r => ({
-  type: r.type,
-  to: r.toEntity,
-  strength: r.strength,
-})));
-```
-
-### Search Quality
-
-```typescript
-const results = await graphRAGRetrieve(userId, query, context, options);
-console.log('Results:', results.entities.map(r => ({
-  name: r.entity.canonicalName,
-  score: r.score,
-  breakdown: r.scoreBreakdown,
-  reason: r.reason,
-})));
+entity_store/{userId}/mentions/{mentionId}
+{
+  id: string,
+  entityId: string,
+  transcript: string,
+  sessionId: string,
+  personaId: string,
+  timestamp: Timestamp,
+  mentionType: 'reference' | 'story' | 'emotion' | 'fact' | ...,
+  sentiment: number,          // -1 to 1
+  emotionalIntensity: number, // 0-1
+  topics: string[],
+  facts: ExtractedFact[],
+}
 ```
 
 ---
 
-## Files
+## Testing
 
-| File | Description |
-|------|-------------|
-| `types.ts` | All TypeScript types and interfaces |
-| `store.ts` | EntityStore class - CRUD, search, relationships |
-| `graph-rag.ts` | Graph-RAG retrieval pipeline |
-| `proactive-surfacing.ts` | When to surface memories |
-| `migration.ts` | Legacy collection migration |
-| `index.ts` | Public exports |
+```bash
+# Run entity store tests
+pnpm vitest run src/memory/entity-store/
+
+# Test migration (dry run)
+pnpm tsx scripts/migrate-entity-store.ts --dry-run --user=<userId>
+```
+
+---
+
+*Last updated: January 2026*

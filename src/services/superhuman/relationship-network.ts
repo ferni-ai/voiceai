@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
+import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { onRelationshipNetworkChange } from '../data-layer/hooks/superhuman-hooks.js';
 
 const log = createLogger({ module: 'relationship-network' });
@@ -126,11 +126,22 @@ export function extractPerson(
     for (const pattern of patterns) {
       if (pattern.test(lowerTranscript)) {
         // Try to extract a name after the relationship word
-        const namePattern = new RegExp(`my ${word}[,\\s]+([A-Z][a-z]+)`, 'i');
+        // Use case-insensitive for "my word" but check result is actually capitalized
+        const namePattern = new RegExp(`my\\s+${word}[,\\s]+([A-Za-z]+)`, 'i');
         const nameMatch = transcript.match(namePattern);
 
+        // Only accept as a proper name if it starts with uppercase in original text
+        if (nameMatch && /^[A-Z]/.test(nameMatch[1])) {
+          return {
+            name: nameMatch[1],
+            type,
+            context: transcript.slice(0, 150),
+          };
+        }
+
+        // No proper name found, return the relationship word
         return {
-          name: nameMatch ? nameMatch[1] : `my ${word}`,
+          name: `my ${word}`,
           type,
           context: transcript.slice(0, 150),
         };
@@ -139,27 +150,180 @@ export function extractPerson(
   }
 
   // Check for names with "talked to X" or "saw X" patterns
-  const interactionPatterns = [
-    /\bi (talked to|spoke with|saw|met with|called|texted) ([A-Z][a-z]+)/i,
-    /\b([A-Z][a-z]+) (said|told me|called me|texted me)/i,
-  ];
+  // Pattern 1: "I talked to/saw/met X" - name is in group 2
+  const talkToPattern = /\bi (?:talked to|spoke with|saw|met with|called|texted) ([A-Z][a-z]+)/i;
+  const talkMatch = transcript.match(talkToPattern);
+  if (talkMatch) {
+    const name = talkMatch[1];
+    if (!['I', 'The', 'A', 'An', 'This', 'That', 'It', 'My', 'We', 'They'].includes(name)) {
+      return {
+        name,
+        type: 'acquaintance',
+        context: transcript.slice(0, 150),
+      };
+    }
+  }
 
-  for (const pattern of interactionPatterns) {
-    const match = transcript.match(pattern);
-    if (match) {
-      const name = match[2] || match[1];
-      // Filter out common words that might be capitalized at sentence start
-      if (!['I', 'The', 'A', 'An', 'This', 'That', 'It', 'My', 'We', 'They'].includes(name)) {
-        return {
-          name,
-          type: 'acquaintance', // Default, will be updated with more context
-          context: transcript.slice(0, 150),
-        };
-      }
+  // Pattern 2: "X said/told me" - name is in group 1
+  const saidPattern = /\b([A-Z][a-z]+) (?:said|told me|called me|texted me|asked me)/i;
+  const saidMatch = transcript.match(saidPattern);
+  if (saidMatch) {
+    const name = saidMatch[1];
+    if (!['I', 'The', 'A', 'An', 'This', 'That', 'It', 'My', 'We', 'They'].includes(name)) {
+      return {
+        name,
+        type: 'acquaintance',
+        context: transcript.slice(0, 150),
+      };
     }
   }
 
   return null;
+}
+
+/**
+ * Extract all names mentioned in a transcript
+ *
+ * Returns an array of names with their context. This is used by the turn processor
+ * to record all person mentions during a conversation.
+ */
+export function extractNames(transcript: string): Array<{ name: string; context: string }> {
+  const results: Array<{ name: string; context: string }> = [];
+  const seen = new Set<string>();
+  const contextSnippet = transcript.slice(0, 150);
+
+  // 1. First, try extractPerson for relationship words
+  const personResult = extractPerson(transcript);
+  if (personResult && !seen.has(personResult.name.toLowerCase())) {
+    results.push({ name: personResult.name, context: personResult.context });
+    seen.add(personResult.name.toLowerCase());
+  }
+
+  // 2. Extract names after relationship words: "my friend Sarah"
+  const relationshipNameRegex =
+    /\bmy\s+(mom|mother|dad|father|sister|brother|wife|husband|partner|boyfriend|girlfriend|friend|boss|coworker|colleague|mentor|cousin|aunt|uncle)\s+([A-Z][a-z]+)/gi;
+  let match;
+  while ((match = relationshipNameRegex.exec(transcript)) !== null) {
+    const name = match[2];
+    if (!seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // Common words to skip (not names)
+  const skipWords = new Set([
+    'the', 'a', 'an', 'this', 'that', 'it', 'my', 'we', 'they', 'he', 'she', 'you', 'i',
+    'with', 'said', 'told', 'asked', 'met', 'saw', 'called', 'texted', 'spoke',
+    'today', 'yesterday', 'tomorrow', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'morning', 'afternoon', 'evening', 'night', 'week', 'month', 'year',
+    'then', 'when', 'where', 'what', 'who', 'how', 'why', 'but', 'and', 'or', 'so',
+    'just', 'really', 'very', 'here', 'there', 'now', 'later', 'soon', 'again', 'next',
+    'last', 'first', 'good', 'great', 'nice', 'new', 'old', 'some', 'many', 'few',
+  ]);
+
+  // 3. Extract names in "talked to X" patterns (with or without "I" prefix)
+  const talkPattern = /\b(?:i\s+)?(?:talked to|spoke with|saw|met with|called|texted)\s+([A-Z][a-z]+)/gi;
+  while ((match = talkPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 3b. Extract names from "X's name is Y" patterns: "My mom's name is Betty" (NOT "my name is X" - user intro)
+  // Only match when there's a possessive before "name" to avoid extracting user's own name
+  const nameIsPattern = /\b(?:mom|mother|dad|father|sister|brother|wife|husband|partner|friend|boss|colleague)'?s?\s+name\s+is\s+([A-Z][a-z]+)/gi;
+  while ((match = nameIsPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 3c. Extract names from "named X" patterns: "I have a sister named Jane"
+  const namedPattern = /\b(?:named|called)\s+([A-Z][a-z]+)/gi;
+  while ((match = namedPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 3d. Extract names from "X, my Y" patterns: "Alex, my mentor, recommended"
+  const xMyYPattern = /\b([A-Z][a-z]+),?\s+my\s+(?:friend|mentor|boss|colleague|sister|brother|mom|dad)/gi;
+  while ((match = xMyYPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 4. Extract names in "X said/told me" patterns
+  const saidPattern = /\b([A-Z][a-z]+)\s+(?:said|told me|called me|texted me|asked me|thinks|thought|suggested|mentioned|wants|wanted)/gi;
+  while ((match = saidPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 5. Extract names in "X is my Y" patterns: "Sarah is my best friend"
+  const isMyPattern = /\b([A-Z][a-z]+)\s+is\s+my\s+(?:best\s+)?(?:friend|mom|dad|sister|brother|boss|colleague|mentor|wife|husband|partner)/gi;
+  while ((match = isMyPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 6. Extract names in "with X" context: "I went with John", "meeting with Sarah"
+  const withPattern = /\b(?:with|and)\s+([A-Z][a-z]+)(?:\s+(?:today|yesterday|tomorrow|at|to|for)|\b)/gi;
+  while ((match = withPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 7. Extract names after "Tell X" or "Ask X"
+  const tellPattern = /\b(?:tell|ask|call|text|email|visit|meet)\s+([A-Z][a-z]+)/gi;
+  while ((match = tellPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 8. Extract names with titles: "Dr. Johnson", "Mr. Smith"
+  const titlePattern = /\b(?:Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.)\s*([A-Z][a-z]+)/gi;
+  while ((match = titlePattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  // 9. Extract names introduced with "introduced me to X"
+  const introPattern = /\bintroduced\s+(?:me\s+)?to\s+([A-Z][a-z]+)/gi;
+  while ((match = introPattern.exec(transcript)) !== null) {
+    const name = match[1];
+    if (!skipWords.has(name.toLowerCase()) && !seen.has(name.toLowerCase())) {
+      results.push({ name, context: contextSnippet });
+      seen.add(name.toLowerCase());
+    }
+  }
+
+  return results;
 }
 
 // ============================================================================
@@ -250,7 +414,10 @@ export async function loadNetwork(userId: string): Promise<RelationshipPerson[]>
 
   try {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) {
+      recordDegradation('relationship-network');
+      return [];
+    }
 
     const snapshot = await db
       .collection('bogle_users')

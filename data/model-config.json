@@ -6,13 +6,21 @@
   },
   "toolDefaults": {
     "debugMode": true,
-    "maxTools": 60,
+    "maxTools": 80,
     "enabledDomains": [],
     "excludedTools": [],
     "includedTools": [
+      "handoffToFerni",
+      "handoffToMaya",
+      "handoffToPeter",
+      "handoffToJordan",
+      "handoffToAlex",
+      "handoffToNayan",
       "playMusic",
       "musicControl",
       "musicInfo",
+      "pauseMusic",
+      "skipTrack",
       "getWeather",
       "getDailyBriefing",
       "recallFromMemory",
@@ -34,12 +42,25 @@
       "captureDream",
       "futureSelf",
       "setReminder",
-      "manageAppointment"
+      "manageAppointment",
+      "processGrief",
+      "navigateGriefWave",
+      "companionInGrief",
+      "clarifyCareerGoals",
+      "exploreGrowthAreas",
+      "trackJobApplication",
+      "practiceInterview",
+      "reflectOnRelationship",
+      "navigateConflict",
+      "expressNeeds",
+      "setClearBoundary",
+      "endCall",
+      "transferToHuman"
     ],
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true
   },
   "personas": {},
-  "version": 2
+  "version": 3
 }
