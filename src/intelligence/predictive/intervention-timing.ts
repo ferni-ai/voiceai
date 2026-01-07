@@ -54,7 +54,7 @@ export interface OptimalConditions {
   /** Required context/topics */
   requiredContext: string[];
   /** Best time of day */
-  timeOfDay: ('morning' | 'afternoon' | 'evening' | 'night')[];
+  timeOfDay: ('morning' | 'afternoon' | 'evening' | 'night' | 'early_evening' | 'late_night' | 'any')[];
   /** Best days of week */
   dayOfWeek: number[];
   /** Days since last meaningful conversation */

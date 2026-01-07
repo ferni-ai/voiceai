@@ -467,7 +467,7 @@ export async function getThreadStats(userId: string): Promise<{
   if (!ref) {
     return {
       total: 0,
-      byStatus: { active: 0, open: 0, resolved: 0, dormant: 0, recurring: 0 },
+      byStatus: { active: 0, open: 0, resolved: 0, dormant: 0, recurring: 0, archived: 0 },
       openQuestionCount: 0,
       averageSessionsPerThread: 0,
     };
@@ -482,6 +482,7 @@ export async function getThreadStats(userId: string): Promise<{
     resolved: 0,
     dormant: 0,
     recurring: 0,
+    archived: 0,
   };
 
   let openQuestionCount = 0;

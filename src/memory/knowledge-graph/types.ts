@@ -633,8 +633,14 @@ export type ThreadStatus = 'open' | 'resolved' | 'dormant' | 'archived' | 'activ
 export interface ThreadSession {
   sessionId: string;
   timestamp: Date;
+  /** @deprecated Use timestamp instead */
+  date?: Date;
   summary: string;
   emotionalState?: string;
+  /** @deprecated Use emotionalState instead */
+  emotionalArc?: string;
+  keyMoments?: string[];
+  turnRange?: [number, number];
 }
 
 /**
