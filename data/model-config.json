@@ -14,18 +14,32 @@
       "musicControl",
       "musicInfo",
       "getWeather",
-      "setReminder",
+      "getDailyBriefing",
       "recallFromMemory",
       "recallPreviousConversation",
       "surfaceRelevantMemory",
-      "predictUserNeed",
       "rememberAboutUser",
-      "rememberImportantFact"
+      "rememberImportantFact",
+      "predictUserNeed",
+      "trackCommitment",
+      "reviewCommitments",
+      "celebrateCompletion",
+      "createHabit",
+      "logHabitCompletion",
+      "getHabits",
+      "habitCheckIn",
+      "breatheWithMe",
+      "groundingExercise",
+      "noticeThisMoment",
+      "captureDream",
+      "futureSelf",
+      "setReminder",
+      "manageAppointment"
     ],
     "logToolSchemas": true,
     "logToolResults": true,
     "useOrchestrator": true
   },
   "personas": {},
-  "version": 1
+  "version": 2
 }
