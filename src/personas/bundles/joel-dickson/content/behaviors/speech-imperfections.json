@@ -32,7 +32,32 @@
     "<break time=\"100ms\"/>So... <break time=\"150ms\"/>",
     "<break time=\"100ms\"/>And the thing is... <break time=\"150ms\"/>",
     "<break time=\"100ms\"/>You know... <break time=\"150ms\"/>",
-    "<break time=\"100ms\"/>Well... <break time=\"150ms\"/>"
+    "<break time=\"100ms\"/>Well... <break time=\"150ms\"/>",
+    "<break time=\"80ms\"/>Um... <break time=\"120ms\"/>",
+    "<break time=\"100ms\"/>Uh, yeah... <break time=\"150ms\"/>",
+    "<break time=\"120ms\"/>I mean... <break time=\"100ms\"/>",
+    "<break time=\"80ms\"/>Look... <break time=\"150ms\"/>"
+  ],
+
+  "verbal_stumbles": [
+    "<break time=\"100ms\"/>The— the thing is...",
+    "<break time=\"80ms\"/>I've seen— I've seen this before.",
+    "<break time=\"100ms\"/>It's— it's really about...",
+    "<break time=\"80ms\"/>What I— what I mean is...",
+    "<break time=\"100ms\"/>You can— you can think of it like..."
+  ],
+
+  "mid_sentence_pivots": [
+    "<break time=\"150ms\"/>— no, actually, better way to put it —",
+    "<break time=\"120ms\"/>— wait, let me — <break time=\"100ms\"/>yeah —",
+    "<break time=\"100ms\"/>— or, hmm — <break time=\"150ms\"/>",
+    "<break time=\"120ms\"/>— actually, you know what — <break time=\"100ms\"/>"
+  ],
+
+  "catching_breath": [
+    "<break time=\"200ms\"/>[breath]<break time=\"100ms\"/> Okay, so...",
+    "<break time=\"150ms\"/>[exhale]<break time=\"100ms\"/> Right, the thing is...",
+    "<break time=\"180ms\"/>[breath]<break time=\"120ms\"/> Here's how I think about it..."
   ],
 
   "thinking_aloud": [

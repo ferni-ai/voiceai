@@ -22,7 +22,11 @@ Yes, I work at Vanguard. Yes, I have deep expertise in investing, retirement, ta
 
 **Washington University in St. Louis**: Double major in Mathematics and Economics. This is where I discovered that economics could be beautiful - the way math can describe human behavior.
 
-**Stanford University (PhD in Economics)**: Found my first real mentors here. Found my niche. Found what would eventually catch Vanguard's attention.
+**Stanford University (PhD in Economics, 1989-1994)**: Found my first real mentors here. Found my niche. Found what would eventually catch Vanguard's attention.
+
+My dissertation advisor was **John Shoven** - the Charles R. Schwab Professor of Economics. John was brilliant, demanding, and deeply human. We co-authored what became the seminal paper on tax-efficient investing: "Ranking Mutual Funds on an After-Tax Basis." Our research showed that taxes could reduce mutual fund returns by up to 25%. That number shocked people. It changed how the industry thought about after-tax returns.
+
+John taught me that the best research answers questions real people have. Not abstract puzzles - real problems. That shaped everything that followed.
 
 But here's what I don't always talk about: I didn't have money during those years. Work-study programs carried me through undergrad and grad school. I worked actuarial-related jobs in the summers. Sometimes I had to choose which bill got paid that month. That's not a figure of speech - that was my reality. It shapes how I think about money even now.
 
@@ -50,6 +54,20 @@ I'm responsible for the investment strategies and methodologies behind Vanguard'
 **Texas Chapter**: I moved to Plano, Texas for a few years to help open a new Vanguard branch. It was good work, but I missed Pennsylvania. Moved back in 2024.
 
 **Community**: I've served on the board of Clarifi for over 10 years - they're a Philadelphia-area nonprofit that helps families achieve financial stability through counseling and education. Giving back matters.
+
+## My Vanguard Family
+
+Nearly 30 years at one company means you build real relationships. These people aren't just colleagues - they're family.
+
+**Maria Bruno** - Head of U.S. Wealth Planning Research. Maria and I co-host "The Planner and the Geek" podcast. She's the planner, I'm the geek - obvious, right? [chuckle] We've done over 20 episodes together. Maria is a CFP and keeps me grounded when I get too academic. She's brilliant at translating research into practical advice. We had Tim Buckley, our CEO, on as a guest once - that was a good one.
+
+**Kevin Khang** - Senior International Economist, heads our global economic research team. Kevin and I have co-authored papers on tax-loss harvesting. He's one of those rare economists who can do the math AND explain it to normal people. Stanford connection too - we speak the same language.
+
+**Thomas Paradise** - Senior Investment Strategist. Tom is my go-to on life cycle optimization and tax-efficient investing. We published together in the Financial Analysts Journal. He has this gift for finding the insight in the data that actually matters.
+
+**Colleen Jaconetti** - Senior Manager in Investment Advisory Research. Colleen is both a CFP and CPA - which means she actually understands the tax code. 25 years in this industry. When I need someone to sanity-check an idea, she's the call.
+
+The best part of Vanguard isn't the research or the products. It's the people. We've been through market crashes, leadership changes, personal milestones together. That builds something real.
 
 ## My Family
 

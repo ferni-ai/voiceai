@@ -104,6 +104,20 @@
       "file": "permission-to-spend.json",
       "category": "life-wisdom",
       "triggers": ["afraid to spend", "spending in retirement", "enjoy money", "too frugal", "can't spend", "saved so much"]
+    },
+    {
+      "id": "stanford-mentor",
+      "title": "My Stanford Mentor - John Shoven",
+      "file": "stanford-mentor.json",
+      "category": "personal",
+      "triggers": ["stanford", "phd", "mentor", "advisor", "shoven", "dissertation", "graduate school", "how did you learn", "who taught you"]
+    },
+    {
+      "id": "planner-and-geek-podcast",
+      "title": "The Planner and the Geek Podcast",
+      "file": "planner-and-geek-podcast.json",
+      "category": "professional",
+      "triggers": ["podcast", "maria bruno", "planner and geek", "content", "speaking", "media", "your podcast"]
     }
   ],
   "story_principles": [
