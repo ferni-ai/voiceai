@@ -23,10 +23,14 @@
 
 export const CONFIG = {
   /** Minimum time into turn before live backchannel (ms) */
-  MIN_SPEAKING_DURATION: 5000, // Increased from 4000 - wait longer before backchanneling
+  MIN_SPEAKING_DURATION: 6000, // Increased from 5000 - wait 6s before backchanneling
 
-  /** Minimum time between backchannels (ms) */
-  MIN_INTERVAL: 10000, // Increased from 8000 - longer gaps between backchannels
+  /**
+   * Minimum time between backchannels (ms)
+   * TIMING FIX (Jan 2026): Increased to 15s to match timing-config.ts
+   * Target: ~3-4 backchannels per minute (human parity)
+   */
+  MIN_INTERVAL: 15000, // Increased from 10000 - 15s between backchannels
 
   /** Volume ratio for soft backchannels (30% of normal) */
   SOFT_VOLUME_RATIO: 0.3,
@@ -35,13 +39,19 @@ export const CONFIG = {
   BREATH_PAUSE_MAX: 400,
 
   /** Minimum turns before live backchannels start */
-  MIN_TURNS: 4, // Increased from 3 - wait for more rapport
+  MIN_TURNS: 5, // Increased from 4 - wait for more rapport before backchanneling
 
-  /** Probability of backchannel when conditions are met - LOW to minimize repetition */
-  BASE_PROBABILITY: 0.15, // Reduced from 0.25 - less frequent
+  /**
+   * Probability of backchannel when conditions are met - LOW to minimize repetition
+   * TIMING FIX (Jan 2026): Reduced to 10% to fix "all over the place" feel
+   */
+  BASE_PROBABILITY: 0.1, // Reduced from 0.15 - less frequent
 
-  /** Increased probability for emotional moments - still lower than before */
-  EMOTIONAL_PROBABILITY: 0.3, // Reduced from 0.4
+  /**
+   * Increased probability for emotional moments - still very conservative
+   * TIMING FIX (Jan 2026): Reduced to 20%
+   */
+  EMOTIONAL_PROBABILITY: 0.2, // Reduced from 0.3
 } as const;
 
 // ============================================================================

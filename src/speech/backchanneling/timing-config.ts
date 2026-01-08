@@ -18,14 +18,17 @@ import type { BackchannelMode, BackchannelTiming, BreathPauseConfig } from './ty
  * HUMANIZATION FIX (Dec 2025): Reduced probabilities and increased cooldowns
  * to prevent robotic over-backchanneling. Real humans backchannel about
  * once per 10-15 seconds, not after every pause.
+ *
+ * TIMING FIX (Jan 2026): Further reductions based on production feedback.
+ * Target: ~3-4 backchannels per minute (human parity) instead of ~6-8.
  */
 export const STANDARD_TIMING: BackchannelTiming = {
-  minSpeechDuration: 6000, // 6 seconds of speaking (increased from 5s)
-  pauseTriggerDuration: 1200, // 1.2 second pause (increased from 1s)
-  cooldownPeriod: 10000, // 10 seconds between backchannels (increased from 5s)
-  maxPerTurn: 1, // Max 1 per turn (reduced from 2)
-  baseProbability: 0.35, // 35% chance when conditions met (reduced from 100%)
-  emotionalProbability: 0.5, // 50% for emotional moments (reduced from 100%)
+  minSpeechDuration: 7000, // 7 seconds of speaking (increased from 6s)
+  pauseTriggerDuration: 1500, // 1.5 second pause (increased from 1.2s)
+  cooldownPeriod: 15000, // 15 seconds between backchannels (increased from 10s)
+  maxPerTurn: 1, // Max 1 per turn
+  baseProbability: 0.15, // 15% chance when conditions met (reduced from 35%)
+  emotionalProbability: 0.25, // 25% for emotional moments (reduced from 50%)
 };
 
 /**
@@ -33,14 +36,18 @@ export const STANDARD_TIMING: BackchannelTiming = {
  *
  * HUMANIZATION FIX (Dec 2025): More conservative settings to feel natural.
  * Even "enhanced" listening shouldn't feel like constant verbal feedback.
+ *
+ * TIMING FIX (Jan 2026): Significantly reduced to fix "all over the place" feel.
+ * Root cause: 45% probability + 1s trigger + 8s cooldown = ~7-8 backchannels/min.
+ * Target: ~3-4 backchannels/min to match human conversation patterns.
  */
 export const ENHANCED_TIMING: BackchannelTiming = {
-  minSpeechDuration: 4500, // 4.5 seconds of speaking (increased from 3s)
-  pauseTriggerDuration: 1000, // 1 second pause (increased from 800ms)
-  cooldownPeriod: 8000, // 8 seconds between backchannels (increased from 4s)
-  maxPerTurn: 2, // Max 2 per turn (reduced from 3)
-  baseProbability: 0.45, // 45% chance when conditions met (reduced from 100%)
-  emotionalProbability: 0.6, // 60% for emotional moments (reduced from 100%)
+  minSpeechDuration: 5500, // 5.5 seconds of speaking (increased from 4.5s)
+  pauseTriggerDuration: 2000, // 2 second pause (increased from 1s) - require longer pauses
+  cooldownPeriod: 15000, // 15 seconds between backchannels (increased from 8s)
+  maxPerTurn: 1, // Max 1 per turn (reduced from 2) - one backchannel per turn max
+  baseProbability: 0.2, // 20% chance when conditions met (reduced from 45%)
+  emotionalProbability: 0.35, // 35% for emotional moments (reduced from 60%)
 };
 
 /**
@@ -49,14 +56,16 @@ export const ENHANCED_TIMING: BackchannelTiming = {
  *
  * HUMANIZATION FIX (Dec 2025): Live mode was already more conservative,
  * but increased cooldown and reduced probability slightly for naturalness.
+ *
+ * TIMING FIX (Jan 2026): Increased cooldown to match other modes.
  */
 export const LIVE_TIMING: BackchannelTiming = {
-  minSpeechDuration: 5000, // 5 seconds into turn (increased from 4s)
-  pauseTriggerDuration: 150, // Breath pauses (slightly increased from 100ms)
-  cooldownPeriod: 12000, // 12 seconds between backchannels (increased from 8s)
-  maxPerTurn: 1, // Max 1 per turn (reduced from 2)
-  baseProbability: 0.2, // 20% chance when conditions met (reduced from 25%)
-  emotionalProbability: 0.35, // 35% for emotional moments (reduced from 40%)
+  minSpeechDuration: 6000, // 6 seconds into turn (increased from 5s)
+  pauseTriggerDuration: 200, // Breath pauses (slightly increased from 150ms)
+  cooldownPeriod: 15000, // 15 seconds between backchannels (increased from 12s)
+  maxPerTurn: 1, // Max 1 per turn
+  baseProbability: 0.15, // 15% chance when conditions met (reduced from 20%)
+  emotionalProbability: 0.25, // 25% for emotional moments (reduced from 35%)
 };
 
 // ============================================================================
