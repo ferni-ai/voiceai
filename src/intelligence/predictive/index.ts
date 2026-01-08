@@ -727,7 +727,10 @@ export async function getPredictiveIntelligenceContext(
     }
 
     // 10. Intervention Timing - Right moment for each type
-    const timingContext = buildInterventionTimingContext(userId, context);
+    const timingContext = buildInterventionTimingContext(userId, {
+      emotionalState: context.currentEmotion,
+      topic: context.currentTopic,
+    });
     if (timingContext) {
       sections.push('');
       sections.push(timingContext);
@@ -775,7 +778,10 @@ export function getSuperhumanPredictiveContext(
       buildPhaseContext(userId),
       buildFingerprintContext(userId),
       buildRippleContext(userId),
-      buildInterventionTimingContext(userId, context),
+      buildInterventionTimingContext(userId, {
+        emotionalState: context.currentEmotion,
+        topic: context.currentTopic,
+      }),
       buildConversationPrepContext(userId),
     ].filter(Boolean);
 

@@ -77,6 +77,7 @@ export interface CallRecord {
   outcome?: 'answered' | 'missed' | 'voicemail' | 'busy' | 'declined';
   notes?: string;
   emotionalContext?: string;
+  topics?: string[];
 }
 
 export interface ContactSuggestion {
@@ -217,7 +218,7 @@ export class TelephonyIntegration {
         upcomingEvents
       );
 
-      const primaryRelationship = relationships.find((r) => r.type === 'relationship');
+      const primaryRelationship = relationships.find((r) => r.type === 'belongs_to' || r.label);
 
       return {
         contact: {
@@ -268,18 +269,8 @@ export class TelephonyIntegration {
         const { recordMention } = await import('../../entity-store/storage.js');
 
         await recordMention(userId, call.entityId, {
-          id: `call-mention-${callId}`,
-          entityId: call.entityId,
-          sessionId: `call-${callId}`,
-          turnNumber: 1,
-          timestamp: call.timestamp,
-          context: {
-            source: 'phone_call',
-            direction: call.direction,
-            duration: call.duration,
-            outcome: call.outcome,
-          },
-          emotion: call.emotionalContext,
+          sentiment: call.emotionalContext === 'positive' ? 1 : call.emotionalContext === 'negative' ? -1 : 0,
+          topics: call.topics || [],
         });
 
         log.info({
@@ -443,18 +434,9 @@ export class TelephonyIntegration {
   private extractPhoneNumbers(entity: Entity): string[] {
     const phones: string[] = [];
 
-    if (entity.facts) {
-      for (const fact of entity.facts) {
-        if (typeof fact === 'object' && fact.key?.toLowerCase().includes('phone')) {
-          phones.push(fact.value);
-        } else if (typeof fact === 'string') {
-          // Try to extract phone number from string
-          const phoneMatch = fact.match(/\b[\d\-\(\)\+\s]{10,}\b/);
-          if (phoneMatch) {
-            phones.push(phoneMatch[0]);
-          }
-        }
-      }
+    // Check contact info
+    if (entity.contact?.phone) {
+      phones.push(entity.contact.phone);
     }
 
     return phones;
@@ -480,9 +462,7 @@ export class TelephonyIntegration {
       for (const thread of threads) {
         if (thread.status === 'open' && thread.openQuestions) {
           for (const question of thread.openQuestions) {
-            if (!question.resolved) {
-              items.push(question.question);
-            }
+            items.push(question);
           }
         }
       }
@@ -530,7 +510,7 @@ export class TelephonyIntegration {
           const daysUntil = Math.ceil(
             (anniversary.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
           );
-          events.push(`${anniversary.label} in ${daysUntil} days`);
+          events.push(`${anniversary.title} in ${daysUntil} days`);
         }
       }
     } catch (error) {

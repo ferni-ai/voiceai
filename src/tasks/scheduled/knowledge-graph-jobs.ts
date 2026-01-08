@@ -108,6 +108,7 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, 
             const insights = result.newCorrelations
               .filter((c) => c.strength >= config.minStrength)
               .map((correlation) => ({
+                type: this.mapCorrelationToInsightType(correlation.type),
                 insightType: this.mapCorrelationToInsightType(correlation.type),
                 title: correlation.description.slice(0, 50),
                 description: correlation.description,
@@ -116,7 +117,7 @@ export class InsightGenerationJob extends ScheduledJob<InsightGenerationConfig, 
                 mentionIds: [],
                 confidence: correlation.confidence,
                 salience: correlation.strength,
-                actionability: 0.5,
+                actionable: true,
                 userId,
               }));
 

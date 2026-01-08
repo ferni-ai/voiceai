@@ -518,17 +518,6 @@ export class EntityEmbeddingsEngine {
       parts.push(`Also known as: ${entity.aliases.join(', ')}.`);
     }
 
-    // Facts from entity
-    if (entity.facts && entity.facts.length > 0) {
-      for (const fact of entity.facts.slice(0, 10)) {
-        if (typeof fact === 'string') {
-          parts.push(fact);
-        } else if (fact.key && fact.value) {
-          parts.push(`${fact.key}: ${fact.value}`);
-        }
-      }
-    }
-
     // Get relationships
     try {
       const { getEntityRelationships } = await import('../../entity-store/storage.js');
@@ -541,10 +530,20 @@ export class EntityEmbeddingsEngine {
       // Relationships are optional
     }
 
-    // Get recent mentions for emotional context
+    // Get recent mentions for emotional context and facts
     try {
       const { getMentionsForEntity } = await import('../../entity-store/storage.js');
-      const mentions = await getMentionsForEntity(userId, entity.id, 5);
+      const mentions = await getMentionsForEntity(userId, entity.id, 10);
+
+      // Extract facts from mentions
+      const allFacts = mentions.flatMap((m) => m.facts || []);
+      for (const fact of allFacts.slice(0, 10)) {
+        if (typeof fact === 'string') {
+          parts.push(fact);
+        } else if (fact.key && fact.value) {
+          parts.push(`${fact.key}: ${fact.value}`);
+        }
+      }
 
       const emotions = new Set<string>();
       for (const mention of mentions) {

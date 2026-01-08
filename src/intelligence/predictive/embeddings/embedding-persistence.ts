@@ -424,7 +424,7 @@ export async function flushEmbeddingState(userId: string): Promise<void> {
     // 1. Semantic Avoidance
     const avoidanceState = semanticAvoidance.getStateForPersistence(userId);
     if (avoidanceState.embeddings.length > 0 || avoidanceState.clusters.length > 0) {
-      savePromises.push(saveSemanticAvoidance(userId, avoidanceState));
+      savePromises.push(saveSemanticAvoidance(userId, avoidanceState as AvoidancePersistenceData));
     }
 
     // 2. Trajectory Patterns
@@ -444,7 +444,7 @@ export async function flushEmbeddingState(userId: string): Promise<void> {
     // 4. Ripple Embedding Space
     const rippleState = rippleEmbeddingSpace.getStateForPersistence(userId);
     if (rippleState && rippleState.domains.length > 0) {
-      savePromises.push(saveRippleSpace(userId, rippleState));
+      savePromises.push(saveRippleSpace(userId, rippleState as unknown as RippleSpacePersistenceData));
     }
 
     // 5. Intervention Matching
@@ -536,17 +536,17 @@ export async function initializeEmbeddingSession(userId: string, sessionId: stri
     }
 
     if (trajectoryData) {
-      trajectoryPatterns.hydrateFromPersistence(userId, trajectoryData);
+      trajectoryPatterns.hydrateFromPersistence(userId, trajectoryData as unknown as Parameters<typeof trajectoryPatterns.hydrateFromPersistence>[1]);
       hydratedCount++;
     }
 
     if (breakthroughData) {
-      breakthroughEmbeddings.hydrateFromPersistence(userId, breakthroughData);
+      breakthroughEmbeddings.hydrateFromPersistence(userId, breakthroughData as unknown as Parameters<typeof breakthroughEmbeddings.hydrateFromPersistence>[1]);
       hydratedCount++;
     }
 
     if (rippleData) {
-      rippleEmbeddingSpace.hydrateFromPersistence(userId, rippleData);
+      rippleEmbeddingSpace.hydrateFromPersistence(userId, rippleData as unknown as Parameters<typeof rippleEmbeddingSpace.hydrateFromPersistence>[1]);
       hydratedCount++;
     } else {
       // Initialize domain space if no persisted data
@@ -554,7 +554,7 @@ export async function initializeEmbeddingSession(userId: string, sessionId: stri
     }
 
     if (interventionData) {
-      interventionMatching.hydrateFromPersistence(userId, interventionData);
+      interventionMatching.hydrateFromPersistence(userId, interventionData as unknown as Parameters<typeof interventionMatching.hydrateFromPersistence>[1]);
       hydratedCount++;
     }
 

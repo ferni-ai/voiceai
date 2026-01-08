@@ -657,20 +657,16 @@ export class CommitmentLinker {
         if (entity.entityId === 'self') continue;
 
         await upsertRelationship(userId, {
-          id: `commitment-rel-${commitment.id}-${entity.entityId}`,
-          fromEntityId: 'self',
-          toEntityId: entity.entityId,
+          fromEntity: 'self',
+          toEntity: entity.entityId,
           type: 'commitment',
           label: `commitment: ${commitment.description.slice(0, 50)}`,
-          firstMentionedAt: commitment.createdAt,
-          lastMentionedAt: commitment.createdAt,
-          mentionCount: 1,
-          confidence: 0.9,
-          sentiment: 'positive',
-          context: {
-            commitmentId: commitment.commitmentId,
-            dueDate: commitment.dueDate?.toISOString(),
-          },
+          strength: 0.9,
+          firstLinked: commitment.createdAt,
+          lastReinforced: commitment.createdAt,
+          reinforcementCount: 1,
+          bidirectional: false,
+          context: `commitment:${commitment.commitmentId}${commitment.dueDate ? `:due:${commitment.dueDate.toISOString()}` : ''}`,
         });
       }
     } catch (error) {

@@ -594,6 +594,7 @@ export async function whatDoWeKnowAbout(
 ): Promise<{
   entity: Entity | null;
   mentions: import('./types.js').Mention[];
+  facts: import('./types.js').ExtractedFact[];
   relationships: import('./types.js').EntityRelationship[];
   relatedEntities: Entity[];
 }> {
@@ -612,6 +613,7 @@ export async function whatDoWeKnowAbout(
     return {
       entity: null,
       mentions: [],
+      facts: [],
       relationships: [],
       relatedEntities: [],
     };
@@ -636,9 +638,13 @@ export async function whatDoWeKnowAbout(
     if (related) relatedEntities.push(related);
   }
 
+  // Extract facts from mentions
+  const facts = mentions.flatMap((m) => m.facts || []);
+
   return {
     entity,
     mentions,
+    facts,
     relationships,
     relatedEntities,
   };

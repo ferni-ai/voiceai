@@ -317,19 +317,15 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
         for (const rel of relationshipResult.relationships) {
           try {
             await upsertRelationship(input.userId, {
-              id: '', // Will be generated
-              userId: input.userId,
-              fromEntityId: rel.fromEntityId,
-              toEntityId: rel.toEntityId,
-              type: rel.type,
+              fromEntity: rel.fromEntityId,
+              toEntity: rel.toEntityId,
+              type: rel.type as import('../../entity-store/types.js').EdgeType,
               label: rel.label,
               strength: rel.confidence,
-              sentiment: rel.sentiment || 0,
               bidirectional: ['family_of', 'friend_of', 'works_with', 'romantic_with', 'knows'].includes(rel.type),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              lastMentionedAt: new Date(),
-              mentionCount: 1,
+              firstLinked: new Date(),
+              lastReinforced: new Date(),
+              reinforcementCount: 1,
             });
           } catch (error) {
             log.warn({ error: String(error) }, 'Failed to store relationship');
@@ -385,8 +381,4 @@ export async function captureBatch(
   return results;
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export type { TurnCaptureInput, CaptureResult };
+// NOTE: TurnCaptureInput and CaptureResult are already exported above with their interface declarations

@@ -410,7 +410,7 @@ describe('Entity Store', () => {
     it('should capture person entity via integration', async () => {
       if (!isEntityStoreReady()) return;
 
-      const entity = await capturePersonEntity(
+      const result = await capturePersonEntity(
         TEST_USER_ID,
         {
           name: 'David',
@@ -418,46 +418,46 @@ describe('Entity Store', () => {
           phone: '555-9999',
         },
         {
-          conversationId: 'test-conv-1',
+          conversationId: 'test-session-1',
           sessionId: 'test-session-1',
           personaId: 'ferni',
           transcript: 'My neighbor David called me today, his number is 555-9999',
         }
       );
 
-      if (entity) {
-        createdEntities.push(entity.id);
+      if (result) {
+        createdEntities.push(result.entity.id);
       }
 
-      expect(entity).not.toBeNull();
-      expect(entity!.canonicalName).toBe('David');
-      expect((entity!.attributes as PersonAttributes).phone).toBe('555-9999');
+      expect(result).not.toBeNull();
+      expect(result!.entity.canonicalName).toBe('David');
+      expect((result!.entity.attributes as PersonAttributes).phone).toBe('555-9999');
     });
 
     it('should capture commitment entity via integration', async () => {
       if (!isEntityStoreReady()) return;
 
-      const entity = await captureCommitmentEntity(
+      const result = await captureCommitmentEntity(
         TEST_USER_ID,
         {
-          statement: 'Call the dentist tomorrow',
+          commitment: 'Call the dentist tomorrow',
           type: 'intention',
-          targetDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
         {
-          conversationId: 'test-conv-2',
           sessionId: 'test-session-2',
           personaId: 'maya',
+          transcript: 'I need to call the dentist tomorrow',
         }
       );
 
-      if (entity) {
-        createdEntities.push(entity.id);
+      if (result) {
+        createdEntities.push(result.entity.id);
       }
 
-      expect(entity).not.toBeNull();
-      expect(entity!.type).toBe('commitment');
-      expect((entity!.attributes as CommitmentAttributes).status).toBe('active');
+      expect(result).not.toBeNull();
+      expect(result!.entity.type).toBe('commitment');
+      expect((result!.entity.attributes as CommitmentAttributes).status).toBe('active');
     });
 
     it('should retrieve memories via unified retrieval', async () => {

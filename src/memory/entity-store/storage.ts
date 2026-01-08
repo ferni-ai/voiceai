@@ -560,3 +560,8 @@ export async function getEntityStoreStats(userId: string): Promise<{
     entityTypes: entityTypes as Record<EntityType, number>,
   };
 }
+
+/**
+ * Alias for getRelationshipsForEntity - backward compatibility
+ */
+export const getEntityRelationships = getRelationshipsForEntity;

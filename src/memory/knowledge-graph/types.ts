@@ -606,7 +606,9 @@ export interface Insight {
   title: string;
   description: string;
   confidence: number;
+  salience?: number;
   entityIds: string[];
+  mentionIds?: string[];
   evidence: string[];
   actionable: boolean;
   suggestedAction?: string;

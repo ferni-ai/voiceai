@@ -68,3 +68,38 @@ declare module '@google-cloud/monitoring' {
     MetricServiceClient: typeof MetricServiceClient;
   };
 }
+
+// Xenova Transformers - ML inference (optional, for cross-encoder reranking)
+declare module '@xenova/transformers' {
+  export type PipelineType =
+    | 'text-classification'
+    | 'token-classification'
+    | 'question-answering'
+    | 'fill-mask'
+    | 'summarization'
+    | 'translation'
+    | 'text-generation'
+    | 'feature-extraction'
+    | 'zero-shot-classification';
+
+  export interface PipelineResult {
+    label: string;
+    score: number;
+  }
+
+  export type Pipeline = (
+    inputs: string | string[] | { text: string; text_pair: string }[]
+  ) => Promise<PipelineResult[] | PipelineResult[][]>;
+
+  export function pipeline(
+    task: PipelineType,
+    model?: string,
+    options?: {
+      quantized?: boolean;
+      revision?: string;
+      cache_dir?: string;
+    }
+  ): Promise<Pipeline>;
+
+  export function env(key: string, value?: unknown): unknown;
+}

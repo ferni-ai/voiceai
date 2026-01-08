@@ -264,7 +264,7 @@ export async function getInsightsReadyToSurface(
       }
 
       // Not already given negative feedback
-      if (insight.userFeedback === 'not_helpful' || insight.userFeedback === 'wrong') {
+      if (insight.userReaction === 'unhelpful') {
         return false;
       }
 
@@ -274,7 +274,7 @@ export async function getInsightsReadyToSurface(
       }
 
       // Meets salience threshold
-      if (options?.minSalience !== undefined && insight.salience < options.minSalience) {
+      if (options?.minSalience !== undefined && (insight.salience ?? 0) < options.minSalience) {
         return false;
       }
 
@@ -424,7 +424,10 @@ export async function getInsightStats(userId: string): Promise<{
 
   for (const insight of insights) {
     // Count by type
-    byType[insight.insightType] = (byType[insight.insightType] || 0) + 1;
+    const insightType = insight.type || insight.insightType;
+    if (insightType) {
+      byType[insightType] = (byType[insightType] || 0) + 1;
+    }
 
     // Count surfaced
     if (insight.surfacedCount > 0) {
@@ -432,12 +435,12 @@ export async function getInsightStats(userId: string): Promise<{
     }
 
     // Count with feedback
-    if (insight.userFeedback) {
+    if (insight.userFeedback && insight.userFeedback.length > 0) {
       withFeedback++;
     }
 
     // Sum salience
-    totalSalience += insight.salience;
+    totalSalience += insight.salience ?? 0;
   }
 
   return {

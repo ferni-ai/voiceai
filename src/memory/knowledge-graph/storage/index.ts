@@ -38,3 +38,14 @@ export {
   findOrCreateThread,
   markDormantThreads,
 } from './thread-store.js';
+
+/**
+ * Stub for getActiveCorrelations - returns empty array
+ * TODO: Implement when correlation tracking is fully built out
+ */
+export async function getActiveCorrelations(
+  _userId: string,
+  _options?: { minConfidence?: number; limit?: number }
+): Promise<Array<{ id: string; type: string; description: string; confidence: number }>> {
+  return [];
+}

@@ -227,7 +227,7 @@ const userProfiles = new Map<string, UserBreakthroughProfile>();
  */
 export function recordIndicator(
   userId: string,
-  indicator: Omit<BreakthroughIndicator, 'timestamp'>,
+  indicator: Omit<BreakthroughIndicator, 'timestamp' | 'topic'>,
   topic: string
 ): void {
   const profile = getOrCreateProfile(userId);
@@ -251,6 +251,7 @@ export function recordIndicator(
   // Add indicator
   track.indicators.push({
     ...indicator,
+    topic,
     timestamp: now,
   });
 

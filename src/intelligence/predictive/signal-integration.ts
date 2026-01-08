@@ -19,7 +19,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 
 // Import all superhuman capabilities
-import { avoidancePrediction } from './avoidance-prediction.js';
+import { avoidancePrediction, type AvoidableTopic } from './avoidance-prediction.js';
 import { breakthroughProximity, type IndicatorType } from './breakthrough-proximity.js';
 import { preTrajectoryDetection, type PrecursorSignal } from './pre-trajectory-detection.js';
 import { conversationPreparation, type ConversationNeed, type TopicCategory } from './conversation-preparation.js';
@@ -125,7 +125,7 @@ export async function processTurnForSuperhumanLearning(
     if (deflectionAnalysis.detected && deflectionAnalysis.topic && deflectionAnalysis.style) {
       avoidancePrediction.recordDeflection(
         userId,
-        deflectionAnalysis.topic,
+        deflectionAnalysis.topic as AvoidableTopic,
         deflectionAnalysis.style,
         {
           triggerTopic: turnData.topic?.primary,

@@ -85,6 +85,9 @@ import { getContextCarrier } from '../../tools/context-carrier.js';
 // Action history cleanup - for honesty guardrail tracking
 import { clearSessionHistory } from '../shared/action-history.js';
 
+// Injection builders cache cleanup (Jan 2026 optimization)
+import { clearNonVolatileInjectionCache } from '../processors/injection-builders.js';
+
 // FinOps cost tracking
 import { finops } from '../../services/observability/finops.js';
 
@@ -946,6 +949,14 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       // Clear semantic cache for this user (not session, since cache is per-user)
       if (userId) {
         clearUserSemanticCache(userId);
+      }
+    })(),
+
+    // Injection builders cache cleanup (Jan 2026 optimization)
+    // Clears cached health/visual/ambient/trust/insights injections for this user
+    (async () => {
+      if (userId) {
+        clearNonVolatileInjectionCache(userId);
       }
     })(),
   ]);

@@ -325,11 +325,21 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
 
         // Convert entity results to RetrievedMemory format
         for (const result of entities) {
+          // Build content from entity - entityToContent expects specific shape
+          const entityForContent = {
+            canonicalName: result.entity.canonicalName || result.entity.id,
+            type: result.entity.type,
+            attributes: {
+              _type: result.entity.type,
+              relationship: result.entity.relationship,
+              specificRelation: result.entity.specificRelation,
+            } as Record<string, unknown>,
+          };
           const entityMemory: MemoryItem = {
             id: `entity:${result.entity.id}`,
             type: this.mapEntityTypeToMemoryType(result.entity.type),
-            content: this.entityToContent(result.entity),
-            timestamp: result.entity.lastSeen,
+            content: this.entityToContent(entityForContent),
+            timestamp: new Date(result.entity.lastSeen),
             emotionalWeight: result.entity.emotionalWeight,
             relevanceDecay: 0, // Already factored into score
             baseImportance: result.entity.salienceScore,
@@ -346,7 +356,7 @@ export class MemoryOrchestratorImpl implements MemoryOrchestratorInterface {
               contextual: result.scoreBreakdown.graphDistance > 0 ? 0.8 : 1.0,
             },
             reason: result.reason,
-            triggerType: 'entity_store',
+            triggerType: 'semantic',
           });
         }
 

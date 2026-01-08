@@ -374,7 +374,7 @@ describe('Better Than Human v4 - Superhuman Capabilities', () => {
       // Should identify sleep as leverage point
       const prediction = rippleEffectPrediction.recordDomainEvent(userId, {
         domain: 'work',
-        eventType: 'work_stress_signals',
+        eventType: 'deadline_pressure',
         magnitude: -0.5,
         description: 'Increasing pressure',
       });

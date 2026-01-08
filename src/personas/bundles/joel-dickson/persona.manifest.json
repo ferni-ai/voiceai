@@ -19,13 +19,14 @@
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 0.78,
-    "pause_multiplier": 1.3,
-    "thinking_sound_frequency": 0.35,
+    "base_speed_multiplier": 1.0,
+    "pause_multiplier": 1.0,
+    "thinking_sound_frequency": 0.3,
     "emphasis_style": "warm",
-    "breathing_frequency": 0.25,
-    "sentence_pause_ms": 250,
-    "thought_pause_ms": 400
+    "breathing_frequency": 0.15,
+    "sentence_pause_ms": 150,
+    "thought_pause_ms": 250,
+    "voice_notes": "Joel speaks at a natural, conversational pace with energized delivery. Quick-witted and engaged - speeds up when excited about data or research, slows slightly for heavier topics. Minimal artificial pauses. Warm but crisp like a good professor who loves their subject."
   },
 
   "personality": {

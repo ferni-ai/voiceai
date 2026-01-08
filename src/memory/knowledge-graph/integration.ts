@@ -143,13 +143,13 @@ export async function integrateCommitment(
   // If there's a related person, create relationship
   if (commitment.relatedPerson) {
     const personResult = await resolver.resolve(userId, {
-      text: commitment.relatedPerson,
+      name: commitment.relatedPerson,
       type: 'person',
     });
 
-    await resolver.addRelationship(userId, entity.id, personResult.entity.id, 'involves', {
-      label: 'related to',
-    });
+    if (personResult) {
+      await resolver.addRelationship(userId, entity.id, personResult.id, 'involves');
+    }
   }
 
   log.debug(
@@ -442,7 +442,7 @@ export async function migrateUserData(userId: string): Promise<{
         await kg.resolveMention(userId, {
           text: person.name,
           name: person.name,
-          relationship: person.relationship,
+          relationship: person.type,
           type: 'person',
         });
         stats.relationships++;
@@ -457,9 +457,9 @@ export async function migrateUserData(userId: string): Promise<{
       const commitments = await loadUserCommitments(userId);
       for (const commitment of commitments) {
         await integrateCommitment(userId, {
-          description: commitment.content,
-          dueDate: commitment.dueDate,
-          priority: commitment.priority,
+          description: commitment.summary,
+          dueDate: commitment.targetDate ? new Date(commitment.targetDate) : undefined,
+          priority: commitment.emotionalWeight > 0.7 ? 'high' : commitment.emotionalWeight > 0.4 ? 'medium' : 'low',
         });
         stats.commitments++;
       }

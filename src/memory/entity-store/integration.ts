@@ -419,6 +419,9 @@ interface EntityRetrievalResult {
     lastSeen: string;
     emotionalWeight: number;
     salienceScore: number;
+    canonicalName?: string;
+    relationship?: string;
+    specificRelation?: string;
     [key: string]: unknown;
   };
   score: number;
@@ -463,7 +466,11 @@ export async function retrieveMemoriesUnified(
       entity: {
         id: entity.id,
         type: entity.type,
-        lastSeen: entity.lastMentionedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        lastSeen: entity.lastMentionedAt
+          ? (typeof (entity.lastMentionedAt as unknown as { toDate?: () => Date }).toDate === 'function'
+            ? (entity.lastMentionedAt as unknown as { toDate: () => Date }).toDate().toISOString()
+            : (entity.lastMentionedAt as Date).toISOString())
+          : new Date().toISOString(),
         emotionalWeight: entity.emotionalWeight || 0.5,
         salienceScore: entity.salience || 0.5,
         canonicalName: entity.canonicalName,
@@ -579,7 +586,7 @@ export async function captureCommitmentEntity(
   userId: string,
   data: {
     commitment: string;
-    type?: 'promise' | 'intention' | 'goal' | 'deadline';
+    type?: 'promise' | 'intention' | 'goal' | 'decision';
     dueDate?: Date;
     relatedEntityIds?: string[];
   },
@@ -598,14 +605,14 @@ export async function captureCommitmentEntity(
   const store = getEntityStore();
 
   // Create the commitment entity
-  const entity = await store.createEntity(userId, {
-    type: 'commitment',
-    canonicalName: data.commitment,
-    attributes: {
-      commitmentType: data.type || 'intention',
-      dueDate: data.dueDate,
-      status: 'active',
-    } as unknown as Record<string, unknown>,
+  const entity = await store.createEntity(userId, 'commitment', data.commitment, {
+    _type: 'commitment',
+    commitmentType: data.type || 'intention',
+    targetDate: data.dueDate,
+    status: 'active',
+    relatedPeople: data.relatedEntityIds || [],
+    accountability: 'self',
+    originalStatement: data.commitment,
   });
 
   log.info({ userId, entityId: entity.id, commitment: data.commitment }, '✨ Captured commitment entity');

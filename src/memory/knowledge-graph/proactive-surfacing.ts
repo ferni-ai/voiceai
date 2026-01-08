@@ -407,7 +407,7 @@ export class ProactiveSurfacingEngine {
     const results = await this.queryEngine.search({
       userId: context.userId,
       types: ['person', 'memory'],
-      minSalience: 0.5,
+      minImportance: 0.5,
       limit: 10,
       includeRecentMentions: 5,
     });
@@ -418,7 +418,7 @@ export class ProactiveSurfacingEngine {
       // Check if this entity is associated with positive emotions
       if (result.recentMentions) {
         const positiveCount = result.recentMentions.filter(
-          (m) => m.emotionalContext.valence > 0.3
+          (m) => m.sentiment > 0.3
         ).length;
         const ratio = positiveCount / result.recentMentions.length;
 

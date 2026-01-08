@@ -18,7 +18,8 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import type { Entity, Mention, Relationship, Insight, Thread } from '../types.js';
+import type { Entity, Mention, Insight, Thread } from '../types.js';
+import type { EntityRelationship } from '../../entity-store/types.js';
 
 const log = createLogger({ module: 'DeepConsolidation' });
 
@@ -427,7 +428,7 @@ export class DeepConsolidation {
     userId: string,
     entities: Entity[],
     mentions: Mention[],
-    relationships: Relationship[]
+    relationships: EntityRelationship[]
   ): DeepPattern[] {
     const patterns: DeepPattern[] = [];
 
@@ -462,7 +463,7 @@ export class DeepConsolidation {
 
     // Check for hidden connections (appear together but no explicit relationship)
     const explicitRelationships = new Set(
-      relationships.map((r) => [r.fromEntityId, r.toEntityId].sort().join('|'))
+      relationships.map((r) => [r.fromEntity, r.toEntity].sort().join('|'))
     );
 
     for (const [pair, countMap] of coAppearance) {
@@ -577,6 +578,7 @@ export class DeepConsolidation {
 
     for (const thread of threads) {
       for (const session of thread.sessions) {
+        if (!session.date) continue;
         const sessionKey = new Date(session.date).toISOString().split('T')[0];
         if (!sessionThreads.has(sessionKey)) sessionThreads.set(sessionKey, new Set());
         sessionThreads.get(sessionKey)!.add(thread.topic);
@@ -836,7 +838,7 @@ export class DeepConsolidation {
     entities: Entity[];
     mentions: Mention[];
     threads: Thread[];
-    relationships: Relationship[];
+    relationships: EntityRelationship[];
   }> {
     const { getAllEntities, getMentionsForEntity } = await import('../../entity-store/storage.js');
     const { getActiveThreads } = await import('../storage/index.js');
@@ -859,7 +861,7 @@ export class DeepConsolidation {
 
     // Get relationships
     const { getEntityRelationships } = await import('../../entity-store/storage.js');
-    const allRelationships: Relationship[] = [];
+    const allRelationships: EntityRelationship[] = [];
     for (const entity of entities.slice(0, 50)) {
       const rels = await getEntityRelationships(userId, entity.id);
       allRelationships.push(...rels);
@@ -943,7 +945,7 @@ export class DeepConsolidation {
     // Calculate trend (simple linear regression slope)
     const n = values.length;
     const xMean = (n - 1) / 2;
-    const yMean = values.reduce((a, b) => a + b, 0) / n;
+    const yMean = (values as number[]).reduce((a, b) => a + b, 0) / n;
 
     let numerator = 0;
     let denominator = 0;
@@ -956,7 +958,7 @@ export class DeepConsolidation {
     const trend = denominator !== 0 ? numerator / denominator : 0;
 
     // Calculate volatility (standard deviation)
-    const variance = values.reduce((sum, v) => sum + (v - yMean) ** 2, 0) / n;
+    const variance = (values as number[]).reduce((sum, v) => sum + (v - yMean) ** 2, 0) / n;
     const volatility = Math.sqrt(variance);
 
     return { trend, volatility };

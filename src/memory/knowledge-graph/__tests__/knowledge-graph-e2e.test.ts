@@ -26,8 +26,9 @@ vi.mock('@google-cloud/firestore', () => {
       mockDocs.set(path, data);
     }),
     update: vi.fn().mockImplementation(async (data: unknown) => {
-      const existing = mockDocs.get(path) || {};
-      mockDocs.set(path, { ...existing, ...data });
+      const existing = mockDocs.get(path);
+      const existingObj = typeof existing === 'object' && existing !== null ? existing : {};
+      mockDocs.set(path, { ...(existingObj as object), ...(data as object) });
     }),
     delete: vi.fn().mockImplementation(async () => {
       mockDocs.delete(path);
@@ -313,6 +314,7 @@ describe('Knowledge Graph E2E Tests', () => {
     it('should create an insight', async () => {
       const insight = await createInsight(TEST_USER_ID, {
         userId: TEST_USER_ID,
+        type: 'behavioral_pattern',
         insightType: 'behavioral_pattern',
         title: 'Test Pattern',
         description: 'You tend to feel stressed on Mondays',
@@ -321,7 +323,7 @@ describe('Knowledge Graph E2E Tests', () => {
         mentionIds: [],
         confidence: 0.8,
         salience: 0.7,
-        actionability: 0.5,
+        actionable: true,
       });
 
       // In mocked environment, may be null
@@ -335,6 +337,7 @@ describe('Knowledge Graph E2E Tests', () => {
       // Create insight first
       const insight = await createInsight(TEST_USER_ID, {
         userId: TEST_USER_ID,
+        type: 'temporal_pattern',
         insightType: 'temporal_pattern',
         title: 'Weekend Pattern',
         description: 'You discuss family more on weekends',
@@ -343,7 +346,7 @@ describe('Knowledge Graph E2E Tests', () => {
         mentionIds: [],
         confidence: 0.75,
         salience: 0.6,
-        actionability: 0.4,
+        actionable: true,
       });
 
       if (insight) {
@@ -370,6 +373,7 @@ describe('Knowledge Graph E2E Tests', () => {
         entityIds: ['entity_123'],
         initialSession: {
           sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
           date: new Date(),
           summary: 'Discussed upcoming surgery',
           emotionalArc: 'worried → hopeful',
@@ -390,6 +394,7 @@ describe('Knowledge Graph E2E Tests', () => {
         topic: 'Career decision',
         initialSession: {
           sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
           date: new Date(),
           summary: 'Discussed job options',
           emotionalArc: 'uncertain',
@@ -416,6 +421,7 @@ describe('Knowledge Graph E2E Tests', () => {
         'Health goals',
         {
           sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
           date: new Date(),
           summary: 'Discussed exercise routine',
           emotionalArc: 'motivated',
@@ -568,6 +574,7 @@ describe('Knowledge Graph E2E Tests', () => {
       // Step 3: Create insight about pattern
       const insight = await createInsight(TEST_USER_ID, {
         userId: TEST_USER_ID,
+        type: 'temporal_pattern',
         insightType: 'temporal_pattern',
         title: 'Family health concerns',
         description: 'You often discuss health topics when talking about mom',
@@ -576,7 +583,7 @@ describe('Knowledge Graph E2E Tests', () => {
         mentionIds: [],
         confidence: 0.7,
         salience: 0.6,
-        actionability: 0.3,
+        actionable: true,
       });
 
       if (insight) {
@@ -589,6 +596,7 @@ describe('Knowledge Graph E2E Tests', () => {
         "Mom's health",
         {
           sessionId: TEST_SESSION_ID,
+          timestamp: new Date(),
           date: new Date(),
           summary: 'Discussed doctor appointment',
           emotionalArc: 'concerned',

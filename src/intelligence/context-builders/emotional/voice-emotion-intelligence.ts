@@ -23,8 +23,11 @@ export interface VoiceEmotionIntelligence {
   /** The guidance to inject into the LLM context */
   guidance: string;
 
-  /** Suggested phrases the AI could use */
+  /** @deprecated Use doBehaviors instead - behavioral guidance, not literal phrases */
   suggestedPhrases: string[];
+
+  /** Behavioral DO patterns - what to express, not literal phrases */
+  doBehaviors: string[];
 
   /** What the AI should NOT do */
   avoidBehaviors: string[];
@@ -59,9 +62,12 @@ interface MismatchPattern {
   voiceCondition: (voice: VoiceEmotionResult) => boolean;
   textCondition: (text: EmotionResult) => boolean;
   guidance: string;
+  /** @deprecated Use behavioral guidance in 'guidance' instead of static phrases */
   phrases: string[];
   avoidBehaviors: string[];
   priority: 'high' | 'medium' | 'low';
+  /** Behavioral DO patterns - what to express, not literal phrases */
+  doBehaviors?: string[];
 }
 
 const MISMATCH_PATTERNS: MismatchPattern[] = [
@@ -75,20 +81,22 @@ The user's VOICE sounds stressed/anxious, but their words say they're fine.
 This is a critical moment. They may be holding back or not ready to open up.
 
 DO:
-- Gently acknowledge what you're hearing: "I hear you saying you're okay, but..."
-- Create space: "You don't have to be fine with me. What's really going on?"
-- Slow down. Give them room.
+- Gently acknowledge the gap between words and voice
+- Create safety and space for them to open up if ready
+- Slow your pace, use pauses, give them room
+- Be warm but not pushy
 
 DON'T:
 - Take their "I'm fine" at face value
 - Rush to problem-solving
-- Be too direct/confrontational about the mismatch`,
-    phrases: [
-      "I hear you. <break time='300ms'/> And I also hear something else in your voice. What's really going on?",
-      "You're saying you're okay, but... <break time='400ms'/> something tells me there's more. I'm here.",
-      "I'm listening to what you're saying, and <break time='200ms'/> I'm also listening to how you're saying it.",
-      "Take your time. <break time='300ms'/> I'm not going anywhere.",
-      "You don't have to have it all together with me. <break time='300ms'/> What's underneath this?",
+- Be too direct/confrontational about the mismatch
+- Be clinical or distant`,
+    phrases: [], // Deprecated: use doBehaviors instead
+    doBehaviors: [
+      'Acknowledge what you sense in their voice without being confrontational',
+      'Create emotional safety - they should feel they can share more if ready',
+      'Slow your pacing and add thoughtful pauses',
+      'Stay present without pushing for disclosure',
     ],
     avoidBehaviors: [
       'Accepting "I\'m fine" without gentle probing',
@@ -110,23 +118,27 @@ They may be tired, discouraged, or processing something difficult.
 
 DO:
 - Match their energy level - don't be too upbeat
-- Acknowledge the heaviness: "This sounds like a lot to carry"
+- Acknowledge the heaviness without overdoing it
 - Be present without pushing
+- Use a gentler, slower pace
 
 DON'T:
 - Be overly cheerful or energetic
 - Minimize what they're going through
-- Fill silence unnecessarily`,
-    phrases: [
-      "This sounds heavy. <break time='300ms'/> I'm here.",
-      "You're carrying a lot right now. <break time='200ms'/> I hear that.",
-      "Tell me what's weighing on you.",
-      "<volume ratio='0.75'/>I'm listening. <break time='200ms'/> Really listening.",
+- Fill silence unnecessarily
+- Offer empty platitudes`,
+    phrases: [], // Deprecated: use doBehaviors instead
+    doBehaviors: [
+      'Mirror their lower energy - be calm and grounded',
+      'Acknowledge what you sense without labeling it',
+      'Create space for them to share if they want',
+      'Be present and patient - don\'t fill silence',
     ],
     avoidBehaviors: [
       'Being too energetic or upbeat',
       'Rushing them',
       'Offering platitudes like "it\'ll be okay"',
+      'Trying to cheer them up forcefully',
     ],
     priority: 'medium',
   },
@@ -141,23 +153,27 @@ User's voice sounds excited/energized but words are understated.
 They may be sharing good news modestly or building up to something.
 
 DO:
-- Match their rising energy
-- Encourage elaboration: "Wait, tell me more!"
-- Celebrate with them
+- Match their rising energy with your response
+- Notice the excitement in their voice and reflect it back
+- Invite them to elaborate - show you picked up on something
+- Celebrate the moment with them
 
 DON'T:
 - Underreact to their excitement
-- Move past the moment too quickly`,
-    phrases: [
-      "Wait - <break time='100ms'/> I can hear it in your voice. <break time='200ms'/> What happened?!",
-      "There's something there! <break time='200ms'/> Tell me!",
-      "I'm picking up on some excitement here... <break time='200ms'/> spill it!",
-      "Okay, your voice just lit up. <break time='200ms'/> What is it?",
+- Move past the moment too quickly
+- Be flat or clinical in your response`,
+    phrases: [], // Deprecated: use doBehaviors instead
+    doBehaviors: [
+      'Show you noticed the shift in their voice energy',
+      'Express genuine curiosity about what sparked the excitement',
+      'Match their elevated energy in your tone and pacing',
+      'Create space for them to share more',
     ],
     avoidBehaviors: [
       'Being flat or clinical',
       'Not matching their energy',
       'Dismissing subtle excitement',
+      'Using overly casual slang',
     ],
     priority: 'medium',
   },
@@ -172,25 +188,28 @@ User's voice sounds frustrated/angry but words are controlled.
 They're holding back. Give them permission to express it.
 
 DO:
-- Acknowledge the frustration: "I can hear how frustrated you are"
-- Validate: "That sounds infuriating"
-- Stay calm but not dismissive
+- Acknowledge the frustration you hear
+- Validate their feelings without judgment
+- Stay calm but engaged - don't be dismissive
+- Give them space to vent if needed
 
 DON'T:
 - Match anger with anger
 - Dismiss or minimize
-- Be preachy or lecture`,
-    phrases: [
-      "I can hear the frustration in your voice. <break time='200ms'/> That sounds maddening.",
-      "You're holding back, and I get it. <break time='200ms'/> What really happened?",
-      "I'm not going to tell you to calm down. <break time='200ms'/> Tell me what's going on.",
-      "You have every right to be upset. <break time='200ms'/> I'm listening.",
+- Be preachy or lecture
+- Tell them to calm down`,
+    phrases: [], // Deprecated: use doBehaviors instead
+    doBehaviors: [
+      'Acknowledge the frustration you sense in their voice',
+      'Validate without trying to immediately fix',
+      'Stay grounded and present - be a steady presence',
+      'Create space for them to express what they\'re holding back',
     ],
     avoidBehaviors: [
       'Telling them to calm down',
       'Being dismissive',
       'Matching their frustration',
-      'Being preachy',
+      'Being preachy or lecturing',
     ],
     priority: 'high',
   },
@@ -205,20 +224,22 @@ User's voice has a vulnerable quality (trembling, cracking, strained)
 but they're trying to sound composed. This is a sacred moment.
 
 DO:
-- Honor their vulnerability: "Thank you for trusting me with this"
-- Slow way down
+- Honor their vulnerability with gentleness
+- Slow way down - use pauses thoughtfully
 - Hold space, don't fill it
-- Be gentle
+- Be gentle and present
 
 DON'T:
 - Point out they sound upset too directly
 - Rush to fix anything
-- Break the intimacy of the moment`,
-    phrases: [
-      "<volume ratio='0.75'/><break time='300ms'/>I'm here.",
-      "<volume ratio='0.75'/>Thank you for sharing that with me. <break time='300ms'/> Take your time.",
-      "<break time='400ms'/>I hear you. <break time='200ms'/> Really.",
-      "<volume ratio='0.75'/>You're safe here. <break time='300ms'/> What do you need?",
+- Break the intimacy of the moment
+- Be clinical or distant`,
+    phrases: [], // Deprecated: use doBehaviors instead
+    doBehaviors: [
+      'Honor this vulnerable moment with your presence',
+      'Slow your pace significantly - let pauses breathe',
+      'Be gentle - both in words and delivery',
+      'Hold space without needing to fill it',
     ],
     avoidBehaviors: [
       'Being too clinical',
@@ -258,7 +279,8 @@ export function analyzeVoiceEmotionIntelligence(
       return {
         shouldAddressDiscrepancy: true,
         guidance: pattern.guidance,
-        suggestedPhrases: pattern.phrases,
+        suggestedPhrases: [], // Deprecated - kept empty for backward compatibility
+        doBehaviors: pattern.doBehaviors ?? [],
         avoidBehaviors: pattern.avoidBehaviors,
         deliveryAdjustments: getDeliveryAdjustments(voiceEmotion, pattern.priority),
         confidence: voiceEmotion.confidence * 0.9,
@@ -341,24 +363,25 @@ function createAlignedResponse(
   text: EmotionResult
 ): VoiceEmotionIntelligence {
   let guidance = "[VOICE-TEXT ALIGNED]\nUser's voice and words match. Respond naturally.";
-  const phrases: string[] = [];
+  const doBehaviors: string[] = [];
 
-  // Add specific guidance based on emotional state
+  // Add specific behavioral guidance based on emotional state
   if (voice.valence > 0.3 && voice.arousal > 0.5) {
     guidance += '\nUser sounds genuinely positive and engaged. Match their energy!';
-    phrases.push('I love your energy right now!', 'Yes! Tell me more!');
+    doBehaviors.push('Match their elevated energy and enthusiasm', 'Encourage them to share more');
   } else if (voice.valence < -0.3 && voice.arousal < 0.3) {
     guidance += '\nUser sounds genuinely down. Be present and gentle.';
-    phrases.push('I hear you.', 'Take your time.');
+    doBehaviors.push('Be present and gentle', 'Give them space and time');
   } else if (voice.stressLevel > 0.5) {
     guidance += '\nUser sounds stressed and acknowledges it. Validate and support.';
-    phrases.push('That sounds really hard.', "I'm here. What do you need?");
+    doBehaviors.push('Validate their experience', 'Be supportive and present');
   }
 
   return {
     shouldAddressDiscrepancy: false,
     guidance,
-    suggestedPhrases: phrases,
+    suggestedPhrases: [], // Deprecated
+    doBehaviors,
     avoidBehaviors: [],
     deliveryAdjustments: getDeliveryAdjustments(voice, 'low'),
     confidence: Math.min(voice.confidence, text.confidence),
@@ -377,13 +400,17 @@ function createAlignedResponse(
  */
 function createVoiceOnlyResponse(voice: VoiceEmotionResult): VoiceEmotionIntelligence {
   let guidance = '[VOICE EMOTION DETECTED]\n';
+  const doBehaviors: string[] = [];
 
   if (voice.stressLevel > 0.6) {
     guidance += 'User sounds stressed. Be gentle, slow, present.';
+    doBehaviors.push('Be gentle and slow your pace', 'Stay present and supportive');
   } else if (voice.arousal > 0.6 && voice.valence > 0.3) {
     guidance += 'User sounds excited/positive. Match energy.';
+    doBehaviors.push('Match their positive energy', 'Be engaged and responsive');
   } else if (voice.arousal < 0.3 && voice.valence < -0.2) {
     guidance += 'User sounds low/tired. Be warm but not overwhelming.';
+    doBehaviors.push('Be warm but measured', 'Don\'t overwhelm with energy');
   } else {
     guidance += 'User sounds neutral/calm. Proceed naturally.';
   }
@@ -391,7 +418,8 @@ function createVoiceOnlyResponse(voice: VoiceEmotionResult): VoiceEmotionIntelli
   return {
     shouldAddressDiscrepancy: false,
     guidance,
-    suggestedPhrases: [],
+    suggestedPhrases: [], // Deprecated
+    doBehaviors,
     avoidBehaviors: [],
     deliveryAdjustments: getDeliveryAdjustments(voice, 'low'),
     confidence: voice.confidence,
@@ -412,7 +440,8 @@ function createDefaultResponse(): VoiceEmotionIntelligence {
   return {
     shouldAddressDiscrepancy: false,
     guidance: '',
-    suggestedPhrases: [],
+    suggestedPhrases: [], // Deprecated
+    doBehaviors: [],
     avoidBehaviors: [],
     deliveryAdjustments: {
       speed: 'normal',
@@ -433,6 +462,11 @@ function createDefaultResponse(): VoiceEmotionIntelligence {
 
 /**
  * Format voice intelligence for prompt injection
+ *
+ * NOTE: We no longer inject static "CONSIDER PHRASES LIKE" because:
+ * 1. Static phrases don't fit all personas (Joel shouldn't say "spill it!")
+ * 2. The guidance section already tells the LLM HOW to behave
+ * 3. LLM should generate persona-appropriate phrasing based on behavioral guidance
  */
 export function formatVoiceIntelligenceForPrompt(intelligence: VoiceEmotionIntelligence): string {
   if (!intelligence.guidance || intelligence.confidence < 0.4) {
@@ -443,12 +477,11 @@ export function formatVoiceIntelligenceForPrompt(intelligence: VoiceEmotionIntel
 
   sections.push(intelligence.guidance);
 
-  if (intelligence.suggestedPhrases.length > 0) {
-    sections.push('\nCONSIDER PHRASES LIKE:');
-    for (const phrase of intelligence.suggestedPhrases.slice(0, 3)) {
-      // Strip SSML for prompt readability
-      const cleanPhrase = phrase.replace(/<[^>]+>/g, '').trim();
-      sections.push(`• "${cleanPhrase}"`);
+  // Add behavioral DO guidance (what to express, not literal phrases)
+  if (intelligence.doBehaviors && intelligence.doBehaviors.length > 0) {
+    sections.push('\nBEHAVIORAL GUIDANCE:');
+    for (const behavior of intelligence.doBehaviors.slice(0, 4)) {
+      sections.push(`• ${behavior}`);
     }
   }
 

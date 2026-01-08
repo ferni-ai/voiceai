@@ -298,6 +298,7 @@ describe('Embedding-Powered Predictive Intelligence', () => {
       const userId = `${TEST_USER}-cognitive`;
       
       const fingerprint = await cognitiveSimilarity.registerFingerprintForCommunity(userId, {
+        userId,
         decisionStyle: { primary: 'analytical', confidence: 0.8, observations: 10 },
         stressResponse: {
           primary: 'analyze',
@@ -311,12 +312,20 @@ describe('Embedding-Powered Predictive Intelligence', () => {
           speed: 0.4,
           insightToAction: 72,
           integrationTime: 168,
-          preference: 'incremental',
+          preference: 'gradual',
+          confidence: 0.6,
+        },
+        emotionalPatterns: {
+          precursors: new Map<string, string[]>(),
+          recoverySignals: ['deep_breath', 'humor'],
+          overwhelmThreshold: 0.7,
+          typicalCycles: [['anxious', 'calm', 'focused']],
+          avoidedEmotions: ['anger'],
           confidence: 0.6,
         },
         communicationPatterns: {
           deflectionStyle: 'intellectualize',
-          readinessSignals: ['asking questions', 'future focus'],
+          readinessSignals: ['asking_questions', 'future_talk'],
           trustBuilders: ['consistency', 'competence'],
           trustBreakers: ['unreliability'],
           preferredTone: 'warm',
@@ -334,6 +343,7 @@ describe('Embedding-Powered Predictive Intelligence', () => {
         temporalPatterns: {
           optimalConversationTimes: [{ dayOfWeek: 3, hour: 19, effectiveness: 0.8 }],
           weeklyEnergyPattern: [0.6, 0.7, 0.8, 0.8, 0.7, 0.5, 0.4],
+          seasonalPatterns: [{ season: 'winter', tendency: 'reflective' }],
           confidence: 0.5,
         },
         vulnerabilityPatterns: {
@@ -344,6 +354,8 @@ describe('Embedding-Powered Predictive Intelligence', () => {
           confidence: 0.6,
         },
         totalObservations: 50,
+        lastUpdated: Date.now(),
+        fingerprintVersion: 1,
       });
       
       expect(fingerprint.userId).toBe(userId);

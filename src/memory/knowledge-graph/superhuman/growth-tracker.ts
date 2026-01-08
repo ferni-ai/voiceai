@@ -388,6 +388,13 @@ export class GrowthTracker {
         // Simple trajectory detection
         const firstEmotion = sessionEmotions[0].arc;
         const lastEmotion = sessionEmotions[sessionEmotions.length - 1].arc;
+        const firstSession = thread.sessions[0];
+        const lastSession = thread.sessions[thread.sessions.length - 1];
+
+        // Skip if missing required data
+        if (!firstEmotion || !lastEmotion || !firstSession?.date || !lastSession?.date || !thread.topic) {
+          continue;
+        }
 
         if (firstEmotion !== lastEmotion) {
           const direction = this.compareEmotionalArcs(firstEmotion, lastEmotion);
@@ -399,13 +406,13 @@ export class GrowthTracker {
             subject: `perspective on ${thread.topic}`,
             baseline: {
               state: firstEmotion,
-              date: new Date(thread.sessions[0].date),
-              evidence: thread.sessions[0].summary.slice(0, 100),
+              date: new Date(firstSession.date),
+              evidence: firstSession.summary.slice(0, 100),
             },
             current: {
               state: lastEmotion,
-              date: new Date(thread.sessions[thread.sessions.length - 1].date),
-              evidence: thread.sessions[thread.sessions.length - 1].summary.slice(0, 100),
+              date: new Date(lastSession.date),
+              evidence: lastSession.summary.slice(0, 100),
             },
             trajectory: {
               direction,

@@ -572,11 +572,14 @@ async function buildContextInjections(
   ]);
 
   // ============================================================================
-  // TIER 2: IMPORTANT BUILDERS (80ms timeout - graceful degradation)
-  // With topic-based filtering: skip builders not relevant to current topic
-  // UPDATED Dec 29 2024: Reduced from 80ms to 50ms for Better than Human latency
+  // TIER 2 + TIER 3: Run in PARALLEL (Jan 2026 optimization)
+  // Previously sequential (~90ms total), now parallel (~50ms total)
+  //
+  // TIER 2: IMPORTANT BUILDERS (50ms timeout - graceful degradation)
+  // TIER 3: OPTIONAL BUILDERS (40ms timeout - these are nice-to-have)
   // ============================================================================
   const IMPORTANT_TIMEOUT_MS = 50;
+  const OPTIONAL_TIMEOUT_MS = 40;
 
   // Fallback values for skipped builders
   const scientificFallback = { injections: [], endpointingRecommendation: undefined };
@@ -597,120 +600,104 @@ async function buildContextInjections(
   };
   const semanticIntelligenceFallback: SemanticIntelligenceInjectionResult = { injection: null };
 
-  const [
-    scientificResult,
-    coachingInjections,
-    trustSystemsResult,
-    boundaryInjections,
-    liveSuperhumanResult,
-    semanticIntelligenceResult,
-  ] = await Promise.all([
-    // Scientific coaching - skip if topic is emotional/personal
-    runIfRelevant(
-      'scientific-coaching',
-      async () =>
-        withTimeout(
-          buildScientificCoachingInjections(builderInput),
-          IMPORTANT_TIMEOUT_MS,
-          scientificFallback,
-          'scientific-coaching'
-        ),
-      scientificFallback
-    ),
-    // Life coaching - skip if topic is market/financial data
-    runIfRelevant(
-      'life-coaching',
-      async () =>
-        withTimeout(
-          buildLifeCoachingInjections(builderInput),
-          IMPORTANT_TIMEOUT_MS,
-          coachingFallback,
-          'life-coaching'
-        ),
-      coachingFallback
-    ),
-    // Trust systems - NEVER skipped (core to relationship)
-    withTimeout(
-      buildTrustSystemsInjections(builderInput),
-      IMPORTANT_TIMEOUT_MS,
-      trustFallback,
-      'trust-systems'
-    ),
-    // Boundary check - skip if topic doesn't involve personal/emotional
-    runIfRelevant(
-      'boundary-check',
-      async () =>
-        withTimeout(
-          buildBoundaryCheckInjections({
-            userId: services.userId || 'unknown',
-            currentTopic,
-          }),
-          IMPORTANT_TIMEOUT_MS,
-          boundaryFallback,
-          'boundary-check'
-        ),
-      boundaryFallback
-    ),
-    // 🌟 LIVE SUPERHUMAN - Real-time "Better Than Human" capabilities per-turn
-    // This is the CRITICAL missing piece: superhuman insights flowing into
-    // each turn, not just at session start.
-    runIfRelevant(
-      'live-superhuman',
-      async () =>
-        withTimeout(
-          buildLiveSuperhumanInjections({
-            userId: services.userId || 'unknown',
-            sessionId: services.sessionId || 'unknown',
-            userText,
-            currentTopic,
-            emotionalState,
-            voiceEmotion: userData.voiceEmotion
-              ? {
-                  primary: userData.voiceEmotion.primary,
-                  confidence: userData.voiceEmotion.confidence,
-                  stressLevel: userData.voiceEmotion.stressLevel,
-                  valence: userData.voiceEmotion.valence,
-                  anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
-                  prosody: userData.voiceEmotion.prosody,
-                }
-              : undefined,
-            analysis,
-            turnCount: userData.turnCount || 0,
-            totalConversations: services.userProfile?.totalConversations,
-          }),
-          IMPORTANT_TIMEOUT_MS,
-          superhumanFallback,
-          'live-superhuman'
-        ),
-      superhumanFallback
-    ),
-    // 🧠 SEMANTIC INTELLIGENCE - Tool hints, learned patterns, proactive suggestions
-    // This enriches LLM context with semantic insights WITHOUT auto-executing
-    withTimeout(
-      buildSemanticIntelligenceInjection({
-        userId: services.userId || 'unknown',
-        sessionId: services.sessionId || 'unknown',
-        personaId: persona.id,
-        userText,
-        // Get recently used tools from conversation state for learning context
-        recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
-        recentTopics: currentTopic ? [currentTopic] : undefined,
-      }),
-      IMPORTANT_TIMEOUT_MS,
-      semanticIntelligenceFallback,
-      'semantic-intelligence'
-    ),
-  ]);
-
-  // ============================================================================
-  // TIER 3: OPTIONAL BUILDERS (60ms timeout - these are nice-to-have)
-  // With aggressive topic-based filtering: these are often skipped
-  // UPDATED Dec 29 2024: Reduced from 60ms to 40ms for Better than Human latency
-  // ============================================================================
-  const OPTIONAL_TIMEOUT_MS = 40;
-
-  const [healthInjections, userHealthInjection, visualMemoryInjection, ambientModeInjection] =
-    await Promise.all([
+  // Run TIER 2 and TIER 3 in PARALLEL for ~40-50ms savings
+  const [tier2Results, tier3Results] = await Promise.all([
+    // TIER 2: IMPORTANT BUILDERS
+    Promise.all([
+      // Scientific coaching - skip if topic is emotional/personal
+      runIfRelevant(
+        'scientific-coaching',
+        async () =>
+          withTimeout(
+            buildScientificCoachingInjections(builderInput),
+            IMPORTANT_TIMEOUT_MS,
+            scientificFallback,
+            'scientific-coaching'
+          ),
+        scientificFallback
+      ),
+      // Life coaching - skip if topic is market/financial data
+      runIfRelevant(
+        'life-coaching',
+        async () =>
+          withTimeout(
+            buildLifeCoachingInjections(builderInput),
+            IMPORTANT_TIMEOUT_MS,
+            coachingFallback,
+            'life-coaching'
+          ),
+        coachingFallback
+      ),
+      // Trust systems - NEVER skipped (core to relationship)
+      withTimeout(
+        buildTrustSystemsInjections(builderInput),
+        IMPORTANT_TIMEOUT_MS,
+        trustFallback,
+        'trust-systems'
+      ),
+      // Boundary check - skip if topic doesn't involve personal/emotional
+      runIfRelevant(
+        'boundary-check',
+        async () =>
+          withTimeout(
+            buildBoundaryCheckInjections({
+              userId: services.userId || 'unknown',
+              currentTopic,
+            }),
+            IMPORTANT_TIMEOUT_MS,
+            boundaryFallback,
+            'boundary-check'
+          ),
+        boundaryFallback
+      ),
+      // 🌟 LIVE SUPERHUMAN - Real-time "Better Than Human" capabilities per-turn
+      runIfRelevant(
+        'live-superhuman',
+        async () =>
+          withTimeout(
+            buildLiveSuperhumanInjections({
+              userId: services.userId || 'unknown',
+              sessionId: services.sessionId || 'unknown',
+              userText,
+              currentTopic,
+              emotionalState,
+              voiceEmotion: userData.voiceEmotion
+                ? {
+                    primary: userData.voiceEmotion.primary,
+                    confidence: userData.voiceEmotion.confidence,
+                    stressLevel: userData.voiceEmotion.stressLevel,
+                    valence: userData.voiceEmotion.valence,
+                    anxietyMarkers: userData.voiceEmotion.anxietyMarkers,
+                    prosody: userData.voiceEmotion.prosody,
+                  }
+                : undefined,
+              analysis,
+              turnCount: userData.turnCount || 0,
+              totalConversations: services.userProfile?.totalConversations,
+            }),
+            IMPORTANT_TIMEOUT_MS,
+            superhumanFallback,
+            'live-superhuman'
+          ),
+        superhumanFallback
+      ),
+      // 🧠 SEMANTIC INTELLIGENCE - Tool hints, learned patterns, proactive suggestions
+      withTimeout(
+        buildSemanticIntelligenceInjection({
+          userId: services.userId || 'unknown',
+          sessionId: services.sessionId || 'unknown',
+          personaId: persona.id,
+          userText,
+          recentTools: userData?.conversationState?.getToolExecutionData?.()?.recentlyUsedTools,
+          recentTopics: currentTopic ? [currentTopic] : undefined,
+        }),
+        IMPORTANT_TIMEOUT_MS,
+        semanticIntelligenceFallback,
+        'semantic-intelligence'
+      ),
+    ]),
+    // TIER 3: OPTIONAL BUILDERS (run in parallel with TIER 2)
+    Promise.all([
       // System health - skip unless health topic or keywords
       runIfRelevant(
         'health-awareness',
@@ -759,7 +746,22 @@ async function buildContextInjections(
           ),
         null
       ),
-    ]);
+    ]),
+  ]);
+
+  // Destructure TIER 2 results
+  const [
+    scientificResult,
+    coachingInjections,
+    trustSystemsResult,
+    boundaryInjections,
+    liveSuperhumanResult,
+    semanticIntelligenceResult,
+  ] = tier2Results;
+
+  // Destructure TIER 3 results
+  const [healthInjections, userHealthInjection, visualMemoryInjection, ambientModeInjection] =
+    tier3Results;
 
   // Extract trust injections and summary
   const trustInjections = trustSystemsResult.injections;
