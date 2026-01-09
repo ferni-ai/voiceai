@@ -6,6 +6,52 @@ The conversation module is the largest subsystem (~26,500 lines) - responsible f
 
 ---
 
+## 🏗️ Clean Architecture Refactoring (January 2026)
+
+The conversation module has undergone comprehensive clean architecture refactoring. Large monolithic files have been split into focused, testable modules.
+
+### ✅ Completed Refactoring
+
+| Original File | Lines | Status | New Module | Files |
+|--------------|-------|--------|------------|-------|
+| `humanizer.ts` | 1,292 | ✅ Done | `humanizer/` | 6 files |
+| `concern-detection.ts` | 880 | ✅ Done | `concern-detection/` | 5 files |
+| `question-patterns.ts` | 822 | ✅ Done | `question-patterns/` | 5 files |
+| `temporal-context.ts` | 769 | ✅ Done | `temporal-context/` | 4 files |
+| `emotional-arc.ts` | 760 | ✅ Done | `emotional-arc/` | 3 files |
+| `speech-naturalizer.ts` | 741 | ✅ Done | `speech-naturalizer/` | 5 files |
+| `humanization/voice-agent-integration.ts` | 927 | ✅ Done | `humanization/voice-agent-integration/` | 10 files |
+| `superhuman/orchestrator.ts` | 962 | ✅ Done | `superhuman/orchestrator/` | 5 files |
+
+**Total refactored:** ~7,153 lines → 43 focused modules
+
+### 📋 Architecture Improvements Added
+
+- **`interfaces/index.ts`** - Clean DI interfaces for all engines
+  - `IConcernDetector`
+  - `IEmotionalArcTracker`
+  - `IQuestionPatternEngine`
+  - `ITemporalContextEngine`
+  - `ISpeechNaturalizer`
+  - `ISessionIntelligence`
+- **DI Tokens** - `ConversationTokens` for dependency injection
+- **Backward Compatibility** - All original imports continue to work via re-export files
+
+### Module Structure Pattern
+
+Each refactored module follows this pattern:
+```
+module-name/
+├── types.ts       # Type definitions
+├── [data].ts      # Static data (templates, patterns)
+├── engine.ts      # Main class implementation
+└── index.ts       # Re-exports + singleton/registry
+```
+
+Backward compatibility is maintained via re-export files.
+
+---
+
 ## Architecture Level
 
 ```
