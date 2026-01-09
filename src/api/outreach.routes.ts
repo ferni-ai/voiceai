@@ -26,6 +26,7 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import type { OutreachType, OutreachChannel } from '../services/outreach/llm-content-generator.js';
 import { getFirestoreDb } from '../services/superhuman/firestore-utils.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { getLogger } from '../utils/safe-logger.js';
@@ -1136,9 +1137,12 @@ Whenever you're ready.`,
       }
 
       const body = await parseRequestBody(req);
-      const { outreachType = 'thinking_of_you', channel = 'in_app' } = body as {
-        outreachType?: string;
-        channel?: string;
+      const {
+        outreachType = 'thinking_of_you' as OutreachType,
+        channel = 'in_app' as OutreachChannel,
+      } = body as {
+        outreachType?: OutreachType;
+        channel?: OutreachChannel;
       };
 
       const { generatePersonalizedContent } =
@@ -1161,8 +1165,8 @@ Whenever you're ready.`,
 
       const content = await generatePersonalizedContent(
         userContext,
-        outreachType as any,
-        channel as any
+        outreachType,
+        channel
       );
 
       sendJsonResponse(res, 200, { success: true, content });

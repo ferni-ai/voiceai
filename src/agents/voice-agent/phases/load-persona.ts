@@ -260,34 +260,55 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
   };
 
   // Create full persona config with defaults
-  const fullPersona = (persona || {
+  const personaName = personaId
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+
+  const defaultIdentity = {
+    selfReference: personaName,
+    coreValues: ['empathy', 'growth', 'authenticity'],
+    role: 'life coach',
+    priorities: ['user wellbeing', 'genuine connection'],
+    desiredUserExperience: 'feeling heard and supported',
+  };
+
+  const fullPersona: PersonaConfig = persona || {
     id: personaId,
-    name: personaId
-      .split('-')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' '),
-    voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
+    name: personaName,
+    description: `${personaName} is a warm and supportive life coach.`,
+    voice: { voiceId: defaultVoice.voiceId, provider: 'cartesia' as const },
     systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
-    personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
-    speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
-  }) as unknown as PersonaConfig;
+    personality: {
+      warmth: 0.7,
+      humorLevel: 0.4,
+      humorStyle: ['gentle-teasing'],
+      directness: 0.6,
+      energy: 0.6,
+      tangentFrequency: 0.3,
+      traits: ['warm', 'supportive', 'thoughtful'],
+      boundaries: ['no medical advice', 'no legal advice'],
+    },
+    // speechCharacteristics is optional - omit for default behavior
+    communication: defaultCommunication,
+    identity: defaultIdentity,
+    knowledge: {
+      domains: ['general'],
+      qualifiedTopics: ['life coaching', 'personal growth', 'emotional support'],
+      outOfScopeTopics: ['medical-diagnosis', 'legal-advice'],
+      outOfScopeResponse: "That's outside my expertise, but I can help you think through who might be able to help.",
+    },
+  };
 
   // Ensure communication config exists (may be missing from cache)
   if (!fullPersona.communication) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fullPersona as any).communication = defaultCommunication;
+    (fullPersona as { communication: typeof defaultCommunication }).communication =
+      defaultCommunication;
   }
 
   // Ensure identity config exists (greetings.ts accesses identity.selfReference)
   if (!fullPersona.identity) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fullPersona as any).identity = {
-      selfReference: fullPersona.name || personaId,
-      coreValues: ['empathy', 'growth', 'authenticity'],
-      role: 'life coach',
-      priorities: ['user wellbeing', 'genuine connection'],
-      desiredUserExperience: 'feeling heard and supported',
-    };
+    (fullPersona as { identity: typeof defaultIdentity }).identity = defaultIdentity;
   }
 
   // Load rich system prompt

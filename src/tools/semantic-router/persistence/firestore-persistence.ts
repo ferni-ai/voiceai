@@ -21,11 +21,11 @@ const log = createLogger({ module: 'semantic-router:persistence' });
 // TYPES (mirrors Firestore SDK interfaces)
 // ============================================================================
 
-interface FirestoreDB {
+export interface FirestoreDB {
   collection: (path: string) => CollectionReference;
 }
 
-interface CollectionReference {
+export interface CollectionReference {
   doc: (id: string) => DocumentReference;
   add: (data: Record<string, unknown>) => Promise<DocumentReference>;
   where: (field: string, op: string, value: unknown) => Query;
@@ -34,7 +34,7 @@ interface CollectionReference {
   get: () => Promise<QuerySnapshot>;
 }
 
-interface DocumentReference {
+export interface DocumentReference {
   id: string;
   set: (data: Record<string, unknown>, options?: { merge?: boolean }) => Promise<void>;
   get: () => Promise<DocumentSnapshot>;
@@ -43,7 +43,7 @@ interface DocumentReference {
   collection: (name: string) => CollectionReference;
 }
 
-interface DocumentSnapshot {
+export interface DocumentSnapshot {
   exists: boolean;
   id: string;
   data: () => Record<string, unknown> | undefined;

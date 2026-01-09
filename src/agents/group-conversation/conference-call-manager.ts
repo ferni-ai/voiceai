@@ -10,7 +10,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type { Room } from '@livekit/rtc-node';
+import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import Twilio, { type Twilio as TwilioClient } from 'twilio';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -168,7 +168,7 @@ export class ConferenceCallManager extends EventEmitter {
     } else {
       this.manager = new GroupConversationManager({
         room: config.room,
-        userParticipant: {} as any, // Will be set when conversation starts
+        userParticipant: {} as unknown as RemoteParticipant, // Will be set when conversation starts
         sessionId: config.sessionId,
         userId: config.userId,
         mode: 'conference_call',

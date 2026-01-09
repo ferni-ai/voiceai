@@ -14,7 +14,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { TeamRoundtable, TeamRoundtableConfig } from './team-roundtable.js';
 import type { ConferenceCallManager } from './conference-call-manager.js';
 import type { GroupConversationManager } from './group-conversation-manager.js';
-import type { RoundtableConfig, AddParticipantRequest } from './types.js';
+import type { RoundtableConfig, AddParticipantRequest, CollaborationMode } from './types.js';
 
 const log = getLogger();
 
@@ -253,7 +253,7 @@ export class GroupVoiceIntegration {
       roundtable: {
         personas: message.personas,
         topic: message.topic,
-        collaborationMode: (message.collaborationMode as any) ?? 'discussion',
+        collaborationMode: (message.collaborationMode as CollaborationMode) ?? 'discussion',
         moderator: 'ferni',
       },
       createAgent: this.config.createRoundtableAgent,

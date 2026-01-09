@@ -94,7 +94,9 @@ describe('Redis Integration', () => {
       expect(cache.get('expiring')).toBe('value');
 
       // Wait for L1 TTL
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise<void>((r) => {
+        setTimeout(r, 150);
+      });
 
       // L1 should be expired
       expect(cache.get('expiring')).toBeUndefined();
@@ -124,7 +126,9 @@ describe('Redis Integration', () => {
       });
 
       // Wait for message propagation
-      await new Promise((r) => setTimeout(r, 100));
+      await new Promise<void>((r) => {
+        setTimeout(r, 100);
+      });
 
       // Note: Due to self-filtering, we won't receive our own message
       // This test just verifies no errors occur
@@ -218,7 +222,9 @@ describe('Redis Integration', () => {
       });
 
       // Wait for Redis write
-      await new Promise((r) => setTimeout(r, 50));
+      await new Promise<void>((r) => {
+        setTimeout(r, 50);
+      });
 
       // Async getter should find it
       const insights = await getCachedPersonaInsightsAsync(sessionId, 'ferni');

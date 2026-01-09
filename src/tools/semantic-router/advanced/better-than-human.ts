@@ -870,8 +870,7 @@ export async function persistEmotionalHistory(userId: string): Promise<void> {
     const db = getFirestore();
     if (!db) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any)
+    await db
       .collection('emotional_history')
       .doc(userId)
       .set(
@@ -902,26 +901,31 @@ export async function loadEmotionalHistory(userId: string): Promise<void> {
     const db = getFirestore();
     if (!db) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const doc = await (db as any).collection('emotional_history').doc(userId).get();
+    const doc = await db.collection('emotional_history').doc(userId).get();
     if (!doc.exists) return;
 
     const data = doc.data();
-    if (!data?.dataPoints) return;
+    if (!data) return;
 
-    const history = data.dataPoints.map(
-      (dp: {
+    // Type narrowing for Firestore document structure
+    interface EmotionalHistoryDoc {
+      dataPoints?: Array<{
         timestamp: string;
         emotion: string;
         intensity: number;
         valence: number;
         source: string;
         context?: string;
-      }) => ({
-        ...dp,
-        timestamp: new Date(dp.timestamp),
-      })
-    );
+      }>;
+    }
+    const typedData = data as EmotionalHistoryDoc;
+    if (!typedData.dataPoints) return;
+
+    const history = typedData.dataPoints.map((dp) => ({
+      ...dp,
+      timestamp: new Date(dp.timestamp),
+      source: dp.source as 'voice' | 'inferred' | 'text',
+    }));
 
     emotionalHistory.set(userId, history);
     log.debug({ userId, dataPointCount: history.length }, 'Emotional history loaded');

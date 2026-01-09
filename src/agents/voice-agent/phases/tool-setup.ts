@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import type { UserProfile } from '../../../types/user-profile.js';
 
 const log = createLogger({ module: 'tool-setup' });
 
@@ -19,8 +20,8 @@ export interface ToolSetupConfig {
   personaId: string;
   personaName: string;
   userId: string;
-  // UserProfile or partial profile data
-  userProfile?: unknown;
+  /** User profile for permission checks */
+  userProfile?: UserProfile | null;
   subscriptionTier: 'free' | 'friend' | 'partner';
   userLocation?: {
     city?: string;
@@ -92,7 +93,7 @@ export async function setupTools(config: ToolSetupConfig): Promise<ToolSetupResu
   const { tools, meta } = await getToolsForAgent({
     persona: { id: personaId, displayName: personaName },
     userId,
-    userProfile: userProfile as any, // Type varies based on caller context
+    userProfile,
     subscriptionTier,
     initialTranscript: '', // Session start - no transcript yet
     services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },

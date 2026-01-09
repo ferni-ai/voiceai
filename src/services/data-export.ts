@@ -838,10 +838,11 @@ class DataExportService {
       // 7. Delete conversation history (if method exists)
       try {
         const service = getConversationHistoryService();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const serviceAny = service as any;
-        if (typeof serviceAny.deleteHistory === 'function') {
-          await serviceAny.deleteHistory(userId);
+        // Type narrowing for optional deleteHistory method
+        type WithDeleteHistory = { deleteHistory?: (userId: string) => Promise<void> };
+        const serviceWithDelete = service as unknown as WithDeleteHistory;
+        if (typeof serviceWithDelete.deleteHistory === 'function') {
+          await serviceWithDelete.deleteHistory(userId);
           deletionResults['conversations'] = true;
         } else {
           log.debug({ userId }, 'Conversation history deleteHistory method not available');
@@ -855,10 +856,11 @@ class DataExportService {
       // 8. Delete cognitive memories (if method exists)
       try {
         const memoryService = getCognitiveMemoryService();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const memoryAny = memoryService as any;
-        if (typeof memoryAny.deleteAllMemories === 'function') {
-          await memoryAny.deleteAllMemories(userId);
+        // Type narrowing for optional deleteAllMemories method
+        type WithDeleteAllMemories = { deleteAllMemories?: (userId: string) => Promise<void> };
+        const memoryWithDelete = memoryService as unknown as WithDeleteAllMemories;
+        if (typeof memoryWithDelete.deleteAllMemories === 'function') {
+          await memoryWithDelete.deleteAllMemories(userId);
           deletionResults['cognitive'] = true;
         } else {
           log.debug({ userId }, 'Cognitive memory deleteAllMemories method not available');
