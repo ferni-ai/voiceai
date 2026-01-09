@@ -88,6 +88,7 @@ export interface SettingsMenuUICallbacks {
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourStoryClick?: () => void;
+  onActivityClick?: () => void;
   onYourYearClick?: () => void;
   onFutureInsightsClick?: () => void;
   onDeepInsightsClick?: () => void;
@@ -146,6 +147,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   memory:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/></svg>',
+  activity:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="6" height="6" rx="1"/><rect x="3" y="13" width="6" height="6" rx="1"/><path d="M11 7h10"/><path d="M11 12h4"/><path d="M11 17h7"/></svg>',
   calendar:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
 
@@ -763,6 +766,7 @@ class SettingsMenuUI {
             ${this.renderMenuItemWithBadge('deep-insights', ICONS.brain, t('menu.items.whatINotice') || 'What I Notice', t('common.new'))}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
+            ${this.renderMenuItemWithBadge('activity', ICONS.activity, t('menu.items.activity') || 'Activity', t('common.new'))}
           `
                 )
               : ''
@@ -1320,6 +1324,9 @@ class SettingsMenuUI {
         break;
       case 'your-story':
         this.callbacks.onYourStoryClick?.();
+        break;
+      case 'activity':
+        this.callbacks.onActivityClick?.();
         break;
       case 'your-year':
         this.callbacks.onYourYearClick?.();

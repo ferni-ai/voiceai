@@ -217,11 +217,13 @@ export async function resolveOpenQuestion(
   if (!doc.exists) return;
 
   const thread = doc.data() as Thread;
-  const updatedQuestions = thread.openQuestions.filter((q) => q !== question);
+  const openQuestions = Array.isArray(thread.openQuestions) ? thread.openQuestions : [];
+  const updatedQuestions = openQuestions.filter((q) => q !== question);
 
   // If no more open questions or actions, mark as resolved
+  const pendingActions = Array.isArray(thread.pendingActions) ? thread.pendingActions : [];
   const newStatus: ThreadStatus =
-    updatedQuestions.length === 0 && thread.pendingActions.length === 0
+    updatedQuestions.length === 0 && pendingActions.length === 0
       ? 'resolved'
       : thread.status;
 

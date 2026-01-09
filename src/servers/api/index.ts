@@ -164,6 +164,7 @@ import { handleWebhookManagementRoutes } from '../../api/webhook-management-rout
 import { handleDesignTokensRoutes } from '../../api/design-tokens-routes.js';
 import { handleInsightsRoutes } from '../../api/insights-routes.js';
 import { handleMemoryRoutes } from '../../api/memory-routes.js';
+import { handleActionRoutes } from '../../api/action-routes.js';
 import { handleSemanticIntelligenceRoutes } from './routes/semantic-intelligence.js';
 import {
   handleTwilioRoutes,
@@ -756,6 +757,12 @@ const server = http.createServer(async (req, res) => {
     // Memory routes (Superhuman Memory - feedback, metrics, health)
     if (pathname.startsWith('/api/memory')) {
       const handled = await handleMemoryRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Action routes (Activity Dashboard - calls, texts, emails, calendar)
+    if (pathname.startsWith('/api/actions')) {
+      const handled = await handleActionRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

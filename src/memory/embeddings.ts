@@ -7,7 +7,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import {
+  getCircuitBreaker,
+  getRedisCircuitBreakerAsync,
+  type CircuitBreaker,
+} from '../utils/circuit-breaker.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import {
   cosineSimilarity,
@@ -19,20 +23,41 @@ export { cosineSimilarity };
 export type { RustEmbeddingVector as EmbeddingVectorLike };
 
 // ============================================================================
-// CIRCUIT BREAKERS
+// CIRCUIT BREAKERS (Redis-backed for cross-instance coordination)
 // ============================================================================
 
-const openaiEmbeddingBreaker = getCircuitBreaker('openai-embeddings', {
+// Start with local breakers, upgrade to Redis async
+let openaiEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('openai-embeddings', {
   failureThreshold: 5,
   resetTimeout: 30000,
   successThreshold: 2,
 });
 
-const googleEmbeddingBreaker = getCircuitBreaker('google-embeddings', {
+let googleEmbeddingBreaker: CircuitBreaker = getCircuitBreaker('google-embeddings', {
   failureThreshold: 5,
   resetTimeout: 30000,
   successThreshold: 2,
 });
+
+// Upgrade to Redis-backed breakers (non-blocking)
+// When one instance hits OpenAI rate limits, ALL instances back off
+void (async () => {
+  try {
+    openaiEmbeddingBreaker = await getRedisCircuitBreakerAsync('openai-embeddings', {
+      failureThreshold: 5,
+      resetTimeout: 30000,
+      successThreshold: 2,
+    });
+    googleEmbeddingBreaker = await getRedisCircuitBreakerAsync('google-embeddings', {
+      failureThreshold: 5,
+      resetTimeout: 30000,
+      successThreshold: 2,
+    });
+    getLogger().debug('Embedding circuit breakers upgraded to Redis-backed');
+  } catch {
+    // Keep using local breakers
+  }
+})();
 
 // ============================================================================
 // TYPES

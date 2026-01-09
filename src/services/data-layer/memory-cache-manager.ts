@@ -447,7 +447,7 @@ export class RedisBackedCache<K extends string, V> extends ManagedCache<K, V> {
     // L2: Delete from Redis (fire-and-forget)
     if (this.redis?.isConnected()) {
       const redisKey = this.redisConfig.redisKeyPrefix + key;
-      this.redis.delete(redisKey).catch((error) => {
+      this.redis.delete(redisKey).catch((error: unknown) => {
         log.debug({ error: String(error), key }, 'Redis L2 delete failed');
       });
     }

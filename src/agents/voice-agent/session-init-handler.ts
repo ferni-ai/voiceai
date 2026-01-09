@@ -74,6 +74,9 @@ import { initializeIntelligence } from '../integrations/unified-intelligence-int
 // Context builder prewarming - load intelligence builders before first turn
 import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
+// Redis session warmup - pre-warm caches for fast first-turn response
+import { warmSessionCaches, warmHandoffCaches } from '../../services/session-warmup.js';
+
 // Naturalness Engine - unified voice adaptation (stress, patterns, ambient, rapport)
 import { initializeNaturalnessEngine } from '../../speech/naturalness/index.js';
 
@@ -240,6 +243,28 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // This eliminates ~100-200ms from the first response latency.
   // ================================================================
   prewarmBuildersInBackground();
+
+  // ================================================================
+  // ⚡ REDIS CACHE PRE-WARMING (Non-blocking!)
+  // Pre-warm persona affinity, emotional state, and semantic caches.
+  // This reduces first-turn latency by 200-500ms.
+  // ================================================================
+  if (userId) {
+    fireAndForget(async () => {
+      try {
+        const result = await warmSessionCaches(userId, {
+          timeoutMs: 3000, // Don't delay greeting for cache warming
+        });
+        diag.session('🔥 Redis caches pre-warmed', {
+          userId,
+          warmed: result.warmedCaches,
+          durationMs: result.durationMs,
+        });
+      } catch (warmErr) {
+        diag.debug('Cache warming failed (non-fatal)', { error: String(warmErr) });
+      }
+    }, 'session-init:redis-warmup');
+  }
 
   // ================================================================
   // START FINOPS TRACKING

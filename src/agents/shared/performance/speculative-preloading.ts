@@ -16,6 +16,7 @@ import {
   type PersonaInsights,
 } from '../../../intelligence/context-builders/persona-insights-cache.js';
 import { preloadAllBundles } from '../../../personas/bundles/preloader.js';
+import { warmHandoffCaches } from '../../../services/session-warmup.js';
 
 const log = getLogger();
 
@@ -486,9 +487,18 @@ function doAnalyzeAndPreload(text: string, context: SpeculativePreloadContext): 
   pendingPreloads.add(preloadKey);
 
   // Fire and forget - don't block on preload
-  preloadPersonaInsights(sessionId, prediction.targetPersona, userId, async () => {
-    return buildInsightsFn(prediction.targetPersona);
-  })
+  // Run both persona insights preload AND Redis handoff cache warming in parallel
+  Promise.all([
+    // Persona insights (existing logic)
+    preloadPersonaInsights(sessionId, prediction.targetPersona, userId, async () => {
+      return buildInsightsFn(prediction.targetPersona);
+    }),
+
+    // Redis handoff cache warming (new - pre-warms Redis L2 for target persona)
+    warmHandoffCaches(userId, sessionId, prediction.targetPersona).catch((err) => {
+      log.debug({ error: String(err) }, 'Handoff cache warming failed (non-fatal)');
+    }),
+  ])
     .then(() => {
       log.debug({ sessionId, target: prediction.targetPersona }, 'Speculative preload complete');
     })

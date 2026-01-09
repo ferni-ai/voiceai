@@ -14,7 +14,10 @@ import { v4 as uuidv4 } from 'uuid';
 vi.mock('@google-cloud/firestore', () => {
   const mockDocs = new Map<string, unknown>();
 
-  const createMockDocRef = (path: string) => ({
+  // Forward declaration for recursive references
+  let createMockCollectionRef: (collectionPath: string) => unknown;
+
+  const createMockDocRef = (path: string): unknown => ({
     id: path.split('/').pop() || uuidv4(),
     path,
     get: vi.fn().mockImplementation(async () => ({
@@ -33,16 +36,11 @@ vi.mock('@google-cloud/firestore', () => {
     delete: vi.fn().mockImplementation(async () => {
       mockDocs.delete(path);
     }),
+    // Support subcollections (doc -> collection)
+    collection: (subName: string) => createMockCollectionRef(`${path}/${subName}`),
   });
 
-  const createMockQuery = () => ({
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    get: vi.fn().mockResolvedValue({ docs: [], empty: true }),
-  });
-
-  const createMockCollectionRef = (collectionPath: string) => ({
+  createMockCollectionRef = (collectionPath: string) => ({
     doc: vi.fn().mockImplementation((docId?: string) =>
       createMockDocRef(`${collectionPath}/${docId || uuidv4()}`)
     ),
@@ -57,12 +55,23 @@ vi.mock('@google-cloud/firestore', () => {
     get: vi.fn().mockResolvedValue({ docs: [], empty: true }),
   });
 
+  // Create a proper class constructor for Firestore
+  class MockFirestore {
+    collection(name: string) {
+      return createMockCollectionRef(name);
+    }
+    batch() {
+      return {
+        set: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        commit: vi.fn().mockResolvedValue(undefined),
+      };
+    }
+  }
+
   return {
-    Firestore: vi.fn().mockImplementation(() => ({
-      collection: vi.fn().mockImplementation((name: string) =>
-        createMockCollectionRef(name)
-      ),
-    })),
+    Firestore: MockFirestore,
     FieldValue: {
       increment: vi.fn().mockReturnValue({ _increment: 1 }),
       arrayUnion: vi.fn().mockImplementation((val: unknown) => ({ _arrayUnion: val })),
@@ -71,26 +80,29 @@ vi.mock('@google-cloud/firestore', () => {
   };
 });
 
-// Mock Gemini API
-vi.mock('@google/generative-ai', () => ({
-  GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({
-      generateContent: vi.fn().mockResolvedValue({
-        response: {
-          text: () => JSON.stringify([
-            {
-              name: 'Mike',
-              type: 'person',
-              relationship: 'brother',
-              confidence: 0.9,
-              sourceText: 'my brother Mike',
-            },
-          ]),
-        },
-      }),
-    }),
-  })),
-}));
+// Mock Gemini API - use proper class constructor
+vi.mock('@google/generative-ai', () => {
+  class MockGoogleGenerativeAI {
+    getGenerativeModel() {
+      return {
+        generateContent: vi.fn().mockResolvedValue({
+          response: {
+            text: () => JSON.stringify([
+              {
+                name: 'Mike',
+                type: 'person',
+                relationship: 'brother',
+                confidence: 0.9,
+                sourceText: 'my brother Mike',
+              },
+            ]),
+          },
+        }),
+      };
+    }
+  }
+  return { GoogleGenerativeAI: MockGoogleGenerativeAI };
+});
 
 // Test subject imports
 import {
@@ -235,7 +247,8 @@ describe('Knowledge Graph E2E Tests', () => {
         const result = await extractEntities('My sister lives in Chicago', context);
 
         expect(result.entities).toBeDefined();
-        expect(result.processingTimeMs).toBeGreaterThan(0);
+        // processingTimeMs may be 0 in mock environments (instant)
+        expect(result.processingTimeMs).toBeGreaterThanOrEqual(0);
       });
     });
   });

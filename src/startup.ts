@@ -112,6 +112,32 @@ export async function startup(): Promise<AppConfig> {
     );
   }
 
+  // Initialize Redis Pub/Sub for cross-instance communication
+  // This enables cache invalidation broadcasts and real-time session events
+  logger.info('Initializing Redis Pub/Sub...');
+  const pubsubStart = Date.now();
+  try {
+    const { initializeRedisPubSub, subscribeToCacheInvalidation } = await import(
+      './services/redis-pubsub.js'
+    );
+    const pubsubReady = await initializeRedisPubSub();
+    if (pubsubReady) {
+      // Subscribe to cache invalidation events
+      subscribeToCacheInvalidation(async (message) => {
+        logger.debug(
+          { cacheType: message.data.cacheType, keys: message.data.keys },
+          'Cache invalidation received'
+        );
+        // Invalidations are handled by individual cache subscribers
+      });
+      logger.info(`✓ Redis Pub/Sub ready (${Date.now() - pubsubStart}ms)`);
+    } else {
+      logger.info(`✓ Redis Pub/Sub skipped (Redis not available)`);
+    }
+  } catch (pubsubErr) {
+    logger.warn(`Redis Pub/Sub init failed (non-fatal): ${pubsubErr}`);
+  }
+
   // Initialize services (prewarm)
   logger.info('Initializing services...');
   const svcStart = Date.now();
@@ -384,6 +410,16 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Background workers stopped');
     } catch (error) {
       logger.warn(`Background workers stop failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown Redis Pub/Sub
+    logger.info('Shutting down Redis Pub/Sub...');
+    try {
+      const { shutdownRedisPubSub } = await import('./services/redis-pubsub.js');
+      await shutdownRedisPubSub();
+      logger.info('✓ Redis Pub/Sub stopped');
+    } catch (error) {
+      logger.warn(`Redis Pub/Sub shutdown failed (non-fatal): ${error}`);
     }
 
     // Save community insights before shutdown

@@ -197,6 +197,7 @@ import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
 import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
+import { initActivityUI, showActivity } from './ui/activity.ui.js';
 // Services for feature persistence
 import {
   conversationTracker,
@@ -1578,6 +1579,7 @@ class VoiceAIApp {
 
     // 🆕 New Feature UIs (v2)
     this.safeInit('ConversationHistoryUI', () => initConversationHistoryUI());
+    this.safeInit('ActivityUI', () => initActivityUI());
     this.safeInit('AnalyticsDashboardUI', () => initAnalyticsDashboardUI());
     this.safeInit('CognitiveInsightsUI', () => initCognitiveInsightsUI());
 
@@ -1842,6 +1844,7 @@ class VoiceAIApp {
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
         onYourStoryClick: () => void showYourStoryDashboard(),
+        onActivityClick: () => showActivity(),
         onYourYearClick: () => {
           // Open "Your Year with Ferni" visualization
           console.log('[YourYear] Callback triggered, starting import...');

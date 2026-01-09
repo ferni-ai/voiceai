@@ -33,6 +33,11 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { recordAction } from './action-history.js';
 import { logJsonDetected, logJsonExecuted } from './function-call-telemetry.js';
 import {
+  getActionTracker,
+  isTrackableTool,
+  getActionTypeForTool,
+} from '../../services/action-tracker/index.js';
+import {
   cacheToolResult,
   checkToolCache,
   invalidateToolCache,
@@ -79,6 +84,88 @@ function recordSemanticExecution(params: {
       // Silent failure - learning loop is non-critical
       log.debug({ error: String(err) }, 'Learning loop recording failed (non-critical)');
     });
+}
+
+/**
+ * Extract target name from tool arguments.
+ * Looks for common patterns in tool args for contact/recipient info.
+ */
+function extractTargetFromArgs(args: Record<string, unknown>): string | undefined {
+  // Check common arg names for contact/target info
+  const targetKeys = ['contact', 'contactName', 'recipient', 'to', 'target', 'name', 'phone', 'email'];
+  for (const key of targetKeys) {
+    if (typeof args[key] === 'string' && args[key]) {
+      return args[key] as string;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Fire-and-forget action tracking for high-impact tools.
+ * Does not block tool execution.
+ */
+function trackHighImpactAction(params: {
+  userId: string;
+  sessionId?: string;
+  toolId: string;
+  args: Record<string, unknown>;
+  inputText?: string;
+  success: boolean;
+  resultSummary: string;
+  durationMs: number;
+}): void {
+  // Only track if we have a userId and the tool is trackable
+  if (!params.userId || !isTrackableTool(params.toolId)) {
+    return;
+  }
+
+  const actionType = getActionTypeForTool(params.toolId);
+  if (!actionType) {
+    return;
+  }
+
+  // Fire and forget - don't await, don't block tool execution
+  (async () => {
+    try {
+      const tracker = getActionTracker();
+      const target = extractTargetFromArgs(params.args);
+
+      // Create the action (or find existing pending one)
+      const action = await tracker.createAction({
+        userId: params.userId,
+        type: actionType,
+        description: params.inputText || `${actionType} to ${target || 'contact'}`,
+        target,
+        targetContact: (params.args.phone as string) || (params.args.email as string) || undefined,
+        sessionId: params.sessionId,
+        userMessage: params.inputText,
+      });
+
+      // Start execution
+      await tracker.startExecution(action.id, {
+        toolId: params.toolId,
+        toolArgs: params.args,
+      });
+
+      // Complete execution
+      await tracker.completeExecution(action.id, {
+        success: params.success,
+        resultSummary: params.resultSummary,
+        callDurationSeconds:
+          actionType === 'call' ? Math.round(params.durationMs / 1000) : undefined,
+        deliveryStatus: params.success ? 'sent' : 'failed',
+      });
+
+      log.debug(
+        { actionId: action.id, toolId: params.toolId, success: params.success },
+        '📋 High-impact action tracked'
+      );
+    } catch (err) {
+      // Silent failure - action tracking is non-critical
+      log.debug({ error: String(err) }, 'Action tracking failed (non-critical)');
+    }
+  })();
 }
 
 // ============================================================================
@@ -354,6 +441,22 @@ export async function executeJsonFunction(
       recordAction(sessionId, fn, args, true, resultStr?.slice(0, 200));
     }
 
+    // Action Tracker: Persist high-impact actions (calls, texts, emails, calendar)
+    // for unified visibility in the Activity dashboard
+    if (ctx.userId) {
+      trackHighImpactAction({
+        userId: ctx.userId,
+        sessionId: sessionId !== 'unknown' ? sessionId : undefined,
+        toolId: fn,
+        args,
+        inputText: ctx.inputText,
+        success: true,
+        resultSummary:
+          typeof result === 'string' ? result.slice(0, 200) : JSON.stringify(result).slice(0, 200),
+        durationMs: executionResult.durationMs,
+      });
+    }
+
     // Learning Loop: Record for semantic intelligence pattern learning
     // (compares what was predicted vs what was executed to improve future hints)
     if (ctx.userId && ctx.inputText) {
@@ -390,6 +493,20 @@ export async function executeJsonFunction(
     // Action History: Record failed attempt for honest capability responses
     if (sessionId) {
       recordAction(sessionId, fn, args, false, `Failed: ${String(err).slice(0, 100)}`);
+    }
+
+    // Action Tracker: Persist failed high-impact actions for visibility
+    if (ctx.userId) {
+      trackHighImpactAction({
+        userId: ctx.userId,
+        sessionId: sessionId !== 'unknown' ? sessionId : undefined,
+        toolId: fn,
+        args,
+        inputText: ctx.inputText,
+        success: false,
+        resultSummary: `Failed: ${String(err).slice(0, 150)}`,
+        durationMs,
+      });
     }
 
     // Learning Loop: Record failures too (helps learn what NOT to suggest)

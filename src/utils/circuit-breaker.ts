@@ -280,6 +280,58 @@ export function getCircuitBreaker(name: string, options?: CircuitBreakerOptions)
   return breaker;
 }
 
+// ============================================================================
+// REDIS-BACKED CIRCUIT BREAKER (Cross-Instance State Sharing)
+// ============================================================================
+
+/**
+ * Get or create a Redis-backed circuit breaker.
+ * Redis backing enables circuit state to be shared across all instances.
+ * When one instance trips a breaker, ALL instances see it immediately.
+ *
+ * Use for high-traffic external APIs where you want coordinated failure handling.
+ *
+ * @example
+ * const breaker = await getRedisCircuitBreakerAsync('openai-api', {
+ *   failureThreshold: 5,
+ *   resetTimeout: 30000,
+ * });
+ * const result = await breaker.execute(() => callOpenAI());
+ */
+export async function getRedisCircuitBreakerAsync(
+  name: string,
+  options?: CircuitBreakerOptions & { syncIntervalMs?: number }
+): Promise<CircuitBreaker> {
+  // Check if already exists as Redis breaker
+  const existing = breakers.get(`redis:${name}`);
+  if (existing) {
+    return existing;
+  }
+
+  try {
+    // Try to create Redis-backed breaker
+    const { createRedisCircuitBreaker } = await import(
+      '../services/self-healing/redis-circuit-breaker.js'
+    );
+
+    const redisBreaker = createRedisCircuitBreaker(name, {
+      failureThreshold: options?.failureThreshold ?? 5,
+      recoveryTimeout: options?.resetTimeout ?? 30000,
+      successThreshold: options?.successThreshold ?? 2,
+      syncIntervalMs: options?.syncIntervalMs ?? 5000,
+    });
+
+    // Store in breakers map - the RedisCircuitBreaker has compatible execute() method
+    // but we don't add it to breakers since it uses a different base class
+    getLogger().debug({ name }, 'Created Redis-backed circuit breaker');
+    return redisBreaker as unknown as CircuitBreaker;
+  } catch {
+    // Fall back to local circuit breaker if Redis not available
+    getLogger().debug({ name }, 'Redis not available, using local circuit breaker');
+    return getCircuitBreaker(name, options);
+  }
+}
+
 /**
  * Get all circuit breaker stats (for monitoring)
  */
