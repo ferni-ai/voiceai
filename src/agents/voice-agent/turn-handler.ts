@@ -1210,26 +1210,39 @@ You are their lifeline right now. Be fully present.`,
 
       // ================================================================
       // GREETING AWARENESS (Turn 0 only)
-      // Tell the LLM what greeting it spoke so it doesn't repeat or get confused
-      // This fixes the "agent doesn't know what it said" problem
+      // CRITICAL: The LLM needs to know what greeting was already spoken
+      // Without this, Ferni will re-introduce herself or repeat the greeting
       // ================================================================
       if (userData.greetingText && !userData.greetingInjected && (userData.turnCount ?? 0) === 0) {
-        logger.info(
-          { greetingPreview: userData.greetingText.slice(0, 50) },
-          '🎤 Greeting context injected - LLM now knows what it said'
-        );
         // Strip SSML tags for cleaner context (LLM doesn't need to see <break> tags)
         const cleanGreeting = userData.greetingText
           .replace(/<[^>]+>/g, '')
           .replace(/\s+/g, ' ')
           .trim();
+
+        logger.info(
+          { greetingPreview: cleanGreeting.slice(0, 50) },
+          '🎤 Greeting context injected - LLM now knows what it said'
+        );
+
+        // FIX: Add greeting as actual assistant message in chat history
+        // This ensures the LLM sees it as its own prior turn, not just a hint
+        // The message is prefixed with [ALREADY_SPOKEN] which the TTS sanitizer will filter
+        turnCtx.addMessage({
+          role: 'assistant',
+          content: `[ALREADY_SPOKEN] ${cleanGreeting}`,
+        });
+
+        // Also add explicit guidance to NOT repeat the greeting
         turnCtx.addMessage({
           role: 'system',
-          content: `[CONVERSATION START - DO NOT REPEAT THIS GREETING]
-You just greeted the user with: "${cleanGreeting}"
-This was your opening. Now respond naturally to what they said.
-Do NOT say hello again or repeat your greeting.`,
+          content: `[CRITICAL] You already spoke the greeting above. Do NOT:
+- Say hello again
+- Re-introduce yourself
+- Repeat any part of your opening
+Just respond naturally to what the user said.`,
         });
+
         // Mark as injected so we don't repeat on subsequent turns
         userData.greetingInjected = true;
       }

@@ -152,6 +152,8 @@ export function clearToolDeduplicationForSession(sessionId: string): void {
  * Pattern matches:
  * - [INTERNAL GUIDANCE] ... [DO: ...]
  * - [INTERNAL GUIDANCE - DO NOT SPEAK THIS] ...
+ * - [ALREADY_SPOKEN] ... (greeting context injected for LLM awareness)
+ * - [CRITICAL] ... (safety/behavioral guidance)
  * - Everything from the marker to end of string
  *
  * @example
@@ -166,8 +168,15 @@ function stripGuidanceBlocks(text: string): string {
   // Also catch [SITUATION:...], [DO:...], [TOOL RESULT:...], [DATA:...] blocks
   const otherMarkers = /\n?\[(SITUATION|DO|TOOL RESULT|DATA):[^\]]*\][\s\S]*$/i;
 
+  // Strip [ALREADY_SPOKEN] lines - these are greeting context for LLM, not for TTS
+  // Also strip [CRITICAL] guidance blocks
+  const alreadySpokenPattern = /^\[ALREADY_SPOKEN\].*$/gm;
+  const criticalPattern = /\n?\[CRITICAL\][\s\S]*$/i;
+
   let result = text.replace(guidancePattern, '');
   result = result.replace(otherMarkers, '');
+  result = result.replace(alreadySpokenPattern, '');
+  result = result.replace(criticalPattern, '');
 
   // Trim trailing whitespace/newlines left behind
   result = result.trimEnd();
@@ -179,7 +188,7 @@ function stripGuidanceBlocks(text: string): string {
         strippedLength: result.length,
         preview: text.slice(0, 100),
       },
-      '🛡️ GUIDANCE STRIPPED: Removed [INTERNAL GUIDANCE] block before TTS'
+      '🛡️ GUIDANCE STRIPPED: Removed internal guidance/context block before TTS'
     );
   }
 
