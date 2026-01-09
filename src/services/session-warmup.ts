@@ -106,6 +106,20 @@ export async function warmSessionCaches(
       },
     },
     {
+      name: 'user-profile',
+      fn: async () => {
+        // ⚡ Pre-warm user profile cache for faster session init
+        // This is the biggest latency win - profile load is ~100-500ms from Firestore
+        const { getProfileWithCache } = await import('./data-layer/profile-cache.js');
+        const { getStore } = await import('../memory/store-factory.js');
+        const store = await getStore();
+        const profile = await getProfileWithCache(userId, (uid) => store.getProfile(uid));
+        if (profile) {
+          warmedCaches.push('user-profile');
+        }
+      },
+    },
+    {
       name: 'persona-affinity',
       fn: async () => {
         const { getRedisCache } = await import('../memory/redis-cache.js');

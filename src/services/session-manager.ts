@@ -241,13 +241,24 @@ export async function createSessionServices(
   const validatedUserId = validateUserId(userId);
 
   if (validatedUserId) {
-    // BLOCKING: Only load/create user profile (critical for personalization)
-    userProfile = await global.store.getProfile(validatedUserId);
+    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
+    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
+    const { getProfileWithCache, cacheProfile, invalidateProfile } = await import(
+      './data-layer/profile-cache.js'
+    );
+
+    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
+    userProfile = await getProfileWithCache(validatedUserId, async (uid) => {
+      return global.store.getProfile(uid);
+    });
+
     if (!userProfile) {
       const { createUserProfile } = await import('../types/user-profile.js');
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
       userProfile = createUserProfile(validatedUserId, userName);
       await global.store.saveProfile(userProfile);
+      // Cache the new profile
+      void cacheProfile(validatedUserId, userProfile);
       getLogger().info(
         { userId: validatedUserId, name: userName || '(none)' },
         '🆕 Created new user profile with name from onboarding'
@@ -256,6 +267,8 @@ export async function createSessionServices(
       // Existing profile without a name, but we now have one - update it!
       userProfile.name = userName;
       await global.store.saveProfile(userProfile);
+      // Invalidate cache so next session gets updated profile
+      void invalidateProfile(validatedUserId);
       getLogger().info(
         { userId: validatedUserId, name: userName },
         '✨ Updated existing profile with name from onboarding'
