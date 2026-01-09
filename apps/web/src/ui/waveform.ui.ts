@@ -347,16 +347,22 @@ export function setThinking(thinking: boolean): void {
 let lastNonZeroVolumeTime = 0;
 let volumeDropWarningLogged = false;
 
+// 🎧 BETTER THAN HUMAN: Longer grace period for audio visualization attachment
+// AudioContext can take 3-5s to resume from suspended state (browser autoplay policy)
+// Plus WebRTC track subscription has variable latency
+const VOLUME_TIMEOUT_MS = 5000;
+
 export function setVolume(volume: number): void {
   lastVolume = Math.max(0, Math.min(1, volume));
   
-  // Debug: Track volume drops after handoff
+  // Debug: Track volume drops after speaking starts
   if (volume > 0.01) {
     lastNonZeroVolumeTime = Date.now();
     volumeDropWarningLogged = false;
-  } else if (isSpeaking && Date.now() - lastNonZeroVolumeTime > 2000 && !volumeDropWarningLogged) {
-    // No volume for 2+ seconds while we think we're speaking
-    log.warn('⚠️ No volume received for 2s while speaking - audio visualization may be disconnected');
+  } else if (isSpeaking && Date.now() - lastNonZeroVolumeTime > VOLUME_TIMEOUT_MS && !volumeDropWarningLogged) {
+    // No volume for 5+ seconds while we think we're speaking
+    // This is a debug warning - the safety fallback is that waveform still animates based on speaking state
+    log.warn('⚠️ No volume received for 5s while speaking - audio visualization may be disconnected');
     volumeDropWarningLogged = true;
   }
 }

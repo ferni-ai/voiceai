@@ -3234,21 +3234,24 @@ function setStageOverride(stage: RelationshipStage): void {
 }
 
 async function updateServerSubscription(tier: 'free' | 'friend' | 'partner'): Promise<void> {
+  // 🛡️ SECURITY: Only allow in development - this endpoint requires admin_key
+  // In production, subscription upgrades go through Stripe checkout flow
+  if (!import.meta.env.DEV) {
+    log.debug('Skipping server subscription update (production mode)');
+    return;
+  }
+
   const deviceId = appState.getState().deviceId;
   if (!deviceId) return;
 
   try {
-    // SECURITY: Only use dev-mode key in development environment
-    // In production builds, import.meta.env.DEV is false
-    const adminKey = import.meta.env.DEV ? 'dev-mode' : '';
-    
     await fetch('/subscription/upgrade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         device_id: deviceId,
         tier,
-        admin_key: adminKey,
+        admin_key: 'dev-mode',
       }),
     });
   } catch (e) {

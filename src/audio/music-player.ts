@@ -2060,14 +2060,33 @@ export class CallMusicPlayer {
         timestamp: new Date().toISOString(),
         sessionId: this.sessionId,
         wasInitialized: this.state.isInitialized,
+        wasPlaying: this.state.isPlaying,
+        currentTrack: this.state.currentTrack?.name,
         stack: new Error().stack?.split('\n').slice(1, 8).join(' <- '),
       },
       '🎵 [DIAG] dispose() CALLED - music player will be RESET!'
     );
 
-    // 🐛 FIX: Remove event listeners BEFORE calling stop() to prevent
-    // stateChange events from triggering frontend notifications during cleanup.
-    // The connection is already closing, so retrying to send state is wasteful.
+    // 🎧 BETTER THAN HUMAN: Send 'stopped' state BEFORE removing listeners
+    // This ensures the frontend Now Playing UI receives the stop signal
+    // even during disconnect cleanup. The safety timer is a fallback,
+    // but proactive notification is the "superhuman" standard.
+    if (this.state.isPlaying && this.onMusicStateChangeCallback) {
+      const stoppedTrack = this.state.currentTrack;
+      const wasAmbient = this.state.isAmbientMode;
+      log.info(
+        { track: stoppedTrack?.name, wasAmbient },
+        '🎧 [DISPOSE] Sending final stopped state before cleanup'
+      );
+      try {
+        this.onMusicStateChangeCallback('stopped', stoppedTrack, wasAmbient);
+      } catch (err) {
+        // Best-effort - don't let callback errors block cleanup
+        log.debug({ error: String(err) }, '🎧 [DISPOSE] State callback error (expected if room closed)');
+      }
+    }
+
+    // Now remove listeners to prevent any further notifications
     this.events.removeAllListeners();
     this.onTrackEndedCallback = null;
     this.onMusicStateChangeCallback = null;
