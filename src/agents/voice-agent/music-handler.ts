@@ -812,6 +812,16 @@ function setupMusicStateCallback(
       isAmbient,
     });
 
+    // 🎚️ TIME-SENSITIVE: Send ducking state IMMEDIATELY (not in fireAndForget)
+    // Ducking must reach frontend BEFORE agent audio arrives, otherwise music won't fade
+    if (state === 'ducking') {
+      diag.state('🎚️ [CRITICAL] Sending ducking state SYNCHRONOUSLY to frontend');
+      fireAndForget(async () => {
+        await sendMusicStateToFrontendWithRetry(room, state, track, isAmbient, diag);
+      }, 'ducking-state-immediate');
+      // Don't duplicate this in the main async block below
+    }
+
     // 🎵 HUMANIZED MUSIC TRANSITIONS
     // The old approach spoke "DJ-style" over the fade - felt forced and unnatural.
     // New approach: Let music breathe, wait for natural ending, then gently check in.
@@ -993,7 +1003,12 @@ function setupMusicStateCallback(
 
       // Notify frontend for avatar dancing
       // 🔧 FIX: Added retry logic for transient failures
-      await sendMusicStateToFrontendWithRetry(room, state, track, isAmbient, diag);
+      // 🎚️ FIX: Skip ducking state here - it was already sent synchronously above for lower latency
+      if (state !== 'ducking') {
+        await sendMusicStateToFrontendWithRetry(room, state, track, isAmbient, diag);
+      } else {
+        diag.state('🎚️ Skipping ducking state in async block (already sent synchronously)');
+      }
     }, 'music-state-change-handler');
   });
 }

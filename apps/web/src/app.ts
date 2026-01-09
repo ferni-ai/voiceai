@@ -2846,7 +2846,18 @@ class VoiceAIApp {
             const controller = getMusicAudioController();
             await controller.initialize();
             await controller.attachMusicTrack(audioElement, trackId);
-            log.info('🎚️ Music track attached for ducking', { trackId });
+            
+            // 🎚️ DIAGNOSTIC: Log ducking readiness after attachment
+            const diagnostics = controller.getDuckingDiagnostics();
+            if (diagnostics.hasTrack && diagnostics.hasGainNode) {
+              log.info('🎚️ ✅ Music ducking READY', { trackId, ...diagnostics });
+            } else {
+              log.error('🎚️ ❌ Music ducking FAILED - track attachment did not succeed', { 
+                trackId, 
+                ...diagnostics,
+                hint: 'Ducking will NOT work! Check for Web Audio API errors.',
+              });
+            }
 
             // 🎵 Start visualization loop to drive waveform with actual music audio
             // This makes the waveform respond to real music levels instead of canned animation
@@ -2858,7 +2869,7 @@ class VoiceAIApp {
               log.info('🎵 Music visualization started', { trackId });
             }
           } catch (err) {
-            log.warn('Failed to attach music track for ducking', err);
+            log.error('🎚️ ❌ Failed to attach music track for ducking - DUCKING WILL NOT WORK', err);
           }
         })();
       },

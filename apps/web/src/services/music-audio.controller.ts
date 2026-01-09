@@ -240,10 +240,24 @@ class MusicAudioController {
         currentPriority: DuckPriority.NONE,
       };
 
-      log.info('🎚️ Music track attached for ducking', { trackId });
+      log.info('🎚️ ✅ Music track SUCCESSFULLY attached for ducking', { 
+        trackId,
+        hasGainNode: !!gainNode,
+        agentSpeaking: this.agentSpeaking,
+        userSpeaking: this.userSpeaking,
+        backendDucking: this.backendDucking,
+      });
 
-      // Apply any existing ducking state
-      this.updateDucking();
+      // Apply any existing ducking state (in case someone started speaking before track attached)
+      const duckingApplied = this.updateDucking();
+      if (this.agentSpeaking || this.userSpeaking || this.backendDucking) {
+        log.info('🎚️ Applied pending ducking state after track attachment', {
+          duckingApplied,
+          agentSpeaking: this.agentSpeaking,
+          userSpeaking: this.userSpeaking,
+          backendDucking: this.backendDucking,
+        });
+      }
 
       // Return cleanup function
       return () => this.detachTrack(trackId);
@@ -319,65 +333,107 @@ class MusicAudioController {
   /**
    * Duck the music because agent started speaking.
    * Highest priority - always ducks to lowest level.
+   * 
+   * @returns true if ducking was applied, false if no track attached
    */
-  duckForAgent(): void {
+  duckForAgent(): boolean {
     this.agentSpeaking = true;
-    this.updateDucking();
-    log.debug('🎚️ Ducking for agent speech');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ Ducking for agent speech');
+    } else {
+      log.warn('🎚️ [BUG] duckForAgent called but no music track attached - ducking will NOT work!');
+    }
+    return success;
   }
 
   /**
    * Unduck after agent stops speaking.
+   * 
+   * @returns true if unduck was applied, false if no track attached
    */
-  unduckForAgent(): void {
+  unduckForAgent(): boolean {
     this.agentSpeaking = false;
-    this.updateDucking();
-    log.debug('🎚️ Agent stopped, restoring gain');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ Agent stopped, restoring gain');
+    }
+    return success;
   }
 
   /**
    * Duck the music because user started speaking.
    * Medium priority.
+   * 
+   * @returns true if ducking was applied, false if no track attached
    */
-  duckForUser(): void {
+  duckForUser(): boolean {
     this.userSpeaking = true;
-    this.updateDucking();
-    log.debug('🎚️ Ducking for user speech');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ Ducking for user speech');
+    } else {
+      log.warn('🎚️ [BUG] duckForUser called but no music track attached - ducking will NOT work!');
+    }
+    return success;
   }
 
   /**
    * Unduck after user stops speaking.
+   * 
+   * @returns true if unduck was applied, false if no track attached
    */
-  unduckForUser(): void {
+  unduckForUser(): boolean {
     this.userSpeaking = false;
-    this.updateDucking();
-    log.debug('🎚️ User stopped, restoring gain');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ User stopped, restoring gain');
+    }
+    return success;
   }
 
   /**
    * Duck based on backend message.
    * Lowest priority - only applies if no one is speaking.
+   * 
+   * @returns true if ducking was applied, false if no track attached
    */
-  duckFromBackend(): void {
+  duckFromBackend(): boolean {
     this.backendDucking = true;
-    this.updateDucking();
-    log.debug('🎚️ Backend requested duck');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ Backend requested duck');
+    } else {
+      log.warn('🎚️ [BUG] duckFromBackend called but no music track attached - ducking will NOT work!');
+    }
+    return success;
   }
 
   /**
    * Unduck based on backend message.
+   * 
+   * @returns true if unduck was applied, false if no track attached
    */
-  unduckFromBackend(): void {
+  unduckFromBackend(): boolean {
     this.backendDucking = false;
-    this.updateDucking();
-    log.debug('🎚️ Backend requested unduck');
+    const success = this.updateDucking();
+    if (success) {
+      log.debug('🎚️ Backend requested unduck');
+    }
+    return success;
   }
 
   /**
    * Calculate and apply the correct gain based on current ducking state.
+   * 
+   * @returns true if ducking was applied, false if no track attached
    */
-  private updateDucking(): void {
-    if (!this.currentTrack) return;
+  private updateDucking(): boolean {
+    if (!this.currentTrack) {
+      // No track attached - ducking cannot work
+      // The calling code will log a warning
+      return false;
+    }
 
     let targetGain: number;
     let priority: DuckPriority;
@@ -411,7 +467,7 @@ class MusicAudioController {
           priority,
         });
       }
-      return;
+      return true; // Already at target - ducking is working
     }
 
     this.currentTrack.targetGain = targetGain;
@@ -419,6 +475,8 @@ class MusicAudioController {
 
     // Apply the gain change with smooth ramp
     this.rampGain(targetGain, rampTime);
+    
+    return true;
   }
 
   /**
@@ -583,6 +641,37 @@ class MusicAudioController {
    */
   hasTrack(): boolean {
     return this.currentTrack !== null;
+  }
+
+  /**
+   * Check if ducking is ready (track attached and gain node connected).
+   * Use this to diagnose ducking issues.
+   */
+  isDuckingReady(): boolean {
+    return this.currentTrack !== null && this.currentTrack.gainNode !== null;
+  }
+
+  /**
+   * Get diagnostic info for debugging ducking issues.
+   */
+  getDuckingDiagnostics(): {
+    hasTrack: boolean;
+    hasGainNode: boolean;
+    agentSpeaking: boolean;
+    userSpeaking: boolean;
+    backendDucking: boolean;
+    currentGain: number;
+    targetGain: number;
+  } {
+    return {
+      hasTrack: this.currentTrack !== null,
+      hasGainNode: this.currentTrack?.gainNode !== null,
+      agentSpeaking: this.agentSpeaking,
+      userSpeaking: this.userSpeaking,
+      backendDucking: this.backendDucking,
+      currentGain: this.currentTrack?.gainNode?.gain.value ?? 1.0,
+      targetGain: this.currentTrack?.targetGain ?? 1.0,
+    };
   }
 
   /**
