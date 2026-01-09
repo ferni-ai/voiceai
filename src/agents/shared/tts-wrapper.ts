@@ -348,6 +348,22 @@ export async function wrappedTtsNode(
               log.error({ error: String(err) }, 'Garbage recovery failed');
             });
           }
+
+          // V3.2: Track Ferni's commitments in her response
+          // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
+          // Fire-and-forget to not block TTS stream
+          if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
+            import('../../services/superhuman/semantic-intelligence/integration.js')
+              .then(({ trackFerniCommitments }) => {
+                trackFerniCommitments(userId, rawLLMBuffer, {
+                  // Context is minimal in TTS wrapper, but commitments will still be detected
+                });
+              })
+              .catch((err) => {
+                // Non-critical - don't block TTS
+                log.debug({ error: String(err), sessionId }, 'Failed to track Ferni commitments');
+              });
+          }
         }
       },
     });

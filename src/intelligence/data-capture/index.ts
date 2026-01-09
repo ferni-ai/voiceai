@@ -668,6 +668,13 @@ export async function captureDataBetterThanHuman(
   const definitionAck = await router.captureFromDefinitions(context);
 
   if (definitionAck) {
+    log.info(
+      {
+        userId: context.userId.slice(0, 12) + '...',
+        acknowledgment: definitionAck.slice(0, 50),
+      },
+      '🎯 Better-than-Human data captured via definition'
+    );
     return {
       captured: [],
       suggestedAcknowledgment: definitionAck,

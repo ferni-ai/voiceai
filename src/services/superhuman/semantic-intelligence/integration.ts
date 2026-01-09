@@ -186,8 +186,21 @@ export async function processSemanticIntelligence(data: TurnSemanticData): Promi
   const { userId, userText, topic, textEmotion, textEmotionIntensity } = data;
 
   if (!userId || userId === 'anonymous') {
+    log.debug({ userId }, '⏭️ Skipping semantic intelligence for anonymous user');
     return; // Skip for anonymous users
   }
+
+  // V4.1: Log when semantic intelligence runs (helps debug data capture issues)
+  log.info(
+    {
+      userId: userId.slice(0, 12) + '...',
+      topic,
+      textEmotion,
+      textLength: userText?.length,
+      turnNumber: data.turnNumber,
+    },
+    '🧠 Processing semantic intelligence turn'
+  );
 
   // Run all integrations in parallel, catching errors individually
   await Promise.allSettled([
