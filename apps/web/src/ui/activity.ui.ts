@@ -8,12 +8,12 @@
  */
 
 import { DURATION_GENERATED, EASING_GENERATED } from '../config/animation-constants.generated.js';
+import { apiGet } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
 
 // Alias for cleaner usage
 const DURATION = DURATION_GENERATED;
 const EASING = EASING_GENERATED;
-import { apiGet } from '../utils/api.js';
-import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ActivityUI');
 
