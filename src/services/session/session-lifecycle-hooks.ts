@@ -23,6 +23,37 @@ import { outreachHistory } from '../outreach/outreach-history.js';
 const log = getLogger().child({ module: 'session-lifecycle' });
 
 // ============================================================================
+// REDIS PUB/SUB FOR CROSS-INSTANCE SESSION SYNC
+// ============================================================================
+
+let publishSession: ((type: string, data: Record<string, unknown>) => void) | null = null;
+
+// Session event types supported by Pub/Sub
+type SessionEventType = 'handoff' | 'end' | 'presence' | 'session_start' | 'session_end';
+
+// Initialize Pub/Sub (non-blocking)
+void (async () => {
+  try {
+    const { publishSessionEvent } = await import('../redis-pubsub.js');
+    publishSession = (type: string, data: Record<string, unknown>) => {
+      // Only publish if type is a valid session event type
+      const validTypes: SessionEventType[] = ['handoff', 'end', 'presence', 'session_start', 'session_end'];
+      if (validTypes.includes(type as SessionEventType)) {
+        publishSessionEvent(type as SessionEventType, {
+          userId: data.userId as string,
+          sessionId: data.sessionId as string,
+          personaId: data.personaId as string,
+          metadata: data,
+        }).catch(() => {});
+      }
+    };
+    log.debug('Session lifecycle Pub/Sub enabled');
+  } catch {
+    // Pub/Sub not available
+  }
+})();
+
+// ============================================================================
 // SESSION START
 // ============================================================================
 
@@ -61,6 +92,17 @@ export async function onSessionStart(
     const topAffinity = affinities.find(
       (a) => a.personaId !== personaId && a.emotionalResonance === 'high'
     );
+
+    // 6. Broadcast session start via Pub/Sub for cross-instance awareness
+    if (publishSession) {
+      publishSession('session_start', {
+        userId,
+        sessionId,
+        personaId,
+        channel,
+        timestamp: Date.now(),
+      });
+    }
 
     log.info(
       { userId, sessionId, personaId, channel, correctionCount: correctionContext.length },
@@ -149,6 +191,18 @@ export async function onSessionEnd(
       duration: sessionData.duration,
       outcome: sessionData.sentiment === 'positive' ? 'successful' : 'needs_follow_up',
     });
+
+    // 6. Broadcast session end via Pub/Sub for cross-instance awareness
+    if (publishSession) {
+      publishSession('session_end', {
+        userId,
+        sessionId,
+        personaId: sessionData.personaId,
+        duration: sessionData.duration,
+        sentiment: sessionData.sentiment,
+        timestamp: Date.now(),
+      });
+    }
 
     log.info(
       { userId, sessionId, duration: sessionData.duration, sentiment: sessionData.sentiment },

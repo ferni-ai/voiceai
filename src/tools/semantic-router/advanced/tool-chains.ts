@@ -11,8 +11,38 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import type { RedisCache } from '../../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'SemanticRouter.ToolChains' });
+
+// ============================================================================
+// REDIS BACKING FOR CROSS-INSTANCE STATE
+// ============================================================================
+
+let redisCache: RedisCache | null = null;
+
+/**
+ * Initialize Redis for tool chain state sharing
+ */
+async function initializeRedis(): Promise<void> {
+  try {
+    const { getRedisCache } = await import('../../../memory/redis-cache.js');
+    const cache = getRedisCache();
+    await cache.initialize();
+    if (cache.isConnected()) {
+      redisCache = cache;
+      log.info('🚀 Tool chains Redis backing enabled');
+    }
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Redis not available for tool chains');
+  }
+}
+
+// Initialize on module load (non-blocking)
+void initializeRedis();
+
+const REDIS_KEY_PREFIX = 'toolchain:';
+const REDIS_TTL_SECONDS = 3600; // 1 hour for learned patterns
 
 // ============================================================================
 // TYPES
@@ -332,10 +362,29 @@ export function predictNextStep(
 }
 
 // ============================================================================
-// CHAIN EXECUTION TRACKING
+// CHAIN EXECUTION TRACKING (Redis-backed for cross-instance sharing)
 // ============================================================================
 
 const activeChains = new Map<string, ChainExecutionContext>();
+
+/**
+ * Store active chain in Redis (fire-and-forget)
+ */
+function persistActiveChain(sessionId: string, context: ChainExecutionContext): void {
+  if (!redisCache?.isConnected()) return;
+
+  const key = `${REDIS_KEY_PREFIX}active:${sessionId}`;
+  const serialized = {
+    ...context,
+    completedSteps: context.completedSteps.map((s) => ({
+      ...s,
+      timestamp: s.timestamp.toISOString(),
+    })),
+  };
+  redisCache.set(key, serialized, 1800).catch((err) => {
+    log.debug({ error: String(err) }, 'Failed to persist active chain');
+  });
+}
 
 /**
  * Start tracking a chain execution
@@ -359,6 +408,7 @@ export function startChainExecution(
   };
 
   activeChains.set(sessionId, context);
+  persistActiveChain(sessionId, context);
   log.info({ sessionId, chainId, steps: context.pendingSteps.length }, 'Chain execution started');
 
   return context;
@@ -393,7 +443,14 @@ export function recordStepCompletion(
   // Check if chain is complete
   if (context.pendingSteps.length === 0) {
     activeChains.delete(sessionId);
+    // Clean up Redis
+    if (redisCache?.isConnected()) {
+      redisCache.delete(`${REDIS_KEY_PREFIX}active:${sessionId}`).catch(() => {});
+    }
     log.info({ sessionId, completedSteps: context.completedSteps.length }, 'Chain completed');
+  } else {
+    // Update Redis with progress
+    persistActiveChain(sessionId, context);
   }
 
   return context;
@@ -414,10 +471,10 @@ export function cancelChain(sessionId: string): void {
 }
 
 // ============================================================================
-// CHAIN LEARNING
+// CHAIN LEARNING (Redis-backed for cross-instance pattern sharing)
 // ============================================================================
 
-// Learned chains from user behavior
+// Learned chains from user behavior (L1 memory cache)
 const learnedChains = new Map<string, Map<string, number>>();
 
 /**
@@ -426,7 +483,7 @@ const learnedChains = new Map<string, Map<string, number>>();
 export function learnToolSequence(sessionId: string, tools: string[]): void {
   if (tools.length < 2) return;
 
-  // Record each pair
+  // Record each pair in local memory
   for (let i = 0; i < tools.length - 1; i++) {
     const from = tools[i];
     const to = tools[i + 1];
@@ -437,6 +494,17 @@ export function learnToolSequence(sessionId: string, tools: string[]): void {
 
     const transitions = learnedChains.get(from)!;
     transitions.set(to, (transitions.get(to) || 0) + 1);
+
+    // Persist to Redis (fire-and-forget)
+    if (redisCache?.isConnected()) {
+      const key = `${REDIS_KEY_PREFIX}learned:${from}:${to}`;
+      redisCache.incr(key).then((count: number) => {
+        // Set TTL on first increment
+        if (count === 1) {
+          redisCache?.expire(key, REDIS_TTL_SECONDS).catch(() => {});
+        }
+      }).catch(() => {});
+    }
   }
 
   log.debug({ sessionId, sequence: tools }, 'Tool sequence learned');

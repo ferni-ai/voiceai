@@ -14,8 +14,39 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import type { RedisBackedCache } from '../../../../services/data-layer/memory-cache-manager.js';
 
 const log = createLogger({ module: 'intent-classifier' });
+
+// ============================================================================
+// REDIS-BACKED CACHE (Cross-Instance Classification Sharing)
+// ============================================================================
+
+let redisCache: RedisBackedCache<string, ClassificationResult> | null = null;
+
+/**
+ * Initialize Redis cache for intent classifications (non-blocking)
+ * Enables cross-instance cache sharing for faster classification
+ */
+async function initializeRedisCache(): Promise<void> {
+  try {
+    const { createRedisBackedCache } = await import(
+      '../../../../services/data-layer/memory-cache-manager.js'
+    );
+    redisCache = await createRedisBackedCache<ClassificationResult>('intent-classifier', {
+      ttlMs: 5 * 60 * 1000, // 5 minutes
+      maxEntries: 2000,
+      redisKeyPrefix: 'intent:',
+      redisTtlSeconds: 300,
+    });
+    log.info('🚀 Intent classifier Redis cache enabled');
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Redis cache not available for intent classifier');
+  }
+}
+
+// Initialize Redis cache on module load (non-blocking)
+void initializeRedisCache();
 
 // ============================================================================
 // TYPES
@@ -578,12 +609,42 @@ const SLOT_EXTRACTORS: Record<SlotType, (text: string) => Slot[]> = {
 export class IntentClassifier {
   private config: IntentClassifierConfig;
   private intents: Intent[] = [];
-  private cache = new Map<string, ClassificationResult>();
+  private localCache = new Map<string, ClassificationResult>(); // L1 memory cache
   private learnedPatterns = new Map<string, { pattern: RegExp; intentId: string }>();
 
   constructor(config: Partial<IntentClassifierConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.intents = [...BUILT_IN_INTENTS];
+  }
+
+  /**
+   * Get cached classification result (L1 + L2)
+   */
+  private getCached(key: string): ClassificationResult | undefined {
+    // L1: Check local memory first (sub-ms)
+    const local = this.localCache.get(key);
+    if (local) return local;
+
+    // L2: Check Redis (handled by RedisBackedCache)
+    // Note: Sync get() only checks L1, use getAsync for L2
+    return redisCache?.get(key);
+  }
+
+  /**
+   * Store classification result (L1 + L2)
+   */
+  private setCached(key: string, result: ClassificationResult): void {
+    // L1: Store in local memory
+    if (this.localCache.size >= this.config.maxCacheSize) {
+      const firstKey = this.localCache.keys().next().value;
+      if (firstKey) this.localCache.delete(firstKey);
+    }
+    this.localCache.set(key, result);
+
+    // L2: Store in Redis (fire-and-forget via RedisBackedCache)
+    if (redisCache) {
+      redisCache.set(key, result);
+    }
   }
 
   /**
@@ -602,9 +663,9 @@ export class IntentClassifier {
     const startTime = performance.now();
     const normalized = input.trim();
 
-    // Check cache
-    if (this.cache.has(normalized)) {
-      const cached = this.cache.get(normalized)!;
+    // Check cache (L1 + L2)
+    const cached = this.getCached(normalized);
+    if (cached) {
       return { ...cached, latencyMs: performance.now() - startTime, source: 'cache' };
     }
 
@@ -817,12 +878,8 @@ export class IntentClassifier {
       args: this.slotsToArgs(partial.slots),
     };
 
-    // Cache
-    if (this.cache.size >= this.config.maxCacheSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) this.cache.delete(firstKey);
-    }
-    this.cache.set(input, result);
+    // Cache to L1 + L2
+    this.setCached(input, result);
 
     return result;
   }
@@ -900,10 +957,21 @@ export class IntentClassifier {
   }
 
   /**
-   * Clear cache
+   * Clear cache (L1 only, L2 expires via TTL)
    */
   clearCache(): void {
-    this.cache.clear();
+    this.localCache.clear();
+    redisCache?.clear();
+  }
+
+  /**
+   * Get cache stats
+   */
+  getCacheStats(): { l1Size: number; hasRedisL2: boolean } {
+    return {
+      l1Size: this.localCache.size,
+      hasRedisL2: redisCache !== null,
+    };
   }
 }
 

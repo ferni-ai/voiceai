@@ -604,6 +604,41 @@ export class RedisCache {
     }
   }
 
+  /**
+   * Increment a counter
+   * Returns 0 if Redis unavailable
+   */
+  async incr(key: string): Promise<number> {
+    if (!this.client) {
+      return 0;
+    }
+
+    try {
+      return await this.client.incr(key);
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to increment counter (non-blocking)');
+      return 0;
+    }
+  }
+
+  /**
+   * Set TTL on a key
+   * Returns false if Redis unavailable
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
+
+    try {
+      const result = await this.client.expire(key, seconds);
+      return result > 0;
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to set TTL (non-blocking)');
+      return false;
+    }
+  }
+
   // ============================================================================
   // REAL-TIME EMOTIONAL STATE
   // ============================================================================
