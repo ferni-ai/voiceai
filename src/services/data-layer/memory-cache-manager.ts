@@ -7,10 +7,16 @@
  * Philosophy: Memory is precious. Like a well-organized mind, we keep what's
  * frequently accessed and let rarely-used information fade gracefully.
  *
+ * PERFORMANCE OPTIMIZATION (Jan 2026):
+ * - Added RedisBackedCache for L2 caching with Redis
+ * - L1 (memory) provides sub-ms access, L2 (Redis) provides cross-instance sharing
+ * - Automatic fallback to memory-only if Redis is unavailable
+ *
  * @module services/data-layer/memory-cache-manager
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import type { RedisCache } from '../../memory/redis-cache.js';
 
 const log = createLogger({ module: 'MemoryCacheManager' });
 
@@ -246,6 +252,312 @@ export class ManagedCache<K extends string, V> {
 }
 
 // ============================================================================
+// REDIS-BACKED CACHE (L1 Memory + L2 Redis)
+// ============================================================================
+
+interface RedisBackedCacheConfig extends CacheConfig {
+  /** Redis key prefix for this cache */
+  redisKeyPrefix: string;
+  /** TTL for Redis entries in seconds (defaults to ttlMs / 1000) */
+  redisTtlSeconds?: number;
+  /** Whether to use compression for large values */
+  useCompression?: boolean;
+}
+
+/**
+ * Redis-backed cache with L1 (memory) + L2 (Redis) tiered caching.
+ *
+ * PERFORMANCE CHARACTERISTICS:
+ * - L1 hit: ~0.001ms (in-memory Map access)
+ * - L2 hit: ~1-5ms (Redis network call)
+ * - L2 miss: ~1-5ms (Redis network call, then fallback)
+ *
+ * USE CASES:
+ * - Cross-instance data sharing
+ * - Persistence across container restarts
+ * - Large datasets that benefit from distributed caching
+ *
+ * @example
+ * const cache = await createRedisBackedCache<UserProfile>('user-profiles', {
+ *   maxEntries: 1000,
+ *   ttlMs: 5 * 60 * 1000,
+ *   redisKeyPrefix: 'profile:',
+ * });
+ *
+ * // Sync access (L1 only)
+ * const profile = cache.get('user123');
+ *
+ * // Async access (L1 + L2)
+ * const profile = await cache.getAsync('user123');
+ */
+export class RedisBackedCache<K extends string, V> extends ManagedCache<K, V> {
+  private redis: RedisCache | null = null;
+  private redisConfig: RedisBackedCacheConfig;
+  private redisStats = { l2Hits: 0, l2Misses: 0, l2Errors: 0 };
+
+  constructor(name: string, config: Partial<RedisBackedCacheConfig>) {
+    super(name, config);
+    this.redisConfig = {
+      maxEntries: config.maxEntries ?? 1000,
+      ttlMs: config.ttlMs ?? 5 * 60 * 1000,
+      trackAccess: config.trackAccess ?? true,
+      redisKeyPrefix: config.redisKeyPrefix ?? `cache:${name}:`,
+      redisTtlSeconds: config.redisTtlSeconds ?? Math.floor((config.ttlMs ?? 300000) / 1000),
+      useCompression: config.useCompression ?? false,
+    };
+  }
+
+  /**
+   * Initialize Redis connection (call once after construction)
+   */
+  async initializeRedis(): Promise<boolean> {
+    try {
+      const { getRedisCache } = await import('../../memory/redis-cache.js');
+      const cache = getRedisCache();
+      await cache.initialize();
+
+      if (cache.isConnected()) {
+        this.redis = cache;
+        log.info({ cache: this.redisConfig.redisKeyPrefix }, '🚀 Redis L2 cache enabled');
+        return true;
+      }
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Redis L2 not available');
+    }
+    return false;
+  }
+
+  /**
+   * Check if Redis L2 is available
+   */
+  hasRedisL2(): boolean {
+    return this.redis?.isConnected() ?? false;
+  }
+
+  /**
+   * Get value (sync - L1 memory only, for latency-critical paths)
+   */
+  override get(key: K): V | undefined {
+    return super.get(key);
+  }
+
+  /**
+   * Get value (async - L1 memory + L2 Redis)
+   * Use this when latency is acceptable but cross-instance sharing is needed.
+   */
+  async getAsync(key: K): Promise<V | undefined> {
+    // L1: Check memory first (fastest)
+    const memoryResult = super.get(key);
+    if (memoryResult !== undefined) {
+      return memoryResult;
+    }
+
+    // L2: Check Redis
+    if (this.redis?.isConnected()) {
+      try {
+        const redisKey = this.redisConfig.redisKeyPrefix + key;
+        const redisData = this.redisConfig.useCompression
+          ? await this.redis.getCompressed<CacheEntry<V>>(redisKey)
+          : await this.redis.get<CacheEntry<V>>(redisKey);
+
+        if (redisData && this.isValidEntry(redisData)) {
+          this.redisStats.l2Hits++;
+
+          // Promote to L1 for faster subsequent access
+          super.set(key, redisData.value);
+
+          log.debug({ key, cache: this.redisConfig.redisKeyPrefix, layer: 'L2' }, 'Cache hit');
+          return redisData.value;
+        }
+        this.redisStats.l2Misses++;
+      } catch (error) {
+        this.redisStats.l2Errors++;
+        log.debug({ error: String(error), key }, 'Redis L2 get failed');
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Set value (writes to L1 memory and L2 Redis)
+   */
+  override set(key: K, value: V): void {
+    // L1: Always set in memory (synchronous)
+    super.set(key, value);
+
+    // L2: Write to Redis (fire-and-forget)
+    if (this.redis?.isConnected()) {
+      const redisKey = this.redisConfig.redisKeyPrefix + key;
+      const entry: CacheEntry<V> = {
+        value,
+        createdAt: Date.now(),
+        lastAccessedAt: Date.now(),
+        accessCount: 1,
+      };
+
+      const writePromise = this.redisConfig.useCompression
+        ? this.redis.setCompressed(redisKey, entry, this.redisConfig.redisTtlSeconds)
+        : this.redis.set(redisKey, entry, this.redisConfig.redisTtlSeconds);
+
+      writePromise.catch((error) => {
+        this.redisStats.l2Errors++;
+        log.debug({ error: String(error), key }, 'Redis L2 set failed');
+      });
+    }
+  }
+
+  /**
+   * Set value async (waits for Redis write confirmation)
+   * Use when you need to ensure value is persisted before proceeding.
+   */
+  async setAsync(key: K, value: V): Promise<void> {
+    // L1: Set in memory
+    super.set(key, value);
+
+    // L2: Write to Redis and wait
+    if (this.redis?.isConnected()) {
+      try {
+        const redisKey = this.redisConfig.redisKeyPrefix + key;
+        const entry: CacheEntry<V> = {
+          value,
+          createdAt: Date.now(),
+          lastAccessedAt: Date.now(),
+          accessCount: 1,
+        };
+
+        if (this.redisConfig.useCompression) {
+          await this.redis.setCompressed(redisKey, entry, this.redisConfig.redisTtlSeconds);
+        } else {
+          await this.redis.set(redisKey, entry, this.redisConfig.redisTtlSeconds);
+        }
+      } catch (error) {
+        this.redisStats.l2Errors++;
+        log.debug({ error: String(error), key }, 'Redis L2 setAsync failed');
+      }
+    }
+  }
+
+  /**
+   * Delete value (from L1 and L2)
+   */
+  override delete(key: K): boolean {
+    const deleted = super.delete(key);
+
+    // L2: Delete from Redis (fire-and-forget)
+    if (this.redis?.isConnected()) {
+      const redisKey = this.redisConfig.redisKeyPrefix + key;
+      this.redis.delete(redisKey).catch((error) => {
+        log.debug({ error: String(error), key }, 'Redis L2 delete failed');
+      });
+    }
+
+    return deleted;
+  }
+
+  /**
+   * Clear all entries (L1 and L2)
+   * Note: L2 clear uses pattern delete which may be slow for large datasets
+   */
+  override clear(): void {
+    super.clear();
+    // Note: Redis pattern delete would be expensive, skip for now
+    // Individual entries will expire via TTL
+    log.debug({ cache: this.redisConfig.redisKeyPrefix }, 'L1 cache cleared (L2 will expire via TTL)');
+  }
+
+  /**
+   * Get extended stats including Redis L2 metrics
+   */
+  getExtendedStats(): CacheStats & {
+    redisL2Enabled: boolean;
+    l2Hits: number;
+    l2Misses: number;
+    l2Errors: number;
+    l2HitRate: number;
+  } {
+    const baseStats = super.getStats();
+    const totalL2Ops = this.redisStats.l2Hits + this.redisStats.l2Misses;
+
+    return {
+      ...baseStats,
+      redisL2Enabled: this.redis?.isConnected() ?? false,
+      l2Hits: this.redisStats.l2Hits,
+      l2Misses: this.redisStats.l2Misses,
+      l2Errors: this.redisStats.l2Errors,
+      l2HitRate: totalL2Ops > 0 ? this.redisStats.l2Hits / totalL2Ops : 0,
+    };
+  }
+
+  private isValidEntry(entry: CacheEntry<V>): boolean {
+    if (!entry || !entry.createdAt) return false;
+    const age = Date.now() - entry.createdAt;
+    return age < this.redisConfig.ttlMs;
+  }
+}
+
+/**
+ * Create a Redis-backed cache with automatic Redis initialization.
+ * Falls back to memory-only if Redis is unavailable.
+ */
+export async function createRedisBackedCache<V>(
+  name: string,
+  config: Partial<RedisBackedCacheConfig> = {}
+): Promise<RedisBackedCache<string, V>> {
+  const cache = new RedisBackedCache<string, V>(name, config);
+  await cache.initializeRedis();
+
+  // Register for global management
+  registeredCaches.set(name, {
+    cache: cache as unknown as ManagedCache<string, unknown>,
+    config: { ...config } as CacheConfig,
+    createdAt: Date.now(),
+  });
+
+  log.debug(
+    {
+      name,
+      redisEnabled: cache.hasRedisL2(),
+      maxEntries: config.maxEntries,
+      ttlMs: config.ttlMs,
+    },
+    'Redis-backed cache created'
+  );
+
+  return cache;
+}
+
+/**
+ * Create a Redis-backed user cache
+ */
+export async function createRedisBackedUserCache<V>(
+  name: string,
+  options: { maxUsers?: number; ttlMs?: number } = {}
+): Promise<RedisBackedCache<string, V>> {
+  return createRedisBackedCache<V>(name, {
+    maxEntries: options.maxUsers ?? 500,
+    ttlMs: options.ttlMs ?? 5 * 60 * 1000,
+    redisKeyPrefix: `user:${name}:`,
+    trackAccess: true,
+  });
+}
+
+/**
+ * Create a Redis-backed session cache
+ */
+export async function createRedisBackedSessionCache<V>(
+  name: string,
+  options: { maxSessions?: number; ttlMs?: number } = {}
+): Promise<RedisBackedCache<string, V>> {
+  return createRedisBackedCache<V>(name, {
+    maxEntries: options.maxSessions ?? 200,
+    ttlMs: options.ttlMs ?? 30 * 60 * 1000,
+    redisKeyPrefix: `session:${name}:`,
+    trackAccess: true,
+  });
+}
+
+// ============================================================================
 // GLOBAL CACHE REGISTRY
 // ============================================================================
 
@@ -463,4 +775,5 @@ export function createTempCache<V>(
 // EXPORTS
 // ============================================================================
 
-export type { CacheConfig, CacheStats };
+export type { CacheConfig, CacheStats, RedisBackedCacheConfig };
+// Note: RedisBackedCache is already exported at class declaration (line 293)

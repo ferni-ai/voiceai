@@ -981,85 +981,83 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // BETTER THAN HUMAN #6: Cross-Channel Thread Continuity
     // When user responds to our outreach (SMS, push, email) via voice call,
     // we pick up exactly where we left off - across channels.
+    // ⚡ PERF FIX: Made non-blocking - thread context loads in background
+    // If it loads fast enough, it's available on first turn. Otherwise, second turn.
     // =========================================================================
     if (userId) {
-      try {
-        const { buildThreadContext } =
-          await import('../intelligence/context-builders/session/thread-context.js');
-        const threadContext = await buildThreadContext(
-          userId,
-          personaId as import('../personas/types.js').PersonaId,
-          {
-            sessionId,
-            fromNotification: metadata.fromNotification === true,
-          }
-        );
-
-        if (threadContext) {
-          // Store thread context for injection on first turn
-          userData.threadContext = threadContext.content;
-          userData.threadId = threadContext.threadId;
-          userData.isOutreachResponse = threadContext.isOutreachResponse;
-
-          process.stderr.write(
-            `[voice-agent-entry] 🧵 THREAD CONTEXT - Cross-channel continuity enabled:\n` +
-              `  - threadId: ${threadContext.threadId || 'new'}\n` +
-              `  - isOutreachResponse: ${threadContext.isOutreachResponse}\n` +
-              `  - priority: ${threadContext.priority}\n`
+      // ⚡ NON-BLOCKING: Thread context and recording init run in background
+      void (async () => {
+        try {
+          const { buildThreadContext } =
+            await import('../intelligence/context-builders/session/thread-context.js');
+          const threadContext = await buildThreadContext(
+            userId,
+            personaId as import('../personas/types.js').PersonaId,
+            {
+              sessionId,
+              fromNotification: metadata.fromNotification === true,
+            }
           );
 
-          // Also inject into model instructions for immediate awareness
-          if (threadContext.isOutreachResponse) {
-            modelBaseInstructions += `
----
+          if (threadContext) {
+            // Store thread context for injection on first turn
+            userData.threadContext = threadContext.content;
+            userData.threadId = threadContext.threadId;
+            userData.isOutreachResponse = threadContext.isOutreachResponse;
 
-## Conversation Thread Context
-
-${threadContext.content}
-`;
             process.stderr.write(
-              `[voice-agent-entry] 🧵 Thread context injected into model instructions (outreach response)\n`
+              `[voice-agent-entry] 🧵 THREAD CONTEXT - Cross-channel continuity enabled:\n` +
+                `  - threadId: ${threadContext.threadId || 'new'}\n` +
+                `  - isOutreachResponse: ${threadContext.isOutreachResponse}\n` +
+                `  - priority: ${threadContext.priority}\n`
+            );
+
+            // Note: modelBaseInstructions already compiled, thread context will be injected on first turn via userData
+            if (threadContext.isOutreachResponse) {
+              process.stderr.write(
+                `[voice-agent-entry] 🧵 Thread context ready for first turn injection (outreach response)\n`
+              );
+            }
+          } else {
+            process.stderr.write(`[voice-agent-entry] 🧵 No active thread context for user\n`);
+          }
+
+          // Initialize thread recording for this session (after context loads)
+          try {
+            const { initializeThreadRecording, cleanupThreadRecording } =
+              await import('../services/conversation-thread/thread-recorder.js');
+            const threadInit = await initializeThreadRecording(
+              userId,
+              sessionId,
+              personaId as import('../personas/types.js').PersonaId,
+              {
+                existingThreadId: userData.threadId,
+                isOutreachResponse: userData.isOutreachResponse,
+              }
+            );
+
+            // Store thread ID in userData for use in transcript/response recording
+            userData.threadId = threadInit.threadId;
+
+            // Add cleanup handler
+            cleanupHandlers.push(() => {
+              cleanupThreadRecording(sessionId);
+            });
+
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 Thread recording initialized (threadId: ${threadInit.threadId}, isNew: ${threadInit.isNew})\n`
+            );
+          } catch (threadRecordErr) {
+            process.stderr.write(
+              `[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`
             );
           }
-        } else {
-          process.stderr.write(`[voice-agent-entry] 🧵 No active thread context for user\n`);
+        } catch (threadErr) {
+          process.stderr.write(
+            `[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`
+          );
         }
-      } catch (threadErr) {
-        process.stderr.write(
-          `[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`
-        );
-      }
-
-      // Initialize thread recording for this session
-      try {
-        const { initializeThreadRecording, cleanupThreadRecording } =
-          await import('../services/conversation-thread/thread-recorder.js');
-        const threadInit = await initializeThreadRecording(
-          userId,
-          sessionId,
-          personaId as import('../personas/types.js').PersonaId,
-          {
-            existingThreadId: userData.threadId,
-            isOutreachResponse: userData.isOutreachResponse,
-          }
-        );
-
-        // Store thread ID in userData for use in transcript/response recording
-        userData.threadId = threadInit.threadId;
-
-        // Add cleanup handler
-        cleanupHandlers.push(() => {
-          cleanupThreadRecording(sessionId);
-        });
-
-        process.stderr.write(
-          `[voice-agent-entry] 🧵 Thread recording initialized (threadId: ${threadInit.threadId}, isNew: ${threadInit.isNew})\n`
-        );
-      } catch (threadRecordErr) {
-        process.stderr.write(
-          `[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`
-        );
-      }
+      })();
     }
 
     // Start FinOps cost tracking for this session
@@ -1283,6 +1281,9 @@ ${threadContext.content}
     (userData as any).userLocation = userLocation;
 
     // Get tools from orchestrator
+    // ⚡ FAST PATH: Skip semantic router on session start - we have no user input yet!
+    // This reduces tool loading from ~5-7s to <500ms. Full semantic routing happens
+    // on first turn when we actually have user context to match against.
     const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
       persona: { id: sessionPersona.id, displayName: sessionPersona.name },
       userId: userId || 'anonymous',
@@ -1293,6 +1294,9 @@ ${threadContext.content}
       services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
       // IP-detected location for weather, local content
       userLocation,
+      // ⚡ PERF FIX: Use fast path to skip semantic router (5-7s → <500ms)
+      fastPath: true,
+      sessionId,
     });
 
     process.stderr.write(

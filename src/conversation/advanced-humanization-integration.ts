@@ -464,9 +464,10 @@ export function recordAdviceGiven(sessionId: string): void {
 /**
  * Record agent response (for repair detection)
  *
- * This flows to two systems:
+ * This flows to THREE systems:
  * 1. Advanced humanization repair engine (existing)
- * 2. Deep understanding repair intelligence (new - superhuman understanding)
+ * 2. Deep understanding repair intelligence (superhuman understanding)
+ * 3. Ferni commitment tracking (V3.2 - track Ferni's promises)
  */
 export function recordAgentResponse(sessionId: string, response: string): void {
   const state = sessions.get(sessionId);
@@ -487,6 +488,25 @@ export function recordAgentResponse(sessionId: string, response: string): void {
         'Failed to record response to deep understanding'
       );
     });
+
+  // V3.2: Track Ferni's commitments in her response
+  // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
+  if (state.config.userId && state.config.userId !== 'anonymous') {
+    import('../services/superhuman/semantic-intelligence/integration.js')
+      .then(({ trackFerniCommitments }) => {
+        // Fire-and-forget: track commitments asynchronously
+        void trackFerniCommitments(state.config.userId, response, {
+          // Context will be enhanced in the trackFerniCommitments function
+        });
+      })
+      .catch((err) => {
+        // Non-critical - don't block on this
+        logger.debug(
+          { error: String(err), sessionId, userId: state.config.userId },
+          'Failed to track Ferni commitments'
+        );
+      });
+  }
 }
 
 // ============================================================================
