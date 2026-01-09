@@ -91,6 +91,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // ============================================================================
   // INTELLIGENCE (in intelligence/) - "Better Than Human" capabilities
   // ============================================================================
+  'personality-v2': async () => import('../personality-v2.js'), // SUPERHUMAN personality intelligence
   'better-than-human-direct': async () => import('../superhuman/better-than-human-direct.js'),
   'conversational-superpowers': async () => import('../superhuman/conversational-superpowers.js'),
   'alive-awareness': async () => import('../awareness/alive-awareness.js'),

@@ -1,6 +1,8 @@
 /**
  * Human-Like Behaviors Module
  *
+ * @deprecated Import from './human-behaviors/index.js' instead
+ *
  * > "We believe in making AI human, and the decisions we make will reflect that."
  *
  * Implements sophisticated human behaviors that make Ferni feel alive:

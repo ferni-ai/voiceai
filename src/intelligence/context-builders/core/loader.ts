@@ -178,6 +178,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-vulnerability',
     'persona-mood',
     'human-personality', // Semantic matching, timing intelligence, callbacks
+    'personality-v2', // SUPERHUMAN: Anticipation, timing, vulnerability, patterns, growth (Clean Architecture v2)
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
     'ferni-coordinator-insights', // Ferni-specific: smart handoff suggestions from cross-team insights
     'peter-research-insights', // Peter-specific: deep research briefings on entry/handoff

@@ -2,10 +2,36 @@
 
 > **"Intelligence is not about having data. It's about knowing what matters right now."**
 
-**Status:** Production-ready ✅ (December 2024)
+**Status:** Production-ready ✅ | **Rationalization:** ✅ Complete (January 2026)  
 **Tests:** 71 passing | **Validation:** All 22 checks passing
 
 This is Ferni's brain - the layer that turns 98 entity types into genuine awareness and intelligent responses.
+
+---
+
+## ✅ Rationalization Complete (January 2026)
+
+**464 files have been organized into a clean, domain-driven architecture.**
+
+### New Module Structure
+
+| Folder | Purpose | Files |
+|--------|---------|-------|
+| `core/` | Infrastructure (assembler, API, orchestrators) | 6 |
+| `detectors/` | Pure detection (emotion, intent, distress) | 11 |
+| `state/` | Session & conversation state | 3 |
+| `deep-understanding/` | Superhuman understanding (silence, rhythm, etc.) | 13 |
+| `tracking/` | Learning & tracking (humor, stories, patterns) | 14 |
+| `collective/` | Collective intelligence | 5 |
+| `coaching/` | Coaching intelligence | 5 |
+| `context-builders/` | Context injection system | 220 |
+| `predictive/` | Predictive intelligence | 33 |
+| `triggers/` | Superhuman triggers | 41 |
+
+### Migration Documentation
+- `docs/architecture/INTELLIGENCE-RATIONALIZATION.md` - Architecture plan
+- `docs/architecture/INTELLIGENCE-MIGRATION-TRACKER.md` - Completed tracker
+- `docs/architecture/CONTEXT-BUILDERS-MIGRATION-TRACKER.md` - Context builders tracker
 
 ---
 

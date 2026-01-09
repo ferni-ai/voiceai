@@ -2,13 +2,22 @@
  * Human Personality Context Builder
  *
  * The unified context builder that makes personas feel HUMAN.
- * Now with SUPERHUMAN features:
+ * SUPERHUMAN features through semantic matching and callbacks.
  *
- * 1. Semantic search for relevance (not keywords)
- * 2. Callbacks (the smile factor - "you remembered!")
- * 3. Timing intelligence (know when to share vs listen)
- * 4. Emotional pattern recognition (notice what they don't)
- * 5. Growth celebration (remember where they started)
+ * FEATURE OWNERSHIP (January 2026):
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │ Feature                │ Owner           │ Notes            │
+ * ├─────────────────────────────────────────────────────────────┤
+ * │ Timing Intelligence    │ personality-v2  │ DEFERRED         │
+ * │ Anticipation           │ personality-v2  │ NEW in v2        │
+ * │ Vulnerability Tracking │ personality-v2  │ MIGRATED to v2   │
+ * │ Pattern Detection      │ personality-v2  │ MIGRATED to v2   │
+ * │ Growth Milestones      │ personality-v2  │ MIGRATED to v2   │
+ * │ Callbacks (smile!)     │ human_personality│ UNIQUE HERE      │
+ * │ Moment Sharing         │ human_personality│ UNIQUE HERE      │
+ * │ Semantic Search        │ human_personality│ UNIQUE HERE      │
+ * │ Key Moment Extraction  │ human_personality│ UNIQUE HERE      │
+ * └─────────────────────────────────────────────────────────────┘
  *
  * Philosophy:
  * - Personality through relevance, not repetition
@@ -149,24 +158,23 @@ async function buildHumanPersonalityContext(
   const sharedStories = services?.userProfile?.sharedStories || personalityData.sharedStories || [];
 
   // ============================================================================
-  // 0. TIMING INTELLIGENCE - Always analyze first
+  // 0. TIMING INTELLIGENCE
+  // NOTE: personality-v2 builder (priority 80) now handles timing intelligence
+  // We still analyze for local use but don't inject duplicate guidance
   // ============================================================================
 
   const timing = analyzeMessageTiming(userText, {
     wordCount: userText.split(/\s+/).length,
   });
 
-  // Always inject timing guidance
-  injections.push(
-    createHintInjection('human_personality_timing', formatTimingGuidance(timing), {
-      category: 'personality',
-    })
-  );
-
-  log.debug({ intent: timing.intent, confidence: timing.confidence }, '⏱️ Timing analysis');
+  // Don't inject timing guidance - personality-v2 handles this now
+  // Keep the analysis for local decision-making (e.g., callback timing)
+  log.debug({ intent: timing.intent, confidence: timing.confidence }, '⏱️ Timing analysis (deferred to v2)');
 
   // ============================================================================
-  // 1. RECORD EMOTIONAL DATA (for pattern detection)
+  // 1. EMOTIONAL DATA RECORDING
+  // NOTE: personality-v2 now handles emotional data recording via recordMoment()
+  // We keep the in-memory recording for legacy pattern detection only
   // ============================================================================
 
   // Extract emotion from analysis if available
@@ -174,7 +182,7 @@ async function buildHumanPersonalityContext(
   const emotionalIntensity = analysis?.emotion?.intensity || timing.confidence;
   const detectedTopics = analysis?.topics?.detected || [];
 
-  // Record for pattern detection (in-memory for quick access)
+  // In-memory only (legacy pattern system) - Firestore persistence moved to v2
   recordEmotionalDataPoint(
     userId,
     detectedEmotion,
@@ -183,17 +191,8 @@ async function buildHumanPersonalityContext(
     userText.slice(0, 100)
   );
 
-  // Also persist to Firestore for cross-session patterns (fire and forget)
-  saveEmotionalDataPoint(userId, {
-    timestamp: new Date(),
-    emotion: detectedEmotion,
-    intensity: emotionalIntensity,
-    topics: detectedTopics,
-    context: userText.slice(0, 100),
-  }).catch((err) => {
-    // Non-blocking persistence - log for production monitoring
-    log.warn({ error: String(err) }, 'Emotional data persistence failed (non-critical)');
-  });
+  // NOTE: Firestore persistence is now handled by personality-v2 builder
+  // via service.recordMoment() - removed duplicate persistence here
 
   // ============================================================================
   // 2. CALLBACKS - THE SMILE FACTOR (Highest Priority)
@@ -238,56 +237,20 @@ async function buildHumanPersonalityContext(
   }
 
   // ============================================================================
-  // 3. EMOTIONAL PATTERN INSIGHTS (Superhuman observation)
+  // 3. EMOTIONAL PATTERN INSIGHTS
+  // NOTE: Pattern detection and surfacing migrated to personality-v2
+  // The v2 system uses Clean Architecture with proper persistence
   // ============================================================================
-
-  if (
-    timing.patternInsightAppropriate &&
-    !personalityData.patternInsightThisSession &&
-    relationshipStage !== 'stranger'
-  ) {
-    const patterns = getPatternInsights(userId, { maxCount: 1 });
-
-    if (patterns.length > 0) {
-      injections.push(
-        createHintInjection('human_personality_pattern', formatPatternForPrompt(patterns[0]), {
-          category: 'personality',
-        })
-      );
-
-      if (userData) {
-        (userData as HumanPersonalityUserData).patternInsightThisSession = true;
-      }
-
-      log.info({ pattern: patterns[0].pattern }, '🔮 Pattern insight surfaced');
-    }
-  }
+  // DEFERRED TO personality-v2 builder (priority 80)
+  // personality-v2 handles: pattern detection, evidence tracking, surfacing
 
   // ============================================================================
-  // 4. GROWTH CELEBRATION (Superhuman memory)
+  // 4. GROWTH CELEBRATION
+  // NOTE: Growth tracking and celebration migrated to personality-v2
+  // The v2 system tracks milestones with proper baseline comparison
   // ============================================================================
-
-  if (
-    !personalityData.growthCelebrationThisSession &&
-    relationshipStage !== 'stranger' &&
-    Math.random() < 0.2 // 20% chance per conversation
-  ) {
-    const growthMoments = getGrowthCelebrations(userId, { onlyUnsurfaced: true });
-
-    if (growthMoments.length > 0) {
-      injections.push(
-        createHintInjection('human_personality_growth', formatGrowthForPrompt(growthMoments[0]), {
-          category: 'personality',
-        })
-      );
-
-      if (userData) {
-        (userData as HumanPersonalityUserData).growthCelebrationThisSession = true;
-      }
-
-      log.info({ area: growthMoments[0].area }, '🌱 Growth celebration surfaced');
-    }
-  }
+  // DEFERRED TO personality-v2 builder (priority 80)
+  // personality-v2 handles: milestone creation, progress tracking, celebration timing
 
   // ============================================================================
   // 5. RELEVANT PERSONAL MOMENT (When contextually appropriate)
