@@ -169,6 +169,103 @@ function generateCategoryCSS(categories) {
   return lines.join('\n');
 }
 
+/**
+ * Generate CSS variables for cinematic/storytelling colors
+ */
+function generateCinematicCSS(cinematic) {
+  if (!cinematic) return '';
+  const lines = [];
+  lines.push(':root {');
+  lines.push('  /* Cinematic - Storytelling Colors */');
+
+  // Black variants
+  if (cinematic.black) {
+    for (const [key, value] of Object.entries(cinematic.black)) {
+      if (key.startsWith('_')) continue;
+      lines.push(`  --cinematic-black-${camelToKebab(key)}: ${value};`);
+    }
+  }
+
+  // Text variants
+  if (cinematic.text) {
+    for (const [key, value] of Object.entries(cinematic.text)) {
+      if (key.startsWith('_')) continue;
+      lines.push(`  --cinematic-text-${camelToKebab(key)}: ${value};`);
+    }
+  }
+
+  // Glow variants
+  if (cinematic.glow) {
+    for (const [key, value] of Object.entries(cinematic.glow)) {
+      if (key.startsWith('_')) continue;
+      lines.push(`  --cinematic-glow-${camelToKebab(key)}: ${value};`);
+    }
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/**
+ * Generate CSS variables for gradient system
+ */
+function generateGradientCSS(gradient) {
+  if (!gradient) return '';
+  const lines = [];
+  lines.push(':root {');
+  lines.push('  /* Gradient System */');
+
+  for (const [gradientName, gradientData] of Object.entries(gradient)) {
+    if (gradientName.startsWith('_')) continue;
+    const kebabName = camelToKebab(gradientName);
+
+    if (gradientData.start) {
+      lines.push(`  --gradient-${kebabName}-start: ${gradientData.start};`);
+    }
+    if (gradientData.mid) {
+      lines.push(`  --gradient-${kebabName}-mid: ${gradientData.mid};`);
+    }
+    if (gradientData.end) {
+      lines.push(`  --gradient-${kebabName}-end: ${gradientData.end};`);
+    }
+
+    // Generate the actual gradient CSS
+    if (gradientData.start && gradientData.end) {
+      if (gradientData.mid) {
+        lines.push(`  --gradient-${kebabName}: linear-gradient(180deg, ${gradientData.start} 0%, ${gradientData.mid} 50%, ${gradientData.end} 100%);`);
+      } else {
+        lines.push(`  --gradient-${kebabName}: linear-gradient(180deg, ${gradientData.start} 0%, ${gradientData.end} 100%);`);
+      }
+    }
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
+/**
+ * Generate CSS variables for comparison/feature colors
+ */
+function generateComparisonCSS(comparison) {
+  if (!comparison) return '';
+  const lines = [];
+  lines.push(':root {');
+  lines.push('  /* Comparison Colors - Before/After, Good/Bad */');
+
+  for (const [compType, compData] of Object.entries(comparison)) {
+    if (compType.startsWith('_')) continue;
+    const kebabType = camelToKebab(compType);
+
+    for (const [key, value] of Object.entries(compData)) {
+      if (key.startsWith('_')) continue;
+      lines.push(`  --comparison-${kebabType}-${camelToKebab(key)}: ${value};`);
+    }
+  }
+
+  lines.push('}');
+  return lines.join('\n');
+}
+
 // ============================================================================
 // TYPOGRAPHY CSS GENERATION
 // ============================================================================
@@ -3347,6 +3444,33 @@ function build() {
     output.push('   MARKETPLACE CATEGORY COLORS');
     output.push('   ======================================== */');
     output.push(generateCategoryCSS(colors.categories));
+    output.push('');
+  }
+
+  // Cinematic colors (for hero sections, storytelling)
+  if (colors.cinematic) {
+    output.push('/* ========================================');
+    output.push('   CINEMATIC COLORS (HERO SECTIONS)');
+    output.push('   ======================================== */');
+    output.push(generateCinematicCSS(colors.cinematic));
+    output.push('');
+  }
+
+  // Gradient system
+  if (colors.gradient) {
+    output.push('/* ========================================');
+    output.push('   GRADIENT SYSTEM');
+    output.push('   ======================================== */');
+    output.push(generateGradientCSS(colors.gradient));
+    output.push('');
+  }
+
+  // Comparison colors (before/after, good/bad)
+  if (colors.comparison) {
+    output.push('/* ========================================');
+    output.push('   COMPARISON COLORS');
+    output.push('   ======================================== */');
+    output.push(generateComparisonCSS(colors.comparison));
     output.push('');
   }
 

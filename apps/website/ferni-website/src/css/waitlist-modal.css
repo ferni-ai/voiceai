@@ -192,7 +192,7 @@
 
 .waitlist-modal__subhead {
   font-size: var(--text-lg);
-  color: var(--color-text-secondary, #756a5e);
+  color: var(--color-text-secondary, var(--color-text-dimmed));
   margin: 0 0 var(--space-6, 1.5rem);
   line-height: 1.5;
   max-width: 320px;
@@ -237,14 +237,14 @@
 }
 
 .waitlist-modal__field input.has-error {
-  border-color: var(--color-error, #dc3545);
+  border-color: var(--color-error, var(--color-error));
 }
 
 .waitlist-modal__error {
   display: block;
   margin-top: var(--space-2, 0.5rem);
   font-size: var(--text-sm);
-  color: var(--color-error, #dc3545);
+  color: var(--color-error, var(--color-error));
   text-align: left;
   min-height: 1.2em;
 }
@@ -481,7 +481,7 @@
   }
 
   .waitlist-modal__headline {
-    color: var(--color-text-dark, #f5f5f5);
+    color: var(--color-text-dark, var(--color-paper-light));
   }
 
   .waitlist-modal__close {

@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-30T20:41:00.469Z",
+  "generated": "2026-01-10T19:43:32.079Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
@@ -117,5 +117,30 @@
       "handoff-to-peter.mp3"
     ]
   },
-  "brand": []
+  "brand": [
+    "AI-LANDING-GUIDELINES.md",
+    "BETTER-THAN-HUMAN.md",
+    "BRAND-POSITIONING-EXPLORATION.md",
+    "BRAND-SYSTEM.md",
+    "BRAND-VOICE-GUIDE.md",
+    "COMMUNITY-FUNDED-BRAND-STRATEGY.md",
+    "COMPONENT-DECISION-TREES.md",
+    "FERNI-2025-DESIGN-DIRECTION.md",
+    "FERNI-BRAND-GUIDELINES.md",
+    "FERNI-DATA-VISUALIZATION.md",
+    "FERNI-DESIGN-OPS.md",
+    "FERNI-EMPTY-ERROR-STATES.md",
+    "FERNI-HAPTICS.md",
+    "FERNI-ILLUSTRATION-SYSTEM.md",
+    "FERNI-IMAGERY-GUIDELINES.md",
+    "FERNI-RITUALS.md",
+    "FERNI-SCREEN-GUIDELINES.md",
+    "FERNI-SONIC-IDENTITY.md",
+    "FERNI-SYNESTHESIA.md",
+    "FERNI-UNIVERSE-BIBLE.md",
+    "README.md",
+    "SOUND-ASSET-MANIFEST.md",
+    "SPEAKING-SYSTEM.md",
+    "WINDOW-AVATAR-BRAND-GUIDE.md"
+  ]
 }

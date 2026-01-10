@@ -966,7 +966,7 @@
   .legal-hero__gradient {
     background: 
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(74, 103, 65, 0.15), transparent),
-      linear-gradient(180deg, var(--color-text-primary) 0%, #3a3330 100%);
+      linear-gradient(180deg, var(--color-text-primary) 0%, var(--color-cinematic-deep) 100%);
   }
   
   .legal-hero__pattern {

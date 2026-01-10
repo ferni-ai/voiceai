@@ -186,7 +186,7 @@
   border: none;
   padding: var(--space-2);
   cursor: pointer;
-  color: var(--color-text-muted, #70605a);
+  color: var(--color-text-muted, var(--color-cedar));
   border-radius: var(--radius-sm);
   transition: background 0.2s ease;
 }
@@ -253,7 +253,7 @@
 }
 
 .ferni-chat-panel__action--app:hover {
-  background: var(--color-background-hover, #ebe7df);
+  background: var(--color-background-hover, var(--color-sand-warm));
 }
 
 /* Mobile adjustments */
@@ -485,7 +485,7 @@
   border-radius: var(--radius-xl);
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, var(--color-cedar));
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -549,7 +549,7 @@
 .superpowers__demo-description {
   font-size: var(--text-lg);
   line-height: 1.6;
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, var(--color-cedar));
   margin-bottom: var(--space-6);
 }
 
@@ -754,7 +754,7 @@
 .moment-card__description {
   font-size: var(--text-base);
   line-height: 1.6;
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, var(--color-cedar));
   margin-bottom: var(--space-5);
 }
 
@@ -1424,7 +1424,7 @@
 
 .journey__depth-bar-content {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, var(--color-cedar));
   text-align: center;
 }
 
@@ -1446,7 +1446,7 @@
   background: rgba(74, 103, 65, 0.06);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, var(--color-cedar));
 }
 
 .journey__stage-what-happens strong {
@@ -1486,7 +1486,7 @@
 
 .voice-samples-showcase__subtitle {
   font-size: var(--text-base);
-  color: var(--color-text-muted, #756a5e);
+  color: var(--color-text-muted, var(--color-text-dimmed));
   margin: 0;
 }
 
@@ -1549,7 +1549,7 @@
 
 .voice-sample__topic {
   font-size: var(--text-xs);
-  color: var(--color-text-muted, #756a5e);
+  color: var(--color-text-muted, var(--color-text-dimmed));
 }
 
 .voice-sample__play {
@@ -1608,7 +1608,7 @@
 .voice-sample__a-label {
   font-weight: 600;
   font-style: normal;
-  color: var(--color-text-muted, #756a5e);
+  color: var(--color-text-muted, var(--color-text-dimmed));
   margin-right: 4px;
 }
 
@@ -1682,7 +1682,7 @@
 .voice-sample__transcript {
   margin-top: var(--space-3);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary, #5c544a);
+  color: var(--color-text-secondary, var(--color-text-secondary));
   line-height: 1.5;
   display: none;
 }

@@ -44,7 +44,7 @@
 .footer__subline {
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(0.9375rem, 1.3vw, 1.0625rem);
-  color: var(--color-text-secondary, #5c524a);
+  color: var(--color-text-secondary, var(--color-ink-light));
   margin: 0 0 clamp(20px, 3vw, 28px);
   max-width: 480px;
   margin-left: auto;
@@ -475,7 +475,7 @@
 .footer-team__subtitle {
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(0.875rem, 1.2vw, 1rem);
-  color: var(--color-text-secondary, #5c524a);
+  color: var(--color-text-secondary, var(--color-ink-light));
   margin: 0 0 clamp(28px, 4vw, 40px);
 }
 
@@ -563,31 +563,31 @@
 }
 
 .team-avatar--maya .team-avatar__orb {
-  background: linear-gradient(135deg, var(--color-maya) 0%, #8c6355 100%);
+  background: linear-gradient(135deg, var(--color-maya) 0%, var(--color-maya-muted) 100%);
   color: var(--color-maya);
   box-shadow: 0 4px 16px rgba(166, 122, 106, 0.25);
 }
 
 .team-avatar--peter .team-avatar__orb {
-  background: linear-gradient(135deg, var(--color-peter) 0%, #2d545b 100%);
+  background: linear-gradient(135deg, var(--color-peter) 0%, var(--color-peter-dark) 100%);
   color: var(--color-peter);
   box-shadow: 0 4px 16px rgba(58, 107, 115, 0.25);
 }
 
 .team-avatar--jordan .team-avatar__orb {
-  background: linear-gradient(135deg, var(--color-jordan) 0%, #a86c53 100%);
+  background: linear-gradient(135deg, var(--color-jordan) 0%, var(--color-jordan-muted) 100%);
   color: var(--color-jordan);
   box-shadow: 0 4px 16px rgba(196, 133, 106, 0.25);
 }
 
 .team-avatar--alex .team-avatar__orb {
-  background: linear-gradient(135deg, var(--color-alex) 0%, #47556e 100%);
+  background: linear-gradient(135deg, var(--color-alex) 0%, var(--color-alex-dark) 100%);
   color: var(--color-alex);
   box-shadow: 0 4px 16px rgba(90, 107, 138, 0.25);
 }
 
 .team-avatar--nayan .team-avatar__orb {
-  background: linear-gradient(135deg, var(--color-nayan) 0%, #9c7d55 100%);
+  background: linear-gradient(135deg, var(--color-nayan) 0%, var(--color-jack) 100%);
   color: var(--color-nayan);
   box-shadow: 0 4px 16px rgba(184, 149, 106, 0.25);
 }
@@ -790,7 +790,7 @@
   height: 36px;
   background: rgba(44, 37, 32, 0.06);
   border-radius: var(--radius-md);
-  color: var(--color-text-secondary, #5c524a);
+  color: var(--color-text-secondary, var(--color-ink-light));
   transition: all var(--duration-fast, 150ms) var(--ease-out, ease-out);
 }
 

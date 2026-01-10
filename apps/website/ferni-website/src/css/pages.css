@@ -2095,7 +2095,7 @@ section {
 }
 
 .code-block .comment {
-  color: var(--color-text-muted, #756a5e); /* Accessible muted text */
+  color: var(--color-text-muted, var(--color-text-dimmed)); /* Accessible muted text */
 }
 
 @media (max-width: 768px) {

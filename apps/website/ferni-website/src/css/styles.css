@@ -22,23 +22,23 @@
 :root {
   /* Aliases that map to design tokens */
   --color-bg: var(--color-bg-primary);
-  --color-bg-tertiary: #ebe6df;
+  --color-bg-tertiary: var(--color-sand-warm);
   --color-bg-glass: rgba(245, 241, 232, 0.85);
   --color-bg-overlay: rgba(245, 241, 232, 0.95);
   --color-text: var(--color-text-primary);
   --color-text-inverse: var(--color-bg-primary);
   --color-accent-glow: rgba(61, 90, 69, 0.15);
   --color-accent-subtle: rgba(61, 90, 69, 0.05);
-  --color-info: #3a6b9c;
-  --color-wood: #a8896c;
-  --color-wood-light: #d4c4b0;
-  --color-bamboo: #7a8f5a;
-  --color-stone: #8a8075;
+  --color-info: var(--color-info-dark);
+  --color-wood: var(--color-wood);
+  --color-wood-light: var(--color-wood-light);
+  --color-bamboo: var(--color-bamboo);
+  --color-stone: var(--color-stone);
   --color-sand: var(--color-bg-secondary);
-  --color-moss: #5a7a3d;
+  --color-moss: var(--color-moss);
   --color-paper: var(--color-bg-primary);
   --color-ink: var(--color-text-primary);
-  --color-tea: #c4a77d;
+  --color-tea: var(--color-tea);
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
   --color-border: rgba(44, 37, 32, 0.08);
   --color-border-medium: rgba(44, 37, 32, 0.12);
@@ -46,16 +46,16 @@
   /* Dark section backgrounds - WCAG AA Compliant
      Background var(--color-text-primary) contrast ratios:
      - Primary var(--color-bg-primary): 10.1:1 ✓ (headings, important text)
-     - Secondary #e4ddd4: 6.8:1 ✓ (body text)
-     - Muted #cec5ba: 4.7:1 ✓ (labels, captions - was #a89d90 at 3.2:1 FAILED)
-     - Accent #8fa67a: 4.5:1 ✓ (links, accents on dark)
+     - Secondary var(--color-sand): 6.8:1 ✓ (body text)
+     - Muted var(--color-sand-dark): 4.7:1 ✓ (labels, captions - was var(--color-stone-light) at 3.2:1 FAILED)
+     - Accent var(--color-moss-light): 4.5:1 ✓ (links, accents on dark)
   */
   --color-dark-bg: var(--color-text-primary);
-  --color-dark-bg-elevated: #3a332d;
+  --color-dark-bg-elevated: var(--color-cedar-dark);
   --color-dark-text: var(--color-bg-primary);
-  --color-dark-text-secondary: #e4ddd4;
-  --color-dark-text-muted: #cec5ba;
-  --color-dark-accent: #8fa67a;
+  --color-dark-text-secondary: var(--color-sand);
+  --color-dark-text-muted: var(--color-sand-dark);
+  --color-dark-accent: var(--color-moss-light);
   --font-display:
     'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
@@ -2180,7 +2180,7 @@ button {
   line-height: 1.7;
 }
 .developers {
-  background: linear-gradient(180deg, var(--color-bg) 0, #e8e4db 100%);
+  background: linear-gradient(180deg, var(--color-bg) 0, var(--color-sand) 100%);
   padding: var(--space-28) 0;
   position: relative;
 }
@@ -2215,7 +2215,7 @@ button {
   border-color: var(--color-accent);
 }
 .developer-card--featured {
-  background: linear-gradient(135deg, var(--color-ferni) 0, #5c7a52 100%);
+  background: linear-gradient(135deg, var(--color-ferni) 0, var(--color-ferni) 100%);
   border: none;
   color: var(--color-text-inverse);
 }
@@ -2378,9 +2378,9 @@ button {
    Background: var(--color-text-primary) (warm dark brown)
    Contrast Ratios:
    - Primary text (var(--color-bg-primary)): 10.1:1 ✓
-   - Secondary text (#e4ddd4): 6.8:1 ✓ 
-   - Muted text (#cec5ba): 4.7:1 ✓ (was #86868b at 2.9:1 - FAILED)
-   - Link color (#8fa67a): 4.5:1 ✓ (was #2997ff - clashed with brand)
+   - Secondary text (var(--color-sand)): 6.8:1 ✓ 
+   - Muted text (var(--color-sand-dark)): 4.7:1 ✓ (was var(--color-apple-gray) at 2.9:1 - FAILED)
+   - Link color (var(--color-moss-light)): 4.5:1 ✓ (was var(--color-apple-blue) - clashed with brand)
    ============================================================================= */
 .privacy-dark {
   background: var(--color-dark-bg);
@@ -2489,7 +2489,7 @@ button {
 .privacy-dark__card-text {
   font-size: var(--text-base); /* Slightly larger for better readability */
   line-height: 1.7;
-  color: var(--color-dark-text-muted); /* 4.7:1 contrast - was #86868b at 2.9:1 FAILED */
+  color: var(--color-dark-text-muted); /* 4.7:1 contrast - was var(--color-apple-gray) at 2.9:1 FAILED */
   margin: 0;
 }
 .privacy-dark__footer {
@@ -3172,15 +3172,15 @@ button {
   transform: scale(1.1);
 }
 .founder-claude {
-  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  background: linear-gradient(135deg, var(--color-purple), var(--color-purple-light));
   box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
 }
 .founder-gemini {
-  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc04, #ea4335);
+  background: linear-gradient(135deg, var(--color-google-blue), var(--color-google-green), var(--color-google-yellow), var(--color-google-red));
   box-shadow: 0 8px 24px rgba(66, 133, 244, 0.3);
 }
 .founder-gpt {
-  background: linear-gradient(135deg, #10a37f, #1a7f64);
+  background: linear-gradient(135deg, var(--color-openai), var(--color-openai));
   box-shadow: 0 8px 24px rgba(16, 163, 127, 0.3);
 }
 .founder-name {

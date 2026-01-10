@@ -198,7 +198,7 @@
 }
 
 .persona-voice-input input::placeholder {
-  color: var(--color-text-muted, #70605a);
+  color: var(--color-text-muted, var(--color-cedar));
   font-style: italic;
 }
 

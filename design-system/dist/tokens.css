@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-01-05T10:22:04.366Z
+ * Build: 2026-01-10T19:43:20.136Z
  */
 
 /* ========================================
@@ -89,14 +89,29 @@
   --color-utility-backdrop: rgba(20, 16, 14, 0.7);
   --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
   --color-utility-scrim: rgba(20, 16, 14, 0.85);
+  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
+  --color-natural-cedar-dark: #584840;
   --color-natural-moonlight: #e8e4dc;
   --color-natural-bamboo: #7a8660;
+  --color-natural-bamboo-light: #9aaa80;
   --color-natural-stone: #6b635a;
+  --color-natural-stone-light: #8a8278;
   --color-natural-moss: #5a7040;
+  --color-natural-moss-light: #7a9060;
   --color-natural-paper: #f0ebe2;
+  --color-natural-paper-cream: #faf8f5;
+  --color-natural-paper-sand: #f5f2ed;
   --color-natural-ink: #3a342e;
+  --color-natural-ink-light: #5c544a;
+  --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #2d4a35;
+  --color-natural-warm-amber: #d4a84a;
+  --color-natural-warm-amber-light: #e8c870;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.6);
   color-scheme: dark;
 }
 
@@ -185,14 +200,29 @@
   --color-utility-backdrop: rgba(20, 16, 14, 0.7);
   --color-utility-backdrop-light: rgba(20, 16, 14, 0.5);
   --color-utility-scrim: rgba(20, 16, 14, 0.85);
+  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-cedar: #a08060;
   --color-natural-cedar-light: #c4a882;
+  --color-natural-cedar-dark: #584840;
   --color-natural-moonlight: #e8e4dc;
   --color-natural-bamboo: #7a8660;
+  --color-natural-bamboo-light: #9aaa80;
   --color-natural-stone: #6b635a;
+  --color-natural-stone-light: #8a8278;
   --color-natural-moss: #5a7040;
+  --color-natural-moss-light: #7a9060;
   --color-natural-paper: #f0ebe2;
+  --color-natural-paper-cream: #faf8f5;
+  --color-natural-paper-sand: #f5f2ed;
   --color-natural-ink: #3a342e;
+  --color-natural-ink-light: #5c544a;
+  --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #2d4a35;
+  --color-natural-warm-amber: #d4a84a;
+  --color-natural-warm-amber-light: #e8c870;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.6);
 }
 
 /* Theme: Zen Garden */
@@ -278,15 +308,30 @@
   --color-utility-backdrop: rgba(44, 37, 32, 0.6);
   --color-utility-backdrop-light: rgba(44, 37, 32, 0.4);
   --color-utility-scrim: rgba(44, 37, 32, 0.8);
+  --color-natural-_description: Extended natural palette - Japanese garden, forest, earth tones;
   --color-natural-wood: #a8896c;
   --color-natural-wood-light: #d4c4b0;
+  --color-natural-wood-dark: #8a7060;
   --color-natural-bamboo: #7a8f5a;
+  --color-natural-bamboo-light: #9aaf7a;
   --color-natural-stone: #8a8075;
+  --color-natural-stone-light: #a8a095;
   --color-natural-sand: #e8e0d5;
+  --color-natural-sand-light: #f5f0e8;
   --color-natural-moss: #5a7a3d;
+  --color-natural-moss-light: #7a9a5d;
   --color-natural-paper: #faf8f5;
+  --color-natural-paper-cream: #fffdfb;
+  --color-natural-paper-warm: #f5efe8;
   --color-natural-ink: #2c2520;
+  --color-natural-ink-light: #5c544a;
   --color-natural-tea: #c4a77d;
+  --color-natural-tea-light: #d8c4a0;
+  --color-natural-forest-green: #3d5a45;
+  --color-natural-warm-amber: #a67c35;
+  --color-natural-warm-amber-light: #c49a50;
+  --color-natural-highlight: #fff8e6;
+  --color-natural-highlight-glow: rgba(255, 248, 230, 0.5);
 }
 
 /* ========================================
@@ -462,6 +507,15 @@
   --external-gpt-secondary: #0B7A5E;
   --external-gpt-glow: rgba(16, 163, 127, 0.35);
   --external-gpt-gradient: linear-gradient(135deg, #0B7A5E, #10A37F);
+  --external-google-primary: #4285F4;
+  --external-google-gradient: linear-gradient(135deg, #4285F4, #4285F4);
+  --external-apple-primary: #000000;
+  --external-apple-gradient: linear-gradient(135deg, #000000, #000000);
+  --external-spotify-primary: #1DB954;
+  --external-spotify-secondary: #191414;
+  --external-spotify-gradient: linear-gradient(135deg, #191414, #1DB954);
+  --external-slack-primary: #4A154B;
+  --external-slack-gradient: linear-gradient(135deg, #4A154B, #4A154B);
 }
 
 /* ========================================
@@ -516,6 +570,68 @@
   --category-custom-gradient: linear-gradient(135deg, #736a5a, #8a7a6a);
   --category-custom-text: #8a7a6a;
   --category-custom-tint: rgba(138, 122, 106, 0.4);
+}
+
+/* ========================================
+   CINEMATIC COLORS (HERO SECTIONS)
+   ======================================== */
+:root {
+  /* Cinematic - Storytelling Colors */
+  --cinematic-black-primary: #0a0908;
+  --cinematic-black-deep: #141210;
+  --cinematic-black-rich: #1a1613;
+  --cinematic-text-hero: #ffffff;
+  --cinematic-text-hero-subtle: rgba(255, 255, 255, 0.9);
+  --cinematic-text-hero-muted: rgba(255, 255, 255, 0.7);
+  --cinematic-glow-warm: rgba(212, 168, 74, 0.4);
+  --cinematic-glow-cool: rgba(125, 166, 207, 0.4);
+  --cinematic-glow-magic: rgba(168, 139, 250, 0.35);
+}
+
+/* ========================================
+   GRADIENT SYSTEM
+   ======================================== */
+:root {
+  /* Gradient System */
+  --gradient-hero-light-start: #faf8f5;
+  --gradient-hero-light-end: #f5f2ed;
+  --gradient-hero-light: linear-gradient(180deg, #faf8f5 0%, #f5f2ed 100%);
+  --gradient-hero-dark-start: #584840;
+  --gradient-hero-dark-end: #3a302a;
+  --gradient-hero-dark: linear-gradient(180deg, #584840 0%, #3a302a 100%);
+  --gradient-warm-sunrise-start: #faf8f5;
+  --gradient-warm-sunrise-mid: #f5efe8;
+  --gradient-warm-sunrise-end: #f0ebe4;
+  --gradient-warm-sunrise: linear-gradient(180deg, #faf8f5 0%, #f5efe8 50%, #f0ebe4 100%);
+  --gradient-cool-evening-start: #584840;
+  --gradient-cool-evening-mid: #4a3a35;
+  --gradient-cool-evening-end: #3a2a25;
+  --gradient-cool-evening: linear-gradient(180deg, #584840 0%, #4a3a35 50%, #3a2a25 100%);
+  --gradient-accent-fade-start: rgba(61, 90, 69, 0.12);
+  --gradient-accent-fade-end: rgba(61, 90, 69, 0.02);
+  --gradient-accent-fade: linear-gradient(180deg, rgba(61, 90, 69, 0.12) 0%, rgba(61, 90, 69, 0.02) 100%);
+}
+
+/* ========================================
+   COMPARISON COLORS
+   ======================================== */
+:root {
+  /* Comparison Colors - Before/After, Good/Bad */
+  --comparison-before-background: #f5f2ed;
+  --comparison-before-border: rgba(44, 37, 32, 0.08);
+  --comparison-before-text: #756a5e;
+  --comparison-after-background: rgba(61, 90, 69, 0.06);
+  --comparison-after-border: rgba(61, 90, 69, 0.15);
+  --comparison-after-text: #3D5A45;
+  --comparison-after-glow: rgba(61, 90, 69, 0.12);
+  --comparison-bad-background: rgba(181, 69, 58, 0.06);
+  --comparison-bad-border: rgba(181, 69, 58, 0.15);
+  --comparison-bad-text: #b5453a;
+  --comparison-bad-hover: rgba(181, 69, 58, 0.12);
+  --comparison-good-background: rgba(61, 122, 82, 0.06);
+  --comparison-good-border: rgba(61, 122, 82, 0.15);
+  --comparison-good-text: #3d7a52;
+  --comparison-good-hover: rgba(61, 122, 82, 0.12);
 }
 
 /* ========================================

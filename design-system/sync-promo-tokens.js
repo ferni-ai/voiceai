@@ -57,6 +57,7 @@ function loadJson(filepath) {
 function generateColorVars(colors) {
   const lines = [];
   const zen = colors.themes.zen;
+  const midnight = colors.themes.midnight;
 
   // Background colors
   lines.push('  /* ============================================');
@@ -64,9 +65,25 @@ function generateColorVars(colors) {
   lines.push('     ============================================ */');
   lines.push(`  --color-bg-primary: ${zen.background.primary};`);
   lines.push(`  --color-bg-secondary: ${zen.background.secondary};`);
+  lines.push(`  --color-bg-tertiary: ${zen.background.tertiary};`);
   lines.push(`  --color-bg-elevated: ${zen.background.elevated};`);
   lines.push(`  --color-bg-glass: ${zen.background.glass};`);
   lines.push(`  --color-bg-overlay: ${zen.background.overlay};`);
+  // Aliases for common usage
+  lines.push(`  --color-bg: ${zen.background.primary};`);
+  lines.push(`  --color-bg-surface: ${zen.background.secondary};`);
+  lines.push(`  --color-bg-hover: rgba(44, 37, 32, 0.04);`);
+  lines.push(`  --color-bg-warm: ${zen.background.tertiary};`);
+  lines.push(`  --color-bg-code: #f5f2ed;`);
+  lines.push(`  --color-bg-sage-subtle: rgba(61, 90, 69, 0.04);`);
+  lines.push(`  --color-background: ${zen.background.primary};`);
+  lines.push(`  --color-background-subtle: ${zen.background.secondary};`);
+  lines.push(`  --color-background-muted: ${zen.background.tertiary};`);
+  lines.push(`  --color-background-surface: ${zen.background.secondary};`);
+  lines.push(`  --color-background-elevated: ${zen.background.elevated};`);
+  lines.push(`  --color-background-hover: rgba(44, 37, 32, 0.04);`);
+  lines.push(`  --color-background-deep: #2c2520;`);
+  lines.push(`  --color-elevated: ${zen.background.elevated};`);
   lines.push('');
 
   // Text colors
@@ -78,6 +95,13 @@ function generateColorVars(colors) {
   lines.push(`  --color-text-muted: ${zen.text.muted};`);
   lines.push(`  --color-text-dimmed: ${zen.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${zen.text.inverse};`);
+  // Aliases
+  lines.push(`  --color-text: ${zen.text.primary};`);
+  lines.push(`  --color-text-light: ${zen.text.muted};`);
+  lines.push(`  --color-text-dark: ${zen.text.primary};`);
+  lines.push(`  --color-text-secondary-light: ${zen.text.secondary};`);
+  lines.push(`  --color-text-error: #b5453a;`);
+  lines.push(`  --color-natural-ink: ${zen.natural.ink};`);
   lines.push('');
 
   // Accent colors
@@ -89,6 +113,10 @@ function generateColorVars(colors) {
   lines.push(`  --color-accent-pressed: ${zen.accent.pressed};`);
   lines.push(`  --color-accent-glow: ${zen.accent.glow};`);
   lines.push(`  --color-accent-subtle: ${zen.accent.subtle};`);
+  lines.push(`  --color-accent-light: ${zen.accent.hover};`);
+  lines.push(`  --color-accent-dark: ${zen.accent.pressed};`);
+  lines.push(`  --color-sage: ${zen.accent.primary};`);
+  lines.push(`  --color-sage-dark: ${zen.accent.pressed};`);
   lines.push('');
 
   // Border colors
@@ -112,6 +140,85 @@ function generateColorVars(colors) {
   lines.push(`  --color-warning-bg: ${zen.semantic.warningGlow};`);
   lines.push('');
 
+  // Success/Error extended
+  lines.push(`  --color-success-light: ${colors.personas.ferni.textOnDark || '#a5c99a'};`);
+  lines.push(`  --color-success-dark: #3d7a52;`);
+  lines.push(`  --color-error-dark: #b5453a;`);
+  lines.push(`  --color-error-muted: rgba(181, 69, 58, 0.5);`);
+  lines.push(`  --color-error-warm: #B85C3C;`);
+  lines.push(`  --color-info: ${zen.semantic.info};`);
+  lines.push(`  --color-info-bg: ${zen.semantic.infoGlow};`);
+  lines.push(`  --color-info-dark: #3a6b9c;`);
+  lines.push(`  --color-info-light: #a8b8d8;`);
+  lines.push(`  --color-info-muted: #a0b0c0;`);
+  lines.push('');
+
+  // Border alias
+  lines.push(`  --color-border: ${zen.border.medium};`);
+  lines.push('');
+
+  // Gray scale
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Gray Scale');
+  lines.push('     ============================================ */');
+  lines.push('  --color-gray-100: #eceef2;');
+  lines.push('  --color-gray-300: #D1D1D6;');
+  lines.push('  --color-gray-400: #AEAEB2;');
+  lines.push('  --color-gray-500: #6E6E73;');
+  lines.push('  --color-gray-700: #3A3A3C;');
+  lines.push('  --color-gray-800: #2D3748;');
+  lines.push('  --color-gray-900: #1A252F;');
+  lines.push('');
+
+  // External brand colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - External Brands');
+  lines.push('     ============================================ */');
+  if (colors.external) {
+    if (colors.external.google) {
+      lines.push(`  --color-google-blue: ${colors.external.google.primary};`);
+      lines.push(`  --color-google-red: ${colors.external.google.red};`);
+      lines.push(`  --color-google-yellow: ${colors.external.google.yellow};`);
+      lines.push(`  --color-google-green: ${colors.external.google.green};`);
+    }
+    if (colors.external.apple) {
+      lines.push(`  --color-apple-blue: ${colors.external.apple.blue};`);
+      lines.push(`  --color-apple-gray: ${colors.external.apple.gray};`);
+    }
+    if (colors.external.gpt) {
+      lines.push(`  --color-openai: ${colors.external.gpt.primary};`);
+    }
+  }
+  lines.push(`  --color-purple: #7c3aed;`);
+  lines.push(`  --color-purple-light: #a78bfa;`);
+  lines.push('');
+
+  // Dark Theme / Cedar Night Accents (for dark sections on light pages)
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Dark Theme / Cedar Night Accents');
+  lines.push('     Used for dark sections and dark mode');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-accent-gold: ${midnight.accent.primary};`);
+  lines.push(`  --color-accent-gold-hover: ${midnight.accent.hover};`);
+  lines.push(`  --color-cedar: ${midnight.background.elevated};`);
+  lines.push(`  --color-cedar-dark: ${midnight.background.primary};`);
+  lines.push(`  --color-cedar-deep: #1f1a16;`);
+  lines.push(`  --color-ink-deep: #1a1613;`);
+  // Dark theme background variants
+  lines.push(`  --color-dark-bg: ${midnight.background.primary};`);
+  lines.push(`  --color-dark-bg-elevated: ${midnight.background.elevated};`);
+  lines.push(`  --color-dark-accent: ${midnight.accent.primary};`);
+  lines.push(`  --color-dark-text: ${midnight.text.primary};`);
+  lines.push(`  --color-dark-text-secondary: ${midnight.text.secondary};`);
+  lines.push(`  --color-dark-text-muted: ${midnight.text.muted};`);
+  lines.push(`  --color-dark-gradient-start: ${midnight.background.primary};`);
+  lines.push(`  --color-dark-gradient-mid: #4a3a35;`);
+  lines.push(`  --color-bg-dark: ${midnight.background.primary};`);
+  lines.push(`  --color-bg-dark-elevated: ${midnight.background.elevated};`);
+  lines.push(`  --color-bg-dark-surface: ${midnight.background.secondary};`);
+  lines.push(`  --color-bg-darker: #2a2420;`);
+  lines.push('');
+
   // Persona colors (with theme-aware text variants)
   lines.push('  /* ============================================');
   lines.push('     COLORS - Personas');
@@ -126,8 +233,147 @@ function generateColorVars(colors) {
     lines.push(`  --color-${shortId}-glow: ${persona.glow};`);
     // Theme-aware text color (defaults to primary for light mode)
     lines.push(`  --color-${shortId}-text: ${persona.primary};`);
+    // Add subtle variant if present
+    if (persona.subtle || persona.tint) {
+      lines.push(`  --color-${shortId}-subtle: ${persona.subtle || persona.tint};`);
+    }
+    // Add light variant if present
+    if (persona.light) {
+      lines.push(`  --color-${shortId}-light: ${persona.light};`);
+    }
+    // Add dark variant from secondary
+    lines.push(`  --color-${shortId}-dark: ${persona.secondary};`);
+    // Add muted variant (secondary with opacity for some)
+    if (shortId === 'maya' || shortId === 'jordan') {
+      lines.push(`  --color-${shortId}-muted: ${persona.secondary};`);
+    }
     lines.push('');
   }
+  // Additional persona aliases (Ferni-specific)
+  lines.push(`  --color-ferni-green: ${colors.personas.ferni.primary};`);
+  lines.push(`  --color-ferni-pale: rgba(74, 103, 65, 0.08);`);
+  lines.push(`  --color-ferni-border: rgba(74, 103, 65, 0.15);`);
+  lines.push(`  --color-forest-dark: #1E3D32;`);
+  lines.push(`  --color-gold: #a6854a;`);
+  // Peter-specific
+  lines.push(`  --color-peter-pale: #e8f0f0;`);
+  // Nayan-specific
+  lines.push(`  --color-nayan-light: #e8d0a8;`);
+  // Amara-specific
+  lines.push(`  --color-amara-light: #c0b0d8;`);
+  // Peach colors
+  lines.push(`  --color-peach: #f0c0a0;`);
+  lines.push(`  --color-peach-light: #f0d0a8;`);
+  lines.push(`  --color-peach-warm: #f8b898;`);
+  // Warm white
+  lines.push(`  --color-warm-white: #f2ebe8;`);
+  lines.push('');
+
+  // Natural colors (from zen theme)
+  if (zen.natural) {
+    lines.push('  /* ============================================');
+    lines.push('     COLORS - Natural Palette');
+    lines.push('     Japanese garden inspired earthy tones');
+    lines.push('     ============================================ */');
+    for (const [colorName, colorValue] of Object.entries(zen.natural)) {
+      if (colorName.startsWith('_')) continue;
+      // Convert camelCase to kebab-case
+      const kebabName = colorName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+      lines.push(`  --color-${kebabName}: ${colorValue};`);
+    }
+    lines.push('');
+  }
+
+  // Cinematic colors (for hero sections)
+  if (colors.cinematic) {
+    lines.push('  /* ============================================');
+    lines.push('     COLORS - Cinematic (Hero Sections)');
+    lines.push('     Storytelling and dramatic reveals');
+    lines.push('     ============================================ */');
+    if (colors.cinematic.black) {
+      for (const [key, value] of Object.entries(colors.cinematic.black)) {
+        if (key.startsWith('_')) continue;
+        lines.push(`  --color-cinematic-${key}: ${value};`);
+      }
+    }
+    // Additional cinematic aliases
+    lines.push(`  --color-cinematic-black: ${colors.cinematic.black?.primary || '#0a0908'};`);
+    lines.push(`  --color-cinematic-dark: ${colors.cinematic.black?.deep || '#141210'};`);
+    lines.push(`  --color-cinematic-surface: ${colors.cinematic.black?.rich || '#1a1613'};`);
+    // Cinematic overlays
+    lines.push(`  --color-cinematic-overlay-light: rgba(10, 9, 8, 0.3);`);
+    lines.push(`  --color-cinematic-overlay-medium: rgba(10, 9, 8, 0.5);`);
+    lines.push(`  --color-cinematic-overlay-heavy: rgba(10, 9, 8, 0.7);`);
+    lines.push(`  --color-cinematic-overlay-vignette: radial-gradient(ellipse at center, transparent 40%, rgba(10, 9, 8, 0.4) 100%);`);
+
+    if (colors.cinematic.text) {
+      for (const [key, value] of Object.entries(colors.cinematic.text)) {
+        if (key.startsWith('_')) continue;
+        const kebabKey = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+        lines.push(`  --color-cinematic-text-${kebabKey}: ${value};`);
+      }
+      // Text aliases
+      lines.push(`  --color-cinematic-text: ${colors.cinematic.text?.hero || '#ffffff'};`);
+      lines.push(`  --color-cinematic-text-muted: ${colors.cinematic.text?.heroMuted || 'rgba(255, 255, 255, 0.7)'};`);
+      lines.push(`  --color-cinematic-text-secondary: ${colors.cinematic.text?.heroSubtle || 'rgba(255, 255, 255, 0.9)'};`);
+      lines.push(`  --color-cinematic-text-subtle: rgba(255, 255, 255, 0.6);`);
+    }
+    if (colors.cinematic.glow) {
+      for (const [key, value] of Object.entries(colors.cinematic.glow)) {
+        if (key.startsWith('_')) continue;
+        lines.push(`  --color-cinematic-glow-${key}: ${value};`);
+      }
+    }
+    // Ferni-specific cinematic variants
+    lines.push(`  --color-ferni-cinematic-black: #0a0908;`);
+    lines.push(`  --color-ferni-cinematic-dark: #141210;`);
+    lines.push(`  --color-ferni-cinematic-deep: #1a1613;`);
+    lines.push(`  --color-ferni-cinematic-surface: #1f1a16;`);
+    lines.push(`  --color-ferni-cinematic-elevated: #2a2420;`);
+    lines.push(`  --color-ferni-cinematic-text: #ffffff;`);
+    lines.push(`  --color-ferni-cinematic-text-secondary: rgba(255, 255, 255, 0.9);`);
+    lines.push(`  --color-ferni-cinematic-text-muted: rgba(255, 255, 255, 0.7);`);
+    lines.push(`  --color-ferni-cinematic-text-accent: #e8c870;`);
+    lines.push(`  --color-ferni-overlay-vignette: radial-gradient(ellipse at center, transparent 40%, rgba(10, 9, 8, 0.4) 100%);`);
+    lines.push('');
+  }
+
+  // Comparison colors (for before/after, good/bad features)
+  if (colors.comparison) {
+    lines.push('  /* ============================================');
+    lines.push('     COLORS - Comparison');
+    lines.push('     Before/After, Good/Bad features');
+    lines.push('     ============================================ */');
+    for (const [compType, compData] of Object.entries(colors.comparison)) {
+      if (compType.startsWith('_')) continue;
+      for (const [key, value] of Object.entries(compData)) {
+        if (key.startsWith('_')) continue;
+        lines.push(`  --color-comparison-${compType}-${key}: ${value};`);
+      }
+    }
+    // Shorthand alias
+    lines.push(`  --color-comparison-bad: ${colors.comparison.bad?.background || 'rgba(181, 69, 58, 0.06)'};`);
+    lines.push('');
+  }
+
+  // Extended natural palette additions
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Extended Natural Palette');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-sand-dark: #cec5ba;`);
+  lines.push(`  --color-sand-warm: #ebe6df;`);
+  lines.push(`  --color-stone-dark: #6b635a;`);
+  lines.push(`  --color-paper-light: #f5f5f5;`);
+  lines.push(`  --color-paper-sand: ${zen.natural.paperCream};`);
+  lines.push('');
+
+  // Legacy aliases
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Legacy Aliases');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-jaggi: var(--color-nayan);`);
+  lines.push(`  --color-jaggi-secondary: var(--color-jack);`);
+  lines.push('');
 
   return lines;
 }
