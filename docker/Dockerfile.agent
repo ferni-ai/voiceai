@@ -113,6 +113,10 @@ COPY tsconfig.build.json ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 
+# Cache bust: 2026-01-10-v2 - Force rebuild with new personality infrastructure files
+ARG CACHE_BUST=2026-01-10-v2
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
