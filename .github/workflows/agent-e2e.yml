@@ -65,7 +65,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -112,7 +112,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -154,7 +154,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -186,7 +186,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -226,7 +226,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -264,7 +264,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -321,7 +321,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 10
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
